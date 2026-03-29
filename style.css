@@ -1,10 +1,11 @@
 /* Color Palette */
 :root {
-    --redfin-red: #d32f2f; /* Updated with precise color from provided image */
+    --redfin-red: #d32f2f; /* Precisely matched Redfin Red */
     --premier-beige: #EFECE5;
     --premier-charcoal: #3D3935;
     --white: #ffffff;
     --gold: #F4C150;
+    --featured-highlight: #FDFBFA; /* Very subtle highlight color for event card */
 }
 
 /* Global Styles */
@@ -32,14 +33,20 @@ body {
     flex: 1;
 }
 
-/* Profile Section */
+/* Base Card Styling */
 .profile-card {
-    text-align: center;
     background-color: var(--white);
-    padding: 3rem 2rem;
+    padding: 2rem;
     border-radius: 12px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    margin-bottom: 2rem;
+    margin-bottom: 2rem; /* Consistent spacing between major card elements */
+    overflow: hidden; /* For rounded corners with inner elements */
+}
+
+/* Profile Identity Section */
+.identity {
+    text-align: center;
+    padding-top: 3rem;
 }
 
 .image-wrapper {
@@ -78,7 +85,108 @@ body {
     opacity: 0.8;
 }
 
-/* Stats Section */
+/* Upcoming Event - Featured Section Styles */
+.upcoming-event.featured-offer {
+    border: 1px solid var(--redfin-red);
+    box-shadow: 0 6px 15px rgba(211, 47, 47, 0.1);
+    position: relative;
+    padding-bottom: 2.5rem; /* Space for the button and note */
+    background-color: var(--featured-highlight);
+}
+
+.upcoming-event h2 {
+    text-align: center;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.upcoming-event .event-details-highlight {
+    text-align: center;
+    padding: 1rem;
+    background-color: var(--white);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    border: 1px dashed var(--premier-beige);
+}
+
+.upcoming-event h3 {
+    font-weight: bold;
+    color: var(--redfin-red);
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.event-time-place strong {
+    color: var(--premier-charcoal);
+}
+
+.event-time-place {
+    font-size: 0.95rem;
+    text-align: left;
+    display: inline-block;
+    max-width: fit-content;
+}
+
+.upcoming-event .event-address {
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    display: block;
+    opacity: 0.8;
+}
+
+/* Topics list (01-04) styles */
+.event-topics h4 {
+    text-align: left;
+    margin-bottom: 1rem;
+}
+
+.topic-dl {
+    text-align: left;
+    margin-bottom: 1.5rem;
+}
+
+.topic-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.topic-dl dt {
+    color: var(--redfin-red);
+    font-weight: bold;
+    font-size: 1.2rem;
+    min-width: 2.5ch; /* Align for double digits like '01' */
+    text-align: right;
+}
+
+.topic-dl dd {
+    flex: 1;
+    margin-left: 0;
+    font-size: 0.95rem;
+}
+
+.special-guest {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+/* Event Register Button Notes */
+#event-register-button {
+    max-width: 80%;
+    margin: 0 auto;
+}
+
+.btn-note {
+    font-size: 0.8rem;
+    font-style: italic;
+    opacity: 0.7;
+    margin-top: 0.75rem;
+    text-align: center;
+    color: var(--premier-charcoal);
+}
+
+/* Authority Stats Section */
 .stats-container {
     display: flex;
     justify-content: center;
@@ -112,22 +220,24 @@ body {
     opacity: 0.7;
 }
 
-.contact-info {
+/* Contact Section Styles */
+.contact-section .contact-info {
     margin-bottom: 2rem;
-    font-size: 1rem;
+    font-size: 1.05rem;
+    text-align: center;
 }
 
-.contact-info a {
+.contact-section .contact-info a {
     color: var(--premier-charcoal);
     text-decoration: none;
     font-weight: 500;
 }
 
-.contact-info a:hover {
+.contact-section .contact-info a:hover {
     color: var(--redfin-red);
 }
 
-/* Buttons */
+/* Base Buttons */
 .button-group {
     display: flex;
     flex-direction: column;
@@ -164,27 +274,7 @@ body {
     background-color: #2b2825;
 }
 
-/* Bio Section */
-.bio-section {
-    background-color: var(--white);
-    padding: 2rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    margin-bottom: 2rem;
-}
-
-.bio-section h2 {
-    text-align: center;
-    margin-bottom: 1rem;
-    font-size: 1.5rem;
-}
-
-.bio-section p {
-    text-align: justify;
-    font-size: 0.95rem;
-}
-
-/* Reviews */
+/* Reviews Section */
 .reviews h2 {
     text-align: center;
     margin-bottom: 1.5rem;
@@ -220,7 +310,27 @@ body {
     text-align: right;
 }
 
-/* Footer */
+/* Bio Section */
+.bio-section {
+    background-color: var(--white);
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.bio-section h2 {
+    text-align: center;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.bio-section p {
+    text-align: justify;
+    font-size: 0.95rem;
+}
+
+/* Footer Compliance & Office Info */
 footer {
     width: 100%;
     background-color: var(--premier-charcoal);
