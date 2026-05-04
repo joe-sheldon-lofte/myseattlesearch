@@ -406,34 +406,16 @@ body {
    PROFESSIONALS DIRECTORY STYLES 
    ========================================= */
 
-/* Scrollable Filter Navigation */
+/* The 'Cloud' Navigation Layout for all screen sizes */
 .filter-nav-container {
     margin-bottom: 2rem;
-    position: relative;
-}
-
-.filter-nav-container::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 30px;
-    background: linear-gradient(to right, transparent, var(--premier-beige));
-    pointer-events: none;
 }
 
 .filter-nav {
     display: flex;
+    flex-wrap: wrap; /* This creates the "cloud" effect */
+    justify-content: center; /* Centers the buttons nicely */
     gap: 0.75rem;
-    overflow-x: auto;
-    padding-bottom: 1rem;
-    -webkit-overflow-scrolling: touch; 
-    scrollbar-width: none; 
-}
-
-.filter-nav::-webkit-scrollbar {
-    display: none; 
 }
 
 .filter-btn {
@@ -445,7 +427,6 @@ body {
     font-size: 0.9rem;
     font-weight: bold;
     cursor: pointer;
-    white-space: nowrap; 
     transition: all 0.2s ease;
 }
 
@@ -455,10 +436,10 @@ body {
     border-color: var(--redfin-red);
 }
 
-/* Professionals Grid - Redesigned to auto-flow and never stretch too far! */
+/* Professionals Grid - Auto-flows perfectly on all screen sizes! */
 .pro-grid {
     display: grid;
-    /* This automatically creates as many 280px+ columns as will fit */
+    /* Automatically creates as many 280px+ columns as will fit */
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.5rem;
 }
@@ -511,7 +492,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    /* This magically pushes the contact info to the very bottom of the card! */
+    /* Magically pushes the contact info to the very bottom of the card! */
     margin-top: auto;
     padding-top: 1.5rem;
 }
@@ -590,17 +571,5 @@ footer {
 
     .host-card {
         flex: 1;
-    }
-
-    /* Professionals Page: Fix the Filter Navigation for Desktop! */
-    .filter-nav {
-        flex-wrap: wrap;
-        justify-content: center;
-        overflow-x: visible; /* Removes horizontal scroll */
-        padding-bottom: 0;
-    }
-    
-    .filter-nav-container::after {
-        display: none; /* Removes the fading edge effect */
     }
 }
