@@ -243,7 +243,7 @@ body {
 }
 
 /* =========================================
-   NEW: EVENTS PAGE STYLES 
+   EVENTS PAGE STYLES 
    ========================================= */
 
 .events-header {
@@ -402,6 +402,148 @@ body {
     color: var(--redfin-red);
 }
 
+/* =========================================
+   PROFESSIONALS DIRECTORY STYLES 
+   ========================================= */
+
+.pro-page .container {
+    max-width: 800px; /* slightly wider for the grid */
+}
+
+/* Scrollable Filter Navigation */
+.filter-nav-container {
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.filter-nav-container::after {
+    /* Gradient fade on the right to indicate scrolling */
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 30px;
+    background: linear-gradient(to right, transparent, var(--premier-beige));
+    pointer-events: none;
+}
+
+.filter-nav {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 1rem; /* Space for scrollbar if visible */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    scrollbar-width: none; /* Firefox */
+}
+
+.filter-nav::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
+}
+
+.filter-btn {
+    background-color: var(--white);
+    border: 1px solid #ccc;
+    color: var(--premier-charcoal);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap; /* Keep text on one line */
+    transition: all 0.2s ease;
+}
+
+.filter-btn.active, .filter-btn:hover {
+    background-color: var(--redfin-red);
+    color: var(--white);
+    border-color: var(--redfin-red);
+}
+
+/* Professionals Grid */
+.pro-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+.pro-card {
+    background-color: var(--white);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    display: block; /* Initially show all, JS will toggle this */
+    animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.pro-header {
+    margin-bottom: 1rem;
+}
+
+.pro-category-tag {
+    display: inline-block;
+    background-color: var(--premier-beige);
+    color: var(--redfin-red);
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+}
+
+.pro-name {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.pro-company {
+    font-size: 1rem;
+    color: var(--premier-charcoal);
+    opacity: 0.8;
+    margin-bottom: 1.5rem;
+}
+
+.joes-note {
+    background-color: var(--featured-highlight);
+    border-left: 3px solid var(--gold);
+    padding: 1rem;
+    font-size: 0.95rem;
+    font-style: italic;
+    margin-bottom: 1.5rem;
+    border-radius: 0 4px 4px 0;
+}
+
+.joes-note strong {
+    font-style: normal;
+    color: var(--premier-charcoal);
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.pro-contact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.pro-link {
+    color: var(--premier-charcoal);
+    text-decoration: none;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+}
+
+.pro-link:hover {
+    color: var(--redfin-red);
+}
+
 /* Footer Compliance & Office Info */
 footer {
     width: 100%;
@@ -416,7 +558,7 @@ footer {
     max-width: 130px;
     margin: 0 auto 1rem auto;
     display: block;
-    filter: brightness(0) invert(1); /* Turns the logo white for the dark footer */
+    filter: brightness(0) invert(1);
 }
 
 .office-address {
@@ -429,5 +571,11 @@ footer {
 @media (min-width: 480px) {
     .schedule-item {
         flex-direction: row;
+    }
+}
+
+@media (min-width: 768px) {
+    .pro-grid {
+        grid-template-columns: 1fr 1fr;
     }
 }
