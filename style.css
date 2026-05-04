@@ -406,10 +406,6 @@ body {
    PROFESSIONALS DIRECTORY STYLES 
    ========================================= */
 
-.pro-page .container {
-    max-width: 800px; /* slightly wider for the grid */
-}
-
 /* Scrollable Filter Navigation */
 .filter-nav-container {
     margin-bottom: 2rem;
@@ -417,7 +413,6 @@ body {
 }
 
 .filter-nav-container::after {
-    /* Gradient fade on the right to indicate scrolling */
     content: '';
     position: absolute;
     top: 0;
@@ -432,13 +427,13 @@ body {
     display: flex;
     gap: 0.75rem;
     overflow-x: auto;
-    padding-bottom: 1rem; /* Space for scrollbar if visible */
-    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-    scrollbar-width: none; /* Firefox */
+    padding-bottom: 1rem;
+    -webkit-overflow-scrolling: touch; 
+    scrollbar-width: none; 
 }
 
 .filter-nav::-webkit-scrollbar {
-    display: none; /* Safari and Chrome */
+    display: none; 
 }
 
 .filter-btn {
@@ -450,7 +445,7 @@ body {
     font-size: 0.9rem;
     font-weight: bold;
     cursor: pointer;
-    white-space: nowrap; /* Keep text on one line */
+    white-space: nowrap; 
     transition: all 0.2s ease;
 }
 
@@ -460,10 +455,11 @@ body {
     border-color: var(--redfin-red);
 }
 
-/* Professionals Grid */
+/* Professionals Grid - Redesigned to auto-flow and never stretch too far! */
 .pro-grid {
     display: grid;
-    grid-template-columns: 1fr;
+    /* This automatically creates as many 280px+ columns as will fit */
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.5rem;
 }
 
@@ -472,7 +468,9 @@ body {
     border-radius: 12px;
     padding: 2rem;
     box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    display: block; /* Initially show all, JS will toggle this */
+    /* Flex column setup forces all cards to stretch evenly */
+    display: flex;
+    flex-direction: column;
     animation: fadeIn 0.4s ease-in-out;
 }
 
@@ -509,27 +507,13 @@ body {
     margin-bottom: 1.5rem;
 }
 
-.joes-note {
-    background-color: var(--featured-highlight);
-    border-left: 3px solid var(--gold);
-    padding: 1rem;
-    font-size: 0.95rem;
-    font-style: italic;
-    margin-bottom: 1.5rem;
-    border-radius: 0 4px 4px 0;
-}
-
-.joes-note strong {
-    font-style: normal;
-    color: var(--premier-charcoal);
-    display: block;
-    margin-bottom: 0.25rem;
-}
-
 .pro-contact {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    /* This magically pushes the contact info to the very bottom of the card! */
+    margin-top: auto;
+    padding-top: 1.5rem;
 }
 
 .pro-link {
@@ -567,15 +551,56 @@ footer {
     line-height: 1.4;
 }
 
-/* Media Queries for slightly larger screens */
+/* =========================================
+   DESKTOP & TABLET MEDIA QUERIES 
+   ========================================= */
+
 @media (min-width: 480px) {
     .schedule-item {
         flex-direction: row;
     }
 }
 
+/* Tablet / Standard Desktop View */
 @media (min-width: 768px) {
-    .pro-grid {
+    /* Allow the sub-pages to stretch nicely */
+    .pro-page .container,
+    .events-page .container {
+        max-width: 1000px; 
+    }
+    
+    /* Center the buttons on the home page so they aren't massive */
+    .button-group {
+        max-width: 450px;
+        margin: 0 auto;
+    }
+
+    /* Events Page: Convert Schedule to 2 columns */
+    .schedule-list {
+        display: grid;
         grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    /* Events Page: Convert Hosts to a side-by-side row */
+    .hosts-grid {
+        flex-direction: row;
+        justify-content: center;
+    }
+
+    .host-card {
+        flex: 1;
+    }
+
+    /* Professionals Page: Fix the Filter Navigation for Desktop! */
+    .filter-nav {
+        flex-wrap: wrap;
+        justify-content: center;
+        overflow-x: visible; /* Removes horizontal scroll */
+        padding-bottom: 0;
+    }
+    
+    .filter-nav-container::after {
+        display: none; /* Removes the fading edge effect */
     }
 }
