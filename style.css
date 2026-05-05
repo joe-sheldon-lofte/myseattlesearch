@@ -173,23 +173,27 @@ body {
     opacity: 1;
 }
 
+/* The rock-solid fix: force the wrapper link to be exactly 36x36 */
 .menu-socials a {
     color: var(--redfin-red);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     transition: opacity 0.2s ease;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
 }
 
 .menu-socials a:hover {
     opacity: 0.7;
 }
 
+/* Make the SVG fill that rigid 36x36 wrapper */
 .social-icon {
-    width: 36px;
-    height: 36px;
-    min-width: 36px; /* Forces it to stay true to size */
-    flex-shrink: 0;  /* Tells the browser NEVER to squish this */
+    width: 100%;
+    height: 100%;
+    display: block;
     fill: currentColor; 
 }
 
