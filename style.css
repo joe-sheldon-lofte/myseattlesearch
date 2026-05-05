@@ -406,7 +406,6 @@ body {
    PROFESSIONALS DIRECTORY STYLES 
    ========================================= */
 
-/* The 'Cloud' Navigation Layout for ALL screen sizes */
 .filter-nav-container {
     margin-bottom: 2rem;
     width: 100%;
@@ -414,8 +413,8 @@ body {
 
 .filter-nav {
     display: flex;
-    flex-wrap: wrap; /* This forces the "cloud" effect so buttons wrap to the next line */
-    justify-content: center; /* Centers the buttons nicely */
+    flex-wrap: wrap; 
+    justify-content: center; 
     gap: 0.75rem;
     width: 100%;
 }
@@ -439,10 +438,8 @@ body {
     border-color: var(--redfin-red);
 }
 
-/* Professionals Grid - Auto-flows perfectly on all screen sizes! */
 .pro-grid {
     display: grid;
-    /* Automatically creates as many 280px+ columns as will fit */
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.5rem;
 }
@@ -452,7 +449,6 @@ body {
     border-radius: 12px;
     padding: 2rem;
     box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    /* Flex column setup forces all cards to stretch evenly */
     display: flex;
     flex-direction: column;
     animation: fadeIn 0.4s ease-in-out;
@@ -495,7 +491,6 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    /* Magically pushes the contact info to the very bottom of the card! */
     margin-top: auto;
     padding-top: 1.5rem;
 }
@@ -511,6 +506,82 @@ body {
 .pro-link:hover {
     color: var(--redfin-red);
 }
+
+/* =========================================
+   CURATED SEARCHES PAGE STYLES 
+   ========================================= */
+
+.searches-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    width: 100%;
+}
+
+.search-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    height: 250px;
+    border-radius: 12px;
+    overflow: hidden;
+    text-decoration: none;
+    background-size: cover;
+    background-position: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.search-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+}
+
+/* The dark gradient overlay makes the white text readable on any photo */
+.search-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 60%, rgba(0,0,0,0) 100%);
+    z-index: 1;
+}
+
+.search-content {
+    position: relative;
+    z-index: 2;
+    padding: 1.5rem;
+    color: var(--white);
+}
+
+.search-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.search-desc {
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+    opacity: 0.9;
+    line-height: 1.4;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.search-action {
+    display: inline-block;
+    font-weight: bold;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--white);
+    border-bottom: 2px solid var(--redfin-red);
+    padding-bottom: 2px;
+}
+
 
 /* Footer Compliance & Office Info */
 footer {
@@ -549,7 +620,8 @@ footer {
 @media (min-width: 768px) {
     /* Allow the sub-pages to stretch nicely */
     .pro-page .container,
-    .events-page .container {
+    .events-page .container,
+    .searches-page .container {
         max-width: 1000px; 
     }
     
@@ -574,5 +646,10 @@ footer {
 
     .host-card {
         flex: 1;
+    }
+    
+    /* Searches Page: Convert to 2-column grid */
+    .searches-grid {
+        grid-template-columns: 1fr 1fr;
     }
 }
