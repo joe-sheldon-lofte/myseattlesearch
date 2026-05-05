@@ -4,9 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Joe Sheldon | Redfin Senior Agent</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
+
+    <header class="main-header">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">Joe Sheldon</a>
+            <button class="hamburger" id="hamburgerMenu" aria-label="Toggle Menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
+        </div>
+        
+        <nav class="fullscreen-menu" id="navMenu">
+            <ul class="menu-links">
+                <li><a href="index.html">Home / Profile</a></li>
+                <li><a href="searches.html">Curated Searches</a></li>
+                <li><a href="events.html">Classes & Events</a></li>
+                <li><a href="professionals.html">Preferred Professionals</a></li>
+            </ul>
+        </nav>
+    </header>
 
     <main class="container">
         <section class="profile-card">
@@ -35,9 +55,9 @@
             </div>
 
             <div class="button-group">
-                <a href="professionals.html" class="btn btn-primary" style="background-color: var(--premier-charcoal);">My Preferred Professionals</a>
-                <a href="https://www.redfin.com/real-estate-agents/joe-sheldon?loyalty=true" class="btn btn-primary" target="_blank">View My Redfin Profile</a>
-                <a href="https://www.instagram.com/seattlespremieragent" class="btn btn-secondary" target="_blank">Follow on Instagram</a>
+                <a href="searches.html" class="btn btn-primary" style="background-color: var(--premier-charcoal);">Curated Home Searches</a>
+                <a href="professionals.html" class="btn btn-secondary">My Preferred Professionals</a>
+                <a href="https://www.redfin.com/real-estate-agents/joe-sheldon?loyalty=true" class="btn btn-secondary" target="_blank">View My Redfin Profile</a>
             </div>
         </section>
 
@@ -83,5 +103,24 @@
         </div>
     </footer>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const hamburger = document.getElementById('hamburgerMenu');
+            const navMenu = document.getElementById('navMenu');
+            const body = document.body;
+
+            hamburger.addEventListener('click', () => {
+                hamburger.classList.toggle('active');
+                navMenu.classList.toggle('active');
+                
+                // Prevent scrolling on the main page when menu is open
+                if(navMenu.classList.contains('active')) {
+                    body.style.overflow = 'hidden';
+                } else {
+                    body.style.overflow = 'auto';
+                }
+            });
+        });
+    </script>
 </body>
 </html>
