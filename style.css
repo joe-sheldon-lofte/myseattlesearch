@@ -24,7 +24,132 @@ body {
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
+    padding-top: 70px; /* Space for the fixed header menu */
 }
+
+/* =========================================
+   HAMBURGER NAVIGATION STYLES 
+   ========================================= */
+
+.main-header {
+    width: 100%;
+    background-color: var(--white);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+}
+
+.nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 1rem 1.5rem;
+}
+
+.nav-brand {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--premier-charcoal);
+    text-decoration: none;
+    letter-spacing: -0.5px;
+}
+
+.hamburger {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 1001; /* Keeps it above the overlay */
+}
+
+.hamburger .bar {
+    display: block;
+    width: 25px;
+    height: 3px;
+    background-color: var(--premier-charcoal);
+    transition: all 0.3s ease-in-out;
+    border-radius: 3px;
+}
+
+/* Hamburger Animation */
+.hamburger.active .bar:nth-child(1) {
+    transform: translateY(9px) rotate(45deg);
+}
+
+.hamburger.active .bar:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger.active .bar:nth-child(3) {
+    transform: translateY(-9px) rotate(-45deg);
+}
+
+/* Fullscreen Overlay Menu */
+.fullscreen-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background-color: var(--white);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease-in-out;
+    z-index: 999;
+}
+
+.fullscreen-menu.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.menu-links {
+    list-style: none;
+    text-align: center;
+}
+
+.menu-links li {
+    margin: 1.5rem 0;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.4s ease-in-out;
+}
+
+.fullscreen-menu.active .menu-links li {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* Stagger the animation of the links */
+.fullscreen-menu.active .menu-links li:nth-child(1) { transition-delay: 0.1s; }
+.fullscreen-menu.active .menu-links li:nth-child(2) { transition-delay: 0.15s; }
+.fullscreen-menu.active .menu-links li:nth-child(3) { transition-delay: 0.2s; }
+.fullscreen-menu.active .menu-links li:nth-child(4) { transition-delay: 0.25s; }
+
+.menu-links a {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--premier-charcoal);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.menu-links a:hover {
+    color: var(--redfin-red);
+}
+
+/* =========================================
+   BASE PROFILE LAYOUT STYLES 
+   ========================================= */
 
 .container {
     width: 100%;
@@ -33,7 +158,6 @@ body {
     flex: 1;
 }
 
-/* Base Card Styling */
 .profile-card {
     background-color: var(--white);
     padding: 3rem 2rem;
@@ -44,7 +168,6 @@ body {
     text-align: center;
 }
 
-/* Events Promo on Index */
 .events-promo {
     padding: 2rem;
     border: 1px solid var(--redfin-red);
@@ -55,7 +178,6 @@ body {
     margin-bottom: 0.5rem;
 }
 
-/* Images & Branding */
 .image-wrapper {
     width: 150px;
     height: 150px;
@@ -92,7 +214,6 @@ body {
     opacity: 0.8;
 }
 
-/* Authority Stats Section */
 .stats-container {
     display: flex;
     justify-content: center;
@@ -126,7 +247,6 @@ body {
     opacity: 0.7;
 }
 
-/* Contact Info Styles */
 .contact-info {
     margin-bottom: 2rem;
     font-size: 1.05rem;
@@ -143,7 +263,6 @@ body {
     color: var(--redfin-red);
 }
 
-/* Base Buttons */
 .button-group {
     display: flex;
     flex-direction: column;
@@ -186,7 +305,6 @@ body {
     background-color: #2b2825;
 }
 
-/* Reviews Section */
 .reviews h2 {
     text-align: center;
     margin-bottom: 1.5rem;
@@ -222,7 +340,6 @@ body {
     text-align: right;
 }
 
-/* Bio Section */
 .bio-section {
     background-color: var(--white);
     padding: 2rem;
@@ -538,7 +655,6 @@ body {
     box-shadow: 0 8px 25px rgba(0,0,0,0.2);
 }
 
-/* The dark gradient overlay makes the white text readable on any photo */
 .search-overlay {
     position: absolute;
     top: 0;
@@ -582,7 +698,6 @@ body {
     padding-bottom: 2px;
 }
 
-
 /* Footer Compliance & Office Info */
 footer {
     width: 100%;
@@ -618,27 +733,23 @@ footer {
 
 /* Tablet / Standard Desktop View */
 @media (min-width: 768px) {
-    /* Allow the sub-pages to stretch nicely */
     .pro-page .container,
     .events-page .container,
     .searches-page .container {
         max-width: 1000px; 
     }
     
-    /* Center the buttons on the home page so they aren't massive */
     .button-group {
         max-width: 450px;
         margin: 0 auto;
     }
 
-    /* Events Page: Convert Schedule to 2 columns */
     .schedule-list {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 1rem;
     }
 
-    /* Events Page: Convert Hosts to a side-by-side row */
     .hosts-grid {
         flex-direction: row;
         justify-content: center;
@@ -648,8 +759,11 @@ footer {
         flex: 1;
     }
     
-    /* Searches Page: Convert to 2-column grid */
     .searches-grid {
         grid-template-columns: 1fr 1fr;
+    }
+    
+    .menu-links a {
+        font-size: 2.5rem;
     }
 }
