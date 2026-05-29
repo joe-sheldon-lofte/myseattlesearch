@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Preferred Professionals | Joe Sheldon</title>
-    <link rel="stylesheet" href="style.css?v=18">
+    <link rel="stylesheet" href="style.css?v=19">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
 <body class="pro-page">
@@ -93,8 +93,8 @@
             // Helper to make clean slugs for our categories
             const slugify = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
-            // Fetch and parse the CSV
-            Papa.parse("Vendors.csv", {
+            // Fetch and parse the CSV (updated filename to lowercase vendors.csv)
+            Papa.parse("vendors.csv", {
                 download: true,
                 header: true,
                 skipEmptyLines: true,
@@ -137,7 +137,8 @@
                             website = 'https://' + website;
                         }
 
-                        const serviceArea = row['Service Area'] ? row['Service Area'].trim() : '';
+                        // Updated to pull from 'Additional Info' column exactly as requested
+                        const additionalInfo = row['Additional Info'] ? row['Additional Info'].trim() : '';
 
                         // Build the card HTML
                         let card = `<div class="pro-card" data-category="${catSlug}">
@@ -149,8 +150,9 @@
                         if (company) {
                             card += `<p class="pro-company">${company}</p>`;
                         }
-                        if (serviceArea) {
-                            card += `<p class="pro-area">Serves: ${serviceArea}</p>`;
+                        if (additionalInfo) {
+                            // Outputs exactly what you typed into the column, no extra text
+                            card += `<p class="pro-area">${additionalInfo}</p>`;
                         }
                         
                         card += `<div class="pro-contact">`;
