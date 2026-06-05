@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Market Insights | Joe Sheldon</title>
+    <link rel="stylesheet" href="style.css?v=21">
+    
+    <!-- PapaParse for parsing the live CSV feeds -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- Chart.js for the interactive visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="stats-page">
+
+    <!-- Hamburger Menu Navigation -->
+    <header class="main-header">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">Joe Sheldon</a>
+            <button class="hamburger" id="hamburgerMenu" aria-label="Toggle Menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
+        </div>
+        
+        <nav class="fullscreen-menu" id="navMenu">
+            <div class="menu-content-wrapper">
+                <ul class="menu-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="searches.html">Curated Searches</a></li>
+                    <li><a href="stats.html">Market Insights</a></li>
+                    <li><a href="events.html">Classes & Events</a></li>
+                    <li><a href="professionals.html">Preferred Professionals</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container" style="max-width: 1000px;">
+        
+        <div class="events-header">
+            <h1 style="margin-top: 1rem;">Local Market Insights</h1>
+            <p class="intro">Real-time data and historical trends for the Pacific Northwest.</p>
+        </div>
+
+        <!-- City Selector (Dynamically populated) -->
+        <div class="filter-nav-container">
+            <div class="filter-nav" id="citySelector">
+                <!-- Buttons will load here -->
+                <p>Loading market data...</p>
+            </div>
+        </div>
+
+        <div id="dashboardContent" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
+            
+            <h2 id="currentCityTitle" style="text-align: center; margin-bottom: 1.5rem; color: var(--redfin-red);">City Data</h2>
+
+            <!-- 7-Day Live Snapshot Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h4>New Listings</h4>
+                    <div class="stat-value" id="valNewListings">--</div>
+                    <div class="stat-label">Last 7 Days</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Pending</h4>
+                    <div class="stat-value" id="valPending">--</div>
+                    <div class="stat-label">Last 7 Days</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Sold</h4>
+                    <div class="stat-value" id="valSold">--</div>
+                    <div class="stat-label">Last 7 Days</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Avg New Price</h4>
+                    <div class="stat-value" id="valAvgPrice">--</div>
+                    <div class="stat-label">Last 7 Days</div>
+                </div>
+            </div>
+
+            <!-- Historical Charts -->
+            <div class="charts-container">
+                <div class="chart-box">
+                    <h3>Market Velocity</h3>
+                    <p class="chart-desc">Historical trend of listings hitting the market vs. going pending.</p>
+                    <canvas id="velocityChart"></canvas>
+                </div>
+                
+                <div class="chart-box">
+                    <h3>Pricing Trends & Drops</h3>
+                    <p class="chart-desc">Average new list price alongside total weekly price reductions.</p>
+                    <canvas id="pricingChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="pro-tip-box" style="margin-top: 2rem;">
+                <strong>💡 What Pros Know:</strong> 
+                The numbers update in real-time, but remember that real estate is hyper-local. A house with the right layout in the right neighborhood will still sell instantly, even in a "slow" market!
+            </div>
+            
+        </div>
+        
+    </main>
+
+    <!-- Data Engine & Chart Binding Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Hamburger logic
+            const hamburger = document.getElementById('hamburgerMenu');
+            const navMenu = document.getElementById('navMenu');
+            hamburger.addEventListener('click', () => {
+                hamburger.classList.toggle('active');
+                navMenu.classList.toggle('active');
+                document.body.style.overflow = navMenu.classList.contains('active') ? 'hidden' : 'auto';
+            });
+
+            // Data Pipeline URLs
+            const urlSnapshot = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=701119614&single=true&output=csv';
+            const urlHistorical = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1473136505&single=true&output=csv';
+
+            // Global State Variables
+            let snapshotData = [];
+            let historicalData = [];
+            let velocityChartInstance = null;
+            let pricingChartInstance = null;
+
+            // Helper: Clean currency and commas into floats
+            const cleanNum = (str) => {
+                if (!str) return 0;
+                return parseFloat(str.replace(/[^0-9.-]+/g, "")) || 0;
+            };
+
+            // Helper: Format as Currency
+            const formatCurrency = (num) => {
+                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+            };
+
+            // 1. Fetch CSV Data Promises
+            const fetchCSV = (url) => {
+                return new Promise((resolve) => {
+                    Papa.parse(url, {
+                        download: true,
+                        header: true,
+                        skipEmptyLines: true,
+                        complete: function(results) { resolve(results.data); }
+                    });
+                });
+            };
+
+            // 2. Initialize App
+            Promise.all([fetchCSV(urlSnapshot), fetchCSV(urlHistorical)]).then(values => {
+                snapshotData = values[0];
+                historicalData = values[1];
+                
+                // Extract unique cities from the snapshot data and sort alphabetically
+                let cities = [...new Set(snapshotData.map(row => row.City ? row.City.trim() : ''))].filter(Boolean).sort();
+                
+                buildCitySelector(cities);
+                
+                // Load the first city automatically
+                if (cities.length > 0) {
+                    updateDashboard(cities[0]);
+                }
+            });
+
+            // 3. Build Dynamic Selector
+            const buildCitySelector = (cities) => {
+                const selector = document.getElementById('citySelector');
+                let html = '';
+                cities.forEach((city, index) => {
+                    html += `<button class="filter-btn ${index === 0 ? 'active' : ''}" data-city="${city}">${city}</button>`;
+                });
+                selector.innerHTML = html;
+
+                // Add Click Listeners
+                const btns = document.querySelectorAll('#citySelector .filter-btn');
+                btns.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        btns.forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        updateDashboard(e.target.getAttribute('data-city'));
+                    });
+                });
+            };
+
+            // 4. Update the Dashboard UI & Charts
+            const updateDashboard = (city) => {
+                document.getElementById('dashboardContent').style.display = 'block';
+                setTimeout(() => document.getElementById('dashboardContent').style.opacity = '1', 50);
+                
+                document.getElementById('currentCityTitle').textContent = `${city} Market Snapshot`;
+
+                // --- UPDATE SNAPSHOT CARDS ---
+                const citySnap = snapshotData.find(row => row.City && row.City.trim() === city) || {};
+                
+                document.getElementById('valNewListings').textContent = cleanNum(citySnap['New Listings']);
+                document.getElementById('valPending').textContent = cleanNum(citySnap['Pending']);
+                document.getElementById('valSold').textContent = cleanNum(citySnap['Sold']);
+                document.getElementById('valAvgPrice').textContent = formatCurrency(cleanNum(citySnap['Avg New Price']));
+
+                // --- FILTER HISTORICAL DATA ---
+                const cityHistory = historicalData
+                    .filter(row => row.City && row.City.trim() === city)
+                    .sort((a, b) => new Date(a.Timestamp) - new Date(b.Timestamp)); // Sort chronologically
+
+                const labels = cityHistory.map(row => {
+                    const d = new Date(row.Timestamp);
+                    return `${d.getMonth()+1}/${d.getDate()}`; // MM/DD format
+                });
+                
+                const histNew = cityHistory.map(row => cleanNum(row['New Listings']));
+                const histPending = cityHistory.map(row => cleanNum(row['Pending']));
+                const histSold = cityHistory.map(row => cleanNum(row['Sold']));
+                const histAvgPrice = cityHistory.map(row => cleanNum(row['Avg New Price']));
+                const histPriceDrops = cityHistory.map(row => cleanNum(row['Price Drops']));
+
+                // --- RENDER VELOCITY CHART ---
+                if (velocityChartInstance) velocityChartInstance.destroy();
+                const ctxVel = document.getElementById('velocityChart').getContext('2d');
+                velocityChartInstance = new Chart(ctxVel, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'New Listings', data: histNew, borderColor: '#3D3935', backgroundColor: '#3D3935', tension: 0.3 },
+                            { label: 'Pending', data: histPending, borderColor: '#d32f2f', backgroundColor: '#d32f2f', tension: 0.3 },
+                            { label: 'Sold', data: histSold, backgroundColor: '#e0e0e0', borderColor: '#e0e0e0', borderDash: [5, 5], tension: 0.3 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { position: 'bottom' } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+
+                // --- RENDER PRICING CHART (Combo Chart) ---
+                if (pricingChartInstance) pricingChartInstance.destroy();
+                const ctxPrice = document.getElementById('pricingChart').getContext('2d');
+                pricingChartInstance = new Chart(ctxPrice, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { 
+                                type: 'line', 
+                                label: 'Avg New Price ($)', 
+                                data: histAvgPrice, 
+                                borderColor: '#F4C150', 
+                                backgroundColor: '#F4C150', 
+                                yAxisID: 'y'
+                            },
+                            { 
+                                type: 'bar', 
+                                label: '# of Price Drops', 
+                                data: histPriceDrops, 
+                                backgroundColor: '#d32f2f', 
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { position: 'bottom' } },
+                        scales: {
+                            y: { 
+                                type: 'linear', 
+                                display: true, 
+                                position: 'left',
+                                title: { display: true, text: 'Price ($)'}
+                            },
+                            y1: { 
+                                type: 'linear', 
+                                display: true, 
+                                position: 'right', 
+                                beginAtZero: true,
+                                grid: { drawOnChartArea: false },
+                                title: { display: true, text: 'Number of Drops'}
+                            }
+                        }
+                    }
+                });
+            };
+        });
+    </script>
+</body>
+</html>
