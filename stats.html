@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Local Market Insights | Joe Sheldon</title>
-    <link rel="stylesheet" href="style.css?v=21">
+    <!-- Cache Buster updated to v=22 -->
+    <link rel="stylesheet" href="style.css?v=22">
     
     <!-- PapaParse for parsing the live CSV feeds -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -37,43 +38,42 @@
         </nav>
     </header>
 
-    <main class="container" style="max-width: 1000px;">
+    <main class="container" style="max-width: 1000px; padding-bottom: 5rem;">
         
         <div class="events-header">
             <h1 style="margin-top: 1rem;">Local Market Insights</h1>
             <p class="intro">Real-time data and historical trends for the Pacific Northwest.</p>
         </div>
 
-        <!-- City Selector (Dynamically populated) -->
+        <!-- City Selector Buttons -->
         <div class="filter-nav-container">
             <div class="filter-nav" id="citySelector">
-                <!-- Buttons will load here -->
                 <p>Loading market data...</p>
             </div>
         </div>
 
         <div id="dashboardContent" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
             
-            <h2 id="currentCityTitle" style="text-align: center; margin-bottom: 1.5rem; color: var(--redfin-red);">City Data</h2>
+            <h2 id="currentCityTitle" style="text-align: center; margin-bottom: 2rem; color: var(--redfin-red); font-weight: 800;">City Data</h2>
 
-            <!-- 7-Day Live Snapshot Cards -->
+            <!-- 7-Day Live Snapshot Cards Restructured -->
             <div class="stats-grid">
-                <div class="stat-card">
+                <div class="stat-card card-listings">
                     <h4>New Listings</h4>
                     <div class="stat-value" id="valNewListings">--</div>
                     <div class="stat-label">Last 7 Days</div>
                 </div>
-                <div class="stat-card">
-                    <h4>Pending</h4>
+                <div class="stat-card card-pending">
+                    <h4>Pending Offers</h4>
                     <div class="stat-value" id="valPending">--</div>
                     <div class="stat-label">Last 7 Days</div>
                 </div>
-                <div class="stat-card">
-                    <h4>Sold</h4>
+                <div class="stat-card card-sold">
+                    <h4>Closed Sales</h4>
                     <div class="stat-value" id="valSold">--</div>
                     <div class="stat-label">Last 7 Days</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card card-price">
                     <h4>Avg New Price</h4>
                     <div class="stat-value" id="valAvgPrice">--</div>
                     <div class="stat-label">Last 7 Days</div>
@@ -95,11 +95,6 @@
                 </div>
             </div>
             
-            <div class="pro-tip-box" style="margin-top: 2rem;">
-                <strong>💡 What Pros Know:</strong> 
-                The numbers update in real-time, but remember that real estate is hyper-local. A house with the right layout in the right neighborhood will still sell instantly, even in a "slow" market!
-            </div>
-            
         </div>
         
     </main>
@@ -116,28 +111,23 @@
                 document.body.style.overflow = navMenu.classList.contains('active') ? 'hidden' : 'auto';
             });
 
-            // Data Pipeline URLs
             const urlSnapshot = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=701119614&single=true&output=csv';
             const urlHistorical = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1473136505&single=true&output=csv';
 
-            // Global State Variables
             let snapshotData = [];
             let historicalData = [];
             let velocityChartInstance = null;
             let pricingChartInstance = null;
 
-            // Helper: Clean currency and commas into floats
             const cleanNum = (str) => {
                 if (!str) return 0;
                 return parseFloat(str.replace(/[^0-9.-]+/g, "")) || 0;
             };
 
-            // Helper: Format as Currency
             const formatCurrency = (num) => {
                 return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
             };
 
-            // 1. Fetch CSV Data Promises
             const fetchCSV = (url) => {
                 return new Promise((resolve) => {
                     Papa.parse(url, {
@@ -149,23 +139,18 @@
                 });
             };
 
-            // 2. Initialize App
             Promise.all([fetchCSV(urlSnapshot), fetchCSV(urlHistorical)]).then(values => {
                 snapshotData = values[0];
                 historicalData = values[1];
                 
-                // Extract unique cities from the snapshot data and sort alphabetically
                 let cities = [...new Set(snapshotData.map(row => row.City ? row.City.trim() : ''))].filter(Boolean).sort();
-                
                 buildCitySelector(cities);
                 
-                // Load the first city automatically
                 if (cities.length > 0) {
                     updateDashboard(cities[0]);
                 }
             });
 
-            // 3. Build Dynamic Selector
             const buildCitySelector = (cities) => {
                 const selector = document.getElementById('citySelector');
                 let html = '';
@@ -174,7 +159,6 @@
                 });
                 selector.innerHTML = html;
 
-                // Add Click Listeners
                 const btns = document.querySelectorAll('#citySelector .filter-btn');
                 btns.forEach(btn => {
                     btn.addEventListener('click', (e) => {
@@ -185,14 +169,12 @@
                 });
             };
 
-            // 4. Update the Dashboard UI & Charts
             const updateDashboard = (city) => {
                 document.getElementById('dashboardContent').style.display = 'block';
                 setTimeout(() => document.getElementById('dashboardContent').style.opacity = '1', 50);
                 
                 document.getElementById('currentCityTitle').textContent = `${city} Market Snapshot`;
 
-                // --- UPDATE SNAPSHOT CARDS ---
                 const citySnap = snapshotData.find(row => row.City && row.City.trim() === city) || {};
                 
                 document.getElementById('valNewListings').textContent = cleanNum(citySnap['New Listings']);
@@ -200,15 +182,16 @@
                 document.getElementById('valSold').textContent = cleanNum(citySnap['Sold']);
                 document.getElementById('valAvgPrice').textContent = formatCurrency(cleanNum(citySnap['Avg New Price']));
 
-                // --- FILTER HISTORICAL DATA ---
+                // Cleans out blank rows & fixes the NaN/NaN timeline bug visually present in the screenshots
                 const cityHistory = historicalData
-                    .filter(row => row.City && row.City.trim() === city)
-                    .sort((a, b) => new Date(a.Timestamp) - new Date(b.Timestamp)); // Sort chronologically
+                    .filter(row => row.City && row.City.trim() === city && row.Timestamp)
+                    .sort((a, b) => new Date(a.Timestamp) - new Date(b.Timestamp));
 
                 const labels = cityHistory.map(row => {
                     const d = new Date(row.Timestamp);
-                    return `${d.getMonth()+1}/${d.getDate()}`; // MM/DD format
-                });
+                    if (isNaN(d.getTime())) return ''; 
+                    return `${d.getMonth()+1}/${d.getDate()}`;
+                }).filter(l => l !== '');
                 
                 const histNew = cityHistory.map(row => cleanNum(row['New Listings']));
                 const histPending = cityHistory.map(row => cleanNum(row['Pending']));
@@ -216,7 +199,6 @@
                 const histAvgPrice = cityHistory.map(row => cleanNum(row['Avg New Price']));
                 const histPriceDrops = cityHistory.map(row => cleanNum(row['Price Drops']));
 
-                // --- RENDER VELOCITY CHART ---
                 if (velocityChartInstance) velocityChartInstance.destroy();
                 const ctxVel = document.getElementById('velocityChart').getContext('2d');
                 velocityChartInstance = new Chart(ctxVel, {
@@ -236,7 +218,6 @@
                     }
                 });
 
-                // --- RENDER PRICING CHART (Combo Chart) ---
                 if (pricingChartInstance) pricingChartInstance.destroy();
                 const ctxPrice = document.getElementById('pricingChart').getContext('2d');
                 pricingChartInstance = new Chart(ctxPrice, {
