@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Local Market Insights | Joe Sheldon</title>
     <!-- Cache Buster bumped to force refresh -->
-    <link rel="stylesheet" href="style.css?v=23">
+    <link rel="stylesheet" href="style.css?v=24">
     
     <!-- PapaParse for parsing the live CSV feeds -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -14,6 +14,19 @@
 
     <!-- Inline styles to bypass aggressive browser caching completely -->
     <style>
+        .data-warning-banner {
+            background-color: #FFF9E6 !important; /* Soft, non-aggressive amber tint */
+            border-left: 4px solid #F4C150 !important; /* Uses your existing brand Gold */
+            color: #3D3935 !important; /* Brand charcoal for text readability */
+            padding: 1rem 1.25rem !important;
+            border-radius: 4px 12px 12px 4px !important;
+            font-size: 0.9rem !important;
+            line-height: 1.5 !important;
+            margin-bottom: 2rem !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
+            text-align: left !important;
+        }
+
         .stats-grid {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
@@ -143,6 +156,11 @@
             <p class="intro">Real-time data and historical trends for the Pacific Northwest.</p>
         </div>
 
+        <!-- Data Ingestion Warning Banner -->
+        <div class="data-warning-banner">
+            ⚠️ <strong>Heads Up:</strong> This dashboard is currently building its live pipelines. Data tracking is active, but charts and comparisons will not be fully normalized or historically accurate until <strong>June 15th</strong>.
+        </div>
+
         <!-- City Selector Buttons -->
         <div class="filter-nav-container">
             <div class="filter-nav" id="citySelector">
@@ -196,13 +214,17 @@
         </div>
         
     </main>
-<!-- Footer Compliance & Office Info -->
-        <footer>
-        <div class="footer-content">
-            <img src="assets/images/redfin.png" alt="Redfin Logo" class="footer-logo">
-            <p class="office-address">3400 188th St SW, Ste 165<br>Lynnwood, WA 98037</p>
+
+    <!-- Footer Compliance & Office Info -->
+    <footer>
+        <img src="assets/images/logo.png" alt="Office Logo" class="footer-logo">
+        <div class="office-address">
+            <p>© 2026 Joe Sheldon Real Estate. All rights reserved.</p>
+            <p>Your Brokerage Name | 123 Local Street, Seattle, WA 98101</p>
+            <p>Equal Housing Opportunity | Licensed in the State of Washington</p>
         </div>
     </footer>
+
     <!-- Data Engine & Chart Binding Script -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
