@@ -304,12 +304,13 @@
             const contents = document.querySelectorAll('.dna-content-section');
 
             tabs.forEach(tab => {
-                btn.addEventListener('click', function() {
-                    // Remove active status style from buttons
+                tab.addEventListener('click', function() {
+                    // 1. Remove active class from all buttons
                     tabs.forEach(t => t.classList.remove('active'));
+                    // 2. Add active class to the clicked button
                     this.classList.add('active');
 
-                    // Target profiling target elements
+                    // 3. Hide all sections and show the targeted one
                     const targetId = this.getAttribute('data-target');
                     contents.forEach(section => {
                         if (section.id === targetId) {
@@ -322,6 +323,8 @@
             });
         });
     </script>
+
+
 </body>
 </html>
  
