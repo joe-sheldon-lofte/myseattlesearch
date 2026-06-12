@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Preferred Professionals | Joe Sheldon</title>
-    <link rel="stylesheet" href="style.css?v=19">
+    <link rel="stylesheet" href="style.css?v=38">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
 <body class="pro-page">
@@ -24,8 +24,7 @@
 <ul class="menu-links">
     <li><a href="index.html">Home</a></li>
     <li><a href="searches.html">Curated Searches</a></li>
-    <li><a href="stats.html">Market Insights</a></li> <!-- New Link Added Here -->
-    <li><a href="events.html">Classes & Events</a></li>
+    <li><a href="stats.html">Market Insights</a></li> <li><a href="events.html">Classes & Events</a></li>
     <li><a href="professionals.html">Preferred Professionals</a></li>
 </ul>
                 
@@ -94,8 +93,10 @@
             // Helper to make clean slugs for our categories
             const slugify = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
-            // Fetch and parse the CSV (updated filename to lowercase vendors.csv)
-            Papa.parse("vendors.csv", {
+            // Fetch and parse the CSV from Google Sheets directly
+            const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSntu7panLCFdXqZNXaJTHezzjKzajniQDJGopLfGJnIKgGEd773sQ0zfm0q8qEnnBzZDBzEjUd0ZAN/pub?gid=0&single=true&output=csv";
+            
+            Papa.parse(sheetUrl, {
                 download: true,
                 header: true,
                 skipEmptyLines: true,
