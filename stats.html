@@ -3,237 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Market Insights | Joe Sheldon</title>
-    <!-- Cache Buster bumped to force refresh -->
-    <link rel="stylesheet" href="style.css?v=24">
+    <title>Market Insights | Joe Sheldon</title>
+    <link rel="stylesheet" href="style.css?v=40">
     
-    <!-- PapaParse for parsing the live CSV feeds -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <!-- Chart.js for the interactive visualizations -->
+    <script src="components.js"></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <!-- Inline styles to bypass aggressive browser caching completely -->
-    <style>
-        .data-warning-banner {
-            background-color: #FFF9E6 !important; /* Soft, non-aggressive amber tint */
-            border-left: 4px solid #F4C150 !important; /* Uses your existing brand Gold */
-            color: #3D3935 !important; /* Brand charcoal for text readability */
-            padding: 1rem 1.25rem !important;
-            border-radius: 4px 12px 12px 4px !important;
-            font-size: 0.9rem !important;
-            line-height: 1.5 !important;
-            margin-bottom: 2rem !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
-            text-align: left !important;
-        }
-
-        .stats-grid {
-            display: grid !important;
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 1.25rem !important;
-            margin: 2rem 0 3rem 0 !important;
-            width: 100% !important;
-        }
-
-        @media (min-width: 768px) {
-            .stats-grid {
-                grid-template-columns: repeat(4, 1fr) !important;
-            }
-        }
-
-        .stat-card {
-            background-color: #ffffff !important;
-            padding: 1.75rem 1rem !important;
-            border-radius: 12px !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important;
-            text-align: center !important;
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: center !important;
-            align-items: center !important;
-            border-top: 5px solid #3D3935 !important;
-        }
-
-        .stat-card.card-pending {
-            border-top-color: #d32f2f !important;
-        }
-        .stat-card.card-sold {
-            border-top-color: #a0a0a0 !important;
-        }
-        .stat-card.card-price {
-            border-top-color: #F4C150 !important;
-        }
-
-        .stat-card h4 {
-            font-size: 0.85rem !important;
-            text-transform: uppercase !important;
-            letter-spacing: 1px !important;
-            color: #3D3935 !important;
-            opacity: 0.7 !important;
-            margin-bottom: 0.75rem !important;
-            font-weight: 700 !important;
-            line-height: 1.2 !important;
-        }
-
-        .stat-value {
-            font-size: 1.8rem !important;
-            font-weight: 800 !important;
-            color: #3D3935 !important;
-            margin-bottom: 0.5rem !important;
-            line-height: 1.1 !important;
-        }
-
-        .stat-label {
-            font-size: 0.75rem !important;
-            font-style: italic !important;
-            opacity: 0.5 !important;
-        }
-
-        .charts-container {
-            display: grid !important;
-            grid-template-columns: 1fr !important;
-            gap: 2rem !important;
-            width: 100% !important;
-            margin-top: 1rem !important;
-        }
-
-        @media (min-width: 768px) {
-            .charts-container {
-                grid-template-columns: 1fr 1fr !important;
-            }
-        }
-
-        .chart-box {
-            background-color: #ffffff !important;
-            padding: 1.75rem !important;
-            border-radius: 12px !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important;
-        }
-
-        .chart-box h3 {
-            margin-bottom: 0.35rem !important;
-            font-size: 1.25rem !important;
-            font-weight: 700 !important;
-        }
-
-        .chart-desc {
-            font-size: 0.85rem !important;
-            opacity: 0.7 !important;
-            margin-bottom: 1.75rem !important;
-        }
-    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
-<body class="stats-page">
+<body class="pro-page">
 
-    <!-- Hamburger Menu Navigation -->
-    <header class="main-header">
-        <div class="nav-container">
-            <a href="index.html" class="nav-brand">Joe Sheldon</a>
-            <button class="hamburger" id="hamburgerMenu" aria-label="Toggle Menu">
-                <span class="bar"></span>
-                <span class="bar"></span>
-                <span class="bar"></span>
-            </button>
-        </div>
-        
-        <nav class="fullscreen-menu" id="navMenu">
-            <div class="menu-content-wrapper">
-                <ul class="menu-links">
-                    <li><a href="index.html">Home</a></li>
-                    <li><a href="searches.html">Curated Searches</a></li>
-                    <li><a href="stats.html">Market Insights</a></li>
-                    <li><a href="events.html">Classes & Events</a></li>
-                    <li><a href="professionals.html">Preferred Professionals</a></li>
-                </ul>
-            </div>
-        </nav>
-    </header>
+    <universal-header></universal-header>
 
     <main class="container" style="max-width: 1000px; padding-bottom: 5rem;">
         
         <div class="events-header">
             <h1 style="margin-top: 1rem;">Local Market Insights</h1>
-            <p class="intro">Real-time data and historical trends for the Pacific Northwest.</p>
+            <p class="intro">Live, data-driven updates on pricing, velocity, and inventory for your specific neighborhood.</p>
         </div>
 
-        <!-- Data Ingestion Warning Banner -->
-        <div class="data-warning-banner">
-            ⚠️ <strong>Heads Up:</strong> This dashboard is currently building its live pipelines. Data tracking is active, but charts and comparisons will not be fully normalized or historically accurate until <strong>June 15th</strong>.
-        </div>
-
-        <!-- City Selector Buttons -->
         <div class="filter-nav-container">
             <div class="filter-nav" id="citySelector">
-                <p>Loading market data...</p>
-            </div>
+                </div>
         </div>
 
-        <div id="dashboardContent" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
+        <div id="dashboardContent" style="display: none; opacity: 0; transition: opacity 0.4s ease;">
             
-            <h2 id="currentCityTitle" style="text-align: center; margin-bottom: 2rem; color: var(--redfin-red); font-weight: 800;">City Data</h2>
+            <h2 id="currentCityTitle" style="text-align: center; margin: 2rem 0; color: var(--redfin-red);">Loading Market...</h2>
 
-            <!-- 7-Day Live Snapshot Cards -->
-            <div class="stats-grid">
-                <div class="stat-card card-listings">
-                    <h4>New Listings</h4>
-                    <div class="stat-value" id="valNewListings">--</div>
-                    <div class="stat-label">Last 7 Days</div>
+            <div class="stats-container" style="border: none; padding-top: 0; flex-wrap: wrap;">
+                <div class="stat-box">
+                    <div class="stat-number" id="valNewListings">--</div>
+                    <div class="stat-label">New Listings (7 Days)</div>
                 </div>
-                <div class="stat-card card-pending">
-                    <h4>Pending Offers</h4>
-                    <div class="stat-value" id="valPending">--</div>
-                    <div class="stat-label">Last 7 Days</div>
+                <div class="stat-box">
+                    <div class="stat-number" id="valPending">--</div>
+                    <div class="stat-label">Pending (7 Days)</div>
                 </div>
-                <div class="stat-card card-sold">
-                    <h4>Closed Sales</h4>
-                    <div class="stat-value" id="valSold">--</div>
-                    <div class="stat-label">Last 7 Days</div>
+                <div class="stat-box">
+                    <div class="stat-number" id="valSold">--</div>
+                    <div class="stat-label">Sold (7 Days)</div>
                 </div>
-                <div class="stat-card card-price">
-                    <h4>Avg New Price</h4>
-                    <div class="stat-value" id="valAvgPrice">--</div>
-                    <div class="stat-label">Last 7 Days</div>
+                <div class="stat-box">
+                    <div class="stat-number" id="valAvgPrice">--</div>
+                    <div class="stat-label">Avg New Price</div>
                 </div>
             </div>
 
-            <!-- Historical Charts -->
-            <div class="charts-container">
-                <div class="chart-box">
-                    <h3>Market Velocity</h3>
-                    <p class="chart-desc">Historical trend of listings hitting the market vs. going pending.</p>
+            <div style="display: grid; grid-template-columns: 1fr; gap: 3rem; margin-top: 2rem;">
+                
+                <div class="pro-card" style="padding: 1.5rem;">
+                    <h3 style="text-align: center; margin-bottom: 1rem; font-size: 1.2rem;">Market Velocity (30 Days)</h3>
                     <canvas id="velocityChart"></canvas>
                 </div>
-                
-                <div class="chart-box">
-                    <h3>Pricing Trends & Drops</h3>
-                    <p class="chart-desc">Average new list price alongside total weekly price reductions.</p>
+
+                <div class="pro-card" style="padding: 1.5rem;">
+                    <h3 style="text-align: center; margin-bottom: 1rem; font-size: 1.2rem;">Pricing Trends & Drops (30 Days)</h3>
                     <canvas id="pricingChart"></canvas>
                 </div>
+
             </div>
-            
         </div>
         
     </main>
 
-    <!-- Footer Compliance & Office Info -->
-   <footer>
-        <div class="footer-content">
-            <img src="assets/images/redfin.png" alt="Redfin Logo" class="footer-logo">
-            <p class="office-address">3400 188th St SW, Ste 165<br>Lynnwood, WA 98037</p>
-        </div>
-    </footer>
+    <universal-footer></universal-footer>
 
-    <!-- Data Engine & Chart Binding Script -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Hamburger logic
-            const hamburger = document.getElementById('hamburgerMenu');
-            const navMenu = document.getElementById('navMenu');
-            hamburger.addEventListener('click', () => {
-                hamburger.classList.toggle('active');
-                navMenu.classList.toggle('active');
-                document.body.style.overflow = navMenu.classList.contains('active') ? 'hidden' : 'auto';
-            });
 
             const urlSnapshot = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=701119614&single=true&output=csv';
             const urlHistorical = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1473136505&single=true&output=csv';
@@ -352,8 +189,8 @@
                                 type: 'line', 
                                 label: 'Avg New Price ($)', 
                                 data: histAvgPrice, 
-                                borderColor: '#F4C150', 
-                                backgroundColor: '#F4C150', 
+                                borderColor: '#3D3935', /* Swapped from Gold to Charcoal */
+                                backgroundColor: '#3D3935', 
                                 yAxisID: 'y'
                             },
                             { 
