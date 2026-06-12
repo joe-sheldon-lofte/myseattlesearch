@@ -4,8 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MoveDNA Assessment | Joe Sheldon</title>
-    <link rel="stylesheet" href="style.css?v=32">
+    <link rel="stylesheet" href="style.css?v=42">
     <script src="components.js"></script>
+    
+    <style>
+        /* CSS to ensure content profiles slide/hide correctly natively */
+        .dna-content-section {
+            display: none !important;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .dna-content-section.active {
+            display: block !important;
+            opacity: 1;
+        }
+    </style>
 </head>
 <body class="movedna-page">
 
@@ -173,7 +186,7 @@
 
         </div>
 
-        <div id="seller-profiles" class="dna-content-section" style="display: none;">
+        <div id="seller-profiles" class="dna-content-section">
             
             <div id="analytical-optimizer" class="dna-card">
                 <div class="dna-badge">Type A</div>
@@ -285,5 +298,29 @@
 
 <universal-footer></universal-footer>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = document.querySelectorAll('.dna-tab-btn');
+            const contents = document.querySelectorAll('.dna-content-section');
+
+            tabs.forEach(tab => {
+                btn.addEventListener('click', function() {
+                    // Remove active status style from buttons
+                    tabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // Target profiling target elements
+                    const targetId = this.getAttribute('data-target');
+                    contents.forEach(section => {
+                        if (section.id === targetId) {
+                            section.classList.add('active');
+                        } else {
+                            section.classList.remove('active');
+                        }
+                    });
+                });
+            });
+        });
+    </script>
 </body>
 </html>
