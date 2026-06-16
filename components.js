@@ -69,6 +69,8 @@ class UniversalFooter extends HTMLElement {
             <div class="footer-content">
                 <img src="assets/images/redfin.png" alt="Redfin Logo" class="footer-logo">
                 <p class="office-address">3400 188th St SW, Ste 165<br>Lynnwood, WA 98037</p>
+                <!-- Subtle, high-end anchor link added neatly below office text -->
+                <p style="margin-top: 1rem; font-size: 0.8rem; opacity: 0.6;"><a href="hereforyou.html" style="color: var(--premier-beige); text-decoration: underline;">Our Commitment to Housing Equity & Resources</a></p>
             </div>
         </footer>
         `;
