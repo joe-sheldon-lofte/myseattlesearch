@@ -1,1 +1,260 @@
-temo
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Insights & Intelligence | Joe Sheldon</title>
+    <link rel="stylesheet" href="style.css?v=45">
+    <script src="components.js"></script>
+    <!-- PapaParse & Chart.js reused from your existing stack -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="pro-page">
+
+    <!-- Universal Header Injected Natively -->
+    <universal-header></universal-header>
+
+    <main class="container" style="max-width: 1200px; padding-bottom: 5rem;">
+        
+        <!-- Dashboard Header -->
+        <div class="events-header" style="text-align: left; margin-bottom: 3rem;">
+            <h1 style="font-size: 2.5rem; margin-top: 1rem; line-height: 1.2;">Market & Local Intelligence</h1>
+            <p id="live-date" class="intro" style="font-size: 1rem; opacity: 0.7; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;"></p>
+        </div>
+
+        <!-- Bento Box Grid Layout -->
+        <div class="news-dashboard-grid" style="display: grid; grid-template-columns: 1fr; gap: 2.5rem; align-items: start;">
+            
+            <!-- LEFT COLUMN: Native Editorial News Stream -->
+            <section class="news-feed-column">
+                <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--premier-charcoal); border-bottom: 2px solid var(--premier-beige); padding-bottom: 0.5rem;">The Wire</h2>
+                <div id="unified-news-stream">
+                    <!-- Loading Skeleton State -->
+                    <div class="review-card" style="background-color: var(--white); padding: 2rem; opacity: 0.6;">
+                        <p style="font-weight: bold;">Fetching latest intelligence feeds...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RIGHT COLUMN: Financials & Trends (Sticky Sidebar) -->
+            <aside class="financial-sidebar" style="position: sticky; top: 2rem; display: flex; flex-direction: column; gap: 2rem;">
+                
+                <!-- Today's Multi-Product Rate Tile -->
+                <div class="profile-card" style="padding: 2rem; border-radius: 12px; background-color: var(--white); margin: 0;">
+                    <h3 style="font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase; color: var(--premier-charcoal); margin-bottom: 1.5rem; text-align: center; font-weight: 700;">Today's Average Market Rates</h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center;">
+                        <div>
+                            <span style="font-size: 0.75rem; font-weight: bold; color: var(--premier-charcoal); display: block; margin-bottom: 0.25rem;">30-YR CONV</span>
+                            <div id="rate-conv" style="font-size: 1.5rem; font-weight: 800; color: #C13030;">--%</div>
+                        </div>
+                        <div style="border-left: 1px solid var(--light-gray); border-right: 1px solid var(--light-gray);">
+                            <span style="font-size: 0.75rem; font-weight: bold; color: var(--premier-charcoal); display: block; margin-bottom: 0.25rem;">FHA</span>
+                            <div id="rate-fha" style="font-size: 1.5rem; font-weight: 800; color: #2B2D42;">--%</div>
+                        </div>
+                        <div>
+                            <span style="font-size: 0.75rem; font-weight: bold; color: var(--premier-charcoal); display: block; margin-bottom: 0.25rem;">VA</span>
+                            <div id="rate-va" style="font-size: 1.5rem; font-weight: 800; color: #4A90E2;">--%</div>
+                        </div>
+                    </div>
+                    
+                    <p style="font-size: 0.8rem; opacity: 0.6; margin-top: 1.5rem; margin-bottom: 0; text-align: center;">Sourced via native system tracking</p>
+                </div>
+
+                <!-- Native Chart.js Multi-Trend Visualizer -->
+                <div class="profile-card" style="padding: 1.5rem; border-radius: 12px; background-color: var(--white); margin: 0;">
+                    <h3 style="font-size: 0.9rem; font-weight: 700; color: var(--premier-charcoal); margin-bottom: 1rem;">Historical Product Trends (Past 30 Days)</h3>
+                    <div style="position: relative; width: 100%; height: 200px;">
+                        <canvas id="rateTrendChart"></canvas>
+                    </div>
+                </div>
+
+            </aside>
+
+        </div>
+    </main>
+
+    <!-- Universal Footer Injected Natively -->
+    <universal-footer></universal-footer>
+
+    <script>
+        // Update live header date
+        document.getElementById('live-date').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+        // --- CONFIGURATION ENDPOINTS ---
+        const RATES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1486733951&single=true&output=csv';
+        const RSS2JSON_API_KEY = 'YOUR_FREE_RSS2JSON_API_KEY_HERE';
+        
+        const FEEDS = [
+            { url: 'http://www.mortgagenewsdaily.com/rss/rates', source: 'Mortgage News Daily', filterKeywords: [] },
+            { url: 'https://www.redfin.com/news/feed/', source: 'Redfin Analytics', filterKeywords: ['Housing Market', 'Real Estate News', 'Market Tracker'] },
+            { url: 'https://www.seattlepi.com/local/feed/Seattle-News-and-Local-Coverage-580.php', source: 'Seattle PI', filterKeywords: [] }
+        ];
+
+        // --- STEP 1: PARSE MULTI-COLUMN MORTGAGE DATA & GENERATE COHESIVE UI ---
+        Papa.parse(RATES_CSV_URL, {
+            download: true,
+            header: false, // Using raw indices to prevent header mismatch errors
+            skipEmptyLines: true,
+            complete: function(results) {
+                const rows = results.data;
+                
+                // Exclude header row and ensure data exists
+                if (rows.length > 1) {
+                    const dataRows = rows.slice(1);
+                    
+                    // Safely sort chronologically based purely on the date component
+                    dataRows.sort((a, b) => {
+                        const dateA = new Date(a[0].split(' ')[0]);
+                        const dateB = new Date(b[0].split(' ')[0]);
+                        return dateA - dateB;
+                    });
+                    
+                    // Display the absolute latest entries in the summary grid tiles
+                    const latestRow = dataRows[dataRows.length - 1];
+                    document.getElementById('rate-conv').innerText = parseFloat(latestRow[1]).toFixed(2) + '%';
+                    document.getElementById('rate-fha').innerText = parseFloat(latestRow[2]).toFixed(2) + '%';
+                    document.getElementById('rate-va').innerText = parseFloat(latestRow[3]).toFixed(2) + '%';
+                    
+                    // Extract exactly the past 30 logs for tracking trends
+                    const lookbackData = dataRows.slice(-30);
+                    
+                    const labels = lookbackData.map(row => {
+                        // Strip any potential timestamps appended to the string securely
+                        const cleanDateStr = row[0].split(' ')[0];
+                        return new Date(cleanDateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    });
+                    
+                    const convRates = lookbackData.map(row => parseFloat(row[1]));
+                    const fhaRates = lookbackData.map(row => parseFloat(row[2]));
+                    const vaRates = lookbackData.map(row => parseFloat(row[3]));
+                    
+                    initMultiTrendChart(labels, convRates, fhaRates, vaRates);
+                }
+            }
+        });
+
+        function initMultiTrendChart(labels, convData, fhaData, vaData) {
+            const ctx = document.getElementById('rateTrendChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Conv',
+                            data: convData,
+                            borderColor: '#C13030', // Redfin Red identity matches
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            fill: false,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'FHA',
+                            data: fhaData,
+                            borderColor: '#2B2D42', // Warm Slate
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            fill: false,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'VA',
+                            data: vaData,
+                            borderColor: '#4A90E2', // Civic Navy/Blue tint
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            fill: false,
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { 
+                            display: true,
+                            position: 'top',
+                            labels: { boxWidth: 12, font: { size: 10, weight: 'bold' } }
+                        } 
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { maxTicksLimit: 4, font: { size: 10 } } },
+                        y: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        // --- STEP 2: MULTI-FEED RSS PIPELINE ENGINE ---
+        async function fetchAndRenderNews() {
+            if (RSS2JSON_API_KEY === 'YOUR_FREE_RSS2JSON_API_KEY_HERE') return;
+            
+            let aggregatedArticles = [];
+
+            for (let feed of FEEDS) {
+                try {
+                    const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&api_key=${RSS2JSON_API_KEY}`);
+                    const json = await response.json();
+                    
+                    if (json.status === 'ok') {
+                        let items = json.items;
+                        
+                        if (feed.filterKeywords.length > 0) {
+                            items = items.filter(item => {
+                                const searchableContext = `${item.title} ${item.description} ${(item.categories || []).join(' ')}`.toLowerCase();
+                                return feed.filterKeywords.some(keyword => searchableContext.includes(keyword.toLowerCase()));
+                            });
+                        }
+
+                        items.forEach(item => {
+                            aggregatedArticles.push({
+                                title: item.title,
+                                link: item.link,
+                                pubDate: new Date(item.pubDate),
+                                excerpt: item.description.replace(/<[^>]*>/g, '').substring(0, 160) + '...',
+                                source: feed.source
+                            });
+                        });
+                    }
+                } catch (e) {
+                    console.error(`Feeder error on target execution: ${feed.source}`, e);
+                }
+            }
+
+            aggregatedArticles.sort((a, b) => b.pubDate - a.pubDate);
+            renderNewsStream(aggregatedArticles);
+        }
+
+        function renderNewsStream(articles) {
+            const container = document.getElementById('unified-news-stream');
+            if (articles.length === 0) {
+                container.innerHTML = `<p style="opacity:0.6;">No market stories matching filter criteria available today.</p>`;
+                return;
+            }
+
+            container.innerHTML = articles.map(article => `
+                <article class="review-card" style="background-color: var(--white); margin-bottom: 1.5rem; padding: 2rem; border-left: 3px solid ${article.source === 'Mortgage News Daily' ? '#C13030' : 'var(--premier-charcoal)'};">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 0.5rem;">
+                        <span>${article.source}</span>
+                        <span>${article.pubDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    </div>
+                    <h3 style="font-size: 1.2rem; margin-bottom: 0.5rem; line-height: 1.4;">
+                        <a href="${article.link}" target="_blank" style="color: var(--premier-charcoal); text-decoration: none; font-weight:700;">${article.title}</a>
+                    </h3>
+                    <p style="font-size: 0.95rem; line-height: 1.5; opacity: 0.85; margin: 0;">${article.excerpt}</p>
+                </article>
+            `).join('');
+        }
+
+        // Bootstrap Feed Processing Engine
+        fetchAndRenderNews();
+    </script>
+</body>
+</html>
