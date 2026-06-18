@@ -59,7 +59,7 @@
                         </div>
                     </div>
                     
-                    <p style="font-size: 0.8rem; opacity: 0.6; margin-top: 1.5rem; margin-bottom: 0; text-align: center;">Sourced via native system tracking</p>
+                    <p style="font-size: 0.8rem; opacity: 0.6; margin-top: 1.5rem; margin-bottom: 0; text-align: center;">Rates provided by Mortgage News Daily</p>
                 </div>
 
                 <!-- Native Chart.js Multi-Trend Visualizer -->
@@ -84,7 +84,7 @@
 
         // --- CONFIGURATION ENDPOINTS ---
         const RATES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1486733951&single=true&output=csv';
-        const RSS2JSON_API_KEY = 'YOUR_FREE_RSS2JSON_API_KEY_HERE';
+        const RSS2JSON_API_KEY = 'qn0nkjjyjzx57kngwiztpolphebbnx4umjse5pt7';
         
         const FEEDS = [
             { url: 'http://www.mortgagenewsdaily.com/rss/rates', source: 'Mortgage News Daily', filterKeywords: [] },
@@ -95,33 +95,28 @@
         // --- STEP 1: PARSE MULTI-COLUMN MORTGAGE DATA & GENERATE COHESIVE UI ---
         Papa.parse(RATES_CSV_URL, {
             download: true,
-            header: false, // Using raw indices to prevent header mismatch errors
+            header: false,
             skipEmptyLines: true,
             complete: function(results) {
                 const rows = results.data;
                 
-                // Exclude header row and ensure data exists
                 if (rows.length > 1) {
                     const dataRows = rows.slice(1);
                     
-                    // Safely sort chronologically based purely on the date component
                     dataRows.sort((a, b) => {
                         const dateA = new Date(a[0].split(' ')[0]);
                         const dateB = new Date(b[0].split(' ')[0]);
                         return dateA - dateB;
                     });
                     
-                    // Display the absolute latest entries in the summary grid tiles
                     const latestRow = dataRows[dataRows.length - 1];
                     document.getElementById('rate-conv').innerText = parseFloat(latestRow[1]).toFixed(2) + '%';
                     document.getElementById('rate-fha').innerText = parseFloat(latestRow[2]).toFixed(2) + '%';
                     document.getElementById('rate-va').innerText = parseFloat(latestRow[3]).toFixed(2) + '%';
                     
-                    // Extract exactly the past 30 logs for tracking trends
                     const lookbackData = dataRows.slice(-30);
                     
                     const labels = lookbackData.map(row => {
-                        // Strip any potential timestamps appended to the string securely
                         const cleanDateStr = row[0].split(' ')[0];
                         return new Date(cleanDateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                     });
@@ -145,7 +140,7 @@
                         {
                             label: 'Conv',
                             data: convData,
-                            borderColor: '#C13030', // Redfin Red identity matches
+                            borderColor: '#C13030', 
                             borderWidth: 2,
                             pointRadius: 0,
                             pointHoverRadius: 4,
@@ -155,7 +150,7 @@
                         {
                             label: 'FHA',
                             data: fhaData,
-                            borderColor: '#2B2D42', // Warm Slate
+                            borderColor: '#2B2D42', 
                             borderWidth: 2,
                             pointRadius: 0,
                             pointHoverRadius: 4,
@@ -165,7 +160,7 @@
                         {
                             label: 'VA',
                             data: vaData,
-                            borderColor: '#4A90E2', // Civic Navy/Blue tint
+                            borderColor: '#4A90E2', 
                             borderWidth: 2,
                             pointRadius: 0,
                             pointHoverRadius: 4,
