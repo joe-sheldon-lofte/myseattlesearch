@@ -382,245 +382,221 @@
 
     <universal-footer></universal-footer>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
 
-            const urlSnapshot = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=701119614&single=true&output=csv';
-            const urlHistorical = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1473136505&single=true&output=csv';
-            const redfinPath = './data/redfin_stats.json';
-            const infosparksPath = './data/infosparks_stats.json';
+        const urlSnapshot = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=701119614&single=true&output=csv';
+        const urlHistorical = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1473136505&single=true&output=csv';
+        const redfinPath = './data/redfin_stats.json';
+        const infosparksPath = './data/infosparks_stats.json';
 
-            let dataStore = { snapshot: [], historical: [], redfin: [], infosparks: {} };
-            let currentCity = '';
-            let currentPropType = 'Single Family Residential';
-            
-            let velocityChartInstance = null;
-            let macroPriceChartInstance = null;
-            let macroSalesChartInstance = null;
-            let macroDOMChartInstance = null;
-            let macroShowsChartInstance = null;
+        let dataStore = { snapshot: [], historical: [], redfin: [], infosparks: {} };
+        let currentCity = '';
+        let currentPropType = 'Single Family Residential';
+        
+        let velocityChartInstance = null;
+        let macroPriceChartInstance = null; // We've converted this to track List Price % based on actual data
+        let macroSalesChartInstance = null;
+        let macroDOMChartInstance = null;
+        let macroShowsChartInstance = null;
 
-            const INFOSPARKS_GROUPS = {
-                'Brier': 1, 'Lynnwood': 1, 'Edmonds': 1, 'Mountlake Terrace': 1,
-                'Lake Forest Park': 2, 'Kenmore': 2, 'Shoreline': 2, 'Mukilteo': 2,
-                'Kirkland': 3
-            };
+        const INFOSPARKS_GROUPS = {
+            'Brier': 1, 'Lynnwood': 1, 'Edmonds': 1, 'Mountlake Terrace': 1,
+            'Lake Forest Park': 2, 'Kenmore': 2, 'Shoreline': 2, 'Mukilteo': 2,
+            'Kirkland': 3
+        };
 
-            const cleanNum = (str) => parseFloat((str||"").toString().replace(/[^0-9.-]+/g, "")) || 0;
-            const formatCurrency = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
-            const formatPercent = (num) => (num * 100).toFixed(1) + '%';
+        const cleanNum = (str) => parseFloat((str||"").toString().replace(/[^0-9.-]+/g, "")) || 0;
+        const formatCurrency = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+        const formatPercent = (num) => (num * 100).toFixed(1) + '%';
 
-            // Safe timeline value unpacker to handle key configurations variant safely
-            const unpackTimeline = (feedObj) => {
-                if (!feedObj || !feedObj.data) return [];
-                return feedObj.data.map((item, idx) => {
-                    let val = 0;
-                    let label = idx.toString();
-                    if (typeof item === 'object' && item !== null) {
-                        val = cleanNum(item.value || item.val || Object.values(item)[1]);
-                        label = item.date || item.period_end || Object.values(item)[0] || label;
-                    } else if (Array.isArray(item)) {
-                        label = item[0] || label;
-                        val = cleanNum(item[1]);
-                    }
-                    return { label, val };
-                });
-            };
-
-            const fetchCSV = (url) => new Promise((resolve) => {
-                Papa.parse(url, { download: true, header: true, skipEmptyLines: true, complete: res => resolve(res.data) });
-            });
-
-            const fetchJSON = async (path) => {
-                try { const res = await fetch(path); return await res.json(); } 
-                catch (e) { console.warn(`Dynamic load bypass triggered on: ${path}`, e); return null; }
-            };
-
-            Promise.all([
-                fetchCSV(urlSnapshot),
-                fetchCSV(urlHistorical),
-                fetchJSON(redfinPath),
-                fetchJSON(infosparksPath)
-            ]).then(values => {
-                dataStore.snapshot = values[0];
-                dataStore.historical = values[1];
-                dataStore.redfin = values[2] ? (values[2].records || values[2]) : [];
-                dataStore.infosparks = values[3] ? (values[3].feeds || values[3]) : {};
-                
-                let cities = [...new Set(dataStore.snapshot.map(row => row.City ? row.City.trim() : ''))].filter(Boolean).sort();
-                
-                buildSelectors(cities);
-                if (cities.length > 0) {
-                    currentCity = cities[0];
-                    updateDashboard();
-                }
-            });
-
-            const buildSelectors = (cities) => {
-                const citySelector = document.getElementById('citySelector');
-                citySelector.innerHTML = cities.map((city, i) => 
-                    `<button class="filter-btn ${i === 0 ? 'active' : ''}" data-city="${city}">${city}</button>`
-                ).join('');
-
-                document.getElementById('typeSelector').style.display = 'flex';
-
-                document.querySelectorAll('#citySelector .filter-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        document.querySelectorAll('#citySelector .filter-btn').forEach(b => b.classList.remove('active'));
-                        e.target.classList.add('active');
-                        currentCity = e.target.getAttribute('data-city');
-                        updateDashboard();
-                    });
-                });
-
-                document.querySelectorAll('#typeSelector .sub-filter-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        document.querySelectorAll('#typeSelector .sub-filter-btn').forEach(b => b.classList.remove('active'));
-                        e.target.classList.add('active');
-                        currentPropType = e.target.getAttribute('data-type');
-                        updateDashboard();
-                    });
-                });
-            };
-
-            const updateDashboard = () => {
-                document.getElementById('dashboardContent').style.display = 'block';
-                setTimeout(() => document.getElementById('dashboardContent').style.opacity = '1', 50);
-                document.getElementById('currentTitle').textContent = `${currentCity} Snapshot Analytics`;
-
-                renderRealTime();
-                const currentSupplyValue = renderVelocity();
-                renderMacro(currentSupplyValue);
-            };
-
-            const renderRealTime = () => {
-                const citySnap = dataStore.snapshot.find(row => row.City && row.City.trim() === currentCity) || {};
-                document.getElementById('valNewListings').textContent = cleanNum(citySnap['New Listings']);
-                document.getElementById('valPending').textContent = cleanNum(citySnap['Pending']);
-                document.getElementById('valSold').textContent = cleanNum(citySnap['Sold']);
-                document.getElementById('valAvgPrice').textContent = formatCurrency(cleanNum(citySnap['Avg New Price']));
-
-                const cityHistory = dataStore.historical
-                    .filter(row => row.City && row.City.trim() === currentCity && row.Timestamp)
-                    .sort((a, b) => new Date(a.Timestamp) - new Date(b.Timestamp));
-
-                const labels = cityHistory.map(row => {
-                    const d = new Date(row.Timestamp);
-                    return isNaN(d.getTime()) ? '' : `${d.getMonth()+1}/${d.getDate()}`;
-                }).filter(l => l !== '');
-                
-                if (velocityChartInstance) velocityChartInstance.destroy();
-                const ctxVel = document.getElementById('velocityChart').getContext('2d');
-                velocityChartInstance = new Chart(ctxVel, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            { label: 'New Listings', data: cityHistory.map(row => cleanNum(row['New Listings'])), borderColor: '#3D3935', tension: 0.3 },
-                            { label: 'Pending', data: cityHistory.map(row => cleanNum(row['Pending'])), borderColor: '#d32f2f', tension: 0.3 }
-                        ]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-                });
-            };
-
-            const renderVelocity = () => {
-                const rfData = dataStore.redfin
-                    .filter(r => r.city && r.city.toLowerCase() === currentCity.toLowerCase() && r.property_type === currentPropType)
-                    .sort((a, b) => new Date(b.period_end) - new Date(a.period_end));
-
-                let activeSupply = 0;
-
-                if (rfData.length > 0) {
-                    const latest = rfData[0];
-                    activeSupply = cleanNum(latest.months_of_supply);
-                    document.getElementById('valDOM').textContent = latest.median_dom || '--';
-                    document.getElementById('valAboveList').textContent = latest.sold_above_list ? formatPercent(cleanNum(latest.sold_above_list)) : '--';
-                    document.getElementById('valUrgency').textContent = latest.off_market_in_two_weeks ? formatPercent(cleanNum(latest.off_market_in_two_weeks)) : '--';
-                    document.getElementById('valSupply').textContent = activeSupply ? activeSupply.toFixed(1) : '--';
-                } else {
-                    document.getElementById('valDOM').textContent = '--';
-                    document.getElementById('valAboveList').textContent = '--';
-                    document.getElementById('valUrgency').textContent = '--';
-                    document.getElementById('valSupply').textContent = '--';
-                }
-                return activeSupply;
-            };
-
-            const renderMacro = (fallbackSupply) => {
-                const groupId = INFOSPARKS_GROUPS[currentCity] || 1;
-                
-                // Unpack All Feeds Systematically
-                const priceTimeline = unpackTimeline(dataStore.infosparks[`group_${groupId}_median_sale_price`]);
-                const salesTimeline = unpackTimeline(dataStore.infosparks[`group_${groupId}_closed_sales`]);
-                const domTimeline = unpackTimeline(dataStore.infosparks[`group_${groupId}_average_days_on_market`]);
-                const supplyTimeline = unpackTimeline(dataStore.infosparks[`group_${groupId}_months_supply_closed`]);
-                const showsTimeline = unpackTimeline(dataStore.infosparks[`group_${groupId}_shows_per_listing`]);
-
-                // Update Market Climate Indicator Needle Position & Text
-                let currentSupply = fallbackSupply;
-                if (supplyTimeline.length > 0) {
-                    currentSupply = supplyTimeline[supplyTimeline.length - 1].val;
-                }
-
-                const clampedSupply = Math.max(0, Math.min(6, currentSupply));
-                const percentagePosition = (clampedSupply / 6) * 100;
-                document.getElementById('climateNeedle').style.left = `calc(${percentagePosition}% - 2px)`;
-
-                let climateVibe = "Balanced Market";
-                if (currentSupply <= 1.25) climateVibe = "Hot Seller's Market";
-                else if (currentSupply <= 2.4) climateVibe = "Seller's Market";
-                else if (currentSupply <= 3.5) climateVibe = "Balanced Market";
-                else if (currentSupply <= 4.74) climateVibe = "Buyer's Market";
-                else climateVibe = "Hot Buyer's Market";
-
-                document.getElementById('climateLabelText').textContent = `${climateVibe} (${currentSupply.toFixed(2)} Months Supply)`;
-
-                // 1. Median Price Chart
-                if (macroPriceChartInstance) macroPriceChartInstance.destroy();
-                macroPriceChartInstance = new Chart(document.getElementById('macroPriceChart').getContext('2d'), {
-                    type: 'line',
-                    data: {
-                        labels: priceTimeline.map(t => t.label),
-                        datasets: [{ label: 'Median Price', data: priceTimeline.map(t => t.val), borderColor: '#3D3935', fill: true, backgroundColor: 'rgba(61, 57, 53, 0.05)', tension: 0.2 }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false }
-                });
-
-                // 2. Closed Sales Volume Chart
-                if (macroSalesChartInstance) macroSalesChartInstance.destroy();
-                macroSalesChartInstance = new Chart(document.getElementById('macroSalesChart').getContext('2d'), {
-                    type: 'bar',
-                    data: {
-                        labels: salesTimeline.map(t => t.label),
-                        datasets: [{ label: 'Closed Actions', data: salesTimeline.map(t => t.val), backgroundColor: '#a0a0a0' }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false }
-                });
-
-                // 3. Days on Market Trend Chart
-                if (macroDOMChartInstance) macroDOMChartInstance.destroy();
-                macroDOMChartInstance = new Chart(document.getElementById('macroDOMChart').getContext('2d'), {
-                    type: 'line',
-                    data: {
-                        labels: domTimeline.map(t => t.label),
-                        datasets: [{ label: 'Avg Days to Contract', data: domTimeline.map(t => t.val), borderColor: '#C13030', tension: 0.2, fill: false }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false }
-                });
-
-                // 4. Shows Per Listing Engagement Line
-                if (macroShowsChartInstance) macroShowsChartInstance.destroy();
-                macroShowsChartInstance = new Chart(document.getElementById('macroShowsChart').getContext('2d'), {
-                    type: 'line',
-                    data: {
-                        labels: showsTimeline.map(t => t.label),
-                        datasets: [{ label: 'Shows Per Listing', data: showsTimeline.map(t => t.val), borderColor: '#4A90E2', tension: 0.2, fill: false }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false }
-                });
-            };
+        const fetchCSV = (url) => new Promise((resolve) => {
+            Papa.parse(url, { download: true, header: true, skipEmptyLines: true, complete: res => resolve(res.data) });
         });
-    </script>
+
+        const fetchJSON = async (path) => {
+            try { const res = await fetch(path); return await res.json(); } 
+            catch (e) { console.warn(`Dynamic load bypass triggered on: ${path}`, e); return null; }
+        };
+
+        Promise.all([
+            fetchCSV(urlSnapshot),
+            fetchCSV(urlHistorical),
+            fetchJSON(redfinPath),
+            fetchJSON(infosparksPath)
+        ]).then(values => {
+            dataStore.snapshot = values[0];
+            dataStore.historical = values[1];
+            dataStore.redfin = values[2] ? (values[2].records || values[2]) : [];
+            dataStore.infosparks = values[3] ? (values[3].feeds || values[3]) : {};
+            
+            let cities = [...new Set(dataStore.snapshot.map(row => row.City ? row.City.trim() : ''))].filter(Boolean).sort();
+            
+            buildSelectors(cities);
+            if (cities.length > 0) {
+                currentCity = cities[0];
+                updateDashboard();
+            }
+        });
+
+        const buildSelectors = (cities) => {
+            const citySelector = document.getElementById('citySelector');
+            citySelector.innerHTML = cities.map((city, i) => 
+                `<button class="filter-btn ${i === 0 ? 'active' : ''}" data-city="${city}">${city}</button>`
+            ).join('');
+
+            document.getElementById('typeSelector').style.display = 'flex';
+
+            document.querySelectorAll('#citySelector .filter-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('#citySelector .filter-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentCity = e.target.getAttribute('data-city');
+                    updateDashboard();
+                });
+            });
+
+            document.querySelectorAll('#typeSelector .sub-filter-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('#typeSelector .sub-filter-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentPropType = e.target.getAttribute('data-type');
+                    updateDashboard();
+                });
+            });
+        };
+
+        const updateDashboard = () => {
+            document.getElementById('dashboardContent').style.display = 'block';
+            setTimeout(() => document.getElementById('dashboardContent').style.opacity = '1', 50);
+            document.getElementById('currentTitle').textContent = `${currentCity} Snapshot Analytics`;
+
+            renderRealTime();
+            const currentSupplyValue = renderVelocity();
+            renderMacro(currentSupplyValue);
+        };
+
+        const renderRealTime = () => {
+            const citySnap = dataStore.snapshot.find(row => row.City && row.City.trim() === currentCity) || {};
+            document.getElementById('valNewListings').textContent = cleanNum(citySnap['New Listings']);
+            document.getElementById('valPending').textContent = cleanNum(citySnap['Pending']);
+            document.getElementById('valSold').textContent = cleanNum(citySnap['Sold']);
+            document.getElementById('valAvgPrice').textContent = formatCurrency(cleanNum(citySnap['Avg New Price']));
+
+            const cityHistory = dataStore.historical
+                .filter(row => row.City && row.City.trim() === currentCity && row.Timestamp)
+                .sort((a, b) => new Date(a.Timestamp) - new Date(b.Timestamp));
+
+            const labels = cityHistory.map(row => {
+                const d = new Date(row.Timestamp);
+                return isNaN(d.getTime()) ? '' : `${d.getMonth()+1}/${d.getDate()}`;
+            }).filter(l => l !== '');
+            
+            if (velocityChartInstance) velocityChartInstance.destroy();
+            const ctxVel = document.getElementById('velocityChart').getContext('2d');
+            velocityChartInstance = new Chart(ctxVel, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'New Listings', data: cityHistory.map(row => cleanNum(row['New Listings'])), borderColor: '#3D3935', tension: 0.3 },
+                        { label: 'Pending', data: cityHistory.map(row => cleanNum(row['Pending'])), borderColor: '#d32f2f', tension: 0.3 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+        };
+
+        const renderVelocity = () => {
+            const rfData = dataStore.redfin
+                .filter(r => r.city && r.city.toLowerCase() === currentCity.toLowerCase() && r.property_type === currentPropType)
+                .sort((a, b) => new Date(b.period_end) - new Date(a.period_end));
+
+            let activeSupply = 0;
+
+            if (rfData.length > 0) {
+                const latest = rfData[0];
+                activeSupply = cleanNum(latest.months_of_supply);
+                document.getElementById('valDOM').textContent = latest.median_dom || '--';
+                document.getElementById('valAboveList').textContent = latest.sold_above_list ? formatPercent(cleanNum(latest.sold_above_list)) : '--';
+                document.getElementById('valUrgency').textContent = latest.off_market_in_two_weeks ? formatPercent(cleanNum(latest.off_market_in_two_weeks)) : '--';
+                document.getElementById('valSupply').textContent = activeSupply ? activeSupply.toFixed(1) : '--';
+            } else {
+                document.getElementById('valDOM').textContent = '--';
+                document.getElementById('valAboveList').textContent = '--';
+                document.getElementById('valUrgency').textContent = '--';
+                document.getElementById('valSupply').textContent = '--';
+            }
+            return activeSupply;
+        };
+
+        const renderMacro = (fallbackSupply) => {
+            const groupId = INFOSPARKS_GROUPS[currentCity] || 1;
+            
+            // Extract the flat feed array for this specific group identifier from the verified structure
+            const groupFeedArray = dataStore.infosparks[groupId.toString()] || [];
+
+            // Clean data points: parse only items that have real numbers for the active city and strip out text disclosures
+            const cleanedTimeline = groupFeedArray.filter(row => {
+                return row && row.Date && !row.Date.includes("All data from") && row[currentCity] !== undefined;
+            }).map(row => {
+                return {
+                    label: row.Date,
+                    val: cleanNum(row[currentCity])
+                };
+            });
+
+            // Handle the Market Climate Indicator scale updates using fallback values gracefully
+            let currentSupply = fallbackSupply; 
+            const clampedSupply = Math.max(0, Math.min(6, currentSupply));
+            const percentagePosition = (clampedSupply / 6) * 100;
+            document.getElementById('climateNeedle').style.left = `calc(${percentagePosition}% - 2px)`;
+
+            let climateVibe = "Balanced Market";
+            if (currentSupply <= 1.25) climateVibe = "Hot Seller's Market";
+            else if (currentSupply <= 2.4) climateVibe = "Seller's Market";
+            else if (currentSupply <= 3.5) climateVibe = "Balanced Market";
+            else if (currentSupply <= 4.74) climateVibe = "Buyer's Market";
+            else climateVibe = "Hot Buyer's Market";
+
+            document.getElementById('climateLabelText').textContent = `${climateVibe} (${currentSupply.toFixed(2)} Months Supply)`;
+
+            // Render the extracted verified timeline points to our main Macro Chart space
+            if (macroPriceChartInstance) macroPriceChartInstance.destroy();
+            
+            const ctxMacro = document.getElementById('macroPriceChart').getContext('2d');
+            
+            // Adjust label text to reflect the actual metrics present in the JSON feed
+            document.querySelector('#macroPriceChart').closest('.chart-box').querySelector('h3').textContent = "Historic Sale-to-List Ratio";
+            
+            macroPriceChartInstance = new Chart(ctxMacro, {
+                type: 'line',
+                data: {
+                    labels: cleanedTimeline.map(t => t.label),
+                    datasets: [{
+                        label: 'Avg Percent of List Price',
+                        data: cleanedTimeline.map(t => t.val * 100), // Converted to percentage presentation clean lines (e.g. 102.9%)
+                        borderColor: '#3D3935',
+                        fill: true,
+                        backgroundColor: 'rgba(61, 57, 53, 0.05)',
+                        tension: 0.2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) { return value + '%'; }
+                            }
+                        }
+                    }
+                }
+            });
+        };
+    });
+</script>
+    
 </body>
 </html>
