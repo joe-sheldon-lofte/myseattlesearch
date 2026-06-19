@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Local Market Insights | Joe Sheldon</title>
-    <link rel="stylesheet" href="style.css?v=44">
+    <link rel="stylesheet" href="style.css?v=45">
     
     <script src="components.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -438,10 +438,16 @@
                 fetchJSON(redfinPath),
                 fetchJSON(infosparksPath)
             ]).then(values => {
-                dataStore.snapshot = values[0];
-                dataStore.historical = values[1];
-                dataStore.redfin = values[2] && values[2].records ? values[2].records : [];
-                dataStore.infosparks = values[3] && values[3].feeds ? values[3].feeds : {};
+                dataStore.snapshot = values[0] || [];
+                dataStore.historical = values[1] || [];
+                
+                // Agnostic parsing for Redfin: Handles raw array OR {records: []} wrapper
+                let rf = values[2];
+                dataStore.redfin = Array.isArray(rf) ? rf : (rf && rf.records ? rf.records : []);
+                
+                // Agnostic parsing for Infosparks: Handles raw data OR {feeds: {}} wrapper
+                let is = values[3];
+                dataStore.infosparks = is && is.feeds ? is.feeds : (is || {});
                 
                 let cities = [...new Set(dataStore.snapshot.map(row => row.City ? row.City.trim() : ''))].filter(Boolean).sort();
                 
@@ -544,7 +550,6 @@
                 return activeSupply;
             };
 
-            // Smart Data Extractor for InfoSparks
             const extractInfosparksData = (feedKey, city) => {
                 const feed = dataStore.infosparks[feedKey] || dataStore.infosparks[feedKey.toLowerCase()];
                 let rows = [];
@@ -564,14 +569,13 @@
             const renderMacro = (fallbackSupply) => {
                 const groupId = INFOSPARKS_GROUPS[currentCity] || 1;
                 
-                // Extracting based on your designated keys
                 const priceTimeline = extractInfosparksData(`group_${groupId}_median_sale_price`, currentCity);
                 const salesTimeline = extractInfosparksData(`group_${groupId}_closed_sales`, currentCity);
                 const domTimeline = extractInfosparksData(`group_${groupId}_average_days_on_market`, currentCity);
                 const showsTimeline = extractInfosparksData(`group_${groupId}_shows_per_listing`, currentCity);
                 const supplyTimeline = extractInfosparksData(`group_${groupId}_months_supply_closed`, currentCity);
 
-                // Handle the Market Climate Indicator
+                // Climate Indicator
                 let currentSupply = fallbackSupply;
                 if (supplyTimeline.length > 0) {
                     currentSupply = supplyTimeline[supplyTimeline.length - 1].val;
