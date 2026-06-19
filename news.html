@@ -6,41 +6,33 @@
     <title>Market Insights & Intelligence | Joe Sheldon</title>
     <link rel="stylesheet" href="style.css?v=45">
     <script src="components.js"></script>
-    <!-- PapaParse & Chart.js reused from your existing stack -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="pro-page">
 
-    <!-- Universal Header Injected Natively -->
     <universal-header></universal-header>
 
     <main class="container" style="max-width: 1200px; padding-bottom: 5rem;">
         
-        <!-- Dashboard Header -->
         <div class="events-header" style="text-align: left; margin-bottom: 3rem;">
             <h1 style="font-size: 2.5rem; margin-top: 1rem; line-height: 1.2;">Market & Local Intelligence</h1>
             <p id="live-date" class="intro" style="font-size: 1rem; opacity: 0.7; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;"></p>
         </div>
 
-        <!-- Bento Box Grid Layout -->
         <div class="news-dashboard-grid" style="display: grid; grid-template-columns: 1fr; gap: 2.5rem; align-items: start;">
             
-            <!-- LEFT COLUMN: Native Editorial News Stream -->
             <section class="news-feed-column">
                 <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--premier-charcoal); border-bottom: 2px solid var(--premier-beige); padding-bottom: 0.5rem;">The Wire</h2>
                 <div id="unified-news-stream">
-                    <!-- Loading Skeleton State -->
                     <div class="review-card" style="background-color: var(--white); padding: 2rem; opacity: 0.6;">
                         <p style="font-weight: bold;">Fetching latest intelligence feeds...</p>
                     </div>
                 </div>
             </section>
 
-            <!-- RIGHT COLUMN: Financials & Trends (Sticky Sidebar) -->
             <aside class="financial-sidebar" style="position: sticky; top: 2rem; display: flex; flex-direction: column; gap: 2rem;">
                 
-                <!-- Today's Multi-Product Rate Tile -->
                 <div class="profile-card" style="padding: 2rem; border-radius: 12px; background-color: var(--white); margin: 0;">
                     <h3 style="font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase; color: var(--premier-charcoal); margin-bottom: 1.5rem; text-align: center; font-weight: 700;">Today's Average Market Rates</h3>
                     
@@ -62,7 +54,6 @@
                     <p style="font-size: 0.8rem; opacity: 0.6; margin-top: 1.5rem; margin-bottom: 0; text-align: center;">Rates provided by Mortgage News Daily</p>
                 </div>
 
-                <!-- Native Chart.js Multi-Trend Visualizer -->
                 <div class="profile-card" style="padding: 1.5rem; border-radius: 12px; background-color: var(--white); margin: 0;">
                     <h3 style="font-size: 0.9rem; font-weight: 700; color: var(--premier-charcoal); margin-bottom: 1rem;">Historical Product Trends (Past 30 Days)</h3>
                     <div style="position: relative; width: 100%; height: 200px;">
@@ -75,24 +66,20 @@
         </div>
     </main>
 
-    <!-- Universal Footer Injected Natively -->
     <universal-footer></universal-footer>
 
     <script>
-        // Update live header date
         document.getElementById('live-date').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-        // --- CONFIGURATION ENDPOINTS ---
         const RATES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1486733951&single=true&output=csv';
         const RSS2JSON_API_KEY = 'qn0nkjjyjzx57kngwiztpolphebbnx4umjse5pt7';
         
         const FEEDS = [
             { url: 'http://www.mortgagenewsdaily.com/rss/rates', source: 'Mortgage News Daily', filterKeywords: [] },
             { url: 'https://www.redfin.com/news/feed/', source: 'Redfin Analytics', filterKeywords: ['Housing Market', 'Real Estate News', 'Market Tracker'] },
-            { url: 'https://www.seattlepi.com/local/feed/Seattle-News-and-Local-Coverage-580.php', source: 'Seattle PI', filterKeywords: [] }
+            { url: 'https://www.seattleweekly.com/feed/', source: 'Seattle Weekly', filterKeywords: [] }
         ];
 
-        // --- STEP 1: PARSE MULTI-COLUMN MORTGAGE DATA & GENERATE COHESIVE UI ---
         Papa.parse(RATES_CSV_URL, {
             download: true,
             header: false,
@@ -187,13 +174,12 @@
             });
         }
 
-        // --- STEP 2: MULTI-FEED RSS PIPELINE ENGINE ---
         async function fetchAndRenderNews() {
             if (RSS2JSON_API_KEY === 'YOUR_FREE_RSS2JSON_API_KEY_HERE') return;
             
             let aggregatedArticles = [];
 
-            for (let feed of FEEDS) {
+            const fetchPromises = FEEDS.map(async (feed) => {
                 try {
                     const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&api_key=${RSS2JSON_API_KEY}`);
                     const json = await response.json();
@@ -221,7 +207,9 @@
                 } catch (e) {
                     console.error(`Feeder error on target execution: ${feed.source}`, e);
                 }
-            }
+            });
+
+            await Promise.all(fetchPromises);
 
             aggregatedArticles.sort((a, b) => b.pubDate - a.pubDate);
             renderNewsStream(aggregatedArticles);
@@ -248,7 +236,6 @@
             `).join('');
         }
 
-        // Bootstrap Feed Processing Engine
         fetchAndRenderNews();
     </script>
 </body>
