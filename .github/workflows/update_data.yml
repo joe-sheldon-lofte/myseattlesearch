@@ -32,4 +32,8 @@ jobs:
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
         git add data/
         git diff-index --quiet HEAD || git commit -m "Automated update of market statistics"
+        
+        # DEFENSIVE FIX: Sync the cloud runner with any recent repo changes before pushing
+        git pull --rebase origin main
+        
         git push
