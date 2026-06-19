@@ -55,10 +55,17 @@ try:
         df_redfin = pd.concat(chunks, ignore_index=True)
         
         # Base columns we want to retain
+        # Base columns we want to retain
         columns_to_keep = [
             'period_begin', 'period_end', 'city', 'state', 'state_code', 'property_type', 
             'median_sale_price', 'median_sale_price_yoy', 'homes_sold', 'homes_sold_yoy',
-            'inventory', 'months_of_supply', 'median_dom', 'avg_sale_to_list'
+            'inventory', 'months_of_supply', 'median_dom', 'avg_sale_to_list',
+            
+            # --- ADD THESE FOR ADVANCED COMPETITION CHARTS ---
+            'sold_above_list',        # % of homes that closed over asking price
+            'price_drops',             # % of active listings that cut their price
+            'off_market_in_two_weeks', # % of homes pending in under 14 days
+            'median_days_to_close'     # Median days from contract to closing table
         ]
         
         # DEFENSIVE FIX 3: Keep only the columns that actually exist to prevent extraction errors
