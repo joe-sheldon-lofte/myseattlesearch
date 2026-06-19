@@ -4,10 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Market Insights & Intelligence | Joe Sheldon</title>
-    <link rel="stylesheet" href="style.css?v=45">
+    <link rel="stylesheet" href="style.css?v=46">
     <script src="components.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Mobile-first layout adjustments for the Bento Grid */
+        @media (max-width: 768px) {
+            .news-dashboard-grid {
+                display: flex !important;
+                flex-direction: column-reverse !important; /* Forces the sidebar (Rates) to the top on mobile */
+                gap: 2rem !important;
+            }
+            .financial-sidebar {
+                position: static !important; /* Disables sticky on mobile for clean scrolling */
+                width: 100%;
+            }
+        }
+        @media (min-width: 769px) {
+            .news-dashboard-grid {
+                grid-template-columns: 1fr 380px !important; /* Clean layout balance for desktop */
+            }
+        }
+    </style>
 </head>
 <body class="pro-page">
 
@@ -16,7 +35,11 @@
     <main class="container" style="max-width: 1200px; padding-bottom: 5rem;">
         
         <div class="events-header" style="text-align: left; margin-bottom: 3rem;">
-            <h1 style="font-size: 2.5rem; margin-top: 1rem; line-height: 1.2;">Market & Local Intelligence</h1>
+            <!-- Smart Dynamic Greeting Insertion -->
+            <h1 style="font-size: 2.5rem; margin-top: 1rem; line-height: 1.2;">
+                <span id="dynamic-greeting" style="display: block; font-size: 1.5rem; font-weight: 400; color: var(--premier-charcoal); opacity: 0.8; margin-bottom: 0.25rem;"></span>
+                Market & Local Intelligence
+            </h1>
             <p id="live-date" class="intro" style="font-size: 1rem; opacity: 0.7; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;"></p>
         </div>
 
@@ -69,7 +92,20 @@
     <universal-footer></universal-footer>
 
     <script>
-        document.getElementById('live-date').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        // Set up the Live Date and Timed Greetings
+        const now = new Date();
+        document.getElementById('live-date').innerText = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        
+        const currentHour = now.getHours();
+        let greetingText = "Hello, Welcome back";
+        if (currentHour < 12) {
+            greetingText = "Good Morning";
+        } else if (currentHour < 17) {
+            greetingText = "Good Afternoon";
+        } else {
+            greetingText = "Good Evening";
+        }
+        document.getElementById('dynamic-greeting').innerText = greetingText;
 
         const RATES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1486733951&single=true&output=csv';
         const RSS2JSON_API_KEY = 'qn0nkjjyjzx57kngwiztpolphebbnx4umjse5pt7';
