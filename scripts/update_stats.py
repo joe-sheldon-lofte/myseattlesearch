@@ -5,12 +5,12 @@ import urllib.request
 from datetime import datetime
 import pandas as pd
 
-# Define Constants
+# Define Constants - Fixed Metro URL to include the correct 'us_' prefix
 REDFIN_CITY_URL = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_market_tracker/city_market_tracker.tsv000.gz"
-REDFIN_METRO_URL = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_market_tracker/metro_market_tracker.tsv000.gz"
+REDFIN_METRO_URL = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_market_tracker/us_metro_market_tracker.tsv000.gz"
 
 INFOSPARKS_CONFIG_PATH = "data/InfoSparks Links - Sheet1.csv"
-CITIES_CONFIG_PATH = "data/InfoSparks Links - Sheet2.csv" # Pointing to Sheet2
+CITIES_CONFIG_PATH = "data/InfoSparks Links - Sheet2.csv"
 
 REDFIN_OUTPUT_PATH = "data/redfin_stats.json"
 INFOSPARKS_OUTPUT_PATH = "data/infosparks_stats.json"
@@ -27,17 +27,13 @@ REDFIN_COLUMNS = [
 
 def load_target_cities():
     """Dynamically loads the city expansion list from the Sheet2 config file"""
-    # Hardcoded fallback list in case Sheet2 is ever accidentally missing
     fallback_cities = ["Shoreline", "Lake Forest Park", "Mountlake Terrace", "Lynnwood", "Mukilteo", "Brier", "Kenmore", "Kirkland", "Edmonds"]
-    
     if not os.path.exists(CITIES_CONFIG_PATH):
         print(f"Config note: {CITIES_CONFIG_PATH} not found. Utilizing default core city array.")
         return fallback_cities
-        
     try:
         df_cities = pd.read_csv(CITIES_CONFIG_PATH)
         city_col = next((c for c in df_cities.columns if "city" in c.lower()), None)
-        
         if city_col:
             cities_list = df_cities[city_col].dropna().astype(str).str.strip().tolist()
             cities_list = [c for c in cities_list if c]
@@ -71,19 +67,34 @@ def run_redfin_pipeline(target_cities):
                     chunk["state"] = chunk["state_code"]
                 state_col = "state" if "state" in chunk.columns else "state_code"
                 
-                city_clean = chunk["city"].astype(str).str.lower().str.split(',').str[0].str.strip()
-                prop_clean = chunk["property_type"].astype(str).str.lower().str.strip()
+                # 1. State Mask
+                state_mask = chunk[state_col].astype(str).str.strip().str.upper().isin(["WA", "WASHINGTON"])
                 
-                mask = (
-                    (chunk[state_col].astype(str).str.upper() == "WA") &
-                    (city_clean.isin(target_cities_lower)) &
-                    (prop_clean.str.contains("single family", na=False) | prop_clean.str.contains("condo", na=False)) &
-                    (chunk["period_begin"] >= START_DATE)
-                )
+                # 2. Restored Fuzzy Containment Mask for Cities
+                city_mask = pd.Series(False, index=chunk.index)
+                if 'city' in chunk.columns:
+                    city_lower = chunk['city'].astype(str).str.lower()
+                    for city in target_cities_lower:
+                        city_mask = city_mask | (city_lower.str.contains(city, na=False))
+                
+                # 3. Property Type Mask
+                prop_mask = pd.Series(False, index=chunk.index)
+                if 'property_type' in chunk.columns:
+                    prop_lower = chunk['property_type'].astype(str).str.lower()
+                    prop_mask = prop_lower.str.contains("single family", na=False) | prop_lower.str.contains("condo", na=False)
+                
+                # 4. Date Mask
+                date_mask = pd.Series(True, index=chunk.index)
+                if 'period_begin' in chunk.columns:
+                    period_date = pd.to_datetime(chunk["period_begin"], errors='coerce')
+                    date_mask = period_date >= pd.to_datetime(START_DATE)
+                    
+                mask = state_mask & city_mask & prop_mask & date_mask
                 filtered_chunk = chunk[mask].copy()
                 
                 if not filtered_chunk.empty:
                     filtered_chunk["region_type"] = "city"
+                    # Clean city names back to pristine formatting for website navigation
                     filtered_chunk["city"] = filtered_chunk["city"].astype(str).str.split(',').str[0].str.strip().str.title()
                     filtered_chunk.loc[filtered_chunk['property_type'].astype(str).str.lower().str.contains("single family"), 'property_type'] = "Single Family Residential"
                     filtered_chunk.loc[filtered_chunk['property_type'].astype(str).str.lower().str.contains("condo"), 'property_type'] = "Condo/Co-op"
@@ -149,7 +160,6 @@ def run_infosparks_pipeline():
     if not os.path.exists(INFOSPARKS_CONFIG_PATH):
         print(f"Error: Configuration file missing at {INFOSPARKS_CONFIG_PATH}")
         return
-
     try:
         config_df = pd.read_csv(INFOSPARKS_CONFIG_PATH)
         group_col = next((c for c in config_df.columns if "group" in c.lower()), None)
@@ -209,21 +219,15 @@ def run_infosparks_pipeline():
             "last_compiled": datetime.utcnow().isoformat() + "Z",
             "feeds": master_feeds
         }
-
         with open(INFOSPARKS_OUTPUT_PATH, "w") as f:
             json.dump(output_payload, f, indent=2)
         print("InfoSparks master file generation complete.")
-
     except Exception as e:
         print(f"Critical error in InfoSparks pipeline: {e}")
 
 if __name__ == "__main__":
     os.makedirs("data", exist_ok=True)
-    
-    # 1. Dynamically read the city checklist from Sheet2
     cities_to_track = load_target_cities()
-    
-    # 2. Fire off data collection pipelines
     run_redfin_pipeline(cities_to_track)
     print("-" * 40)
     run_infosparks_pipeline()
