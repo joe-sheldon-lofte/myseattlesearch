@@ -1,147 +1,145 @@
 import os
 import json
-import datetime
+import io
+import urllib.request
+from datetime import datetime
 import pandas as pd
 
-# Ensure output directory exists
-os.makedirs('data', exist_ok=True)
+# Define Constants
+REDFIN_URL = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_market_tracker/city_market_tracker.tsv.gz"
+INFOSPARKS_CONFIG_PATH = "data/InfoSparks Links - Sheet1.csv"
+REDFIN_OUTPUT_PATH = "data/redfin_stats.json"
+INFOSPARKS_OUTPUT_PATH = "data/infosparks_stats.json"
 
-# Generate a master timestamp for this execution
-master_timestamp = datetime.datetime.utcnow().isoformat() + "Z"
-
-# ==========================================
-# CONFIGURATION
-# ==========================================
-TARGET_STATE = "WA"
-# Cities matched to your exact spreadsheet requirements + Edmonds
 TARGET_CITIES = [
-    "Shoreline", "Lake Forest Park", "Mountlake Terrace", 
-    "Lynnwood", "Mukilteo", "Brier", "Kenmore", "Kirkland", "Edmonds"
+    "Shoreline", "Lake Forest Park", "Mountlake Terrace", "Lynnwood", 
+    "Mukilteo", "Brier", "Kenmore", "Kirkland", "Edmonds"
 ]
+
 TARGET_PROPERTY_TYPES = ["Single Family Residential", "Condo/Co-op"]
-START_DATE = "2024-01-01"
 
-REDFIN_URL = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_market_tracker/city_market_tracker.tsv000.gz"
-LINKS_CSV_PATH = "data/InfoSparks Links - Sheet1.csv"
+REDFIN_COLUMNS = [
+    "period_begin", "period_end", "city", "state", "state_code", "property_type",
+    "median_sale_price", "median_sale_price_yoy", "median_dom", "avg_sale_to_list",
+    "homes_sold", "homes_sold_yoy", "inventory", "months_of_supply",
+    "sold_above_list", "price_drops", "off_market_in_two_weeks", "median_days_to_close"
+]
 
-# ==========================================
-# 1. PROCESS REDFIN PIPELINE (Competition & Sentiment)
-# ==========================================
-print("Starting Redfin data pipeline...")
-chunks = []
-
-try:
-    # Stream the large file in chunks to prevent GitHub runner memory overflow
-    for chunk in pd.read_csv(REDFIN_URL, sep='\t', compression='gzip', chunksize=100000, low_memory=False):
-        
-        # DEFENSIVE FIX 1: Force all column headers to lowercase to bypass ALL CAPS shifts
-        chunk.columns = chunk.columns.str.lower()
-        
-        # DEFENSIVE FIX 2: Dynamically detect if the file is using 'state_code' or 'state'
-        state_column = 'state_code' if 'state_code' in chunk.columns else 'state'
-        
-        # Apply the filters safely using our normalized column schema
-        filtered_chunk = chunk[
-            (chunk[state_column] == TARGET_STATE) & 
-            (chunk['city'].isin(TARGET_CITIES)) &
-            (chunk['property_type'].isin(TARGET_PROPERTY_TYPES)) &
-            (chunk['period_duration'].isin([30, 90])) & 
-            (chunk['period_begin'] >= START_DATE)
-        ]
-        if not filtered_chunk.empty:
-            chunks.append(filtered_chunk)
-
-    if chunks:
-        df_redfin = pd.concat(chunks, ignore_index=True)
-        
-        # Base columns we want to retain
-        # Base columns we want to retain
-        columns_to_keep = [
-            'period_begin', 'period_end', 'city', 'state', 'state_code', 'property_type', 
-            'median_sale_price', 'median_sale_price_yoy', 'homes_sold', 'homes_sold_yoy',
-            'inventory', 'months_of_supply', 'median_dom', 'avg_sale_to_list',
-            
-            # --- ADD THESE FOR ADVANCED COMPETITION CHARTS ---
-            'sold_above_list',        # % of homes that closed over asking price
-            'price_drops',             # % of active listings that cut their price
-            'off_market_in_two_weeks', # % of homes pending in under 14 days
-            'median_days_to_close'     # Median days from contract to closing table
-        ]
-        
-        # DEFENSIVE FIX 3: Keep only the columns that actually exist to prevent extraction errors
-        available_cols = [col for col in columns_to_keep if col in df_redfin.columns]
-        df_redfin = df_redfin[available_cols]
-        
-        redfin_output = {
-            "last_compiled": master_timestamp,
-            "records": df_redfin.to_dict(orient='records')
-        }
-        with open('data/redfin_stats.json', 'w') as f:
-            json.dump(redfin_output, f, indent=2)
-        print("Redfin data compiled successfully.")
-    else:
-        print("Warning: No Redfin data matched target criteria.")
-        
-except Exception as e:
-    print(f"Critical error processing Redfin data: {e}")
-
-
-# ==========================================
-# 2. PROCESS INFOSPARKS PIPELINE
-# ==========================================
-print("Starting InfoSparks multi-feed pipeline...")
-compiled_sparks_feeds = {}
-
-if not os.path.exists(LINKS_CSV_PATH):
-    print(f"Error: Link configuration file not found at {LINKS_CSV_PATH}")
-else:
+def run_redfin_pipeline():
+    print("Starting Redfin data pipeline...")
     try:
-        # Read the file verbatim as uploaded
-        df_links = pd.read_csv(LINKS_CSV_PATH)
+        # Stream the massive file in chunks to prevent GitHub Actions out-of-memory crashes
+        chunks = pd.read_csv(REDFIN_URL, compression="gzip", sep="\t", chunksize=50000, low_memory=False)
+        filtered_chunks = []
         
-        for idx, row in df_links.iterrows():
-            group_num = str(row['Group']).strip()
-            cities_desc = str(row['Cities']).strip()
-            metric_desc = str(row['Metric']).strip()
-            feed_url = str(row['CSV Link']).strip()
+        for chunk in chunks:
+            # Standardize state column naming defensively
+            if "state_code" in chunk.columns and "state" not in chunk.columns:
+                chunk["state"] = chunk["state_code"]
+            elif "state" in chunk.columns and "state_code" not in chunk.columns:
+                chunk["state_code"] = chunk["state"]
+                
+            # Filter rows aggressively on the fly
+            mask = (
+                (chunk["state"].astype(str).str.upper() == "WA") &
+                (chunk["city"].isin(TARGET_CITIES)) &
+                (chunk["property_type"].isin(TARGET_PROPERTY_TYPES))
+            )
+            filtered_chunk = chunk[mask]
             
-            if not feed_url.startswith("http"):
-                print(f"Skipping row {idx}: Invalid URL format.")
+            if not filtered_chunk.empty:
+                # Keep only your updated columns list
+                existing_cols = [c for c in REDFIN_COLUMNS if c in filtered_chunk.columns]
+                filtered_chunks.append(filtered_chunk[existing_cols])
+                
+        if filtered_chunks:
+            master_df = pd.concat(filtered_chunks, ignore_index=True)
+            
+            # Sort chronologically and by city
+            master_df = master_df.sort_values(by=["city", "property_type", "period_begin"], ascending=[True, True, True])
+            
+            # Convert to dictionary and save
+            data_dict = master_df.to_dict(orient="records")
+            with open(REDFIN_OUTPUT_PATH, "w") as f:
+                json.dump(data_dict, f, indent=2)
+            print(f"Redfin data compiled successfully. Saved {len(data_dict)} rows.")
+        else:
+            print("Warning: No matching Redfin records found during filtering.")
+            
+    except Exception as e:
+        print(f"Critical error in Redfin pipeline: {e}")
+
+def run_infosparks_pipeline():
+    print("Starting InfoSparks multi-feed pipeline...")
+    if not os.path.exists(INFOSPARKS_CONFIG_PATH):
+        print(f"Error: Configuration file missing at {INFOSPARKS_CONFIG_PATH}")
+        return
+
+    try:
+        config_df = pd.read_csv(INFOSPARKS_CONFIG_PATH)
+        
+        # Dynamically identify columns regardless of spaces or capitalization
+        name_col = next((c for c in config_df.columns if "name" in c.lower() or "group" in c.lower()), None)
+        url_col = next((c for c in config_df.columns if "link" in c.lower() or "url" in c.lower()), None)
+        
+        if not name_col or not url_col:
+            print("Error: Could not identify 'Feed Name' or 'Link' columns in configuration CSV.")
+            return
+
+        master_feeds = {}
+
+        for idx, row in config_df.iterrows():
+            feed_name = str(row[name_col]).skip() if pd.notna(row[name_col]) else f"feed_{idx}"
+            url = str(row[url_col]).strip() if pd.notna(row[url_col]) else ""
+            
+            if not url.startswith("http"):
+                print(f"Skipping row {idx}: Invalid URL protocol.")
                 continue
-                
-            # Create a clean programmatic key for front-end JS mapping
-            clean_key = f"group_{group_num}_{metric_desc}".lower()
-            for char in [" ", "-", "/", "(", ")", ","]:
-                clean_key = clean_key.replace(char, "_")
-            while "__" in clean_key:
-                clean_key = clean_key.replace("__", "_")
-            clean_key = clean_key.strip("_")
-            
-            print(f"Fetching InfoSparks Live Feed: {clean_key}...")
+
+            print(f"Fetching InfoSparks Live Feed: {feed_name}...")
             try:
-                df_feed = pd.read_csv(feed_url)
+                # 1. Download raw layout text securely using built-in urllib
+                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req) as response:
+                    raw_text = response.read().decode('utf-8')
                 
-                # Bundle data arrays alongside useful descriptive metadata
-                compiled_sparks_feeds[clean_key] = {
-                    "meta": {
-                        "group": group_num,
-                        "metric": metric_desc,
-                        "geographies": [c.strip() for c in cities_desc.split(",")]
-                    },
-                    "data": df_feed.to_dict(orient='records')
-                }
-            except Exception as feederr:
-                print(f"Error downloading feed from URL on row {idx}: {feederr}")
+                # 2. Break data down line-by-line to find the true table header
+                lines = raw_text.strip().split('\n')
+                header_idx = 0
+                for line_num, line in enumerate(lines):
+                    first_cell = line.split(',')[0].strip().strip('"').strip("'").lower()
+                    if first_cell in ['month', 'date']:
+                        header_idx = line_num
+                        break
                 
-        # Consolidate all individual metric feeds into a single master payload
-        infosparks_output = {
-            "last_compiled": master_timestamp,
-            "feeds": compiled_sparks_feeds
+                # 3. Strip metadata lines away and load clean columns into Pandas
+                clean_csv_text = '\n'.join(lines[header_idx:])
+                df = pd.read_csv(io.StringIO(clean_csv_text))
+                
+                # 4. Clean column trailing spaces and store structured output records
+                df.columns = [c.strip() for c in df.columns]
+                master_feeds[feed_name] = df.to_dict(orient="records")
+                
+            except Exception as e:
+                print(f"Error downloading feed from URL on row {idx}: {e}")
+
+        # Package compiled tables with an audit timestamp
+        output_payload = {
+            "last_compiled": datetime.utcnow().isoformat() + "Z",
+            "feeds": master_feeds
         }
-        
-        with open('data/infosparks_stats.json', 'w') as f:
-            json.dump(infosparks_output, f, indent=2)
+
+        with open(INFOSPARKS_OUTPUT_PATH, "w") as f:
+            json.dump(output_payload, f, indent=2)
         print("InfoSparks master file generation complete.")
-        
-    except Exception as csverr:
-        print(f"Critical error parsing InfoSparks configuration CSV: {csverr}")
+
+    except Exception as e:
+        print(f"Critical error in InfoSparks pipeline: {e}")
+
+if __name__ == "__main__":
+    # Form directory structure dynamically if omitted
+    os.makedirs("data", exist_ok=True)
+    
+    run_redfin_pipeline()
+    print("-" * 40)
+    run_infosparks_pipeline()
