@@ -17,6 +17,7 @@ TARGET_CITIES = [
 ]
 
 TARGET_PROPERTY_TYPES = ["Single Family Residential", "Condo/Co-op"]
+START_DATE = "2024-01-01"
 
 REDFIN_COLUMNS = [
     "period_begin", "period_end", "city", "state", "state_code", "property_type",
@@ -28,19 +29,20 @@ REDFIN_COLUMNS = [
 def run_redfin_pipeline():
     print("Starting Redfin data pipeline...")
     try:
-        # Add a custom User-Agent header to bypass AWS S3 restrictions safely
+        # Secure S3 download request masking as a standard browser header
         req = urllib.request.Request(REDFIN_URL, headers={'User-Agent': 'Mozilla/5.0'})
         
         with urllib.request.urlopen(req) as response:
-            # Stream the massive file in chunks to prevent GitHub Actions out-of-memory crashes
             chunks = pd.read_csv(response, compression="gzip", sep="\t", chunksize=50000, low_memory=False)
             filtered_chunks = []
             
+            # Lowercase targets for flexible, case-insensitive matching
+            target_cities_lower = [c.lower() for c in TARGET_CITIES]
+            target_props_lower = [p.lower() for p in TARGET_PROPERTY_TYPES]
+            
             for chunk in chunks:
-                # Force lowercase column names defensively to prevent matching updates
                 chunk.columns = chunk.columns.str.lower()
                 
-                # Standardize state column naming defensively
                 if "state_code" in chunk.columns and "state" not in chunk.columns:
                     chunk["state"] = chunk["state_code"]
                 elif "state" in chunk.columns and "state_code" not in chunk.columns:
@@ -48,26 +50,30 @@ def run_redfin_pipeline():
                     
                 state_col = "state" if "state" in chunk.columns else "state_code"
                 
-                # Filter rows aggressively on the fly
+                # Normalize values to isolate city names (e.g., "Kirkland, WA" -> "kirkland")
+                city_clean = chunk["city"].astype(str).str.lower().str.split(',').str[0].str.strip()
+                prop_clean = chunk["property_type"].astype(str).str.lower().str.strip()
+                
+                # Apply the flexible filter mask
                 mask = (
                     (chunk[state_col].astype(str).str.upper() == "WA") &
-                    (chunk["city"].isin(TARGET_CITIES)) &
-                    (chunk["property_type"].isin(TARGET_PROPERTY_TYPES))
+                    (city_clean.isin(target_cities_lower)) &
+                    (prop_clean.isin(target_props_lower)) &
+                    (chunk["period_begin"] >= START_DATE)
                 )
-                filtered_chunk = chunk[mask]
+                filtered_chunk = chunk[mask].copy()
                 
                 if not filtered_chunk.empty:
-                    # Keep only your updated columns list
+                    # Clean up city names to standard Title Case for the frontend
+                    filtered_chunk["city"] = filtered_chunk["city"].astype(str).str.split(',').str[0].str.strip().str.title()
+                    
                     existing_cols = [c for c in REDFIN_COLUMNS if c in filtered_chunk.columns]
                     filtered_chunks.append(filtered_chunk[existing_cols])
                     
             if filtered_chunks:
                 master_df = pd.concat(filtered_chunks, ignore_index=True)
-                
-                # Sort chronologically and by city
                 master_df = master_df.sort_values(by=["city", "property_type", "period_begin"], ascending=[True, True, True])
                 
-                # Convert to dictionary and save
                 data_dict = master_df.to_dict(orient="records")
                 with open(REDFIN_OUTPUT_PATH, "w") as f:
                     json.dump(data_dict, f, indent=2)
@@ -87,7 +93,6 @@ def run_infosparks_pipeline():
     try:
         config_df = pd.read_csv(INFOSPARKS_CONFIG_PATH)
         
-        # Dynamically map custom columns from your Sheet1 layout
         group_col = next((c for c in config_df.columns if "group" in c.lower()), None)
         cities_col = next((c for c in config_df.columns if "city" in c.lower() or "cities" in c.lower()), None)
         metric_col = next((c for c in config_df.columns if "metric" in c.lower()), None)
@@ -96,7 +101,6 @@ def run_infosparks_pipeline():
         master_feeds = {}
 
         for idx, row in config_df.iterrows():
-            # Standardized string treatment (.strip() applied correctly)
             group_val = str(row[group_col]).strip() if group_col and pd.notna(row[group_col]) else f"{idx}"
             metric_val = str(row[metric_col]).strip() if metric_col and pd.notna(row[metric_col]) else "metric"
             cities_val = str(row[cities_col]).strip() if cities_col and pd.notna(row[cities_col]) else ""
@@ -106,7 +110,6 @@ def run_infosparks_pipeline():
                 print(f"Skipping row {idx}: Invalid URL protocol.")
                 continue
 
-            # Generate a programmatic alphanumeric key layout for JavaScript
             clean_key = f"group_{group_val}_{metric_val}".lower()
             for char in [" ", "-", "/", "(", ")", ","]:
                 clean_key = clean_key.replace(char, "_")
@@ -116,12 +119,10 @@ def run_infosparks_pipeline():
 
             print(f"Fetching InfoSparks Live Feed: {clean_key}...")
             try:
-                # 1. Download raw layout text securely using browser headers
                 req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
                 with urllib.request.urlopen(req) as response:
                     raw_text = response.read().decode('utf-8')
                 
-                # 2. Break data down line-by-line to find the true table header row
                 lines = raw_text.strip().split('\n')
                 header_idx = 0
                 for line_num, line in enumerate(lines):
@@ -130,14 +131,10 @@ def run_infosparks_pipeline():
                         header_idx = line_num
                         break
                 
-                # 3. Strip metadata header blocks out and load tables cleanly
                 clean_csv_text = '\n'.join(lines[header_idx:])
                 df = pd.read_csv(io.StringIO(clean_csv_text))
-                
-                # 4. Strip white spaces off metadata column names
                 df.columns = [c.strip() for c in df.columns]
                 
-                # 5. Format payload structural layout mirroring the Handoff Specifications
                 master_feeds[clean_key] = {
                     "meta": {
                         "group": group_val,
@@ -150,7 +147,6 @@ def run_infosparks_pipeline():
             except Exception as e:
                 print(f"Error downloading feed from URL on row {idx}: {e}")
 
-        # Package compiled tables with an audit timestamp
         output_payload = {
             "last_compiled": datetime.utcnow().isoformat() + "Z",
             "feeds": master_feeds
@@ -165,7 +161,6 @@ def run_infosparks_pipeline():
 
 if __name__ == "__main__":
     os.makedirs("data", exist_ok=True)
-    
     run_redfin_pipeline()
     print("-" * 40)
     run_infosparks_pipeline()
