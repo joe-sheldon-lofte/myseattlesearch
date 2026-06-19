@@ -6,110 +6,143 @@ from datetime import datetime
 import pandas as pd
 
 # Define Constants
-REDFIN_URL = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_market_tracker/city_market_tracker.tsv000.gz"
+REDFIN_CITY_URL = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_market_tracker/city_market_tracker.tsv000.gz"
+REDFIN_METRO_URL = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_market_tracker/metro_market_tracker.tsv000.gz"
+
 INFOSPARKS_CONFIG_PATH = "data/InfoSparks Links - Sheet1.csv"
+CITIES_CONFIG_PATH = "data/InfoSparks Links - Sheet2.csv" # Pointing to Sheet2
+
 REDFIN_OUTPUT_PATH = "data/redfin_stats.json"
 INFOSPARKS_OUTPUT_PATH = "data/infosparks_stats.json"
-
-TARGET_CITIES = [
-    "Shoreline", "Lake Forest Park", "Mountlake Terrace", "Lynnwood", 
-    "Mukilteo", "Brier", "Kenmore", "Kirkland", "Edmonds"
-]
 
 TARGET_PROPERTY_TYPES = ["Single Family Residential", "Condo/Co-op"]
 START_DATE = "2024-01-01"
 
 REDFIN_COLUMNS = [
-    "period_begin", "period_end", "city", "state", "state_code", "property_type",
+    "period_begin", "period_end", "region_type", "city", "state", "state_code", "property_type",
     "median_sale_price", "median_sale_price_yoy", "median_dom", "avg_sale_to_list",
     "homes_sold", "homes_sold_yoy", "inventory", "months_of_supply",
     "sold_above_list", "price_drops", "off_market_in_two_weeks", "median_days_to_close"
 ]
 
-def run_redfin_pipeline():
-    print("Starting Redfin data pipeline...")
-    try:
-        req = urllib.request.Request(REDFIN_URL, headers={'User-Agent': 'Mozilla/5.0'})
+def load_target_cities():
+    """Dynamically loads the city expansion list from the Sheet2 config file"""
+    # Hardcoded fallback list in case Sheet2 is ever accidentally missing
+    fallback_cities = ["Shoreline", "Lake Forest Park", "Mountlake Terrace", "Lynnwood", "Mukilteo", "Brier", "Kenmore", "Kirkland", "Edmonds"]
+    
+    if not os.path.exists(CITIES_CONFIG_PATH):
+        print(f"Config note: {CITIES_CONFIG_PATH} not found. Utilizing default core city array.")
+        return fallback_cities
         
-        with urllib.request.urlopen(req) as response:
+    try:
+        df_cities = pd.read_csv(CITIES_CONFIG_PATH)
+        city_col = next((c for c in df_cities.columns if "city" in c.lower()), None)
+        
+        if city_col:
+            cities_list = df_cities[city_col].dropna().astype(str).str.strip().tolist()
+            cities_list = [c for c in cities_list if c]
+            print(f"Successfully loaded {len(cities_list)} target markets dynamically from Sheet2.")
+            return cities_list
+        else:
+            print("Warning: 'City' column heading missing in Sheet2.csv. Utilizing default array.")
+            return fallback_cities
+    except Exception as e:
+        print(f"Error reading city configuration file: {e}. Falling back to default array.")
+        return fallback_cities
+
+def run_redfin_pipeline(target_cities):
+    print("Starting Dynamic Redfin data pipeline...")
+    filtered_chunks = []
+    target_cities_lower = [c.lower() for c in target_cities]
+    
+    # ==========================================
+    # PHASE A: FETCH TARGET PUGET SOUND CITIES
+    # ==========================================
+    try:
+        print(f"Streaming City-Level Data for {len(target_cities)} target markets...")
+        req_city = urllib.request.Request(REDFIN_CITY_URL, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req_city) as response:
             chunks = pd.read_csv(response, compression="gzip", sep="\t", chunksize=50000, low_memory=False)
-            filtered_chunks = []
-            
-            target_cities_lower = [c.lower() for c in TARGET_CITIES]
-            printed_diagnostics = False
             
             for chunk in chunks:
                 chunk.columns = chunk.columns.str.lower()
                 
-                # --- LIVE DEBUG DIAGNOSTICS ---
-                if not printed_diagnostics:
-                    print("\n--- DEBUG DIAGNOSTICS FOR FIRST CHUNK ---")
-                    print("Columns found in file:", chunk.columns.tolist())
-                    if 'state' in chunk.columns:
-                        print("Sample 'state' values:", chunk['state'].dropna().unique()[:5].tolist())
-                    if 'state_code' in chunk.columns:
-                        print("Sample 'state_code' values:", chunk['state_code'].dropna().unique()[:5].tolist())
-                    if 'city' in chunk.columns:
-                        print("Sample 'city' values:", chunk['city'].dropna().unique()[:5].tolist())
-                    if 'property_type' in chunk.columns:
-                        print("Sample 'property_type' values:", chunk['property_type'].dropna().unique()[:5].tolist())
-                    print("---------------------------------------\n")
-                    printed_diagnostics = True
+                if "state_code" in chunk.columns and "state" not in chunk.columns:
+                    chunk["state"] = chunk["state_code"]
+                state_col = "state" if "state" in chunk.columns else "state_code"
                 
-                # 1. Robust State Filter
-                state_mask = pd.Series(False, index=chunk.index)
-                for col in ['state', 'state_code']:
-                    if col in chunk.columns:
-                        state_mask = state_mask | (chunk[col].astype(str).str.strip().str.upper().isin(["WA", "WASHINGTON"]))
+                city_clean = chunk["city"].astype(str).str.lower().str.split(',').str[0].str.strip()
+                prop_clean = chunk["property_type"].astype(str).str.lower().str.strip()
                 
-                # 2. Robust Fuzzy City Filter
-                city_mask = pd.Series(False, index=chunk.index)
-                if 'city' in chunk.columns:
-                    city_lower = chunk['city'].astype(str).str.lower()
-                    for city in target_cities_lower:
-                        city_mask = city_mask | (city_lower.str.contains(city, na=False))
-                
-                # 3. Robust Property Type Filter
-                prop_mask = pd.Series(False, index=chunk.index)
-                if 'property_type' in chunk.columns:
-                    prop_lower = chunk['property_type'].astype(str).str.lower()
-                    prop_mask = prop_lower.str.contains("single family", na=False) | prop_lower.str.contains("condo", na=False)
-                
-                # 4. Robust Date Filter
-                date_mask = pd.Series(True, index=chunk.index)
-                if 'period_begin' in chunk.columns:
-                    period_date = pd.to_datetime(chunk["period_begin"], errors='coerce')
-                    date_mask = period_date >= pd.to_datetime(START_DATE)
-                    
-                # Combine masks dynamically
-                mask = state_mask & city_mask & prop_mask & date_mask
+                mask = (
+                    (chunk[state_col].astype(str).str.upper() == "WA") &
+                    (city_clean.isin(target_cities_lower)) &
+                    (prop_clean.str.contains("single family", na=False) | prop_clean.str.contains("condo", na=False)) &
+                    (chunk["period_begin"] >= START_DATE)
+                )
                 filtered_chunk = chunk[mask].copy()
                 
                 if not filtered_chunk.empty:
-                    if 'city' in filtered_chunk.columns:
-                        for city in TARGET_CITIES:
-                            filtered_chunk.loc[filtered_chunk['city'].astype(str).str.lower().str.contains(city.lower()), 'city'] = city
-                    
-                    if 'property_type' in filtered_chunk.columns:
-                        filtered_chunk.loc[filtered_chunk['property_type'].astype(str).str.lower().str.contains("single family"), 'property_type'] = "Single Family Residential"
-                        filtered_chunk.loc[filtered_chunk['property_type'].astype(str).str.lower().str.contains("condo"), 'property_type'] = "Condo/Co-op"
+                    filtered_chunk["region_type"] = "city"
+                    filtered_chunk["city"] = filtered_chunk["city"].astype(str).str.split(',').str[0].str.strip().str.title()
+                    filtered_chunk.loc[filtered_chunk['property_type'].astype(str).str.lower().str.contains("single family"), 'property_type'] = "Single Family Residential"
+                    filtered_chunk.loc[filtered_chunk['property_type'].astype(str).str.lower().str.contains("condo"), 'property_type'] = "Condo/Co-op"
                     
                     existing_cols = [c for c in REDFIN_COLUMNS if c in filtered_chunk.columns]
                     filtered_chunks.append(filtered_chunk[existing_cols])
-                    
-            if filtered_chunks:
-                master_df = pd.concat(filtered_chunks, ignore_index=True)
-                master_df = master_df.sort_values(by=["city", "property_type", "period_begin"], ascending=[True, True, True])
-                
-                data_dict = master_df.to_dict(orient="records")
-                with open(REDFIN_OUTPUT_PATH, "w") as f:
-                    json.dump(data_dict, f, indent=2)
-                print(f"Redfin data compiled successfully. Saved {len(data_dict)} rows.")
-            else:
-                print("Warning: No matching Redfin records found during filtering.")
-            
     except Exception as e:
-        print(f"Critical error in Redfin pipeline: {e}")
+        print(f"Error processing Redfin City segments: {e}")
+
+    # ==========================================
+    # PHASE B: FETCH SEATTLE METRO AREA
+    # ==========================================
+    try:
+        print("Streaming Metro-Level Data for Seattle Metro...")
+        req_metro = urllib.request.Request(REDFIN_METRO_URL, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req_metro) as response:
+            chunks = pd.read_csv(response, compression="gzip", sep="\t", chunksize=50000, low_memory=False)
+            
+            for chunk in chunks:
+                chunk.columns = chunk.columns.str.lower()
+                
+                if "region" in chunk.columns and "city" not in chunk.columns:
+                    chunk["city"] = chunk["region"]
+                if "state_code" in chunk.columns and "state" not in chunk.columns:
+                    chunk["state"] = chunk["state_code"]
+                
+                prop_clean = chunk["property_type"].astype(str).str.lower().str.strip()
+                mask = (
+                    (chunk["city"].astype(str).str.lower().str.contains("seattle", na=False)) &
+                    (chunk["state"].astype(str).str.upper() == "WA") &
+                    (prop_clean.str.contains("single family", na=False) | prop_clean.str.contains("condo", na=False)) &
+                    (chunk["period_begin"] >= START_DATE)
+                )
+                filtered_chunk = chunk[mask].copy()
+                
+                if not filtered_chunk.empty:
+                    filtered_chunk["region_type"] = "metro"
+                    filtered_chunk["city"] = "Seattle Metro"
+                    filtered_chunk.loc[filtered_chunk['property_type'].astype(str).str.lower().str.contains("single family"), 'property_type'] = "Single Family Residential"
+                    filtered_chunk.loc[filtered_chunk['property_type'].astype(str).str.lower().str.contains("condo"), 'property_type'] = "Condo/Co-op"
+                    
+                    existing_cols = [c for c in REDFIN_COLUMNS if c in filtered_chunk.columns]
+                    filtered_chunks.append(filtered_chunk[existing_cols])
+    except Exception as e:
+        print(f"Error processing Redfin Metro segments: {e}")
+
+    # ==========================================
+    # PHASE C: CONSOLIDATE & WRITE RESULTS
+    # ==========================================
+    if filtered_chunks:
+        master_df = pd.concat(filtered_chunks, ignore_index=True)
+        master_df = master_df.sort_values(by=["region_type", "city", "property_type", "period_begin"], ascending=[True, True, True, True])
+        
+        data_dict = master_df.to_dict(orient="records")
+        with open(REDFIN_OUTPUT_PATH, "w") as f:
+            json.dump(data_dict, f, indent=2)
+        print(f"Redfin dynamic regional database compiled successfully. Saved {len(data_dict)} rows.")
+    else:
+        print("Warning: No Redfin rows matched regional filtering constraints.")
 
 def run_infosparks_pipeline():
     print("Starting InfoSparks multi-feed pipeline...")
@@ -119,7 +152,6 @@ def run_infosparks_pipeline():
 
     try:
         config_df = pd.read_csv(INFOSPARKS_CONFIG_PATH)
-        
         group_col = next((c for c in config_df.columns if "group" in c.lower()), None)
         cities_col = next((c for c in config_df.columns if "city" in c.lower() or "cities" in c.lower()), None)
         metric_col = next((c for c in config_df.columns if "metric" in c.lower()), None)
@@ -170,7 +202,6 @@ def run_infosparks_pipeline():
                     },
                     "data": df.to_dict(orient="records")
                 }
-                
             except Exception as e:
                 print(f"Error downloading feed from URL on row {idx}: {e}")
 
@@ -188,6 +219,11 @@ def run_infosparks_pipeline():
 
 if __name__ == "__main__":
     os.makedirs("data", exist_ok=True)
-    run_redfin_pipeline()
+    
+    # 1. Dynamically read the city checklist from Sheet2
+    cities_to_track = load_target_cities()
+    
+    # 2. Fire off data collection pipelines
+    run_redfin_pipeline(cities_to_track)
     print("-" * 40)
     run_infosparks_pipeline()
