@@ -1,0 +1,36 @@
+name: Scheduled Market Data Update
+
+on:
+  schedule:
+    # Runs every Monday at 6:00 AM UTC (11:00 PM PST Sunday Night)
+    - cron: '0 6 * * 1'
+  workflow_dispatch: # Allows you to manually trigger it via GitHub UI anytime
+
+jobs:
+  build-and-update:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repo Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install Script Dependencies
+      run: |
+        pip install pandas requests
+
+    - name: Run Data Script
+      run: python scripts/update_stats.py
+
+    - name: Commit and Push Updated Data Files
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add data/
+        git diff-index --quiet HEAD || git commit -m "Automated update of market statistics"
+        git push
