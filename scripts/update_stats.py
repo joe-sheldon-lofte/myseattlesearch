@@ -30,36 +30,53 @@ LINKS_CSV_PATH = "data/InfoSparks Links - Sheet1.csv"
 print("Starting Redfin data pipeline...")
 chunks = []
 
-# Stream the large file in chunks to prevent GitHub runner memory overflow
-for chunk in pd.read_csv(REDFIN_URL, sep='\t', compression='gzip', chunksize=100000, low_memory=False):
-    filtered_chunk = chunk[
-        (chunk['state_code'] == TARGET_STATE) & 
-        (chunk['city'].isin(TARGET_CITIES)) &
-        (chunk['property_type'].isin(TARGET_PROPERTY_TYPES)) &
-        (chunk['period_duration'].isin([30, 90])) & 
-        (chunk['period_begin'] >= START_DATE)
-    ]
-    if not filtered_chunk.empty:
-        chunks.append(filtered_chunk)
+try:
+    # Stream the large file in chunks to prevent GitHub runner memory overflow
+    for chunk in pd.read_csv(REDFIN_URL, sep='\t', compression='gzip', chunksize=100000, low_memory=False):
+        
+        # DEFENSIVE FIX 1: Force all column headers to lowercase to bypass ALL CAPS shifts
+        chunk.columns = chunk.columns.str.lower()
+        
+        # DEFENSIVE FIX 2: Dynamically detect if the file is using 'state_code' or 'state'
+        state_column = 'state_code' if 'state_code' in chunk.columns else 'state'
+        
+        # Apply the filters safely using our normalized column schema
+        filtered_chunk = chunk[
+            (chunk[state_column] == TARGET_STATE) & 
+            (chunk['city'].isin(TARGET_CITIES)) &
+            (chunk['property_type'].isin(TARGET_PROPERTY_TYPES)) &
+            (chunk['period_duration'].isin([30, 90])) & 
+            (chunk['period_begin'] >= START_DATE)
+        ]
+        if not filtered_chunk.empty:
+            chunks.append(filtered_chunk)
 
-if chunks:
-    df_redfin = pd.concat(chunks, ignore_index=True)
-    columns_to_keep = [
-        'period_begin', 'period_end', 'city', 'state_code', 'property_type', 
-        'median_sale_price', 'median_sale_price_yoy', 'homes_sold', 'homes_sold_yoy',
-        'inventory', 'months_of_supply', 'median_dom', 'avg_sale_to_list'
-    ]
-    df_redfin = df_redfin[columns_to_keep]
-    
-    redfin_output = {
-        "last_compiled": master_timestamp,
-        "records": df_redfin.to_dict(orient='records')
-    }
-    with open('data/redfin_stats.json', 'w') as f:
-        json.dump(redfin_output, f, indent=2)
-    print("Redfin data compiled successfully.")
-else:
-    print("Warning: No Redfin data matched target criteria.")
+    if chunks:
+        df_redfin = pd.concat(chunks, ignore_index=True)
+        
+        # Base columns we want to retain
+        columns_to_keep = [
+            'period_begin', 'period_end', 'city', 'state', 'state_code', 'property_type', 
+            'median_sale_price', 'median_sale_price_yoy', 'homes_sold', 'homes_sold_yoy',
+            'inventory', 'months_of_supply', 'median_dom', 'avg_sale_to_list'
+        ]
+        
+        # DEFENSIVE FIX 3: Keep only the columns that actually exist to prevent extraction errors
+        available_cols = [col for col in columns_to_keep if col in df_redfin.columns]
+        df_redfin = df_redfin[available_cols]
+        
+        redfin_output = {
+            "last_compiled": master_timestamp,
+            "records": df_redfin.to_dict(orient='records')
+        }
+        with open('data/redfin_stats.json', 'w') as f:
+            json.dump(redfin_output, f, indent=2)
+        print("Redfin data compiled successfully.")
+    else:
+        print("Warning: No Redfin data matched target criteria.")
+        
+except Exception as e:
+    print(f"Critical error processing Redfin data: {e}")
 
 
 # ==========================================
@@ -86,7 +103,6 @@ else:
                 continue
                 
             # Create a clean programmatic key for front-end JS mapping
-            # e.g., "Group 1", "Median Sale Price" -> "group_1_median_sale_price"
             clean_key = f"group_{group_num}_{metric_desc}".lower()
             for char in [" ", "-", "/", "(", ")", ","]:
                 clean_key = clean_key.replace(char, "_")
