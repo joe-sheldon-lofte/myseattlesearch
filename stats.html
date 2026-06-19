@@ -231,14 +231,12 @@
             ⚠️ <strong>Heads Up:</strong> This dashboard is currently building its live pipelines. Data tracking is active, but charts and comparisons will not be fully normalized or historically accurate until <strong>June 15th</strong>.
         </div>
 
-        <!-- City Selector Links -->
         <div class="filter-nav-container">
             <div class="filter-nav" id="citySelector">
                 <p>Loading market data...</p>
             </div>
         </div>
 
-        <!-- Property Type Selector Links -->
         <div class="sub-filter-nav" id="typeSelector" style="display: none;">
             <button class="sub-filter-btn active" data-type="Single Family Residential">Single-Family</button>
             <button class="sub-filter-btn" data-type="Condo/Co-op">Condo & Townhome</button>
@@ -246,7 +244,6 @@
 
         <div id="dashboardContent" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
             
-            <!-- Real-Time Market Status Bar Graphic -->
             <div class="market-climate-container">
                 <h3 style="font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; margin: 0; color: var(--premier-charcoal);">Current Market Climate</h3>
                 <div class="market-bar-wrapper">
@@ -263,7 +260,6 @@
 
             <h2 id="currentTitle" style="text-align: center; margin-bottom: 1rem; color: var(--premier-charcoal); font-weight: 800; font-size: 2rem;"></h2>
             
-            <!-- REAL TIME SECTION -->
             <div class="section-header">
                 <h2>Real-Time Heartbeat</h2>
                 <p>Immediate supply and demand signals tracking what is hitting the pavement today. (All Property Types)</p>
@@ -301,7 +297,6 @@
                 </div>
             </div>
 
-            <!-- VELOCITY SECTION (REDFIN) -->
             <div class="section-header">
                 <h2>Market Velocity & Competition</h2>
                 <p>Psychological metrics showing how fast inventory moves and how aggressive buyers are.</p>
@@ -337,35 +332,15 @@
                 Real estate metrics for this section are systematically compiled using row records provided by the Redfin Data Center. © 2026 Redfin Corporation. All rights reserved.
             </div>
 
-            <!-- MACRO SECTION (INFOSPARKS) -->
             <div class="section-header">
                 <h2>Long-Term Trends</h2>
                 <p>Long-term economic cycles and historic appreciation trajectories.</p>
             </div>
 
             <div class="charts-container">
-                <div class="chart-box">
-                    <h3>Historic Median Sale Price</h3>
+                <div class="chart-box" style="grid-column: 1 / -1;"> <h3>Historic Average Percent of List Price</h3>
                     <p class="chart-desc">Macro view of asset evaluation tracking pricing structural shifts over multiple cycles.</p>
-                    <div style="position: relative; height: 260px;"><canvas id="macroPriceChart"></canvas></div>
-                </div>
-                
-                <div class="chart-box">
-                    <h3>Historic Closed Sales Volume</h3>
-                    <p class="chart-desc">Total liquidity and real transaction velocity markers over rolling seasons.</p>
-                    <div style="position: relative; height: 260px;"><canvas id="macroSalesChart"></canvas></div>
-                </div>
-
-                <div class="chart-box">
-                    <h3>Average Days on Market (Historic)</h3>
-                    <p class="chart-desc">The average timeline from dynamic live launch to contract execution over time.</p>
-                    <div style="position: relative; height: 260px;"><canvas id="macroDOMChart"></canvas></div>
-                </div>
-
-                <div class="chart-box">
-                    <h3>Shows Per Listing & Pricing Ratios</h3>
-                    <p class="chart-desc">Foot-traffic patterns compared directly against systemic closed negotiation averages.</p>
-                    <div style="position: relative; height: 260px;"><canvas id="macroShowsChart"></canvas></div>
+                    <div style="position: relative; height: 300px;"><canvas id="macroPriceChart"></canvas></div>
                 </div>
             </div>
             
@@ -382,221 +357,214 @@
 
     <universal-footer></universal-footer>
 
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
 
-        const urlSnapshot = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=701119614&single=true&output=csv';
-        const urlHistorical = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1473136505&single=true&output=csv';
-        const redfinPath = './data/redfin_stats.json';
-        const infosparksPath = './data/infosparks_stats.json';
+            const urlSnapshot = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=701119614&single=true&output=csv';
+            const urlHistorical = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1473136505&single=true&output=csv';
+            const redfinPath = './data/redfin_stats.json';
+            const infosparksPath = './data/infosparks_stats.json';
 
-        let dataStore = { snapshot: [], historical: [], redfin: [], infosparks: {} };
-        let currentCity = '';
-        let currentPropType = 'Single Family Residential';
-        
-        let velocityChartInstance = null;
-        let macroPriceChartInstance = null; // We've converted this to track List Price % based on actual data
-        let macroSalesChartInstance = null;
-        let macroDOMChartInstance = null;
-        let macroShowsChartInstance = null;
-
-        const INFOSPARKS_GROUPS = {
-            'Brier': 1, 'Lynnwood': 1, 'Edmonds': 1, 'Mountlake Terrace': 1,
-            'Lake Forest Park': 2, 'Kenmore': 2, 'Shoreline': 2, 'Mukilteo': 2,
-            'Kirkland': 3
-        };
-
-        const cleanNum = (str) => parseFloat((str||"").toString().replace(/[^0-9.-]+/g, "")) || 0;
-        const formatCurrency = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
-        const formatPercent = (num) => (num * 100).toFixed(1) + '%';
-
-        const fetchCSV = (url) => new Promise((resolve) => {
-            Papa.parse(url, { download: true, header: true, skipEmptyLines: true, complete: res => resolve(res.data) });
-        });
-
-        const fetchJSON = async (path) => {
-            try { const res = await fetch(path); return await res.json(); } 
-            catch (e) { console.warn(`Dynamic load bypass triggered on: ${path}`, e); return null; }
-        };
-
-        Promise.all([
-            fetchCSV(urlSnapshot),
-            fetchCSV(urlHistorical),
-            fetchJSON(redfinPath),
-            fetchJSON(infosparksPath)
-        ]).then(values => {
-            dataStore.snapshot = values[0];
-            dataStore.historical = values[1];
-            dataStore.redfin = values[2] ? (values[2].records || values[2]) : [];
-            dataStore.infosparks = values[3] ? (values[3].feeds || values[3]) : {};
+            let dataStore = { snapshot: [], historical: [], redfin: [], infosparks: {} };
+            let currentCity = '';
+            let currentPropType = 'Single Family Residential';
             
-            let cities = [...new Set(dataStore.snapshot.map(row => row.City ? row.City.trim() : ''))].filter(Boolean).sort();
-            
-            buildSelectors(cities);
-            if (cities.length > 0) {
-                currentCity = cities[0];
-                updateDashboard();
-            }
-        });
+            let velocityChartInstance = null;
+            let macroPriceChartInstance = null; 
 
-        const buildSelectors = (cities) => {
-            const citySelector = document.getElementById('citySelector');
-            citySelector.innerHTML = cities.map((city, i) => 
-                `<button class="filter-btn ${i === 0 ? 'active' : ''}" data-city="${city}">${city}</button>`
-            ).join('');
+            const INFOSPARKS_GROUPS = {
+                'Brier': 1, 'Lynnwood': 1, 'Edmonds': 1, 'Mountlake Terrace': 1,
+                'Lake Forest Park': 2, 'Kenmore': 2, 'Shoreline': 2, 'Mukilteo': 2,
+                'Kirkland': 3
+            };
 
-            document.getElementById('typeSelector').style.display = 'flex';
+            const cleanNum = (str) => parseFloat((str||"").toString().replace(/[^0-9.-]+/g, "")) || 0;
+            const formatCurrency = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+            const formatPercent = (num) => (num * 100).toFixed(1) + '%';
 
-            document.querySelectorAll('#citySelector .filter-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    document.querySelectorAll('#citySelector .filter-btn').forEach(b => b.classList.remove('active'));
-                    e.target.classList.add('active');
-                    currentCity = e.target.getAttribute('data-city');
+            const fetchCSV = (url) => new Promise((resolve) => {
+                Papa.parse(url, { download: true, header: true, skipEmptyLines: true, complete: res => resolve(res.data) });
+            });
+
+            const fetchJSON = async (path) => {
+                try { const res = await fetch(path); return await res.json(); } 
+                catch (e) { console.warn(`Dynamic load bypass triggered on: ${path}`, e); return null; }
+            };
+
+            Promise.all([
+                fetchCSV(urlSnapshot),
+                fetchCSV(urlHistorical),
+                fetchJSON(redfinPath),
+                fetchJSON(infosparksPath)
+            ]).then(values => {
+                dataStore.snapshot = values[0];
+                dataStore.historical = values[1];
+                dataStore.redfin = values[2] && values[2].records ? values[2].records : [];
+                dataStore.infosparks = values[3] && values[3].feeds ? values[3].feeds : {};
+                
+                let cities = [...new Set(dataStore.snapshot.map(row => row.City ? row.City.trim() : ''))].filter(Boolean).sort();
+                
+                buildSelectors(cities);
+                if (cities.length > 0) {
+                    currentCity = cities[0];
                     updateDashboard();
+                }
+            });
+
+            const buildSelectors = (cities) => {
+                const citySelector = document.getElementById('citySelector');
+                citySelector.innerHTML = cities.map((city, i) => 
+                    `<button class="filter-btn ${i === 0 ? 'active' : ''}" data-city="${city}">${city}</button>`
+                ).join('');
+
+                document.getElementById('typeSelector').style.display = 'flex';
+
+                document.querySelectorAll('#citySelector .filter-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('#citySelector .filter-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        currentCity = e.target.getAttribute('data-city');
+                        updateDashboard();
+                    });
                 });
-            });
 
-            document.querySelectorAll('#typeSelector .sub-filter-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    document.querySelectorAll('#typeSelector .sub-filter-btn').forEach(b => b.classList.remove('active'));
-                    e.target.classList.add('active');
-                    currentPropType = e.target.getAttribute('data-type');
-                    updateDashboard();
+                document.querySelectorAll('#typeSelector .sub-filter-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('#typeSelector .sub-filter-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        currentPropType = e.target.getAttribute('data-type');
+                        updateDashboard();
+                    });
                 });
-            });
-        };
+            };
 
-        const updateDashboard = () => {
-            document.getElementById('dashboardContent').style.display = 'block';
-            setTimeout(() => document.getElementById('dashboardContent').style.opacity = '1', 50);
-            document.getElementById('currentTitle').textContent = `${currentCity} Snapshot Analytics`;
+            const updateDashboard = () => {
+                document.getElementById('dashboardContent').style.display = 'block';
+                setTimeout(() => document.getElementById('dashboardContent').style.opacity = '1', 50);
+                document.getElementById('currentTitle').textContent = `${currentCity} Snapshot Analytics`;
 
-            renderRealTime();
-            const currentSupplyValue = renderVelocity();
-            renderMacro(currentSupplyValue);
-        };
+                renderRealTime();
+                const currentSupplyValue = renderVelocity();
+                renderMacro(currentSupplyValue);
+            };
 
-        const renderRealTime = () => {
-            const citySnap = dataStore.snapshot.find(row => row.City && row.City.trim() === currentCity) || {};
-            document.getElementById('valNewListings').textContent = cleanNum(citySnap['New Listings']);
-            document.getElementById('valPending').textContent = cleanNum(citySnap['Pending']);
-            document.getElementById('valSold').textContent = cleanNum(citySnap['Sold']);
-            document.getElementById('valAvgPrice').textContent = formatCurrency(cleanNum(citySnap['Avg New Price']));
+            const renderRealTime = () => {
+                const citySnap = dataStore.snapshot.find(row => row.City && row.City.trim() === currentCity) || {};
+                document.getElementById('valNewListings').textContent = cleanNum(citySnap['New Listings']);
+                document.getElementById('valPending').textContent = cleanNum(citySnap['Pending']);
+                document.getElementById('valSold').textContent = cleanNum(citySnap['Sold']);
+                document.getElementById('valAvgPrice').textContent = formatCurrency(cleanNum(citySnap['Avg New Price']));
 
-            const cityHistory = dataStore.historical
-                .filter(row => row.City && row.City.trim() === currentCity && row.Timestamp)
-                .sort((a, b) => new Date(a.Timestamp) - new Date(b.Timestamp));
+                const cityHistory = dataStore.historical
+                    .filter(row => row.City && row.City.trim() === currentCity && row.Timestamp)
+                    .sort((a, b) => new Date(a.Timestamp) - new Date(b.Timestamp));
 
-            const labels = cityHistory.map(row => {
-                const d = new Date(row.Timestamp);
-                return isNaN(d.getTime()) ? '' : `${d.getMonth()+1}/${d.getDate()}`;
-            }).filter(l => l !== '');
-            
-            if (velocityChartInstance) velocityChartInstance.destroy();
-            const ctxVel = document.getElementById('velocityChart').getContext('2d');
-            velocityChartInstance = new Chart(ctxVel, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { label: 'New Listings', data: cityHistory.map(row => cleanNum(row['New Listings'])), borderColor: '#3D3935', tension: 0.3 },
-                        { label: 'Pending', data: cityHistory.map(row => cleanNum(row['Pending'])), borderColor: '#d32f2f', tension: 0.3 }
-                    ]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-            });
-        };
+                const labels = cityHistory.map(row => {
+                    const d = new Date(row.Timestamp);
+                    return isNaN(d.getTime()) ? '' : `${d.getMonth()+1}/${d.getDate()}`;
+                }).filter(l => l !== '');
+                
+                if (velocityChartInstance) velocityChartInstance.destroy();
+                const ctxVel = document.getElementById('velocityChart').getContext('2d');
+                velocityChartInstance = new Chart(ctxVel, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'New Listings', data: cityHistory.map(row => cleanNum(row['New Listings'])), borderColor: '#3D3935', tension: 0.3 },
+                            { label: 'Pending', data: cityHistory.map(row => cleanNum(row['Pending'])), borderColor: '#d32f2f', tension: 0.3 }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+                });
+            };
 
-        const renderVelocity = () => {
-            const rfData = dataStore.redfin
-                .filter(r => r.city && r.city.toLowerCase() === currentCity.toLowerCase() && r.property_type === currentPropType)
-                .sort((a, b) => new Date(b.period_end) - new Date(a.period_end));
+            const renderVelocity = () => {
+                const rfData = dataStore.redfin
+                    .filter(r => r.city && r.city.toLowerCase() === currentCity.toLowerCase() && r.property_type === currentPropType)
+                    .sort((a, b) => new Date(b.period_end) - new Date(a.period_end));
 
-            let activeSupply = 0;
+                let activeSupply = 0;
 
-            if (rfData.length > 0) {
-                const latest = rfData[0];
-                activeSupply = cleanNum(latest.months_of_supply);
-                document.getElementById('valDOM').textContent = latest.median_dom || '--';
-                document.getElementById('valAboveList').textContent = latest.sold_above_list ? formatPercent(cleanNum(latest.sold_above_list)) : '--';
-                document.getElementById('valUrgency').textContent = latest.off_market_in_two_weeks ? formatPercent(cleanNum(latest.off_market_in_two_weeks)) : '--';
-                document.getElementById('valSupply').textContent = activeSupply ? activeSupply.toFixed(1) : '--';
-            } else {
-                document.getElementById('valDOM').textContent = '--';
-                document.getElementById('valAboveList').textContent = '--';
-                document.getElementById('valUrgency').textContent = '--';
-                document.getElementById('valSupply').textContent = '--';
-            }
-            return activeSupply;
-        };
+                if (rfData.length > 0) {
+                    const latest = rfData[0];
+                    activeSupply = cleanNum(latest.months_of_supply);
+                    document.getElementById('valDOM').textContent = latest.median_dom !== null && !isNaN(latest.median_dom) ? latest.median_dom : '--';
+                    document.getElementById('valAboveList').textContent = latest.sold_above_list !== null && !isNaN(latest.sold_above_list) ? formatPercent(cleanNum(latest.sold_above_list)) : '--';
+                    document.getElementById('valUrgency').textContent = latest.off_market_in_two_weeks !== null && !isNaN(latest.off_market_in_two_weeks) ? formatPercent(cleanNum(latest.off_market_in_two_weeks)) : '--';
+                    document.getElementById('valSupply').textContent = activeSupply ? activeSupply.toFixed(1) : '--';
+                } else {
+                    document.getElementById('valDOM').textContent = '--';
+                    document.getElementById('valAboveList').textContent = '--';
+                    document.getElementById('valUrgency').textContent = '--';
+                    document.getElementById('valSupply').textContent = '--';
+                }
+                return activeSupply;
+            };
 
-        const renderMacro = (fallbackSupply) => {
-            const groupId = INFOSPARKS_GROUPS[currentCity] || 1;
-            
-            // Extract the flat feed array for this specific group identifier from the verified structure
-            const groupFeedArray = dataStore.infosparks[groupId.toString()] || [];
+            const renderMacro = (fallbackSupply) => {
+                const groupId = INFOSPARKS_GROUPS[currentCity] || 1;
+                
+                // Extract the flat feed array for this specific group identifier from the verified structure
+                const groupFeedArray = dataStore.infosparks[groupId.toString()] || [];
 
-            // Clean data points: parse only items that have real numbers for the active city and strip out text disclosures
-            const cleanedTimeline = groupFeedArray.filter(row => {
-                return row && row.Date && !row.Date.includes("All data from") && row[currentCity] !== undefined;
-            }).map(row => {
-                return {
-                    label: row.Date,
-                    val: cleanNum(row[currentCity])
-                };
-            });
+                // Clean data points: parse only items that have real numbers for the active city and strip out text disclosures
+                const cleanedTimeline = groupFeedArray.filter(row => {
+                    return row && row.Date && !row.Date.includes("All data from") && row[currentCity] !== undefined && row[currentCity] !== null && !isNaN(row[currentCity]);
+                }).map(row => {
+                    return {
+                        label: row.Date,
+                        val: cleanNum(row[currentCity])
+                    };
+                });
 
-            // Handle the Market Climate Indicator scale updates using fallback values gracefully
-            let currentSupply = fallbackSupply; 
-            const clampedSupply = Math.max(0, Math.min(6, currentSupply));
-            const percentagePosition = (clampedSupply / 6) * 100;
-            document.getElementById('climateNeedle').style.left = `calc(${percentagePosition}% - 2px)`;
+                // Handle the Market Climate Indicator scale updates using fallback values gracefully
+                let currentSupply = fallbackSupply; 
+                const clampedSupply = Math.max(0, Math.min(6, currentSupply));
+                const percentagePosition = (clampedSupply / 6) * 100;
+                document.getElementById('climateNeedle').style.left = `calc(${percentagePosition}% - 2px)`;
 
-            let climateVibe = "Balanced Market";
-            if (currentSupply <= 1.25) climateVibe = "Hot Seller's Market";
-            else if (currentSupply <= 2.4) climateVibe = "Seller's Market";
-            else if (currentSupply <= 3.5) climateVibe = "Balanced Market";
-            else if (currentSupply <= 4.74) climateVibe = "Buyer's Market";
-            else climateVibe = "Hot Buyer's Market";
+                let climateVibe = "Balanced Market";
+                if (currentSupply <= 1.25) climateVibe = "Hot Seller's Market";
+                else if (currentSupply <= 2.4) climateVibe = "Seller's Market";
+                else if (currentSupply <= 3.5) climateVibe = "Balanced Market";
+                else if (currentSupply <= 4.74) climateVibe = "Buyer's Market";
+                else climateVibe = "Hot Buyer's Market";
 
-            document.getElementById('climateLabelText').textContent = `${climateVibe} (${currentSupply.toFixed(2)} Months Supply)`;
+                document.getElementById('climateLabelText').textContent = `${climateVibe} (${currentSupply.toFixed(2)} Months Supply)`;
 
-            // Render the extracted verified timeline points to our main Macro Chart space
-            if (macroPriceChartInstance) macroPriceChartInstance.destroy();
-            
-            const ctxMacro = document.getElementById('macroPriceChart').getContext('2d');
-            
-            // Adjust label text to reflect the actual metrics present in the JSON feed
-            document.querySelector('#macroPriceChart').closest('.chart-box').querySelector('h3').textContent = "Historic Sale-to-List Ratio";
-            
-            macroPriceChartInstance = new Chart(ctxMacro, {
-                type: 'line',
-                data: {
-                    labels: cleanedTimeline.map(t => t.label),
-                    datasets: [{
-                        label: 'Avg Percent of List Price',
-                        data: cleanedTimeline.map(t => t.val * 100), // Converted to percentage presentation clean lines (e.g. 102.9%)
-                        borderColor: '#3D3935',
-                        fill: true,
-                        backgroundColor: 'rgba(61, 57, 53, 0.05)',
-                        tension: 0.2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            ticks: {
-                                callback: function(value) { return value + '%'; }
+                // Render the extracted verified timeline points to our main Macro Chart space
+                if (macroPriceChartInstance) macroPriceChartInstance.destroy();
+                
+                const ctxMacro = document.getElementById('macroPriceChart').getContext('2d');
+                
+                macroPriceChartInstance = new Chart(ctxMacro, {
+                    type: 'line',
+                    data: {
+                        labels: cleanedTimeline.map(t => t.label),
+                        datasets: [{
+                            label: 'Avg Percent of List Price',
+                            data: cleanedTimeline.map(t => t.val * 100), // Converted to percentage presentation clean lines (e.g. 102.9%)
+                            borderColor: '#3D3935',
+                            fill: true,
+                            backgroundColor: 'rgba(61, 57, 53, 0.05)',
+                            tension: 0.2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                ticks: {
+                                    callback: function(value) { return value + '%'; }
+                                }
                             }
                         }
                     }
-                }
-            });
-        };
-    });
-</script>
-    
+                });
+            };
+        });
+    </script>
 </body>
 </html>
