@@ -28,43 +28,47 @@ REDFIN_COLUMNS = [
 def run_redfin_pipeline():
     print("Starting Redfin data pipeline...")
     try:
-        # Stream the massive file in chunks to prevent GitHub Actions out-of-memory crashes
-        chunks = pd.read_csv(REDFIN_URL, compression="gzip", sep="\t", chunksize=50000, low_memory=False)
-        filtered_chunks = []
+        # Add a custom User-Agent header to bypass AWS S3 403 Forbidden restrictions
+        req = urllib.request.Request(REDFIN_URL, headers={'User-Agent': 'Mozilla/5.0'})
         
-        for chunk in chunks:
-            # Standardize state column naming defensively
-            if "state_code" in chunk.columns and "state" not in chunk.columns:
-                chunk["state"] = chunk["state_code"]
-            elif "state" in chunk.columns and "state_code" not in chunk.columns:
-                chunk["state_code"] = chunk["state"]
+        with urllib.request.urlopen(req) as response:
+            # Stream the massive file in chunks to prevent GitHub Actions out-of-memory crashes
+            chunks = pd.read_csv(response, compression="gzip", sep="\t", chunksize=50000, low_memory=False)
+            filtered_chunks = []
+            
+            for chunk in chunks:
+                # Standardize state column naming defensively
+                if "state_code" in chunk.columns and "state" not in chunk.columns:
+                    chunk["state"] = chunk["state_code"]
+                elif "state" in chunk.columns and "state_code" not in chunk.columns:
+                    chunk["state_code"] = chunk["state"]
+                    
+                # Filter rows aggressively on the fly
+                mask = (
+                    (chunk["state"].astype(str).str.upper() == "WA") &
+                    (chunk["city"].isin(TARGET_CITIES)) &
+                    (chunk["property_type"].isin(TARGET_PROPERTY_TYPES))
+                )
+                filtered_chunk = chunk[mask]
                 
-            # Filter rows aggressively on the fly
-            mask = (
-                (chunk["state"].astype(str).str.upper() == "WA") &
-                (chunk["city"].isin(TARGET_CITIES)) &
-                (chunk["property_type"].isin(TARGET_PROPERTY_TYPES))
-            )
-            filtered_chunk = chunk[mask]
-            
-            if not filtered_chunk.empty:
-                # Keep only your updated columns list
-                existing_cols = [c for c in REDFIN_COLUMNS if c in filtered_chunk.columns]
-                filtered_chunks.append(filtered_chunk[existing_cols])
+                if not filtered_chunk.empty:
+                    # Keep only your updated columns list
+                    existing_cols = [c for c in REDFIN_COLUMNS if c in filtered_chunk.columns]
+                    filtered_chunks.append(filtered_chunk[existing_cols])
+                    
+            if filtered_chunks:
+                master_df = pd.concat(filtered_chunks, ignore_index=True)
                 
-        if filtered_chunks:
-            master_df = pd.concat(filtered_chunks, ignore_index=True)
-            
-            # Sort chronologically and by city
-            master_df = master_df.sort_values(by=["city", "property_type", "period_begin"], ascending=[True, True, True])
-            
-            # Convert to dictionary and save
-            data_dict = master_df.to_dict(orient="records")
-            with open(REDFIN_OUTPUT_PATH, "w") as f:
-                json.dump(data_dict, f, indent=2)
-            print(f"Redfin data compiled successfully. Saved {len(data_dict)} rows.")
-        else:
-            print("Warning: No matching Redfin records found during filtering.")
+                # Sort chronologically and by city
+                master_df = master_df.sort_values(by=["city", "property_type", "period_begin"], ascending=[True, True, True])
+                
+                # Convert to dictionary and save
+                data_dict = master_df.to_dict(orient="records")
+                with open(REDFIN_OUTPUT_PATH, "w") as f:
+                    json.dump(data_dict, f, indent=2)
+                print(f"Redfin data compiled successfully. Saved {len(data_dict)} rows.")
+            else:
+                print("Warning: No matching Redfin records found during filtering.")
             
     except Exception as e:
         print(f"Critical error in Redfin pipeline: {e}")
@@ -89,7 +93,8 @@ def run_infosparks_pipeline():
         master_feeds = {}
 
         for idx, row in config_df.iterrows():
-            feed_name = str(row[name_col]).skip() if pd.notna(row[name_col]) else f"feed_{idx}"
+            # Fixed typo here (.strip() instead of .skip())
+            feed_name = str(row[name_col]).strip() if pd.notna(row[name_col]) else f"feed_{idx}"
             url = str(row[url_col]).strip() if pd.notna(row[url_col]) else ""
             
             if not url.startswith("http"):
