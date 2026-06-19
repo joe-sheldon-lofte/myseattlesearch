@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Local Market Insights | Joe Sheldon</title>
-    <link rel="stylesheet" href="style.css?v=43">
+    <link rel="stylesheet" href="style.css?v=44">
     
     <script src="components.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -24,7 +24,6 @@
             text-align: left;
         }
 
-        /* Premium Market Climate Graphic styles */
         .market-climate-container {
             background: #ffffff;
             padding: 2rem;
@@ -338,9 +337,28 @@
             </div>
 
             <div class="charts-container">
-                <div class="chart-box" style="grid-column: 1 / -1;"> <h3>Historic Average Percent of List Price</h3>
+                <div class="chart-box">
+                    <h3>Historic Median Sale Price</h3>
                     <p class="chart-desc">Macro view of asset evaluation tracking pricing structural shifts over multiple cycles.</p>
-                    <div style="position: relative; height: 300px;"><canvas id="macroPriceChart"></canvas></div>
+                    <div style="position: relative; height: 260px;"><canvas id="macroPriceChart"></canvas></div>
+                </div>
+                
+                <div class="chart-box">
+                    <h3>Historic Closed Sales Volume</h3>
+                    <p class="chart-desc">Total liquidity and real transaction velocity markers over rolling seasons.</p>
+                    <div style="position: relative; height: 260px;"><canvas id="macroSalesChart"></canvas></div>
+                </div>
+
+                <div class="chart-box">
+                    <h3>Average Days on Market (Historic)</h3>
+                    <p class="chart-desc">The average timeline from dynamic live launch to contract execution over time.</p>
+                    <div style="position: relative; height: 260px;"><canvas id="macroDOMChart"></canvas></div>
+                </div>
+
+                <div class="chart-box">
+                    <h3>Shows Per Listing</h3>
+                    <p class="chart-desc">Foot-traffic patterns compared directly against systemic closed negotiation averages.</p>
+                    <div style="position: relative; height: 260px;"><canvas id="macroShowsChart"></canvas></div>
                 </div>
             </div>
             
@@ -357,7 +375,7 @@
 
     <universal-footer></universal-footer>
 
-<script>
+    <script>
         document.addEventListener('DOMContentLoaded', () => {
 
             const urlSnapshot = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=701119614&single=true&output=csv';
@@ -371,6 +389,9 @@
             
             let velocityChartInstance = null;
             let macroPriceChartInstance = null; 
+            let macroSalesChartInstance = null;
+            let macroDOMChartInstance = null;
+            let macroShowsChartInstance = null;
 
             const INFOSPARKS_GROUPS = {
                 'Brier': 1, 'Lynnwood': 1, 'Edmonds': 1, 'Mountlake Terrace': 1,
@@ -385,14 +406,11 @@
             const formatCurrency = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
             const formatPercent = (num) => (num * 100).toFixed(1) + '%';
 
-            // Resilient, case-insensitive key matcher for reading city metrics out of JSON rows
             const getRowValueForCity = (row, city) => {
                 if (!row || !city) return null;
                 const target = city.toLowerCase().trim();
                 for (let key in row) {
-                    if (key.toLowerCase().trim() === target) {
-                        return row[key];
-                    }
+                    if (key.toLowerCase().trim() === target) return row[key];
                 }
                 return null;
             };
@@ -401,17 +419,15 @@
                 Papa.parse(url, { download: true, header: true, skipEmptyLines: true, complete: res => resolve(res.data) });
             });
 
-            // Re-engineered to catch and fix bare NaN tokens before parsing JSON
             const fetchJSON = async (path) => {
                 try { 
                     const res = await fetch(path);
                     const rawText = await res.text();
-                    // Regex fix: converts all invalid bare ': NaN' occurrences into safe compliant ': null' string entries
                     const cleanedText = rawText.replace(/:\s*NaN/g, ": null");
                     return JSON.parse(cleanedText); 
                 } 
                 catch (e) { 
-                    console.error(`Failed to handle and parse asset route layout at: ${path}`, e); 
+                    console.error(`Failed to handle parse at: ${path}`, e); 
                     return null; 
                 }
             };
@@ -507,7 +523,7 @@
             const renderVelocity = () => {
                 const rfData = dataStore.redfin
                     .filter(r => r.city && r.city.toLowerCase().trim() === currentCity.toLowerCase().trim() && r.property_type === currentPropType)
-                    .sort((a, b) => new Date(b.period_begin) - new Date(a.period_begin)); // Changed to look for early entries clean sort configurations
+                    .sort((a, b) => new Date(b.period_begin) - new Date(a.period_begin)); 
 
                 let activeSupply = 0;
 
@@ -528,24 +544,39 @@
                 return activeSupply;
             };
 
+            // Smart Data Extractor for InfoSparks
+            const extractInfosparksData = (feedKey, city) => {
+                const feed = dataStore.infosparks[feedKey] || dataStore.infosparks[feedKey.toLowerCase()];
+                let rows = [];
+                if (Array.isArray(feed)) rows = feed;
+                else if (feed && Array.isArray(feed.data)) rows = feed.data;
+                else return []; 
+
+                return rows.filter(row => {
+                    if (!row || !row.Date || String(row.Date).includes("All data from")) return false;
+                    let val = getRowValueForCity(row, city);
+                    return val !== null && val !== undefined && val !== 'NaN' && !Number.isNaN(val);
+                }).map(row => {
+                    return { label: row.Date, val: cleanNum(getRowValueForCity(row, city)) };
+                });
+            };
+
             const renderMacro = (fallbackSupply) => {
                 const groupId = INFOSPARKS_GROUPS[currentCity] || 1;
-                const groupFeedArray = dataStore.infosparks[groupId.toString()] || [];
+                
+                // Extracting based on your designated keys
+                const priceTimeline = extractInfosparksData(`group_${groupId}_median_sale_price`, currentCity);
+                const salesTimeline = extractInfosparksData(`group_${groupId}_closed_sales`, currentCity);
+                const domTimeline = extractInfosparksData(`group_${groupId}_average_days_on_market`, currentCity);
+                const showsTimeline = extractInfosparksData(`group_${groupId}_shows_per_listing`, currentCity);
+                const supplyTimeline = extractInfosparksData(`group_${groupId}_months_supply_closed`, currentCity);
 
-                // Filter macro timeline array points with robust case-insensitive validation lookups
-                const cleanedTimeline = groupFeedArray.filter(row => {
-                    if (!row || !row.Date || row.Date.includes("All data from")) return false;
-                    const cityVal = getRowValueForCity(row, currentCity);
-                    return cityVal !== null && cityVal !== undefined && cityVal !== 'NaN';
-                }).map(row => {
-                    return {
-                        label: row.Date,
-                        val: cleanNum(getRowValueForCity(row, currentCity))
-                    };
-                });
-
-                // Gauge needle configurations updates logic calculations
+                // Handle the Market Climate Indicator
                 let currentSupply = fallbackSupply;
+                if (supplyTimeline.length > 0) {
+                    currentSupply = supplyTimeline[supplyTimeline.length - 1].val;
+                }
+
                 const clampedSupply = Math.max(0, Math.min(6, currentSupply));
                 const percentagePosition = (clampedSupply / 6) * 100;
                 document.getElementById('climateNeedle').style.left = `calc(${percentagePosition}% - 2px)`;
@@ -559,35 +590,48 @@
 
                 document.getElementById('climateLabelText').textContent = `${climateVibe} (${currentSupply.toFixed(2)} Months Supply)`;
 
-                // Render lines elements directly to target canvas spaces
+                // 1. Median Price Chart
                 if (macroPriceChartInstance) macroPriceChartInstance.destroy();
-                
-                const ctxMacro = document.getElementById('macroPriceChart').getContext('2d');
-                
-                macroPriceChartInstance = new Chart(ctxMacro, {
+                macroPriceChartInstance = new Chart(document.getElementById('macroPriceChart').getContext('2d'), {
                     type: 'line',
                     data: {
-                        labels: cleanedTimeline.map(t => t.label),
-                        datasets: [{
-                            label: 'Avg Percent of List Price',
-                            data: cleanedTimeline.map(t => t.val * 100), 
-                            borderColor: '#3D3935',
-                            fill: true,
-                            backgroundColor: 'rgba(61, 57, 53, 0.05)',
-                            tension: 0.2
-                        }]
+                        labels: priceTimeline.map(t => t.label),
+                        datasets: [{ label: 'Median Price', data: priceTimeline.map(t => t.val), borderColor: '#3D3935', fill: true, backgroundColor: 'rgba(61, 57, 53, 0.05)', tension: 0.2 }]
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                ticks: {
-                                    callback: function(value) { return value + '%'; }
-                                }
-                            }
-                        }
-                    }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+
+                // 2. Closed Sales Chart
+                if (macroSalesChartInstance) macroSalesChartInstance.destroy();
+                macroSalesChartInstance = new Chart(document.getElementById('macroSalesChart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: salesTimeline.map(t => t.label),
+                        datasets: [{ label: 'Closed Sales', data: salesTimeline.map(t => t.val), backgroundColor: '#a0a0a0' }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+
+                // 3. Days on Market Chart
+                if (macroDOMChartInstance) macroDOMChartInstance.destroy();
+                macroDOMChartInstance = new Chart(document.getElementById('macroDOMChart').getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: domTimeline.map(t => t.label),
+                        datasets: [{ label: 'Avg DOM', data: domTimeline.map(t => t.val), borderColor: '#d32f2f', tension: 0.2, fill: false }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+
+                // 4. Shows Per Listing
+                if (macroShowsChartInstance) macroShowsChartInstance.destroy();
+                macroShowsChartInstance = new Chart(document.getElementById('macroShowsChart').getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: showsTimeline.map(t => t.label),
+                        datasets: [{ label: 'Shows Per Listing', data: showsTimeline.map(t => t.val), borderColor: '#4A90E2', tension: 0.2, fill: false }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
             };
         });
