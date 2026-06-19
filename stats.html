@@ -4,120 +4,157 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Local Market Insights | Joe Sheldon</title>
-    <link rel="stylesheet" href="style.css?v=41">
+    <link rel="stylesheet" href="style.css?v=42">
     
     <script src="components.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         .data-warning-banner {
-            background-color: #FFF9E6 !important; /* Soft, non-aggressive amber tint */
-            border-left: 4px solid #d32f2f !important; /* Swapped from Gold to Redfin Red */
-            color: #3D3935 !important; /* Brand charcoal for text readability */
-            padding: 1rem 1.25rem !important;
-            border-radius: 4px 12px 12px 4px !important;
-            font-size: 0.9rem !important;
-            line-height: 1.5 !important;
-            margin-bottom: 2rem !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
-            text-align: left !important;
+            background-color: #FFF9E6; 
+            border-left: 4px solid #d32f2f; 
+            color: var(--premier-charcoal); 
+            padding: 1rem 1.25rem;
+            border-radius: 4px 12px 12px 4px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            text-align: left;
+        }
+
+        .sub-filter-nav {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .sub-filter-btn {
+            background: transparent;
+            border: 2px solid var(--light-gray);
+            padding: 0.5rem 1.5rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--premier-charcoal);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sub-filter-btn.active {
+            background: var(--premier-charcoal);
+            border-color: var(--premier-charcoal);
+            color: var(--white);
+        }
+
+        .section-header {
+            text-align: center;
+            margin: 4rem 0 2rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--premier-beige);
+            color: var(--premier-charcoal);
+        }
+
+        .section-header h2 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 0.25rem;
+        }
+
+        .section-header p {
+            font-size: 0.95rem;
+            opacity: 0.7;
+            font-style: italic;
         }
 
         .stats-grid {
-            display: grid !important;
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 1.25rem !important;
-            margin: 2rem 0 3rem 0 !important;
-            width: 100% !important;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.25rem;
+            margin: 2rem 0;
+            width: 100%;
         }
 
         @media (min-width: 768px) {
             .stats-grid {
-                grid-template-columns: repeat(4, 1fr) !important;
+                grid-template-columns: repeat(4, 1fr);
             }
         }
 
         .stat-card {
-            background-color: #ffffff !important;
-            padding: 1.75rem 1rem !important;
-            border-radius: 12px !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important;
-            text-align: center !important;
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: center !important;
-            align-items: center !important;
-            border-top: 5px solid #3D3935 !important;
+            background-color: #ffffff;
+            padding: 1.75rem 1rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-top: 5px solid var(--premier-charcoal);
         }
 
-        .stat-card.card-pending {
-            border-top-color: #d32f2f !important;
-        }
-        .stat-card.card-sold {
-            border-top-color: #a0a0a0 !important;
-        }
-        .stat-card.card-price {
-            border-top-color: #3D3935 !important; /* Swapped from Gold to Charcoal */
-        }
+        .stat-card.card-pending { border-top-color: #d32f2f; }
+        .stat-card.card-sold { border-top-color: #a0a0a0; }
+        .stat-card.card-price { border-top-color: var(--premier-charcoal); }
 
         .stat-card h4 {
-            font-size: 0.85rem !important;
-            text-transform: uppercase !important;
-            letter-spacing: 1px !important;
-            color: #3D3935 !important;
-            opacity: 0.7 !important;
-            margin-bottom: 0.75rem !important;
-            font-weight: 700 !important;
-            line-height: 1.2 !important;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--premier-charcoal);
+            opacity: 0.7;
+            margin-bottom: 0.75rem;
+            font-weight: 700;
         }
 
         .stat-value {
-            font-size: 1.8rem !important;
-            font-weight: 800 !important;
-            color: #3D3935 !important;
-            margin-bottom: 0.5rem !important;
-            line-height: 1.1 !important;
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--premier-charcoal);
+            margin-bottom: 0.5rem;
+            line-height: 1;
         }
 
         .stat-label {
-            font-size: 0.75rem !important;
-            font-style: italic !important;
-            opacity: 0.5 !important;
+            font-size: 0.75rem;
+            font-style: italic;
+            font-weight: 600;
+            opacity: 0.5;
+            text-transform: uppercase;
         }
 
         .charts-container {
-            display: grid !important;
-            grid-template-columns: 1fr !important;
-            gap: 2rem !important;
-            width: 100% !important;
-            margin-top: 1rem !important;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            width: 100%;
+            margin-top: 1rem;
         }
 
         @media (min-width: 768px) {
-            .charts-container {
-                grid-template-columns: 1fr 1fr !important;
-            }
+            .charts-container { grid-template-columns: 1fr 1fr; }
         }
 
         .chart-box {
-            background-color: #ffffff !important;
-            padding: 1.75rem !important;
-            border-radius: 12px !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important;
+            background-color: #ffffff;
+            padding: 1.75rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
         }
 
         .chart-box h3 {
-            margin-bottom: 0.35rem !important;
-            font-size: 1.25rem !important;
-            font-weight: 700 !important;
+            margin-bottom: 0.35rem;
+            font-size: 1.25rem;
+            font-weight: 700;
         }
 
         .chart-desc {
-            font-size: 0.85rem !important;
-            opacity: 0.7 !important;
-            margin-bottom: 1.75rem !important;
+            font-size: 0.85rem;
+            opacity: 0.7;
+            margin-bottom: 1.75rem;
         }
     </style>
 </head>
@@ -125,10 +162,10 @@
 
     <universal-header></universal-header>
 
-    <main class="container" style="max-width: 1000px; padding-bottom: 5rem;">
+    <main class="container" style="max-width: 1100px; padding-bottom: 5rem;">
         
-        <div class="events-header">
-            <h1 style="margin-top: 1rem;">Local Market Insights</h1>
+        <div class="events-header" style="text-align: center; margin-bottom: 2rem;">
+            <h1 style="margin-top: 1rem; font-size: 2.5rem;">Local Market Insights</h1>
             <p class="intro">Real-time data and historical trends for the Pacific Northwest.</p>
         </div>
 
@@ -136,15 +173,28 @@
             ⚠️ <strong>Heads Up:</strong> This dashboard is currently building its live pipelines. Data tracking is active, but charts and comparisons will not be fully normalized or historically accurate until <strong>June 15th</strong>.
         </div>
 
+        <!-- City Selector -->
         <div class="filter-nav-container">
             <div class="filter-nav" id="citySelector">
                 <p>Loading market data...</p>
             </div>
         </div>
 
+        <!-- Property Type Selector -->
+        <div class="sub-filter-nav" id="typeSelector" style="display: none;">
+            <button class="sub-filter-btn active" data-type="Single Family Residential">Single-Family</button>
+            <button class="sub-filter-btn" data-type="Condo/Co-op">Condo & Townhome</button>
+        </div>
+
         <div id="dashboardContent" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
             
-            <h2 id="currentCityTitle" style="text-align: center; margin-bottom: 2rem; color: var(--redfin-red); font-weight: 800;">City Data</h2>
+            <h2 id="currentTitle" style="text-align: center; margin-bottom: 1rem; color: var(--premier-charcoal); font-weight: 800; font-size: 2rem;"></h2>
+            
+            <!-- SECTION 1: REAL TIME -->
+            <div class="section-header" style="margin-top: 2rem;">
+                <h2>1. Real-Time Heartbeat</h2>
+                <p>Immediate supply and demand signals tracking what is hitting the pavement today. (All Property Types)</p>
+            </div>
 
             <div class="stats-grid">
                 <div class="stat-card card-listings">
@@ -164,25 +214,66 @@
                 </div>
                 <div class="stat-card card-price">
                     <h4>Avg New Price</h4>
-                    <div class="stat-value" id="valAvgPrice">--</div>
+                    <div class="stat-value" id="valAvgPrice" style="font-size: 1.8rem;">--</div>
                     <div class="stat-label">Last 7 Days</div>
                 </div>
             </div>
 
+            <div class="chart-box" style="margin-bottom: 2rem;">
+                <h3>Snapshot Trend</h3>
+                <p class="chart-desc">Historical trend of listings hitting the market vs. going pending.</p>
+                <div style="position: relative; height: 300px;"><canvas id="velocityChart"></canvas></div>
+            </div>
+
+            <!-- SECTION 2: VELOCITY (REDFIN) -->
+            <div class="section-header">
+                <h2>2. Market Velocity & Competition</h2>
+                <p>Psychological metrics showing how fast inventory moves and how aggressive buyers are.</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card" style="border-top-color: #4A90E2;">
+                    <h4>Median Days on Market</h4>
+                    <div class="stat-value" id="valDOM">--</div>
+                    <div class="stat-label">Velocity</div>
+                </div>
+                <div class="stat-card" style="border-top-color: #4A90E2;">
+                    <h4>Sold Above List</h4>
+                    <div class="stat-value" id="valAboveList">--</div>
+                    <div class="stat-label">Bidding Wars</div>
+                </div>
+                <div class="stat-card" style="border-top-color: #4A90E2;">
+                    <h4>Off Market < 2 Weeks</h4>
+                    <div class="stat-value" id="valUrgency">--</div>
+                    <div class="stat-label">Buyer Urgency</div>
+                </div>
+                <div class="stat-card" style="border-top-color: #4A90E2;">
+                    <h4>Months of Supply</h4>
+                    <div class="stat-value" id="valSupply">--</div>
+                    <div class="stat-label">Inventory</div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: MACRO (INFOSPARKS) -->
+            <div class="section-header">
+                <h2>3. The Macro Trend Line</h2>
+                <p>Long-term economic cycles and historic appreciation trajectories.</p>
+            </div>
+
             <div class="charts-container">
                 <div class="chart-box">
-                    <h3>Market Velocity</h3>
-                    <p class="chart-desc">Historical trend of listings hitting the market vs. going pending.</p>
-                    <canvas id="velocityChart"></canvas>
+                    <h3>Historic Median Sale Price</h3>
+                    <p class="chart-desc">Macro view of pricing structures over time.</p>
+                    <div style="position: relative; height: 300px;"><canvas id="macroPriceChart"></canvas></div>
                 </div>
                 
                 <div class="chart-box">
-                    <h3>Pricing Trends & Drops</h3>
-                    <p class="chart-desc">Average new list price alongside total weekly price reductions.</p>
-                    <canvas id="pricingChart"></canvas>
+                    <h3>Historic Closed Sales Volume</h3>
+                    <p class="chart-desc">Total liquidity and transaction volume over time.</p>
+                    <div style="position: relative; height: 300px;"><canvas id="macroSalesChart"></canvas></div>
                 </div>
             </div>
-            
+
         </div>
         
     </main>
@@ -192,93 +283,129 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
 
+            // Data Sources
             const urlSnapshot = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=701119614&single=true&output=csv';
             const urlHistorical = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1473136505&single=true&output=csv';
+            const redfinPath = './data/redfin_stats.json';
+            const infosparksPath = './data/infosparks_stats.json';
 
-            let snapshotData = [];
-            let historicalData = [];
+            // Global State
+            let dataStore = {
+                snapshot: [],
+                historical: [],
+                redfin: [],
+                infosparks: {}
+            };
+
+            let currentCity = '';
+            let currentPropType = 'Single Family Residential';
+            
+            // Charts
             let velocityChartInstance = null;
-            let pricingChartInstance = null;
+            let macroPriceChartInstance = null;
+            let macroSalesChartInstance = null;
 
-            const cleanNum = (str) => {
-                if (!str) return 0;
-                return parseFloat(str.replace(/[^0-9.-]+/g, "")) || 0;
+            // City to InfoSparks Group Map
+            const INFOSPARKS_GROUPS = {
+                'Brier': 1, 'Lynnwood': 1, 'Edmonds': 1, 'Mountlake Terrace': 1,
+                'Lake Forest Park': 2, 'Kenmore': 2, 'Shoreline': 2, 'Mukilteo': 2,
+                'Kirkland': 3
             };
 
-            const formatCurrency = (num) => {
-                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+            // Utilities
+            const cleanNum = (str) => parseFloat((str||"").toString().replace(/[^0-9.-]+/g, "")) || 0;
+            const formatCurrency = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+            const formatPercent = (num) => (num * 100).toFixed(1) + '%';
+
+            const fetchCSV = (url) => new Promise((resolve) => {
+                Papa.parse(url, { download: true, header: true, skipEmptyLines: true, complete: res => resolve(res.data) });
+            });
+
+            const fetchJSON = async (path) => {
+                try { const res = await fetch(path); return await res.json(); } 
+                catch (e) { console.warn(`Could not load ${path}`, e); return null; }
             };
 
-            const fetchCSV = (url) => {
-                return new Promise((resolve) => {
-                    Papa.parse(url, {
-                        download: true,
-                        header: true,
-                        skipEmptyLines: true,
-                        complete: function(results) { resolve(results.data); }
-                    });
-                });
-            };
-
-            Promise.all([fetchCSV(urlSnapshot), fetchCSV(urlHistorical)]).then(values => {
-                snapshotData = values[0];
-                historicalData = values[1];
+            // Init
+            Promise.all([
+                fetchCSV(urlSnapshot),
+                fetchCSV(urlHistorical),
+                fetchJSON(redfinPath),
+                fetchJSON(infosparksPath)
+            ]).then(values => {
+                dataStore.snapshot = values[0];
+                dataStore.historical = values[1];
+                dataStore.redfin = values[2] ? values[2].records : [];
+                dataStore.infosparks = values[3] ? values[3].feeds : {};
                 
-                let cities = [...new Set(snapshotData.map(row => row.City ? row.City.trim() : ''))].filter(Boolean).sort();
-                buildCitySelector(cities);
+                // Get unique cities from the Matrix Snapshot
+                let cities = [...new Set(dataStore.snapshot.map(row => row.City ? row.City.trim() : ''))].filter(Boolean).sort();
                 
+                buildSelectors(cities);
                 if (cities.length > 0) {
-                    updateDashboard(cities[0]);
+                    currentCity = cities[0];
+                    updateDashboard();
                 }
             });
 
-            const buildCitySelector = (cities) => {
-                const selector = document.getElementById('citySelector');
-                let html = '';
-                cities.forEach((city, index) => {
-                    html += `<button class="filter-btn ${index === 0 ? 'active' : ''}" data-city="${city}">${city}</button>`;
-                });
-                selector.innerHTML = html;
+            const buildSelectors = (cities) => {
+                // Build City Nav
+                const citySelector = document.getElementById('citySelector');
+                citySelector.innerHTML = cities.map((city, i) => 
+                    `<button class="filter-btn ${i === 0 ? 'active' : ''}" data-city="${city}">${city}</button>`
+                ).join('');
 
-                const btns = document.querySelectorAll('#citySelector .filter-btn');
-                btns.forEach(btn => {
+                document.getElementById('typeSelector').style.display = 'flex';
+
+                // Listeners
+                document.querySelectorAll('#citySelector .filter-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
-                        btns.forEach(b => b.classList.remove('active'));
+                        document.querySelectorAll('#citySelector .filter-btn').forEach(b => b.classList.remove('active'));
                         e.target.classList.add('active');
-                        updateDashboard(e.target.getAttribute('data-city'));
+                        currentCity = e.target.getAttribute('data-city');
+                        updateDashboard();
+                    });
+                });
+
+                document.querySelectorAll('#typeSelector .sub-filter-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('#typeSelector .sub-filter-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        currentPropType = e.target.getAttribute('data-type');
+                        updateDashboard();
                     });
                 });
             };
 
-            const updateDashboard = (city) => {
+            const updateDashboard = () => {
                 document.getElementById('dashboardContent').style.display = 'block';
                 setTimeout(() => document.getElementById('dashboardContent').style.opacity = '1', 50);
                 
-                document.getElementById('currentCityTitle').textContent = `${city} Market Snapshot`;
+                document.getElementById('currentTitle').textContent = `${currentCity} Market Data`;
 
-                const citySnap = snapshotData.find(row => row.City && row.City.trim() === city) || {};
-                
+                renderRealTime();
+                renderVelocity();
+                renderMacro();
+            };
+
+            const renderRealTime = () => {
+                // Snapshot Boxes
+                const citySnap = dataStore.snapshot.find(row => row.City && row.City.trim() === currentCity) || {};
                 document.getElementById('valNewListings').textContent = cleanNum(citySnap['New Listings']);
                 document.getElementById('valPending').textContent = cleanNum(citySnap['Pending']);
                 document.getElementById('valSold').textContent = cleanNum(citySnap['Sold']);
                 document.getElementById('valAvgPrice').textContent = formatCurrency(cleanNum(citySnap['Avg New Price']));
 
-                const cityHistory = historicalData
-                    .filter(row => row.City && row.City.trim() === city && row.Timestamp)
+                // Matrix Chart
+                const cityHistory = dataStore.historical
+                    .filter(row => row.City && row.City.trim() === currentCity && row.Timestamp)
                     .sort((a, b) => new Date(a.Timestamp) - new Date(b.Timestamp));
 
                 const labels = cityHistory.map(row => {
                     const d = new Date(row.Timestamp);
-                    if (isNaN(d.getTime())) return ''; 
-                    return `${d.getMonth()+1}/${d.getDate()}`;
+                    return isNaN(d.getTime()) ? '' : `${d.getMonth()+1}/${d.getDate()}`;
                 }).filter(l => l !== '');
                 
-                const histNew = cityHistory.map(row => cleanNum(row['New Listings']));
-                const histPending = cityHistory.map(row => cleanNum(row['Pending']));
-                const histSold = cityHistory.map(row => cleanNum(row['Sold']));
-                const histAvgPrice = cityHistory.map(row => cleanNum(row['Avg New Price']));
-                const histPriceDrops = cityHistory.map(row => cleanNum(row['Price Drops']));
-
                 if (velocityChartInstance) velocityChartInstance.destroy();
                 const ctxVel = document.getElementById('velocityChart').getContext('2d');
                 velocityChartInstance = new Chart(ctxVel, {
@@ -286,62 +413,74 @@
                     data: {
                         labels: labels,
                         datasets: [
-                            { label: 'New Listings', data: histNew, borderColor: '#3D3935', backgroundColor: '#3D3935', tension: 0.3 },
-                            { label: 'Pending', data: histPending, borderColor: '#d32f2f', backgroundColor: '#d32f2f', tension: 0.3 },
-                            { label: 'Sold', data: histSold, backgroundColor: '#e0e0e0', borderColor: '#e0e0e0', borderDash: [5, 5], tension: 0.3 }
+                            { label: 'New Listings', data: cityHistory.map(row => cleanNum(row['New Listings'])), borderColor: '#3D3935', tension: 0.3 },
+                            { label: 'Pending', data: cityHistory.map(row => cleanNum(row['Pending'])), borderColor: '#d32f2f', tension: 0.3 }
                         ]
                     },
-                    options: {
-                        responsive: true,
-                        plugins: { legend: { position: 'bottom' } },
-                        scales: { y: { beginAtZero: true } }
-                    }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
                 });
+            };
 
-                if (pricingChartInstance) pricingChartInstance.destroy();
-                const ctxPrice = document.getElementById('pricingChart').getContext('2d');
-                pricingChartInstance = new Chart(ctxPrice, {
+            const renderVelocity = () => {
+                // Filter Redfin by City and Property Type, grab the latest month
+                const rfData = dataStore.redfin
+                    .filter(r => r.city === currentCity && r.property_type === currentPropType)
+                    .sort((a, b) => new Date(b.period_end) - new Date(a.period_end));
+
+                if (rfData.length > 0) {
+                    const latest = rfData[0];
+                    document.getElementById('valDOM').textContent = latest.median_dom || '--';
+                    document.getElementById('valAboveList').textContent = latest.sold_above_list ? formatPercent(latest.sold_above_list) : '--';
+                    document.getElementById('valUrgency').textContent = latest.off_market_in_two_weeks ? formatPercent(latest.off_market_in_two_weeks) : '--';
+                    document.getElementById('valSupply').textContent = latest.months_of_supply ? parseFloat(latest.months_of_supply).toFixed(1) : '--';
+                } else {
+                    document.getElementById('valDOM').textContent = '--';
+                    document.getElementById('valAboveList').textContent = '--';
+                    document.getElementById('valUrgency').textContent = '--';
+                    document.getElementById('valSupply').textContent = '--';
+                }
+            };
+
+            const renderMacro = () => {
+                const groupId = INFOSPARKS_GROUPS[currentCity] || 1; // Default to 1 if not found
+                
+                // Extract InfoSparks Time Series
+                const priceFeed = dataStore.infosparks[`group_${groupId}_median_sale_price`] || { data: [] };
+                const salesFeed = dataStore.infosparks[`group_${groupId}_closed_sales`] || { data: [] };
+
+                // Build Price Chart
+                if (macroPriceChartInstance) macroPriceChartInstance.destroy();
+                const ctxPrice = document.getElementById('macroPriceChart').getContext('2d');
+                macroPriceChartInstance = new Chart(ctxPrice, {
                     type: 'line',
                     data: {
-                        labels: labels,
-                        datasets: [
-                            { 
-                                type: 'line', 
-                                label: 'Avg New Price ($)', 
-                                data: histAvgPrice, 
-                                borderColor: '#3D3935', /* Swapped from Gold to Charcoal */
-                                backgroundColor: '#3D3935', /* Swapped from Gold to Charcoal */
-                                yAxisID: 'y'
-                            },
-                            { 
-                                type: 'bar', 
-                                label: '# of Price Drops', 
-                                data: histPriceDrops, 
-                                backgroundColor: '#d32f2f', 
-                                yAxisID: 'y1'
-                            }
-                        ]
+                        labels: priceFeed.data.map((d, i) => i), // Fallback map if structure varies
+                        datasets: [{ 
+                            label: 'Median Sale Price', 
+                            data: priceFeed.data.map(d => d.value || d[1] || 0), 
+                            borderColor: '#3D3935', 
+                            fill: true,
+                            backgroundColor: 'rgba(61, 57, 53, 0.05)',
+                            tension: 0.2 
+                        }]
                     },
-                    options: {
-                        responsive: true,
-                        plugins: { legend: { position: 'bottom' } },
-                        scales: {
-                            y: { 
-                                type: 'linear', 
-                                display: true, 
-                                position: 'left',
-                                title: { display: true, text: 'Price ($)'}
-                            },
-                            y1: { 
-                                type: 'linear', 
-                                display: true, 
-                                position: 'right', 
-                                beginAtZero: true,
-                                grid: { drawOnChartArea: false },
-                                title: { display: true, text: 'Number of Drops'}
-                            }
-                        }
-                    }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+
+                // Build Sales Volume Chart
+                if (macroSalesChartInstance) macroSalesChartInstance.destroy();
+                const ctxSales = document.getElementById('macroSalesChart').getContext('2d');
+                macroSalesChartInstance = new Chart(ctxSales, {
+                    type: 'bar',
+                    data: {
+                        labels: salesFeed.data.map((d, i) => i),
+                        datasets: [{ 
+                            label: 'Closed Sales', 
+                            data: salesFeed.data.map(d => d.value || d[1] || 0), 
+                            backgroundColor: '#a0a0a0'
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
             };
         });
