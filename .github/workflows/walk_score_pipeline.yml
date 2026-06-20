@@ -1,0 +1,49 @@
+name: Sunday Night Walk Score Harvest
+
+on:
+  schedule:
+    # This runs the script automatically every Sunday night at midnight UTC (5 PM PST)
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+    # This creates a manual "Run" button so you can trigger it right now to test it!
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Pull down the code from your repository
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    # 2. Set up Python on the cloud machine
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    # 3. Install the packages our script requires
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas requests
+
+    # 4. Run the harvest script using your hidden secret key
+    # (Note: We are running scripts/harvest_walk_scores.py since you saved it in /scripts)
+    - name: Run Harvest Script
+      env:
+        WALK_SCORE_API_KEY: ${{ secrets.WALK_SCORE_API_KEY }}
+      run: python scripts/harvest_walk_scores.py
+
+    # 5. Check if data changed, and automatically commit/push it back to your repo
+    - name: Commit and Push Changes
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add data/walk_scores.json
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Automation: Updated static walk scores via Sunday pipeline"
+          git push
+        fi
