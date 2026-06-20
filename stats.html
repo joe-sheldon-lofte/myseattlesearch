@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Local Market Insights | Joe Sheldon</title>
-    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=48">
+    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=50">
     
     <script src="components.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -234,11 +234,12 @@
 
         /* Community Profile & Lifestyle Framework CSS */
         .community-metrics-section {
-            margin: 3rem 0;
-            padding: 2rem;
+            margin: 4rem 0 2rem 0;
+            padding: 2.5rem 2rem;
             background: #ffffff;
             border-radius: 16px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border-top: 4px solid var(--premier-beige);
         }
         .metrics-grid {
             display: grid;
@@ -318,6 +319,35 @@
             background: #222222;
             color: #ffffff;
         }
+
+        /* PSAI Tooltip Styles */
+        .psai-info-toggle {
+            font-size: 0.8rem;
+            color: #4A90E2;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-top: 0.25rem;
+            display: inline-block;
+        }
+        .psai-dropdown {
+            display: none;
+            background: #f4f6f8;
+            border-left: 3px solid #1F4E5B;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.85rem;
+            color: #444;
+            line-height: 1.5;
+        }
+        .psai-dropdown.active {
+            display: block;
+        }
+        
+        .suppressed-badge {
+            background: #a0a0a0 !important;
+            font-size: 1.1rem !important;
+        }
     </style>
 </head>
 <body class="stats-page">
@@ -335,6 +365,7 @@
             ⚠️ <strong>Heads Up:</strong> This dashboard is currently building its live pipelines. Data tracking is active, but charts and comparisons will not be fully normalized or historically accurate until <strong>July 1st</strong>.
         </div>
 
+        <!-- City Selector Links -->
         <div class="filter-nav-container">
             <div class="filter-nav" id="citySelector">
                 <p>Loading market data...</p>
@@ -343,6 +374,7 @@
 
         <div id="dashboardContent" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
             
+            <!-- Real-Time Market Status Bar Graphic -->
             <div class="market-climate-container">
                 <h3 style="font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; margin: 0; color: var(--premier-charcoal);">Current Market Climate</h3>
                 <div class="market-bar-wrapper">
@@ -359,6 +391,7 @@
 
             <h2 id="currentTitle" style="text-align: center; margin-bottom: 1rem; color: var(--premier-charcoal); font-weight: 800; font-size: 2rem;"></h2>
             
+            <!-- REAL TIME SECTION -->
             <div class="section-header">
                 <h2>Real-Time Heartbeat</h2>
                 <p>Immediate supply and demand signals tracking what is hitting the pavement today.</p>
@@ -397,6 +430,7 @@
                 </div>
             </div>
 
+            <!-- VELOCITY SECTION (REDFIN) -->
             <div class="section-header">
                 <h2>Market Velocity & Competition</h2>
                 <p>Psychological metrics showing how fast inventory moves and how aggressive buyers are.</p>
@@ -433,95 +467,7 @@
                 Data provided by Redfin, a national real estate brokerage.
             </div>
 
-            <section class="community-metrics-section">
-                <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: 800; color: var(--premier-charcoal);">Community Profile & Lifestyle</h2>
-                <p style="color: #666; font-size: 0.9rem; margin-bottom: 1.5rem;">City-wide scores, resource boundaries, and regional statistics.</p>
-                
-                <div class="metrics-grid">
-                    <div class="metric-card" id="walkScoreCard">
-                        <div>
-                            <h3>Accessibility & Mobility</h3>
-                            
-                            <div class="walkscore-container" style="margin-bottom: 1.25rem;">
-                                <div class="score-badge" id="cityWalkScore" style="background: #C13030;">--</div>
-                                <div class="score-info">
-                                    <div class="score-desc" id="cityWalkDesc">Loading...</div>
-                                    <div class="score-sub">Walk Score®</div>
-                                </div>
-                            </div>
-
-                            <div class="walkscore-container" style="margin-bottom: 1.25rem;">
-                                <div class="score-badge" id="cityTransitScore" style="background: #4A90E2;">--</div>
-                                <div class="score-info">
-                                    <div class="score-desc" id="cityTransitDesc">Awaiting sync...</div>
-                                    <div class="score-sub">Transit Score®</div>
-                                </div>
-                            </div>
-
-                            <div class="walkscore-container" style="margin-bottom: 1rem;">
-                                <div class="score-badge" id="cityBikeScore" style="background: #1F4E5B;">--</div>
-                                <div class="score-info">
-                                    <div class="score-desc" id="cityBikeDesc">Awaiting sync...</div>
-                                    <div class="score-sub">Bike Score®</div>
-                                </div>
-                            </div>
-                        </div>
-                        <a href="#" id="walkScoreLink" target="_blank" class="card-action-btn">Explore City on Walk Score</a>
-                    </div>
-
-                    <div class="metric-card" id="schoolDistrictCard">
-                        <div>
-                            <h3>School District & Rankings</h3>
-                            <p id="schoolDistrictName" style="font-size: 1rem; font-weight: 700; margin: 0 0 1rem 0; color: var(--premier-charcoal);">Loading District Profile...</p>
-                            
-                            <div class="walkscore-container" style="margin-bottom: 1.25rem;">
-                                <div class="score-badge" id="districtCustomScore" style="background: #1F4E5B; font-size: 1.35rem;">--</div>
-                                <div class="score-info">
-                                    <div class="score-desc" id="districtCustomVibe">Awaiting Classification</div>
-                                    <div class="score-sub">Overall Index Rating</div>
-                                </div>
-                            </div>
-
-                            <div style="margin-bottom: 0.85rem;">
-                                <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:700; margin-bottom:0.25rem;">
-                                    <span>📐 MATH PROFICIENCY</span>
-                                    <span id="txtMathScore">--</span>
-                                </div>
-                                <div style="background:#eaeaea; height:8px; border-radius:4px; width:100%; position:relative;">
-                                    <div id="barMathScore" style="background:#C13030; height:100%; width:0%; border-radius:4px; transition: width 0.6s ease;"></div>
-                                </div>
-                            </div>
-
-                            <div style="margin-bottom: 1rem;">
-                                <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:700; margin-bottom:0.25rem;">
-                                    <span>📖 ELA PROFICIENCY</span>
-                                    <span id="txtElaScore">--</span>
-                                </div>
-                                <div style="background:#eaeaea; height:8px; border-radius:4px; width:100%; position:relative;">
-                                    <div id="barElaScore" style="background:#4A90E2; height:100%; width:0%; border-radius:4px; transition: width 0.6s ease;"></div>
-                                </div>
-                            </div>
-
-                            <span style="font-size: 0.72rem; text-transform: uppercase; color: #999; font-weight: 700; display:block; line-height:1.3;">
-                                Compared against State Baselines (<span id="lblStateBaselines">Math -- / ELA --</span>)
-                            </span>
-                        </div>
-                        <a href="https://www.greatschools.org/" id="greatSchoolsLink" target="_blank" class="card-action-btn">View Attendance Boundaries</a>
-                    </div>
-
-                    <div class="metric-card">
-                        <div>
-                            <h3>Neighborhood Crime Maps</h3>
-                            <p style="font-size: 0.9rem; color: #444; line-height: 1.5; margin: 0 0 1rem 0;">
-                                To maintain strict real estate steering compliance and absolute accuracy, check raw localized context via SpotCrime.
-                            </p>
-                            <span style="font-size: 0.75rem; text-transform: uppercase; color: #999; font-weight: 700;">Direct Third-Party Feed</span>
-                        </div>
-                        <a href="https://spotcrime.com/" target="_blank" class="card-action-btn">Open SpotCrime Map</a>
-                    </div>
-                </div>
-            </section>
-
+            <!-- MACRO SECTION (INFOSPARKS) -->
             <div class="section-header">
                 <h2>Long-Term Trends</h2>
                 <p>Long-term cycles and historic appreciation trajectories.</p>
@@ -557,9 +503,135 @@
             <div class="educational-note" style="margin-top: 2rem;">
                 <strong>Decoding Macro Trends:</strong> The Shows Per Listing index highlights actual physical engagement levels before transaction numbers reflect them. Coupled with historical closed sales, this section exposes fundamental structural patterns beneath normal market noise.
             </div>
-            <div class="compliance-footer">
+            <div class="compliance-footer" style="margin-bottom: 1rem;">
                 Information contained in this section is sourced from Northwest Multiple Listing Service (NWMLS) compiled data feeds via InfoSparks. This data is intended for consumer insight and holds certified baseline authenticity markers.
             </div>
+
+            <!-- COMMUNITY & LIFESTYLE METRICS SECTION (MOVED TO BOTTOM) -->
+            <section class="community-metrics-section">
+                <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem; font-weight: 800; color: var(--premier-charcoal); text-align: center;">Community Profile & Lifestyle</h2>
+                <p style="color: #666; font-size: 0.95rem; margin-bottom: 2rem; text-align: center;">City-wide scores, resource boundaries, and regional statistics.</p>
+                
+                <div class="metrics-grid">
+                    <!-- MOBILITY SCORE CARD -->
+                    <div class="metric-card" id="walkScoreCard">
+                        <div>
+                            <h3>Accessibility & Mobility</h3>
+                            
+                            <!-- Walk Score -->
+                            <div class="walkscore-container" style="margin-bottom: 1.25rem;">
+                                <div class="score-badge" id="cityWalkScore" style="background: #C13030;">--</div>
+                                <div class="score-info">
+                                    <div class="score-desc" id="cityWalkDesc">Loading...</div>
+                                    <div class="score-sub">Walk Score®</div>
+                                </div>
+                            </div>
+
+                            <!-- Transit Score -->
+                            <div class="walkscore-container" style="margin-bottom: 1.25rem;">
+                                <div class="score-badge" id="cityTransitScore" style="background: #4A90E2;">--</div>
+                                <div class="score-info">
+                                    <div class="score-desc" id="cityTransitDesc">Awaiting sync...</div>
+                                    <div class="score-sub">Transit Score®</div>
+                                </div>
+                            </div>
+
+                            <!-- Bike Score -->
+                            <div class="walkscore-container" style="margin-bottom: 1rem;">
+                                <div class="score-badge" id="cityBikeScore" style="background: #1F4E5B;">--</div>
+                                <div class="score-info">
+                                    <div class="score-desc" id="cityBikeDesc">Awaiting sync...</div>
+                                    <div class="score-sub">Bike Score®</div>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="#" id="walkScoreLink" target="_blank" class="card-action-btn">Explore City on Walk Score</a>
+                    </div>
+
+                    <!-- PUBLIC SCHOOLS CARD -->
+                    <div class="metric-card" id="schoolDistrictCard">
+                        <div>
+                            <h3>School District & Rankings</h3>
+                            <p id="schoolDistrictName" style="font-size: 1rem; font-weight: 700; margin: 0 0 1rem 0; color: var(--premier-charcoal);">Loading District Profile...</p>
+                            
+                            <div id="schoolDataActive">
+                                <!-- Custom Score Indicator -->
+                                <div class="walkscore-container" style="margin-bottom: 0.5rem;">
+                                    <div class="score-badge" id="districtCustomScore" style="background: #1F4E5B; font-size: 1.35rem;">--</div>
+                                    <div class="score-info">
+                                        <div class="score-desc" id="districtCustomVibe">Awaiting Classification</div>
+                                        <div class="score-sub">Puget Sound Academic Index (PSAI)</div>
+                                    </div>
+                                </div>
+                                
+                                <span class="psai-info-toggle" onclick="document.getElementById('psaiExplanation').classList.toggle('active')">How is this calculated?</span>
+                                
+                                <div id="psaiExplanation" class="psai-dropdown">
+                                    <strong>About the PSAI</strong><br>
+                                    The Puget Sound Academic Index (PSAI) is an objective, un-biased 1-to-10 rating designed to show overall public school district proficiency across King and Snohomish Counties.<br><br>
+                                    Unlike traditional real estate portals that rely on commercial third-party algorithms, the PSAI is calculated using direct, un-modified public records from the Washington Office of Superintendent of Public Instruction (OSPI).<br><br>
+                                    <strong>How It's Calculated:</strong> We take the literal percentage of district students who met or exceeded grade-level standards on the state's latest Smarter Balanced Assessments in Mathematics and English Language Arts (Reading), average them together, and normalize them onto a standard 10-point scale.
+                                </div>
+
+                                <!-- Math Proficiency Bar -->
+                                <div style="margin-top: 1.25rem; margin-bottom: 0.85rem;">
+                                    <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:700; margin-bottom:0.25rem;">
+                                        <span>📐 MATH PROFICIENCY</span>
+                                        <span id="txtMathScore">--</span>
+                                    </div>
+                                    <div style="background:#eaeaea; height:8px; border-radius:4px; width:100%; position:relative;">
+                                        <div id="barMathScore" style="background:#C13030; height:100%; width:0%; border-radius:4px; transition: width 0.6s ease;"></div>
+                                    </div>
+                                </div>
+
+                                <!-- ELA Proficiency Bar -->
+                                <div style="margin-bottom: 1rem;">
+                                    <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:700; margin-bottom:0.25rem;">
+                                        <span>📖 ELA PROFICIENCY</span>
+                                        <span id="txtElaScore">--</span>
+                                    </div>
+                                    <div style="background:#eaeaea; height:8px; border-radius:4px; width:100%; position:relative;">
+                                        <div id="barElaScore" style="background:#4A90E2; height:100%; width:0%; border-radius:4px; transition: width 0.6s ease;"></div>
+                                    </div>
+                                </div>
+
+                                <span style="font-size: 0.72rem; text-transform: uppercase; color: #999; font-weight: 700; display:block; line-height:1.3;">
+                                    Compared against State Baselines (<span id="lblStateBaselines">Math -- / ELA --</span>)
+                                </span>
+                            </div>
+
+                            <div id="schoolDataSuppressed" style="display: none; padding: 1rem 0;">
+                                <div class="walkscore-container" style="margin-bottom: 1rem;">
+                                    <div class="score-badge suppressed-badge">N/A</div>
+                                    <div class="score-info">
+                                        <div class="score-desc">Data Sealed</div>
+                                        <div class="score-sub">Privacy Protection</div>
+                                    </div>
+                                </div>
+                                <p style="font-size: 0.9rem; color: #444; line-height: 1.5; margin: 0;">
+                                    ℹ️ <strong>Local Market Note:</strong> <span id="txtSuppressionStatus">Data suppressed</span>. 
+                                    State academic testing metrics are legally sealed for micro-populations 
+                                    to protect student privacy.
+                                </p>
+                            </div>
+                            
+                        </div>
+                        <a href="https://www.greatschools.org/" id="greatSchoolsLink" target="_blank" class="card-action-btn" style="margin-top: 1.5rem;">View Attendance Boundaries</a>
+                    </div>
+
+                    <!-- SAFETY & CRIME DATA CARD -->
+                    <div class="metric-card">
+                        <div>
+                            <h3>Neighborhood Crime Maps</h3>
+                            <p style="font-size: 0.9rem; color: #444; line-height: 1.5; margin: 0 0 1rem 0;">
+                                To maintain strict real estate steering compliance and absolute accuracy, check raw localized context via SpotCrime.
+                            </p>
+                            <span style="font-size: 0.75rem; text-transform: uppercase; color: #999; font-weight: 700;">Direct Third-Party Feed</span>
+                        </div>
+                        <a href="https://spotcrime.com/" target="_blank" class="card-action-btn">Open SpotCrime Map</a>
+                    </div>
+                </div>
+            </section>
 
         </div>
         
@@ -608,7 +680,6 @@
                 return null;
             };
 
-            // Timestamp Generators
             const getTopOfHour = () => {
                 const now = new Date();
                 now.setMinutes(0, 0, 0);
@@ -695,7 +766,6 @@
                 setTimeout(() => document.getElementById('dashboardContent').style.opacity = '1', 50);
                 document.getElementById('currentTitle').textContent = `${currentCity} Snapshot Analytics`;
 
-                // Set Timestamps
                 document.getElementById('stampRealTime').textContent = 'Updated Hourly • Last Update: Today at ' + getTopOfHour();
                 document.getElementById('stampMacro').textContent = 'Updated Monthly • Last Update: ' + getThirdBusinessDay();
 
@@ -905,35 +975,49 @@
                 const targetCity = currentCity.trim();
                 const districtData = dataStore.schools[targetCity];
 
+                const activeContainer = document.getElementById('schoolDataActive');
+                const suppressedContainer = document.getElementById('schoolDataSuppressed');
+
                 if (districtData) {
                     document.getElementById('schoolDistrictName').textContent = districtData.district_name || 'Local Public District';
                     
-                    const scoreVal = districtData.custom_score !== undefined ? districtData.custom_score.toFixed(1) : '--';
-                    document.getElementById('districtCustomScore').textContent = scoreVal;
-                    
-                    let customVibe = "Average Performance";
-                    if (districtData.custom_score >= 8.0) customVibe = "Exceptional System";
-                    else if (districtData.custom_score >= 6.0) customVibe = "Strong Academic Profile";
-                    else if (districtData.custom_score >= 4.0) customVibe = "Stabilized Baseline";
-                    else customVibe = "Needs Localized Adjustments";
-                    document.getElementById('districtCustomVibe').textContent = customVibe;
+                    if (districtData.custom_score === null) {
+                        activeContainer.style.display = 'none';
+                        suppressedContainer.style.display = 'block';
+                        document.getElementById('txtSuppressionStatus').textContent = districtData.status || "Data suppressed";
+                    } else {
+                        activeContainer.style.display = 'block';
+                        suppressedContainer.style.display = 'none';
 
-                    const mathPct = districtData.district_math_proficiency || 0;
-                    document.getElementById('txtMathScore').textContent = mathPct.toFixed(1) + '%';
-                    document.getElementById('barMathScore').style.width = `${Math.min(100, mathPct)}%`;
+                        const scoreVal = districtData.custom_score !== undefined ? districtData.custom_score.toFixed(1) : '--';
+                        document.getElementById('districtCustomScore').textContent = scoreVal;
+                        
+                        let customVibe = "Average Performance";
+                        if (districtData.custom_score >= 8.0) customVibe = "Exceptional System";
+                        else if (districtData.custom_score >= 6.0) customVibe = "Strong Academic Profile";
+                        else if (districtData.custom_score >= 4.0) customVibe = "Stabilized Baseline";
+                        else customVibe = "Needs Localized Adjustments";
+                        document.getElementById('districtCustomVibe').textContent = customVibe;
 
-                    const elaPct = districtData.district_ela_proficiency || 0;
-                    document.getElementById('txtElaScore').textContent = elaPct.toFixed(1) + '%';
-                    document.getElementById('barElaScore').style.width = `${Math.min(100, elaPct)}%`;
+                        const mathPct = districtData.district_math_proficiency || 0;
+                        document.getElementById('txtMathScore').textContent = mathPct.toFixed(1) + '%';
+                        document.getElementById('barMathScore').style.width = `${Math.min(100, mathPct)}%`;
 
-                    const baseMath = districtData.state_math_baseline !== undefined ? districtData.state_math_baseline.toFixed(0) + '%' : '--';
-                    const baseEla = districtData.state_ela_baseline !== undefined ? districtData.state_ela_baseline.toFixed(0) + '%' : '--';
-                    document.getElementById('lblStateBaselines').textContent = `Math: ${baseMath} / ELA: ${baseEla}`;
+                        const elaPct = districtData.district_ela_proficiency || 0;
+                        document.getElementById('txtElaScore').textContent = elaPct.toFixed(1) + '%';
+                        document.getElementById('barElaScore').style.width = `${Math.min(100, elaPct)}%`;
+
+                        const baseMath = districtData.state_math_baseline !== undefined ? districtData.state_math_baseline.toFixed(0) + '%' : '--';
+                        const baseEla = districtData.state_ela_baseline !== undefined ? districtData.state_ela_baseline.toFixed(0) + '%' : '--';
+                        document.getElementById('lblStateBaselines').textContent = `Math: ${baseMath} / ELA: ${baseEla}`;
+                    }
 
                     const searchSlug = encodeURIComponent(`${districtData.district_name} WA`);
                     document.getElementById('greatSchoolsLink').href = `https://www.greatschools.org/search/search.page?q=${searchSlug}`;
                 } else {
                     document.getElementById('schoolDistrictName').textContent = 'District Profile Unavailable';
+                    activeContainer.style.display = 'block';
+                    suppressedContainer.style.display = 'none';
                     document.getElementById('districtCustomScore').textContent = '--';
                     document.getElementById('districtCustomVibe').textContent = 'Metrics currently normalizing...';
                     document.getElementById('txtMathScore').textContent = '--';
