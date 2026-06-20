@@ -15,8 +15,9 @@ class UniversalHeader extends HTMLElement {
                 <div class="menu-content-wrapper">
                     <ul class="menu-links">
                         <li><a href="index.html">Home</a></li>
-                        <li><a href="searches.html">Curated Searches</a></li>
                         <li><a href="stats.html">Market Insights</a></li>
+                        <li><a href="news.html">Market News</a></li>
+                        <li><a href="searches.html">Curated Searches</a></li>
                         <li><a href="sellers.html">Sell with Joe</a></li>
                         <li><a href="movedna.html">MoveDNA Assessment</a></li>
                         <li><a href="events.html">Classes & Events</a></li>
@@ -69,7 +70,6 @@ class UniversalFooter extends HTMLElement {
             <div class="footer-content">
                 <img src="assets/images/redfin.png" alt="Redfin Logo" class="footer-logo">
                 <p class="office-address">3400 188th St SW, Ste 165<br>Lynnwood, WA 98037</p>
-                <!-- Subtle, high-end anchor link added neatly below office text -->
                 <p style="margin-top: 1rem; font-size: 0.8rem; opacity: 0.6;"><a href="hereforyou.html" style="color: var(--premier-beige); text-decoration: underline;">My Commitment to Housing Equity & Resources</a></p>
             </div>
         </footer>
@@ -77,6 +77,6 @@ class UniversalFooter extends HTMLElement {
     }
 }
 
-// Register our new custom HTML tags
+// Register custom HTML tags
 customElements.define('universal-header', UniversalHeader);
 customElements.define('universal-footer', UniversalFooter);
