@@ -2,7 +2,7 @@
 """
 Real Estate Platform - Data-Driven School District Harvester
 Source: Washington OSPI Report Card Assessment Data (Data.WA.gov)
-Strategy: Reads targets directly from local CSV configuration (Column C)
+Strategy: Dynamic key detection and robust fuzzy matching for geographic alignment.
 """
 
 import os
@@ -57,16 +57,11 @@ def main():
         reader = csv.DictReader(f)
         for row in reader:
             city = row.get("City", "").strip()
-            # Grabs your new Column C target mapping
             district = row.get("School District", "").strip()
             
             if city and district:
                 city_to_district_map[city] = district
                 required_districts.add(district)
-
-    if not city_to_district_map:
-        print("❌ Error: No valid city-to-district records parsed from CSV. Check column headers.")
-        sys.exit(1)
 
     print(f"📋 Loaded {len(city_to_district_map)} cities mapping to {len(required_districts)} distinct districts.")
 
@@ -84,16 +79,48 @@ def main():
         print(f"❌ Critical Error connecting to SODA API: {e}", file=sys.stderr)
         sys.exit(1)
         
-    print(f"📥 Pulled {len(raw_rows)} compliance blocks from OSPI database. Sorting performance rows...")
+    print(f"📥 Pulled {len(raw_rows)} rows from OSPI database.")
 
-    # 3. Store proficiency values keyed by official district names
+    if not raw_rows:
+        print("❌ Error: API returned an empty list of records.")
+        sys.exit(1)
+
+    # 3. Dynamic Key Discovery from API Payload
+    sample_row = raw_rows[0]
+    print("🔍 Diagnostic - Available API Keys in sample row:", list(sample_row.keys()))
+    
+    # Locate the best district name key
+    district_key = None
+    for k in sample_row.keys():
+        if k.lower() in ["districtname", "district_name", "organizationname"]:
+            district_key = k
+            break
+    if not district_key:
+        district_key = next((k for k in sample_row.keys() if "district" in k.lower() and "code" not in k.lower() and "id" not in k.lower()), "districtname")
+        
+    # Locate the best proficiency percentage key
+    percent_key = None
+    for k in sample_row.keys():
+        if "consistent_grade_level" in k.lower() or "percentmetstandard" in k.lower() or "percent_consistent" in k.lower():
+            percent_key = k
+            break
+    if not percent_key:
+        percent_key = next((k for k in sample_row.keys() if "percent" in k.lower() and "participation" not in k.lower() and "tested" not in k.lower()), None)
+        
+    print(f"🎯 Dynamic Mapping -> District Name Key: '{district_key}' | Score Key: '{percent_key}'")
+    
+    if not percent_key:
+        print("❌ Critical Error: Could not dynamically resolve the proficiency score column key from the API response.")
+        sys.exit(1)
+
+    # 4. Map rows to standardized memory buffers
     statewide_district_records = {}
     for row in raw_rows:
-        district_name = row.get("districtname", "").strip()
-        subject = row.get("testsubject", "").strip()
+        district_name = row.get(district_key, "").strip()
+        subject = row.get("testsubject") or row.get("test_subject") or ""
+        subject = subject.strip()
         
-        # Support both current and historical API schema columns
-        raw_pct = row.get("percent_consistent_grade_level_knowledge_and_above") or row.get("percentmetstandard")
+        raw_pct = row.get(percent_key)
         clean_pct = clean_percentage(raw_pct)
         
         if clean_pct is None or not district_name:
@@ -105,11 +132,25 @@ def main():
         if subject in ["Math", "ELA"]:
             statewide_district_records[district_name][subject] = clean_pct
 
-    # 4. Generate final JSON file matched precisely back against your CSV
+    print(f"📊 Successfully parsed performance matrices for {len(statewide_district_records)} distinct Washington districts.")
+
+    # 5. Generate final JSON file using Smart Fuzzy Matching
     final_payload = {}
     
     for city, target_district in city_to_district_map.items():
+        # A. Try exact match first
         metrics = statewide_district_records.get(target_district)
+        matched_name = target_district
+        
+        # B. Fallback: Intelligent string normalization match if exact lookup misses
+        if not metrics:
+            norm_target = target_district.lower().replace("school district", "").replace("public schools", "").strip()
+            for api_dist, api_metrics in statewide_district_records.items():
+                norm_api = api_dist.lower().replace("school district", "").replace("public schools", "").strip()
+                if norm_target and norm_api and (norm_target in norm_api or norm_api in norm_target):
+                    metrics = api_metrics
+                    matched_name = api_dist
+                    break
         
         if metrics and metrics["Math"] is not None and metrics["ELA"] is not None:
             math_val = metrics["Math"]
@@ -117,7 +158,7 @@ def main():
             custom_score = calculate_psai(math_val, ela_val)
             
             final_payload[city] = {
-                "district_name": target_district,
+                "district_name": matched_name,
                 "district_math_proficiency": math_val,
                 "district_ela_proficiency": ela_val,
                 "custom_score": custom_score,
@@ -125,9 +166,9 @@ def main():
                 "state_ela_baseline": STATE_ELA_BASELINE
             }
         else:
-            print(f"⚠️ Warning: Mapped district '{target_district}' for '{city}' not found in raw OSPI API response.")
+            print(f"⚠️ Warning: Mapped district '{target_district}' for '{city}' could not be resolved with valid state metrics.")
 
-    # 5. Output static payload build artifact
+    # 6. Output static payload build artifact
     os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(final_payload, f, indent=2, ensure_ascii=False)
