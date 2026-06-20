@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Local Market Insights | Joe Sheldon</title>
-    <link rel="stylesheet" href="style.css?v=46">
+    <link rel="stylesheet" href="style.css?v=47">
     
     <script src="components.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -75,11 +75,16 @@
             padding: 0 5px;
         }
 
-        .sub-filter-nav {
+        .filter-nav-container {
             display: flex;
             justify-content: center;
-            gap: 1rem;
             margin-bottom: 2rem;
+        }
+        .filter-nav {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
         }
         .filter-btn {
             background: transparent;
@@ -167,6 +172,7 @@
             color: var(--premier-charcoal);
             margin-bottom: 0.5rem;
             line-height: 1;
+            transition: color 0.3s ease; /* For smooth custom metric color changes */
         }
         .stat-label {
             font-size: 0.75rem;
@@ -216,7 +222,6 @@
             border-radius: 0 8px 8px 0;
         }
         
-        /* Darkened Compliance Footer */
         .compliance-footer {
             font-size: 0.75rem;
             opacity: 0.85; 
@@ -243,6 +248,7 @@
             ⚠️ <strong>Heads Up:</strong> This dashboard is currently building its live pipelines. Data tracking is active, but charts and comparisons will not be fully normalized or historically accurate until <strong>July 1st</strong>.
         </div>
 
+        <!-- City Selector Links -->
         <div class="filter-nav-container">
             <div class="filter-nav" id="citySelector">
                 <p>Loading market data...</p>
@@ -251,6 +257,7 @@
 
         <div id="dashboardContent" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
             
+            <!-- Real-Time Market Status Bar Graphic -->
             <div class="market-climate-container">
                 <h3 style="font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; margin: 0; color: var(--premier-charcoal);">Current Market Climate</h3>
                 <div class="market-bar-wrapper">
@@ -267,6 +274,7 @@
 
             <h2 id="currentTitle" style="text-align: center; margin-bottom: 1rem; color: var(--premier-charcoal); font-weight: 800; font-size: 2rem;"></h2>
             
+            <!-- REAL TIME SECTION -->
             <div class="section-header">
                 <h2>Real-Time Heartbeat</h2>
                 <p>Immediate supply and demand signals tracking what is hitting the pavement today.</p>
@@ -305,6 +313,7 @@
                 </div>
             </div>
 
+            <!-- VELOCITY SECTION (REDFIN) -->
             <div class="section-header">
                 <h2>Market Velocity & Competition</h2>
                 <p>Psychological metrics showing how fast inventory moves and how aggressive buyers are.</p>
@@ -328,19 +337,20 @@
                     <div class="stat-label">Buyer Urgency</div>
                 </div>
                 <div class="stat-card" style="border-top-color: #F5A623;">
-                    <h4>Median Days to Close</h4>
-                    <div class="stat-value" id="valDaysToClose">--</div>
-                    <div class="stat-label">Escrow/Lending Speed</div>
+                    <h4>Market Friction Index</h4>
+                    <div class="stat-value" id="valFriction">--</div>
+                    <div class="stat-label">0-100 Score</div>
                 </div>
             </div>
             
             <div class="educational-note" style="margin-bottom: 2rem; margin-top: -1rem;">
-                <strong>Understanding Velocity:</strong> "Median Days to Close" tracks the actual speed of lenders and escrow completing transactions after a home goes under contract. "Off Market in 2 Weeks" tracks pure buyer confidence and raw competitive haste.
+                <strong>Understanding Velocity:</strong> "Off Market in 2 Weeks" tracks pure buyer confidence and raw competitive haste. The <strong>Market Friction Index</strong> is a proprietary 0-100 score indicating competitive intensity. Higher numbers point to a high-velocity seller's market, while lower numbers represent a buyer-friendly environment.
             </div>
             <div class="compliance-footer" style="margin-bottom: 3rem;">
                 Data provided by Redfin, a national real estate brokerage.
             </div>
 
+            <!-- MACRO SECTION (INFOSPARKS) -->
             <div class="section-header">
                 <h2>Long-Term Trends</h2>
                 <p>Long-term cycles and historic appreciation trajectories.</p>
@@ -559,21 +569,42 @@
                     activeSupply = cleanNum(latest.months_of_supply);
 
                     // Dynamic Redfin Timestamp
-                    const rfDate = new Date(latest.period_end);
-                    document.getElementById('stampVelocity').textContent = 'Updated Monthly • Last Update: ' + rfDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                    const rfDate = new Date(latest.period_end || latest.period_begin); // Fallback to begin if end is missing
+                    if(!isNaN(rfDate)) {
+                        document.getElementById('stampVelocity').textContent = 'Updated Monthly • Last Update: ' + rfDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                    }
                     
                     document.getElementById('valDOM').textContent = latest.median_dom !== null && !isNaN(latest.median_dom) ? latest.median_dom : '--';
                     document.getElementById('valAboveList').textContent = latest.sold_above_list !== null && !isNaN(latest.sold_above_list) ? formatPercent(cleanNum(latest.sold_above_list)) : '--';
                     document.getElementById('valUrgency').textContent = latest.off_market_in_two_weeks !== null && !isNaN(latest.off_market_in_two_weeks) ? formatPercent(cleanNum(latest.off_market_in_two_weeks)) : '--';
                     
-                    // Uses median_days_to_close 
-                    document.getElementById('valDaysToClose').textContent = latest.median_days_to_close !== undefined && latest.median_days_to_close !== null && !isNaN(latest.median_days_to_close) ? latest.median_days_to_close : '--';
+                    // Custom Market Friction Index Implementation
+                    const frictionVal = latest.market_friction_index;
+                    const valFrictionEl = document.getElementById('valFriction');
+
+                    if (frictionVal !== undefined && frictionVal !== null && !isNaN(frictionVal)) {
+                        valFrictionEl.textContent = Math.round(frictionVal);
+                        
+                        // Color Grading Scale for Friction Index
+                        let colorClass = '#3D3935'; 
+                        if (frictionVal >= 80) colorClass = '#C13030';      // Hot Seller (Red)
+                        else if (frictionVal >= 60) colorClass = '#d32f2f'; // Seller (Light Red/Orange)
+                        else if (frictionVal >= 40) colorClass = '#F5A623'; // Balanced (Yellow)
+                        else if (frictionVal >= 20) colorClass = '#4A90E2'; // Buyer (Light Blue)
+                        else colorClass = '#1F4E5B';                        // Hot Buyer (Deep Blue)
+
+                        valFrictionEl.style.color = colorClass;
+                    } else {
+                        valFrictionEl.textContent = '--';
+                        valFrictionEl.style.color = 'var(--premier-charcoal)';
+                    }
                 } else {
                     document.getElementById('stampVelocity').textContent = 'Updated Monthly • Awaiting Data Sync';
                     document.getElementById('valDOM').textContent = '--';
                     document.getElementById('valAboveList').textContent = '--';
                     document.getElementById('valUrgency').textContent = '--';
-                    document.getElementById('valDaysToClose').textContent = '--';
+                    document.getElementById('valFriction').textContent = '--';
+                    document.getElementById('valFriction').style.color = 'var(--premier-charcoal)';
                 }
                 return activeSupply;
             };
