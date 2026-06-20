@@ -76,11 +76,13 @@
             const response = await fetch(statsUrl);
             const text = await response.text();
             
-            // Basic CSV parser to extract the second row (the data row)
-            const rows = text.split('\\n').map(row => row.split(','));
+            // Clean up the text and split into lines
+            const lines = text.trim().split(/\\r?\\n/);
             
-            if (rows.length > 1) {
-                const data = rows[1]; 
+            if (lines.length > 0) {
+                // Always grab the last row, which guarantees we get the data 
+                // regardless of whether there is a header row or not
+                const data = lines[lines.length - 1].split(','); 
                 
                 // Formatting engine matching your business rules
                 const formatMap = {
