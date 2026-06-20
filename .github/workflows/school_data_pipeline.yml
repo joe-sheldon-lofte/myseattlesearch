@@ -1,0 +1,34 @@
+name: OSPI School Data Pipeline
+
+on:
+  schedule:
+    # Runs at 03:00 UTC every Sunday night (10 PM PDT Sunday)
+    - cron: '0 3 * * 0'
+  workflow_dispatch: # Allows you to manually trigger this via the GitHub UI anytime
+
+jobs:
+  harvest-schools:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          pip install requests
+
+      - name: Run School Data Harvester
+        run: python scripts/harvest_school_data.py
+
+      - name: Commit and Push Updated Ratings
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions Runner"
+          git add data/school_ratings.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated update: Washington OSPI school proficiency data" && git push)
