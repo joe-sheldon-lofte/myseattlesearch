@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Local Market Insights | Joe Sheldon</title>
-    <link rel="stylesheet" href="style.css?v=45">
+    <link rel="stylesheet" href="style.css?v=46">
     
     <script src="components.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -81,7 +81,7 @@
             gap: 1rem;
             margin-bottom: 2rem;
         }
-        .sub-filter-btn {
+        .filter-btn {
             background: transparent;
             border: 2px solid var(--light-gray);
             padding: 0.5rem 1.5rem;
@@ -92,7 +92,7 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        .sub-filter-btn.active {
+        .filter-btn.active {
             background: var(--premier-charcoal);
             border-color: var(--premier-charcoal);
             color: var(--white);
@@ -114,6 +114,16 @@
             font-size: 0.95rem;
             opacity: 0.7;
             font-style: italic;
+            margin-bottom: 0.5rem;
+        }
+
+        .update-stamp {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #C13030;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 0.5rem;
         }
 
         .stats-grid {
@@ -205,9 +215,12 @@
             margin-top: 1rem;
             border-radius: 0 8px 8px 0;
         }
+        
+        /* Darkened Compliance Footer */
         .compliance-footer {
             font-size: 0.75rem;
-            opacity: 0.5;
+            opacity: 0.85; 
+            color: var(--premier-charcoal);
             line-height: 1.5;
             margin-top: 1.5rem;
             border-top: 1px solid var(--light-gray);
@@ -227,18 +240,13 @@
         </div>
 
         <div class="data-warning-banner">
-            ⚠️ <strong>Heads Up:</strong> This dashboard is currently building its live pipelines. Data tracking is active, but charts and comparisons will not be fully normalized or historically accurate until <strong>June 15th</strong>.
+            ⚠️ <strong>Heads Up:</strong> This dashboard is currently building its live pipelines. Data tracking is active, but charts and comparisons will not be fully normalized or historically accurate until <strong>July 1st</strong>.
         </div>
 
         <div class="filter-nav-container">
             <div class="filter-nav" id="citySelector">
                 <p>Loading market data...</p>
             </div>
-        </div>
-
-        <div class="sub-filter-nav" id="typeSelector" style="display: none;">
-            <button class="sub-filter-btn active" data-type="Single Family Residential">Single-Family</button>
-            <button class="sub-filter-btn" data-type="Condo/Co-op">Condo & Townhome</button>
         </div>
 
         <div id="dashboardContent" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
@@ -261,7 +269,8 @@
             
             <div class="section-header">
                 <h2>Real-Time Heartbeat</h2>
-                <p>Immediate supply and demand signals tracking what is hitting the pavement today. (All Property Types)</p>
+                <p>Immediate supply and demand signals tracking what is hitting the pavement today.</p>
+                <div class="update-stamp" id="stampRealTime"></div>
             </div>
 
             <div class="stats-grid">
@@ -299,6 +308,7 @@
             <div class="section-header">
                 <h2>Market Velocity & Competition</h2>
                 <p>Psychological metrics showing how fast inventory moves and how aggressive buyers are.</p>
+                <div class="update-stamp" id="stampVelocity"></div>
             </div>
 
             <div class="stats-grid">
@@ -318,22 +328,23 @@
                     <div class="stat-label">Buyer Urgency</div>
                 </div>
                 <div class="stat-card" style="border-top-color: #F5A623;">
-                    <h4>Months of Supply</h4>
-                    <div class="stat-value" id="valSupply">--</div>
-                    <div class="stat-label">Inventory</div>
+                    <h4>Median Days to Close</h4>
+                    <div class="stat-value" id="valDaysToClose">--</div>
+                    <div class="stat-label">Escrow/Lending Speed</div>
                 </div>
             </div>
             
             <div class="educational-note" style="margin-bottom: 2rem; margin-top: -1rem;">
-                <strong>Understanding Velocity:</strong> "Months of Supply" determines how long current inventory would last if no new homes were listed. Anything below 4 months represents an active seller's landscape. "Off Market in 2 Weeks" tracks buyer confidence and raw competitive haste.
+                <strong>Understanding Velocity:</strong> "Median Days to Close" tracks the actual speed of lenders and escrow completing transactions after a home goes under contract. "Off Market in 2 Weeks" tracks pure buyer confidence and raw competitive haste.
             </div>
             <div class="compliance-footer" style="margin-bottom: 3rem;">
-                Real estate metrics for this section are systematically compiled using row records provided by the Redfin Data Center. © 2026 Redfin Corporation. All rights reserved.
+                Data provided by Redfin, a national real estate brokerage.
             </div>
 
             <div class="section-header">
                 <h2>Long-Term Trends</h2>
-                <p>Long-term economic cycles and historic appreciation trajectories.</p>
+                <p>Long-term cycles and historic appreciation trajectories.</p>
+                <div class="update-stamp" id="stampMacro"></div>
             </div>
 
             <div class="charts-container">
@@ -363,7 +374,7 @@
             </div>
             
             <div class="educational-note" style="margin-top: 2rem;">
-                <strong>Decoding Macro Economics:</strong> The Shows Per Listing index highlights actual physical engagement levels before transaction numbers reflect them. Coupled with historical closed sales, this section exposes fundamental structural patterns beneath normal market noise.
+                <strong>Decoding Macro Trends:</strong> The Shows Per Listing index highlights actual physical engagement levels before transaction numbers reflect them. Coupled with historical closed sales, this section exposes fundamental structural patterns beneath normal market noise.
             </div>
             <div class="compliance-footer">
                 Information contained in this section is sourced from Northwest Multiple Listing Service (NWMLS) compiled data feeds via InfoSparks. This data is intended for consumer insight and holds certified baseline authenticity markers.
@@ -385,7 +396,6 @@
 
             let dataStore = { snapshot: [], historical: [], redfin: [], infosparks: {} };
             let currentCity = '';
-            let currentPropType = 'Single Family Residential';
             
             let velocityChartInstance = null;
             let macroPriceChartInstance = null; 
@@ -415,6 +425,26 @@
                 return null;
             };
 
+            // Timestamp Generators
+            const getTopOfHour = () => {
+                const now = new Date();
+                now.setMinutes(0, 0, 0);
+                return now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            };
+
+            const getThirdBusinessDay = () => {
+                const now = new Date();
+                let count = 0;
+                let day = 1;
+                while (count < 3) {
+                    let d = new Date(now.getFullYear(), now.getMonth(), day);
+                    let dayOfWeek = d.getDay();
+                    if (dayOfWeek !== 0 && dayOfWeek !== 6) count++;
+                    if (count < 3) day++;
+                }
+                return new Date(now.getFullYear(), now.getMonth(), day).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            };
+
             const fetchCSV = (url) => new Promise((resolve) => {
                 Papa.parse(url, { download: true, header: true, skipEmptyLines: true, complete: res => resolve(res.data) });
             });
@@ -441,11 +471,9 @@
                 dataStore.snapshot = values[0] || [];
                 dataStore.historical = values[1] || [];
                 
-                // Agnostic parsing for Redfin: Handles raw array OR {records: []} wrapper
                 let rf = values[2];
                 dataStore.redfin = Array.isArray(rf) ? rf : (rf && rf.records ? rf.records : []);
                 
-                // Agnostic parsing for Infosparks: Handles raw data OR {feeds: {}} wrapper
                 let is = values[3];
                 dataStore.infosparks = is && is.feeds ? is.feeds : (is || {});
                 
@@ -464,22 +492,11 @@
                     `<button class="filter-btn ${i === 0 ? 'active' : ''}" data-city="${city}">${city}</button>`
                 ).join('');
 
-                document.getElementById('typeSelector').style.display = 'flex';
-
                 document.querySelectorAll('#citySelector .filter-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         document.querySelectorAll('#citySelector .filter-btn').forEach(b => b.classList.remove('active'));
                         e.target.classList.add('active');
                         currentCity = e.target.getAttribute('data-city');
-                        updateDashboard();
-                    });
-                });
-
-                document.querySelectorAll('#typeSelector .sub-filter-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        document.querySelectorAll('#typeSelector .sub-filter-btn').forEach(b => b.classList.remove('active'));
-                        e.target.classList.add('active');
-                        currentPropType = e.target.getAttribute('data-type');
                         updateDashboard();
                     });
                 });
@@ -489,6 +506,10 @@
                 document.getElementById('dashboardContent').style.display = 'block';
                 setTimeout(() => document.getElementById('dashboardContent').style.opacity = '1', 50);
                 document.getElementById('currentTitle').textContent = `${currentCity} Snapshot Analytics`;
+
+                // Set Timestamps
+                document.getElementById('stampRealTime').textContent = 'Updated Hourly • Last Update: Today at ' + getTopOfHour();
+                document.getElementById('stampMacro').textContent = 'Updated Monthly • Last Update: ' + getThirdBusinessDay();
 
                 renderRealTime();
                 const currentSupplyValue = renderVelocity();
@@ -528,7 +549,7 @@
 
             const renderVelocity = () => {
                 const rfData = dataStore.redfin
-                    .filter(r => r.city && r.city.toLowerCase().trim() === currentCity.toLowerCase().trim() && r.property_type === currentPropType)
+                    .filter(r => r.city && r.city.toLowerCase().trim() === currentCity.toLowerCase().trim())
                     .sort((a, b) => new Date(b.period_begin) - new Date(a.period_begin)); 
 
                 let activeSupply = 0;
@@ -536,16 +557,23 @@
                 if (rfData.length > 0) {
                     const latest = rfData[0];
                     activeSupply = cleanNum(latest.months_of_supply);
+
+                    // Dynamic Redfin Timestamp
+                    const rfDate = new Date(latest.period_end);
+                    document.getElementById('stampVelocity').textContent = 'Updated Monthly • Last Update: ' + rfDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
                     
                     document.getElementById('valDOM').textContent = latest.median_dom !== null && !isNaN(latest.median_dom) ? latest.median_dom : '--';
                     document.getElementById('valAboveList').textContent = latest.sold_above_list !== null && !isNaN(latest.sold_above_list) ? formatPercent(cleanNum(latest.sold_above_list)) : '--';
                     document.getElementById('valUrgency').textContent = latest.off_market_in_two_weeks !== null && !isNaN(latest.off_market_in_two_weeks) ? formatPercent(cleanNum(latest.off_market_in_two_weeks)) : '--';
-                    document.getElementById('valSupply').textContent = activeSupply ? activeSupply.toFixed(1) : '--';
+                    
+                    // Uses median_days_to_close 
+                    document.getElementById('valDaysToClose').textContent = latest.median_days_to_close !== undefined && latest.median_days_to_close !== null && !isNaN(latest.median_days_to_close) ? latest.median_days_to_close : '--';
                 } else {
+                    document.getElementById('stampVelocity').textContent = 'Updated Monthly • Awaiting Data Sync';
                     document.getElementById('valDOM').textContent = '--';
                     document.getElementById('valAboveList').textContent = '--';
                     document.getElementById('valUrgency').textContent = '--';
-                    document.getElementById('valSupply').textContent = '--';
+                    document.getElementById('valDaysToClose').textContent = '--';
                 }
                 return activeSupply;
             };
@@ -575,7 +603,7 @@
                 const showsTimeline = extractInfosparksData(`group_${groupId}_shows_per_listing`, currentCity);
                 const supplyTimeline = extractInfosparksData(`group_${groupId}_months_supply_closed`, currentCity);
 
-                // Climate Indicator
+                // Climate Indicator (Prefers InfoSparks, falls back to Redfin)
                 let currentSupply = fallbackSupply;
                 if (supplyTimeline.length > 0) {
                     currentSupply = supplyTimeline[supplyTimeline.length - 1].val;
