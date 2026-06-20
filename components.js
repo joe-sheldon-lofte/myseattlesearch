@@ -46,7 +46,6 @@ class UniversalHeader extends HTMLElement {
         </header>
         `;
 
-        // Hamburger menu toggle logic
         const hamburger = this.querySelector('#hamburgerMenu');
         const navMenu = this.querySelector('#navMenu');
         const body = document.body;
@@ -77,6 +76,115 @@ class UniversalFooter extends HTMLElement {
     }
 }
 
+class LocalReviews extends HTMLElement {
+    async connectedCallback() {
+        // 1. Determine requested view limit (default to 3 if omitted)
+        const limit = parseInt(this.getAttribute('limit')) || 3;
+        
+        // 2. Extrapolate active filename (e.g., "index.html")
+        let pageName = window.location.pathname.split('/').pop().toLowerCase().trim();
+        if (!pageName || pageName === "") pageName = "index.html";
+
+        // Inject container layout structure immediately with styling hooks
+        this.innerHTML = `<div class="reviews-component-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; width: 100%; margin: 2rem 0;">Loading reviews...</div>`;
+        const gridContainer = this.querySelector('.reviews-component-grid');
+
+        try {
+            // 3. Systematically fetch your decentralized CSV file
+            const response = await fetch('./data/Stats_Reviews%20-%20Reviews.csv');
+            if (!response.ok) throw new Error('Network file retrieval failed');
+            const csvText = await response.text();
+
+            // Native high-reliability CSV Line Parser to keep page loads lightning-fast
+            const parseCSVRows = (text) => {
+                const lines = [];
+                let row = [""];
+                let inQuotes = false;
+
+                for (let i = 0; i < text.length; i++) {
+                    let char = text[i];
+                    let nextChar = text[i+1];
+                    if (char === '"') {
+                        if (inQuotes && nextChar === '"') { row[row.length - 1] += '"'; i++; }
+                        else { inQuotes = !inQuotes; }
+                    } else if (char === ',' && !inQuotes) {
+                        row.push('');
+                    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+                        if (char === '\r' && nextChar === '\n') { i++; }
+                        lines.push(row);
+                        row = [''];
+                    } else {
+                        row[row.length - 1] += char;
+                    }
+                }
+                if (row.length > 1 || row[0] !== '') lines.push(row);
+                return lines;
+            };
+
+            const allRows = parseCSVRows(csvText);
+            if (allRows.length < 2) { gridContainer.innerHTML = ''; return; }
+
+            // Trim header labels cleanly
+            const headers = allRows[0].map(h => h.trim().toLowerCase());
+            const targetPageIndex = headers.indexOf(pageName);
+
+            // Halt execution cleanly if page isn't mapped in column architecture
+            if (targetPageIndex === -1) { gridContainer.innerHTML = ''; return; }
+
+            const indexReviewer = headers.indexOf('reviewer');
+            const indexRating = headers.indexOf('star rating');
+            const indexSnippet = headers.indexOf('snippet');
+            const indexFull = headers.indexOf('full review');
+
+            // 4. Extract targeted reviews mapped with 'x' for this filename
+            const validReviews = [];
+            for (let i = 1; i < allRows.length; i++) {
+                const currentRow = allRows[i];
+                if (!currentRow[targetPageIndex]) continue;
+                
+                const pageMarker = currentRow[targetPageIndex].trim().toLowerCase();
+                if (pageMarker === 'x') {
+                    validReviews.push({
+                        reviewer: currentRow[indexReviewer] || 'Verified Client',
+                        rating: parseInt(currentRow[indexRating]) || 5,
+                        snippet: currentRow[indexSnippet] || '',
+                        fullText: currentRow[indexFull] || ''
+                    });
+                }
+            }
+
+            if (validReviews.length === 0) { gridContainer.innerHTML = ''; return; }
+
+            // 5. Array Shuffling Algorithm (Fisher-Yates) for rotation freshness on refresh
+            for (let i = validReviews.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [validReviews[i], validReviews[j]] = [validReviews[j], validReviews[i]];
+            }
+
+            // Slice out matched allocation limits
+            const selectedReviews = validReviews.slice(0, limit);
+
+            // 6. Build and render cards dynamically
+            gridContainer.innerHTML = selectedReviews.map(rev => {
+                const stars = '★'.repeat(rev.rating) + '☆'.repeat(5 - rev.rating);
+                return `
+                    <div class="review-component-card" style="background: #ffffff; padding: 1.75rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; flex-direction: column; border-top: 4px solid var(--premier-charcoal, #3D3935);">
+                        <div style="color: #F5A623; font-size: 1.1rem; margin-bottom: 0.5rem; letter-spacing: 1px;">${stars}</div>
+                        <h4 style="margin: 0 0 0.75rem 0; font-size: 1.05rem; font-style: italic; color: var(--premier-charcoal, #3D3935); line-height: 1.4;">"${rev.snippet}"</h4>
+                        <p style="margin: 0 0 1.25rem 0; font-size: 0.9rem; color: #555555; line-height: 1.6; flex-grow: 1;">${rev.fullText}</p>
+                        <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--premier-charcoal, #3D3935); opacity: 0.7;">— ${rev.reviewer}</div>
+                    </div>
+                `;
+            }).join('');
+
+        } catch (error) {
+            console.error('Contextual reviews execution error:', error);
+            gridContainer.innerHTML = '';
+        }
+    }
+}
+
 // Register custom HTML tags
 customElements.define('universal-header', UniversalHeader);
 customElements.define('universal-footer', UniversalFooter);
+customElements.define('local-reviews', LocalReviews);
