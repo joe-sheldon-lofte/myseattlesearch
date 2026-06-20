@@ -8,7 +8,6 @@ import requests
 # Configuration
 CSV_PATH = "data/InfoSparks Links - Sheet2.csv"
 OUTPUT_JSON_PATH = "data/walk_scores.json"
-# Safely pull your API key from environment variables
 WALK_SCORE_API_KEY = os.getenv("WALK_SCORE_API_KEY") 
 
 def fetch_walk_score(lat, lon, city_name):
@@ -17,8 +16,11 @@ def fetch_walk_score(lat, lon, city_name):
         raise ValueError("Missing WALK_SCORE_API_KEY environment variable.")
 
     url = "https://api.walkscore.com/score"
+    
+    # Pack parameters, including the highly recommended 'address' field
     params = {
         "format": "json",
+        "address": f"{city_name}, WA", 
         "lat": lat,
         "lon": lon,
         "wskey": WALK_SCORE_API_KEY
@@ -28,7 +30,8 @@ def fetch_walk_score(lat, lon, city_name):
         response = requests.get(url, params=params, timeout=10)
         if response.status_code == 200:
             data = response.json()
-            # Walk Score API status 1 means successful data retrieval
+            
+            # Status 1 is Walk Score's official code for a successful data payload
             if data.get("status") == 1:
                 return {
                     "walk_score": data.get("walkscore"),
@@ -37,7 +40,8 @@ def fetch_walk_score(lat, lon, city_name):
                     "last_updated": datetime.utcnow().isoformat() + "Z"
                 }
             else:
-                print(f"⚠️ Walk Score API warning for {city_name}: {data.get('more_info_text', 'Unknown issue')}")
+                # Upgraded to print the complete raw response payload for debugging
+                print(f"⚠️ Walk Score API rejected {city_name}. Raw Response: {data}")
         else:
             print(f"❌ HTTP Error {response.status_code} for {city_name}")
     except Exception as e:
@@ -48,24 +52,20 @@ def fetch_walk_score(lat, lon, city_name):
 def main():
     print("🚀 Starting Sunday Night Walk Score Harvest...")
     
-    # 1. Verify files and keys exist
     if not os.path.exists(CSV_PATH):
         print(f"❌ Error: Could not find source file at {CSV_PATH}")
         return
         
     if not WALK_SCORE_API_KEY:
         print("❌ Error: WALK_SCORE_API_KEY environment variable is not set.")
-        print("Run: export WALK_SCORE_API_KEY='your_key_here' before running the script.")
         return
 
-    # 2. Read the city matrix
     df = pd.read_csv(CSV_PATH)
     
     if "City" not in df.columns or "Latitude" not in df.columns or "Longitude" not in df.columns:
         print("❌ Error: CSV must contain 'City', 'Latitude', and 'Longitude' columns.")
         return
 
-    # Load existing data if it exists to preserve historical pulls in case an API call fails
     walk_scores_db = {}
     if os.path.exists(OUTPUT_JSON_PATH):
         try:
@@ -74,14 +74,12 @@ def main():
         except json.JSONDecodeError:
             pass
 
-    # 3. Process each city
     total_cities = len(df)
     for index, row in df.iterrows():
         city = row["City"]
         lat = row["Latitude"]
         lon = row["Longitude"]
         
-        # Guard against empty coordinate cells
         if pd.isna(lat) or pd.isna(lon):
             print(f"⏩ Skipping {city}: Missing Latitude or Longitude.")
             continue
@@ -96,15 +94,14 @@ def main():
         else:
             print(f"⚠️ Keeping stale data (if any) for {city} due to fetch failure.")
 
-        # Polite rate limiting: 1-second pause between requests to respect API boundaries
+        # Polite 1-second delay
         time.sleep(1.0)
 
-    # 4. Save the finalized JSON dictionary
     os.makedirs(os.path.dirname(OUTPUT_JSON_PATH), exist_ok=True)
     with open(OUTPUT_JSON_PATH, "w") as f:
         json.dump(walk_scores_db, f, indent=2)
         
-    print(f"\n🎉 Success! Static database written to {OUTPUT_JSON_PATH}")
+    print(f"\n🎉 Process finished. Static database written to {OUTPUT_JSON_PATH}")
 
 if __name__ == "__main__":
     main()
