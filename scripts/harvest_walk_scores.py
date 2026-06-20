@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
 Real Estate Platform - Multi-Score Location Harvester
-Fetches Walk Score, Transit Score, and Bike Score in a single combined pass.
+Fetches Walk Score, Transit Score, and Bike Score while maintaining original schema.
 """
 
 import os
 import json
 import csv
 import sys
+from datetime import datetime, timezone
 import requests
 
 # Configuration Paths
@@ -28,7 +29,7 @@ def main():
 
     scores_database = {}
 
-    print("🚀 Initializing Multi-Score Ingestion Engine...")
+    print("🚀 Initializing Retrofitted Multi-Score Ingestion Engine...")
 
     with open(CSV_PATH, mode="r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -47,8 +48,8 @@ def main():
                 "lat": lat,
                 "lon": lng,
                 "wsapikey": api_key,
-                "transit": 1,  # ← Triggers Transit Score lookup
-                "bike": 1      # ← Triggers Bike Score lookup
+                "transit": 1,
+                "bike": 1
             }
 
             try:
@@ -61,28 +62,29 @@ def main():
                 response.raise_for_status()
                 data = response.json()
 
-                # Parse the response dictionary structures safely
-                walk_val = data.get("walkscore")
-                walk_desc = data.get("description", "No Data")
+                # Generate the exact high-fidelity timestamp string requested
+                timestamp = datetime.now(timezone.utc).isoformat(timespec='microseconds').replace("+00:00", "Z")
                 
-                # Nested objects inside the updated API profile
+                # Reconstruct the original deep-link URL pattern
+                deep_link = f"https://www.walkscore.com/score/loc/lat={lat}/lon={lng}"
+
+                # Extract nested data payloads safely
                 transit_data = data.get("transit", {})
-                transit_val = transit_data.get("score")
-                transit_desc = transit_data.get("description", "No Data")
-
                 bike_data = data.get("bike", {})
-                bike_val = bike_data.get("score")
-                bike_desc = bike_data.get("description", "No Data")
 
+                # Merge the new values directly into your original data structure layout
                 scores_database[city] = {
-                    "walk_score": walk_val,
-                    "walk_description": walk_desc,
-                    "transit_score": transit_val,
-                    "transit_description": transit_desc,
-                    "bike_score": bike_val,
-                    "bike_description": bike_desc
+                    "walk_score": data.get("walkscore"),
+                    "description": data.get("description", "No Data"),  # Keeps backward compatibility
+                    "transit_score": transit_data.get("score"),
+                    "transit_description": transit_data.get("description", "No Data"),
+                    "bike_score": bike_data.get("score"),
+                    "bike_description": bike_data.get("description", "No Data"),
+                    "link": deep_link,
+                    "last_updated": timestamp
                 }
-                print(f"✅ Synced: {city} [Walk: {walk_val} | Transit: {transit_val} | Bike: {bike_val}]")
+                
+                print(f"✅ Synced: {city} [W: {data.get('walkscore')} | T: {transit_data.get('score')} | B: {bike_data.get('score')}]")
 
             except Exception as e:
                 print(f"❌ Processing failure on market '{city}': {e}")
@@ -94,7 +96,7 @@ def main():
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
         json.dump(scores_database, f, indent=2, ensure_ascii=False)
 
-    print(f"🏁 Complete. Centralized lifestyle index built at: {OUTPUT_PATH}")
+    print(f"🏁 Complete. Retrofitted lifestyle database built at: {OUTPUT_PATH}")
 
 if __name__ == "__main__":
     main()
