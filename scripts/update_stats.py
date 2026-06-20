@@ -5,7 +5,7 @@ import urllib.request
 from datetime import datetime
 import pandas as pd
 
-# Define Constants - Fixed Metro URL to include the correct 'us_' prefix
+# Define Constants
 REDFIN_CITY_URL = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_market_tracker/city_market_tracker.tsv000.gz"
 REDFIN_METRO_URL = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_market_tracker/us_metro_market_tracker.tsv000.gz"
 
@@ -18,11 +18,12 @@ INFOSPARKS_OUTPUT_PATH = "data/infosparks_stats.json"
 TARGET_PROPERTY_TYPES = ["Single Family Residential", "Condo/Co-op"]
 START_DATE = "2024-01-01"
 
+# Added 'market_friction_index' to the master columns list
 REDFIN_COLUMNS = [
     "period_begin", "period_end", "region_type", "city", "state", "state_code", "property_type",
     "median_sale_price", "median_sale_price_yoy", "median_dom", "avg_sale_to_list",
     "homes_sold", "homes_sold_yoy", "inventory", "months_of_supply",
-    "sold_above_list", "price_drops", "off_market_in_two_weeks", "median_days_to_close"
+    "sold_above_list", "price_drops", "off_market_in_two_weeks", "market_friction_index"
 ]
 
 def load_target_cities():
@@ -67,23 +68,19 @@ def run_redfin_pipeline(target_cities):
                     chunk["state"] = chunk["state_code"]
                 state_col = "state" if "state" in chunk.columns else "state_code"
                 
-                # 1. State Mask
                 state_mask = chunk[state_col].astype(str).str.strip().str.upper().isin(["WA", "WASHINGTON"])
                 
-                # 2. Restored Fuzzy Containment Mask for Cities
                 city_mask = pd.Series(False, index=chunk.index)
                 if 'city' in chunk.columns:
                     city_lower = chunk['city'].astype(str).str.lower()
                     for city in target_cities_lower:
                         city_mask = city_mask | (city_lower.str.contains(city, na=False))
                 
-                # 3. Property Type Mask
                 prop_mask = pd.Series(False, index=chunk.index)
                 if 'property_type' in chunk.columns:
                     prop_lower = chunk['property_type'].astype(str).str.lower()
                     prop_mask = prop_lower.str.contains("single family", na=False) | prop_lower.str.contains("condo", na=False)
                 
-                # 4. Date Mask
                 date_mask = pd.Series(True, index=chunk.index)
                 if 'period_begin' in chunk.columns:
                     period_date = pd.to_datetime(chunk["period_begin"], errors='coerce')
@@ -94,12 +91,13 @@ def run_redfin_pipeline(target_cities):
                 
                 if not filtered_chunk.empty:
                     filtered_chunk["region_type"] = "city"
-                    # Clean city names back to pristine formatting for website navigation
                     filtered_chunk["city"] = filtered_chunk["city"].astype(str).str.split(',').str[0].str.strip().str.title()
                     filtered_chunk.loc[filtered_chunk['property_type'].astype(str).str.lower().str.contains("single family"), 'property_type'] = "Single Family Residential"
                     filtered_chunk.loc[filtered_chunk['property_type'].astype(str).str.lower().str.contains("condo"), 'property_type'] = "Condo/Co-op"
                     
-                    existing_cols = [c for c in REDFIN_COLUMNS if c in filtered_chunk.columns]
+                    # Temporarily keep columns needed for calculation
+                    calc_cols = list(set(REDFIN_COLUMNS + ["off_market_in_two_weeks", "price_drops"]))
+                    existing_cols = [c for c in calc_cols if c in filtered_chunk.columns]
                     filtered_chunks.append(filtered_chunk[existing_cols])
     except Exception as e:
         print(f"Error processing Redfin City segments: {e}")
@@ -136,22 +134,36 @@ def run_redfin_pipeline(target_cities):
                     filtered_chunk.loc[filtered_chunk['property_type'].astype(str).str.lower().str.contains("single family"), 'property_type'] = "Single Family Residential"
                     filtered_chunk.loc[filtered_chunk['property_type'].astype(str).str.lower().str.contains("condo"), 'property_type'] = "Condo/Co-op"
                     
-                    existing_cols = [c for c in REDFIN_COLUMNS if c in filtered_chunk.columns]
+                    calc_cols = list(set(REDFIN_COLUMNS + ["off_market_in_two_weeks", "price_drops"]))
+                    existing_cols = [c for c in calc_cols if c in filtered_chunk.columns]
                     filtered_chunks.append(filtered_chunk[existing_cols])
     except Exception as e:
         print(f"Error processing Redfin Metro segments: {e}")
 
     # ==========================================
-    # PHASE C: CONSOLIDATE & WRITE RESULTS
+    # PHASE C: CONSOLIDATE, CALCULATE & WRITE
     # ==========================================
     if filtered_chunks:
         master_df = pd.concat(filtered_chunks, ignore_index=True)
+        
+        # Safe numeric casting to prevent type calculation errors
+        off_mkt = pd.to_numeric(master_df["off_market_in_two_weeks"], errors='coerce').fillna(0)
+        drops = pd.to_numeric(master_df["price_drops"], errors='coerce').fillna(0)
+        
+        # Calculate the proprietary 0-100 Market Friction Index
+        master_df["market_friction_index"] = (off_mkt / (drops + 0.02)) * 10
+        master_df["market_friction_index"] = master_df["market_friction_index"].clip(0, 100).round(0).astype(int)
+        
+        # Enforce exact column schema output
+        final_cols = [c for c in REDFIN_COLUMNS if c in master_df.columns]
+        master_df = master_df[final_cols]
+        
         master_df = master_df.sort_values(by=["region_type", "city", "property_type", "period_begin"], ascending=[True, True, True, True])
         
         data_dict = master_df.to_dict(orient="records")
         with open(REDFIN_OUTPUT_PATH, "w") as f:
             json.dump(data_dict, f, indent=2)
-        print(f"Redfin dynamic regional database compiled successfully. Saved {len(data_dict)} rows.")
+        print(f"Redfin regional database compiled successfully with Custom Index. Saved {len(data_dict)} rows.")
     else:
         print("Warning: No Redfin rows matched regional filtering constraints.")
 
