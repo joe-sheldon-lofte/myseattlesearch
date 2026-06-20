@@ -5,9 +5,9 @@ import urllib.request
 from datetime import datetime
 import pandas as pd
 
-# Define Constants
+# Define Constants - Fixed Metro URL to match Redfin's exact S3 key schema
 REDFIN_CITY_URL = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_market_tracker/city_market_tracker.tsv000.gz"
-REDFIN_METRO_URL = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_market_tracker/us_metro_market_tracker.tsv000.gz"
+REDFIN_METRO_URL = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_market_tracker/redfin_metro_market_tracker.tsv000.gz"
 
 INFOSPARKS_CONFIG_PATH = "data/InfoSparks Links - Sheet1.csv"
 CITIES_CONFIG_PATH = "data/InfoSparks Links - Sheet2.csv"
@@ -18,7 +18,6 @@ INFOSPARKS_OUTPUT_PATH = "data/infosparks_stats.json"
 TARGET_PROPERTY_TYPES = ["Single Family Residential", "Condo/Co-op"]
 START_DATE = "2024-01-01"
 
-# Added 'market_friction_index' to the master columns list
 REDFIN_COLUMNS = [
     "period_begin", "period_end", "region_type", "city", "state", "state_code", "property_type",
     "median_sale_price", "median_sale_price_yoy", "median_dom", "avg_sale_to_list",
@@ -95,7 +94,6 @@ def run_redfin_pipeline(target_cities):
                     filtered_chunk.loc[filtered_chunk['property_type'].astype(str).str.lower().str.contains("single family"), 'property_type'] = "Single Family Residential"
                     filtered_chunk.loc[filtered_chunk['property_type'].astype(str).str.lower().str.contains("condo"), 'property_type'] = "Condo/Co-op"
                     
-                    # Temporarily keep columns needed for calculation
                     calc_cols = list(set(REDFIN_COLUMNS + ["off_market_in_two_weeks", "price_drops"]))
                     existing_cols = [c for c in calc_cols if c in filtered_chunk.columns]
                     filtered_chunks.append(filtered_chunk[existing_cols])
@@ -114,6 +112,7 @@ def run_redfin_pipeline(target_cities):
             for chunk in chunks:
                 chunk.columns = chunk.columns.str.lower()
                 
+                # Redfin uses 'region' column in the metro tracker file layout
                 if "region" in chunk.columns and "city" not in chunk.columns:
                     chunk["city"] = chunk["region"]
                 if "state_code" in chunk.columns and "state" not in chunk.columns:
@@ -146,15 +145,12 @@ def run_redfin_pipeline(target_cities):
     if filtered_chunks:
         master_df = pd.concat(filtered_chunks, ignore_index=True)
         
-        # Safe numeric casting to prevent type calculation errors
         off_mkt = pd.to_numeric(master_df["off_market_in_two_weeks"], errors='coerce').fillna(0)
         drops = pd.to_numeric(master_df["price_drops"], errors='coerce').fillna(0)
         
-        # Calculate the proprietary 0-100 Market Friction Index
         master_df["market_friction_index"] = (off_mkt / (drops + 0.02)) * 10
         master_df["market_friction_index"] = master_df["market_friction_index"].clip(0, 100).round(0).astype(int)
         
-        # Enforce exact column schema output
         final_cols = [c for c in REDFIN_COLUMNS if c in master_df.columns]
         master_df = master_df[final_cols]
         
