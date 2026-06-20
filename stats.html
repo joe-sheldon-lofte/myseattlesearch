@@ -172,7 +172,7 @@
             color: var(--premier-charcoal);
             margin-bottom: 0.5rem;
             line-height: 1;
-            transition: color 0.3s ease; /* For smooth custom metric color changes */
+            transition: color 0.3s ease;
         }
         .stat-label {
             font-size: 0.75rem;
@@ -230,6 +230,93 @@
             margin-top: 1.5rem;
             border-top: 1px solid var(--light-gray);
             padding-top: 0.75rem;
+        }
+
+        /* Community Profile & Lifestyle Section Styles */
+        .community-metrics-section {
+            margin: 3rem 0;
+            padding: 2rem;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+        .metric-card {
+            background: #fdfdfd;
+            border: 1px solid #eaeaea;
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+        }
+        .metric-card h3 {
+            margin: 0 0 1.25rem 0;
+            font-size: 1.1rem;
+            color: #222222;
+            border-bottom: 2px solid #eaeaea;
+            padding-bottom: 0.5rem;
+        }
+        .walkscore-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .score-badge {
+            color: #ffffff;
+            font-size: 1.5rem;
+            font-weight: 800;
+            width: 52px;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            flex-shrink: 0;
+        }
+        .score-info .score-desc {
+            font-weight: 700;
+            color: #222222;
+            font-size: 0.95rem;
+            line-height: 1.2;
+        }
+        .score-info .score-sub {
+            font-size: 0.78rem;
+            color: #777777;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .card-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.6rem 1rem;
+            background: transparent;
+            color: #222222;
+            border: 1px solid #222222;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 1.25rem;
+            transition: all 0.2s ease;
+        }
+        .card-action-btn:hover {
+            background: #222222;
+            color: #ffffff;
         }
     </style>
 </head>
@@ -350,6 +437,73 @@
                 Data provided by Redfin, a national real estate brokerage.
             </div>
 
+            <!-- COMMUNITY & LIFESTYLE METRICS SECTION -->
+            <section class="community-metrics-section">
+                <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: 800; color: var(--premier-charcoal);">Community Profile & Lifestyle</h2>
+                <p style="color: #666; font-size: 0.9rem; margin-bottom: 1.5rem;">City-wide scores, resource boundaries, and regional statistics.</p>
+                
+                <div class="metrics-grid">
+                    <!-- MOBILITY SCORE CARD -->
+                    <div class="metric-card" id="walkScoreCard">
+                        <div>
+                            <h3>Accessibility & Mobility</h3>
+                            
+                            <!-- Walk Score -->
+                            <div class="walkscore-container" style="margin-bottom: 1.25rem;">
+                                <div class="score-badge" id="cityWalkScore" style="background: #C13030;">--</div>
+                                <div class="score-info">
+                                    <div class="score-desc" id="cityWalkDesc">Loading...</div>
+                                    <div class="score-sub">Walk Score®</div>
+                                </div>
+                            </div>
+
+                            <!-- Transit Score -->
+                            <div class="walkscore-container" style="margin-bottom: 1.25rem;">
+                                <div class="score-badge" id="cityTransitScore" style="background: #4A90E2;">--</div>
+                                <div class="score-info">
+                                    <div class="score-desc" id="cityTransitDesc">Awaiting sync...</div>
+                                    <div class="score-sub">Transit Score®</div>
+                                </div>
+                            </div>
+
+                            <!-- Bike Score -->
+                            <div class="walkscore-container" style="margin-bottom: 1rem;">
+                                <div class="score-badge" id="cityBikeScore" style="background: #1F4E5B;">--</div>
+                                <div class="score-info">
+                                    <div class="score-desc" id="cityBikeDesc">Awaiting sync...</div>
+                                    <div class="score-sub">Bike Score®</div>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="#" id="walkScoreLink" target="_blank" class="card-action-btn">Explore City on Walk Score</a>
+                    </div>
+
+                    <!-- PUBLIC SCHOOLS CARD -->
+                    <div class="metric-card">
+                        <div>
+                            <h3>School District & Rankings</h3>
+                            <p style="font-size: 0.9rem; color: #444; line-height: 1.5; margin: 0 0 1rem 0;">
+                                View assigned local schools, testing scores, and enrollment boundaries provided by the state.
+                            </p>
+                            <span style="font-size: 0.75rem; text-transform: uppercase; color: #999; font-weight: 700;">Data via State API & GreatSchools</span>
+                        </div>
+                        <a href="https://www.greatschools.org/" target="_blank" class="card-action-btn">View School Boundaries</a>
+                    </div>
+
+                    <!-- SAFETY & CRIME DATA CARD -->
+                    <div class="metric-card">
+                        <div>
+                            <h3>Neighborhood Crime Maps</h3>
+                            <p style="font-size: 0.9rem; color: #444; line-height: 1.5; margin: 0 0 1rem 0;">
+                                To maintain strict real estate steering compliance and absolute accuracy, check raw localized context via SpotCrime.
+                            </p>
+                            <span style="font-size: 0.75rem; text-transform: uppercase; color: #999; font-weight: 700;">Direct Third-Party Feed</span>
+                        </div>
+                        <a href="https://spotcrime.com/" target="_blank" class="card-action-btn">Open SpotCrime Map</a>
+                    </div>
+                </div>
+            </section>
+
             <!-- MACRO SECTION (INFOSPARKS) -->
             <div class="section-header">
                 <h2>Long-Term Trends</h2>
@@ -403,8 +557,9 @@
             const urlHistorical = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1473136505&single=true&output=csv';
             const redfinPath = './data/redfin_stats.json';
             const infosparksPath = './data/infosparks_stats.json';
+            const mobilityPath = './data/walk_transit_bike_scores.json';
 
-            let dataStore = { snapshot: [], historical: [], redfin: [], infosparks: {} };
+            let dataStore = { snapshot: [], historical: [], redfin: [], infosparks: {}, mobility: {} };
             let currentCity = '';
             
             let velocityChartInstance = null;
@@ -476,7 +631,8 @@
                 fetchCSV(urlSnapshot),
                 fetchCSV(urlHistorical),
                 fetchJSON(redfinPath),
-                fetchJSON(infosparksPath)
+                fetchJSON(infosparksPath),
+                fetchJSON(mobilityPath)
             ]).then(values => {
                 dataStore.snapshot = values[0] || [];
                 dataStore.historical = values[1] || [];
@@ -486,6 +642,8 @@
                 
                 let is = values[3];
                 dataStore.infosparks = is && is.feeds ? is.feeds : (is || {});
+
+                dataStore.mobility = values[4] || {};
                 
                 let cities = [...new Set(dataStore.snapshot.map(row => row.City ? row.City.trim() : ''))].filter(Boolean).sort();
                 
@@ -524,6 +682,7 @@
                 renderRealTime();
                 const currentSupplyValue = renderVelocity();
                 renderMacro(currentSupplyValue);
+                renderMobilityMetrics();
             };
 
             const renderRealTime = () => {
@@ -568,8 +727,7 @@
                     const latest = rfData[0];
                     activeSupply = cleanNum(latest.months_of_supply);
 
-                    // Dynamic Redfin Timestamp
-                    const rfDate = new Date(latest.period_end || latest.period_begin); // Fallback to begin if end is missing
+                    const rfDate = new Date(latest.period_end || latest.period_begin);
                     if(!isNaN(rfDate)) {
                         document.getElementById('stampVelocity').textContent = 'Updated Monthly • Last Update: ' + rfDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
                     }
@@ -578,20 +736,18 @@
                     document.getElementById('valAboveList').textContent = latest.sold_above_list !== null && !isNaN(latest.sold_above_list) ? formatPercent(cleanNum(latest.sold_above_list)) : '--';
                     document.getElementById('valUrgency').textContent = latest.off_market_in_two_weeks !== null && !isNaN(latest.off_market_in_two_weeks) ? formatPercent(cleanNum(latest.off_market_in_two_weeks)) : '--';
                     
-                    // Custom Market Friction Index Implementation
                     const frictionVal = latest.market_friction_index;
                     const valFrictionEl = document.getElementById('valFriction');
 
                     if (frictionVal !== undefined && frictionVal !== null && !isNaN(frictionVal)) {
                         valFrictionEl.textContent = Math.round(frictionVal);
                         
-                        // Color Grading Scale for Friction Index
                         let colorClass = '#3D3935'; 
-                        if (frictionVal >= 80) colorClass = '#C13030';      // Hot Seller (Red)
-                        else if (frictionVal >= 60) colorClass = '#d32f2f'; // Seller (Light Red/Orange)
-                        else if (frictionVal >= 40) colorClass = '#F5A623'; // Balanced (Yellow)
-                        else if (frictionVal >= 20) colorClass = '#4A90E2'; // Buyer (Light Blue)
-                        else colorClass = '#1F4E5B';                        // Hot Buyer (Deep Blue)
+                        if (frictionVal >= 80) colorClass = '#C13030';
+                        else if (frictionVal >= 60) colorClass = '#d32f2f';
+                        else if (frictionVal >= 40) colorClass = '#F5A623';
+                        else if (frictionVal >= 20) colorClass = '#4A90E2';
+                        else colorClass = '#1F4E5B';
 
                         valFrictionEl.style.color = colorClass;
                     } else {
@@ -634,7 +790,6 @@
                 const showsTimeline = extractInfosparksData(`group_${groupId}_shows_per_listing`, currentCity);
                 const supplyTimeline = extractInfosparksData(`group_${groupId}_months_supply_closed`, currentCity);
 
-                // Climate Indicator (Prefers InfoSparks, falls back to Redfin)
                 let currentSupply = fallbackSupply;
                 if (supplyTimeline.length > 0) {
                     currentSupply = supplyTimeline[supplyTimeline.length - 1].val;
@@ -653,7 +808,6 @@
 
                 document.getElementById('climateLabelText').textContent = `${climateVibe} (${currentSupply.toFixed(2)} Months Supply)`;
 
-                // 1. Median Price Chart
                 if (macroPriceChartInstance) macroPriceChartInstance.destroy();
                 macroPriceChartInstance = new Chart(document.getElementById('macroPriceChart').getContext('2d'), {
                     type: 'line',
@@ -664,7 +818,6 @@
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
 
-                // 2. Closed Sales Chart
                 if (macroSalesChartInstance) macroSalesChartInstance.destroy();
                 macroSalesChartInstance = new Chart(document.getElementById('macroSalesChart').getContext('2d'), {
                     type: 'bar',
@@ -675,7 +828,6 @@
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
 
-                // 3. Days on Market Chart
                 if (macroDOMChartInstance) macroDOMChartInstance.destroy();
                 macroDOMChartInstance = new Chart(document.getElementById('macroDOMChart').getContext('2d'), {
                     type: 'line',
@@ -686,7 +838,6 @@
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
 
-                // 4. Shows Per Listing
                 if (macroShowsChartInstance) macroShowsChartInstance.destroy();
                 macroShowsChartInstance = new Chart(document.getElementById('macroShowsChart').getContext('2d'), {
                     type: 'line',
@@ -696,6 +847,37 @@
                     },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
+            };
+
+            const renderMobilityMetrics = () => {
+                const activeScores = dataStore.mobility[currentCity];
+                
+                if (activeScores) {
+                    document.getElementById('cityWalkScore').textContent = activeScores.walk_score !== undefined ? activeScores.walk_score : '--';
+                    document.getElementById('cityWalkDesc').textContent = activeScores.description || 'Data Available';
+                    
+                    document.getElementById('cityTransitScore').textContent = activeScores.transit_score !== undefined ? activeScores.transit_score : '--';
+                    document.getElementById('cityTransitDesc').textContent = activeScores.transit_description || 'Data Available';
+                    
+                    document.getElementById('cityBikeScore').textContent = activeScores.bike_score !== undefined ? activeScores.bike_score : '--';
+                    document.getElementById('cityBikeDesc').textContent = activeScores.bike_description || 'Data Available';
+                    
+                    if (activeScores.link) {
+                        document.getElementById('walkScoreLink').href = activeScores.link;
+                        document.getElementById('walkScoreLink').style.display = 'inline-flex';
+                    } else {
+                        document.getElementById('walkScoreLink').href = `https://www.walkscore.com/WA/${encodeURIComponent(currentCity)}`;
+                        document.getElementById('walkScoreLink').style.display = 'inline-flex';
+                    }
+                } else {
+                    document.getElementById('cityWalkScore').textContent = '--';
+                    document.getElementById('cityTransitScore').textContent = '--';
+                    document.getElementById('cityBikeScore').textContent = '--';
+                    document.getElementById('cityWalkDesc').textContent = 'Metrics normalizing...';
+                    document.getElementById('cityTransitDesc').textContent = 'Awaiting classification';
+                    document.getElementById('cityBikeDesc').textContent = 'Awaiting classification';
+                    document.getElementById('walkScoreLink').style.display = 'none';
+                }
             };
         });
     </script>
