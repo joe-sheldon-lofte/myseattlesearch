@@ -1,47 +1,41 @@
-name: Sunday Night Walk Score Harvest
+name: Weekly Walk Score Harvest
 
 on:
   schedule:
-    # This runs the script automatically every Sunday night at midnight UTC (5 PM PST)
-    - cron: '0 0 * * 0'
+    # Runs automatically every Sunday night at 1 AM UTC
+    - cron: '0 1 * * 0'
   workflow_dispatch:
-    # This creates a manual "Run" button so you can trigger it right now to test it!
+    # Allows you to push the button manually to test right away!
 
 jobs:
-  harvest:
+  harvest_walk_scores:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Pull down the code from your repository
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    # 2. Set up Python on the cloud machine
-    - name: Set up Python
+    - name: Set up Python Environment
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.11'
 
-    # 3. Install the packages our script requires
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pandas requests
+        pip install requests
 
-    # 4. Run the harvest script using your hidden secret key
-    # (Note: We are running scripts/harvest_walk_scores.py since you saved it in /scripts)
-    - name: Run Harvest Script
+    - name: Run Walk Score Harvest Script
       env:
         WALK_SCORE_API_KEY: ${{ secrets.WALK_SCORE_API_KEY }}
       run: python scripts/harvest_walk_scores.py
 
-    # 5. Check if data changed, and automatically commit/push it back to your repo
-- name: Commit and Push Changes
+    - name: Commit and Push Changes
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
         
-        # Using data/*.json ensures it catches whatever file the script outputs!
+        # Stage any JSON files updated or created inside the data directory
         git add data/*.json
         
         if git diff --staged --quiet; then
