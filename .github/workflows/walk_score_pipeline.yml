@@ -36,14 +36,17 @@ jobs:
       run: python scripts/harvest_walk_scores.py
 
     # 5. Check if data changed, and automatically commit/push it back to your repo
-    - name: Commit and Push Changes
+- name: Commit and Push Changes
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add data/walk_scores.json
+        
+        # Using data/*.json ensures it catches whatever file the script outputs!
+        git add data/*.json
+        
         if git diff --staged --quiet; then
-          echo "No changes to commit"
+          echo "No lifestyle score adjustments discovered."
         else
-          git commit -m "Automation: Updated static walk scores via Sunday pipeline"
+          git commit -m "Automation: Updated multi-score lifestyle directory"
           git push
         fi
