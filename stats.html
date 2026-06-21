@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Local Market Insights | Joe Sheldon</title>
-    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=51">
+    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=52">
     
     <script src="components.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -754,6 +754,7 @@
                 document.getElementById('stampRealTime').textContent = 'Updated Hourly • Last Update: Today at ' + getTopOfHour();
                 document.getElementById('stampMacro').textContent = 'Updated Monthly • Last Update: ' + getThirdBusinessDay();
                 
+                // Dynamically route SpotCrime Map Link based on selected city
                 document.getElementById('spotCrimeLink').href = `https://spotcrime.com/wa/${encodeURIComponent(currentCity.toLowerCase().trim())}`;
 
                 renderRealTime();
@@ -931,25 +932,45 @@
                 let activeScores = null;
                 const targetCity = currentCity.trim().toLowerCase();
 
-                if (Array.isArray(dataStore.mobility)) {
-                    activeScores = dataStore.mobility.find(item => 
-                        (item.City && item.City.toLowerCase() === targetCity) || 
-                        (item.city && item.city.toLowerCase() === targetCity)
-                    );
-                } else if (dataStore.mobility) {
-                    const matchedKey = Object.keys(dataStore.mobility).find(key => key.toLowerCase() === targetCity);
-                    if (matchedKey) activeScores = dataStore.mobility[matchedKey];
+                // Robust Sanitizer: Strips spacing and punctuation to guarantee finding the matched city key
+                const safeTarget = targetCity.replace(/[^a-z0-9]/g, '');
+
+                if (dataStore.mobility) {
+                    if (Array.isArray(dataStore.mobility)) {
+                        activeScores = dataStore.mobility.find(item => {
+                            const name = (item.City || item.city || item.Name || item.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                            return name === safeTarget;
+                        });
+                    } else {
+                        const matchedKey = Object.keys(dataStore.mobility).find(key => 
+                            key.toLowerCase().replace(/[^a-z0-9]/g, '') === safeTarget
+                        );
+                        if (matchedKey) activeScores = dataStore.mobility[matchedKey];
+                    }
                 }
                 
+                const getScore = (obj, keys) => {
+                    for (let k of keys) {
+                        if (obj[k] !== undefined && obj[k] !== null) return obj[k];
+                    }
+                    return '--';
+                };
+                
                 if (activeScores) {
-                    document.getElementById('cityWalkScore').textContent = activeScores.walk_score !== undefined ? activeScores.walk_score : '--';
-                    document.getElementById('cityWalkDesc').textContent = activeScores.description || activeScores.walk_description || 'Data Available';
+                    document.getElementById('cityWalkScore').textContent = getScore(activeScores, ['walk_score', 'walkScore', 'Walk Score', 'walk']);
                     
-                    document.getElementById('cityTransitScore').textContent = activeScores.transit_score !== undefined ? activeScores.transit_score : '--';
-                    document.getElementById('cityTransitDesc').textContent = activeScores.transit_description || 'Data Available';
+                    const walkDesc = getScore(activeScores, ['description', 'walk_description', 'walkDescription']);
+                    document.getElementById('cityWalkDesc').textContent = walkDesc === '--' ? 'Data Available' : walkDesc;
                     
-                    document.getElementById('cityBikeScore').textContent = activeScores.bike_score !== undefined ? activeScores.bike_score : '--';
-                    document.getElementById('cityBikeDesc').textContent = activeScores.bike_description || 'Data Available';
+                    document.getElementById('cityTransitScore').textContent = getScore(activeScores, ['transit_score', 'transitScore', 'Transit Score', 'transit']);
+                    
+                    const transDesc = getScore(activeScores, ['transit_description', 'transitDescription']);
+                    document.getElementById('cityTransitDesc').textContent = transDesc === '--' ? 'Data Available' : transDesc;
+                    
+                    document.getElementById('cityBikeScore').textContent = getScore(activeScores, ['bike_score', 'bikeScore', 'Bike Score', 'bike']);
+                    
+                    const bikeDesc = getScore(activeScores, ['bike_description', 'bikeDescription']);
+                    document.getElementById('cityBikeDesc').textContent = bikeDesc === '--' ? 'Data Available' : bikeDesc;
                     
                     if (activeScores.link) {
                         document.getElementById('walkScoreLink').href = activeScores.link;
@@ -1013,8 +1034,8 @@
                         document.getElementById('lblStateBaselines').textContent = `Math: ${baseMath} / ELA: ${baseEla}`;
                     }
 
-                    const searchSlug = encodeURIComponent(`${targetCity}, WA`);
-                    document.getElementById('greatSchoolsLink').href = `https://www.greatschools.org/search/search.page?q=${searchSlug}`;
+                    const citySlug = targetCity.toLowerCase().replace(/\s+/g, '-');
+                    document.getElementById('greatSchoolsLink').href = `https://www.greatschools.org/washington/${citySlug}/`;
                 } else {
                     document.getElementById('schoolDistrictName').textContent = 'District Profile Unavailable';
                     activeContainer.style.display = 'block';
