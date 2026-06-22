@@ -138,8 +138,9 @@ def main():
         city_name = str(row['City']).strip()
         police_agency = str(row['Police Department Name']).strip()
         
+        # Updated to target the exact column header label
         try:
-            land_area_val = row.get('Land Area Sq Mi')
+            land_area_val = row.get('Land Area Square Mileage')
             if pd.isna(land_area_val) or str(land_area_val).lower() == 'unknown':
                 land_area = 0.0
             else:
