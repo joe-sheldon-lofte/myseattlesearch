@@ -4,7 +4,7 @@ import pandas as pd
 import requests
 
 # CONFIGURATION
-CSV_PATH = "data/InfoSparks Links - Sheet2_2.csv"
+CSV_PATH = "data/InfoSparks Links - Sheet2.csv"
 OUTPUT_JSON_PATH = "data/crime_stats.json"
 # The FBI CDE API requires an API key. Get a free one at: https://api.data.gov/
 FBI_API_KEY = os.getenv("FBI_API_KEY", "DEMO_KEY") 
