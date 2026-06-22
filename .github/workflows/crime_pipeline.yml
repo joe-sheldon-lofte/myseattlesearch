@@ -1,0 +1,39 @@
+name: FBI Crime Data Pipeline
+
+on:
+  schedule:
+    # Runs at 05:00 UTC on the 1st of every month (Monthly cadence fits the FBI updates)
+    - cron: '0 5 1 * *'
+  workflow_dispatch: # Allows you to manually trigger this via the GitHub UI anytime
+
+jobs:
+  harvest-crime-stats:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install pandas requests
+
+      - name: Run FBI Crime Data Harvester
+        env:
+          # This pulls the secure key from your GitHub Repo Secrets
+          FBI_API_KEY: ${{ secrets.FBI_API_KEY }}
+        run: python scripts/harvest_crime.py
+
+      - name: Commit and Push Updated Stats
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions Runner"
+          
+          # Explicitly tracking only this dataset's isolated slice
+          git add data/crime_stats.json
+          
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated update: FBI UCR/NIBRS localized crime statistics" && git push)
