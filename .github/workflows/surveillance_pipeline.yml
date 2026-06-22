@@ -1,0 +1,32 @@
+name: Public Space Surveillance Pipeline
+
+on:
+  schedule:
+    # Runs at 07:00 UTC every Sunday night
+    - cron: '0 7 * * 0'
+  workflow_dispatch:
+
+jobs:
+  compile-surveillance-metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: pip install pandas requests
+
+      - name: Run Dynamic Surveillance Engine
+        run: python scripts/harvest_surveillance.py
+
+      - name: Commit and Push Updated Payloads
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions Runner"
+          git add data/surveillance_stats.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated update: Dynamic OpenStreetMap and live EFF corporate tracking profiles" && git push)
