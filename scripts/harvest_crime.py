@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Real Estate Platform - FBI Crime Data Pipeline
-Features: Self-healing CSV newline reconstruction and direct data-driven link mapping.
+Features: Self-healing CSV newline reconstruction, direct data-driven link mapping,
+          and transparent raw + per-capita metric structures.
 """
 
 import os
@@ -70,7 +71,10 @@ def main():
             crime_registry[city_name] = {
                 "status": "No Historical Data Reported",
                 "police_agency": police_dept,
+                "reported_population": None,
+                "total_violent_crimes": None,
                 "per_capita_violent_rate": None,
+                "total_property_crimes": None,
                 "per_capita_property_rate": None,
                 "granular_crime_link": final_crime_link
             }
@@ -79,18 +83,23 @@ def main():
         print(f"📥 Processing NIBRS indexing matrix for: {city_name}...")
         
         try:
-            # Baseline placeholder calculations until live GitHub Secret propagation connects
+            # Baseline placeholder data points (Will map to live endpoints via API key)
             violent_incidents = 32  
             property_incidents = 145
             population_baseline = 22000 
             
+            # Math conversion: (Incidents / Population) * 1000
             violent_rate = round((violent_incidents / population_baseline) * 1000, 2)
             property_rate = round((property_incidents / population_baseline) * 1000, 2)
 
+            # Fully expanded transparent profile
             crime_registry[city_name] = {
                 "status": "Active Reporting",
                 "police_agency": police_dept,
+                "reported_population": population_baseline,
+                "total_violent_crimes": violent_incidents,
                 "per_capita_violent_rate": violent_rate,
+                "total_property_crimes": property_incidents,
                 "per_capita_property_rate": property_rate,
                 "granular_crime_link": final_crime_link
             }
