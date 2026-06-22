@@ -28,5 +28,9 @@ jobs:
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions Runner"
+          
+          # Stage the freshly generated data file
           git add data/surveillance_stats.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated update: Dynamic OpenStreetMap and live EFF corporate tracking profiles" && git push)
+          
+          # Commit, pull the latest remote changes safely, then push
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated update: Dynamic OpenStreetMap and live EFF corporate tracking profiles" && git pull --rebase origin main && git push)
