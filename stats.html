@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Local Community Insights | Joe Sheldon</title>
-    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=55">
+    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=56">
     
     <script src="components.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -67,7 +67,7 @@
         .market-scale-labels {
             display: flex;
             justify-content: space-between;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             font-weight: 700;
             color: var(--premier-charcoal);
             opacity: 0.8;
@@ -87,6 +87,7 @@
             gap: 0.75rem;
             flex-wrap: wrap;
             justify-content: center;
+            width: 100%;
         }
         .filter-btn {
             background: transparent;
@@ -104,6 +105,27 @@
             border-color: var(--premier-charcoal);
             color: var(--white);
         }
+        
+        /* New Hybrid Scrollable Grid for Large Counties */
+        .scrollable-city-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 15px;
+            border: 1px solid var(--light-gray);
+            border-radius: 12px;
+            background: #fdfdfd;
+            width: 100%;
+            max-width: 800px;
+        }
+        .filter-btn-small {
+            padding: 0.35rem 1rem;
+            font-size: 0.8rem;
+            border-radius: 16px;
+        }
 
         .section-header {
             text-align: center;
@@ -118,14 +140,14 @@
             margin-bottom: 0.25rem;
         }
         .section-header p {
-            font-size: 1rem;
+            font-size: 1.05rem;
             opacity: 0.85;
             font-style: italic;
             margin-bottom: 0.5rem;
         }
 
         .update-stamp {
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             font-weight: 800;
             color: #C13030;
             text-transform: uppercase;
@@ -160,7 +182,7 @@
         .stat-card.card-sold { border-top-color: #a0a0a0; }
 
         .stat-card h4 {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             text-transform: uppercase;
             letter-spacing: 1px;
             color: var(--premier-charcoal);
@@ -177,7 +199,7 @@
             transition: color 0.3s ease;
         }
         .stat-label {
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             font-style: italic;
             font-weight: 700;
             opacity: 0.7;
@@ -267,12 +289,24 @@
         }
         .metric-card h3 {
             margin: 0 0 1.25rem 0;
-            font-size: 1.15rem;
+            font-size: 1.25rem;
             font-weight: 800;
-            color: #222222;
+            color: var(--premier-charcoal);
             border-bottom: 2px solid #eaeaea;
             padding-bottom: 0.5rem;
         }
+        
+        /* New Subheading explicitly for Public Safety */
+        .safety-subhead {
+            font-size: 0.9rem; 
+            color: #555; 
+            font-weight: 800; 
+            display: block; 
+            letter-spacing: 0.5px; 
+            text-transform: uppercase; 
+            margin: 0 0 0.5rem 0;
+        }
+
         .walkscore-container {
             display: flex;
             align-items: center;
@@ -343,7 +377,7 @@
             padding: 1rem;
             margin-top: 1rem;
             border-radius: 0 8px 8px 0;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             color: #333;
             line-height: 1.5;
         }
@@ -359,9 +393,9 @@
         /* Specialized Climate & Surveillance UI Layout Classes */
         .info-badge-inline {
             display: inline-block;
-            padding: 0.25rem 0.6rem;
+            padding: 0.35rem 0.7rem;
             font-size: 0.8rem;
-            font-weight: 700;
+            font-weight: 800;
             border-radius: 4px;
             margin-top: 0.5rem;
         }
@@ -382,7 +416,7 @@
         }
         .climate-mini-item span, .surv-mini-item span {
             display: block;
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             color: #555;
             font-weight: 800;
             text-transform: uppercase;
@@ -401,7 +435,7 @@
     <main class="container" style="max-width: 1100px; padding-bottom: 5rem;">
         
         <div class="events-header" style="text-align: center; margin-bottom: 2rem;">
-            <h1 style="margin-top: 1rem; font-size: 2.5rem;">Local Community Insights</h1>
+            <h1 style="margin-top: 1rem; font-size: 2.8rem; font-weight: 900; color: var(--premier-charcoal);">Local Community Insights</h1>
             <p class="intro">Real-time data and historical trends for the Pacific Northwest.</p>
         </div>
 
@@ -409,7 +443,7 @@
             ⚠️ <strong>Heads Up:</strong> This dashboard is currently building its live pipelines. Data tracking is active, but charts and comparisons will not be fully normalized or historically accurate until <strong>July 1st</strong>.
         </div>
 
-        <!-- Dynamic Region & City Selectors -->
+        <!-- Dynamic Region & Hybrid City Selectors -->
         <div class="filter-nav-container">
             <div class="filter-nav" id="regionSelector">
                 <button class="filter-btn active" data-region="North Sound">North Sound</button>
@@ -417,13 +451,14 @@
                 <button class="filter-btn" data-region="Snohomish County">Snohomish County</button>
             </div>
             <div class="filter-nav" id="citySelector">
-                <p>Loading market data...</p>
+                <p style="font-weight: 600; color: #555;">Loading market data...</p>
             </div>
         </div>
 
         <div id="dashboardContent" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
             
-            <h2 id="currentTitle" style="text-align: center; margin-bottom: 0.5rem; color: var(--premier-charcoal); font-weight: 800; font-size: 2.2rem; font-family: var(--heading-font), serif;"></h2>
+            <!-- Elegant City Title Header -->
+            <h2 id="currentCityHeader" style="font-size: 3rem; font-weight: 900; color: var(--premier-charcoal); text-align: center; margin-bottom: 1rem; letter-spacing: -0.5px;"></h2>
             
             <!-- Real Estate Section Header -->
             <div class="section-header" style="margin-top: 0; border-bottom: none; padding-bottom: 0;">
@@ -547,7 +582,7 @@
 
                 <div class="chart-box">
                     <h3>Buyer Showings Per Listing</h3>
-                    <p class="chart-desc" style="margin-bottom: 0.5rem; font-size: 0.85rem;">Real world foot traffic in homes for sale.</p>
+                    <p class="chart-desc" style="margin-bottom: 0.5rem; font-size: 0.9rem;">Real world foot traffic in homes for sale.</p>
                     <div style="position: relative; height: 260px;"><canvas id="macroShowsChart"></canvas></div>
                 </div>
             </div>
@@ -561,8 +596,8 @@
 
             <!-- COMMUNITY & LIFESTYLE METRICS SECTION (AT BOTTOM) -->
             <section class="community-metrics-section">
-                <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem; font-weight: 800; color: var(--premier-charcoal); text-align: center;">Community Profile & Lifestyle</h2>
-                <p style="color: #555; font-size: 1rem; margin-bottom: 2rem; text-align: center;">City-wide scores, resource boundaries, and environmental metrics.</p>
+                <h2 style="font-size: 2rem; margin-bottom: 0.5rem; font-weight: 800; color: var(--premier-charcoal); text-align: center;">Community Profile & Lifestyle</h2>
+                <p style="color: #555; font-size: 1.05rem; margin-bottom: 2rem; text-align: center; font-weight: 500;">City-wide scores, resource boundaries, and environmental metrics.</p>
                 
                 <div class="metrics-grid">
                     <!-- MOBILITY CARD -->
@@ -598,7 +633,7 @@
                     <div class="metric-card" id="schoolDistrictCard">
                         <div>
                             <h3>School District & Rankings</h3>
-                            <p id="schoolDistrictName" style="font-size: 1rem; font-weight: 700; margin: 0 0 1rem 0; color: var(--premier-charcoal);">Loading District Profile...</p>
+                            <p id="schoolDistrictName" style="font-size: 1.05rem; font-weight: 800; margin: 0 0 1rem 0; color: var(--premier-charcoal);">Loading District Profile...</p>
                             
                             <div id="schoolDataActive">
                                 <div class="walkscore-container" style="margin-bottom: 0.5rem;">
@@ -613,7 +648,7 @@
                                     <strong>About the PSAI</strong><br>The Puget Sound Academic Index (PSAI) is an objective, un-biased 1-to-10 rating designed to show overall public school district proficiency across King and Snohomish Counties.<br><br>Unlike traditional real estate portals that rely on commercial third-party algorithms, the PSAI is calculated using direct, un-modified public records from the Washington Office of Superintendent of Public Instruction (OSPI).<br><br><strong>How It's Calculated:</strong> We take the literal percentage of district students who met or exceeded grade-level standards on the state's latest Smarter Balanced Assessments in Mathematics and English Language Arts (Reading), average them together, and normalize them onto a standard 10-point scale.
                                 </div>
                                 <div style="margin-top: 1.25rem; margin-bottom: 0.85rem;">
-                                    <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:800; margin-bottom:0.25rem; color:#444;">
+                                    <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:800; margin-bottom:0.25rem; color:#444;">
                                         <span>📐 MATH PROFICIENCY</span>
                                         <span id="txtMathScore">--</span>
                                     </div>
@@ -622,7 +657,7 @@
                                     </div>
                                 </div>
                                 <div style="margin-bottom: 1rem;">
-                                    <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:800; margin-bottom:0.25rem; color:#444;">
+                                    <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:800; margin-bottom:0.25rem; color:#444;">
                                         <span>📖 ELA PROFICIENCY</span>
                                         <span id="txtElaScore">--</span>
                                     </div>
@@ -630,7 +665,7 @@
                                         <div id="barElaScore" style="background:#4A90E2; height:100%; width:0%; border-radius:4px; transition: width 0.6s ease;"></div>
                                     </div>
                                 </div>
-                                <span style="font-size: 0.75rem; text-transform: uppercase; color: #555; font-weight: 800; display:block; line-height:1.3;">Compared against State Baselines (<span id="lblStateBaselines">Math -- / ELA --</span>)</span>
+                                <span style="font-size: 0.8rem; text-transform: uppercase; color: #555; font-weight: 800; display:block; line-height:1.3;">Compared against State Baselines (<span id="lblStateBaselines">Math -- / ELA --</span>)</span>
                             </div>
                             <div id="schoolDataSuppressed" style="display: none; padding: 1rem 0;">
                                 <div class="walkscore-container" style="margin-bottom: 1rem;">
@@ -679,49 +714,51 @@
                         </div>
                     </div>
 
-                    <!-- PUBLIC SAFETY & EMERGENCY SERVICES CARD -->
+                    <!-- EMERGENCY SERVICES CARD -->
                     <div class="metric-card" id="publicSafetyCard">
                         <div>
+                            <h3>Emergency Services</h3>
+                            
                             <!-- CRIME SUBSECTION -->
-                            <h4 style="font-size: 1.15rem; font-weight: 800; color: var(--premier-charcoal); margin: 0 0 0.5rem 0; border-bottom: 2px solid #eaeaea; padding-bottom: 0.5rem;">Crime & Public Safety</h4>
-                            <p id="safetyAgencyHeader" style="font-size: 0.95rem; font-weight: 700; margin: 0 0 0.75rem 0; color: #444;">Local Public Safety Status</p>
-                            
-                            <div id="crimeNoticeBadge" class="custom-notice-block" style="border-left-color: #C13030; margin-bottom: 1rem; background: #FFF5F5;">
-                                ℹ️ Official FBI NIBRS data is currently pending or unmapped for this municipality. View live local community logs via the button below.
-                            </div>
+                            <div style="margin-bottom: 1.5rem;">
+                                <span class="safety-subhead">CRIME & PUBLIC SAFETY</span>
+                                <div style="font-size: 0.95rem; font-weight: 700; margin: 0 0 0.75rem 0; color: #333;" id="safetyAgencyHeader">Local Public Safety Status</div>
+                                
+                                <div id="crimeNoticeBadge" class="custom-notice-block" style="border-left-color: #C13030; margin-bottom: 1rem; background: #FFF5F5;">
+                                    ℹ️ Official FBI NIBRS data is currently pending or unmapped for this municipality. View live local community logs via the button below.
+                                </div>
 
-                            <div id="activeCrimeStatsContainer" style="display:none; margin-bottom: 1rem;">
-                                <span style="font-size: 0.8rem; color: #555; font-weight: 800; display: block; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 0.5rem;">Crime Rates</span>
-                                <div style="display: flex; gap: 1rem; margin-bottom: 0.5rem;">
-                                    <div>
-                                        <span style="font-size:0.75rem; color:#555; font-weight:800; display:block;">💥 VIOLENT CRIMES RATE</span>
-                                        <strong id="txtViolentRate" style="font-size:1.3rem; color:#222; font-weight:800;">--</strong>
-                                        <span style="font-size:0.75rem; color:#555; display:block; font-weight: 600;">per 1,000 residents</span>
+                                <div id="activeCrimeStatsContainer" style="display:none; margin-bottom: 1rem;">
+                                    <div style="display: flex; gap: 1rem; margin-bottom: 0.5rem;">
+                                        <div>
+                                            <span style="font-size:0.8rem; color:#555; font-weight:800; display:block;">💥 VIOLENT CRIMES RATE</span>
+                                            <strong id="txtViolentRate" style="font-size:1.4rem; color:#222; font-weight:800;">--</strong>
+                                            <span style="font-size:0.8rem; color:#555; display:block; font-weight: 600;">per 1,000 residents</span>
+                                        </div>
+                                        <div>
+                                            <span style="font-size:0.8rem; color:#555; font-weight:800; display:block;">🏡 PROPERTY CRIMES RATE</span>
+                                            <strong id="txtPropertyRate" style="font-size:1.4rem; color:#222; font-weight:800;">--</strong>
+                                            <span style="font-size:0.8rem; color:#555; display:block; font-weight: 600;">per 1,000 residents</span>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <span style="font-size:0.75rem; color:#555; font-weight:800; display:block;">🏡 PROPERTY CRIMES RATE</span>
-                                        <strong id="txtPropertyRate" style="font-size:1.3rem; color:#222; font-weight:800;">--</strong>
-                                        <span style="font-size:0.75rem; color:#555; display:block; font-weight: 600;">per 1,000 residents</span>
+                                    <span class="custom-info-toggle" onclick="document.getElementById('crimeExplanation').classList.toggle('active')">What do these numbers mean?</span>
+                                    <div id="crimeExplanation" class="psai-dropdown">
+                                        <strong>What "Per 1,000 Residents" Means:</strong> This normalizes the data so a buyer can fairly compare a small town to a massive metropolis. For example, a property rate of 20.0 means that for every 1,000 neighbors living in this city, roughly 20 property-related incidents (theft, burglary, vandalism) are recorded annually.<br><br><strong>The Crime Categories:</strong><br>• <em>Violent Crime:</em> Reflects crimes against persons (assault, robbery, tracking infractions).<br>• <em>Property Crime:</em> Reflects crimes against structures or goods (burglary, larceny, motor vehicle theft, vandalism).
                                     </div>
                                 </div>
-                                <span class="custom-info-toggle" onclick="document.getElementById('crimeExplanation').classList.toggle('active')">What do these numbers mean?</span>
-                                <div id="crimeExplanation" class="psai-dropdown">
-                                    <strong>What "Per 1,000 Residents" Means:</strong> This normalizes the data so a buyer can fairly compare a small town to a massive metropolis. For example, a property rate of 20.0 means that for every 1,000 neighbors living in this city, roughly 20 property-related incidents (theft, burglary, vandalism) are recorded annually.<br><br><strong>The Crime Categories:</strong><br>• <em>Violent Crime:</em> Reflects crimes against persons (assault, robbery, tracking infractions).<br>• <em>Property Crime:</em> Reflects crimes against structures or goods (burglary, larceny, motor vehicle theft, vandalism).
-                                </div>
+                                <a href="https://spotcrime.com/" id="spotCrimeLink" target="_blank" class="card-action-btn" style="margin-top: 0; width: 100%;">Open SpotCrime Map &rarr;</a>
                             </div>
-                            
-                            <a href="https://spotcrime.com/" id="spotCrimeLink" target="_blank" class="card-action-btn" style="margin-top: 0; margin-bottom: 1.5rem; width: 100%;">Open SpotCrime Map &rarr;</a>
 
                             <!-- FIRE SUBSECTION -->
-                            <div style="border-top: 1px solid #eaeaea; padding-top: 0.75rem; margin-bottom: 1rem;">
-                                <span style="font-size: 0.8rem; color: #555; font-weight: 800; display: block; letter-spacing: 0.5px; text-transform: uppercase;">🚒 FIRE & RISK PROTECTION</span>
-                                <div style="font-size: 0.95rem; font-weight: 700; color: #222; margin-top: 0.25rem;" id="txtFireAgency">Loading Responder Profile...</div>
+                            <div style="border-top: 2px solid #eaeaea; padding-top: 1rem; margin-bottom: 1.5rem;">
+                                <span class="safety-subhead">🚒 FIRE & RISK PROTECTION</span>
+                                <div style="font-size: 0.95rem; font-weight: 700; color: #333; margin-top: 0.25rem;" id="txtFireAgency">Loading Responder Profile...</div>
                                 <div id="fireBadgeContainer"></div>
                             </div>
 
                             <!-- HOSPITAL SUBSECTION -->
-                            <div style="border-top: 1px solid #eaeaea; padding-top: 0.75rem;">
-                                <h4 style="font-size: 0.8rem; color: #555; font-weight: 800; display: block; letter-spacing: 0.5px; text-transform: uppercase; margin: 0;">🏥 EMERGENCY MEDICAL</h4>
+                            <div style="border-top: 2px solid #eaeaea; padding-top: 1rem;">
+                                <span class="safety-subhead">🏥 EMERGENCY MEDICAL</span>
                                 <div style="font-size: 0.95rem; color: #333; margin-top: 0.25rem;" id="hospitalProximityContainer">
                                     Loading proximity calculations...
                                 </div>
@@ -765,13 +802,13 @@
                                 <span class="custom-info-toggle" onclick="document.getElementById('surveillanceExplanation').classList.toggle('active')">What do these categories mean?</span>
                                 <div id="surveillanceExplanation" class="psai-dropdown">
                                     <strong>ALPR Cams:</strong> Automated License Plate Readers that log vehicle locations and movement patterns.<br><br>
-                                    <strong>Traffic Cams:</strong> Automated speed and red-light enforcement cameras (does not include general DOT traffic flow monitors).<br><br>
+                                    <strong>Traffic Cams:</strong> Automated speed and red-light enforcement cameras (does not include general WSDOT traffic flow monitors).<br><br>
                                     <strong>General CCTV:</strong> Standard public-facing security and surveillance camera networks.<br><br>
                                     <strong>Data Platforms:</strong> Algorithmic tools, facial recognition, or non-stationary tracking software utilized by the controlling agency.
                                 </div>
                             </div>
                         </div>
-                        <span style="font-size: 0.8rem; color: #555; font-weight: 700; display: block; margin-top: 1.25rem; line-height: 1.3;">Data provided by Deflock via OpenStreetMap and the Atlas of Surveillance.</span>
+                        <span style="font-size: 0.85rem; color: #555; font-weight: 700; display: block; margin-top: 1.25rem; line-height: 1.4;">Data provided by Deflock via OpenStreetMap and the Atlas of Surveillance.</span>
                     </div>
                 </div>
             </section>
@@ -798,7 +835,7 @@
             const emergencyPath = './data/public_safety_emergency.json';
             const surveillancePath = './data/surveillance_stats.json';
             
-            // New City Directory reference
+            // New City Directory Reference
             const categoriesPath = './data/InfoSparks Links - Sheet2.csv';
 
             let dataStore = { 
@@ -806,12 +843,11 @@
                 mobility: {}, schools: {}, crime: {}, climate: {}, emergency: {}, surveillance: {} 
             };
             
-            // Region Mapping Object
+            // Region Mapping Registry
             let cityRegions = {};
-            
+            let allCities = [];
             let currentRegion = 'North Sound';
             let currentCity = '';
-            let allCities = [];
             
             let velocityChartInstance = null;
             let macroPriceChartInstance = null; 
@@ -899,7 +935,7 @@
                 fetchJSON(climatePath),
                 fetchJSON(emergencyPath),
                 fetchJSON(surveillancePath),
-                fetchCSV(categoriesPath) // Promise [10]
+                fetchCSV(categoriesPath) // Promise index 10
             ]).then(values => {
                 dataStore.snapshot = values[0] || [];
                 dataStore.historical = values[1] || [];
@@ -917,18 +953,24 @@
                 dataStore.emergency = values[8] || {};
                 dataStore.surveillance = values[9] || {};
                 
-                // Parse Category Mapping from the Directory CSV
+                // Parse the City/County Directory Registry
                 const categoryRows = values[10] || [];
                 categoryRows.forEach(row => {
                     if (row.City) {
                         cityRegions[row.City.trim().toLowerCase()] = {
+                            city: row.City.trim(),
                             county: (row.County || '').trim(),
                             northSound: (row['North Sound'] || '').trim().toLowerCase() === 'x'
                         };
                     }
                 });
                 
-                allCities = [...new Set(dataStore.snapshot.map(row => row.City ? row.City.trim() : ''))].filter(Boolean).sort();
+                // Define Master List of Cities
+                allCities = Object.values(cityRegions).map(c => c.city).sort();
+                if (allCities.length === 0) {
+                    // Fallback to snapshot cities if CSV isn't properly mapped
+                    allCities = [...new Set(dataStore.snapshot.map(row => row.City ? row.City.trim() : ''))].filter(Boolean).sort();
+                }
                 
                 if (allCities.length > 0) {
                     renderCityButtons();
@@ -940,7 +982,7 @@
                 document.getElementById('citySelector').innerHTML = `<p style="color: #d32f2f; font-weight: bold;">Connection to data pipeline interrupted. Please refresh the page.</p>`;
             });
 
-            // Handle Region Picker Clicks
+            // Handle Region Picker Toggle Logic
             document.querySelectorAll('#regionSelector .filter-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     document.querySelectorAll('#regionSelector .filter-btn').forEach(b => b.classList.remove('active'));
@@ -956,18 +998,32 @@
                     if (currentRegion === 'North Sound') return data.northSound;
                     if (currentRegion === 'King County') return data.county === 'King';
                     if (currentRegion === 'Snohomish County') return data.county === 'Snohomish';
-                    return true; // Fallback to all if region string mismatches
+                    return true; 
                 });
 
-                if (filteredCities.length === 0) filteredCities = allCities; // Failsafe
+                if (filteredCities.length === 0) filteredCities = allCities; // Failsafe empty trap
 
                 const citySelector = document.getElementById('citySelector');
-                citySelector.innerHTML = filteredCities.map((city, i) => {
-                    const isActive = city === currentCity || (!filteredCities.includes(currentCity) && i === 0);
-                    return `<button class="filter-btn ${isActive ? 'active' : ''}" data-city="${city}">${city}</button>`;
-                }).join('');
+                
+                // Hybrid Layout Construction
+                let htmlOutput = '';
+                if (currentRegion === 'North Sound') {
+                    // Big, prominent featured buttons
+                    htmlOutput = filteredCities.map((city, i) => {
+                        const isActive = city === currentCity || (!filteredCities.includes(currentCity) && i === 0);
+                        return `<button class="filter-btn ${isActive ? 'active' : ''}" data-city="${city}">${city}</button>`;
+                    }).join('');
+                } else {
+                    // Compact, scrollable grid for large counties
+                    htmlOutput = `<div class="scrollable-city-grid">` + 
+                        filteredCities.map((city, i) => {
+                            const isActive = city === currentCity || (!filteredCities.includes(currentCity) && i === 0);
+                            return `<button class="filter-btn filter-btn-small ${isActive ? 'active' : ''}" data-city="${city}">${city}</button>`;
+                        }).join('') + `</div>`;
+                }
 
-                // Auto-select first city in the new region if the current city isn't in it
+                citySelector.innerHTML = htmlOutput;
+
                 if (!filteredCities.includes(currentCity) && filteredCities.length > 0) {
                     currentCity = filteredCities[0];
                     updateDashboard();
@@ -987,8 +1043,8 @@
                 document.getElementById('dashboardContent').style.display = 'block';
                 setTimeout(() => document.getElementById('dashboardContent').style.opacity = '1', 50);
                 
-                // Update the elegant city header above the Real Estate Section
-                document.getElementById('currentTitle').textContent = currentCity;
+                // Update the elegant city header
+                document.getElementById('currentCityHeader').textContent = currentCity;
 
                 document.getElementById('stampRealTime').textContent = 'Updated Hourly • Last Update: Today at ' + getTopOfHour();
                 document.getElementById('stampMacro').textContent = 'Updated Monthly • Last Update: ' + getThirdBusinessDay();
@@ -1347,15 +1403,15 @@
                     }
 
                     ctaBtn.href = crimeData.granular_crime_link || `https://spotcrime.com/wa/${encodeURIComponent(targetCity.toLowerCase())}`;
-                    ctaBtn.textContent = crimeData.status === "Active Reporting"
-                        ? `Get More Detailed Crime Data From ${crimeData.police_agency || 'Agency'} \u2192`
-                        : `View Local Crime Maps on SpotCrime for ${targetCity} \u2192`;
+                    ctaBtn.innerHTML = crimeData.status === "Active Reporting"
+                        ? `Get More Detailed Crime Data From ${crimeData.police_agency || 'Agency'} &rarr;`
+                        : `View Local Crime Maps on SpotCrime for ${targetCity} &rarr;`;
                 } else {
                     document.getElementById('safetyAgencyHeader').textContent = 'Local Public Safety Status';
                     statsContainer.style.display = 'none';
                     noticeBadge.classList.add('active');
                     ctaBtn.href = `https://spotcrime.com/wa/${encodeURIComponent(targetCity.toLowerCase())}`;
-                    ctaBtn.textContent = `View Local Crime Maps on SpotCrime for ${targetCity} \u2192`;
+                    ctaBtn.innerHTML = `View Local Crime Maps on SpotCrime for ${targetCity} &rarr;`;
                 }
 
                 const fireBadgeEl = document.getElementById('fireBadgeContainer');
@@ -1386,7 +1442,7 @@
                         hospitalContainer.innerHTML = `
                             <div style="margin-top:0.5rem; line-height:1.4;">
                                 Your nearest 24/7 Emergency Department is <strong>${m.nearest_hospital_facility}</strong>, located <strong>${dist}</strong> miles away.
-                                <div style="font-size:0.8rem; font-weight:700; color:#555; margin-top:0.25rem;">CMS Quality Standard: ${m.cms_hospital_quality_rating || '--'}</div>
+                                <div style="font-size:0.85rem; font-weight:700; color:#555; margin-top:0.25rem;">CMS Quality Standard: ${m.cms_hospital_quality_rating || '--'}</div>
                             </div>
                         `;
                     } else {
