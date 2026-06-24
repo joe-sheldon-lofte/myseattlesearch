@@ -7,6 +7,54 @@
     <link rel="stylesheet" href="style.css?v=39">
     <script src="components.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        /* New Disclaimer Banner Styles */
+        .disclaimer-banner {
+            background-color: #f9f9f9; 
+            border-left: 4px solid #F5A623; 
+            color: #333333; 
+            padding: 1rem 1.25rem;
+            border-radius: 4px 12px 12px 4px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin: 0 auto 2.5rem auto;
+            max-width: 800px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            text-align: left;
+        }
+
+        /* Legal Requirements Card Section */
+        .pro-legal {
+            margin-top: 1rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #eaeaea;
+            font-size: 0.75rem;
+            color: #666;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            text-align: left;
+        }
+        .pro-legal strong {
+            color: #333;
+            font-weight: 700;
+        }
+        .legal-link {
+            display: inline-flex;
+            align-items: center;
+            color: #4A90E2;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.75rem;
+            margin-top: 0.15rem;
+            transition: color 0.2s ease;
+        }
+        .legal-link:hover {
+            color: #1F4E5B;
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body class="pro-page">
 
@@ -14,14 +62,19 @@
 
     <main class="container">
         
-        <div class="events-header">
-            <h1 style="margin-top: 1rem;">My Preferred Professionals</h1>
+        <div class="events-header" style="text-align: center;">
+            <h1 style="margin-top: 1rem; font-size: 2.5rem;">My Preferred Professionals</h1>
             <p class="intro">A curated list of trusted local experts I rely on to get the job done right.</p>
+        </div>
+
+        <div class="disclaimer-banner">
+            ⚠️ <strong>Consumer Notice:</strong> While I have had positive experiences working with the professionals listed below, it is strictly your responsibility to verify that they hold the proper, active credentials, licenses, and insurance policies required for your specific job prior to hiring. 
         </div>
 
         <div class="filter-nav-container">
             <div class="filter-nav" id="filterNav">
-                </div>
+                <p style="color: #666; font-weight: 600;">Loading professionals directory...</p>
+            </div>
         </div>
 
         <div class="pro-grid" id="proGrid">
@@ -83,13 +136,18 @@
                         }
 
                         const additionalInfo = row['Additional Info'] ? row['Additional Info'].trim() : '';
+                        
+                        // Grab the new Legal fields
+                        const legalReq = row['Legal Requirements'] ? row['Legal Requirements'].trim() : '';
+                        const legalLink = row['Legal Requirements Link'] ? row['Legal Requirements Link'].trim() : '';
 
                         // Build the card HTML
                         let card = `<div class="pro-card" data-category="${catSlug}">
-                            <div class="pro-header">
-                                <div class="pro-category-tag">${category}</div>
-                            </div>
-                            <h3 class="pro-name">${name}</h3>`;
+                            <div class="pro-card-content">
+                                <div class="pro-header">
+                                    <div class="pro-category-tag">${category}</div>
+                                </div>
+                                <h3 class="pro-name">${name}</h3>`;
                         
                         if (company) {
                             card += `<p class="pro-company">${company}</p>`;
@@ -98,7 +156,7 @@
                             card += `<p class="pro-area">${additionalInfo}</p>`;
                         }
                         
-                        card += `<div class="pro-contact">`;
+                        card += `<div class="pro-contact" style="margin-top: 1rem;">`;
                         if (phone) {
                             card += `<a href="tel:${phoneClean}" class="pro-link phone">${phone}</a>`;
                         }
@@ -108,7 +166,21 @@
                         if (website) {
                             card += `<a href="${website}" target="_blank" class="pro-link website">Visit Website</a>`;
                         }
-                        card += `</div></div>`;
+                        card += `</div>`; // Close pro-contact
+                        
+                        // Inject Legal Requirements section if data exists
+                        if (legalReq) {
+                            card += `<div class="pro-legal">
+                                        <span style="line-height: 1.4;"><strong>Credentials:</strong> ${legalReq}</span>`;
+                            
+                            if (legalLink) {
+                                card += `<a href="${legalLink}" target="_blank" class="legal-link">Verify active credentials &rarr;</a>`;
+                            }
+                            
+                            card += `</div>`;
+                        }
+
+                        card += `</div></div>`; // Close pro-card-content and pro-card
 
                         cardsHTML += card;
                     });
