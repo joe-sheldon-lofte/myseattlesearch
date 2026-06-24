@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  harvest-fbi-metrics:
+  harvest-wa-metrics:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
@@ -21,9 +21,6 @@ jobs:
         run: pip install pandas requests
 
       - name: Run Crime Harvester Engine
-        env:
-          # Securely injects your repository secret straight into the script execution environment
-          FBI_API_KEY: ${{ secrets.FBI_API_KEY }}
         run: python scripts/harvest_crime.py
 
       - name: Commit and Push Payload Updates
@@ -31,4 +28,4 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions Runner"
           git add data/crime_stats.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated update: Dynamic live FBI crime data metrics" && git pull --rebase origin main && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated update: Dynamic state UCR crime data metrics" && git pull --rebase origin main && git push)
