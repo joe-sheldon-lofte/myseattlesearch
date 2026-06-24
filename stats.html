@@ -330,6 +330,7 @@
             padding-bottom: 0.5rem;
         }
         
+        /* New Subheading explicitly for Public Safety */
         .safety-subhead {
             font-size: 0.9rem; 
             color: #555; 
@@ -766,7 +767,7 @@
                                         <strong>What "Per 1,000 Residents" Means:</strong> This normalizes the data so a buyer can fairly compare a small town to a massive metropolis. For example, a property rate of 20.0 means that for every 1,000 neighbors living in this city, roughly 20 property-related incidents (theft, burglary, vandalism) are recorded annually.<br><br><strong>The Crime Categories:</strong><br>• <em>Violent Crime:</em> Reflects crimes against persons (assault, robbery, tracking infractions).<br>• <em>Property Crime:</em> Reflects crimes against structures or goods (burglary, larceny, motor vehicle theft, vandalism).
                                     </div>
                                 </div>
-                                <a href="https://spotcrime.com/" id="spotCrimeLink" target="_blank" class="card-action-btn" style="margin-top: 0; width: 100%;">Open SpotCrime Map &rarr;</a>
+                                <a href="#" id="spotCrimeLink" target="_blank" class="card-action-btn" style="margin-top: 0; width: 100%;">View additional local crime data &rarr;</a>
                             </div>
 
                             <div style="border-top: 2px solid #eaeaea; padding-top: 1rem; margin-bottom: 1.5rem;">
@@ -842,7 +843,6 @@
             const urlSnapshot = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=701119614&single=true&output=csv';
             const urlHistorical = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1473136505&single=true&output=csv';
             
-            // Core data payload path variables
             const redfinPath = './data/redfin_stats.json';
             const infosparksPath = './data/infosparks_stats.json';
             const mobilityPath = './data/walk_transit_bike_scores.json';
@@ -852,7 +852,6 @@
             const emergencyPath = './data/public_safety_emergency.json';
             const surveillancePath = './data/surveillance_stats.json';
             
-            // New City Directory Reference
             const categoriesPath = './data/InfoSparks Links - Sheet2.csv';
 
             let dataStore = { 
@@ -860,7 +859,6 @@
                 mobility: {}, schools: {}, crime: {}, climate: {}, emergency: {}, surveillance: {} 
             };
             
-            // Region Mapping Registry
             let cityRegions = {};
             let allCities = [];
             let currentRegion = 'North Sound';
@@ -923,9 +921,7 @@
             const fetchJSON = async (path) => {
                 try { 
                     const res = await fetch(path);
-                    if (!res.ok) {
-                        return null;
-                    }
+                    if (!res.ok) return null;
                     const rawText = await res.text();
                     const cleanedText = rawText.replace(/:\s*NaN/g, ": null");
                     return JSON.parse(cleanedText); 
@@ -946,7 +942,7 @@
                 fetchJSON(climatePath),
                 fetchJSON(emergencyPath),
                 fetchJSON(surveillancePath),
-                fetchCSV(categoriesPath) // Promise index 10
+                fetchCSV(categoriesPath)
             ]).then(values => {
                 dataStore.snapshot = values[0] || [];
                 dataStore.historical = values[1] || [];
@@ -964,22 +960,21 @@
                 dataStore.emergency = values[8] || {};
                 dataStore.surveillance = values[9] || {};
                 
-                // Parse the City/County Directory Registry
                 const categoryRows = values[10] || [];
                 categoryRows.forEach(row => {
                     if (row.City) {
                         cityRegions[row.City.trim().toLowerCase()] = {
                             city: row.City.trim(),
                             county: (row.County || '').trim(),
-                            northSound: (row['North Sound'] || '').trim().toLowerCase() === 'x'
+                            northSound: (row['North Sound'] || '').trim().toLowerCase() === 'x',
+                            policeName: (row['Police Department Name'] || '').trim(),
+                            policeCrimePage: (row['Police Department Crime Page'] || '').trim()
                         };
                     }
                 });
                 
-                // Define Master List of Cities
                 allCities = Object.values(cityRegions).map(c => c.city).sort();
                 if (allCities.length === 0) {
-                    // Fallback to snapshot cities if CSV isn't properly mapped
                     allCities = [...new Set(dataStore.snapshot.map(row => row.City ? row.City.trim() : ''))].filter(Boolean).sort();
                 }
                 
@@ -993,7 +988,6 @@
                 document.getElementById('citySelector').innerHTML = `<p style="color: #d32f2f; font-weight: bold;">Connection to data pipeline interrupted. Please refresh the page.</p>`;
             });
 
-            // Handle Region Picker Toggle Logic
             document.querySelectorAll('#regionSelector .filter-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     document.querySelectorAll('#regionSelector .filter-btn').forEach(b => b.classList.remove('active'));
@@ -1003,7 +997,6 @@
                 });
             });
 
-            // Close Custom Dropdown if user clicks outside of it
             document.addEventListener('click', (e) => {
                 const menu = document.getElementById('customSelectMenu');
                 const toggleBtn = document.getElementById('customSelectBtn');
@@ -1023,19 +1016,17 @@
                     return true; 
                 });
 
-                if (filteredCities.length === 0) filteredCities = allCities; // Failsafe empty trap
+                if (filteredCities.length === 0) filteredCities = allCities;
 
                 const citySelector = document.getElementById('citySelector');
                 
                 let htmlOutput = '';
                 if (currentRegion === 'North Sound') {
-                    // Big, prominent featured buttons
                     htmlOutput = filteredCities.map((city, i) => {
                         const isActive = city === currentCity || (!filteredCities.includes(currentCity) && i === 0);
                         return `<button class="filter-btn ${isActive ? 'active' : ''}" data-city="${city}">${city}</button>`;
                     }).join('');
                 } else {
-                    // Custom Dropdown Menu for large counties
                     const displayCity = (currentCity && filteredCities.includes(currentCity)) ? currentCity : 'Select a city...';
                     htmlOutput = `
                         <div class="custom-select-wrapper">
@@ -1060,7 +1051,6 @@
                     updateDashboard();
                 }
 
-                // Re-bind listeners based on which interface rendered
                 if (currentRegion === 'North Sound') {
                     document.querySelectorAll('#citySelector .filter-btn').forEach(btn => {
                         btn.addEventListener('click', (e) => {
@@ -1077,7 +1067,7 @@
                     
                     if (toggleBtn) {
                         toggleBtn.addEventListener('click', (e) => {
-                            e.stopPropagation(); // prevent document click from firing immediately
+                            e.stopPropagation();
                             menu.classList.toggle('active');
                         });
                     }
@@ -1098,13 +1088,10 @@
                 document.getElementById('dashboardContent').style.display = 'block';
                 setTimeout(() => document.getElementById('dashboardContent').style.opacity = '1', 50);
                 
-                // Update the elegant city header
                 document.getElementById('currentCityHeader').textContent = currentCity;
-
                 document.getElementById('stampRealTime').textContent = 'Updated Hourly • Last Update: Today at ' + getTopOfHour();
                 document.getElementById('stampMacro').textContent = 'Updated Monthly • Last Update: ' + getThirdBusinessDay();
                 
-                // Conditional Hiding of Hourly Real-Time section for Non-North Sound Cities
                 const currentCityObj = cityRegions[currentCity.toLowerCase()];
                 const isNorthSound = currentCityObj ? currentCityObj.northSound : false;
                 
@@ -1204,7 +1191,6 @@
                 return activeSupply;
             };
 
-            // NEW Aggressive Cross-Check Search for InfoSparks without hardcoded groups
             const extractInfosparksData = (metricSuffix, city) => {
                 const target = city.toLowerCase().trim();
                 for (let feedKey in dataStore.infosparks) {
@@ -1446,16 +1432,18 @@
 
             const renderPublicSafetyMetrics = () => {
                 const targetCity = currentCity.trim();
+                const cityKey = targetCity.toLowerCase();
+                const cityDirData = cityRegions[cityKey] || {};
                 
                 let crimeData = null;
                 if (dataStore.crime) {
-                    const matchedCrimeKey = Object.keys(dataStore.crime).find(key => key.toLowerCase() === targetCity.toLowerCase());
+                    const matchedCrimeKey = Object.keys(dataStore.crime).find(key => key.toLowerCase() === cityKey);
                     if (matchedCrimeKey) crimeData = dataStore.crime[matchedCrimeKey];
                 }
 
                 let safetyData = null;
                 if (dataStore.emergency) {
-                    const matchedSafetyKey = Object.keys(dataStore.emergency).find(key => key.toLowerCase() === targetCity.toLowerCase());
+                    const matchedSafetyKey = Object.keys(dataStore.emergency).find(key => key.toLowerCase() === cityKey);
                     if (matchedSafetyKey) safetyData = dataStore.emergency[matchedSafetyKey];
                 }
 
@@ -1463,8 +1451,23 @@
                 const statsContainer = document.getElementById('activeCrimeStatsContainer');
                 const ctaBtn = document.getElementById('spotCrimeLink');
 
+                // Determine Dynamic Link & Source
+                let crimeLink = cityDirData.policeCrimePage;
+                let isSpotCrime = crimeLink ? crimeLink.toLowerCase().includes('spotcrime') : true;
+                let crimeSource = isSpotCrime ? 'SpotCrime' : (cityDirData.policeName || 'Department Website');
+
+                if (crimeData && crimeData.granular_crime_link) {
+                    crimeLink = crimeData.granular_crime_link;
+                    isSpotCrime = crimeLink.toLowerCase().includes('spotcrime');
+                    crimeSource = isSpotCrime ? 'SpotCrime' : (crimeData.police_agency || 'Department Website');
+                }
+
+                if (!crimeLink) {
+                    crimeLink = `https://spotcrime.com/wa/${encodeURIComponent(targetCity.toLowerCase())}`;
+                }
+
                 if (crimeData) {
-                    document.getElementById('safetyAgencyHeader').textContent = crimeData.police_agency || 'Local Law Enforcement';
+                    document.getElementById('safetyAgencyHeader').textContent = crimeData.police_agency || cityDirData.policeName || 'Local Law Enforcement';
                     
                     if (crimeData.status === "No Historical Data Reported" || crimeData.per_capita_violent_rate === null) {
                         statsContainer.style.display = 'none';
@@ -1476,18 +1479,14 @@
                         document.getElementById('txtViolentRate').textContent = typeof crimeData.per_capita_violent_rate === 'number' ? crimeData.per_capita_violent_rate.toFixed(2) : '--';
                         document.getElementById('txtPropertyRate').textContent = typeof crimeData.per_capita_property_rate === 'number' ? crimeData.per_capita_property_rate.toFixed(1) : '--';
                     }
-
-                    ctaBtn.href = crimeData.granular_crime_link || `https://spotcrime.com/wa/${encodeURIComponent(targetCity.toLowerCase())}`;
-                    ctaBtn.innerHTML = crimeData.status === "Active Reporting"
-                        ? `Get More Detailed Crime Data From ${crimeData.police_agency || 'Agency'} &rarr;`
-                        : `View Local Crime Maps on SpotCrime for ${targetCity} &rarr;`;
                 } else {
-                    document.getElementById('safetyAgencyHeader').textContent = 'Local Public Safety Status';
+                    document.getElementById('safetyAgencyHeader').textContent = cityDirData.policeName || 'Local Public Safety Status';
                     statsContainer.style.display = 'none';
                     noticeBadge.classList.add('active');
-                    ctaBtn.href = `https://spotcrime.com/wa/${encodeURIComponent(targetCity.toLowerCase())}`;
-                    ctaBtn.innerHTML = `View Local Crime Maps on SpotCrime for ${targetCity} &rarr;`;
                 }
+
+                ctaBtn.href = crimeLink;
+                ctaBtn.innerHTML = `View additional local crime data on ${crimeSource} &rarr;`;
 
                 const fireBadgeEl = document.getElementById('fireBadgeContainer');
                 const hospitalContainer = document.getElementById('hospitalProximityContainer');
