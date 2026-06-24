@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Local Community Insights | Joe Sheldon</title>
-    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=56">
+    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=57">
     
     <script src="components.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -80,7 +80,7 @@
             flex-direction: column;
             align-items: center;
             margin-bottom: 2rem;
-            gap: 1rem;
+            gap: 1.5rem;
         }
         .filter-nav {
             display: flex;
@@ -106,26 +106,60 @@
             color: var(--white);
         }
         
-        /* New Hybrid Scrollable Grid for Large Counties */
-        .scrollable-city-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            justify-content: center;
-            max-height: 200px;
-            overflow-y: auto;
-            padding: 15px;
-            border: 1px solid var(--light-gray);
-            border-radius: 12px;
-            background: #fdfdfd;
+        /* Custom Sleek Dropdown Styles */
+        .custom-select-wrapper {
+            position: relative;
             width: 100%;
-            max-width: 800px;
+            max-width: 320px;
+            margin: 0 auto;
         }
-        .filter-btn-small {
-            padding: 0.35rem 1rem;
-            font-size: 0.8rem;
-            border-radius: 16px;
+        .custom-select-btn {
+            width: 100%;
+            padding: 0.8rem 1.5rem;
+            background: #fff;
+            border: 2px solid var(--premier-charcoal);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--premier-charcoal);
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
+        .custom-select-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: #fff;
+            border: 1px solid #eaeaea;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            margin-top: 0.5rem;
+        }
+        .custom-select-menu.active { display: flex; }
+        .custom-select-item {
+            padding: 0.75rem 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #444;
+            cursor: pointer;
+            border-bottom: 1px solid #f5f5f5;
+            text-align: left;
+            background: transparent;
+            border-left: none; border-right: none; border-top: none;
+            width: 100%;
+            transition: background 0.1s ease;
+        }
+        .custom-select-item:hover { background: #f9f9f9; color: var(--premier-charcoal); }
 
         .section-header {
             text-align: center;
@@ -289,14 +323,13 @@
         }
         .metric-card h3 {
             margin: 0 0 1.25rem 0;
-            font-size: 1.25rem;
+            font-size: 1.15rem;
             font-weight: 800;
-            color: var(--premier-charcoal);
+            color: #222222;
             border-bottom: 2px solid #eaeaea;
             padding-bottom: 0.5rem;
         }
         
-        /* New Subheading explicitly for Public Safety */
         .safety-subhead {
             font-size: 0.9rem; 
             color: #555; 
@@ -377,7 +410,7 @@
             padding: 1rem;
             margin-top: 1rem;
             border-radius: 0 8px 8px 0;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             color: #333;
             line-height: 1.5;
         }
@@ -416,7 +449,7 @@
         }
         .climate-mini-item span, .surv-mini-item span {
             display: block;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: #555;
             font-weight: 800;
             text-transform: uppercase;
@@ -443,7 +476,6 @@
             ⚠️ <strong>Heads Up:</strong> This dashboard is currently building its live pipelines. Data tracking is active, but charts and comparisons will not be fully normalized or historically accurate until <strong>July 1st</strong>.
         </div>
 
-        <!-- Dynamic Region & Hybrid City Selectors -->
         <div class="filter-nav-container">
             <div class="filter-nav" id="regionSelector">
                 <button class="filter-btn active" data-region="North Sound">North Sound</button>
@@ -457,16 +489,13 @@
 
         <div id="dashboardContent" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
             
-            <!-- Elegant City Title Header -->
             <h2 id="currentCityHeader" style="font-size: 3rem; font-weight: 900; color: var(--premier-charcoal); text-align: center; margin-bottom: 1rem; letter-spacing: -0.5px;"></h2>
             
-            <!-- Real Estate Section Header -->
             <div class="section-header" style="margin-top: 0; border-bottom: none; padding-bottom: 0;">
                 <h2 style="font-size: 1.5rem; color: #555;">Real Estate Market Conditions</h2>
                 <p>Live supply, demand, and climate metrics for the local market.</p>
             </div>
 
-            <!-- Real-Time Market Status Bar Graphic -->
             <div class="market-climate-container">
                 <h3 style="font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; margin: 0; color: var(--premier-charcoal);">Current Market Climate</h3>
                 <div class="market-bar-wrapper">
@@ -481,47 +510,45 @@
                 <p id="climateLabelText" style="font-size: 0.95rem; font-weight: 700; margin-top: 1rem; margin-bottom: 0; color: var(--premier-charcoal);">Checking conditions...</p>
             </div>
             
-            <!-- REAL TIME SECTION -->
-            <div class="section-header">
-                <h2>Real-Time Heartbeat</h2>
-                <p>Immediate supply and demand signals tracking what is hitting the pavement today.</p>
-                <div class="update-stamp" id="stampRealTime"></div>
-            </div>
+            <div id="realTimeWrapper">
+                <div class="section-header">
+                    <h2>Real-Time Heartbeat</h2>
+                    <p>Immediate supply and demand signals tracking what is hitting the pavement today.</p>
+                    <div class="update-stamp" id="stampRealTime"></div>
+                </div>
 
-            <div class="stats-grid">
-                <div class="stat-card card-listings">
-                    <h4>New Listings</h4>
-                    <div class="stat-value" id="valNewListings">--</div>
-                    <div class="stat-label">Last 7 Days</div>
+                <div class="stats-grid">
+                    <div class="stat-card card-listings">
+                        <h4>New Listings</h4>
+                        <div class="stat-value" id="valNewListings">--</div>
+                        <div class="stat-label">Last 7 Days</div>
+                    </div>
+                    <div class="stat-card card-pending">
+                        <h4>Pending Offers</h4>
+                        <div class="stat-value" id="valPending">--</div>
+                        <div class="stat-label">Last 7 Days</div>
+                    </div>
+                    <div class="stat-card card-sold">
+                        <h4>Closed Sales</h4>
+                        <div class="stat-value" id="valSold">--</div>
+                        <div class="stat-label">Last 7 Days</div>
+                    </div>
+                    <div class="stat-card card-price">
+                        <h4>Avg New Price</h4>
+                        <div class="stat-value" id="valAvgPrice" style="font-size: 1.8rem;">--</div>
+                        <div class="stat-label">Last 7 Days</div>
+                    </div>
                 </div>
-                <div class="stat-card card-pending">
-                    <h4>Pending Offers</h4>
-                    <div class="stat-value" id="valPending">--</div>
-                    <div class="stat-label">Last 7 Days</div>
-                </div>
-                <div class="stat-card card-sold">
-                    <h4>Closed Sales</h4>
-                    <div class="stat-value" id="valSold">--</div>
-                    <div class="stat-label">Last 7 Days</div>
-                </div>
-                <div class="stat-card card-price">
-                    <h4>Avg New Price</h4>
-                    <div class="stat-value" id="valAvgPrice" style="font-size: 1.8rem;">--</div>
-                    <div class="stat-label">Last 7 Days</div>
-                </div>
-            </div>
 
-            <div class="chart-box" style="margin-bottom: 2rem;">
-                <h3>Snapshot Trend</h3>
-                <p class="chart-desc">Historical trend of listings hitting the market vs. going pending.</p>
-                <div style="position: relative; height: 300px;"><canvas id="velocityChart"></canvas></div>
-                <div class="educational-note">
-                    <strong>How to read this:</strong> A converging or crossing lines pattern indicates transaction speed changes. When the Pending line rises closer to or above New Listings, it indicates an ultra-absorbent environment with shrinking operational supply.
+                <div class="chart-box" style="margin-bottom: 2rem;">
+                    <h3>Snapshot Trend</h3>
+                    <p class="chart-desc">Historical trend of listings hitting the market vs. going pending.</p>
+                    <div style="position: relative; height: 300px;"><canvas id="velocityChart"></canvas></div>
+                    <div class="educational-note">
+                        <strong>How to read this:</strong> A converging or crossing lines pattern indicates transaction speed changes. When the Pending line rises closer to or above New Listings, it indicates an ultra-absorbent environment with shrinking operational supply.
+                    </div>
                 </div>
-            </div>
-
-            <!-- VELOCITY SECTION (REDFIN) -->
-            <div class="section-header">
+            </div> <div class="section-header">
                 <h2>Market Velocity & Competition</h2>
                 <p>Psychological metrics showing how fast inventory moves and how aggressive buyers are.</p>
                 <div class="update-stamp" id="stampVelocity"></div>
@@ -557,7 +584,6 @@
                 Data provided by Redfin, a national real estate brokerage.
             </div>
 
-            <!-- MACRO SECTION (INFOSPARKS) -->
             <div class="section-header">
                 <h2>Long-Term Trends</h2>
                 <p>Long term cycles and market shift tracking.</p>
@@ -594,13 +620,11 @@
                 Information contained in this section is sourced from Northwest Multiple Listing Service (NWMLS) compiled data feeds via InfoSparks. This data is intended for consumer insight and holds certified baseline authenticity markers.
             </div>
 
-            <!-- COMMUNITY & LIFESTYLE METRICS SECTION (AT BOTTOM) -->
             <section class="community-metrics-section">
                 <h2 style="font-size: 2rem; margin-bottom: 0.5rem; font-weight: 800; color: var(--premier-charcoal); text-align: center;">Community Profile & Lifestyle</h2>
                 <p style="color: #555; font-size: 1.05rem; margin-bottom: 2rem; text-align: center; font-weight: 500;">City-wide scores, resource boundaries, and environmental metrics.</p>
                 
                 <div class="metrics-grid">
-                    <!-- MOBILITY CARD -->
                     <div class="metric-card" id="walkScoreCard">
                         <div>
                             <h3>Accessibility & Mobility</h3>
@@ -629,7 +653,6 @@
                         <a href="#" id="walkScoreLink" target="_blank" class="card-action-btn">Explore City on Walk Score &rarr;</a>
                     </div>
 
-                    <!-- PUBLIC SCHOOLS CARD -->
                     <div class="metric-card" id="schoolDistrictCard">
                         <div>
                             <h3>School District & Rankings</h3>
@@ -681,7 +704,6 @@
                         <a href="https://www.greatschools.org/" id="greatSchoolsLink" target="_blank" class="card-action-btn" style="margin-top: 1.5rem;">View detailed ratings and boundaries on GreatSchools &rarr;</a>
                     </div>
 
-                    <!-- CLIMATE & ENVIRONMENT CARD -->
                     <div class="metric-card" id="climateComfortCard">
                         <div>
                             <h3>Climate & Microclimate Profile</h3>
@@ -714,12 +736,10 @@
                         </div>
                     </div>
 
-                    <!-- EMERGENCY SERVICES CARD -->
                     <div class="metric-card" id="publicSafetyCard">
                         <div>
                             <h3>Emergency Services</h3>
                             
-                            <!-- CRIME SUBSECTION -->
                             <div style="margin-bottom: 1.5rem;">
                                 <span class="safety-subhead">CRIME & PUBLIC SAFETY</span>
                                 <div style="font-size: 0.95rem; font-weight: 700; margin: 0 0 0.75rem 0; color: #333;" id="safetyAgencyHeader">Local Public Safety Status</div>
@@ -749,14 +769,12 @@
                                 <a href="https://spotcrime.com/" id="spotCrimeLink" target="_blank" class="card-action-btn" style="margin-top: 0; width: 100%;">Open SpotCrime Map &rarr;</a>
                             </div>
 
-                            <!-- FIRE SUBSECTION -->
                             <div style="border-top: 2px solid #eaeaea; padding-top: 1rem; margin-bottom: 1.5rem;">
                                 <span class="safety-subhead">🚒 FIRE & RISK PROTECTION</span>
                                 <div style="font-size: 0.95rem; font-weight: 700; color: #333; margin-top: 0.25rem;" id="txtFireAgency">Loading Responder Profile...</div>
                                 <div id="fireBadgeContainer"></div>
                             </div>
 
-                            <!-- HOSPITAL SUBSECTION -->
                             <div style="border-top: 2px solid #eaeaea; padding-top: 1rem;">
                                 <span class="safety-subhead">🏥 EMERGENCY MEDICAL</span>
                                 <div style="font-size: 0.95rem; color: #333; margin-top: 0.25rem;" id="hospitalProximityContainer">
@@ -766,7 +784,6 @@
                         </div>
                     </div>
 
-                    <!-- SURVEILLANCE CARD -->
                     <div class="metric-card" id="surveillanceCard">
                         <div>
                             <h3>Municipal Surveillance Profile</h3>
@@ -854,12 +871,6 @@
             let macroSalesChartInstance = null;
             let macroDOMChartInstance = null;
             let macroShowsChartInstance = null;
-
-            const INFOSPARKS_GROUPS = {
-                'Brier': 1, 'Lynnwood': 1, 'Edmonds': 1, 'Mountlake Terrace': 1,
-                'Lake Forest Park': 2, 'Kenmore': 2, 'Shoreline': 2, 'Mukilteo': 2,
-                'Kirkland': 3
-            };
 
             const cleanNum = (str) => {
                 if (str === null || str === undefined || str === 'NaN') return 0;
@@ -992,6 +1003,17 @@
                 });
             });
 
+            // Close Custom Dropdown if user clicks outside of it
+            document.addEventListener('click', (e) => {
+                const menu = document.getElementById('customSelectMenu');
+                const toggleBtn = document.getElementById('customSelectBtn');
+                if (menu && menu.classList.contains('active')) {
+                    if (!toggleBtn.contains(e.target) && !menu.contains(e.target)) {
+                        menu.classList.remove('active');
+                    }
+                }
+            });
+
             const renderCityButtons = () => {
                 let filteredCities = allCities.filter(c => {
                     const data = cityRegions[c.toLowerCase()] || {};
@@ -1005,7 +1027,6 @@
 
                 const citySelector = document.getElementById('citySelector');
                 
-                // Hybrid Layout Construction
                 let htmlOutput = '';
                 if (currentRegion === 'North Sound') {
                     // Big, prominent featured buttons
@@ -1014,29 +1035,63 @@
                         return `<button class="filter-btn ${isActive ? 'active' : ''}" data-city="${city}">${city}</button>`;
                     }).join('');
                 } else {
-                    // Compact, scrollable grid for large counties
-                    htmlOutput = `<div class="scrollable-city-grid">` + 
-                        filteredCities.map((city, i) => {
-                            const isActive = city === currentCity || (!filteredCities.includes(currentCity) && i === 0);
-                            return `<button class="filter-btn filter-btn-small ${isActive ? 'active' : ''}" data-city="${city}">${city}</button>`;
-                        }).join('') + `</div>`;
+                    // Custom Dropdown Menu for large counties
+                    const displayCity = (currentCity && filteredCities.includes(currentCity)) ? currentCity : 'Select a city...';
+                    htmlOutput = `
+                        <div class="custom-select-wrapper">
+                            <button class="custom-select-btn" id="customSelectBtn">
+                                <span id="customSelectLabel">${displayCity}</span>
+                                <span style="font-size: 0.8rem; margin-left: 10px;">▼</span>
+                            </button>
+                            <div class="custom-select-menu" id="customSelectMenu">
+                                ${filteredCities.map(city => `<button class="custom-select-item" data-city="${city}">${city}</button>`).join('')}
+                            </div>
+                        </div>
+                    `;
                 }
 
                 citySelector.innerHTML = htmlOutput;
 
                 if (!filteredCities.includes(currentCity) && filteredCities.length > 0) {
                     currentCity = filteredCities[0];
+                    if (document.getElementById('customSelectLabel')) {
+                        document.getElementById('customSelectLabel').textContent = currentCity;
+                    }
                     updateDashboard();
                 }
 
-                document.querySelectorAll('#citySelector .filter-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        document.querySelectorAll('#citySelector .filter-btn').forEach(b => b.classList.remove('active'));
-                        e.target.classList.add('active');
-                        currentCity = e.target.getAttribute('data-city');
-                        updateDashboard();
+                // Re-bind listeners based on which interface rendered
+                if (currentRegion === 'North Sound') {
+                    document.querySelectorAll('#citySelector .filter-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            document.querySelectorAll('#citySelector .filter-btn').forEach(b => b.classList.remove('active'));
+                            e.target.classList.add('active');
+                            currentCity = e.target.getAttribute('data-city');
+                            updateDashboard();
+                        });
                     });
-                });
+                } else {
+                    const toggleBtn = document.getElementById('customSelectBtn');
+                    const menu = document.getElementById('customSelectMenu');
+                    const label = document.getElementById('customSelectLabel');
+                    
+                    if (toggleBtn) {
+                        toggleBtn.addEventListener('click', (e) => {
+                            e.stopPropagation(); // prevent document click from firing immediately
+                            menu.classList.toggle('active');
+                        });
+                    }
+
+                    document.querySelectorAll('.custom-select-item').forEach(item => {
+                        item.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            currentCity = e.target.getAttribute('data-city');
+                            label.textContent = currentCity;
+                            menu.classList.remove('active');
+                            updateDashboard();
+                        });
+                    });
+                }
             };
 
             const updateDashboard = () => {
@@ -1049,7 +1104,17 @@
                 document.getElementById('stampRealTime').textContent = 'Updated Hourly • Last Update: Today at ' + getTopOfHour();
                 document.getElementById('stampMacro').textContent = 'Updated Monthly • Last Update: ' + getThirdBusinessDay();
                 
-                renderRealTime();
+                // Conditional Hiding of Hourly Real-Time section for Non-North Sound Cities
+                const currentCityObj = cityRegions[currentCity.toLowerCase()];
+                const isNorthSound = currentCityObj ? currentCityObj.northSound : false;
+                
+                if (isNorthSound) {
+                    document.getElementById('realTimeWrapper').style.display = 'block';
+                    renderRealTime();
+                } else {
+                    document.getElementById('realTimeWrapper').style.display = 'none';
+                }
+
                 const currentSupplyValue = renderVelocity();
                 renderMacro(currentSupplyValue);
                 renderMobilityMetrics();
@@ -1139,30 +1204,40 @@
                 return activeSupply;
             };
 
-            const extractInfosparksData = (feedKey, city) => {
-                const feed = dataStore.infosparks[feedKey] || dataStore.infosparks[feedKey.toLowerCase()];
-                let rows = [];
-                if (Array.isArray(feed)) rows = feed;
-                else if (feed && Array.isArray(feed.data)) rows = feed.data;
-                else return []; 
-
-                return rows.filter(row => {
-                    if (!row || !row.Date || String(row.Date).includes("All data from")) return false;
-                    let val = getRowValueForCity(row, city);
-                    return val !== null && val !== undefined && val !== 'NaN' && !Number.isNaN(val);
-                }).map(row => {
-                    return { label: row.Date, val: cleanNum(getRowValueForCity(row, city)) };
-                });
+            // NEW Aggressive Cross-Check Search for InfoSparks without hardcoded groups
+            const extractInfosparksData = (metricSuffix, city) => {
+                const target = city.toLowerCase().trim();
+                for (let feedKey in dataStore.infosparks) {
+                    if (feedKey.toLowerCase().includes(metricSuffix.toLowerCase())) {
+                        const feed = dataStore.infosparks[feedKey];
+                        let rows = Array.isArray(feed) ? feed : (feed.data || []);
+                        
+                        if (rows.length > 0) {
+                            const validRow = rows.find(r => r.Date && !String(r.Date).includes("All data from"));
+                            if (validRow) {
+                                const hasCity = Object.keys(validRow).some(k => k.toLowerCase().trim() === target);
+                                if (hasCity) {
+                                    return rows.filter(row => {
+                                        if (!row || !row.Date || String(row.Date).includes("All data from")) return false;
+                                        let val = getRowValueForCity(row, city);
+                                        return val !== null && val !== undefined && val !== 'NaN' && !Number.isNaN(val);
+                                    }).map(row => {
+                                        return { label: row.Date, val: cleanNum(getRowValueForCity(row, city)) };
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+                return []; 
             };
 
             const renderMacro = (fallbackSupply) => {
-                const groupId = INFOSPARKS_GROUPS[currentCity] || 1;
-                
-                const priceTimeline = extractInfosparksData(`group_${groupId}_median_sale_price`, currentCity);
-                const salesTimeline = extractInfosparksData(`group_${groupId}_closed_sales`, currentCity);
-                const domTimeline = extractInfosparksData(`group_${groupId}_average_days_on_market`, currentCity);
-                const showsTimeline = extractInfosparksData(`group_${groupId}_shows_per_listing`, currentCity);
-                const supplyTimeline = extractInfosparksData(`group_${groupId}_months_supply_closed`, currentCity);
+                const priceTimeline = extractInfosparksData('median_sale_price', currentCity);
+                const salesTimeline = extractInfosparksData('closed_sales', currentCity);
+                const domTimeline = extractInfosparksData('average_days_on_market', currentCity);
+                const showsTimeline = extractInfosparksData('shows_per_listing', currentCity);
+                const supplyTimeline = extractInfosparksData('months_supply_closed', currentCity);
 
                 let currentSupply = fallbackSupply;
                 if (supplyTimeline.length > 0) {
