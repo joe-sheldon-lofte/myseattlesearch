@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Status Portal | Joe Sheldon</title>
+    
+    <link class="main-stylesheet" rel="stylesheet" href="style.css">
+    <script src="components.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        /* Portal-Specific Layout & UI */
+        .portal-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+            min-height: 60vh;
+        }
+
+        /* Error & Loading States */
+        .system-message-block {
+            background-color: #FFF9E6;
+            border-left: 4px solid #d32f2f;
+            color: #3D3935;
+            padding: 2rem;
+            border-radius: 4px 12px 12px 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            text-align: left;
+            margin: 3rem auto;
+            max-width: 800px;
+            display: none; /* Hidden by default */
+        }
+        .system-message-block h2 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            color: #d32f2f;
+            margin-bottom: 0.5rem;
+        }
+        .system-message-block p {
+            margin: 0;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        /* Loading Spinner */
+        #loadingState {
+            text-align: center;
+            padding: 4rem 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #555;
+            display: block;
+        }
+
+        /* Main Content Wrapper */
+        #portalContent {
+            display: none; /* Hidden until fetch is successful */
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Block A: Metadata Dashboard */
+        .metadata-dashboard {
+            background: #fdfdfd;
+            border: 1px solid #eaeaea;
+            border-top: 5px solid #3D3935;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .meta-key {
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .meta-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #222;
+            word-break: break-word;
+        }
+
+        /* Block C & D: Task Grid */
+        .portal-section-header {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #3D3935;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #eaeaea;
+            padding-bottom: 0.5rem;
+        }
+
+        .table-responsive-wrapper {
+            width: 100%;
+            overflow-x: auto; /* Enables horizontal scroll on mobile */
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            border: 1px solid #eaeaea;
+        }
+
+        .task-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 900px; /* Forces scrolling on small devices instead of squishing */
+            font-size: 0.9rem;
+        }
+        .task-table th, .task-table td {
+            padding: 1rem 1.25rem;
+            text-align: left;
+            border-bottom: 1px solid #eaeaea;
+        }
+        .task-table th {
+            background-color: #f9f9f9;
+            font-weight: 800;
+            color: #555;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .task-table tbody tr:hover {
+            background-color: #fafafa;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            display: inline-block;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .status-complete { background: #E6F4EA; color: #137333; }
+        .status-pending { background: #FFF4E5; color: #B06000; }
+        .status-progress { background: #E8F0FE; color: #1967D2; }
+        .status-default { background: #F1F3F4; color: #5F6368; }
+
+        /* Utility Links */
+        .portal-link {
+            color: #4A90E2;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .portal-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body class="portal-page">
+
+    <universal-header></universal-header>
+
+    <main class="portal-container">
+
+        <div id="loadingState">
+            Retrieving secure project data...
+        </div>
+
+        <div id="errorState" class="system-message-block">
+            <h2>Project Not Found</h2>
+            <p>We could not locate an active project matching this secure URL. Please ensure you have copied the full link provided in your welcome email, or contact Joe Sheldon directly for assistance.</p>
+        </div>
+
+        <div id="portalContent">
+            
+            <div class="metadata-dashboard" id="metadataDashboard">
+                </div>
+
+            <h2 class="portal-section-header">Project Task Breakdown</h2>
+            <div class="table-responsive-wrapper">
+                <table class="task-table">
+                    <thead id="taskTableHead">
+                        </thead>
+                    <tbody id="taskTableBody">
+                        </tbody>
+                </table>
+            </div>
+
+        </div>
+
+    </main>
+
+    <universal-footer></universal-footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            const loadingState = document.getElementById('loadingState');
+            const errorState = document.getElementById('errorState');
+            const portalContent = document.getElementById('portalContent');
+
+            // 1. URL Extraction
+            const urlParams = new URLSearchParams(window.location.search);
+            const projectId = urlParams.get('id');
+
+            // Trigger Error Rule if ID is missing entirely
+            if (!projectId) {
+                loadingState.style.display = 'none';
+                errorState.style.display = 'block';
+                return;
+            }
+
+            // 2. Data Fetching
+            const csvEndpoint = `https://docs.google.com/spreadsheets/d/e/2PACX-1vQz8wU220SDL-NKOjpP2IlMaz49lDmewUC2ufY82GXKz9SMtJHXOHmbfuHyO6xnEN9kipuTkxuOAQwU/pub?output=csv&gid=${encodeURIComponent(projectId)}`;
+
+            Papa.parse(csvEndpoint, {
+                download: true,
+                skipEmptyLines: false, // Keep false initially to maintain exact row indexing
+                complete: function(results) {
+                    const data = results.data;
+
+                    // Error Check: Did the sheet return valid data matching our index rules?
+                    if (!data || data.length < 11) {
+                        loadingState.style.display = 'none';
+                        errorState.style.display = 'block';
+                        return;
+                    }
+
+                    try {
+                        renderMetadata(data);
+                        renderTableHeaders(data);
+                        renderTableBody(data);
+                        
+                        // Hide loading, show portal
+                        loadingState.style.display = 'none';
+                        portalContent.style.display = 'block';
+                    } catch (err) {
+                        console.error("Portal Data Parsing Error:", err);
+                        loadingState.style.display = 'none';
+                        errorState.style.display = 'block';
+                    }
+                },
+                error: function(err) {
+                    console.error("PapaParse Network Error:", err);
+                    loadingState.style.display = 'none';
+                    errorState.style.display = 'block';
+                }
+            });
+
+            // --- UI Rendering Functions ---
+
+            // Block A: Rows 1-8 (Index 0-7)
+            function renderMetadata(data) {
+                const metaContainer = document.getElementById('metadataDashboard');
+                let metaHtml = '';
+
+                for (let i = 0; i <= 7; i++) {
+                    const row = data[i];
+                    if (row) {
+                        const key = (row[0] || '').trim();
+                        const val = (row[1] || '').trim();
+                        
+                        // Rule: If A or B contains text, render it. Skip blank lines.
+                        if (key || val) {
+                            metaHtml += `
+                                <div class="meta-item">
+                                    <span class="meta-key">${key}</span>
+                                    <span class="meta-value">${val}</span>
+                                </div>
+                            `;
+                        }
+                    }
+                }
+                metaContainer.innerHTML = metaHtml;
+            }
+
+            // Block C: Row 11 (Index 10)
+            function renderTableHeaders(data) {
+                const thead = document.getElementById('taskTableHead');
+                const headerRow = data[10];
+                let thHtml = '<tr>';
+                
+                // Read exactly 13 columns (A through M / indexes 0-12)
+                for (let c = 0; c <= 12; c++) {
+                    const headerText = headerRow[c] ? headerRow[c].trim() : '';
+                    thHtml += `<th>${headerText}</th>`;
+                }
+                
+                thHtml += '</tr>';
+                thead.innerHTML = thHtml;
+            }
+
+            // Block D: Rows 12+ (Index 11+)
+            function renderTableBody(data) {
+                const tbody = document.getElementById('taskTableBody');
+                let tbHtml = '';
+
+                for (let i = 11; i < data.length; i++) {
+                    const row = data[i];
+                    if (!row) continue;
+
+                    const colA = (row[0] || '').trim();
+                    const colB = (row[1] || '').trim();
+                    const colC = (row[2] || '').trim();
+
+                    // Rule: Skip if A, B, and C are entirely blank
+                    if (!colA && !colB && !colC) continue;
+
+                    // Determine Status Badge Color Logic
+                    let statusClass = 'status-default';
+                    const statusCheck = colB.toLowerCase();
+                    if (statusCheck.includes('complete')) statusClass = 'status-complete';
+                    else if (statusCheck.includes('pending') || statusCheck.includes('waiting')) statusClass = 'status-pending';
+                    else if (statusCheck.includes('progress') || statusCheck.includes('active')) statusClass = 'status-progress';
+
+                    let tr = '<tr>';
+                    
+                    // Read exactly 13 columns
+                    for (let c = 0; c <= 12; c++) {
+                        let cellData = row[c] ? row[c].trim() : '';
+                        
+                        if (c === 1 && cellData) {
+                            // Render Column B as a Status Badge
+                            tr += `<td><span class="status-badge ${statusClass}">${cellData}</span></td>`;
+                        } else if (cellData.startsWith('http://') || cellData.startsWith('https://')) {
+                            // Gracefully convert raw URLs into clickable anchor tags
+                            tr += `<td><a href="${cellData}" target="_blank" class="portal-link">View File</a></td>`;
+                        } else {
+                            // Standard Text Output
+                            tr += `<td>${cellData}</td>`;
+                        }
+                    }
+                    
+                    tr += '</tr>';
+                    tbHtml += tr;
+                }
+
+                tbody.innerHTML = tbHtml;
+            }
+
+        });
+    </script>
+</body>
+</html>
