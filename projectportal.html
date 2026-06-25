@@ -12,7 +12,7 @@
     <style>
         /* Portal-Specific Layout & UI */
         .portal-container {
-            max-width: 1200px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 2rem 1.5rem;
             min-height: 60vh;
@@ -95,73 +95,122 @@
             word-break: break-word;
         }
 
-        /* Block C & D: Task Grid */
+        /* Block C & D: Task Cards UI */
         .portal-section-header {
             font-size: 1.6rem;
             font-weight: 800;
             color: #3D3935;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
             border-bottom: 2px solid #eaeaea;
             padding-bottom: 0.5rem;
         }
 
-        .table-responsive-wrapper {
-            width: 100%;
-            overflow-x: auto; /* Enables horizontal scroll on mobile */
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .task-card {
+            background: #ffffff;
             border: 1px solid #eaeaea;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.06);
         }
 
-        .task-table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 900px; /* Forces scrolling on small devices instead of squishing */
-            font-size: 0.9rem;
+        .task-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 1rem;
+            gap: 1rem;
         }
-        .task-table th, .task-table td {
-            padding: 1rem 1.25rem;
-            text-align: left;
-            border-bottom: 1px solid #eaeaea;
-        }
-        .task-table th {
-            background-color: #f9f9f9;
+        .task-card-header h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            color: #222;
             font-weight: 800;
-            color: #555;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            letter-spacing: 0.5px;
-            white-space: nowrap;
+            line-height: 1.3;
         }
-        .task-table tbody tr:hover {
-            background-color: #fafafa;
+
+        .task-card-body {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .task-detail {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .detail-label {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .detail-val {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #333;
+            line-height: 1.4;
         }
 
         /* Status Badges */
         .status-badge {
             display: inline-block;
-            padding: 0.35rem 0.75rem;
+            padding: 0.35rem 0.85rem;
             border-radius: 20px;
             font-size: 0.75rem;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             white-space: nowrap;
+            flex-shrink: 0;
         }
         .status-complete { background: #E6F4EA; color: #137333; }
         .status-pending { background: #FFF4E5; color: #B06000; }
         .status-progress { background: #E8F0FE; color: #1967D2; }
         .status-default { background: #F1F3F4; color: #5F6368; }
 
-        /* Utility Links */
-        .portal-link {
-            color: #4A90E2;
-            text-decoration: none;
-            font-weight: 600;
+        /* Action Buttons Area */
+        .task-card-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            border-top: 1px solid #f0f0f0;
+            margin-top: 1.25rem;
+            padding-top: 1.25rem;
         }
-        .portal-link:hover {
-            text-decoration: underline;
+        .action-btn {
+            padding: 0.5rem 1.25rem;
+            background: #fcfcfc;
+            color: #3D3935;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            border: 1px solid #dcdcdc;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .action-btn:hover {
+            background: #3D3935;
+            color: #ffffff;
+            border-color: #3D3935;
         }
     </style>
 </head>
@@ -186,14 +235,8 @@
                 </div>
 
             <h2 class="portal-section-header">Project Task Breakdown</h2>
-            <div class="table-responsive-wrapper">
-                <table class="task-table">
-                    <thead id="taskTableHead">
-                        </thead>
-                    <tbody id="taskTableBody">
-                        </tbody>
-                </table>
-            </div>
+            <div class="task-list" id="taskCardsContainer">
+                </div>
 
         </div>
 
@@ -237,8 +280,7 @@
 
                     try {
                         renderMetadata(data);
-                        renderTableHeaders(data);
-                        renderTableBody(data);
+                        renderTaskCards(data);
                         
                         // Hide loading, show portal
                         loadingState.style.display = 'none';
@@ -283,34 +325,22 @@
                 metaContainer.innerHTML = metaHtml;
             }
 
-            // Block C: Row 11 (Index 10)
-            function renderTableHeaders(data) {
-                const thead = document.getElementById('taskTableHead');
-                const headerRow = data[10];
-                let thHtml = '<tr>';
+            // Block C & D: Rows 11+ (Headers on 10, Data 11+)
+            function renderTaskCards(data) {
+                const container = document.getElementById('taskCardsContainer');
+                let cardsHtml = '';
                 
-                // Read exactly 13 columns (A through M / indexes 0-12)
-                for (let c = 0; c <= 12; c++) {
-                    const headerText = headerRow[c] ? headerRow[c].trim() : '';
-                    thHtml += `<th>${headerText}</th>`;
-                }
-                
-                thHtml += '</tr>';
-                thead.innerHTML = thHtml;
-            }
+                // Store Row 11 as the dynamic header blueprint
+                const headers = data[10] || [];
 
-            // Block D: Rows 12+ (Index 11+)
-            function renderTableBody(data) {
-                const tbody = document.getElementById('taskTableBody');
-                let tbHtml = '';
-
+                // Loop through Row 12 onwards
                 for (let i = 11; i < data.length; i++) {
                     const row = data[i];
                     if (!row) continue;
 
-                    const colA = (row[0] || '').trim();
-                    const colB = (row[1] || '').trim();
-                    const colC = (row[2] || '').trim();
+                    const colA = (row[0] || '').trim(); // Task Name
+                    const colB = (row[1] || '').trim(); // Status
+                    const colC = (row[2] || '').trim(); // Vendor Name
 
                     // Rule: Skip if A, B, and C are entirely blank
                     if (!colA && !colB && !colC) continue;
@@ -322,29 +352,58 @@
                     else if (statusCheck.includes('pending') || statusCheck.includes('waiting')) statusClass = 'status-pending';
                     else if (statusCheck.includes('progress') || statusCheck.includes('active')) statusClass = 'status-progress';
 
-                    let tr = '<tr>';
-                    
-                    // Read exactly 13 columns
-                    for (let c = 0; c <= 12; c++) {
+                    // Begin Card Build
+                    let card = `
+                        <div class="task-card">
+                            <div class="task-card-header">
+                                <h3>${colA || 'Unnamed Task'}</h3>
+                                <span class="status-badge ${statusClass}">${colB || 'Unscheduled'}</span>
+                            </div>
+                            <div class="task-card-body">
+                    `;
+
+                    // Generate Data Grid for Columns C through K (Indexes 2 through 10)
+                    for (let c = 2; c <= 10; c++) {
                         let cellData = row[c] ? row[c].trim() : '';
                         
-                        if (c === 1 && cellData) {
-                            // Render Column B as a Status Badge
-                            tr += `<td><span class="status-badge ${statusClass}">${cellData}</span></td>`;
-                        } else if (cellData.startsWith('http://') || cellData.startsWith('https://')) {
-                            // Gracefully convert raw URLs into clickable anchor tags
-                            tr += `<td><a href="${cellData}" target="_blank" class="portal-link">View File</a></td>`;
-                        } else {
-                            // Standard Text Output
-                            tr += `<td>${cellData}</td>`;
+                        if (cellData) {
+                            let label = headers[c] ? headers[c].trim() : `Detail`;
+                            card += `
+                                <div class="task-detail">
+                                    <span class="detail-label">${label}</span>
+                                    <span class="detail-val">${cellData}</span>
+                                </div>
+                            `;
                         }
                     }
                     
-                    tr += '</tr>';
-                    tbHtml += tr;
+                    card += `</div>`; // Close task-card-body
+
+                    // Generate Actions Footer (Columns L & M / Indexes 11 & 12)
+                    let actionsHtml = '';
+                    
+                    const fileLink = row[11] ? row[11].trim() : '';
+                    if (fileLink && (fileLink.startsWith('http') || fileLink.startsWith('www'))) {
+                        const cleanLink = fileLink.startsWith('http') ? fileLink : 'https://' + fileLink;
+                        actionsHtml += `<a href="${cleanLink}" target="_blank" class="action-btn">📄 View File</a>`;
+                    }
+
+                    const vendorLink = row[12] ? row[12].trim() : '';
+                    if (vendorLink && (vendorLink.startsWith('http') || vendorLink.startsWith('www'))) {
+                        const cleanLink2 = vendorLink.startsWith('http') ? vendorLink : 'https://' + vendorLink;
+                        actionsHtml += `<a href="${cleanLink2}" target="_blank" class="action-btn">🛡️ Verify Vendor Info</a>`;
+                    }
+
+                    // Only append the actions div if a link actually exists
+                    if (actionsHtml !== '') {
+                        card += `<div class="task-card-actions">${actionsHtml}</div>`;
+                    }
+
+                    card += `</div>`; // Close task-card
+                    cardsHtml += card;
                 }
 
-                tbody.innerHTML = tbHtml;
+                container.innerHTML = cardsHtml;
             }
 
         });
