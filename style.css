@@ -1028,7 +1028,7 @@ footer {
 @media (min-width: 768px) {
     .pricing-grid {
         flex-direction: row;
-        align-items: stretch;
+        align-items: stretch; /* Keeps columns perfectly equal height */
     }
 }
 
@@ -1047,12 +1047,13 @@ footer {
 .pricing-card.premium {
     border-top-color: var(--redfin-red);
     transform: scale(1);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    /* The premium shadow below gives it a prominent "3D lift" effect without breaking your grid alignment */
+    box-shadow: 0 12px 30px rgba(0,0,0,0.12); 
 }
 
 @media (min-width: 768px) {
     .pricing-card.premium {
-        transform: scale(1.03);
+        /* FIX: Removed transform: scale(1.03) to prevent visual misalignment */
     }
 }
 
