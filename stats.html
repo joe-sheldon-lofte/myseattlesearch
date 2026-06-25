@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Local Community Insights | Joe Sheldon</title>
-    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=58">
+    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=59">
     
     <script src="components.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -191,6 +191,7 @@
             font-size: 1.8rem;
             font-weight: 800;
             margin-bottom: 0.25rem;
+            color: #C13030;
         }
         .section-header p {
             font-size: 1.05rem;
@@ -487,7 +488,7 @@
     <main class="container" style="max-width: 1100px; padding-bottom: 5rem;">
         
         <div class="events-header" style="text-align: center; margin-bottom: 2rem;">
-            <h1 style="margin-top: 1rem; font-size: 2.8rem; font-weight: 900; color: var(--premier-charcoal);">Local Community Insights</h1>
+            <h1 style="margin-top: 1rem; font-size: 2.8rem; font-weight: 900; color: #C13030;">Local Community Insights</h1>
             <p class="intro">Real-time data and historical trends for the Pacific Northwest.</p>
         </div>
 
@@ -508,10 +509,10 @@
 
         <div id="dashboardContent" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
             
-            <h2 id="currentCityHeader" style="font-size: 3rem; font-weight: 900; color: var(--premier-charcoal); text-align: center; margin-bottom: 1rem; letter-spacing: -0.5px;"></h2>
+            <h2 id="currentCityHeader" style="font-size: 3rem; font-weight: 900; color: #C13030; text-align: center; margin-bottom: 1rem; letter-spacing: -0.5px;"></h2>
             
             <div class="section-header" style="margin-top: 0; border-bottom: none; padding-bottom: 0;">
-                <h2 style="font-size: 1.5rem; color: #555;">Real Estate Market Conditions</h2>
+                <h2 style="font-size: 1.5rem; color: #C13030;">Real Estate Market Conditions</h2>
                 <p>Live supply, demand, and climate metrics for the local market.</p>
             </div>
 
@@ -640,7 +641,7 @@
             </div>
 
             <section class="community-metrics-section">
-                <h2 style="font-size: 2rem; margin-bottom: 0.5rem; font-weight: 800; color: var(--premier-charcoal); text-align: center;">Community Profile & Lifestyle</h2>
+                <h2 style="font-size: 2rem; margin-bottom: 0.5rem; font-weight: 800; color: #C13030; text-align: center;">Community Profile & Lifestyle</h2>
                 <p style="color: #555; font-size: 1.05rem; margin-bottom: 2rem; text-align: center; font-weight: 500;">City-wide scores, resource boundaries, and environmental metrics.</p>
                 
                 <div class="metrics-grid">
@@ -861,6 +862,7 @@
             const urlSnapshot = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=701119614&single=true&output=csv';
             const urlHistorical = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1473136505&single=true&output=csv';
             
+            // Core data payload path variables
             const redfinPath = './data/redfin_stats.json';
             const infosparksPath = './data/infosparks_stats.json';
             const mobilityPath = './data/walk_transit_bike_scores.json';
@@ -870,6 +872,7 @@
             const emergencyPath = './data/public_safety_emergency.json';
             const surveillancePath = './data/surveillance_stats.json';
             
+            // New City Directory Reference
             const categoriesPath = './data/InfoSparks Links - Sheet2.csv';
 
             let dataStore = { 
@@ -877,6 +880,7 @@
                 mobility: {}, schools: {}, crime: {}, climate: {}, emergency: {}, surveillance: {} 
             };
             
+            // Region Mapping Registry
             let cityRegions = {};
             let allCities = [];
             let currentRegion = 'North Sound';
