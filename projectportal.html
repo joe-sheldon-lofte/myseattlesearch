@@ -34,7 +34,7 @@
         .system-message-block h2 {
             margin-top: 0;
             font-size: 1.5rem;
-            color: #d32f2f;
+            color: #C13030;
             margin-bottom: 0.5rem;
         }
         .system-message-block p {
@@ -61,7 +61,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Block A: Project Header (New Design) */
+        /* Block A: Project Header */
         .portal-overview-header {
             background: #f4f6f8;
             padding: 3rem 2.5rem;
@@ -72,7 +72,7 @@
         .portal-title {
             font-size: 2.2rem;
             font-weight: 900;
-            color: var(--premier-charcoal);
+            color: #C13030;
             margin: 0 0 2rem 0;
             text-align: center;
             text-transform: uppercase;
@@ -117,7 +117,7 @@
         .portal-section-header {
             font-size: 1.6rem;
             font-weight: 800;
-            color: #3D3935;
+            color: #C13030;
             margin-bottom: 1.5rem;
             border-bottom: 2px solid #eaeaea;
             padding-bottom: 0.5rem;
@@ -143,13 +143,9 @@
         }
 
         .task-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             margin-bottom: 1.25rem;
             border-bottom: 1px solid #f0f0f0;
             padding-bottom: 1rem;
-            gap: 1rem;
         }
         .task-card-header h3 {
             margin: 0;
@@ -189,30 +185,22 @@
             line-height: 1.4;
         }
 
-        /* Status Badges */
-        .status-badge {
-            display: inline-block;
-            padding: 0.4rem 1rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            white-space: nowrap;
-        }
-        .status-complete { background: #E6F4EA; color: #137333; }
-        .status-pending { background: #FFF4E5; color: #B06000; }
-        .status-progress { background: #E8F0FE; color: #1967D2; }
-        .status-default { background: #F1F3F4; color: #5F6368; }
-
-        /* Action Buttons Area */
-        .task-card-actions {
+        /* Footer Action & Notes Area */
+        .task-card-footer {
             display: flex;
-            gap: 1rem;
             flex-wrap: wrap;
+            align-items: stretch;
+            gap: 1.5rem;
             border-top: 1px dashed #eaeaea;
             margin-top: 1.25rem;
             padding-top: 1.25rem;
+        }
+        .task-card-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            flex-shrink: 0;
+            align-items: flex-start;
         }
         .action-btn {
             padding: 0.5rem 1.25rem;
@@ -232,6 +220,28 @@
             color: #ffffff;
             border-color: #3D3935;
         }
+
+        .task-card-notes {
+            flex-grow: 1;
+            font-size: 0.9rem;
+            color: #444;
+            line-height: 1.5;
+            min-width: 280px;
+            background: #f9f9f9;
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--premier-charcoal);
+            white-space: pre-wrap; /* Respects line breaks from Google Sheets */
+        }
+        .task-card-notes strong {
+            color: #222;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 0.35rem;
+        }
+
     </style>
 </head>
 <body class="portal-page">
@@ -362,25 +372,17 @@
                     if (!row) continue;
 
                     const colA = (row[0] || '').trim(); // Task Name
-                    const colB = (row[1] || '').trim(); // Status
+                    const colB = (row[1] || '').trim(); // Long Text Details (Formerly Status)
                     const colC = (row[2] || '').trim(); // Vendor Name
 
                     // Rule: Skip if A, B, and C are entirely blank
                     if (!colA && !colB && !colC) continue;
 
-                    // Determine Status Badge Color Logic
-                    let statusClass = 'status-default';
-                    const statusCheck = colB.toLowerCase();
-                    if (statusCheck.includes('complete')) statusClass = 'status-complete';
-                    else if (statusCheck.includes('pending') || statusCheck.includes('waiting')) statusClass = 'status-pending';
-                    else if (statusCheck.includes('progress') || statusCheck.includes('active')) statusClass = 'status-progress';
-
-                    // Begin Card Build (Horizontal format)
+                    // Begin Card Build
                     let card = `
                         <div class="task-card">
                             <div class="task-card-header">
                                 <h3>${colA || 'Unnamed Task'}</h3>
-                                <span class="status-badge ${statusClass}">${colB || 'Unscheduled'}</span>
                             </div>
                             <div class="task-card-body">
                     `;
@@ -399,10 +401,9 @@
                             `;
                         }
                     }
-                    
                     card += `</div>`; // Close task-card-body
 
-                    // Generate Actions Footer (Columns L & M / Indexes 11 & 12)
+                    // Generate Actions Footer & Notes Box (Columns B, L & M)
                     let actionsHtml = '';
                     
                     const fileLink = row[11] ? row[11].trim() : '';
@@ -417,9 +418,25 @@
                         actionsHtml += `<a href="${cleanLink2}" target="_blank" class="action-btn">🛡️ Verify Vendor Info &rarr;</a>`;
                     }
 
-                    // Only append the actions div if a link actually exists
-                    if (actionsHtml !== '') {
-                        card += `<div class="task-card-actions">${actionsHtml}</div>`;
+                    // Only render the footer section if there are buttons OR detailed notes to display
+                    if (actionsHtml !== '' || colB !== '') {
+                        card += `<div class="task-card-footer">`;
+                        
+                        if (actionsHtml !== '') {
+                            card += `<div class="task-card-actions">${actionsHtml}</div>`;
+                        }
+                        
+                        // Inject the long text details box
+                        if (colB !== '') {
+                            card += `
+                                <div class="task-card-notes">
+                                    <strong>Task Details:</strong>
+                                    ${colB}
+                                </div>
+                            `;
+                        }
+                        
+                        card += `</div>`; // Close task-card-footer
                     }
 
                     card += `</div>`; // Close task-card
