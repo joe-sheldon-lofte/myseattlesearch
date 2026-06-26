@@ -189,18 +189,40 @@
         .task-card-footer {
             display: flex;
             flex-wrap: wrap;
-            align-items: stretch;
+            align-items: flex-start; /* Forces top alignment so things don't stretch weirdly */
+            justify-content: space-between;
             gap: 1.5rem;
             border-top: 1px dashed #eaeaea;
             margin-top: 1.25rem;
             padding-top: 1.25rem;
+        }
+        .task-card-notes {
+            flex-grow: 1;
+            font-size: 0.9rem;
+            color: #444;
+            line-height: 1.5;
+            min-width: 280px;
+            background: #f9f9f9;
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--premier-charcoal);
+            white-space: pre-wrap; /* Respects line breaks from Google Sheets */
+            margin: 0;
+        }
+        .task-card-notes strong {
+            color: #222;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 0.35rem;
         }
         .task-card-actions {
             display: flex;
             flex-direction: column;
             gap: 0.75rem;
             flex-shrink: 0;
-            align-items: flex-start;
+            align-items: flex-end; /* Anchors buttons to the right */
         }
         .action-btn {
             padding: 0.5rem 1.25rem;
@@ -219,27 +241,6 @@
             background: #3D3935;
             color: #ffffff;
             border-color: #3D3935;
-        }
-
-        .task-card-notes {
-            flex-grow: 1;
-            font-size: 0.9rem;
-            color: #444;
-            line-height: 1.5;
-            min-width: 280px;
-            background: #f9f9f9;
-            padding: 1rem 1.25rem;
-            border-radius: 8px;
-            border-left: 4px solid var(--premier-charcoal);
-            white-space: pre-wrap; /* Respects line breaks from Google Sheets */
-        }
-        .task-card-notes strong {
-            color: #222;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: block;
-            margin-bottom: 0.35rem;
         }
 
     </style>
@@ -372,13 +373,13 @@
                     if (!row) continue;
 
                     const colA = (row[0] || '').trim(); // Task Name
-                    const colB = (row[1] || '').trim(); // Long Text Details (Formerly Status)
+                    const colB = (row[1] || '').trim(); // Task Details (long text)
                     const colC = (row[2] || '').trim(); // Vendor Name
 
                     // Rule: Skip if A, B, and C are entirely blank
                     if (!colA && !colB && !colC) continue;
 
-                    // Begin Card Build
+                    // Begin Card Build (Horizontal format)
                     let card = `
                         <div class="task-card">
                             <div class="task-card-header">
@@ -401,6 +402,7 @@
                             `;
                         }
                     }
+                    
                     card += `</div>`; // Close task-card-body
 
                     // Generate Actions Footer & Notes Box (Columns B, L & M)
@@ -422,11 +424,7 @@
                     if (actionsHtml !== '' || colB !== '') {
                         card += `<div class="task-card-footer">`;
                         
-                        if (actionsHtml !== '') {
-                            card += `<div class="task-card-actions">${actionsHtml}</div>`;
-                        }
-                        
-                        // Inject the long text details box
+                        // Inject the long text details box (Left Side)
                         if (colB !== '') {
                             card += `
                                 <div class="task-card-notes">
@@ -434,6 +432,11 @@
                                     ${colB}
                                 </div>
                             `;
+                        }
+
+                        // Inject Action Buttons (Right Side)
+                        if (actionsHtml !== '') {
+                            card += `<div class="task-card-actions">${actionsHtml}</div>`;
                         }
                         
                         card += `</div>`; // Close task-card-footer
