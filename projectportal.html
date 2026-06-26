@@ -10,12 +10,23 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
     <style>
+        /* CSS Reset for Portal to prevent overflow */
+        .portal-container * {
+            box-sizing: border-box;
+        }
+
         /* Portal-Specific Layout & UI */
         .portal-container {
             max-width: 1100px;
             margin: 0 auto;
-            padding: 2rem 1.5rem;
+            padding: 1.5rem 1rem;
             min-height: 60vh;
+            overflow-x: hidden; /* Failsafe to stop horizontal scrolling */
+        }
+        @media (min-width: 768px) {
+            .portal-container {
+                padding: 2rem 1.5rem;
+            }
         }
 
         /* Error & Loading States */
@@ -23,11 +34,11 @@
             background-color: #FFF9E6;
             border-left: 4px solid #d32f2f;
             color: #3D3935;
-            padding: 2rem;
+            padding: 1.5rem;
             border-radius: 4px 12px 12px 4px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             text-align: left;
-            margin: 3rem auto;
+            margin: 2rem auto;
             max-width: 800px;
             display: none;
         }
@@ -35,6 +46,489 @@
             margin-top: 0;
             font-size: 1.5rem;
             color: #C13030;
+            margin-bottom: 0.5rem;
+        }
+        .system-message-block p {
+            margin: 0;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        #loadingState {
+            text-align: center;
+            padding: 4rem 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #555;
+            display: block;
+        }
+
+        #portalContent {
+            display: none; 
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Block A: Project Header */
+        .portal-overview-header {
+            background: #f4f6f8;
+            padding: 2rem 1.25rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            border-top: 6px solid var(--premier-charcoal);
+            width: 100%;
+        }
+        @media (min-width: 768px) {
+            .portal-overview-header {
+                padding: 3rem 2.5rem;
+                margin-bottom: 3rem;
+            }
+        }
+
+        .portal-title {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: #C13030;
+            margin: 0 0 1.5rem 0;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        @media (min-width: 768px) {
+            .portal-title {
+                font-size: 2.2rem;
+                margin: 0 0 2rem 0;
+            }
+        }
+
+        .header-metadata-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        @media (min-width: 768px) {
+            .header-metadata-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem 3rem;
+            }
+        }
+        .header-meta-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e6e9ec;
+            padding-bottom: 0.5rem;
+        }
+        .header-meta-key {
+            font-weight: 700;
+            color: #666;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .header-meta-val {
+            font-weight: 800;
+            color: #222;
+            font-size: 0.95rem;
+            text-align: right;
+            max-width: 65%;
+            word-wrap: break-word;
+        }
+
+        /* Block C & D: Horizontal Task Cards */
+        .portal-section-header {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #C13030;
+            margin-bottom: 1.25rem;
+            border-bottom: 2px solid #eaeaea;
+            padding-bottom: 0.5rem;
+        }
+        @media (min-width: 768px) {
+            .portal-section-header {
+                font-size: 1.6rem;
+                margin-bottom: 1.5rem;
+            }
+        }
+
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+        
+        .task-card {
+            background: #ffffff;
+            border: 1px solid #eaeaea;
+            border-left: 6px solid var(--premier-charcoal);
+            border-radius: 8px;
+            padding: 1.25rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            width: 100%;
+        }
+        @media (min-width: 768px) {
+            .task-card {
+                padding: 1.5rem 2rem;
+            }
+        }
+        .task-card:hover {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .task-card-header {
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 1rem;
+        }
+        .task-card-header h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            color: #222;
+            font-weight: 800;
+        }
+        @media (min-width: 768px) {
+            .task-card-header h3 {
+                font-size: 1.35rem;
+            }
+        }
+
+        /* Responsive Grid for Details */
+        .task-card-body {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        @media (min-width: 480px) {
+            .task-card-body {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (min-width: 768px) {
+            .task-card-body {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 1.25rem;
+            }
+        }
+
+        .task-detail {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .detail-label {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .detail-val {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #333;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        /* Footer Action & Notes Area */
+        .task-card-footer {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            border-top: 1px dashed #eaeaea;
+            margin-top: 1.25rem;
+            padding-top: 1.25rem;
+            width: 100%;
+        }
+        @media (min-width: 768px) {
+            .task-card-footer {
+                flex-direction: row;
+                align-items: flex-start;
+                justify-content: space-between;
+            }
+        }
+
+        .task-notes-wrapper {
+            flex: 1 1 100%; /* Allows it to shrink gracefully on mobile */
+            width: 100%;
+        }
+        .task-card-notes {
+            background: #f9f9f9;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #C13030;
+            width: 100%;
+            text-align: left;
+        }
+        @media (min-width: 768px) {
+            .task-card-notes {
+                padding: 1.25rem;
+            }
+        }
+        
+        .notes-content {
+            white-space: pre-wrap; 
+            font-size: 0.9rem;
+            color: #444;
+            line-height: 1.5;
+            margin: 0;
+            word-wrap: break-word;
+        }
+        @media (min-width: 768px) {
+            .notes-content { font-size: 0.95rem; }
+        }
+
+        .task-card-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            flex-shrink: 0;
+            width: 100%;
+        }
+        @media (min-width: 768px) {
+            .task-card-actions {
+                width: auto;
+                align-items: flex-end;
+            }
+        }
+
+        .action-btn {
+            padding: 0.6rem 1.25rem;
+            background: #fcfcfc;
+            color: #3D3935;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            border: 1px solid #dcdcdc;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            text-align: center;
+        }
+        @media (min-width: 768px) {
+            .action-btn {
+                padding: 0.5rem 1.25rem;
+                width: auto;
+            }
+        }
+        .action-btn:hover {
+            background: #3D3935;
+            color: #ffffff;
+            border-color: #3D3935;
+        }
+
+    </style>
+</head>
+<body class="portal-page">
+
+    <universal-header></universal-header>
+
+    <main class="portal-container">
+
+        <div id="loadingState">
+            Retrieving secure project data...
+        </div>
+
+        <div id="errorState" class="system-message-block">
+            <h2>Project Not Found</h2>
+            <p>We could not locate an active project matching this secure URL. Please ensure you have copied the full link provided in your welcome email, or contact Joe Sheldon directly for assistance.</p>
+        </div>
+
+        <div id="portalContent">
+            
+            <div class="portal-overview-header">
+                <h1 class="portal-title">Project Overview</h1>
+                <div class="header-metadata-grid" id="metadataDashboard">
+                    </div>
+            </div>
+
+            <h2 class="portal-section-header">Project Task Breakdown</h2>
+            <div class="task-list" id="taskCardsContainer">
+                </div>
+
+        </div>
+
+    </main>
+
+    <universal-footer></universal-footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            const loadingState = document.getElementById('loadingState');
+            const errorState = document.getElementById('errorState');
+            const portalContent = document.getElementById('portalContent');
+
+            // 1. URL Extraction
+            const urlParams = new URLSearchParams(window.location.search);
+            const projectId = urlParams.get('id');
+
+            // Trigger Error Rule if ID is missing entirely
+            if (!projectId) {
+                loadingState.style.display = 'none';
+                errorState.style.display = 'block';
+                return;
+            }
+
+            // 2. Data Fetching
+            const csvEndpoint = `https://docs.google.com/spreadsheets/d/e/2PACX-1vQz8wU220SDL-NKOjpP2IlMaz49lDmewUC2ufY82GXKz9SMtJHXOHmbfuHyO6xnEN9kipuTkxuOAQwU/pub?output=csv&gid=${encodeURIComponent(projectId)}`;
+
+            Papa.parse(csvEndpoint, {
+                download: true,
+                skipEmptyLines: false, // Keep false initially to maintain exact row indexing
+                complete: function(results) {
+                    const data = results.data;
+
+                    // Error Check: Did the sheet return valid data matching our index rules?
+                    if (!data || data.length < 11) {
+                        loadingState.style.display = 'none';
+                        errorState.style.display = 'block';
+                        return;
+                    }
+
+                    try {
+                        renderMetadata(data);
+                        renderTaskCards(data);
+                        
+                        // Hide loading, show portal
+                        loadingState.style.display = 'none';
+                        portalContent.style.display = 'block';
+                    } catch (err) {
+                        console.error("Portal Data Parsing Error:", err);
+                        loadingState.style.display = 'none';
+                        errorState.style.display = 'block';
+                    }
+                },
+                error: function(err) {
+                    console.error("PapaParse Network Error:", err);
+                    loadingState.style.display = 'none';
+                    errorState.style.display = 'block';
+                }
+            });
+
+            // --- UI Rendering Functions ---
+
+            // Block A: Rows 1-8 (Index 0-7)
+            function renderMetadata(data) {
+                const metaContainer = document.getElementById('metadataDashboard');
+                let metaHtml = '';
+
+                for (let i = 0; i <= 7; i++) {
+                    const row = data[i];
+                    if (row) {
+                        const key = (row[0] || '').trim();
+                        const val = (row[1] || '').trim();
+                        
+                        // Rule: If A or B contains text, render it. Skip blank lines.
+                        if (key || val) {
+                            metaHtml += `
+                                <div class="header-meta-item">
+                                    <span class="header-meta-key">${key}</span>
+                                    <span class="header-meta-val">${val}</span>
+                                </div>
+                            `;
+                        }
+                    }
+                }
+                metaContainer.innerHTML = metaHtml;
+            }
+
+            // Block C & D: Rows 11+ (Headers on 10, Data 11+)
+            function renderTaskCards(data) {
+                const container = document.getElementById('taskCardsContainer');
+                let cardsHtml = '';
+                
+                // Store Row 11 as the dynamic header blueprint
+                const headers = data[10] || [];
+
+                // Loop through Row 12 onwards
+                for (let i = 11; i < data.length; i++) {
+                    const row = data[i];
+                    if (!row) continue;
+
+                    const colA = (row[0] || '').trim(); // Task Name
+                    const colB = (row[1] || '').trim(); // Task Details (long text)
+                    const colC = (row[2] || '').trim(); // Vendor Name
+
+                    // Rule: Skip if A, B, and C are entirely blank
+                    if (!colA && !colB && !colC) continue;
+
+                    // Begin Card Build
+                    let card = `
+                        <div class="task-card">
+                            <div class="task-card-header">
+                                <h3>${colA || 'Unnamed Task'}</h3>
+                            </div>
+                            <div class="task-card-body">
+                    `;
+
+                    // Generate Data Grid for Columns C through K (Indexes 2 through 10)
+                    for (let c = 2; c <= 10; c++) {
+                        let cellData = row[c] ? row[c].trim() : '';
+                        
+                        if (cellData) {
+                            let label = headers[c] ? headers[c].trim() : `Detail`;
+                            card += `
+                                <div class="task-detail">
+                                    <span class="detail-label">${label}</span>
+                                    <span class="detail-val">${cellData}</span>
+                                </div>
+                            `;
+                        }
+                    }
+                    
+                    card += `</div>`; // Close task-card-body
+
+                    // Generate Actions Footer & Notes Box (Columns B, L & M)
+                    let actionsHtml = '';
+                    
+                    const fileLink = row[11] ? row[11].trim() : '';
+                    if (fileLink && (fileLink.startsWith('http') || fileLink.startsWith('www'))) {
+                        const cleanLink = fileLink.startsWith('http') ? fileLink : 'https://' + fileLink;
+                        actionsHtml += `<a href="${cleanLink}" target="_blank" class="action-btn">📄 View File &rarr;</a>`;
+                    }
+
+                    const vendorLink = row[12] ? row[12].trim() : '';
+                    if (vendorLink && (vendorLink.startsWith('http') || vendorLink.startsWith('www'))) {
+                        const cleanLink2 = vendorLink.startsWith('http') ? vendorLink : 'https://' + vendorLink;
+                        actionsHtml += `<a href="${cleanLink2}" target="_blank" class="action-btn">🛡️ Verify Vendor Info &rarr;</a>`;
+                    }
+
+                    // Only render the footer section if there are buttons OR detailed notes to display
+                    if (actionsHtml !== '' || colB !== '') {
+                        card += `<div class="task-card-footer">`;
+                        
+                        // Inject the long text details box (Left Side)
+                        if (colB !== '') {
+                            card += `
+                                <div class="task-notes-wrapper">
+                                    <div class="task-card-notes">
+                                        <span class="detail-label" style="display: block; margin-bottom: 0.35rem; color: #222; text-align: left;">Task Details</span><div class="notes-content">${colB}</div>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            // Failsafe empty div to keep flexbox justified correctly if there are buttons but no notes
+                            card += `<div class="task-notes-wrapper" style="display: none;"></div>`;
+                        }
+
+                        // Inject Action Buttons (Right Side)
+                        if (actionsHtml !== '') {
+                            let actionAlign = colB !== '' ? 'text-align: right;' : 'text-align: left;';
+                            // If there are no notes, align the 'Links & Actions' label to the left instead of floating it to the right
+                            
+                            card += `
+                                <div class="task-card-actions">
+                                    <span class="detail-label" style="margin-bottom: 0.15rem; display: block; width: 10            color: #C13030;
             margin-bottom: 0.5rem;
         }
         .system-message-block p {
