@@ -479,6 +479,192 @@
             color: #222;
             font-weight: 800;
         }
+        /* Web Styling for the Print Action Button */
+        .print-trigger-btn {
+            background-color: #ffffff;
+            border: 2px solid #C13030;
+            color: #C13030;
+            padding: 0.5rem 1.25rem;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(193, 48, 48, 0.1);
+        }
+        .print-trigger-btn:hover {
+            background-color: #C13030;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(193, 48, 48, 0.2);
+        }
+
+        /* Default browser configuration: Hide printed headers on normal screens */
+        .print-only-header { display: none; }
+
+        /* ==========================================
+           CRITICAL NATIVE PRINT STYLESHEET OVERRIDES
+           ========================================== */
+        @media print {
+            /* Force basic page parameters and eliminate margins */
+            @page {
+                size: letter;
+                margin: 0.4in;
+            }
+            
+            /* Remove all heavy web layouts and colors */
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                font-size: 9pt !important;
+                line-height: 1.2 !important;
+            }
+
+            /* Absolute Hiding Rules for Interactivity and Web Assets */
+            universal-header, universal-footer, .events-header, 
+            .data-warning-banner, .filter-nav-container, .print-trigger-btn,
+            .no-print-section, .educational-note, .card-action-btn, 
+            .psai-info-toggle, .custom-info-toggle, .psai-dropdown, 
+            .compliance-footer, .chart-box p.chart-desc {
+                display: none !important;
+            }
+
+            /* Reveal the Clean Corporate Header Flyer Template */
+            .print-only-header {
+                display: block !important;
+                width: 100% !important;
+            }
+
+            /* Reformat Section Blocks to be tight and clean on paper */
+            .section-header {
+                margin: 1.5rem 0 0.75rem 0 !important;
+                padding-bottom: 2px !important;
+                text-align: left !important;
+                border-bottom: 1.5px solid #3D3935 !important;
+            }
+            .section-header h2 {
+                font-size: 13pt !important;
+                margin: 0 !important;
+                color: #C13030 !important;
+            }
+            .section-header p {
+                font-size: 9pt !important;
+                margin: 0 !important;
+                color: #444444 !important;
+            }
+
+            /* Clean up the Main City Layout Title */
+            #currentCityHeader {
+                font-size: 24pt !important;
+                text-align: left !important;
+                margin-bottom: 0.5rem !important;
+                color: #C13030 !important;
+            }
+            .web-header-row {
+                justify-content: flex-start !important;
+                margin-bottom: 0.25rem !important;
+            }
+
+            /* High Density Grids for Fact Cards */
+            .stats-grid {
+                display: grid !important;
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 8px !important;
+                margin: 0.5rem 0 !important;
+            }
+            .stat-card {
+                padding: 0.6rem 0.4rem !important;
+                border-radius: 6px !important;
+                border: 1px solid #cccccc !important;
+                border-top: 4px solid #3D3935 !important;
+                box-shadow: none !important;
+                background: #fafafa !important;
+            }
+            .stat-card h4 {
+                font-size: 7.5pt !important;
+                margin-bottom: 0.25rem !important;
+            }
+            .stat-value {
+                font-size: 15pt !important;
+                margin-bottom: 0.15rem !important;
+            }
+            .stat-label {
+                font-size: 7pt !important;
+            }
+
+            /* Market Needle Slider Redesign for Paper Ink */
+            .market-climate-container {
+                padding: 0.75rem !important;
+                border: 1px solid #cccccc !important;
+                border-radius: 8px !important;
+                margin-bottom: 1rem !important;
+                box-shadow: none !important;
+                background: #ffffff !important;
+            }
+            .market-bar-wrapper { margin: 1rem 0 0.25rem 0 !important; }
+            .market-scale-labels { font-size: 7.5pt !important; }
+            #climateLabelText { margin-top: 0.4rem !important; font-size: 9pt !important; }
+
+            /* Compact Grid Layout for Visual Charts */
+            .charts-container {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 12px !important;
+                margin-top: 0.5rem !important;
+            }
+            .chart-box {
+                padding: 0.5rem !important;
+                border: 1px solid #eaeaea !important;
+                border-radius: 8px !important;
+                margin-bottom: 0 !important;
+                box-shadow: none !important;
+            }
+            .chart-box h3 { font-size: 10pt !important; margin-bottom: 0.25rem !important; }
+            .chart-box canvas { max-height: 140px !important; } /* Restricts chart blowing past breaks */
+
+            /* Community Lifestyle Profile Restructuring */
+            .community-metrics-section {
+                margin-top: 1.5rem !important;
+                padding: 0 !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                border-top: none !important;
+            }
+            .community-metrics-section h2 { font-size: 14pt !important; text-align: left !important; color: #C13030 !important;}
+            .community-metrics-section p { display: none !important; } /* Hide the duplicate subtitle */
+            
+            .metrics-grid {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 12px !important;
+                margin-top: 0.5rem !important;
+            }
+            .metric-card {
+                padding: 0.75rem !important;
+                border-radius: 8px !important;
+                border: 1px solid #cccccc !important;
+                background: #ffffff !important;
+                box-shadow: none !important;
+                page-break-inside: avoid !important; /* Prevents card slicing across page seams */
+            }
+            .metric-card h3 { font-size: 10pt !important; margin-bottom: 0.5rem !important; }
+            
+            /* Re-scaling internal graphics inside fact cards */
+            .walkscore-container { gap: 0.5rem !important; margin-bottom: 0.5rem !important; }
+            .score-badge { width: 34px !important; height: 34px !important; font-size: 11pt !important; border-radius: 6px !important; }
+            .score-info .score-desc { font-size: 8.5pt !important; }
+            .score-info .score-sub { font-size: 7pt !important; }
+            
+            #schoolDistrictName, #txtFireAgency, #safetyAgencyHeader { font-size: 9pt !important; margin-bottom: 0.4rem !important; }
+            .climate-metrics-list, .surveillance-metrics-list { gap: 4px !important; margin: 0.4rem 0 !important; }
+            .climate-mini-item, .surv-mini-item { padding: 0.25rem !important; border-radius: 4px !important; }
+            .climate-mini-item strong, .surv-mini-item strong { font-size: 10pt !important; }
+            
+            /* Hide pending notices on layout prints to maintain clean profiles */
+            .custom-notice-block { display: none !important; }
+            #activeCrimeStatsContainer, #surveillanceActiveData { display: block !important; }
+        }
     </style>
 </head>
 <body class="stats-page">
@@ -507,11 +693,29 @@
             </div>
         </div>
 
-        <div id="dashboardContent" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
+<div id="dashboardContent" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
             
-            <h2 id="currentCityHeader" style="font-size: 3rem; font-weight: 900; color: #C13030; text-align: center; margin-bottom: 1rem; letter-spacing: -0.5px;"></h2>
+            <div class="print-only-header">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #C13030; padding-bottom: 10px; margin-bottom: 15px;">
+                    <div>
+                        <h1 style="margin:0; font-size: 2.2rem; font-weight: 900; color: #C13030; letter-spacing: -0.5px;">COMMUNITY REPORT PROFILE</h1>
+                        <p style="margin: 2px 0 0 0; font-size: 1rem; font-weight: 700; color: #333; text-transform: uppercase; letter-spacing: 0.5px;">Bespoke Real Estate Data Feeds</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <h3 style="margin:0; font-size: 1.2rem; font-weight: 800; color: #3D3935;">JOE SHELDON</h3>
+                        <p style="margin:2px 0 0 0; font-size: 0.85rem; font-weight: 600; color: #555;">myseattlesearch.com</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: center; align-items: center; gap: 1.5rem; margin-bottom: 1rem;" class="web-header-row">
+                <h2 id="currentCityHeader" style="font-size: 3rem; font-weight: 900; color: #C13030; text-align: center; margin: 0; letter-spacing: -0.5px;"></h2>
+                <button onclick="window.print()" class="print-trigger-btn" title="Print City Fact Sheet">
+                    🖨️ Print City Flyer
+                </button>
+            </div>
             
-            <div class="section-header" style="margin-top: 0; border-bottom: none; padding-bottom: 0;">
+            <div class="section-header no-print-section" style="margin-top: 0; border-bottom: none; padding-bottom: 0;">
                 <h2 style="font-size: 1.5rem; color: #C13030;">Real Estate Market Conditions</h2>
                 <p>Live supply, demand, and climate metrics for the local market.</p>
             </div>
