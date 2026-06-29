@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Program Comparator | Joe Sheldon</title>
+    <link class="main-stylesheet" rel="stylesheet" href="style.css">
+    
+    <script src="components.js"></script>
+
+    <style>
+        .comparator-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            min-height: 70vh;
+        }
+
+        .comparator-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        @media (min-width: 992px) {
+            .comparator-layout {
+                grid-template-columns: 320px 1fr;
+            }
+        }
+
+        /* Sidebar Control Panel Styles */
+        .control-panel-box {
+            background: #f4f6f8;
+            border-top: 5px solid var(--premier-charcoal);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            height: fit-content;
+        }
+        .control-panel-box h3 {
+            margin: 0 0 1.25rem 0;
+            font-size: 1.1rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #3D3935;
+            border-bottom: 2px solid #eaeaea;
+            padding-bottom: 0.5rem;
+        }
+
+        .input-group-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .input-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .input-item label {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #555555;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .input-item input {
+            padding: 0.6rem 0.75rem;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #222;
+            background: #ffffff;
+        }
+        .input-item input:focus {
+            border-color: #C13030;
+            outline: none;
+        }
+
+        /* Main Workspace & Card Styles */
+        .workspace-area {
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem;
+        }
+
+        .scenario-block {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border: 1px solid #eaeaea;
+        }
+        .scenario-title-row {
+            border-bottom: 2.5px solid #3D3935;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .scenario-title-row h2 {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: #C13030;
+            margin: 0;
+            text-transform: uppercase;
+        }
+        .scenario-tier-badge {
+            background: #E8F0FE;
+            color: #1967D2;
+            padding: 0.35rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .scenario-tier-badge.high-balance {
+            background: #FFF4E5;
+            color: #B06000;
+        }
+
+        /* Responsive Matrix Table Overhaul */
+        .matrix-table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        .matrix-table th {
+            background: #f8f9fa;
+            font-size: 0.75rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #666;
+            padding: 0.85rem 1rem;
+            border-bottom: 2px solid #eaeaea;
+        }
+        .matrix-table td {
+            padding: 1rem;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #333;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .matrix-table tr:hover td {
+            background: #fbfbfb;
+        }
+        
+        .prog-name-cell { font-weight: 800 !important; color: #222 !important; }
+        .highlight-cell { color: #C13030 !important; font-weight: 800 !important; }
+        .payment-cell { font-size: 1.1rem !important; font-weight: 900 !important; color: #000000 !important; }
+
+        .form-calc-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: #C13030;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .form-calc-btn:hover { background: #9c2424; }
+    </style>
+</head>
+<body class="comparator-page">
+
+    <universal-header></universal-header>
+
+    <main class="comparator-container">
+
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h1 style="margin-top: 1rem; font-size: 2.6rem; font-weight: 900; color: #C13030; text-transform: uppercase;">Purchase Program Comparator</h1>
+            <p style="font-size:1.1rem; color:#555; font-weight:500; margin:0;">Side-by-side financing structure analysis for standard vs. custom DPA parameters.</p>
+        </div>
+
+        <div class="comparator-layout">
+            
+            <aside class="control-panel-box">
+                <h3>Program Parameters</h3>
+                
+                <div class="input-group-stack">
+                    <div class="input-item">
+                        <label>Conventional Rate (%)</label>
+                        <input type="number" id="rateConv" value="6.5" step="0.125">
+                    </div>
+                    <div class="input-item">
+                        <label>FHA Rate (%)</label>
+                        <input type="number" id="rateFha" value="6.125" step="0.125">
+                    </div>
+                    <div class="input-item">
+                        <label>DPA Program Rate (%)</label>
+                        <input type="number" id="rateDpa" value="7.0" step="0.125">
+                    </div>
+                    <div class="input-item">
+                        <label>Est. Closing Costs ($)</label>
+                        <input type="number" id="costClosing" value="11500" step="500">
+                    </div>
+                    <div class="input-item">
+                        <label>DPA Conforming Cap ($)</label>
+                        <input type="number" id="capConforming" value="832750" step="250">
+                    </div>
+                </div>
+
+                <h3>Purchase Price Options</h3>
+                <div class="input-group-stack" style="margin-bottom: 1.25rem;">
+                    <div class="input-item">
+                        <label>Price Option 1 ($)</label>
+                        <input type="number" id="priceOpt1" value="858505" step="5000">
+                    </div>
+                    <div class="input-item">
+                        <label>Price Option 2 ($)</label>
+                        <input type="number" id="priceOpt2" value="900000" step="5000">
+                    </div>
+                </div>
+
+                <button class="form-calc-btn" onclick="calculateComparisons()">Recalculate Models</button>
+            </aside>
+
+            <section class="workspace-area">
+                
+                <div class="scenario-block" id="blockScenario1">
+                    <div class="scenario-title-row">
+                        <h2 id="titleScenario1">Option 1: $858,505</h2>
+                        <span class="scenario-tier-badge" id="badgeScenario1">Standard Conforming</span>
+                    </div>
+                    <div class="matrix-table-wrapper">
+                        <table class="matrix-table">
+                            <thead>
+                                <tr>
+                                    <th>Loan Program</th>
+                                    <th>Down Payment</th>
+                                    <th>Program Points</th>
+                                    <th>Closing Costs</th>
+                                    <th>Total Cash Due</th>
+                                    <th>Monthly P&I</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bodyScenario1">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="scenario-block" id="blockScenario2">
+                    <div class="scenario-title-row">
+                        <h2 id="titleScenario2">Option 2: $900,000</h2>
+                        <span class="scenario-tier-badge high-balance" id="badgeScenario2">High Balance Tier</span>
+                    </div>
+                    <div class="matrix-table-wrapper">
+                        <table class="matrix-table">
+                            <thead>
+                                <tr>
+                                    <th>Loan Program</th>
+                                    <th>Down Payment</th>
+                                    <th>Program Points</th>
+                                    <th>Closing Costs</th>
+                                    <th>Total Cash Due</th>
+                                    <th>Monthly P&I</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bodyScenario2">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+        </div>
+
+    </main>
+
+    <universal-footer></universal-footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            calculateComparisons();
+        });
+
+        function calculateAmortization(principal, annualRate, years = 30) {
+            if (principal <= 0) return 0;
+            const monthlyRate = (annualRate / 100) / 12;
+            const totalPayments = years * 12;
+            if (monthlyRate === 0) return principal / totalPayments;
+            return principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / (Math.pow(1 + monthlyRate, totalPayments) - 1);
+        }
+
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+        }
+
+        function generateProgramRows(price, params) {
+            const rows = [];
+            
+            // 1. Conventional + WA DPA Model Logic (Matches WSHFC/Redfin Guidelines)
+            let dpaDown = 0;
+            let dpaFirstLoan = price;
+            let dpaPointsVal = 0;
+            let dpaSecondLoan = 0;
+
+            // Check boundary constraint rule mapped directly from worksheet parameters
+            if (price <= params.conformingCap / 0.97) {
+                // Conforming Baseline Tier
+                dpaFirstLoan = params.conformingCap;
+                if (dpaFirstLoan > price) dpaFirstLoan = price * 0.97; // Cap LTV safeguard
+                dpaPointsVal = dpaFirstLoan * 0.01; // 1 point baseline trigger
+                dpaDown = 0; 
+            } else {
+                // High-Balance Rule Triggered
+                dpaFirstLoan = price * 0.95; // 95% baseline LTV rule
+                dpaPointsVal = dpaFirstLoan * 0.02; // 2 points high-balance constraint modifier
+                dpaDown = price * 0.01; // 1% mandatory borrower down payment out-of-pocket
+            }
+
+            const dpaTotalCash = dpaDown + dpaPointsVal + params.closingCosts;
+            const dpaPayment = calculateAmortization(dpaFirstLoan, params.rateDpa);
+            
+            rows.push({
+                name: 'Conventional + WA DPA',
+                down: dpaDown,
+                points: dpaPointsVal,
+                closing: params.closingCosts,
+                total: dpaTotalCash,
+                payment: dpaPayment,
+                isDpa: true
+            });
+
+            // 2. Standard Conventional (3% Down)
+            const conv3Down = price * 0.03;
+            const conv3Loan = price - conv3Down;
+            const conv3TotalCash = conv3Down + params.closingCosts;
+            const conv3Payment = calculateAmortization(conv3Loan, params.rateConv);
+            
+            rows.push({
+                name: 'Standard Conventional (3%)',
+                down: conv3Down,
+                points: 0,
+                closing: params.closingCosts,
+                total: conv3TotalCash,
+                payment: conv3Payment,
+                isDpa: false
+            });
+
+            // 3. Standard Conventional (5% Down)
+            const conv5Down = price * 0.05;
+            const conv5Loan = price - conv5Down;
+            const conv5TotalCash = conv5Down + params.closingCosts;
+            const conv5Payment = calculateAmortization(conv5Loan, params.rateConv);
+            
+            rows.push({
+                name: 'Standard Conventional (5%)',
+                down: conv5Down,
+                points: 0,
+                closing: params.closingCosts,
+                total: conv5TotalCash,
+                payment: conv5Payment,
+                isDpa: false
+            });
+
+            // 4. Standard FHA (3.5% Down)
+            const fhaDown = price * 0.035;
+            const fhaLoan = price - fhaDown;
+            const fhaTotalCash = fhaDown + params.closingCosts;
+            const fhaPayment = calculateAmortization(fhaLoan, params.rateFha);
+            
+            rows.push({
+                name: 'Standard FHA (3.5%)',
+                down: fhaDown,
+                points: 0,
+                closing: params.closingCosts,
+                total: fhaTotalCash,
+                payment: fhaPayment,
+                isDpa: false
+            });
+
+            return rows;
+        }
+
+        function renderMatrixToTable(tableBodyId, badgeId, titleId, price, params) {
+            const bodyEl = document.getElementById(tableBodyId);
+            const badgeEl = document.getElementById(badgeId);
+            document.getElementById(titleId).textContent = `Purchase Price: ${formatCurrency(price)}`;
+
+            // Dynamically classify the badge tier
+            if (price <= params.conformingCap / 0.97) {
+                badgeEl.textContent = "Standard Conforming";
+                badgeEl.className = "scenario-tier-badge";
+            } else {
+                badgeEl.textContent = "High Balance Tier";
+                badgeEl.className = "scenario-tier-badge high-balance";
+            }
+
+            const dataRows = generateProgramRows(price, params);
+            let htmlBuffer = '';
+
+            dataRows.forEach(row => {
+                htmlBuffer += `
+                    <tr>
+                        <td class="prog-name-cell">${row.name}</td>
+                        <td>${formatCurrency(row.down)}</td>
+                        <td>${row.points > 0 ? formatCurrency(row.points) : '$0'}</td>
+                        <td>${formatCurrency(row.closing)}</td>
+                        <td class="${row.isDpa ? 'highlight-cell' : ''}">${formatCurrency(row.total)}</td>
+                        <td class="payment-cell">${formatCurrency(row.payment)}</td>
+                    </tr>
+                `;
+            });
+            bodyEl.innerHTML = htmlBuffer;
+        }
+
+        function calculateComparisons() {
+            // Pull configuration parameter states from control panel values
+            const params = {
+                rateConv: parseFloat(document.getElementById('rateConv').value) || 6.5,
+                rateFha: parseFloat(document.getElementById('rateFha').value) || 6.125,
+                rateDpa: parseFloat(document.getElementById('rateDpa').value) || 7.0,
+                closingCosts: parseFloat(document.getElementById('costClosing').value) || 11500,
+                conformingCap: parseFloat(document.getElementById('capConforming').value) || 832750
+            };
+
+            const price1 = parseFloat(document.getElementById('priceOpt1').value) || 858505;
+            const price2 = parseFloat(document.getElementById('priceOpt2').value) || 900000;
+
+            // Render calculations into data grids
+            renderMatrixToTable('bodyScenario1', 'badgeScenario1', 'titleScenario1', price1, params);
+            renderMatrixToTable('bodyScenario2', 'badgeScenario2', 'titleScenario2', price2, params);
+        }
+    </script>
+</body>
+</html>
