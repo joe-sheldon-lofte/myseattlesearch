@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lifespan Housing Strategy Planner | Joe Sheldon</title>
+    <title>Rent vs Buy Wealth Timeline | Joe Sheldon</title>
     <link class="main-stylesheet" rel="stylesheet" href="style.css?v=65">
     
     <script src="components.js"></script>
 
     <style>
         .rvb-container {
-            max-width: 1300px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 2rem 1rem;
             min-height: 75vh;
@@ -24,20 +24,20 @@
         }
         @media (min-width: 992px) {
             .rvb-layout {
-                grid-template-columns: 360px 1fr;
+                grid-template-columns: 340px 1fr;
             }
         }
 
-        /* Control Panel Form Styles */
-        .rvb-input-panel {
+        /* Input Controls Panel Styles */
+        .control-panel-card {
             background: #f4f6f8;
             border-top: 5px solid var(--premier-charcoal);
-            border-radius: 12px;
             padding: 1.5rem;
+            border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.04);
             height: fit-content;
         }
-        .rvb-input-panel h3 {
+        .control-panel-card h3 {
             margin: 0 0 1.25rem 0;
             font-size: 1.05rem;
             font-weight: 900;
@@ -45,77 +45,44 @@
             letter-spacing: 0.5px;
             color: #3D3935;
             border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 0.35rem;
+            padding-bottom: 0.5rem;
         }
 
-        .form-stack-blocks {
+        .form-input-stack {
             display: flex;
             flex-direction: column;
             gap: 1rem;
             margin-bottom: 1.5rem;
         }
-        .input-element-wrapper {
+        .input-field-group {
             display: flex;
             flex-direction: column;
-            gap: 0.25rem;
+            gap: 0.3rem;
         }
-        .input-element-wrapper label {
-            font-size: 0.7rem;
+        .input-field-group label {
+            font-size: 0.72rem;
             font-weight: 800;
-            color: #555;
+            color: #555555;
             text-transform: uppercase;
             letter-spacing: 0.3px;
         }
-        .input-element-wrapper input, .input-element-wrapper select {
-            padding: 0.5rem 0.6rem;
+        .input-field-group input, .input-field-group select {
+            padding: 0.6rem 0.75rem;
             border: 2px solid #ccc;
             border-radius: 6px;
-            font-size: 0.9rem;
-            font-weight: 500; /* Relaxed typography weight for calm data presentation */
+            font-size: 0.95rem;
+            font-weight: 500; /* Calm, medium data weight */
             color: #222;
-            background: #fff;
+            background: #ffffff;
             width: 100%;
             box-sizing: border-box;
         }
-        .input-element-wrapper input:focus, .input-element-wrapper select:focus {
+        .input-field-group input:focus, .input-field-group select:focus {
             border-color: #C13030;
             outline: none;
         }
 
-        /* Transparent Benchmark Context Block */
-        .benchmark-display-box {
-            background: #eef1f4;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-            font-size: 0.8rem;
-            color: #444;
-            line-height: 1.4;
-        }
-        .benchmark-display-box strong {
-            color: #222;
-            font-weight: 700;
-        }
-        .benchmark-row-item {
-            display: flex;
-            justify-content: space-between;
-            border-bottom: 1px dashed #cfd4d9;
-            padding: 0.35rem 0;
-        }
-        .benchmark-row-item:last-child {
-            border-bottom: none;
-        }
-
-        .slider-label-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.7rem;
-            font-weight: 800;
-            color: #555;
-            text-transform: uppercase;
-        }
-
-        .btn-crunch-analysis {
+        .crunch-matrix-btn {
             width: 100%;
             padding: 0.75rem;
             background: #C13030;
@@ -129,10 +96,36 @@
             cursor: pointer;
             transition: background 0.2s ease;
         }
-        .btn-crunch-analysis:hover { background: #9c2424; }
+        .crunch-matrix-btn:hover { background: #9c2424; }
 
-        /* Output Summary Cards */
-        .rvb-results-wrapper {
+        .market-assumptions-box {
+            background: #eef1f4;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            font-size: 0.8rem;
+            color: #444;
+            line-height: 1.4;
+        }
+        .market-assumptions-box h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.75rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            color: #3D3935;
+            letter-spacing: 0.3px;
+        }
+        .assumption-item-line {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed #cfd4d9;
+            padding: 0.35rem 0;
+        }
+        .assumption-item-line:last-child { border-bottom: none; }
+        .assumption-item-line strong { font-weight: 700; color: #222; }
+
+        /* Output Summary Elements */
+        .rvb-results-card {
             background: #ffffff;
             border-radius: 14px;
             padding: 2rem 1.5rem;
@@ -143,36 +136,40 @@
         }
         @keyframes paneFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Life Phase Category Sub-Headers */
-        .phase-header-row {
-            background: var(--premier-charcoal);
-            color: #ffffff;
-        }
-        .phase-header-row td {
-            padding: 0.75rem 1rem !important;
-            font-size: 0.95rem !important;
-            font-weight: 800 !important;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
         .timeline-scroll-box { width: 100%; overflow-x: auto; margin-top: 1.5rem; }
         .timeline-data-table { width: 100%; border-collapse: collapse; text-align: left; }
-        .timeline-data-table th { background: #f4f6f8; font-size: 0.72rem; font-weight: 900; text-transform: uppercase; color: #555; padding: 1rem 0.75rem; border-bottom: 2px solid #000; }
-        .timeline-data-table td { padding: 1rem 0.75rem; font-size: 0.9rem; font-weight: 500; color: #444; border-bottom: 1px solid #eef0f2; vertical-align: top; }
+        .timeline-data-table th { background: #f4f6f8; font-size: 0.75rem; font-weight: 900; text-transform: uppercase; color: #555; padding: 1rem 0.75rem; border-bottom: 2px solid #000; }
+        .timeline-data-table td { padding: 0.85rem 0.75rem; font-size: 0.95rem; font-weight: 500; color: #444; border-bottom: none; }
         
-        .cycle-reset-row { background: #FFF9F2 !important; border-left: 4px solid #F5A623; }
-        .cycle-reset-row td { color: #000 !important; }
-        .milestone-tag-badge { background: #C13030; color: #fff; font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; display: inline-block; margin-top: 3px; }
-        .milestone-tag-badge.cycle-badge { background: #F5A623; color: #000; }
+        /* Spanned Story Narrative Row Styling */
+        .narrative-row { border-bottom: 1px solid #eef0f2; }
+        .narrative-row td { padding-top: 0 !important; padding-bottom: 1.15rem !important; }
+        .timeline-narrative-text { font-size: 0.82rem; line-height: 1.45; color: #555; font-weight: 500; display: block; background: #fdfdfd; padding: 0.5rem 0.75rem; border-left: 3px solid #b3b3b3; border-radius: 0 4px 4px 0; }
+
+        /* Core Human Life Phase Highlight Structures */
+        .phase-section-title-row background { background: var(--premier-charcoal); }
+        .phase-section-title-row td { padding: 0.75rem 1rem !important; font-size: 0.95rem !important; font-weight: 800 !important; color: #ffffff !important; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #000 !important; }
+        
+        /* Cyclic Homeownership Transition Row Highlights */
+        .cycle-transition-row td { background: #FFF9F2 !important; }
+        .cycle-transition-row + .narrative-row td { background: #FFF9F2 !important; }
+        .cycle-transition-row + .narrative-row .timeline-narrative-text { border-left-color: #F5A623; background: #fffdf9; color: #333; }
+
+        /* Flat View Mode Specific Milestone Indicators */
+        .flat-milestone-row td { background: #FFF9F9 !important; }
+        .flat-milestone-row + .narrative-row td { background: #FFF9F9 !important; }
+        .flat-milestone-row + .narrative-row .timeline-narrative-text { border-left-color: #C13030; background: #fffcfc; color: #222; font-weight: 600; }
+
+        .milestone-tag-badge { color: #fff; font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; display: inline-block; margin-right: 6px; vertical-align: middle; }
+        .milestone-tag-badge.badge-cycle { background: #F5A623; color: #000; }
+        .milestone-tag-badge.badge-flat { background: #C13030; color: #fff; }
 
         .cell-year-header { font-weight: 800 !important; color: #222 !important; }
         .cell-wealth-positive { color: #137333 !important; font-weight: 700; }
         .cell-cost-negative { color: #C13030 !important; }
-        .timeline-narrative-text { font-size: 0.8rem; line-height: 1.4; color: #555; font-weight: 500; max-width: 260px; display: block; }
 
-        /* Referral Block Elements */
-        .partner-referral-container {
+        /* Preferred Loan Officer Referral Component */
+        .loan-officer-referral-block {
             display: grid;
             grid-template-columns: 1fr;
             gap: 1.5rem;
@@ -184,55 +181,57 @@
             align-items: center;
         }
         @media (min-width: 600px) {
-            .partner-referral-container { grid-template-columns: 100px 1fr; gap: 2rem; }
+            .loan-officer-referral-block { grid-template-columns: 100px 1fr; gap: 2rem; }
         }
-        .partner-avatar-img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--premier-beige); }
-        .partner-info h4 { margin: 0 0 0.25rem 0; font-size: 1.25rem; font-weight: 900; color: #3D3935; }
-        .partner-info p { margin: 0 0 1rem 0; font-size: 0.9rem; color: #666; font-weight: 600; }
-        .partner-apply-btn { display: inline-flex; background: var(--premier-charcoal); color: #fff; padding: 0.5rem 1.25rem; border-radius: 4px; font-size: 0.85rem; font-weight: 700; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px; border: none; cursor: pointer; }
-        .partner-apply-btn:hover { background: #222; }
+        .officer-avatar-img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--premier-beige); }
+        .officer-info h4 { margin: 0 0 0.25rem 0; font-size: 1.25rem; font-weight: 900; color: #3D3935; }
+        .officer-info p { margin: 0 0 1rem 0; font-size: 0.9rem; color: #666; font-weight: 600; }
+        .officer-apply-btn { display: inline-flex; background: var(--premier-charcoal); color: #fff; padding: 0.5rem 1.25rem; border-radius: 4px; font-size: 0.85rem; font-weight: 700; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px; border: none; cursor: pointer; }
+        .officer-apply-btn:hover { background: #222; }
 
-        .legal-matrix-disclaimer { font-size: 0.78rem; line-height: 1.4; color: #777; margin-top: 1.5rem; text-align: center; border-top: 1px dashed #dddddd; padding-top: 1rem; font-weight: 500; }
-        .print-analysis-trigger { background: transparent; border: 1px solid #b3b3b3; color: #666; padding: 0.45rem 1.25rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; display: block; margin: 2rem auto 0 auto; }
-        .print-analysis-trigger:hover { border-color: #333; color: #222; background: #fafafa; }
+        .compliance-disclaimer-text { font-size: 0.78rem; line-height: 1.4; color: #777; margin-top: 1.5rem; text-align: center; border-top: 1px dashed #dddddd; padding-top: 1rem; font-weight: 500; }
+        .print-matrix-trigger { background: transparent; border: 1px solid #b3b3b3; color: #666; padding: 0.45rem 1.25rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; display: block; margin: 2rem auto 0 auto; }
+        .print-matrix-trigger:hover { border-color: #333; color: #222; background: #fafafa; }
 
-        /* Printed Page Configuration Layouts */
-        .print-only-header, .partner-print-info { display: none; }
+        /* Printable Layout Configurations */
+        .print-only-header, .officer-print-info { display: none; }
 
         /* ==========================================
            HIGH-IMPACT MARKETING PRINT STYLESHEET
            ========================================== */
         @media print {
-            @page { size: letter landscape; margin: 0.4in; } /* Landscape layout optimization */
+            @page { size: letter landscape; margin: 0.4in; }
             body { background: #ffffff !important; color: #000000 !important; font-size: 9.5pt !important; line-height: 1.25 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             
             universal-header, universal-footer, .events-header, .rvb-input-panel, 
-            .print-analysis-trigger, .partner-apply-btn {
+            .print-matrix-trigger, .officer-apply-btn {
                 display: none !important;
             }
 
-            .rvb-results-wrapper { display: block !important; box-shadow: none !important; padding: 0 !important; border: none !important; }
+            .rvb-results-card { display: block !important; box-shadow: none !important; padding: 0 !important; border: none !important; }
             .print-only-header { display: block !important; width: 100% !important; }
             
-            /* Clean Title Casing and Tamed Text Weights */
+            /* Clean Title Casing Weights for Paper Handouts */
             .print-only-header h1 { font-size: 15pt !important; font-weight: 700 !important; color: #C13030 !important; }
             .print-only-header p { font-size: 8.5pt !important; font-weight: 500 !important; color: #333333 !important; }
             .print-only-header h3 { font-size: 10.5pt !important; font-weight: 700 !important; color: #3D3935 !important; }
             .print-only-header p.url-line { font-size: 8.5pt !important; font-weight: 500 !important; color: #666666 !important; }
 
             .timeline-data-table { width: 100% !important; margin-top: 1.25rem !important; }
-            .timeline-data-table th { background: #f8f9fa !important; color: #000000 !important; border-bottom: 2.5px solid #000000 !important; font-weight: 700 !important; font-size: 8pt !important; text-transform: none !important; }
-            .timeline-data-table td { border-bottom: 1px solid #000000 !important; padding: 6px 4px !important; font-size: 8.5pt !important; }
+            .timeline-data-table th { background: #f8f9fa !important; color: #000000 !important; border-bottom: 2.5px solid #000000 !important; font-weight: 700 !important; font-size: 8pt !important; }
+            .timeline-data-table td { border-bottom: none !important; padding: 6px 6px !important; font-size: 8.5pt !important; }
             
             .phase-header-row { background: #eaeaea !important; }
             .phase-header-row td { color: #000000 !important; font-weight: 800 !important; font-size: 9pt !important; }
-            .cycle-reset-row { background: #fffcf0 !important; }
-            .timeline-narrative-text { max-width: 220px !important; font-size: 7.5pt !important; }
+            
+            .cycle-transition-row td, .flat-milestone-row td { background: #f9f9f9 !important; }
+            .narrative-row td { border-bottom: 1px solid #000000 !important; padding-bottom: 8px !important; }
+            .timeline-narrative-text { max-width: 100% !important; font-size: 7.5pt !important; background: transparent !important; padding: 0 !important; border: none !important; }
 
-            .partner-referral-container { display: flex !important; margin-top: 2rem !important; border: 2px solid #000000 !important; border-radius: 8px !important; padding: 1rem !important; gap: 2rem !important; page-break-inside: avoid !important; break-inside: avoid !important; }
-            .partner-avatar-img { width: 75px !important; height: 75px !important; border: 1.5px solid #000 !important; }
-            .partner-print-info { display: block !important; font-size: 9pt !important; font-weight: 700 !important; color: #000000 !important; line-height: 1.4; }
-            .legal-matrix-disclaimer { margin-top: 1.5rem !important; border-top: 1.5px solid #000 !important; font-size: 7.5pt !important; color: #333 !important; }
+            .loan-officer-referral-block { display: flex !important; margin-top: 2rem !important; border: 2px solid #000000 !important; border-radius: 8px !important; padding: 1rem !important; gap: 2rem !important; page-break-inside: avoid !important; break-inside: avoid !important; }
+            .officer-avatar-img { width: 75px !important; height: 75px !important; border: 1.5px solid #000 !important; }
+            .officer-print-info { display: block !important; font-size: 9pt !important; font-weight: 700 !important; color: #000000 !important; line-height: 1.4; }
+            .compliance-disclaimer-text { margin-top: 1.5rem !important; border-top: 1.5px solid #000 !important; font-size: 7.5pt !important; color: #333 !important; }
         }
     </style>
 </head>
@@ -274,7 +273,7 @@
                 <div class="form-stack-blocks">
                     <div class="input-element-wrapper">
                         <div class="slider-label-row">
-                            <label>Ownership Cycle Length</label>
+                            <label>How long you plan to stay</label>
                             <span id="lblCycleVal" style="font-weight:700; color:#C13030;">10.3 Years</span>
                         </div>
                         <input type="range" id="inCycleLength" min="3" max="31" step="0.5" value="10.3" oninput="handleSliderMovementValueUpdate(this.value)">
@@ -288,28 +287,18 @@
                     </div>
                 </div>
 
-                <h3>Data-Backed Assumptions</h3>
-                <div class="benchmark-display-box">
-                    <div class="benchmark-row-item"><span>Annual Home Appreciation:</span><strong>4.5%</strong></div>
-                    <div class="benchmark-row-item"><span>Annual Rent Inflation:</span><strong>4.0%</strong></div>
-                    <div class="benchmark-row-item"><span>Tenant Relocation Frequency:</span><strong>Every 3 Years</strong></div>
-                    <div class="benchmark-row-item"><span>Estimated Cost Per Move:</span><strong>$2,500</strong></div>
+                <h3>Local Market Baselines</h3>
+                <div class="market-assumptions-box">
+                    <div class="assumption-item-line"><span>Annual Home Appreciation:</span><strong>4.5%</strong></div>
+                    <div class="assumption-item-line"><span>Annual Rent Inflation:</span><strong>4.0%</strong></div>
+                    <div class="assumption-item-line"><span>Tenant Moving Frequency:</span><strong>Every 3 Years</strong></div>
+                    <div class="assumption-item-line"><span>Estimated Cost Per Move:</span><strong>$2,500</strong></div>
                 </div>
 
-                <div style="display:none;">
-                    <input type="number" id="inDownPct" value="5">
-                    <input type="number" id="inRate" value="6.5">
-                    <input type="number" id="inAppreciation" value="4.5">
-                    <input type="number" id="inRentInflation" value="4.0">
-                    <input type="number" id="inMoveFreq" value="3">
-                    <input type="number" id="inMoveCost" value="2500">
-                    <select id="inFilingStatus"><option value="single">Single</option></select>
-                </div>
-
-                <button class="btn-crunch-analysis" onclick="generateComparativeWealthTimeline()">Generate Timeline</button>
+                <button class="crunch-matrix-btn" onclick="generateComparativeWealthTimeline()">Generate Timeline</button>
             </aside>
 
-            <section class="rvb-results-wrapper" id="resultsCardWrapper">
+            <section class="rvb-results-card" id="resultsCardWrapper">
                 
                 <div class="print-only-header">
                     <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid #C13030; padding-bottom: 12px; margin-bottom: 25px;">
@@ -324,7 +313,8 @@
                     </div>
                 </div>
 
-                <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--premier-charcoal); margin: 0; text-transform: none;">Lifespan Comparison Matrix</h2>
+                <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--premier-charcoal); margin: 0; text-transform: none;">Renting vs. Buying: Your 30-Year Wealth Journey</h2>
+                <p style="font-size: 0.9rem; color: #555; margin: 4px 0 0 0;">A real-world look at how homeownership builds long-term security, tracks hidden costs, and shapes your net worth over time.</p>
                 
                 <div class="timeline-scroll-box">
                     <table class="timeline-data-table">
@@ -335,33 +325,32 @@
                                 <th>Loan Balance</th>
                                 <th>Owner Outflow</th>
                                 <th>Renter Outflow</th>
-                                <th>Accumulated Home Equity</th>
+                                <th>Accumulated Equity</th>
                                 <th>Net Wealth Variance</th>
-                                <th>Timeline Milestones &amp; Friction Analysis</th>
                             </tr>
                         </thead>
                         <tbody id="timelineTableBodyOutput"></tbody>
                     </table>
                 </div>
 
-                <div class="partner-referral-container">
-                    <img src="assets/images/carly.jpg" class="partner-avatar-img" alt="Carly Ozuna - Rocket Mortgage" onerror="this.src='https://placehold.co/100x100?text=Carly+Ozuna'">
-                    <div class="partner-info">
+                <div class="loan-officer-referral-block">
+                    <img src="assets/images/carly.jpg" class="officer-avatar-img" alt="Carly Ozuna - Rocket Mortgage" onerror="this.src='https://placehold.co/100x100?text=Carly+Ozuna'">
+                    <div class="officer-info">
                         <h4>Carly Ozuna</h4>
                         <p>Rocket Mortgage &bull; Preferred Lending Partner</p>
-                        <div class="partner-print-info" style="margin-bottom: 0.5rem;">
+                        <div class="officer-print-info" style="margin-bottom: 0.5rem;">
                             <strong>Direct Lender Contact:</strong> 425-218-4630 &bull; carlyozuna@rocketmortgage.com<br>
                             <strong>Secure Pre-Approval Pipeline Track:</strong> https://rkt.me/carlyozuna#rf_aid=4621
                         </div>
-                        <a href="https://rkt.me/carlyozuna#rf_aid=4621" target="_blank" class="partner-apply-btn">Apply Securely with Carly &rarr;</a>
+                        <a href="https://rkt.me/carlyozuna#rf_aid=4621" target="_blank" class="officer-apply-btn">Apply Securely with Carly &rarr;</a>
                     </div>
                 </div>
 
-                <div class="legal-matrix-disclaimer">
+                <div class="compliance-disclaimer-text">
                     Legal Disclaimer &amp; Education Notice: All calculations, appreciation matrix tracks, rent inflation indices, and mortgage interest itemization models are engineered strictly for consumer educational and illustrative baseline indexing purposes. Localized municipality tax parameters, standard deductions, and insurance premiums slide unpredictably over a 30-year lifecycle. This does not constitute an official commitment to lend or structural tax advice. Washington State enforces no individual personal income tax; interest adjustments model federal tax bracket indexing criteria exclusively. Consult a certified CPA and a licensed Mortgage Loan Originator (MLO) for underwriting verification.
                 </div>
 
-                <button onclick="window.print()" class="print-analysis-trigger">Print Financial Analysis</button>
+                <button onclick="window.print()" class="print-matrix-trigger">Print Financial Analysis</button>
             </section>
 
         </div>
@@ -371,41 +360,6 @@
     <universal-footer></universal-footer>
 
     <script>
-        function calculateAmortizationMonthlyPayment(principal, annualRate) {
-            if (principal <= 0) return 0;
-            const monthlyRate = (annualRate / 100) / 12;
-            const totalPaymentsCount = 360;
-            if (monthlyRate === 0) return principal / totalPaymentsCount;
-            return principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPaymentsCount)) / (Math.pow(1 + monthlyRate, totalPaymentsCount) - 1);
-        }
-
-        function estimateFederalTaxBracketMarginalRate(income) {
-            if (income > 250000) return 0.32;
-            if (income > 100000) return 0.24;
-            if (income > 45000) return 0.22;
-            return 0.12;
-        }
-
-        function formatCurrency(num) {
-            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
-        }
-
-        function handleProgramTypeRateShift(id, val) {
-            const card = document.getElementById(`strategy_card_${id}`);
-            if (card) card.dataset.automated = "true";
-            evaluateCardUnderwritingConstraints(id, 'program');
-        }
-
-        function handleClosingCostEstimateToggle(id) {
-            evaluateCardUnderwritingConstraints(id);
-        }
-
-        function handleProgramTypeRateShift(id, val) {
-            const card = document.getElementById(`strategy_card_${id}`);
-            if (card) card.dataset.automated = "true";
-            evaluateCardUnderwritingConstraints(id, 'program');
-        }
-
         function handleSliderMovementValueUpdate(val) {
             const lbl = document.getElementById('lblCycleVal');
             if (parseFloat(val) > 30) {
@@ -426,6 +380,25 @@
             }
         }
 
+        function calculateAmortizationMonthlyPayment(principal, annualRate) {
+            if (principal <= 0) return 0;
+            const monthlyRate = (annualRate / 100) / 12;
+            const totalPaymentsCount = 360;
+            if (monthlyRate === 0) return principal / totalPaymentsCount;
+            return principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPaymentsCount)) / (Math.pow(1 + monthlyRate, totalPaymentsCount) - 1);
+        }
+
+        function estimateFederalTaxBracketMarginalRate(income) {
+            if (income > 250000) return 0.32;
+            if (income > 100000) return 0.24;
+            if (income > 45000) return 0.22;
+            return 0.12;
+        }
+
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+        }
+
         function generateComparativeWealthTimeline() {
             const startAge = parseInt(document.getElementById('inAge').value) || 30;
             const income = parseFloat(document.getElementById('inIncome').value) || 0;
@@ -441,7 +414,7 @@
                 targetCycleLength = 999;
             }
 
-            // Lock Data Assumed Defaults strictly within mathematical computational arrays
+            // Locked baselines mapped strictly within standard parameters
             const downPct = 5;
             const rate = 6.5;
             const appreciation = 4.5;
@@ -456,7 +429,7 @@
             const tableBodyOutput = document.getElementById('timelineTableBodyOutput');
             let htmlBuffer = '';
 
-            // Initialize position structures
+            // Initialize track metrics structures
             let currentHomeValue = basePrice;
             let downPaymentDollars = basePrice * (downPct / 100);
             let activeLoanBalance = basePrice - downPaymentDollars;
@@ -467,13 +440,13 @@
             
             let cycleTimerCounter = 0;
             let lastRenderedPhaseLabel = '';
-            const maxTimelineYearsHorizon = 35; 
+            const maxTimelineYearsHorizon = 30; // Strictly cap row calculation lengths at exactly 30 clean iterations
 
             for (let year = 1; year <= maxTimelineYearsHorizon; year++) {
                 const currentAgeIndex = startAge + year - 1;
                 cycleTimerCounter++;
 
-                // Map human lifespan phase brackets across active display rows
+                // Map human lifecycle decades across timeline intervals
                 let currentPhaseLabel = '';
                 if (currentAgeIndex < 40) currentPhaseLabel = "Career & Family Building Years (Ages 18-39)";
                 else if (currentAgeIndex < 55) currentPhaseLabel = "Peak Earning Years (Ages 40-54)";
@@ -482,16 +455,15 @@
 
                 if (currentPhaseLabel !== lastRenderedPhaseLabel && viewMode !== 'flat30') {
                     htmlBuffer += `
-                        <tr class="phase-header-row">
-                            <td colspan="8">${currentPhaseLabel}</td>
+                        <tr class="phase-header-row" style="background:#3D3935;">
+                            <td colspan="7" style="color:#ffffff !important; font-weight:800; padding:0.75rem 1rem;">${currentPhaseLabel}</td>
                         </tr>
                     `;
                     lastRenderedPhaseLabel = currentPhaseLabel;
                 }
 
-                // Process internal 12-month metrics tracks
+                // Process internal monthly payment metrics accruals
                 let annualInterestPaidThisYear = 0;
-                let annualPmiPaidThisYear = 0;
 
                 for (let month = 1; month <= 12; month++) {
                     if (activeLoanBalance > 0) {
@@ -500,30 +472,25 @@
                         
                         annualInterestPaidThisYear += monthlyInterestAccrual;
                         activeLoanBalance -= monthlyPrincipalAccrual;
-
-                        // Add contextual PMI fee checks
-                        if (activeLoanBalance > (basePrice * (1 - (downPct/100))) * 0.80) {
-                            annualPmiPaidThisYear += ((basePrice - (basePrice * (downPct / 100))) * 0.005) / 12;
-                        }
                     }
                 }
 
                 if (activeLoanBalance < 0) activeLoanBalance = 0;
 
-                // local PNW operating tax and reserves formulas
+                // Local operational property tax parameters
                 const computedPropertyTaxThisYear = currentHomeValue * 0.009;
                 let insuranceSlopeValue = 1200;
                 if (currentHomeValue > 500000) insuranceSlopeValue += (currentHomeValue - 500000) * (1800 / 1000000);
                 const maintenanceReservesCostThisYear = currentHomeValue * 0.01;
 
-                // Federal write-off tax reductions index maps
+                // Federal write-off adjustments tracking indices
                 const itemizedDeductionSumTotal = annualInterestPaidThisYear + computedPropertyTaxThisYear;
                 let annualTaxSavingsBenefitValue = 0;
                 if (itemizedDeductionSumTotal > standardDeductionLimit) {
                     annualTaxSavingsBenefitValue = (itemizedDeductionSumTotal - standardDeductionLimit) * federalMarginalTaxBracket;
                 }
 
-                const grossBuyingCostsThisYear = (activeMonthlyPI * 12) + annualPmiPaidThisYear + computedPropertyTaxThisYear + insuranceSlopeValue + maintenanceReservesCostThisYear;
+                const grossBuyingCostsThisYear = (activeMonthlyPI * 12) + computedPropertyTaxThisYear + insuranceSlopeValue + maintenanceReservesCostThisYear;
                 cumulativeBuyerOutflow += (grossBuyingCostsThisYear - annualTaxSavingsBenefitValue);
 
                 // Renter track relocation friction sets
@@ -535,21 +502,21 @@
                 }
                 cumulativeRenterOutflow += renterFrictionCostsThisYear;
 
-                // Forward asset value appreciation slope
+                // Move home asset valuation forward matching appreciation indexes
                 currentHomeValue = currentHomeValue * (1 + (appreciation / 100));
                 let accumulatedCurrentHomeEquity = currentHomeValue - activeLoanBalance;
 
-                // Humanized summary comments engine (relatable, clear narrative translation)
+                // Conversational, layperson-friendly narrative description engine
                 let milestoneMarkupClass = '';
-                let narrativeNoteBlockText = `Put aside ${formatCurrency(maintenanceReservesCostThisYear)} for standard home maintenance and future repairs.`;
+                let narrativeNoteBlockText = `Includes a practical rainy-day fund of ${formatCurrency(maintenanceReservesCostThisYear)} for ongoing home care and upkeep.`;
                 
                 if (annualTaxSavingsBenefitValue > 0) {
-                    narrativeNoteBlockText += ` Tax write-offs helped cut down your federal tax bill by ${formatCurrency(annualTaxSavingsBenefitValue)}.`;
+                    narrativeNoteBlockText += ` Tax advantages put an estimated ${formatCurrency(annualTaxSavingsBenefitValue)} back into your pocket this year.`;
                 }
 
-                // TRIGGER CYCLIC RESETS HOME SELL EVENT (Friction boundary updates)
+                // TRIGGER CYCLIC RESETS HOME SELL EVENT
                 if (executeCyclicResets && cycleTimerCounter >= Math.floor(targetCycleLength) && year < maxTimelineYearsHorizon) {
-                    milestoneMarkupClass = 'cycle-reset-row';
+                    milestoneMarkupClass = 'cycle-transition-row';
                     
                     const salesTransactionFrictionCosts = currentHomeValue * 0.07;
                     const liquidatedNetProceedsEquityCash = currentHomeValue - activeLoanBalance - salesTransactionFrictionCosts;
@@ -564,25 +531,25 @@
                     cumulativeBuyerOutflow += salesTransactionFrictionCosts; 
                     accumulatedCurrentHomeEquity = currentHomeValue - activeLoanBalance;
 
-                    narrativeNoteBlockText = `<span class="milestone-tag-badge cycle-badge">Move Executed</span> Time for a change! Based on local averages, you sold your home, paid closing fees, and rolled your accumulated equity into your next place.`;
+                    narrativeNoteBlockText = `<span class="milestone-tag-badge badge-cycle">Move Executed</span> Time for a change! Based on local averages, you sold your home, paid closing fees, and rolled your accumulated equity into your next place.`;
                     cycleTimerCounter = 0;
                 }
 
                 if (flagMovingFrictionTrigger && milestoneMarkupClass === '') {
-                    narrativeNoteBlockText += ` Lease ended: packed up and moved to a new rental, paying roughly ${formatCurrency(moveCost)} in moving trucks and deposits.`;
+                    narrativeNoteBlockText += ` Moving year: Cost an estimated ${formatCurrency(moveCost)} in moving expenses, plus the time and energy of packing up.`;
                 }
 
-                // Anchor check parameters for flat 30 year structural views
+                // Explicitly monitor flat 30 year structural milestone boundaries
                 if (!executeCyclicResets) {
-                    if (year === 9) {
-                        milestoneMarkupClass = 'milestone-row';
-                        narrativeNoteBlockText = `<span class="milestone-tag-badge">Tenure Average</span> You've hit the typical timeframe most local families stay in a home before trading up or relocating.`;
+                    if (year === 10) {
+                        milestoneMarkupClass = 'flat-milestone-row';
+                        narrativeNoteBlockText = `<span class="milestone-tag-badge badge-flat">Tenure Average</span> You've hit the typical timeframe most local families stay in a home before trading up or relocating.`;
                     } else if (year === 15) {
-                        milestoneMarkupClass = 'milestone-row';
-                        narrativeNoteBlockText = `<span class="milestone-tag-badge">Halfway Mark</span> You've officially crossed the midway point! From here on out, your monthly payments knock off significantly more debt and build equity much faster.`;
+                        milestoneMarkupClass = 'flat-milestone-row';
+                        narrativeNoteBlockText = `<span class="milestone-tag-badge">Halfway Mark</span> A major milestone: More of your monthly payment is now knocking down your loan balance rather than going toward interest.`;
                     } else if (year === 30) {
-                        milestoneMarkupClass = 'milestone-row';
-                        narrativeNoteBlockText = `<span class="milestone-tag-badge">Free &amp; Clear</span> Congratulations, your mortgage is completely paid off! You own the home fully, and housing costs drop to just taxes and insurance.`;
+                        milestoneMarkupClass = 'flat-milestone-row';
+                        narrativeNoteBlockText = `<span class="milestone-tag-badge badge-flat">Free &amp; Clear</span> You own your home completely free and clear! No more mortgage payments—just local property taxes and insurance from here on out.`;
                     }
                 }
 
@@ -590,6 +557,7 @@
                 const avgMonthlyBuyerCost = (grossBuyingCostsThisYear - annualTaxSavingsBenefitValue) / 12;
                 const avgMonthlyRenterCost = renterFrictionCostsThisYear / 12;
 
+                // Append primary numeric metrics row
                 htmlBuffer += `
                     <tr class="${milestoneMarkupClass}">
                         <td class="cell-year-header">Age ${currentAgeIndex}<br><span style="font-size:0.75rem; color:#666; font-weight:700;">(Year ${year})</span></td>
@@ -601,7 +569,15 @@
                         <td class="${netWealthVarianceResult > 0 ? 'cell-wealth-positive' : 'cell-cost-negative'}">
                             ${netWealthVarianceResult > 0 ? 'Buyer +' + formatCurrency(netWealthVarianceResult) : 'Renter +' + formatCurrency(Math.abs(netWealthVarianceResult))}
                         </td>
-                        <td><span class="timeline-narrative-text">${narrativeNoteBlockText}</span></td>
+                    </tr>
+                `;
+
+                // Append matching narrative text sub-row immediately below
+                htmlBuffer += `
+                    <tr class="narrative-row">
+                        <td colspan="7">
+                            <span class="timeline-narrative-text">${narrativeNoteBlockText}</span>
+                        </td>
                     </tr>
                 `;
 
