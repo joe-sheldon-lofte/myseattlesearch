@@ -171,7 +171,7 @@
             padding: 0.75rem 1rem !important;
             font-size: 0.95rem !important;
             font-weight: 800 !important;
-            color: #ffffff !important; /* Fixed text readability bug */
+            color: #ffffff !important;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             border-bottom: 2px solid #000 !important;
@@ -265,7 +265,7 @@
             .loan-officer-referral-block { display: flex !important; margin-top: 2rem !important; border: 2px solid #000000 !important; border-radius: 8px !important; padding: 1rem !important; gap: 2rem !important; page-break-inside: avoid !important; break-inside: avoid !important; }
             .officer-avatar-img { width: 75px !important; height: 75px !important; border: 1.5px solid #000 !important; }
             .officer-print-info { display: block !important; font-size: 9pt !important; font-weight: 700 !important; color: #000000 !important; line-height: 1.4; }
-            .compliance-disclaimer-text { margin-top: 1.5rem !important; border-top: 1.5px solid #000 !important; font-size: 8pt !important; color: #333 !important; }
+            .compliance-disclaimer-text { margin-top: 1.5rem !important; border-top: 1.5px solid #000 !important; font-size: 8pt !important; color: #444 !important; }
         }
     </style>
 </head>
@@ -504,7 +504,7 @@
             let baseRate = parsedFeedRatesRegistry[type] || 6.50;
             let adjustmentFactor = 0;
 
-            // Apply Loan-Level Price Adjustments for Conventional matrices
+            // Apply Loan-Level Price Adjustments for Conventional fixed blocks
             if (type === 'Conventional' && price > 0) {
                 const manualDownValue = parseFloat(downValEl.value) || 0;
                 let computedDownPct = manualDownValue;
@@ -558,10 +558,6 @@
             if (income > 100000) return 0.24;
             if (income > 45000) return 0.22;
             return 0.12;
-        }
-
-        function formatCurrency(num) {
-            return new Intl.NewFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
         }
 
         function generateComparativeWealthTimeline() {
@@ -618,7 +614,7 @@
             let cycleTimerCounter = 0;
             let lastRenderedPhaseLabel = '';
             
-            // Dynamic Horizon: Flat view stays at 30, Life View dynamically spans to Age 85
+            // Dynamic Horizon Span: Flat view stays at 30, Life View dynamically covers up to Age 85
             const maxTimelineYearsHorizon = (viewMode === 'flat30') ? 30 : Math.max(30, 85 - startAge);
 
             const tableBodyOutput = document.getElementById('timelineTableBodyOutput');
@@ -651,25 +647,32 @@
                 let annualInterestPaidThisYear = 0;
                 let annualPmiPaidThisYear = 0;
 
-                // Amortize if within 30 year standard lifecycle terms
-                for (let month = 1; month <= 12; month++) {
-                    if (activeLoanBalance > 0) {
-                        const monthlyInterestAccrual = activeLoanBalance * ((inputRateVal / 100) / 12);
-                        const monthlyPrincipalAccrual = activeMonthlyPI - monthlyInterestAccrual;
-                        
-                        annualInterestPaidThisYear += monthlyInterestAccrual;
-                        activeLoanBalance -= monthlyPrincipalAccrual;
+                // Process internal 12-month metrics tracks if mortgage lifespan is active
+                if (year <= 30) {
+                    for (let month = 1; month <= 12; month++) {
+                        if (activeLoanBalance > 0) {
+                            const monthlyInterestAccrual = activeLoanBalance * ((inputRateVal / 100) / 12);
+                            const monthlyPrincipalAccrual = activeMonthlyPI - monthlyInterestAccrual;
+                            
+                            annualInterestPaidThisYear += monthlyInterestAccrual;
+                            activeLoanBalance -= monthlyPrincipalAccrual;
 
-                        // Layer mortgage insurance programs factors
-                        if (programType === 'Conventional' && activeLoanBalance > (basePrice * 0.80) && (calculatedDownPaymentDollars / basePrice) < 0.20) {
-                            annualPmiPaidThisYear += ((basePrice - calculatedDownPaymentDollars) * 0.005) / 12;
-                        } else if (programType === 'FHA') {
-                            annualPmiPaidThisYear += (principalFirstMortgage * 0.0055) / 12;
+                            let actualDownPct = downValueFieldInput;
+                            if (downUnitSelectField === '$') {
+                                actualDownPct = (downValueFieldInput / basePrice) * 100;
+                            }
+
+                            // Layer mortgage insurance programs factors
+                            if (programType === 'Conventional' && activeLoanBalance > (basePrice * 0.80) && actualDownPct < 20) {
+                                annualPmiPaidThisYear += ((basePrice - calculatedDownPaymentDollars) * 0.005) / 12;
+                            } else if (programType === 'FHA') {
+                                annualPmiPaidThisYear += (principalFirstMortgage * 0.0055) / 12;
+                            }
                         }
                     }
                 }
 
-                if (activeLoanBalance < 0) activeLoanBalance = 0;
+                if (activeLoanBalance < 0 || year > 30) activeLoanBalance = 0;
 
                 // local PNW operating tax and reserves formulas
                 const computedPropertyTaxThisYear = currentHomeValue * 0.009;
@@ -684,8 +687,8 @@
                     annualTaxSavingsBenefitValue = (itemizedDeductionSumTotal - standardDeductionLimit) * federalMarginalTaxBracket;
                 }
 
-                // If loan is zeroed (past 30 years), active debt outlays fall to $0
-                const actualMortgageCashFlowThisYear = (activeLoanBalance > 0 || annualInterestPaidThisYear > 0) ? (activeMonthlyPI * 12) : 0;
+                // If loan is satisfied (past 30 years), standard debt outlays drop to $0
+                const actualMortgageCashFlowThisYear = (year <= 30 && activeLoanBalance > 0) ? (activeMonthlyPI * 12) : 0;
                 
                 const grossBuyingCostsThisYear = actualMortgageCashFlowThisYear + annualPmiPaidThisYear + computedPropertyTaxThisYear + insuranceSlopeValue + maintenanceReservesCostThisYear;
                 cumulativeBuyerOutflow += (grossBuyingCostsThisYear - annualTaxSavingsBenefitValue);
@@ -710,14 +713,20 @@
                 if (annualTaxSavingsBenefitValue > 0) {
                     narrativeNoteBlockText += ` Tax advantages put an estimated ${formatCurrency(annualTaxSavingsBenefitValue)} back into your pocket this year.`;
                 }
-                if (programType === 'Conventional' && annualPmiPaidThisYear === 0 && activePmiCheck && activeLoanBalance > 0) {
+
+                let actualDownPctCheck = downValueFieldInput;
+                if (downUnitSelectField === '$') {
+                    actualDownPctCheck = (downValueFieldInput / basePrice) * 100;
+                }
+
+                if (programType === 'Conventional' && annualPmiPaidThisYear === 0 && actualDownPctCheck < 20 && activeLoanBalance > 0 && year <= 30) {
                     narrativeNoteBlockText += ` Great news! Your PMI has automatically dropped away since your loan balance is under 80% of what you bought it for.`;
                 }
                 if (year > 30) {
                     narrativeNoteBlockText = `Your home is completely paid off! No more mortgage payments—you are only tracking local taxes, insurance, and routine property upkeep.`;
                 }
 
-                // TRIGGER CYCLIC RESETS HOME SELL EVENT (Only runs if mortgage is active)
+                // TRIGGER CYCLIC RESETS HOME SELL EVENT (Only updates if loan holds lifecycle time and under year 30 bounds)
                 if (executeCyclicResets && cycleTimerCounter >= Math.floor(targetCycleLength) && year < 30) {
                     milestoneMarkupClass = 'cycle-transition-row';
                     
