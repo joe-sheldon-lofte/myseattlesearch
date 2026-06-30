@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rent vs Buy Wealth Analysis | Joe Sheldon</title>
+    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=64">
+    
+    <script src="components.js"></script>
+
+    <style>
+        .rvb-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            min-height: 75vh;
+        }
+
+        .rvb-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        @media (min-width: 992px) {
+            .rvb-layout {
+                grid-template-columns: 350px 1fr;
+            }
+        }
+
+        /* Control Form Panel Styles */
+        .rvb-input-panel {
+            background: #f4f6f8;
+            border-top: 5px solid var(--premier-charcoal);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            height: fit-content;
+        }
+        .rvb-input-panel h3 {
+            margin: 0 0 1.25rem 0;
+            font-size: 1.05rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #3D3935;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0.35rem;
+        }
+
+        .form-stack-blocks {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .input-element-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .input-element-wrapper label {
+            font-size: 0.7rem;
+            font-weight: 800;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .input-element-wrapper input, .input-element-wrapper select {
+            padding: 0.5rem 0.6rem;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500; /* Clean, relaxed weight */
+            color: #222;
+            background: #fff;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .input-element-wrapper input:focus, .input-element-wrapper select:focus {
+            border-color: #C13030;
+            outline: none;
+        }
+
+        .dual-unit-input-group {
+            display: flex;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .dual-unit-input-group input {
+            border: none !important;
+            padding: 0.5rem 0.6rem;
+            font-weight: 500;
+        }
+        .dual-unit-input-group select {
+            border: none !important;
+            background: #e0e0e0 !important;
+            font-weight: 700 !important;
+            width: 55px !important;
+            padding: 0 0.25rem !important;
+            text-align: center;
+            cursor: pointer;
+            border-left: 2px solid #ccc !important;
+            border-radius: 0 !important;
+        }
+
+        .btn-crunch-analysis {
+            width: 100%;
+            padding: 0.75rem;
+            background: #C13030;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .btn-crunch-analysis:hover { background: #9c2424; }
+
+        /* Output Summary Cards */
+        .rvb-results-wrapper {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 2rem 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            border: 1px solid #eaeaea;
+            display: none;
+            animation: paneFadeIn 0.4s ease-in-out;
+        }
+        @keyframes paneFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .timeline-scroll-box { width: 100%; overflow-x: auto; margin-top: 1.5rem; }
+        .timeline-data-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .timeline-data-table th { background: #f4f6f8; font-size: 0.72rem; font-weight: 900; text-transform: uppercase; color: #555; padding: 1rem 0.75rem; border-bottom: 2px solid #000; }
+        .timeline-data-table td { padding: 1rem 0.75rem; font-size: 0.9rem; font-weight: 500; color: #444; border-bottom: 1px solid #eef0f2; vertical-align: top; }
+        
+        /* Highlight Specific Core Milestone Rows */
+        .milestone-row { background: #FFF9F9 !important; border-left: 4px solid #C13030; }
+        .milestone-row td { font-weight: 700 !important; color: #000 !important; }
+        .milestone-badge { background: #C13030; color: #fff; font-size: 0.68rem; font-weight: 800; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; display: inline-block; margin-top: 3px; }
+
+        .cell-year-header { font-weight: 800 !important; color: #222 !important; }
+        .cell-wealth-positive { color: #137333 !important; font-weight: 700; }
+        .cell-cost-negative { color: #C13030 !important; }
+        .timeline-narrative-text { font-size: 0.8rem; line-height: 1.4; color: #555; font-weight: 500; max-width: 260px; display: block; }
+
+        /* Referral Block Elements */
+        .partner-referral-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            background: #fdfdfd;
+            border: 1px solid #eaeaea;
+            border-radius: 12px;
+            padding: 1.75rem;
+            margin-top: 3rem;
+            align-items: center;
+        }
+        @media (min-width: 600px) {
+            .partner-referral-container { grid-template-columns: 100px 1fr; gap: 2rem; }
+        }
+        .partner-avatar-img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--premier-beige); }
+        .partner-info h4 { margin: 0 0 0.25rem 0; font-size: 1.25rem; font-weight: 900; color: #3D3935; }
+        .partner-info p { margin: 0 0 1rem 0; font-size: 0.9rem; color: #666; font-weight: 600; }
+        .partner-apply-btn { display: inline-flex; background: var(--premier-charcoal); color: #fff; padding: 0.5rem 1.25rem; border-radius: 4px; font-size: 0.85rem; font-weight: 700; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px; border: none; cursor: pointer; }
+        .partner-apply-btn:hover { background: #222; }
+
+        .legal-matrix-disclaimer { font-size: 0.78rem; line-height: 1.4; color: #777; margin-top: 1.5rem; text-align: center; border-top: 1px dashed #dddddd; padding-top: 1rem; font-weight: 500; }
+        .print-analysis-trigger { background: transparent; border: 1px solid #b3b3b3; color: #666; padding: 0.45rem 1.25rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; display: block; margin: 2rem auto 0 auto; }
+        .print-analysis-trigger:hover { border-color: #333; color: #222; background: #fafafa; }
+
+        /* Printed Page Configuration Layouts */
+        .print-only-header, .partner-print-info { display: none; }
+
+        /* ==========================================
+           HIGH-IMPACT MARKETING PRINT STYLESHEET
+           ========================================== */
+        @media print {
+            @page { size: letter landscape; margin: 0.4in; } /* Landscape is optimal for large comparative grids */
+            body { background: #ffffff !important; color: #000000 !important; font-size: 9.5pt !important; line-height: 1.25 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            
+            universal-header, universal-footer, .events-header, .rvb-input-panel, 
+            .print-analysis-trigger, .partner-apply-btn {
+                display: none !important;
+            }
+
+            .rvb-results-wrapper { display: block !important; box-shadow: none !important; padding: 0 !important; border: none !important; }
+            .print-only-header { display: block !important; width: 100% !important; }
+            
+            .print-only-header h1 { font-size: 16pt !important; font-weight: 700 !important; color: #C13030 !important; }
+            .print-only-header p { font-size: 8.5pt !important; font-weight: 500 !important; color: #333333 !important; }
+            .print-only-header h3 { font-size: 11pt !important; font-weight: 700 !important; color: #3D3935 !important; }
+            .print-only-header p.url-line { font-size: 8.5pt !important; font-weight: 500 !important; color: #666666 !important; }
+
+            .timeline-data-table { width: 100% !important; margin-top: 1.25rem !important; }
+            .timeline-data-table th { background: #f8f9fa !important; color: #000000 !important; border-bottom: 2.5px solid #000000 !important; font-weight: 700 !important; font-size: 8pt !important; }
+            .timeline-data-table td { border-bottom: 1px solid #000000 !important; padding: 6px 4px !important; font-size: 8.5pt !important; }
+            
+            .milestone-row { background: #FFF0F0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .timeline-narrative-text { max-width: 220px !important; font-size: 7.5pt !important; }
+
+            .partner-referral-container { display: flex !important; margin-top: 2rem !important; border: 2px solid #000000 !important; border-radius: 8px !important; padding: 1rem !important; gap: 2rem !important; page-break-inside: avoid !important; break-inside: avoid !important; }
+            .partner-avatar-img { width: 75px !important; height: 75px !important; border: 1.5px solid #000 !important; }
+            .partner-print-info { display: block !important; font-size: 9pt !important; font-weight: 700 !important; color: #000000 !important; line-height: 1.4; }
+            .legal-matrix-disclaimer { margin-top: 1.5rem !important; border-top: 1.5px solid #000 !important; font-size: 7.5pt !important; color: #333 !important; }
+        }
+    </style>
+</head>
+<body class="rent-vs-buy-matrix-page">
+
+    <universal-header></universal-header>
+
+    <main class="rvb-container">
+        
+        <div class="events-header" style="text-align: center; margin-bottom: 2rem;">
+            <h1 style="margin-top: 1rem; font-size: 2.6rem; font-weight: 900; color: #C13030; text-transform: uppercase; letter-spacing: -0.5px;">Rent vs Buy Wealth Timeline</h1>
+            <p class="intro">A comprehensive 30-year macroeconomic analysis modeling localized PNW friction and asset adjustments.</p>
+        </div>
+
+        <div class="rvb-layout">
+            
+            <aside class="rvb-input-panel">
+                <h3>Buying Parameters</h3>
+                <div class="form-stack-blocks">
+                    <div class="input-element-wrapper">
+                        <label>Purchase Price ($)</label>
+                        <input type="number" id="inPrice" value="850000">
+                    </div>
+                    <div class="input-element-wrapper">
+                        <label>Down Payment</label>
+                        <div class="dual-unit-input-group">
+                            <input type="number" id="inDownValue" value="5">
+                            <select id="inDownUnit">
+                                <option value="%">%</option>
+                                <option value="$">$</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-element-wrapper">
+                        <label>Interest Rate (%)</label>
+                        <input type="number" id="inRate" value="6.5" step="0.125">
+                    </div>
+                    <div class="input-element-wrapper">
+                        <label>Annual Appreciation (%)</label>
+                        <input type="number" id="inAppreciation" value="4.5" step="0.1">
+                    </div>
+                </div>
+
+                <h3>Renting Parameters</h3>
+                <div class="form-stack-blocks">
+                    <div class="input-element-wrapper">
+                        <label>Initial Monthly Rent ($)</label>
+                        <input type="number" id="inRent" value="3200">
+                    </div>
+                    <div class="input-element-wrapper">
+                        <label>Annual Rent Inflation (%)</label>
+                        <input type="number" id="inRentInflation" value="4.0" step="0.1">
+                    </div>
+                    <div class="input-element-wrapper">
+                        <label>Moving Cycle Frequency (Years)</label>
+                        <input type="number" id="inMoveFreq" value="3">
+                    </div>
+                    <div class="input-element-wrapper">
+                        <label>Financial Cost Per Move ($)</label>
+                        <input type="number" id="inMoveCost" value="2500">
+                    </div>
+                </div>
+
+                <h3>Tax Parameters</h3>
+                <div class="form-stack-blocks" style="margin-bottom: 1.25rem;">
+                    <div class="input-element-wrapper">
+                        <label>Annual Household Income ($)</label>
+                        <input type="number" id="inIncome" value="165000">
+                    </div>
+                    <div class="input-element-wrapper">
+                        <label>Tax Filing Status</label>
+                        <select id="inFilingStatus">
+                            <option value="single">Single (Standard Baseline)</option>
+                            <option value="married">Married Filing Jointly</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="btn-crunch-analysis" onclick="generateComparativeWealthTimeline()">Generate Timeline</button>
+            </aside>
+
+            <section class="rvb-results-wrapper" id="resultsCardWrapper">
+                
+                <div class="print-only-header">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid #C13030; padding-bottom: 12px; margin-bottom: 25px;">
+                        <div>
+                            <h1 style="margin:0;">Rent vs Buy Financial Analysis</h1>
+                            <p style="margin: 3px 0 0 0;">30-Year Wealth Compounding &amp; Structural Milestone Blueprint</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <h3 style="margin:0; white-space: nowrap;">Joe Sheldon</h3>
+                            <p style="margin:3px 0 0 0;" class="url-line">myseattlesearch.com</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--premier-charcoal); margin: 0; text-transform: none;">30-Year Lifecycle Comparison Table</h2>
+                
+                <div class="timeline-scroll-box">
+                    <table class="timeline-data-table">
+                        <thead>
+                            <tr>
+                                <th>Year</th>
+                                <th>Home Value</th>
+                                <th>Loan Balance</th>
+                                <th>Buyer Monthly Outflow</th>
+                                <th>Renter Monthly Outflow</th>
+                                <th>Accumulated Home Equity</th>
+                                <th>Net Cumulative Outflow Diff</th>
+                                <th>Timeline Milestones &amp; Friction Analysis</th>
+                            </tr>
+                        </thead>
+                        <tbody id="timelineTableBodyOutput"></tbody>
+                    </table>
+                </div>
+
+                <div class="partner-referral-container">
+                    <img src="assets/images/carly.jpg" class="partner-avatar-img" alt="Carly Ozuna - Rocket Mortgage" onerror="this.src='https://placehold.co/100x100?text=Carly+Ozuna'">
+                    <div class="partner-info">
+                        <h4>Carly Ozuna</h4>
+                        <p>Rocket Mortgage &bull; Preferred Lending Partner</p>
+                        <div class="partner-print-info" style="margin-bottom: 0.5rem;">
+                            <strong>Direct Lender Contact:</strong> 425-218-4630 &bull; carlyozuna@rocketmortgage.com<br>
+                            <strong>Secure Pre-Approval Pipeline Track:</strong> https://rkt.me/carlyozuna#rf_aid=4621
+                        </div>
+                        <a href="https://rkt.me/carlyozuna#rf_aid=4621" target="_blank" class="partner-apply-btn">Apply Securely with Carly &rarr;</a>
+                    </div>
+                </div>
+
+                <div class="legal-matrix-disclaimer">
+                    Legal Disclaimer &amp; Education Notice: All matrix loops, interest rate compounding tables, tax deduction models, and property appreciation figures are engineered strictly for consumer educational and illustrative baseline indexing purposes. Localized municipality tax parameters, standard deductions, and insurance premiums slide unpredictably over a 30-year lifecycle. This does not constitute an official commitment to lend or structural tax advice. Washington State enforces no individual personal income tax; interest adjustments model federal tax bracket indexing criteria exclusively. Consult a certified CPA and a licensed Mortgage Loan Originator (MLO) for underwriting verification.
+                </div>
+
+                <button onclick="window.print()" class="print-analysis-trigger">Print Financial Analysis</button>
+            </section>
+
+        </div>
+
+    </main>
+
+    <universal-footer></universal-footer>
+
+    <script>
+        function calculateAmortizationMonthlyPayment(principal, annualRate) {
+            if (principal <= 0) return 0;
+            const monthlyRate = (annualRate / 100) / 12;
+            const totalPaymentsCount = 360;
+            if (monthlyRate === 0) return principal / totalPaymentsCount;
+            return principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPaymentsCount)) / (Math.pow(1 + monthlyRate, totalPaymentsCount) - 1);
+        }
+
+        function estimateFederalTaxBracketMarginalRate(income) {
+            // Simplified 2026 federal income tax bracket parameters baseline estimate
+            if (income > 250000) return 0.32;
+            if (income > 100000) return 0.24;
+            if (income > 45000) return 0.22;
+            return 0.12;
+        }
+
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+        }
+
+        function generateComparativeWealthTimeline() {
+            // Pull configuration states from parameters inputs panel
+            const price = parseFloat(document.getElementById('inPrice').value) || 0;
+            const downVal = parseFloat(document.getElementById('inDownValue').value) || 0;
+            const downUnit = document.getElementById('inDownUnit').value;
+            const rate = parseFloat(document.getElementById('inRate').value) || 0;
+            const appreciation = parseFloat(document.getElementById('inAppreciation').value) || 0;
+            
+            let rent = parseFloat(document.getElementById('inRent').value) || 0;
+            const rentInflation = parseFloat(document.getElementById('inRentInflation').value) || 0;
+            const moveFreq = parseInt(document.getElementById('inMoveFreq').value) || 3;
+            const moveCost = parseFloat(document.getElementById('inMoveCost').value) || 0;
+            
+            const income = parseFloat(document.getElementById('inIncome').value) || 0;
+            const filingStatus = document.getElementById('inFilingStatus').value;
+
+            if (price === 0 || rent === 0) {
+                alert("Please enter purchase price and monthly rent thresholds.");
+                return;
+            }
+
+            // Underwriting calculation step configurations
+            let downPaymentDollars = downVal;
+            if (downUnit === '%') {
+                downPaymentDollars = price * (downVal / 100);
+            }
+            
+            const originalLoanAmount = price - downPaymentDollars;
+            const baselineMonthlyPI = calculateAmortizationMonthlyPayment(originalLoanAmount, rate);
+            
+            // Standard deductions limits baseline parameters
+            const standardDeductionLimit = (filingStatus === 'married') ? 31200 : 15600;
+            const federalMarginalTaxBracket = estimateFederalTaxBracketMarginalRate(income);
+
+            const tableBodyOutput = document.getElementById('timelineTableBodyOutput');
+            let htmlBuffer = '';
+
+            // Set running timeline parameter indexes
+            let runningLoanBalance = originalLoanAmount;
+            let currentHomeValue = price;
+            let cumulativeBuyerOutflow = downPaymentDollars; // Start with down payment cash out pocket
+            let cumulativeRenterOutflow = 0;
+
+            const standardConventionalPmiDropThreshold = originalLoanAmount * 0.80;
+
+            // Loop lifecycle year iteration blocks
+            for (let year = 1; year <= 30; year++) {
+                
+                // Track internal year metrics loops
+                let annualInterestPaidThisYear = 0;
+                let annualPrincipalPaidThisYear = 0;
+                let annualPmiPaidThisYear = 0;
+
+                // Process internal 12-month calculation loop for this specific year iteration track
+                for (let month = 1; month <= 12; month++) {
+                    if (runningLoanBalance > 0) {
+                        const monthlyInterestAccrual = runningLoanBalance * ((rate / 100) / 12);
+                        const monthlyPrincipalAccrual = baselineMonthlyPI - monthlyInterestAccrual;
+                        
+                        annualInterestPaidThisYear += monthlyInterestAccrual;
+                        annualPrincipalPaidThisYear += monthlyPrincipalAccrual;
+                        runningLoanBalance -= monthlyPrincipalAccrual;
+
+                        // Add PMI rule context if loan value is greater than 80% baseline cutoff
+                        if (runningLoanBalance > standardConventionalPmiDropThreshold && downUnit === '%' && downVal < 20) {
+                            // Average conventional PMI monthly fee projection factor
+                            const monthlyPmiCostIndex = (originalLoanAmount * 0.005) / 12;
+                            annualPmiPaidThisYear += monthlyPmiCostIndex;
+                        }
+                    }
+                }
+
+                if (runningLoanBalance < 0) runningLoanBalance = 0;
+
+                // Dynamic sliding scale local property taxes & insurance fee estimates
+                const computedPropertyTaxThisYear = currentHomeValue * 0.009; // 0.9% regional baseline tax multiplier
+                
+                let insuranceSlopeValue = 1200;
+                if (currentHomeValue > 500000) {
+                    insuranceSlopeValue += (currentHomeValue - 500000) * (1800 / 1000000); // Progressive insurance mapping curve
+                }
+
+                // 1% Annual Structural Maintenance Reserves Tracking Matrix
+                const maintenanceReservesCostThisYear = currentHomeValue * 0.01;
+
+                // Process Itemized Federal Mortgage Tax Deduction Calculations
+                const itemizedDeductionSumTotal = annualInterestPaidThisYear + computedPropertyTaxThisYear;
+                let annualTaxSavingsBenefitValue = 0;
+                if (itemizedDeductionSumTotal > standardDeductionLimit) {
+                    annualTaxSavingsBenefitValue = (itemizedDeductionSumTotal - standardDeductionLimit) * federalMarginalTaxBracket;
+                }
+
+                // Compile aggregate buyers cash cost flow vectors
+                const totalGrossBuyingOutflowThisYear = (baselineMonthlyPI * 12) + annualPmiPaidThisYear + computedPropertyTaxThisYear + insuranceSlopeValue + maintenanceReservesCostThisYear;
+                const netAdjustedBuyingOutflowThisYear = totalGrossBuyingOutflowThisYear - annualTaxSavingsBenefitValue;
+                cumulativeBuyerOutflow += netAdjustedBuyingOutflowThisYear;
+
+                // Compile aggregate renters cash cost flow vectors
+                let totalRenterFrictionCostsThisYear = (rent * 12);
+                let flagMovingFrictionTrigger = false;
+
+                if (year % moveFreq === 0) {
+                    totalRenterFrictionCostsThisYear += moveCost;
+                    flagMovingFrictionTrigger = true;
+                }
+                cumulativeRenterOutflow += totalRenterFrictionCostsThisYear;
+
+                // Compute final valuation appreciation indices for the cycle
+                currentHomeValue = currentHomeValue * (1 + (appreciation / 100));
+                const accumulatedCurrentHomeEquity = currentHomeValue - runningLoanBalance;
+                
+                // Net cash flow variance indicator parameters
+                const netOutflowCashDifferential = cumulativeBuyerOutflow - cumulativeRenterOutflow;
+
+                // Formulate detailed narrative metadata comments per milestone anchors
+                let milestoneMarkupClass = '';
+                let narrativeNoteBlockText = `Home asset tracks maintenance reserves of ${formatCurrency(maintenanceReservesCostThisYear)} built in.`;
+
+                if (annualPmiPaidThisYear > 0) {
+                    narrativeNoteBlockText += ` Active PMI costing ${formatCurrency(annualPmiPaidThisYear)} this year.`;
+                } else if (originalLoanAmount > standardConventionalPmiDropThreshold) {
+                    narrativeNoteBlockText += ` PMI has automatically fallen off layout parameters.`;
+                }
+
+                if (annualTaxSavingsBenefitValue > 0) {
+                    narrativeNoteBlockText += ` Itemized write-offs reduced federal exposure by ${formatCurrency(annualTaxSavingsBenefitValue)}.`;
+                }
+
+                if (flagMovingFrictionTrigger) {
+                    narrativeNoteBlockText += ` Rent relocation cycle hit: paid ${formatCurrency(moveCost)} moving fees + emotional re-lease impact.`;
+                }
+
+                // Explicitly check for specific strategic data timeline highlights
+                if (year === 7) {
+                    milestoneMarkupClass = 'milestone-row';
+                    narrativeNoteBlockText = `<span class="milestone-badge">Median Turning Point</span> Typical transitional real estate velocity benchmark checkpoint.`;
+                } else if (year === 9) {
+                    milestoneMarkupClass = 'milestone-row';
+                    narrativeNoteBlockText = `<span class="milestone-badge">8.6-Year Ownership Average</span> Statistical national average duration for holding an initial primary title before selling or trading up.`;
+                } else if (year === 15) {
+                    milestoneMarkupClass = 'milestone-row';
+                    narrativeNoteBlockText = `<span class="milestone-badge">Midway Amortization</span> Principal paydown velocity accelerates dramatically from this point forward.`;
+                } else if (year === 30) {
+                    milestoneMarkupClass = 'milestone-row';
+                    narrativeNoteBlockText = `<span class="milestone-badge">Lien Freedom</span> Mortgage fully zeroed out. Your monthly housing expense drops strictly to base taxes and insurance.`;
+                }
+
+                const avgMonthlyBuyerCost = netAdjustedBuyingOutflowThisYear / 12;
+                const avgMonthlyRenterCost = totalRenterFrictionCostsThisYear / 12;
+
+                htmlBuffer += `
+                    <tr class="${milestoneMarkupClass}">
+                        <td class="cell-year-header">Year ${year}</td>
+                        <td>${formatCurrency(currentHomeValue)}</td>
+                        <td>${runningLoanBalance > 0 ? formatCurrency(runningLoanBalance) : 'Zeroed'}</td>
+                        <td class="cell-cost-negative">${formatCurrency(avgMonthlyBuyerCost)}/mo</td>
+                        <td class="cell-cost-negative">${formatCurrency(avgMonthlyRenterCost)}/mo</td>
+                        <td class="cell-wealth-positive">${formatCurrency(accumulatedCurrentHomeEquity)}</td>
+                        <td class="${netOutflowCashDifferential > 0 ? 'cell-cost-negative' : 'cell-wealth-positive'}">
+                            ${netOutflowCashDifferential > 0 ? 'Paid +' + formatCurrency(netOutflowCashDifferential) + ' more' : 'Saved ' + formatCurrency(Math.abs(netOutflowCashDifferential))}
+                        </td>
+                        <td><span class="timeline-narrative-text">${narrativeNoteBlockText}</span></td>
+                    </tr>
+                `;
+
+                // Compound rent index threshold forward to initialize the upcoming loop year
+                rent = rent * (1 + (rentInflation / 100));
+            }
+
+            tableBodyOutput.innerHTML = htmlBuffer;
+            document.getElementById('resultsCardWrapper').style.display = 'block';
+            document.getElementById('resultsCardWrapper').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
