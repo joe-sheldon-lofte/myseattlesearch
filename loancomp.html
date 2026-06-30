@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Financing Strategy Matrix | Joe Sheldon</title>
-    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=61">
+    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=62">
     
     <script src="components.js"></script>
 
@@ -267,7 +267,7 @@
 
             .loan-officer-referral-block { display: flex !important; margin-top: 3.5rem !important; border: 2px solid #000000 !important; border-radius: 8px !important; padding: 1.25rem !important; gap: 2rem !important; page-break-inside: avoid !important; break-inside: avoid !important; }
             .officer-avatar-img { width: 85px !important; height: 85px !important; border: 2px solid #000 !important; }
-            .officer-print-info { display: block !important; font-size: 9.5pt !important; font-weight: 700 !important; color: #333; line-height: 1.4; }
+            .officer-print-info { display: block !important; font-size: 9.5pt !important; font-weight: 700 !important; color: #000000 !important; line-height: 1.4; }
             .compliance-disclaimer-text { margin-top: 2rem !important; border-top: 2px solid #000 !important; font-size: 8pt !important; color: #444 !important; }
         }
     </style>
@@ -299,7 +299,7 @@
                         <p style="margin: 3px 0 0 0; font-size: 0.95rem; font-weight: 800; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">Custom Mortgage Comparison Profile</p>
                     </div>
                     <div style="text-align: right;">
-                        <h3 style="margin:0; font-size: 1.1rem; font-weight: 900; color: #3D3935; white-space: nowrap;">JOE SHELDON</h3>
+                        <h3 style="margin:0; font-size: 1.3rem; font-weight: 900; color: #3D3935; white-space: nowrap;">JOE SHELDON</h3>
                         <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: #555;">myseattlesearch.com</p>
                     </div>
                 </div>
@@ -326,15 +326,15 @@
             </div>
 
             <div class="loan-officer-referral-block">
-                <img src="assets/images/carly.jpg" class="officer-avatar-img" alt="Carly - Preferred Mortgage Partner" onerror="this.src='https://placehold.co/100x100?text=Mortgage+Partner'">
+                <img src="assets/images/carly.jpg" class="officer-avatar-img" alt="Carly Ozuna - Rocket Mortgage" onerror="this.src='https://placehold.co/100x100?text=Carly+Ozuna'">
                 <div class="officer-info">
-                    <h4>Carly</h4>
-                    <p>Preferred Lending Expert &amp; Mortgage Advisor</p>
+                    <h4>Carly Ozuna</h4>
+                    <p>Rocket Mortgage &bull; Preferred Lending Partner</p>
                     <div class="officer-print-info" style="margin-bottom: 0.5rem;">
-                        <strong>Direct Contact Reference:</strong> apply@myseattlesearch.com &bull; Preferred NWMLS Lender Group<br>
-                        <strong>Secure Application Track:</strong> Scan or visit myseattlesearch.com/professionals to initiate underwriting setup.
+                        <strong>Direct Lender Contact:</strong> 425-218-4630 &bull; carlyozuna@rocketmortgage.com<br>
+                        <strong>Secure Pre-Approval Pipeline Track:</strong> https://rkt.me/carlyozuna#rf_aid=4621
                     </div>
-                    <a href="https://www.redfinmortgage.com" target="_blank" class="officer-apply-btn">Apply Securely with Carly &rarr;</a>
+                    <a href="https://rkt.me/carlyozuna#rf_aid=4621" target="_blank" class="officer-apply-btn">Apply Securely with Carly &rarr;</a>
                 </div>
             </div>
 
@@ -401,7 +401,7 @@
                             </div>
                             <div class="input-item-box">
                                 <label>Purchase Price ($)</label>
-                                <input type="number" class="input-purchase-price" id="price_${id}" value="${price}" oninput="evaluateCardUnderwritingConstraints(${id})">
+                                <input type="number" class="input-purchase-price" id="price_${id}" value="${price}" oninput="evaluateCardUnderwritingConstraints(${id}, 'price')">
                             </div>
                         </div>
 
@@ -413,8 +413,8 @@
                             <div class="input-item-box">
                                 <label>Down Payment</label>
                                 <div class="down-payment-input-group">
-                                    <input type="number" class="input-down-value" id="down_${id}" value="${downVal}" oninput="evaluateCardUnderwritingConstraints(${id})">
-                                    <select class="input-down-unit" id="unit_${id}" onchange="evaluateCardUnderwritingConstraints(${id})">
+                                    <input type="number" class="input-down-value" id="down_${id}" value="${downVal}" oninput="evaluateCardUnderwritingConstraints(${id}, 'down')">
+                                    <select class="input-down-unit" id="unit_${id}" onchange="evaluateCardUnderwritingConstraints(${id}, 'unit')">
                                         <option value="%" ${downUnit==='%'?'selected':''}>%</option>
                                         <option value="$" ${downUnit==='$'?'selected':''}>$</option>
                                     </select>
@@ -439,7 +439,7 @@
             `;
 
             deckContainer.appendChild(cardEl);
-            evaluateCardUnderwritingConstraints(id);
+            evaluateCardUnderwritingConstraints(id, 'init');
         }
 
         function deleteStrategyCardNode(id) {
@@ -459,17 +459,20 @@
                 card.querySelector('.input-down-unit').value,
                 card.querySelector('.input-interest-rate').value,
                 card.querySelector('.input-program-fees').value,
-                card.querySelector('.input-closing-costs').value,
-                false
+                card.querySelector('.input-closing-costs').value
             );
         }
 
         function handleProgramTypeRateShift(id, val) {
+            const card = document.getElementById(`strategy_card_${id}`);
+            if (card) {
+                card.dataset.automated = "true";
+            }
             const rateInput = document.getElementById(`rate_${id}`);
             if (rateInput && coreProgramRateRegistry[val]) {
                 rateInput.value = coreProgramRateRegistry[val];
             }
-            evaluateCardUnderwritingConstraints(id);
+            evaluateCardUnderwritingConstraints(id, 'program');
         }
 
         function runAutoEstimateForCard(id) {
@@ -492,7 +495,7 @@
             }
         }
 
-        function evaluateCardUnderwritingConstraints(id) {
+        function evaluateCardUnderwritingConstraints(id, source) {
             const card = document.getElementById(`strategy_card_${id}`);
             if (!card) return;
 
@@ -500,33 +503,41 @@
             const price = parseFloat(document.getElementById(`price_${id}`).value) || 0;
             const downValEl = document.getElementById(`down_${id}`);
             const feesEl = document.getElementById(`fees_${id}`);
+            const unitEl = document.getElementById(`unit_${id}`);
 
-            // Prevent constraint overriding when the row parameters are loading entirely blank
+            // Break background state locks if user intentionally inputs manual values
+            if (source === 'down' || source === 'unit') {
+                card.dataset.automated = "false";
+            }
+
             if (price === 0) return;
 
             if (type.includes('DPA')) {
-                if (price * 0.97 <= conformingLoanCapBoundary) {
-                    if (downValEl.value === "" || card.dataset.automated === "true") {
-                        downValEl.value = 0;
-                        document.getElementById(`unit_${id}`).value = '$';
-                    }
-                    const dynamicFirstLoan = Math.min(price * 0.97, conformingLoanCapBoundary);
-                    feesEl.value = Math.round(dynamicFirstLoan * 0.01);
-                    card.dataset.automated = "true";
-                } else {
-                    if (downValEl.value === "0" || card.dataset.automated === "true") {
+                const isHighBalance = (price * 0.97 > conformingLoanCapBoundary);
+                
+                if (card.dataset.automated !== "false") {
+                    if (isHighBalance) {
                         downValEl.value = Math.round(price * 0.01);
-                        document.getElementById(`unit_${id}`).value = '$';
+                        unitEl.value = '$';
+                    } else {
+                        downValEl.value = 0;
+                        unitEl.value = '$';
                     }
-                    const highBalanceFirstLoan = price * 0.95;
-                    feesEl.value = Math.round(highBalanceFirstLoan * 0.02);
                     card.dataset.automated = "true";
                 }
+
+                if (isHighBalance) {
+                    const highBalanceFirstLoan = price * 0.95;
+                    feesEl.value = Math.round(highBalanceFirstLoan * 0.02);
+                } else {
+                    const dynamicFirstLoan = Math.min(price * 0.97, conformingLoanCapBoundary);
+                    feesEl.value = Math.round(dynamicFirstLoan * 0.01);
+                }
             } else {
-                if (card.dataset.automated === "true") {
+                if (source === 'program') {
                     feesEl.value = '';
                     downValEl.value = (type === 'FHA') ? 3.5 : (type === 'VA' ? 0 : 5);
-                    document.getElementById(`unit_${id}`).value = '%';
+                    unitEl.value = '%';
                     card.dataset.automated = "false";
                 }
             }
