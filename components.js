@@ -16,7 +16,7 @@ class UniversalHeader extends HTMLElement {
                     <ul class="menu-links">
                         <li><a href="index.html">Home</a></li>
                         <li><a href="stats.html">Local Insights</a></li>
-                        <li><a href="news.html">Market News</a></li>
+                        <li><a href="news.html">Local & Market News</a></li>
                         <li><a href="searches.html">Curated Searches</a></li>
                         <li><a href="sellers.html">Sell with Joe</a></li>
                         <li><a href="movedna.html">MoveDNA Assessment</a></li>
