@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Financing Strategy Matrix | Joe Sheldon</title>
-    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=62">
+    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=63">
     
     <script src="components.js"></script>
 
@@ -256,14 +256,22 @@
 
             .matrix-results-card { display: block !important; box-shadow: none !important; padding: 0 !important; border: none !important; }
             .print-only-header { display: block !important; width: 100% !important; }
+            
+            /* Tamed down layout weights for printable header areas */
+            .print-only-header h1 { font-size: 16pt !important; font-weight: 700 !important; color: #C13030 !important; }
+            .print-only-header p { font-size: 8.5pt !important; font-weight: 500 !important; color: #333333 !important; }
+            .print-only-header h3 { font-size: 11pt !important; font-weight: 700 !important; color: #3D3935 !important; }
+            .print-only-header p.url-line { font-size: 8.5pt !important; font-weight: 500 !important; color: #666666 !important; }
 
             .matrix-output-table { margin-top: 1.5rem !important; width: 100% !important; }
-            .matrix-output-table th { background: #f8f9fa !important; color: #000000 !important; border-bottom: 3px solid #000000 !important; font-weight: 900 !important; font-size: 8.5pt !important; }
+            
+            /* Tamed table headers weight and casing */
+            .matrix-output-table th { background: #f8f9fa !important; color: #000000 !important; border-bottom: 3px solid #000000 !important; font-weight: 700 !important; font-size: 8.5pt !important; text-transform: none !important; }
             .matrix-output-table td { border-bottom: 1.5px solid #000000 !important; padding: 1rem 6px !important; font-size: 9.5pt !important; }
             
-            .cell-bold-headline { font-weight: 900 !important; font-size: 10pt !important; }
-            .cell-cash-highlight { color: #C13030 !important; font-weight: 900 !important; }
-            .cell-payment-large { font-size: 12pt !important; font-weight: 900 !important; color: #000000 !important; }
+            .cell-bold-headline { font-weight: 700 !important; font-size: 10pt !important; }
+            .cell-cash-highlight { color: #C13030 !important; font-weight: 700 !important; }
+            .cell-payment-large { font-size: 11pt !important; font-weight: 700 !important; color: #000000 !important; }
 
             .loan-officer-referral-block { display: flex !important; margin-top: 3.5rem !important; border: 2px solid #000000 !important; border-radius: 8px !important; padding: 1.25rem !important; gap: 2rem !important; page-break-inside: avoid !important; break-inside: avoid !important; }
             .officer-avatar-img { width: 85px !important; height: 85px !important; border: 2px solid #000 !important; }
@@ -295,17 +303,17 @@
             <div class="print-only-header">
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid #C13030; padding-bottom: 12px; margin-bottom: 25px;">
                     <div>
-                        <h1 style="margin:0; font-size: 2.4rem; font-weight: 900; color: #C13030; letter-spacing: -0.5px;">STRATEGY FINANCING MATRIX</h1>
-                        <p style="margin: 3px 0 0 0; font-size: 0.95rem; font-weight: 800; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">Custom Mortgage Comparison Profile</p>
+                        <h1 style="margin:0;">Strategy Financing Matrix</h1>
+                        <p style="margin: 3px 0 0 0;">Custom Mortgage Comparison Profile</p>
                     </div>
                     <div style="text-align: right;">
-                        <h3 style="margin:0; font-size: 1.3rem; font-weight: 900; color: #3D3935; white-space: nowrap;">JOE SHELDON</h3>
-                        <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: #555;">myseattlesearch.com</p>
+                        <h3 style="margin:0; white-space: nowrap;">Joe Sheldon</h3>
+                        <p style="margin:3px 0 0 0;" class="url-line">myseattlesearch.com</p>
                     </div>
                 </div>
             </div>
 
-            <h2 style="font-size: 1.5rem; font-weight: 900; color: var(--premier-charcoal); margin: 0; text-transform: uppercase; letter-spacing: -0.3px;">Side-by-Side Comparison Matrix</h2>
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--premier-charcoal); margin: 0; text-transform: none; letter-spacing: normal;">Side-by-Side Comparison Matrix</h2>
             
             <div class="table-scroll-container">
                 <table class="matrix-output-table">
@@ -501,9 +509,9 @@
 
             const type = card.querySelector('.input-loan-type').value;
             const price = parseFloat(document.getElementById(`price_${id}`).value) || 0;
-            const downValEl = document.getElementById(`down_${id}`);
-            const feesEl = document.getElementById(`fees_${id}`);
-            const unitEl = document.getElementById(`unit_${id}`);
+            const downValEl = document.getElementById('down_' + id);
+            const feesEl = document.getElementById('fees_' + id);
+            const unitEl = document.getElementById('unit_' + id);
 
             // Break background state locks if user intentionally inputs manual values
             if (source === 'down' || source === 'unit') {
@@ -592,7 +600,7 @@
 
                 outputBuffer += `
                     <tr>
-                        <td class="cell-bold-headline">${profileName}<br><span style="font-size:0.75rem; color:#666; font-weight:700; text-transform:uppercase;">${programType} @ ${rate.toFixed(3)}%</span></td>
+                        <td class="cell-bold-headline">${profileName}<br><span style="font-size:0.75rem; color:#666; font-weight:700;">${programType} @ ${rate.toFixed(3)}%</span></td>
                         <td>${formatCurrency(price)}</td>
                         <td>${formatCurrency(principalFirstMortgage)}</td>
                         <td>${formatCurrency(calculatedDownPaymentDollars)}</td>
