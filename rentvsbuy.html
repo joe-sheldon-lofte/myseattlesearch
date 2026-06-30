@@ -28,7 +28,7 @@
             }
         }
 
-        /* Input Controls Panel Styles */
+        /* Control Panel Card Styles */
         .control-panel-card {
             background: #f4f6f8;
             border-top: 5px solid var(--premier-charcoal);
@@ -82,24 +82,21 @@
             outline: none;
         }
 
-        .btn-crunch-timeline {
-            grid-column: 1 / -1;
-            padding: 0.85rem;
+        .crunch-matrix-btn {
+            width: 100%;
+            padding: 0.75rem;
             background: #C13030;
             color: #ffffff;
             border: none;
             border-radius: 6px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             cursor: pointer;
             transition: background 0.2s ease;
-            margin-top: 0.5rem;
-            width: 100%;
-            display: block;
         }
-        .btn-crunch-timeline:hover { background: #9c2424; }
+        .crunch-matrix-btn:hover { background: #9c2424; }
 
         .market-assumptions-box {
             background: #eef1f4;
@@ -126,40 +123,6 @@
         }
         .assumption-item-line:last-child { border-bottom: none; }
         .assumption-item-line strong { font-weight: 700; color: #222; }
-
-        .slider-header-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.72rem;
-            font-weight: 800;
-            color: #555;
-            text-transform: uppercase;
-        }
-
-        /* Combined down payment block with unit switch */
-        .down-payment-combo-group {
-            display: flex;
-            border: 2px solid #ccc;
-            border-radius: 6px;
-            overflow: hidden;
-            background: #fff;
-        }
-        .down-payment-combo-group input {
-            border: none !important;
-            padding: 0.6rem 0.75rem;
-            font-weight: 500;
-        }
-        .down-payment-combo-group select {
-            border: none !important;
-            background: #e0e0e0 !important;
-            font-weight: 700 !important;
-            width: 55px !important;
-            padding: 0 0.25rem !important;
-            text-align: center;
-            cursor: pointer;
-            border-left: 2px solid #ccc !important;
-            border-radius: 0 !important;
-        }
 
         /* Output Summary Elements */
         .rvb-results-card {
@@ -265,7 +228,7 @@
             .loan-officer-referral-block { display: flex !important; margin-top: 2rem !important; border: 2px solid #000000 !important; border-radius: 8px !important; padding: 1rem !important; gap: 2rem !important; page-break-inside: avoid !important; break-inside: avoid !important; }
             .officer-avatar-img { width: 75px !important; height: 75px !important; border: 1.5px solid #000 !important; }
             .officer-print-info { display: block !important; font-size: 9pt !important; font-weight: 700 !important; color: #000000 !important; line-height: 1.4; }
-            .compliance-disclaimer-text { margin-top: 1.5rem !important; border-top: 1.5px solid #000 !important; font-size: 7.5pt !important; color: #333 !important; }
+            .compliance-disclaimer-text { margin-top: 1.5rem !important; border-top: 1.5px solid #000 !important; font-size: 8pt !important; color: #444 !important; }
         }
     </style>
 </head>
@@ -280,66 +243,31 @@
             <p class="intro">Put real estate timelines on a human scale based on your life decade milestones.</p>
         </div>
 
-        <section class="control-panel-card">
-            <h3>Financing Parameters</h3>
-            <div class="control-form-grid">
+        <aside class="control-panel-card">
+            <h3>Your Profile Basics</h3>
+            <div class="form-input-stack">
                 
-                <div class="input-element-box">
+                <div class="input-field-group">
                     <label>Current Age</label>
                     <input type="number" id="inAge" value="30" min="18" max="75">
                 </div>
                 
-                <div class="input-element-box">
+                <div class="input-field-group">
                     <label>Annual Household Income ($)</label>
                     <input type="number" id="inIncome" value="165000">
                 </div>
 
-                <div class="input-element-box">
-                    <label>Credit Score Range</label>
-                    <select id="inCreditScore" onchange="evaluateLiveRateLockAdjustments()">
-                        <option value="740">740+ (Excellent)</option>
-                        <option value="700">700–739 (Good)</option>
-                        <option value="660">660–699 (Fair)</option>
-                        <option value="620">620–659 (Subprime Baseline)</option>
-                    </select>
-                </div>
-
-                <div class="input-element-box">
-                    <label>Loan Program</label>
-                    <select id="inLoanType" onchange="handleLoanTypeMenuShift()">
-                        <option value="Conventional">Conventional</option>
-                        <option value="FHA">Standard FHA</option>
-                        <option value="VA">VA Loan</option>
-                    </select>
-                </div>
-
-                <div class="input-element-box">
-                    <label>Target Purchase Price ($)</label>
-                    <input type="number" id="inPrice" value="850000" oninput="evaluateLiveRateLockAdjustments()">
-                </div>
-
-                <div class="input-element-box">
-                    <label>Down Payment</label>
-                    <div class="down-payment-combo-group">
-                        <input type="number" id="inDownValue" value="5" oninput="handleDownPaymentManualOverride()">
-                        <select id="inDownUnit" onchange="handleDownPaymentManualOverride()">
-                            <option value="%">%</option>
-                            <option value="$">$</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="input-element-box">
-                    <label>Calculated Interest Rate (%)</label>
-                    <input type="number" id="inRate" value="6.50" step="0.125">
-                </div>
-
-                <div class="input-element-box">
+                <div class="input-field-group">
                     <label>Current Monthly Rent ($)</label>
                     <input type="number" id="inRent" value="3200">
                 </div>
 
-                <div class="input-element-box" style="grid-column: 1 / -1;">
+                <div class="input-field-group">
+                    <label>Target Purchase Price ($)</label>
+                    <input type="number" id="inPrice" value="850000">
+                </div>
+
+                <div class="input-field-group">
                     <div class="slider-header-row">
                         <label>How long people usually stay in a home</label>
                         <span id="lblCycleVal" style="font-weight:700; color:#C13030;">10.3 Years</span>
@@ -347,7 +275,7 @@
                     <input type="range" id="inCycleLength" min="3" max="31" step="0.5" value="10.3" oninput="handleSliderMovementValueUpdate(this.value)">
                 </div>
 
-                <div class="input-element-box" style="grid-column: 1 / -1; max-width: 320px; margin: 0 auto; width: 100%;">
+                <div class="input-field-group">
                     <label>Timeline View Mode</label>
                     <select id="inViewMode" onchange="handleViewModeConfigurationChange(this.value)">
                         <option value="phases">Lifespan Phase View</option>
@@ -355,18 +283,19 @@
                     </select>
                 </div>
 
-                <div class="baselines-summary-strip">
-                    <span>Home Appreciation: <strong>4.5%</strong></span>
-                    <span>Rent Inflation: <strong>4.0%</strong></span>
-                    <span>Tenant Lease Frequency: <strong>Every 3 Years</strong></span>
-                    <span>Relocation Pack/Move Costs: <strong>$2,500</strong></span>
+                <div class="market-assumptions-box">
+                    <h4>Real-world baselines for our local market</h4>
+                    <div class="assumption-item-line"><span>Annual Home Appreciation:</span><strong>4.5%</strong></div>
+                    <div class="assumption-item-line"><span>Annual Rent Inflation:</span><strong>4.0%</strong></div>
+                    <div class="assumption-item-line"><span>Tenant Moving Frequency:</span><strong>Every 3 Years</strong></div>
+                    <div class="assumption-item-line"><span>Estimated Cost Per Move:</span><strong>$2,500</strong></div>
                 </div>
 
                 <button class="btn-crunch-timeline" onclick="generateComparativeWealthTimeline()">Generate Timeline</button>
             </div>
-        </section>
+        </aside>
 
-        <div class="matrix-results-card" id="resultsCardWrapper">
+        <div class="rvb-results-card" id="resultsCardWrapper" style="margin-top: 2rem;">
             
             <div class="print-only-header">
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid #C13030; padding-bottom: 12px; margin-bottom: 25px;">
@@ -384,7 +313,7 @@
             <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--premier-charcoal); margin: 0; text-transform: none;">Renting vs. Buying: Your 30-Year Wealth Journey</h2>
             <p style="font-size: 0.9rem; color: #555; margin: 4px 0 0 0;">A real-world look at how homeownership builds long-term security, tracks hidden costs, and shapes your net worth over time.</p>
             
-            <div class="table-scroll-container">
+            <div class="timeline-scroll-box">
                 <table class="timeline-data-table">
                     <thead>
                         <tr>
@@ -426,21 +355,6 @@
     <universal-footer></universal-footer>
 
     <script>
-        // Core local fallback baseline rates registry 
-        let parsedFeedRatesRegistry = {
-            'Conventional': 6.50,
-            'FHA': 6.125,
-            'VA': 6.125
-        };
-
-        let activeLockStateAutomated = true;
-        const rawRateFeedCsvUrl = "./data/rates.csv"; // Points native to your daily news pipelines
-
-        document.addEventListener('DOMContentLoaded', () => {
-            // Safe evaluation layout anchor initialization
-            evaluateLiveRateLockAdjustments();
-        });
-
         function handleSliderMovementValueUpdate(val) {
             const lbl = document.getElementById('lblCycleVal');
             if (parseFloat(val) > 30) {
@@ -461,62 +375,6 @@
             }
         }
 
-        function handleLoanTypeMenuShift() {
-            activeLockStateAutomated = true;
-            evaluateLiveRateLockAdjustments();
-        }
-
-        function handleDownPaymentManualOverride() {
-            activeLockStateAutomated = false;
-            evaluateLiveRateLockAdjustments();
-        }
-
-        function evaluateLiveRateLockAdjustments() {
-            const type = document.getElementById('inLoanType').value;
-            const credit = parseInt(document.getElementById('inCreditScore').value) || 740;
-            const price = parseFloat(document.getElementById('inPrice').value) || 0;
-            const downValEl = document.getElementById('inDownValue');
-            const unitEl = document.getElementById('inDownUnit');
-            const rateInput = document.getElementById('inRate');
-
-            // Apply underlying rules default configurations if no changes exist
-            if (activeLockStateAutomated && price > 0) {
-                if (type === 'VA') {
-                    downValEl.value = 0;
-                    unitEl.value = '%';
-                } else if (type === 'FHA') {
-                    downValEl.value = 3.5;
-                    unitEl.value = '%';
-                } else {
-                    downValEl.value = 5;
-                    unitEl.value = '%';
-                }
-            }
-
-            let baseRate = parsedFeedRatesRegistry[type] || 6.50;
-            let finalAdjustment = 0;
-
-            // Apply Loan-Level Price Adjustments for Conventional matrices
-            if (type === 'Conventional' && price > 0) {
-                const manualDownValue = parseFloat(downValEl.value) || 0;
-                let calculatedDownPct = manualDownValue;
-                if (unitEl.value === '$') {
-                    calculatedDownPaymentPct = (manualDownValue / price) * 100;
-                }
-
-                // Credit Score Risk Brackets
-                if (creditScore < 660) finalRateBreakModifier += 1.00;
-                else if (creditScore < 700) finalFirstLienAdjustmentValue += 0.625;
-                else if (creditScore < 740) finalFirstLoanRiskPadding += 0.25;
-
-                // Down Payment Equity Bracket Rules
-                if (calculatedDownPaymentDollars / price < 0.05) finalFirstLoan += 0.25;
-                else if (calculatedDownPaymentDollars / price >= 0.20) finalFirstLoan -= 0.25;
-            }
-
-            rateInput.value = (baseRate + calculatedDownPaymentDollars).toFixed(3);
-        }
-
         function calculateAmortizationMonthlyPayment(principal, annualRate) {
             if (principal <= 0) return 0;
             const monthlyRate = (annualRate / 100) / 12;
@@ -532,14 +390,16 @@
             return 0.12;
         }
 
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+        }
+
         function generateComparativeWealthTimeline() {
             const startAge = parseInt(document.getElementById('inAge').value) || 30;
             const income = parseFloat(document.getElementById('inIncome').value) || 0;
             let baseRent = parseFloat(document.getElementById('inRent').value) || 0;
             let basePrice = parseFloat(document.getElementById('inPrice').value) || 0;
-            const programType = document.querySelector('.input-loan-type').value;
-            const inputRateVal = parseFloat(document.getElementById('rate_' + uniqueCardIndex || 'inRate').value) || 6.5;
-            
+
             let targetCycleLength = parseFloat(document.getElementById('inCycleLength').value) || 10.3;
             const viewMode = document.getElementById('inViewMode').value;
 
@@ -549,87 +409,81 @@
                 targetCycleLength = 999;
             }
 
-            // Fixed operational market baseline assumptions
+            // Fixed operational market baselines
+            const downPct = 5;
+            const rate = 6.5;
             const appreciation = 4.5;
             const rentInflation = 4.0;
             const moveFreq = 3;
             const moveCost = 2500;
-            const filingStatus = 'single';
-
-            const downValueFieldInput = parseFloat(document.getElementById('inDownValue').value) || 0;
-            const downUnitSelectField = document.getElementById('inDownUnit').value;
-
-            let calculatedDownPaymentDollars = downValueFieldInput;
-            if (downUnitSelectField === '%') {
-                calculatedDownPaymentDollars = basePrice * (downValueFieldInput / 100);
-            }
-
-            const standardDeductionLimit = (filingStatus === 'married') ? 31200 : 15600;
+            const standardDeductionLimit = 15600;
             const federalMarginalTaxBracket = estimateFederalTaxBracketMarginalRate(income);
 
-            const tableBodyOutput = document.getElementById('timelineTableBodyOutput');
-            let htmlBuffer = '';
-
-            // Initialize running track variables
-            let currentHomeValue = basePrice;
-            let activeLoanBalance = basePrice - calculatedDownPaymentDollars;
-            let activeMonthlyPI = calculateAmortizationMonthlyPayment(activeLoanBalance, inputRateVal);
+            let calculatedDownPaymentDollars = basePrice * (downPct / 100);
+            let principalFirstMortgage = basePrice - calculatedDownPaymentDollars;
+            let activeMonthlyPI = calculateAmortizationMonthlyPayment(principalFirstMortgage, rate);
             
             let cumulativeBuyerOutflow = calculatedDownPaymentDollars;
             let cumulativeRenterOutflow = 0;
             
             let cycleTimerCounter = 0;
             let lastRenderedPhaseLabel = '';
-            const maxTimelineYearsHorizon = 30; // Clean 30-year layout ceiling index match
+            const maxTimelineYearsHorizon = 30; // Strictly cap loops at exactly 30 clean rows
+
+            const tableBodyOutput = document.getElementById('timelineTableBodyOutput');
+            let htmlBuffer = '';
+
+            let currentHomeValue = basePrice;
+            let activeLoanBalance = principalFirstMortgage;
 
             for (let year = 1; year <= maxTimelineYearsHorizon; year++) {
                 const currentAgeIndex = startAge + year - 1;
                 cycleTimerCounter++;
 
-                // Map life stages markers across the view matrix
-                let currentPhaseLabel = '';
-                if (currentAgeIndex < 40) currentPhaseLabel = "Career & Family Building Years (Ages 18-39)";
-                else if (currentAgeIndex < 55) currentPhaseLabel = "Peak Earning Years (Ages 40-54)";
-                else if (currentAgeIndex < 67) currentPhaseLabel = "Pre-Retirement & Wealth Consolidation (Ages 55-66)";
-                else currentPhaseLabel = "Retirement Horizon (Ages 67+)";
+                if (viewMode !== 'flat30') {
+                    let currentPhaseLabel = '';
+                    if (currentAgeIndex < 40) currentPhaseLabel = "Career & Family Building Years (Ages 18-39)";
+                    else if (currentAgeIndex < 55) currentPhaseLabel = "Peak Earning Years (Ages 40-54)";
+                    else if (currentAgeIndex < 67) currentPhaseLabel = "Pre-Retirement & Wealth Consolidation (Ages 55-66)";
+                    else currentPhaseLabel = "Retirement Horizon (Ages 67+)";
 
-                if (currentPhaseLabel !== lastRenderedPhaseLabel && viewMode !== 'flat30') {
-                    htmlBuffer += `
-                        <tr class="phase-header-row" style="background:#3D3935;">
-                            <td colspan="7" style="color:#ffffff !important; font-weight:800; padding:0.75rem 1rem;">${currentPhaseLabel}</td>
-                        </tr>
-                    `;
-                    lastRenderedPhaseLabel = currentPhaseLabel;
+                    if (currentPhaseLabel !== lastRenderedPhaseLabel) {
+                        htmlBuffer += `
+                            <tr class="phase-header-row" style="background:#3D3935;">
+                                <td colspan="7" style="color:#ffffff !important; font-weight:800; padding:0.75rem 1rem;">${currentPhaseLabel}</td>
+                            </tr>
+                        `;
+                        lastRenderedPhaseLabel = currentPhaseLabel;
+                    }
                 }
 
-                // Process internal monthly compounding cycles
                 let annualInterestPaidThisYear = 0;
                 let annualPmiPaidThisYear = 0;
 
                 for (let month = 1; month <= 12; month++) {
                     if (activeLoanBalance > 0) {
-                        const monthlyInterestAccrual = activeLoanBalance * ((inputRateVal / 100) / 12);
+                        const monthlyInterestAccrual = activeLoanBalance * ((rate / 100) / 12);
                         const monthlyPrincipalAccrual = activeMonthlyPI - monthlyInterestAccrual;
                         
                         annualInterestPaidThisYear += monthlyInterestAccrual;
                         activeLoanBalance -= monthlyPrincipalAccrual;
 
                         // Check conventional down payment PMI rules bounds
-                        if (programType === 'Conventional' && activeLoanBalance > (basePrice * 0.80) && (calculatedDownPaymentDollars / basePrice) < 0.20) {
-                            annualPmiPaidThisYear += ((basePrice - calculatedDownPaymentDollars) * 0.005) / 12;
+                        if (activeLoanBalance > (basePrice * 0.80) && downPct < 20) {
+                            annualPmiPaidThisYear += (principalFirstMortgage * 0.005) / 12;
                         }
                     }
                 }
 
                 if (activeLoanBalance < 0) activeLoanBalance = 0;
 
-                // local PNW operating tax and reserves formulas
+                // Local property tax and insurance tracking factors
                 const computedPropertyTaxThisYear = currentHomeValue * 0.009;
                 let insuranceSlopeValue = 1200;
                 if (currentHomeValue > 500000) insuranceSlopeValue += (currentHomeValue - 500000) * (1800 / 1000000);
                 const maintenanceReservesCostThisYear = currentHomeValue * 0.01;
 
-                // Federal write-off tax reductions index maps
+                // Federal write-off interest adjustments
                 const itemizedDeductionSumTotal = annualInterestPaidThisYear + computedPropertyTaxThisYear;
                 let annualTaxSavingsBenefitValue = 0;
                 if (itemizedDeductionSumTotal > standardDeductionLimit) {
@@ -639,7 +493,6 @@
                 const grossBuyingCostsThisYear = (activeMonthlyPI * 12) + annualPmiPaidThisYear + computedPropertyTaxThisYear + insuranceSlopeValue + maintenanceReservesCostThisYear;
                 cumulativeBuyerOutflow += (grossBuyingCostsThisYear - annualTaxSavingsBenefitValue);
 
-                // Renter track relocation friction sets
                 let renterFrictionCostsThisYear = (baseRent * 12);
                 let flagMovingFrictionTrigger = false;
                 if (year % moveFreq === 0) {
@@ -648,19 +501,21 @@
                 }
                 cumulativeRenterOutflow += renterFrictionCostsThisYear;
 
-                // Forward asset value appreciation slope
                 currentHomeValue = currentHomeValue * (1 + (appreciation / 100));
                 let accumulatedCurrentHomeEquity = currentHomeValue - activeLoanBalance;
 
-                // Humanized summary comments engine (relatable, clear narrative translation)
+                // Humanized summary narrative text
                 let milestoneMarkupClass = '';
                 let narrativeNoteBlockText = `Includes a practical rainy-day fund of ${formatCurrency(maintenanceReservesCostThisYear)} for ongoing home care and upkeep.`;
                 
                 if (annualTaxSavingsBenefitValue > 0) {
                     narrativeNoteBlockText += ` Tax advantages put an estimated ${formatCurrency(annualTaxSavingsBenefitValue)} back into your pocket this year.`;
                 }
+                if (annualPmiPaidThisYear === 0 && downPct < 20 && activeLoanBalance > 0) {
+                    narrativeNoteBlockText += ` Great news! Your PMI has automatically dropped away since your loan balance is under 80% of what you bought it for.`;
+                }
 
-                // TRIGGER CYCLIC RESETS HOME SELL EVENT
+                // TRIGGER STRATEGIC RESET EVENT
                 if (executeCyclicResets && cycleTimerCounter >= Math.floor(targetCycleLength) && year < maxTimelineYearsHorizon) {
                     milestoneMarkupClass = 'cycle-transition-row';
                     
@@ -672,7 +527,7 @@
                     
                     calculatedDownPaymentDollars = liquidatedNetProceedsEquityCash;
                     activeLoanBalance = basePrice - calculatedDownPaymentDollars;
-                    activeMonthlyPI = calculateAmortizationMonthlyPayment(activeLoanBalance, inputRateVal);
+                    activeMonthlyPI = calculateAmortizationMonthlyPayment(activeLoanBalance, rate);
                     
                     cumulativeBuyerOutflow += salesTransactionFrictionCosts; 
                     accumulatedCurrentHomeEquity = currentHomeValue - activeLoanBalance;
