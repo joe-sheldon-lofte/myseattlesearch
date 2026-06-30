@@ -15,7 +15,7 @@ class UniversalHeader extends HTMLElement {
                 <div class="menu-content-wrapper">
                     <ul class="menu-links">
                         <li><a href="index.html">Home</a></li>
-                        <li><a href="stats.html">Market Insights</a></li>
+                        <li><a href="stats.html">Local Insights</a></li>
                         <li><a href="news.html">Market News</a></li>
                         <li><a href="searches.html">Curated Searches</a></li>
                         <li><a href="sellers.html">Sell with Joe</a></li>
