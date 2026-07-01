@@ -148,6 +148,7 @@ class UniversalFooter extends HTMLElement {
             disclaimerBox.style.display = 'none';
         }
     }
+    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "792b225c84044723a9fbe4e808359d11"}'></script><!-- End Cloudflare Web Analytics -->
 }
 
 class LocalReviews extends HTMLElement {
