@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Joe Sheldon | Redfin Senior Agent</title>
-    <link rel="stylesheet" href="style.css?v=18">
+    <link rel="stylesheet" href="style.css?v=19">
     <script src="components.js"></script>
 </head>
 <body>
@@ -21,7 +21,6 @@
             <p class="title">Redfin Senior Agent</p>
             <p class="service-area">Serving North King & South Snohomish Counties, Washington</p>
             
-            <!-- Dynamic Stats Container using data-stat attributes -->
             <div class="stats-container">
                 <div class="stat-box">
                     <span class="stat-number" data-stat="closed-sales">...</span>
@@ -30,6 +29,10 @@
                 <div class="stat-box">
                     <span class="stat-number" data-stat="volume">...</span>
                     <span class="stat-label">Sales Volume</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-number" data-stat="avg-rating">...</span>
+                    <span class="stat-label">Average Rating</span>
                 </div>
             </div>
 
@@ -40,8 +43,7 @@
 
             <div class="button-group">
                 <a href="contact.vcf" class="btn btn-secondary">Save My Contact Info</a>
-                <a href="searches.html" class="btn btn-primary">Curated Home Searches</a>
-                <a href="https://www.redfin.com/real-estate-agents/joe-sheldon?loyalty=true" class="btn btn-secondary" target="_blank">View My Redfin Profile</a>
+                <a href="https://www.redfin.com/real-estate-agents/joe-sheldon?loyalty=true" class="btn btn-primary" target="_blank">View My Redfin Profile</a>
             </div>
         </section>
 
@@ -54,7 +56,6 @@
         <section class="reviews">
             <h2 style="text-align: center; margin-bottom: 1rem;">Client Reviews</h2>
             
-            <!-- Dynamic Reviews Component -->
             <local-reviews limit="3"></local-reviews>
 
         </section>
@@ -68,7 +69,6 @@
 
 <universal-footer></universal-footer>
 
-<!-- Dynamic Global Stats Fetcher -->
 <script>
     document.addEventListener('DOMContentLoaded', async () => {
         const statsUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiu3qLYVO9khl6k5s_whzg_UZFzKu7-RHc5fa2tpe3aIlf4wm4IaqQeVd75enhpJvS_lxXgfQRfQ_/pub?gid=0&single=true&output=csv';
@@ -76,23 +76,20 @@
             const response = await fetch(statsUrl);
             const text = await response.text();
             
-            // Split strictly by actual line breaks and filter out any empty lines
+            // Split strictly by actual line breaks and filter out empty records
             const lines = text.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
             
-            // Rules: If there's more than one line, line 0 is headers, line 1 is your live data
             if (lines.length > 1) {
                 const data = lines[1].split(','); 
                 
-                // Formatting engine matching your business rules
+                // Optimized formatting engine mapping active elements on the page
                 const formatMap = {
                     'closed-sales': data[0] ? data[0].trim() : '--',
                     'volume': data[1] ? '$' + data[1].trim() + 'M' : '--',
-                    'avg-price': data[2] ? '$' + data[2].trim() + 'K' : '--',
-                    'sale-to-list': data[3] ? data[3].trim() + '%' : '--',
-                    'highest-sale': data[4] ? '$' + data[4].trim() + 'M' : '--'
+                    'avg-rating': data[5] ? parseFloat(data[5].trim()).toFixed(1) : '--'
                 };
 
-                // Hunt for any HTML element requesting a stat and inject the formatted value
+                // Hunt for requested attributes and inject live values
                 document.querySelectorAll('[data-stat]').forEach(el => {
                     const statType = el.getAttribute('data-stat');
                     if (formatMap[statType]) {
@@ -101,9 +98,9 @@
                 });
             }
         } catch (error) {
-            console.error("Failed to fetch global stats:", error);
+            console.error("Failed to fetch global profile metrics:", error);
             
-            // Fallbacks in case the Google Sheet fails to load
+            // Fallback parameters in case data pipeline sync breaks
             document.querySelectorAll('[data-stat]').forEach(el => {
                 if(el.textContent === '...') el.textContent = '--';
             });

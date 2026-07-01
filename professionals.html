@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Preferred Professionals | Joe Sheldon</title>
-    <link rel="stylesheet" href="style.css?v=39">
+    <link rel="stylesheet" href="style.css?v=40">
     <script src="components.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
@@ -22,6 +22,14 @@
             max-width: 800px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.03);
             text-align: left;
+        }
+
+        /* Cleaned Layout Rules for Professional Contacts */
+        .pro-contact-wrapper {
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
         }
 
         /* Legal Requirements Card Section */
@@ -77,8 +85,7 @@
             </div>
         </div>
 
-        <div class="pro-grid" id="proGrid">
-            </div>
+        <div class="pro-grid" id="proGrid"></div>
         
     </main>
 
@@ -86,10 +93,8 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Helper to make clean slugs for our categories
             const slugify = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
-            // Fetch and parse the CSV from Google Sheets directly
             const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSntu7panLCFdXqZNXaJTHezzjKzajniQDJGopLfGJnIKgGEd773sQ0zfm0q8qEnnBzZDBzEjUd0ZAN/pub?gid=0&single=true&output=csv";
             
             Papa.parse(sheetUrl, {
@@ -97,33 +102,39 @@
                 header: true,
                 skipEmptyLines: true,
                 complete: function(results) {
-                    const data = results.data;
+                    let data = results.data;
                     const filterNav = document.getElementById('filterNav');
                     const proGrid = document.getElementById('proGrid');
+
+                    // Filter out rows missing core info to protect sorting execution
+                    data = data.filter(row => row['Category'] && row['Category'].trim() && row['Business/Vendor Name'] && row['Business/Vendor Name'].trim());
+
+                    // Two-Tier Alpha Sorting Engine: Primary = Category, Secondary = Vendor Name
+                    data.sort((a, b) => {
+                        const compareCategory = a['Category'].trim().localeCompare(b['Category'].trim());
+                        if (compareCategory !== 0) return compareCategory;
+                        
+                        return a['Business/Vendor Name'].trim().localeCompare(b['Business/Vendor Name'].trim());
+                    });
 
                     let categories = new Set();
                     let cardsHTML = '';
 
-                    // Loop through every row in the spreadsheet
                     data.forEach(row => {
-                        const category = row['Category'] ? row['Category'].trim() : '';
-                        if (!category) return; // Skip empty rows
-                        
+                        const category = row['Category'].trim();
                         categories.add(category);
                         const catSlug = slugify(category);
 
-                        const rawName = row['Business/Vendor Name'] ? row['Business/Vendor Name'].trim() : '';
+                        const rawName = row['Business/Vendor Name'].trim();
                         let name = rawName;
                         let company = '';
                         
-                        // Look for "Name (Company)" format
                         const match = rawName.match(/^(.*?)\s*\((.*?)\)$/);
                         if (match) {
                             name = match[1].trim();
                             company = match[2].trim();
                         }
 
-                        // Handle trailing spaces in CSV headers just in case
                         let phone = row['Phone Number'] || row['Phone Number '] || '';
                         phone = phone.trim();
                         const phoneClean = phone.replace(/[^\d]/g, '');
@@ -136,12 +147,9 @@
                         }
 
                         const additionalInfo = row['Additional Info'] ? row['Additional Info'].trim() : '';
-                        
-                        // Grab the new Legal fields
                         const legalReq = row['Legal Requirements'] ? row['Legal Requirements'].trim() : '';
                         const legalLink = row['Legal Requirements Link'] ? row['Legal Requirements Link'].trim() : '';
 
-                        // Build the card HTML
                         let card = `<div class="pro-card" data-category="${catSlug}">
                             <div class="pro-card-content">
                                 <div class="pro-header">
@@ -156,7 +164,7 @@
                             card += `<p class="pro-area">${additionalInfo}</p>`;
                         }
                         
-                        card += `<div class="pro-contact" style="margin-top: 1rem;">`;
+                        card += `<div class="pro-contact-wrapper">`;
                         if (phone) {
                             card += `<a href="tel:${phoneClean}" class="pro-link phone">${phone}</a>`;
                         }
@@ -166,9 +174,8 @@
                         if (website) {
                             card += `<a href="${website}" target="_blank" class="pro-link website">Visit Website</a>`;
                         }
-                        card += `</div>`; // Close pro-contact
+                        card += `</div>`; 
                         
-                        // Inject Legal Requirements section if data exists
                         if (legalReq) {
                             card += `<div class="pro-legal">
                                         <span style="line-height: 1.4;"><strong>Credentials:</strong> ${legalReq}</span>`;
@@ -176,27 +183,23 @@
                             if (legalLink) {
                                 card += `<a href="${legalLink}" target="_blank" class="legal-link">Verify active credentials &rarr;</a>`;
                             }
-                            
                             card += `</div>`;
                         }
 
-                        card += `</div></div>`; // Close pro-card-content and pro-card
-
+                        card += `</div></div>`; 
                         cardsHTML += card;
                     });
 
-                    // Build the filter buttons alphabetically
+                    // Build navigation using categories pre-sorted via alphabetical index arrays
                     const sortedCategories = Array.from(categories).sort();
                     let filtersHTML = '<button class="filter-btn active" data-filter="all">All</button>';
                     sortedCategories.forEach(cat => {
                         filtersHTML += `<button class="filter-btn" data-filter="${slugify(cat)}">${cat}</button>`;
                     });
 
-                    // Inject the generated HTML into the page
                     filterNav.innerHTML = filtersHTML;
                     proGrid.innerHTML = cardsHTML;
 
-                    // Setup filter button click events
                     const filterBtns = document.querySelectorAll('.filter-btn');
                     const proCards = document.querySelectorAll('.pro-card');
 
@@ -218,7 +221,6 @@
                         btn.addEventListener('click', () => applyFilter(btn));
                     });
 
-                    // Check URL to see if a specific category was linked to directly
                     const urlParams = new URLSearchParams(window.location.search);
                     const categoryParam = urlParams.get('category');
                     if (categoryParam) {

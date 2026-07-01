@@ -1,3 +1,5 @@
+/* File: components.js */
+
 class UniversalHeader extends HTMLElement {
     connectedCallback() {
         this.innerHTML = `
@@ -15,7 +17,7 @@ class UniversalHeader extends HTMLElement {
                 <div class="menu-content-wrapper">
                     <ul class="menu-links">
                         <li><a href="index.html">Home</a></li>
-                        <li><a href="stats.html">Local Insights</a></li>
+                        <li><a href="stats.html">Local & Market Insights</a></li>
                         <li><a href="news.html">Local & Market News</a></li>
                         <li><a href="searches.html">Curated Searches</a></li>
                         <li><a href="sellers.html">Sell with Joe</a></li>
@@ -28,11 +30,6 @@ class UniversalHeader extends HTMLElement {
                         <a href="https://www.instagram.com/seattlesagent" target="_blank" aria-label="Instagram">
                             <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
-                            </svg>
-                        </a>
-                        <a href="https://www.threads.net/@seattlesagent" target="_blank" aria-label="Threads">
-                            <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12.012 2C6.49 2 2 6.49 2 12s4.49 10 10.012 10C15.684 22 18.99 19.982 20.8 16.924c.068-.114.131-.231.189-.352A9.972 9.972 0 0022 12c0-5.51-4.49-10-9.988-10zm4.216 12.395A4.781 4.781 0 0112 16.782c-3.018 0-5.353-2.417-5.353-5.41s2.335-5.411 5.353-5.411c2.387 0 4.183 1.45 4.757 3.475.097.333.144.686.144 1.05 0 .278-.015.556-.041.829H8.535c.158 1.594 1.383 2.748 2.909 2.748 1.225 0 2.242-.736 2.597-1.844l1.513.528c-.588 1.482-2.083 2.693-4.11 2.693-2.254 0-4.105-1.593-4.308-3.936H12.91c-.015-.218-.037-.438-.065-.66-.142-1.24-1.154-2.084-2.37-2.084-1.196 0-2.165.823-2.392 2.084h4.814c-.012-.412-.046-.821-.102-1.224zm-1.801-1.464c-.153-1.097-1.097-1.872-2.23-1.872-1.114 0-2.04.752-2.253 1.872h4.483z"/>
                             </svg>
                         </a>
                         <a href="https://www.tiktok.com/@seattlespremieragent" target="_blank" aria-label="TikTok">
@@ -63,16 +60,97 @@ class UniversalHeader extends HTMLElement {
 }
 
 class UniversalFooter extends HTMLElement {
-    connectedCallback() {
+    async connectedCallback() {
         this.innerHTML = `
         <footer>
-            <div class="footer-content">
+            <div class="footer-content" style="max-width: 1000px; margin: 0 auto; width: 100%;">
                 <img src="assets/images/redfin.png" alt="Redfin Logo" class="footer-logo">
                 <p class="office-address">3400 188th St SW, Ste 165<br>Lynnwood, WA 98037</p>
                 <p style="margin-top: 1rem; font-size: 0.8rem; opacity: 0.6;"><a href="hereforyou.html" style="color: var(--premier-beige); text-decoration: underline;">My Commitment to Housing Equity & Resources</a></p>
+                
+                <div id="dynamic-disclaimers-box" style="max-width: 750px; margin: 1.75rem auto 0 auto; padding-top: 1.25rem; border-top: 1px solid rgba(239, 236, 229, 0.15); font-size: 0.72rem; line-height: 1.5; text-align: justify; opacity: 0.5; color: var(--premier-beige); padding-left: 1rem; padding-right: 1rem; box-sizing: border-box;"></div>
             </div>
         </footer>
         `;
+
+        const disclaimerBox = this.querySelector('#dynamic-disclaimers-box');
+        const disclaimersUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiu3qLYVO9khl6k5s_whzg_UZFzKu7-RHc5fa2tpe3aIlf4wm4IaqQeVd75enhpJvS_lxXgfQRfQ_/pub?gid=107250527&single=true&output=csv';
+
+        // Extract clean lowercase page identity context (e.g., 'sellers.html')
+        let currentPageName = window.location.pathname.split('/').pop().toLowerCase().trim();
+        if (!currentPageName || currentPageName === "") currentPageName = "index.html";
+
+        try {
+            const response = await fetch(disclaimersUrl);
+            if (!response.ok) throw new Error('Data endpoint unreachable');
+            const csvText = await response.text();
+
+            // Native high-density cell splitter to safely manage quote blocks and inner commas
+            const parseCSVRows = (text) => {
+                const lines = [];
+                let row = [""];
+                let inQuotes = false;
+
+                for (let i = 0; i < text.length; i++) {
+                    let char = text[i];
+                    let nextChar = text[i+1];
+                    if (char === '"') {
+                        if (inQuotes && nextChar === '"') { row[row.length - 1] += '"'; i++; }
+                        else { inQuotes = !inQuotes; }
+                    } else if (char === ',' && !inQuotes) {
+                        row.push('');
+                    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+                        if (char === '\r' && nextChar === '\n') { i++; }
+                        lines.push(row);
+                        row = [''];
+                    } else {
+                        row[row.length - 1] += char;
+                    }
+                }
+                if (row.length > 1 || row[0] !== '') lines.push(row);
+                return lines;
+            };
+
+            const allRows = parseCSVRows(csvText);
+            if (allRows.length < 2) { disclaimerBox.style.display = 'none'; return; }
+
+            let siteWideText = '';
+            let pageSpecificText = '';
+
+            // Run structural match queries across cells
+            for (let i = 1; i < allRows.length; i++) {
+                const row = allRows[i];
+                if (!row || row.length < 2) continue;
+
+                const targetKey = row[0].trim().toLowerCase();
+                const textValue = row[1].trim();
+
+                if (targetKey === 'site') {
+                    siteWideText = textValue;
+                } else if (targetKey === currentPageName) {
+                    pageSpecificText = textValue;
+                }
+            }
+
+            // Assemble sequentially below the commitment threshold link
+            let outputMarkup = '';
+            if (siteWideText) {
+                outputMarkup += `<p style="margin: 0 0 0.75rem 0; text-align: justify;">${siteWideText}</p>`;
+            }
+            if (pageSpecificText) {
+                outputMarkup += `<p style="margin: 0; text-align: justify;">${pageSpecificText}</p>`;
+            }
+
+            if (outputMarkup) {
+                disclaimerBox.innerHTML = outputMarkup;
+            } else {
+                disclaimerBox.style.display = 'none';
+            }
+
+        } catch (error) {
+            console.error("Regulatory disclosure generation error:", error);
+            disclaimerBox.style.display = 'none';
+        }
     }
 }
 
@@ -156,8 +234,6 @@ class LocalReviews extends HTMLElement {
 
             gridContainer.innerHTML = selectedReviews.map(rev => {
                 const stars = '★'.repeat(rev.rating) + '☆'.repeat(5 - rev.rating);
-                
-                // Only create the snippet element if it actually contains text
                 const snippetMarkup = rev.snippet && rev.snippet !== "" 
                     ? `<h4 style="margin: 0 0 0.75rem 0; font-size: 1.05rem; font-style: italic; color: #222222; line-height: 1.4;">"${rev.snippet}"</h4>`
                     : '';
