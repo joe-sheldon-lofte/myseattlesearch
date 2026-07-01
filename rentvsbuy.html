@@ -276,7 +276,7 @@
     <main class="rvb-container">
         
         <div class="events-header" style="text-align: center; margin-bottom: 2rem;">
-            <h1 style="margin-top: 1rem; font-size: 2.6rem; font-weight: 900; color: #C13030; text-transform: uppercase; letter-spacing: -0.5px;">Housing Planner</h1>
+            <h1 style="margin-top: 1rem; font-size: 2.6rem; font-weight: 900; color: #C13030; letter-spacing: -0.5px;">Housing Planner</h1>
             <p class="intro">Put real estate timelines on a human scale based on your life decade milestones.</p>
         </div>
 
@@ -341,8 +341,8 @@
 
                 <div class="input-element-box" style="grid-column: 1 / -1;">
                     <div class="slider-header-row">
-                        <label>How long people usually stay in a home</label>
-                        <span id="lblCycleVal" style="font-weight:700; color:#C13030;">10.3 Years</span>
+                        <label>How long do you think you'll stay in your home?</label>
+                        <span id="lblCycleVal" style="font-weight:700; color:#C13030;">Tip: Washington residents stay an average of 10.3 Years</span>
                     </div>
                     <input type="range" id="inCycleLength" min="3" max="31" step="0.5" value="10.3" oninput="handleSliderMovementValueUpdate(this.value)">
                 </div>
@@ -350,8 +350,8 @@
                 <div class="input-element-box" style="grid-column: 1 / -1; max-width: 320px; margin: 0 auto; width: 100%;">
                     <label>Timeline View Mode</label>
                     <select id="inViewMode" onchange="handleViewModeConfigurationChange(this.value)">
-                        <option value="phases">Life View</option>
-                        <option value="flat30">Standard 30-Year Flat View</option>
+                        <option value="phases">Real Life View</option>
+                        <option value="flat30">Standard 30-Year Mortgage View</option>
                     </select>
                 </div>
 
@@ -434,39 +434,46 @@
         };
 
         let activeLockStateAutomated = true;
-        const rawRateFeedCsvUrl = "./data/rates.csv"; // Points native to your daily news pipelines
+  const rawRateFeedCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiu3qLYVO9khl6k5s_whzg_UZFzKu7-RHc5fa2tpe3aIlf4wm4IaqQeVd75enhpJvS_lxXgfQRfQ_/pub?gid=1486733951&single=true&output=csv";
 
         document.addEventListener('DOMContentLoaded', () => {
             fetchLiveDailyMarketRates();
         });
 
-        async function fetchLiveDailyMarketRates() {
-            try {
-                const res = await fetch(rawRateFeedCsvUrl);
-                if (!res.ok) throw new Error("Fallback required");
-                const text = await res.text();
-                
-                Papa.parse(text, {
-                    header: true,
-                    skipEmptyLines: true,
-                    complete: (results) => {
-                        if (results.data && results.data.length > 0) {
-                            results.data.forEach(row => {
-                                const prog = row.Program || row.type || "";
-                                const val = parseFloat(row.Rate || row.rate);
-                                if (prog && !isNaN(val)) {
-                                    if (prog.toLowerCase().includes("conv")) parsedFeedRatesRegistry['Conventional'] = val;
-                                    else if (prog.toLowerCase().includes("fha")) parsedFeedRatesRegistry['FHA'] = val;
-                                    else if (prog.toLowerCase().includes("va")) parsedFeedRatesRegistry['VA'] = val;
-                                }
-                            });
-                        }
-                        evaluateLiveRateLockAdjustments();
+        function fetchLiveDailyMarketRates() {
+            Papa.parse(rawRateFeedCsvUrl, {
+                download: true,
+                header: false,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    const rows = results.data;
+                    if (rows && rows.length > 1) {
+                        const dataRows = rows.slice(1);
+                        
+                        // Sort rows chronologically by the timestamp string in Column 0
+                        dataRows.sort((a, b) => {
+                            const dateA = new Date(a[0].split(' ')[0]);
+                            const dateB = new Date(b[0].split(' ')[0]);
+                            return dateA - dateB;
+                        });
+                        
+                        // Pull out values from the single latest row in the ledger
+                        const latestRow = dataRows[dataRows.length - 1];
+                        const convVal = parseFloat(latestRow[1]);
+                        const fhaVal = parseFloat(latestRow[2]);
+                        const vaVal = parseFloat(latestRow[3]);
+
+                        // Safely apply numbers directly to your existing memory objects if parsed successfully
+                        if (!isNaN(convVal)) parsedFeedRatesRegistry['Conventional'] = convVal;
+                        if (!isNaN(fhaVal)) parsedFeedRatesRegistry['FHA'] = fhaVal;
+                        if (!isNaN(vaVal)) parsedFeedRatesRegistry['VA'] = vaVal;
                     }
-                });
-            } catch (e) {
-                evaluateLiveRateLockAdjustments();
-            }
+                    evaluateLiveRateLockAdjustments();
+                },
+                error: function() {
+                    evaluateLiveRateLockAdjustments();
+                }
+            });
         }
 
         function handleLoanTypeMenuShift() {

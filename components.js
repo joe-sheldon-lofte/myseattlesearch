@@ -17,8 +17,8 @@ class UniversalHeader extends HTMLElement {
                 <div class="menu-content-wrapper">
                     <ul class="menu-links">
                         <li><a href="index.html">Home</a></li>
-                        <li><a href="stats.html">Local & Market Insights</a></li>
-                        <li><a href="news.html">Local & Market News</a></li>
+                        <li><a href="stats.html">Market Insights</a></li>
+                        <li><a href="news.html">Market News</a></li>
                         <li><a href="searches.html">Curated Searches</a></li>
                         <li><a href="sellers.html">Sell with Joe</a></li>
                         <li><a href="movedna.html">MoveDNA Assessment</a></li>
@@ -76,7 +76,6 @@ class UniversalFooter extends HTMLElement {
         const disclaimerBox = this.querySelector('#dynamic-disclaimers-box');
         const disclaimersUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiu3qLYVO9khl6k5s_whzg_UZFzKu7-RHc5fa2tpe3aIlf4wm4IaqQeVd75enhpJvS_lxXgfQRfQ_/pub?gid=107250527&single=true&output=csv';
 
-        // Extract clean lowercase page identity context (e.g., 'sellers.html')
         let currentPageName = window.location.pathname.split('/').pop().toLowerCase().trim();
         if (!currentPageName || currentPageName === "") currentPageName = "index.html";
 
@@ -85,7 +84,6 @@ class UniversalFooter extends HTMLElement {
             if (!response.ok) throw new Error('Data endpoint unreachable');
             const csvText = await response.text();
 
-            // Native high-density cell splitter to safely manage quote blocks and inner commas
             const parseCSVRows = (text) => {
                 const lines = [];
                 let row = [""];
@@ -117,7 +115,6 @@ class UniversalFooter extends HTMLElement {
             let siteWideText = '';
             let pageSpecificText = '';
 
-            // Run structural match queries across cells
             for (let i = 1; i < allRows.length; i++) {
                 const row = allRows[i];
                 if (!row || row.length < 2) continue;
@@ -132,7 +129,6 @@ class UniversalFooter extends HTMLElement {
                 }
             }
 
-            // Assemble sequentially below the commitment threshold link
             let outputMarkup = '';
             if (siteWideText) {
                 outputMarkup += `<p style="margin: 0 0 0.75rem 0; text-align: justify;">${siteWideText}</p>`;
@@ -242,7 +238,7 @@ class LocalReviews extends HTMLElement {
                     <div class="review-component-card" style="background: #ffffff; padding: 1.75rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; flex-direction: column; border-top: 5px solid #C13030;">
                         <div style="color: #C13030; font-size: 1rem; font-weight: 800; margin-bottom: 0.75rem; letter-spacing: 0.5px;">5.0 <span style="font-size: 1.1rem; letter-spacing: 1px;">${stars}</span></div>
                         ${snippetMarkup}
-                        <p style="margin: 0 0 1.25rem 0; font-size: 0.95rem; color: #222222; line-weight: 500; line-height: 1.6; flex-grow: 1;">${rev.fullText}</p>
+                        <p style="margin: 0 0 1.25rem 0; font-size: 0.95rem; color: #222222; line-weight: 500; line-height: 1.6;">${rev.fullText}</p>
                         <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #222222; opacity: 0.7;">— ${rev.reviewer}</div>
                     </div>
                 `;
