@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Local Community Insights | Joe Sheldon</title>
-    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=59">
+    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=60">
     
     <script src="components.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -715,10 +715,6 @@
             <p class="intro">Real-time data and historical trends for the Pacific Northwest.</p>
         </div>
 
-        <div class="data-warning-banner">
-            ⚠️ <strong>Heads Up:</strong> This dashboard is currently building its live pipelines. Data tracking is active, but charts and comparisons will not be fully normalized or historically accurate until <strong>July 1st</strong>.
-        </div>
-
         <div class="filter-nav-container">
             <div class="filter-nav" id="regionSelector">
                 <button class="filter-btn active" data-region="North Sound">North Sound</button>
@@ -844,7 +840,7 @@
                 <strong>Understanding Velocity:</strong> "Off Market in 2 Weeks" tracks pure buyer confidence and raw competitive haste. The <strong>Market Friction Index</strong> is a proprietary 0-100 score indicating competitive intensity. Higher numbers point to a high-velocity seller's market, while lower numbers represent a buyer-friendly environment.
             </div>
             <div class="compliance-footer" style="margin-bottom: 3rem;">
-                Data provided by Redfin, a national real estate brokerage.
+                Market data provided by the <a href="https://www.redfin.com/news/data-center/" target="_blank" style="color: var(--redfin-red); text-decoration: underline; font-weight: 700;">Redfin Data Center</a>.
             </div>
 
             <div class="section-header">
@@ -877,15 +873,15 @@
             </div>
             
             <div class="educational-note" style="margin-top: 2rem;">
-                <strong>Decoding Macro Trends:</strong> The Buyer Showings Per Listing index highlights actual physical engagement levels before transaction numbers reflect them. Coupled with historical closed sales, this section exposes fundamental structural patterns beneath normal market noise.
+                <strong>Decoding Long Term Trends:</strong> The Buyer Showings Per Listing index shows actual buyers touring homes, which is a physical indicator of buyer activity. Coupled with historical closed sales, this allows us to understand how many buyers are physically viewing homes before they go under contract.
             </div>
             <div class="compliance-footer" style="margin-bottom: 1rem;">
-                Information contained in this section is sourced from Northwest Multiple Listing Service (NWMLS) compiled data feeds via InfoSparks. This data is intended for consumer insight and holds certified baseline authenticity markers.
+                Attribution: Based on information from the Northwest Multiple Listing Service. Statistics not compiled or published by NWMLS. Data represents the most recent rolling 12-month period and is updated monthly.
             </div>
 
             <section class="community-metrics-section">
                 <h2>Community Profile & Lifestyle</h2>
-                <p style="color: #555; font-size: 1.05rem; margin-bottom: 2rem; text-align: center; font-weight: 500;">City-wide scores, resource boundaries, and environmental metrics.</p>
+                <p style="color: #555; font-size: 1.05rem; margin-bottom: 2rem; text-align: center; font-weight: 500;">City-wide data, insights, and resources.</p>
                 
                 <div class="metrics-grid">
                     <div class="metric-card" id="walkScoreCard">
@@ -1026,7 +1022,7 @@
                                     </div>
                                     <span class="custom-info-toggle" onclick="document.getElementById('crimeExplanation').classList.toggle('active')">What do these numbers mean?</span>
                                     <div id="crimeExplanation" class="psai-dropdown">
-                                        <strong>What "Per 1,000 Residents" Means:</strong> This normalizes the data so a buyer can fairly compare a small town to a massive metropolis. For example, a property rate of 20.0 means that for every 1,000 neighbors living in this city, roughly 20 property-related incidents (theft, burglary, vandalism) are recorded annually.<br><br><strong>The Crime Categories:</strong><br>• <em>Violent Crime:</em> Reflects crimes against persons (assault, robbery, tracking infractions).<br>• <em>Property Crime:</em> Reflects crimes against structures or goods (burglary, larceny, motor vehicle theft, vandalism).
+                                        <strong>What "Per 1,000 Residents" Means:</strong> This normalizes the data so a buyer can fairly compare a small town to a massive metropolis. For example, a property crime rate of 20.0 means that for every 1,000 neighbors living in this city, roughly 20 property-related incidents (theft, burglary, vandalism) are recorded annually.<br><br><strong>The Crime Categories:</strong><br>• <em>Violent Crime:</em> Reflects crimes against persons (assault, robbery, tracking infractions).<br>• <em>Property Crime:</em> Reflects crimes against structures or goods (burglary, larceny, motor vehicle theft, vandalism).
                                     </div>
                                 </div>
                                 <a href="#" id="spotCrimeLink" target="_blank" class="card-action-btn" style="margin-top: 0; width: 100%;">View additional local crime data on SpotCrime &rarr;</a>
@@ -1058,7 +1054,7 @@
                                 </div>
                             </div>
                             <div id="surveillanceNoticeBlock" class="custom-notice-block" style="border-left-color: #F5A623; background: #FFFBF0; margin-bottom: 1rem;">
-                                ℹ️ <strong>Infrastructure Audit Note:</strong> Crowd-sourced hardware logging or tracking software catalogs are currently incomplete or undergoing verification parameters for this micro-region. Physical tracking lists are suppressed to avoid structural blind spots.
+                                ℹ️ <strong>Data Note:</strong> Surveillance data is currently not available for this city.
                             </div>
                             <div id="surveillanceActiveData" style="display: none;">
                                 <div class="surveillance-metrics-list">
@@ -1630,8 +1626,8 @@
                         let customVibe = "Average Performance";
                         if (districtData.custom_score >= 8.0) customVibe = "Exceptional System";
                         else if (districtData.custom_score >= 6.0) customVibe = "Strong Academic Profile";
-                        else if (districtData.custom_score >= 4.0) customVibe = "Stabilized Baseline";
-                        else customVibe = "Needs Localized Adjustments";
+                        else if (districtData.custom_score >= 4.0) customVibe = "Solid Baseline Academics";
+                        else customVibe = "Needs Local District Adjustments";
                         document.getElementById('districtCustomVibe').textContent = customVibe;
 
                         const mathPct = districtData.district_math_proficiency || 0;
