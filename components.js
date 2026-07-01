@@ -143,13 +143,22 @@ class UniversalFooter extends HTMLElement {
                 disclaimerBox.style.display = 'none';
             }
 
-        } catch (error) {
+} catch (error) {
             console.error("Regulatory disclosure generation error:", error);
             disclaimerBox.style.display = 'none';
         }
-    }
-    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "792b225c84044723a9fbe4e808359d11"}'></script><!-- End Cloudflare Web Analytics -->
-}
+
+        // Clean JavaScript Injection for Cloudflare Web Analytics
+        if (!document.getElementById('cloudflare-analytics-beacon')) {
+            const cfScript = document.createElement('script');
+            cfScript.id = 'cloudflare-analytics-beacon';
+            cfScript.defer = true;
+            cfScript.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+            cfScript.setAttribute('data-cf-beacon', '{"token": "792b225c84044723a9fbe4e808359d11"}');
+            document.head.appendChild(cfScript);
+        }
+    } // This bracket closes connectedCallback
+} // This bracket closes UniversalFooter class
 
 class LocalReviews extends HTMLElement {
     async connectedCallback() {
