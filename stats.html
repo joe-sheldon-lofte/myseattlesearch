@@ -1475,7 +1475,7 @@
                                         return val !== null && val !== undefined && val !== 'NaN' && !Number.isNaN(val);
                                     }).map(row => {
                                         return { label: row.Date, val: cleanNum(getRowValueForCity(row, city)) };
-                                    });
+                                    }).slice(-12); // Restricts chart presentation to exactly the most recent 12 months
                                 }
                             }
                         }

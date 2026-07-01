@@ -111,7 +111,7 @@
             justify-content: space-between;
             font-size: 0.72rem;
             font-weight: 800;
-            color: #555;
+            color: #55px;
             text-transform: uppercase;
         }
 
@@ -434,7 +434,8 @@
         };
 
         let activeLockStateAutomated = true;
-        const rawRateFeedCsvUrl = "./data/rates.csv"; // Points native to your daily news pipelines
+        // Points directly to the same live public Google Sheets CSV feed that news.html utilizes
+        const rawRateFeedCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1486733951&single=true&output=csv";
 
         document.addEventListener('DOMContentLoaded', () => {
             fetchLiveDailyMarketRates();
@@ -447,24 +448,34 @@
                 const text = await res.text();
                 
                 Papa.parse(text, {
-                    header: true,
+                    header: false, // Mirrored from news.html to parse data positional coordinates accurately
                     skipEmptyLines: true,
                     complete: (results) => {
-                        if (results.data && results.data.length > 0) {
-                            results.data.forEach(row => {
-                                const prog = row.Program || row.type || "";
-                                const val = parseFloat(row.Rate || row.rate);
-                                if (prog && !isNaN(val)) {
-                                    if (prog.toLowerCase().includes("conv")) parsedFeedRatesRegistry['Conventional'] = val;
-                                    else if (prog.toLowerCase().includes("fha")) parsedFeedRatesRegistry['FHA'] = val;
-                                    else if (prog.toLowerCase().includes("va")) parsedFeedRatesRegistry['VA'] = val;
-                                }
+                        const rows = results.data;
+                        if (rows && rows.length > 1) {
+                            const dataRows = rows.slice(1);
+                            
+                            // Sort chronologically based on timestamp exactly like news.html to secure the latest records
+                            dataRows.sort((a, b) => {
+                                const dateA = new Date(a[0].split(' ')[0]);
+                                const dateB = new Date(b[0].split(' ')[0]);
+                                return dateA - dateB;
                             });
+                            
+                            const latestRow = dataRows[dataRows.length - 1];
+                            const convRate = parseFloat(latestRow[1]);
+                            const fhaRate = parseFloat(latestRow[2]);
+                            const vaRate = parseFloat(latestRow[3]);
+
+                            if (!isNaN(convRate)) parsedFeedRatesRegistry['Conventional'] = convRate;
+                            if (!isNaN(fhaRate)) parsedFeedRatesRegistry['FHA'] = fhaRate;
+                            if (!isNaN(vaRate)) parsedFeedRatesRegistry['VA'] = vaRate;
                         }
                         evaluateLiveRateLockAdjustments();
                     }
                 });
             } catch (e) {
+                console.error("Error fetching live rates feed, utilizing baseline fallbacks:", e);
                 evaluateLiveRateLockAdjustments();
             }
         }

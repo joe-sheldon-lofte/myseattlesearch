@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cost of Waiting Analysis | Joe Sheldon</title>
+    <link rel="stylesheet" href="style.css?v=62">
+    
+    <script src="components.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        .bnl-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        .strategy-control-card {
+            background: #f4f6f8;
+            border-top: 6px solid var(--premier-charcoal);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+            margin-bottom: 2.5rem;
+        }
+        .strategy-control-card h3 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #3D3935;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0.5rem;
+        }
+        .control-form-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+        }
+        @media (min-width: 768px) {
+            .control-form-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (min-width: 1100px) {
+            .control-form-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+        .input-element-box {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .input-element-box label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #555555;
+        }
+        .input-element-box input, .input-element-box select {
+            padding: 0.6rem 0.75rem;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: normal;
+            color: #222;
+            background: #ffffff;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .input-element-box input:focus, .input-element-box select:focus {
+            border-color: #C13030;
+            outline: none;
+        }
+        .down-payment-combo-group {
+            display: flex;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .down-payment-combo-group input {
+            border: none !important;
+            padding: 0.6rem 0.75rem;
+        }
+        .down-payment-combo-group select {
+            border: none !important;
+            background: #e0e0e0 !important;
+            font-weight: 600 !important;
+            width: 65px !important;
+            padding: 0 0.25rem !important;
+            text-align: center;
+            cursor: pointer;
+            border-left: 2px solid #ccc !important;
+            border-radius: 0 !important;
+        }
+
+        /* Narrative Output Display Blocks */
+        .bnl-results-wrapper {
+            display: none;
+            animation: paneFadeIn 0.4s ease-in-out;
+        }
+        @keyframes paneFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .coach-summary-box {
+            background-color: #ffffff;
+            border-left: 4px solid #C13030;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .coach-summary-box.advantage-waiting {
+            border-left-color: #137333;
+        }
+        .coach-total-number {
+            font-size: 3rem;
+            font-weight: 900;
+            color: #C13030;
+            margin: 0.5rem 0;
+        }
+        .coach-total-number.advantage-waiting {
+            color: #137333;
+        }
+
+        .narrative-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+        @media (min-width: 768px) {
+            .narrative-grid { grid-template-columns: 1fr 1fr; }
+        }
+        .narrative-card {
+            background: #ffffff;
+            padding: 1.75rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            border-top: 4px solid var(--premier-charcoal);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .narrative-card h4 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--premier-charcoal);
+        }
+        .narrative-comparison-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            background: #f8f9fa;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        .narrative-comparison-row div span {
+            display: block;
+            font-size: 0.75rem;
+            color: #666;
+            font-weight: 600;
+        }
+        .narrative-comparison-row div strong {
+            font-size: 1.1rem;
+            font-weight: normal;
+            color: #222;
+        }
+        .narrative-card p {
+            margin: 0;
+            font-size: 0.92rem;
+            line-height: 1.5;
+            color: #444;
+        }
+    </style>
+</head>
+<body class="buy-now-vs-later-page">
+
+    <universal-header></universal-header>
+
+    <main class="bnl-container">
+        
+        <div class="compare-header-box" style="text-align: center; margin-bottom: 2.5rem;">
+            <a href="stats.html" class="back-link">&larr; Back to Market Insights</a>
+            <h1 style="margin-top: 0.5rem; font-size: 2.6rem; font-weight: 900; color: #C13030;">Buying Now vs. Waiting</h1>
+            <p class="intro">An objective comparison analyzing the mathematical differences between an immediate home purchase and a delayed timeline based on historical data and custom financing tracks.</p>
+        </div>
+
+        <section class="strategy-control-card">
+            <h3>Financing & Timeline Inputs</h3>
+            <div class="control-form-grid">
+                
+                <div class="input-element-box">
+                    <label for="citySelect">Target City</label>
+                    <select id="citySelect"></select>
+                </div>
+
+                <div class="input-element-box">
+                    <label for="inWaitTime">Planned Wait Period</label>
+                    <select id="inWaitTime">
+                        <option value="0.5">6 Months</option>
+                        <option value="1" selected>1 Year</option>
+                        <option value="2">2 Years</option>
+                        <option value="3">3 Years</option>
+                    </select>
+                </div>
+
+                <div class="input-element-box">
+                    <label for="inLoanType">Loan Program</label>
+                    <select id="inLoanType">
+                        <option value="Conventional">Conventional</option>
+                        <option value="FHA">Standard FHA</option>
+                        <option value="VA">VA Loan</option>
+                    </select>
+                </div>
+
+                <div class="input-element-box">
+                    <label for="inRent">Current Monthly Rent ($)</label>
+                    <input type="number" id="inRent" value="2800">
+                </div>
+
+                <div class="input-element-box">
+                    <label for="inPriceOverride">Current Home Price Target ($)</label>
+                    <input type="number" id="inPriceOverride" value="800000">
+                </div>
+
+                <div class="input-element-box">
+                    <label>Interest Rate Today (%)</label>
+                    <input type="number" id="inRateNow" value="6.50" step="0.125">
+                </div>
+
+                <div class="input-element-box">
+                    <label>Down Payment Capital Available Now</label>
+                    <div class="down-payment-combo-group">
+                        <input type="number" id="inDownValueNow" value="5">
+                        <select id="inDownUnitNow">
+                            <option value="%">%</option>
+                            <option value="$">$</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-element-box">
+                    <label>Estimated Future Interest Rate (%)</label>
+                    <input type="number" id="inRateLater" value="5.75" step="0.125">
+                </div>
+
+                <div class="input-element-box" style="grid-column: span 2;">
+                    <label>Projected Future Down Payment Capital (If continuing to save)</label>
+                    <div class="down-payment-combo-group">
+                        <input type="number" id="inDownValueLater" value="15">
+                        <select id="inDownUnitLater">
+                            <option value="%">%</option>
+                            <option value="$">$</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="baselines-summary-strip" style="grid-column: span 2; margin: 0; align-items: center; display: flex;">
+                    <span>Calculated annualized home price growth in this city: <strong id="lblAppreciationRate">4.5%</strong></span>
+                </div>
+
+                <button class="btn-crunch-timeline" onclick="calculateCostOfWaiting()">Compare Buying Now vs. Waiting</button>
+            </div>
+        </section>
+
+        <div class="bnl-results-wrapper" id="resultsWrapper">
+            
+            <div class="coach-summary-box" id="summaryBoxBlock">
+                <h2 style="font-size: 1.4rem; font-weight: 700; margin: 0; color: var(--premier-charcoal);" id="txtSummaryTitle">Financial Variance Summary</h2>
+                <p style="margin: 4px 0 0 0; font-size: 0.95rem; color: #555;" id="txtSummarySubtitle">The combined mathematical difference across home prices, rental costs, and mortgage balance reductions equals:</p>
+                <div class="coach-total-number" id="txtTotalCostOfWaiting">$0</div>
+                <p style="max-width: 750px; margin: 0 auto; font-size: 0.95rem; color: #333; line-height: 1.5;" id="txtCoachConclusion">Analyzing calculations...</p>
+            </div>
+
+            <div class="narrative-grid">
+                
+                <div class="narrative-card">
+                    <h4>1. Home Price Growth</h4>
+                    <div class="narrative-comparison-row">
+                        <div>
+                            <span>Price Today</span>
+                            <strong id="valPriceNow">--</strong>
+                        </div>
+                        <div>
+                            <span>Projected Price Later</span>
+                            <strong id="valPriceLater">--</strong>
+                        </div>
+                    </div>
+                    <p id="descPriceChase">This metric establishes the projected difference in baseline purchase prices between an immediate entry and a delayed timeframe based on local market trends.</p>
+                </div>
+
+                <div class="narrative-card">
+                    <h4>2. Down Payment Structure</h4>
+                    <div class="narrative-comparison-row">
+                        <div>
+                            <span>Down Payment Today</span>
+                            <strong id="valDownNow">--</strong>
+                        </div>
+                        <div>
+                            <span>Down Payment Later</span>
+                            <strong id="valDownLater">--</strong>
+                        </div>
+                    </div>
+                    <p id="descDownTrap">This section tracks how changes in purchase price impact the relationship between your down payment capital and the remaining primary loan balance.</p>
+                </div>
+
+                <div class="narrative-card">
+                    <h4>3. Monthly Outlays & Income Qualification</h4>
+                    <div class="narrative-comparison-row">
+                        <div>
+                            <span>Payment Today</span>
+                            <strong id="valPaymentNow">--</strong>
+                        </div>
+                        <div>
+                            <span>Payment Later</span>
+                            <strong id="valPaymentLater">--</strong>
+                        </div>
+                    </div>
+                    <p id="descBreakdownQualifying">Changes in base prices directly alter your primary loan size. This calculation shows how projected property value changes intersect with your estimated future interest rate, mapping out changes to both your monthly outlays and income requirements.</p>
+                </div>
+
+                <div class="narrative-card">
+                    <h4>4. Rent Outflows & Principal Paydown</h4>
+                    <div class="narrative-comparison-row">
+                        <div>
+                            <span>Rent Paid While Waiting</span>
+                            <strong id="valRentSunk">--</strong>
+                        </div>
+                        <div>
+                            <span>Loan Balance Reduction</span>
+                            <strong id="valMissedPaydown">--</strong>
+                        </div>
+                    </div>
+                    <p id="descSunkProgress">This section analyzes the structural trade-offs of delaying a purchase, itemizing cumulative rent costs during the waiting window alongside the principal mortgage reduction achieved from day one.</p>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <universal-footer></universal-footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const categoriesPath = './data/InfoSparks Links - Sheet2.csv';
+            const infosparksPath = './data/infosparks_stats.json';
+
+            let dataStore = { cities: {}, infosparks: {}, computedAppreciation: 4.5 };
+
+            const cleanNum = (str) => {
+                if (str === null || str === undefined || str === 'NaN') return 0;
+                return parseFloat((str).toString().replace(/[^0-9.-]+/g, "")) || 0;
+            };
+            const formatCurrency = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+
+            const fetchCSV = (url) => new Promise((resolve) => {
+                Papa.parse(url, { download: true, header: true, skipEmptyLines: true, complete: res => resolve(res.data), error: () => resolve([]) });
+            });
+
+            const fetchJSON = async (path) => {
+                try { const res = await fetch(path); if (!res.ok) return null; return JSON.parse((await res.text()).replace(/:\s*NaN/g, ": null")); } catch (e) { return null; }
+            };
+
+            Promise.all([
+                fetchCSV(categoriesPath), fetchJSON(infosparksPath)
+            ]).then(values => {
+                const categoryRows = values[0] || [];
+                const is = values[1];
+                dataStore.infosparks = is && is.feeds ? is.feeds : (is || {});
+
+                categoryRows.forEach(row => {
+                    if (row.City) {
+                        dataStore.cities[row.City.trim().toLowerCase()] = {
+                            city: row.City.trim(),
+                            county: (row.County || '').trim(),
+                            northSound: (row['North Sound'] || '').trim().toLowerCase() === 'x'
+                        };
+                    }
+                });
+
+                populateDropdown();
+            });
+
+            function populateDropdown() {
+                const select = document.getElementById('citySelect');
+                const groups = { 'North Sound': [], 'King County': [], 'Snohomish County': [] };
+
+                Object.values(dataStore.cities).sort((a,b) => a.city.localeCompare(b.city)).forEach(item => {
+                    if (item.northSound) groups['North Sound'].push(item.city);
+                    else if (item.county === 'King') groups['King County'].push(item.city);
+                    else if (item.county === 'Snohomish') groups['Snohomish County'].push(item.city);
+                });
+
+                let optionsHtml = '';
+                for (let groupName in groups) {
+                    if (groups[groupName].length > 0) {
+                        optionsHtml += `<optgroup label="${groupName}">`;
+                        groups[groupName].forEach(city => {
+                            optionsHtml += `<option value="${city}">${city}</option>`;
+                        });
+                        optionsHtml += `</optgroup>`;
+                    }
+                }
+                select.innerHTML = optionsHtml;
+                select.addEventListener('change', handleCityChange);
+                
+                handleCityChange();
+            }
+
+            function handleCityChange() {
+                const city = document.getElementById('citySelect').value;
+                const target = city.toLowerCase().trim();
+                let timeline = [];
+
+                for (let feedKey in dataStore.infosparks) {
+                    if (feedKey.toLowerCase().includes('median_sale_price')) {
+                        const feed = dataStore.infosparks[feedKey];
+                        let rows = Array.isArray(feed) ? feed : (feed.data || []);
+                        
+                        if (rows.length > 0) {
+                            const validRow = rows.find(r => r.Date && !String(r.Date).includes("All data from"));
+                            if (validRow && Object.keys(validRow).some(k => k.toLowerCase().trim() === target)) {
+                                timeline = rows.filter(row => {
+                                    if (!row || !row.Date || String(row.Date).includes("All data from")) return false;
+                                    let v = row[Object.keys(row).find(k => k.toLowerCase().trim() === target)];
+                                    return v !== null && v !== undefined && v !== 'NaN' && !Number.isNaN(v);
+                                }).map(row => cleanNum(row[Object.keys(row).find(k => k.toLowerCase().trim() === target)]));
+                            }
+                        }
+                    }
+                }
+
+                let appreciationRate = 4.5; 
+                let currentMedian = 800000;
+
+                if (timeline.length > 1) {
+                    currentMedian = timeline[timeline.length - 1];
+                    const earliestPrice = timeline[0];
+                    
+                    const totalPoints = timeline.length;
+                    if (totalPoints >= 12) {
+                        const years = totalPoints / 12;
+                        appreciationRate = (Math.pow((currentMedian / earliestPrice), (1 / years)) - 1) * 100;
+                    } else {
+                        appreciationRate = ((currentMedian / earliestPrice) - 1) * 100;
+                    }
+                    
+                    if (appreciationRate < -10 || appreciationRate > 20 || isNaN(appreciationRate)) {
+                        appreciationRate = 4.5;
+                    }
+                }
+
+                dataStore.computedAppreciation = appreciationRate;
+                document.getElementById('lblAppreciationRate').textContent = appreciationRate.toFixed(1) + '%';
+                document.getElementById('inPriceOverride').value = currentMedian;
+            }
+
+            window.calculateCostOfWaiting = function() {
+                const city = document.getElementById('citySelect').value;
+                const waitYears = parseFloat(document.getElementById('inWaitTime').value);
+                const loanType = document.getElementById('inLoanType').value;
+                const baseRent = parseFloat(document.getElementById('inRent').value) || 0;
+                const priceNow = parseFloat(document.getElementById('inPriceOverride').value) || 0;
+                
+                const rateNow = parseFloat(document.getElementById('inRateNow').value) || 6.5;
+                const rateLater = parseFloat(document.getElementById('inRateLater').value) || 5.75;
+
+                const downValNow = parseFloat(document.getElementById('inDownValueNow').value) || 0;
+                const downUnitNow = document.getElementById('inDownUnitNow').value;
+                
+                const downValLater = parseFloat(document.getElementById('inDownValueLater').value) || 0;
+                const downUnitLater = document.getElementById('inDownUnitLater').value;
+
+                const annualAppreciation = dataStore.computedAppreciation / 100;
+
+                // --- 1. THE NOW SCENARIO ---
+                let cashDownNow = (downUnitNow === '%') ? priceNow * (downValNow / 100) : downValNow;
+                let loanAmountNow = priceNow - cashDownNow;
+                if (loanType === 'FHA') loanAmountNow += (loanAmountNow * 0.0175);
+                else if (loanType === 'VA') loanAmountNow += (loanAmountNow * 0.0215);
+
+                const monthlyPINow = calculateAmortization(loanAmountNow, rateNow);
+                const taxAndInsNow = (priceNow * 0.009 / 12) + 120; 
+                let pmiNow = 0;
+                if (loanType === 'Conventional' && (cashDownNow / priceNow) < 0.20) pmiNow = (loanAmountNow * 0.005 / 12);
+                else if (loanType === 'FHA') pmiNow = (loanAmountNow * 0.0055 / 12);
+                const totalPaymentNow = monthlyPINow + taxAndInsNow + pmiNow;
+
+                // --- 2. THE LATER SCENARIO ---
+                const priceLater = priceNow * Math.pow(1 + annualAppreciation, waitYears);
+                let cashDownLater = (downUnitLater === '%') ? priceLater * (downValLater / 100) : downValLater;
+                let loanAmountLater = priceLater - cashDownLater;
+                if (loanType === 'FHA') loanAmountLater += (loanAmountLater * 0.0175);
+                else if (loanType === 'VA') loanAmountLater += (loanAmountLater * 0.0215);
+
+                const monthlyPILater = calculateAmortization(loanAmountLater, rateLater);
+                const taxAndInsLater = (priceLater * 0.009 / 12) + 120;
+                let pmiLater = 0;
+                if (loanType === 'Conventional' && (cashDownLater / priceLater) < 0.20) pmiLater = (loanAmountLater * 0.005 / 12);
+                else if (loanType === 'FHA') pmiLater = (loanAmountLater * 0.0055 / 12);
+                const totalPaymentLater = monthlyPILater + taxAndInsLater + pmiLater;
+
+                // --- 3. MATHEMATICAL VARIANCE MODELS ---
+                const priceIncreasePenalty = priceLater - priceNow;
+                const totalRentSunk = baseRent * 12 * waitYears;
+                
+                let trackingBalance = loanAmountNow;
+                const monthlyRateNow = (rateNow / 100) / 12;
+                const totalMonthsToWait = waitYears * 12;
+                let accumulatedPaydown = 0;
+
+                for (let m = 1; m <= totalMonthsToWait; m++) {
+                    const interestCharge = trackingBalance * monthlyRateNow;
+                    const principalReduction = monthlyPINow - interestCharge;
+                    accumulatedPaydown += principalReduction;
+                    trackingBalance -= principalReduction;
+                }
+
+                const absoluteFinancialLoss = priceIncreasePenalty + totalRentSunk + accumulatedPaydown;
+
+                // --- 4. POPULATE PRESENTATION NODES ---
+                document.getElementById('valPriceNow').textContent = formatCurrency(priceNow);
+                document.getElementById('valPriceLater').textContent = formatCurrency(priceLater);
+                
+                document.getElementById('valDownNow').textContent = formatCurrency(cashDownNow);
+                document.getElementById('valDownLater').textContent = formatCurrency(cashDownLater);
+
+                document.getElementById('valPaymentNow').textContent = formatCurrency(totalPaymentNow) + '/mo';
+                document.getElementById('valPaymentLater').textContent = formatCurrency(totalPaymentLater) + '/mo';
+
+                document.getElementById('valRentSunk').textContent = formatCurrency(totalRentSunk);
+                document.getElementById('valMissedPaydown').textContent = formatCurrency(accumulatedPaydown);
+
+                // Update individual narrative description blocks objectively
+                document.getElementById('descPriceChase').textContent = `Based on historical data for ${city}, a ${waitYears}-${waitYears === 1 ? 'year' : 'year'} wait projects a price shift from ${formatCurrency(priceNow)} to ${formatCurrency(priceLater)}, representing a difference of ${formatCurrency(Math.abs(priceIncreasePenalty))} in the purchase price basis.`;
+                
+                const extraSavingsTarget = cashDownLater - cashDownNow;
+                if (extraSavingsTarget > 0) {
+                    document.getElementById('descDownTrap').textContent = `With a projected price increase of ${formatCurrency(priceIncreasePenalty)}, saving an additional ${formatCurrency(extraSavingsTarget)} results in a future loan balance of ${formatCurrency(loanAmountLater)}, compared to a balance of ${formatCurrency(loanAmountNow)} if purchasing today.`;
+                } else {
+                    document.getElementById('descDownTrap').textContent = `An increasing price basis shifts your primary loan size upward, which alters the standard relationship between your initial cash contribution and the total borrowed balance.`;
+                }
+
+                const incomeNow = (totalPaymentNow / 0.33) * 12;
+                const incomeLater = (totalPaymentLater / 0.33) * 12;
+                document.getElementById('descBreakdownQualifying').textContent = `Lenders using a standard 33% debt-to-income allocation for housing costs require an estimated annual household income of ${formatCurrency(incomeNow)} for an immediate purchase. A delayed purchase requires an estimated annual household income of ${formatCurrency(incomeLater)} based on the projected future price and interest rate.`;
+
+                // --- 5. ADAPTIVE SUMMARY CONCLUSION (TRUE TRANSPARENCY) ---
+                const summaryBox = document.getElementById('summaryBoxBlock');
+                const totalTextEl = document.getElementById('txtTotalCostOfWaiting');
+                const titleEl = document.getElementById('txtSummaryTitle');
+                const subtitleEl = document.getElementById('txtSummarySubtitle');
+
+                if (absoluteFinancialLoss > 0) {
+                    summaryBox.classList.remove('advantage-waiting');
+                    totalTextEl.classList.remove('advantage-waiting');
+                    titleEl.textContent = "Financial Variance Summary";
+                    subtitleEl.textContent = "Based on these inputs, purchasing a home now shows a lower total calculated outlay compared to waiting. The estimated difference is:";
+                    totalTextEl.textContent = formatCurrency(absoluteFinancialLoss);
+
+                    document.getElementById('txtCoachConclusion').textContent = `Over the next ${waitYears} ${waitYears === 1 ? 'year' : 'years'}, continuing to rent incurs ${formatCurrency(totalRentSunk)} in housing expenditures, while the property price is projected to increase by ${formatCurrency(priceIncreasePenalty)}. Additionally, purchasing today would reduce the mortgage principal balance by ${formatCurrency(accumulatedPaydown)} over this timeframe. Combined, these factors create a calculated difference of ${formatCurrency(absoluteFinancialLoss)} in favor of an immediate purchase.`;
+                } else {
+                    summaryBox.classList.add('advantage-waiting');
+                    totalTextEl.classList.add('advantage-waiting');
+                    titleEl.textContent = "Financial Variance Summary";
+                    subtitleEl.textContent = "Based on these inputs, delaying your purchase shows a lower total calculated outlay compared to buying now. The estimated difference is:";
+                    totalTextEl.textContent = formatCurrency(Math.abs(absoluteFinancialLoss));
+
+                    document.getElementById('txtCoachConclusion').textContent = `Over the next ${waitYears} ${waitYears === 1 ? 'year' : 'years'}, the combination of a lower projected interest rate and an increased down payment capital position balances out the ${formatCurrency(totalRentSunk)} spent on rent and the projected price increase of ${formatCurrency(priceIncreasePenalty)}. This results in a calculated difference of ${formatCurrency(Math.abs(absoluteFinancialLoss))} in favor of waiting.`;
+                }
+
+                document.getElementById('resultsWrapper').style.display = 'block';
+                document.getElementById('resultsWrapper').scrollIntoView({ behavior: 'smooth' });
+            };
+
+            function calculateAmortization(principal, annualRate) {
+                if (principal <= 0) return 0;
+                const monthlyRate = (annualRate / 100) / 12;
+                const totalPayments = 360;
+                if (monthlyRate === 0) return principal / totalPayments;
+                return principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / (Math.pow(1 + monthlyRate, totalPayments) - 1);
+            }
+        });
+    </script>
+</body>
+</html>

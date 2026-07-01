@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Side-by-Side Community Comparison | Joe Sheldon</title>
+    <title>Side-by-Side City Comparison | Joe Sheldon</title>
     <link rel="stylesheet" href="style.css?v=61">
     
     <script src="components.js"></script>
@@ -32,10 +32,8 @@
             text-align: left;
         }
         .selector-group label {
-            font-weight: 800;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-weight: 600;
+            font-size: 0.9rem;
             color: var(--premier-charcoal);
         }
         .city-dropdown {
@@ -45,7 +43,7 @@
             background-color: #fff;
             border-radius: 8px;
             font-size: 1rem;
-            font-weight: 700;
+            font-weight: normal;
             color: var(--premier-charcoal);
             outline: none;
             cursor: pointer;
@@ -53,6 +51,16 @@
         }
         .city-dropdown:focus {
             border-color: var(--redfin-red);
+        }
+        
+        /* Stylize select optgroups to be clean and standard weight */
+        .city-dropdown optgroup {
+            font-weight: 600;
+            font-style: normal;
+            color: var(--premier-charcoal);
+        }
+        .city-dropdown option {
+            font-weight: normal;
         }
 
         /* 3-Column Comparison Matrix Table Grid */
@@ -78,7 +86,7 @@
         .matrix-row.main-header {
             background-color: var(--premier-charcoal);
             color: #ffffff;
-            font-weight: 900;
+            font-weight: 700;
             position: sticky;
             top: 0;
             z-index: 10;
@@ -86,10 +94,8 @@
         .matrix-row.section-header {
             background-color: #f8f7f5;
             color: var(--redfin-red);
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-size: 0.85rem;
+            font-weight: 700;
+            font-size: 0.95rem;
         }
         .matrix-cell {
             padding: 1.1rem 1.25rem;
@@ -104,7 +110,7 @@
             border-right: 1px solid var(--premier-beige);
         }
         .matrix-cell.city-val {
-            font-weight: 600;
+            font-weight: normal;
             color: #222222;
         }
         .matrix-cell.city-val:nth-child(2) {
@@ -112,16 +118,9 @@
         }
         .matrix-row.main-header .matrix-cell {
             font-size: 1.1rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
         .matrix-row:not(.main-header):not(.section-header):hover {
             background-color: var(--featured-highlight);
-        }
-        
-        .highlight-win {
-            color: #137333 !important;
-            font-weight: 800 !important;
         }
     </style>
 </head>
@@ -132,18 +131,18 @@
     <main class="container" style="max-width: 1000px; padding-bottom: 5rem;">
         
         <div class="compare-header-box">
-            <a href="stats.html" class="back-link">&larr; Return to Market Insights</a>
-            <h1 style="margin-top: 0.5rem; font-size: 2.6rem; font-weight: 900; color: #C13030;">Community Comparison Engine</h1>
-            <p class="intro">Compare microclimates, safety parameters, and market rates across the Pacific Northwest side-by-side.</p>
+            <a href="stats.html" class="back-link">&larr; Back to Market Insights</a>
+            <h1 style="margin-top: 0.5rem; font-size: 2.6rem; font-weight: 900; color: #C13030;">Compare Communities Side-by-Side</h1>
+            <p class="intro">Pick any two cities to see how their neighborhoods, schools, safety, and local housing markets stack up.</p>
         </div>
 
         <div class="compare-selectors-row">
             <div class="selector-group">
-                <label for="city1Select">Baseline City 1</label>
+                <label for="city1Select">Select First City</label>
                 <select id="city1Select" class="city-dropdown"></select>
             </div>
             <div class="selector-group">
-                <label for="city2Select">Comparison City 2</label>
+                <label for="city2Select">Select Second City</label>
                 <select id="city2Select" class="city-dropdown"></select>
             </div>
         </div>
@@ -237,7 +236,6 @@
                 c1.innerHTML = optionsHtml;
                 c2.innerHTML = optionsHtml;
 
-                // Pick two distinct default cities safely
                 if (c1.options.length > 0) c1.selectedIndex = 0;
                 if (c2.options.length > 1) c2.selectedIndex = 1;
 
@@ -252,13 +250,11 @@
                 const key = city.toLowerCase().trim();
                 const safeTarget = key.replace(/[^a-z0-9]/g, '');
 
-                // Months of Supply via Redfin Data Array
                 const rfData = dataStore.redfin
                     .filter(r => r.city && r.city.toLowerCase().trim() === key)
                     .sort((a, b) => new Date(b.period_begin) - new Date(a.period_begin));
                 const supply = rfData.length > 0 && rfData[0].months_of_supply !== null ? cleanNum(rfData[0].months_of_supply).toFixed(2) : '--';
 
-                // Mobility Score Metrics
                 let mob = null;
                 if (Array.isArray(dataStore.mobility)) {
                     mob = dataStore.mobility.find(i => (i.City || i.city || '').toLowerCase().replace(/[^a-z0-9]/g, '') === safeTarget);
@@ -278,18 +274,18 @@
                     walk: mob ? (mob.walk_score || mob.walkScore || '--') : '--',
                     transit: mob ? (mob.transit_score || mob.transitScore || '--') : '--',
                     bike: mob ? (mob.bike_score || mob.bikeScore || '--') : '--',
-                    psai: school.custom_score !== undefined && school.custom_score !== null ? school.custom_score.toFixed(1) : '--',
+                    psai: school.custom_score !== undefined && school.custom_score !== null ? school.custom_score.toFixed(1) + ' / 10' : '--',
                     math: school.district_math_proficiency !== undefined ? school.district_math_proficiency.toFixed(1) + '%' : '--',
                     ela: school.district_ela_proficiency !== undefined ? school.district_ela_proficiency.toFixed(1) + '%' : '--',
-                    comfort: climate.comfort_index_score !== undefined && climate.comfort_index_score !== null ? climate.comfort_index_score.toFixed(1) : '--',
+                    comfort: climate.comfort_index_score !== undefined && climate.comfort_index_score !== null ? climate.comfort_index_score.toFixed(1) + ' / 10' : '--',
                     high: climate.metrics && climate.metrics.average_summer_high_f ? climate.metrics.average_summer_high_f + '°F' : '--',
                     low: climate.metrics && climate.metrics.average_winter_low_f ? climate.metrics.average_winter_low_f + '°F' : '--',
-                    rain: climate.metrics && climate.metrics.annual_rainfall_inches ? climate.metrics.annual_rainfall_inches + '"' : '--',
-                    sun: climate.metrics && climate.metrics.annual_sunny_days ? climate.metrics.annual_sunny_days : '--',
+                    rain: climate.metrics && climate.metrics.annual_rainfall_inches ? climate.metrics.annual_rainfall_inches + ' inches' : '--',
+                    sun: climate.metrics && climate.metrics.annual_sunny_days ? climate.metrics.annual_sunny_days + ' days' : '--',
                     violent: crime.per_capita_violent_rate !== undefined && crime.per_capita_violent_rate !== null ? crime.per_capita_violent_rate.toFixed(2) : '--',
                     property: crime.per_capita_property_rate !== undefined && crime.per_capita_property_rate !== null ? crime.per_capita_property_rate.toFixed(1) : '--',
                     wsrb: emergency.fire_service && emergency.fire_service.wsrb_protection_class !== null ? 'Class ' + emergency.fire_service.wsrb_protection_class : '--',
-                    survScore: surveillance.surveillance_score !== undefined && surveillance.surveillance_score !== null ? surveillance.surveillance_score : '--',
+                    survScore: surveillance.surveillance_score !== undefined && surveillance.surveillance_score !== null ? surveillance.surveillance_score + ' / 100' : '--',
                     alpr: surveillance.infrastructure_inventories && surveillance.infrastructure_inventories.detected_alpr_cameras !== undefined ? surveillance.infrastructure_inventories.detected_alpr_cameras : '--',
                     traffic: surveillance.infrastructure_inventories && surveillance.infrastructure_inventories.detected_traffic_cameras !== undefined ? surveillance.infrastructure_inventories.detected_traffic_cameras : '--',
                     cctv: surveillance.infrastructure_inventories && surveillance.infrastructure_inventories.detected_general_cctv !== undefined ? surveillance.infrastructure_inventories.detected_general_cctv : '--'
@@ -307,63 +303,63 @@
 
                 let html = `
                     <div class="matrix-row main-header">
-                        <div class="matrix-cell">Evaluation Vector</div>
+                        <div class="matrix-cell">Neighborhood Feature</div>
                         <div class="matrix-cell">${city1}</div>
                         <div class="matrix-cell">${city2}</div>
                     </div>
                     
                     <div class="matrix-row section-header">
-                        <div class="matrix-cell" style="grid-column: span 3;">Real Estate Ingestion Dynamics</div>
+                        <div class="matrix-cell" style="grid-column: span 3;">Real Estate Market Info</div>
                     </div>
                     <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Months of Operational Supply</div>
-                        <div class="matrix-cell city-val">${s1.supply}</div>
-                        <div class="matrix-cell city-val">${s2.supply}</div>
+                        <div class="matrix-cell metric-label">Months of Housing Supply (Inventory)</div>
+                        <div class="matrix-cell city-val">${s1.supply} mos</div>
+                        <div class="matrix-cell city-val">${s2.supply} mos</div>
                     </div>
 
                     <div class="matrix-row section-header">
-                        <div class="matrix-cell" style="grid-column: span 3;">Infrastructure Mobility Ratings</div>
+                        <div class="matrix-cell" style="grid-column: span 3;">Getting Around & Mobility</div>
                     </div>
                     <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Walk Score®</div>
+                        <div class="matrix-cell metric-label">Walk Score® (How walkable it is)</div>
                         <div class="matrix-cell city-val">${s1.walk}</div>
                         <div class="matrix-cell city-val">${s2.walk}</div>
                     </div>
                     <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Transit Score®</div>
+                        <div class="matrix-cell metric-label">Transit Score® (Public transportation access)</div>
                         <div class="matrix-cell city-val">${s1.transit}</div>
                         <div class="matrix-cell city-val">${s2.transit}</div>
                     </div>
                     <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Bike Score®</div>
+                        <div class="matrix-cell metric-label">Bike Score® (Bike friendliness)</div>
                         <div class="matrix-cell city-val">${s1.bike}</div>
                         <div class="matrix-cell city-val">${s2.bike}</div>
                     </div>
 
                     <div class="matrix-row section-header">
-                        <div class="matrix-cell" style="grid-column: span 3;">Public School District Proficiency</div>
+                        <div class="matrix-cell" style="grid-column: span 3;">Local Public Schools</div>
                     </div>
                     <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Puget Sound Academic Index (PSAI)</div>
+                        <div class="matrix-cell metric-label">Academic Index Score (PSAI)</div>
                         <div class="matrix-cell city-val">${s1.psai}</div>
                         <div class="matrix-cell city-val">${s2.psai}</div>
                     </div>
                     <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Mathematics State Standards Met</div>
+                        <div class="matrix-cell metric-label">Students Passing State Math Exams</div>
                         <div class="matrix-cell city-val">${s1.math}</div>
                         <div class="matrix-cell city-val">${s2.math}</div>
                     </div>
                     <div class="matrix-row">
-                        <div class="matrix-cell metric-label">English Language Arts (ELA) Standards Met</div>
+                        <div class="matrix-cell metric-label">Students Passing State Reading/Writing Exams</div>
                         <div class="matrix-cell city-val">${s1.ela}</div>
                         <div class="matrix-cell city-val">${s2.ela}</div>
                     </div>
 
                     <div class="matrix-row section-header">
-                        <div class="matrix-cell" style="grid-column: span 3;">Environmental Climate Parameters</div>
+                        <div class="matrix-cell" style="grid-column: span 3;">Weather & Climate</div>
                     </div>
                     <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Comfort Index Profile Score</div>
+                        <div class="matrix-cell metric-label">Overall Weather Comfort Score</div>
                         <div class="matrix-cell city-val">${s1.comfort}</div>
                         <div class="matrix-cell city-val">${s2.comfort}</div>
                     </div>
@@ -378,55 +374,55 @@
                         <div class="matrix-cell city-val">${s2.low}</div>
                     </div>
                     <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Annual Baseline Rainfall</div>
+                        <div class="matrix-cell metric-label">Average Yearly Rainfall</div>
                         <div class="matrix-cell city-val">${s1.rain}</div>
                         <div class="matrix-cell city-val">${s2.rain}</div>
                     </div>
                     <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Annual Estimated Sunny Days</div>
+                        <div class="matrix-cell metric-label">Average Sunny Days Per Year</div>
                         <div class="matrix-cell city-val">${s1.sun}</div>
                         <div class="matrix-cell city-val">${s2.sun}</div>
                     </div>
 
                     <div class="matrix-row section-header">
-                        <div class="matrix-cell" style="grid-column: span 3;">Public Safety & Agency Risk Parameters</div>
+                        <div class="matrix-cell" style="grid-column: span 3;">Safety & Emergency Services</div>
                     </div>
                     <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Violent Crime Index Rate (Per 1,000 residents)</div>
+                        <div class="matrix-cell metric-label">Violent Crime Rate (Yearly per 1,000 neighbors)</div>
                         <div class="matrix-cell city-val">${s1.violent}</div>
                         <div class="matrix-cell city-val">${s2.violent}</div>
                     </div>
                     <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Property Crime Index Rate (Per 1,000 residents)</div>
+                        <div class="matrix-cell metric-label">Property Crime Rate (Yearly per 1,000 neighbors)</div>
                         <div class="matrix-cell city-val">${s1.property}</div>
                         <div class="matrix-cell city-val">${s2.property}</div>
                     </div>
                     <div class="matrix-row">
-                        <div class="matrix-cell metric-label">WSRB Insurance Premium Protection Class Rating</div>
+                        <div class="matrix-cell metric-label">Fire Response Class Rating (Lower cuts insurance costs)</div>
                         <div class="matrix-cell city-val">${s1.wsrb}</div>
                         <div class="matrix-cell city-val">${s2.wsrb}</div>
                     </div>
 
                     <div class="matrix-row section-header">
-                        <div class="matrix-cell" style="grid-column: span 3;">Municipal Surveillance Audits</div>
+                        <div class="matrix-cell" style="grid-column: span 3;">Municipal Surveillance</div>
                     </div>
                     <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Surveillance Density Score (1-100)</div>
+                        <div class="matrix-cell metric-label">Surveillance Score</div>
                         <div class="matrix-cell city-val">${s1.survScore}</div>
                         <div class="matrix-cell city-val">${s2.survScore}</div>
                     </div>
                     <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Detected ALPR License Plate Trackers</div>
+                        <div class="matrix-cell metric-label">License Plate Tracking Cameras (ALPR)</div>
                         <div class="matrix-cell city-val">${s1.alpr}</div>
                         <div class="matrix-cell city-val">${s2.alpr}</div>
                     </div>
                     <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Automated Enforcement Traffic Cameras</div>
+                        <div class="matrix-cell metric-label">Speed & Red-Light Enforcement Cameras</div>
                         <div class="matrix-cell city-val">${s1.traffic}</div>
                         <div class="matrix-cell city-val">${s2.traffic}</div>
                     </div>
                     <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Public-Facing Security CCTV Networks</div>
+                        <div class="matrix-cell metric-label">Public Space Safety Security Cameras (CCTV)</div>
                         <div class="matrix-cell city-val">${s1.cctv}</div>
                         <div class="matrix-cell city-val">${s2.cctv}</div>
                     </div>
