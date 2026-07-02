@@ -3,138 +3,243 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Commitment & Equity | Joe Sheldon</title>
-    <!-- Cache Buster bumped to force refresh v44 -->
-    <link rel="stylesheet" href="style.css?v=44">
+    <title>Community & Housing Commitments | Joe Sheldon</title>
+    <link rel="stylesheet" href="style.css?v=66">
+    
     <script src="components.js"></script>
-</head>
-<body class="pro-page">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
-    <!-- Universal Header Injected Natively -->
+    <style>
+        .hfy-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem;
+        }
+        .celebratory-header {
+            text-align: center;
+            padding: 1.5rem 0;
+        }
+        .celebratory-header h1 {
+            font-size: 2.6rem;
+            font-weight: 900;
+            color: #C13030;
+            margin-bottom: 0.5rem;
+        }
+        .celebratory-header p {
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: #444;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        
+        /* Editorial Quotes Section */
+        .editorial-quote-card {
+            background: #f8f9fa;
+            border-left: 4px solid var(--premier-charcoal);
+            padding: 1.75rem;
+            border-radius: 4px;
+            margin: 0.5rem 0;
+        }
+        .editorial-quote-card blockquote {
+            margin: 0;
+            font-size: 1.15rem;
+            line-height: 1.55;
+            color: #222;
+            font-style: italic;
+        }
+        .editorial-quote-card cite {
+            display: block;
+            margin-top: 0.75rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #555;
+            font-style: normal;
+            letter-spacing: 0.5px;
+        }
+
+        .hfy-section-card {
+            background: #ffffff;
+            border-top: 4px solid var(--premier-charcoal);
+            border-radius: 12px;
+            padding: 2.25rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .hfy-section-card h2 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--premier-charcoal);
+            border-bottom: 2px solid var(--premier-beige);
+            padding-bottom: 0.5rem;
+        }
+        .hfy-section-card p {
+            margin: 0;
+            font-size: 0.98rem;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        /* Fixed Clean Bullet Framework */
+        .bullet-feature-list {
+            margin: 0.5rem 0;
+            padding-left: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .bullet-feature-list li {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: #444;
+            list-style-type: square;
+        }
+        .bullet-feature-list li strong {
+            color: #222;
+            font-weight: 700;
+        }
+
+        /* Light Preview Grid for Linking to Master DPA */
+        .dpa-light-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+        @media (min-width: 600px) {
+            .dpa-light-grid { grid-template-columns: 1fr 1fr; }
+        }
+        .dpa-light-item {
+            background: #f9f9f9;
+            border: 1px solid #e2e8f0;
+            padding: 1.25rem;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .dpa-light-item h4 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #222;
+        }
+        .dpa-light-item p {
+            font-size: 0.88rem;
+            color: #555;
+            line-height: 1.4;
+            margin: 0;
+        }
+
+        .card-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.6rem 1.25rem;
+            background: transparent;
+            color: #222222;
+            border: 1px solid #222222;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            width: fit-content;
+            margin-top: 0.5rem;
+        }
+        .card-action-btn:hover {
+            background: #222222;
+            color: #ffffff;
+        }
+        
+        .connect-box {
+            background: #f4f6f8;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+<body class="here-for-you-page">
+
     <universal-header></universal-header>
 
-    <main class="container" style="max-width: 800px; padding-bottom: 5rem;">
-        
-        <!-- Quiet, Long-Form Editorial Header -->
-        <div class="events-header" style="text-align: left; margin-bottom: 4rem;">
-            <h1 style="font-size: 2.5rem; margin-top: 1rem; line-height: 1.2;">A Commitment to Equity in Housing</h1>
-            <p class="intro" style="font-size: 1.15rem; line-height: 1.6; opacity: 0.85;">A quiet resource page dedicated to closing the generational wealth gap, exposing historical housing discrimination, and delivering transparent access to local financial tools.</p>
+    <main class="hfy-container">
+
+        <section class="celebratory-header">
+            <h1>Community & Equity Resources</h1>
+            <p>This space is built out of a direct commitment to housing transparency, historical truth, and delivering open access to regional financial opportunities for every homebuyer.</p>
+        </section>
+
+        <div class="editorial-quote-card">
+            <blockquote>
+                "Banning discrimination based on religion and race in the rental or sale of homes is how we build communities where everyone can live wherever they please."
+            </blockquote>
+            <cite>Inspired by the Legislative and Open Housing Crusade of Sam Smith, Washington State Representative (1958-1967) & Seattle City Council President.</cite>
         </div>
 
-        <!-- Section 1: The Open Perspective Statement -->
-        <section style="margin-bottom: 4rem;">
-            <p style="font-size: 1.05rem; margin-bottom: 1.5rem; text-align: justify; line-height: 1.7;">
-                Real estate is fundamentally built on safety, yet the history of homeownership in America has not been safe or equitable for everyone. As a cisgender white man, I recognize the immense, unearned privilege I navigate daily within this industry. As an openly LGBTQ+ individual, I also know deeply what it means to look for true safe spaces where you don't have to adjust who you are just to be protected.
-            </p>
-            <p style="font-size: 1.05rem; margin-bottom: 1.5rem; text-align: justify; line-height: 1.7;">
-                My real estate practice is explicitly anti-racist, LGBTQ+ affirming, and dedicated to fighting the systemic barriers that lock marginalized communities out of homeownership. This page exists to strip away the gatekeeping and provide absolute, uncompromised transparency into the historical contexts and concrete financial tools available to help you build generational wealth.
-            </p>
+        <section class="hfy-section-card">
+            <h2>Modern Market Realities</h2>
+            <p>Systemic hurdles like discriminatory neighborhood steering, hidden financing premiums, and unequal market treatment are not just historic relics of the past. Modern housing field studies, such as the comprehensive Newsday investigation, demonstrate that implicit bias and subtle structural obstacles persist in the real estate environment today.</p>
+            <p>True professional stewardship means recognizing these forces actively, protecting consumers through radical transparency, and intentionally leveling the playing field for every single homebuyer who wants to put down roots in our neighborhoods.</p>
         </section>
 
-        <!-- Section 2: Historical Civil Rights Context -->
-        <section style="margin-bottom: 5rem;">
-            <div class="testimonial-pullquote" style="margin: 2rem 0; padding: 2.5rem; border-radius: 12px; background-color: var(--white);">
-                <span class="quote-icon" style="top: -15px; left: 1rem;">“</span>
-                <p class="pullquote-text" style="font-size: 1.2rem; line-height: 1.6; margin-bottom: 1rem;">
-                    "I Have the Audacity to Believe that peoples everywhere can have three meals a day for their bodies, education and culture for their minds, and dignity, equality and freedom for their spirits."
-                </p>
-                <p class="pullquote-author" style="text-align: right; font-weight: 800; letter-spacing: 1px;">— Dr. Martin Luther King Jr.</p>
-            </div>
-        </section>
-
-        <!-- Section 3: Educational Media Resources -->
-        <section class="bio-section" style="padding: 2.5rem; margin-bottom: 4rem;">
-            <h2 style="text-align: left; margin-bottom: 1rem; font-size: 1.6rem; color: var(--redfin-red);">Fair Housing Education</h2>
-            <p style="font-size: 0.95rem; margin-bottom: 1.5rem;">Systemic housing bias didn't vanish with the Fair Housing Act of 1968—it simply became quieter. Educating ourselves on modern steering and discriminatory practices is mandatory to ensure true client protection.</p>
+        <section class="hfy-section-card">
+            <h2>Historical Deed Tracking</h2>
+            <p>Decades ago, developers across King and Snohomish Counties utilized discriminatory language inside neighborhood plat maps and property deeds—known as racial restrictive covenants—to explicitly bar minority families from buying homes. While these entries were ruled completely illegal and void by state and federal laws decades ago, the text often remains buried deep within historical land titles.</p>
             
-            <div class="pro-tip-box" style="background-color: var(--featured-highlight); border-left: 4px solid var(--premier-charcoal); border-radius: 0 8px 8px 0; padding: 1.5rem;">
-                <strong style="font-size: 1.1rem; color: var(--premier-charcoal);">🎥 Featured Study: Long Island Divided (Newsday)</strong>
-                <p style="margin-top: 0.5rem; font-size: 0.95rem; line-height: 1.5;">A landmark, 3-year undercover investigative report utilizing paired testers that exposes the silent, ongoing presence of racial steering and unequal treatment by real estate agents in modern markets.</p>
-                <a href="https://projects.newsday.com/long-island/real-estate-investigation/" target="_blank" class="btn btn-secondary btn-small" style="margin-top: 1.25rem; display: inline-block;">Watch the Full Documentary &rarr;</a>
-            </div>
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0.5rem 0 0 0; color: #222;">My Offer to the Community</h3>
+            <p>You should never have to look at your home's deed and see remnants of discrimination. If you live in our local area and your home's historic chain of title contains a legacy restrictive covenant, I will handle the research and modification tracking completely free of charge:</p>
+            
+            <ul class="bullet-feature-list">
+                <li><strong>Deed Verification:</strong> I will request and pull your property’s original historical deed documents through the local title registry network to confirm if an entry exists.</li>
+                <li><strong>Document Preparation:</strong> I will fully prepare the official Washington State Restrictive Covenant Modification paperwork required by your local county.</li>
+                <li><strong>Zero-Cost Filing:</strong> I will cover all associated mobile notary expenses and coordinate the submission directly with the King or Snohomish County Auditor's office.</li>
+            </ul>
+            
+            <a href="#deed-form" class="card-action-btn">Request Historic Deed Review</a>
         </section>
 
-        <!-- Section 4: Systematic Racist Covenant Modification Process -->
-        <section class="profile-card" style="text-align: left; padding: 3rem 2.5rem; margin-bottom: 4rem;">
-            <h2 style="color: var(--premier-charcoal); margin-bottom: 0.5rem; font-size: 1.6rem;">Stripping Restrictive Covenants</h2>
-            <p style="font-size: 1rem; margin-bottom: 2rem; opacity: 0.9;">Many historic property deeds throughout King and Snohomish counties still contain offensive, illegal language explicitly banning marginalized groups from owning or occupying the home.</p>
-
-            <!-- IMAGE: Real Local CC&R Document from image_15.png -->
-            <div style="background-color: var(--white); padding: 1rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid var(--light-gray);">
-                <img src="assets/images/ccr.jpeg" alt="Historical Restrictive Covenant Record Example from King County Deed" style="width: 100%; height: auto; border-radius: 6px;">
-                <span style="font-size: 0.9rem; color: var(--premier-charcoal); display: block; margin-top: 0.75rem; text-align: center; font-weight: 500;">"A real covenant from a transaction Joe worked on personally."</span>
+        <section class="hfy-section-card">
+            <h2>Down Payment Assistance Pathways</h2>
+            <p>Bridging the affordability gap is one of the most critical steps to establishing long-term generational security through real estate. Multiple regional public trust funds and state grants exist to expand purchasing power for local families.</p>
+            
+            <div class="dpa-light-grid">
+                <div class="dpa-light-item">
+                    <h4>Statewide Programs</h4>
+                    <p>WSHFC tracks offering deferred loans and down payment structures.</p>
+                </div>
+                <div class="dpa-light-item">
+                    <h4>Niche Community Funds</h4>
+                    <p>Specific programs like the Sam Smith "Hi Neighbor" fund or local land trust subsidies.</p>
+                </div>
             </div>
-
-            <p style="font-size: 1.05rem; margin-bottom: 1.5rem; line-height: 1.6;">
-                While the Fair Housing Act rendered these racist restrictions legally completely dead, the physical text remains printed permanently on historical county property records. Under Washington State Law (RCW 49.60.227), homeowners have the right to formally strike this language.
-            </p>
-
-            <!-- Community Policy vs Client Policy Clarified -->
-            <div class="pro-tip-box" style="border-left-color: var(--redfin-red); background-color: var(--featured-highlight); margin-bottom: 2rem;">
-                <strong>🛡️ My Open-Door Covenant Policy</strong>
-                <p style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
-                    • <strong>For the Entire Community:</strong> This service is completely open to anyone, regardless of whether you are buying or selling a home. If you live in King or Snohomish County and want illegal restrictions removed from your property deed, use the form below. I will streamline the process and help you get it taken off for free.
-                </p>
-                <p>
-                    • <strong>For My Active Clients:</strong> If you buy or sell a home with me and a preliminary title search uncovers a historical restrictive covenant, I will handle everything automatically and file the paperwork out of escrow to clean your property's legal legacy before closing.
-                </p>
-            </div>
-
-            <!-- Google Form Link for general audience covenant requests -->
-            <div style="text-align: center; margin-top: 2rem;">
-                <a href="https://docs.google.com/forms/d/YOUR_GOOGLE_FORM_ID_HERE/viewform" target="_blank" class="btn btn-primary" style="display: inline-block; width: auto; padding: 1rem 2rem;">Submit a Request to Remove a Covenant</a>
-            </div>
+            
+            <a href="downpayment.html" class="card-action-btn">Launch Down Payment Assistance Finder &rarr;</a>
         </section>
 
-        <!-- Section 5: Precise Financial Programs & Limits -->
-        <section style="margin-bottom: 4rem;">
-            <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem; color: var(--premier-charcoal);">Transparent Financial Programs</h2>
-            <p style="font-size: 0.95rem; margin-bottom: 2rem; opacity: 0.8;">No vague qualifying parameters. Below are the precise, verified baseline criteria and actual income caps for localized purchase assistance programs across King and Snohomish Counties.</p>
-
-            <!-- Card 1: Covenant Homeownership Program -->
-            <div class="review-card" style="background-color: var(--white); margin-bottom: 1.5rem; border-left-color: var(--redfin-red); padding: 2rem;">
-                <h3 style="font-size: 1.3rem; margin-bottom: 0.25rem;">The Washington Covenant Homeownership Program</h3>
-                <span style="display: inline-block; background-color: var(--premier-beige); color: var(--redfin-red); font-size: 0.75rem; font-weight: bold; padding: 0.25rem 0.5rem; border-radius: 4px; margin-bottom: 1rem;">DOWN PAYMENT & CLOSING GRANT</span>
-                <p style="font-size: 0.95rem; margin-bottom: 1rem; line-height: 1.5;">A landmark zero-interest program providing up to 20% of the purchase price (capped at $150,000) to explicitly assist first-time homebuyers harmed by historic discriminatory housing covenants.</p>
-                <ul style="font-size: 0.9rem; list-style-type: disc; padding-left: 1.25rem; line-height: 1.6;">
-                    <li><strong>Exact Income Limits:</strong> Household income must not exceed **$197,300** annually for King and Snohomish counties.</li>
-                    <li><strong>Core Rule:</strong> Must be a first-time homebuyer who resided in Washington State prior to April 11, 1968 (or be a direct descendant).</li>
-                    <li><strong>Repayment Term:</strong> 0% interest loan. Zero monthly payments. Principal balance is only due when you sell, transfer, or fully pay off the primary mortgage.</li>
-                </ul>
-            </div>
-
-            <!-- Card 2: Sam Smith Fund -->
-            <div class="review-card" style="background-color: var(--white); margin-bottom: 1.5rem; border-left-color: var(--premier-charcoal); padding: 2rem;">
-                <h3 style="font-size: 1.3rem; margin-bottom: 0.25rem;">The Sam Smith "Hi Neighbor" Homeownership Fund</h3>
-                <span style="display: inline-block; background-color: var(--premier-beige); color: var(--premier-charcoal); font-size: 0.75rem; font-weight: bold; padding: 0.25rem 0.5rem; border-radius: 4px; margin-bottom: 1rem;">PURCHASING POWER BOOST</span>
-                <p style="font-size: 0.95rem; margin-bottom: 1rem; line-height: 1.5;">Managed via HomeSight, this fund provides up to **$12,000** in layered down payment assistance specifically designed to bridge the homeownership gap facing Black and African American buyers within Washington State.</p>
-                <ul style="font-size: 0.9rem; list-style-type: disc; padding-left: 1.25rem; line-height: 1.6;">
-                    <li><strong>Exact Income Limits:</strong> Specifically targets buyers earning between 80% and 120% of the Area Median Income. In King County, this translates strictly to a qualifying threshold between **$116,650** and **$174,970** depending on precise family sizing metrics.</li>
-                    <li><strong>Core Rule:</strong> Must complete an approved homebuyer education class and occupy the property as a primary residence.</li>
-                </ul>
-            </div>
-
-            <!-- Card 3: WSHFC State Programs -->
-            <div class="review-card" style="background-color: var(--white); margin-bottom: 1.5rem; border-left-color: var(--light-gray); padding: 2rem;">
-                <h3 style="font-size: 1.3rem; margin-bottom: 0.25rem;">WSHFC Home Advantage Assistance</h3>
-                <span style="display: inline-block; background-color: var(--premier-beige); color: var(--premier-charcoal); font-size: 0.75rem; font-weight: bold; padding: 0.25rem 0.5rem; border-radius: 4px; margin-bottom: 1rem;">STATE SPONSORED DPA LOAN</span>
-                <p style="font-size: 0.95rem; margin-bottom: 1rem; line-height: 1.5;">Standard statewide second-mortgage program providing up to 4% or 5% of your total loan value to explicitly clear upfront out-of-pocket cash requirements at close.</p>
-                <ul style="font-size: 0.9rem; list-style-type: disc; padding-left: 1.25rem; line-height: 1.6;">
-                    <li><strong>Exact Income Limits:</strong> Total global household income cannot exceed **$180,000** annually for both King and Snohomish counties.</li>
-                    <li><strong>Core Rule:</strong> Requires a minimum credit score of 620 and utilizing a state-authorized, commission-trained lending partner.</li>
-                </ul>
-            </div>
-
-            <!-- Important Note regarding Lending Integration -->
-            <div class="pro-tip-box" style="margin-top: 2rem; border-left-color: var(--premier-charcoal); background-color: var(--white); border-top: 1px solid var(--premier-beige); border-right: 1px solid var(--premier-beige); border-bottom: 1px solid var(--premier-beige);">
-                <strong>⚠️ Operational Parameter Note</strong>
-                <p style="margin-top: 0.25rem; font-size: 0.95rem;">While my core primary lending partner is Carly Ozuna with Rocket Mortgage, institutional parameters prevent major national banks from processing localized down payment assistance programs smoothly. <strong>If your strategy requires deploying state DPA or grant programs, I will explicitly connect you with specialized local brokers vetted specifically to structure these state loans.</strong> My loyalty is to your bottom line equity, always.</p>
+        <section class="hfy-section-card">
+            <h2>Let's Build Your Financing Track</h2>
+            <p>Finding a program that fits your family's dynamic is only the first piece of the puzzle. Maximizing these community resources requires a lending team that understands how to safely layer assistance grants into standard primary mortgages without generating administrative delays.</p>
+            
+            <div class="connect-box">
+                <strong style="color: #222; font-size: 1rem;">Connect with a Specialized Expert</strong>
+                <p style="margin: 0; font-size: 0.92rem; color: #555;">Get in touch with me today. I will directly connect you with trusted, local mortgage professionals who specialize in Washington State housing assistance programs, ensuring you get transparent guidance tailored to your specific situation.</p>
             </div>
         </section>
 
     </main>
 
-    <!-- Universal Footer Injected Natively -->
     <universal-footer></universal-footer>
 
 </body>
