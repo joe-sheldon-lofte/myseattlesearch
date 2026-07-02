@@ -3,170 +3,312 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Community & Housing Commitments | Joe Sheldon</title>
-    <link rel="stylesheet" href="style.css?v=66">
+    <title>Community, Equity & Housing Truths | Joe Sheldon</title>
+    <link rel="stylesheet" href="style.css?v=68">
     
     <script src="components.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
     <style>
         .hfy-container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 2rem 1rem;
             display: flex;
             flex-direction: column;
-            gap: 2.5rem;
+            gap: 3.5rem;
         }
+        
+        /* Editorial Magazine-Style Header */
         .celebratory-header {
             text-align: center;
-            padding: 1.5rem 0;
+            padding: 2.5rem 0 1rem 0;
         }
         .celebratory-header h1 {
-            font-size: 2.6rem;
+            font-size: 3.2rem;
             font-weight: 900;
             color: #C13030;
-            margin-bottom: 0.5rem;
+            margin: 0 0 1rem 0;
+            letter-spacing: -1px;
         }
         .celebratory-header p {
-            font-size: 1.05rem;
-            line-height: 1.6;
-            color: #444;
-            max-width: 700px;
+            font-size: 1.2rem;
+            line-height: 1.7;
+            color: #222222;
+            max-width: 780px;
             margin: 0 auto;
         }
         
-        /* Editorial Quotes Section */
-        .editorial-quote-card {
-            background: #f8f9fa;
-            border-left: 4px solid var(--premier-charcoal);
-            padding: 1.75rem;
-            border-radius: 4px;
-            margin: 0.5rem 0;
+        /* High-Impact Identity-Inspired Quote Grid */
+        .quotes-editorial-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.75rem;
+            margin-bottom: 1rem;
         }
+        @media (min-width: 768px) {
+            .quotes-editorial-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        
+        .editorial-quote-card {
+            background: #ffffff;
+            padding: 2.25rem 2rem 2rem 2rem;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #eef2f6;
+        }
+        
+        /* Ribbon Accents mapping to community representation flags */
+        .quote-ribbon {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+        }
+        .ribbon-pan-african { background: linear-gradient(to right, #CE1126, #FCD116, #006B3F); }
+        .ribbon-jade-gold { background: linear-gradient(to right, #00A86B, #FFD700, #C13030); }
+        .ribbon-pride-progress { background: linear-gradient(to right, #ff0000, #ff8700, #ffd300, #00871e, #00228c, #7b00c7); }
+
         .editorial-quote-card blockquote {
             margin: 0;
-            font-size: 1.15rem;
-            line-height: 1.55;
-            color: #222;
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: #111111;
             font-style: italic;
         }
         .editorial-quote-card cite {
             display: block;
-            margin-top: 0.75rem;
-            font-size: 0.85rem;
+            margin-top: 1.5rem;
+            font-size: 0.82rem;
             font-weight: 700;
             color: #555;
             font-style: normal;
             letter-spacing: 0.5px;
+            border-top: 1px solid #f1f1f1;
+            padding-top: 0.75rem;
+            line-height: 1.4;
         }
 
+        /* Bold Content Layout Cards with Perfectly Rounded Accent Pill Bars */
         .hfy-section-card {
             background: #ffffff;
-            border-top: 4px solid var(--premier-charcoal);
-            border-radius: 12px;
-            padding: 2.25rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            border-radius: 16px;
+            padding: 2.5rem 2.5rem 2.5rem 3.5rem;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.04);
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 1.25rem;
+            position: relative;
+            border: 1px solid #f0f0f0;
         }
+        
+        /* Fixes the square border line bug using absolute pill-shaped pseudo-elements */
+        .hfy-section-card::before {
+            content: "";
+            position: absolute;
+            left: 1.5rem;
+            top: 2.5rem;
+            bottom: 2.5rem;
+            width: 6px;
+            background-color: var(--premier-charcoal);
+            border-radius: 99px; 
+        }
+        .hfy-section-card.accent-red::before { background-color: #C13030; }
+        
         .hfy-section-card h2 {
             margin: 0;
-            font-size: 1.4rem;
-            font-weight: 700;
+            font-size: 1.75rem;
+            font-weight: 900;
             color: var(--premier-charcoal);
-            border-bottom: 2px solid var(--premier-beige);
-            padding-bottom: 0.5rem;
+            letter-spacing: -0.5px;
         }
         .hfy-section-card p {
             margin: 0;
-            font-size: 0.98rem;
-            line-height: 1.6;
-            color: #333;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: #333333;
         }
         
-        /* Fixed Clean Bullet Framework */
+        /* Real Tangible Evidence Image Layout Block */
+        .evidence-image-container {
+            margin: 0.5rem 0;
+            background: #fdfdfd;
+            border: 1px solid #e2e8f0;
+            padding: 1.25rem;
+            border-radius: 12px;
+            max-width: 650px;
+        }
+        .evidence-image-container img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            display: block;
+        }
+        .evidence-photo-caption {
+            margin-top: 0.85rem;
+            font-size: 0.88rem;
+            line-height: 1.5;
+            color: #444444;
+            font-style: italic;
+            border-left: 3px solid #C13030;
+            padding-left: 0.75rem;
+        }
+
+        /* Structured Bullet Framework */
         .bullet-feature-list {
             margin: 0.5rem 0;
-            padding-left: 1.25rem;
+            padding-left: 0;
+            list-style: none;
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 1rem;
         }
         .bullet-feature-list li {
-            font-size: 0.95rem;
-            line-height: 1.5;
-            color: #444;
-            list-style-type: square;
+            font-size: 1.02rem;
+            line-height: 1.6;
+            color: #333;
+            position: relative;
+            padding-left: 1.75rem;
+        }
+        .bullet-feature-list li::before {
+            content: "■";
+            color: #C13030;
+            position: absolute;
+            left: 0;
+            top: 2px;
+            font-size: 0.9rem;
         }
         .bullet-feature-list li strong {
-            color: #222;
+            color: #000000;
             font-weight: 700;
         }
 
-        /* Light Preview Grid for Linking to Master DPA */
-        .dpa-light-grid {
+        /* Modern Video/Documentary Integration Panel */
+        .documentary-integration-panel {
+            background: #f4f6f8;
+            border-radius: 14px;
+            padding: 2rem;
+            border: 1px solid #e4e4e4;
             display: grid;
             grid-template-columns: 1fr;
-            gap: 1rem;
+            gap: 1.75rem;
+            align-items: center;
+            margin: 0.5rem 0;
+        }
+        @media (min-width: 768px) {
+            .documentary-integration-panel { grid-template-columns: 1.6fr 1fr; }
+        }
+        .documentary-meta h3 {
+            margin: 0 0 0.6rem 0;
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #111;
+        }
+        .documentary-meta p {
+            font-size: 0.96rem !important;
+            line-height: 1.6 !important;
+            color: #444 !important;
+            margin: 0 !important;
+        }
+
+        /* Dynamic Program Link Callout */
+        .dpa-pathways-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
             margin-top: 0.5rem;
         }
         @media (min-width: 600px) {
-            .dpa-light-grid { grid-template-columns: 1fr 1fr; }
+            .dpa-pathways-container { grid-template-columns: 1fr 1fr; }
         }
-        .dpa-light-item {
-            background: #f9f9f9;
+        .dpa-pathway-card {
+            background: #ffffff;
             border: 1px solid #e2e8f0;
-            padding: 1.25rem;
-            border-radius: 8px;
+            padding: 1.75rem;
+            border-radius: 12px;
             display: flex;
             flex-direction: column;
-            gap: 0.35rem;
+            gap: 0.6rem;
+            position: relative;
         }
-        .dpa-light-item h4 {
-            margin: 0;
-            font-size: 1rem;
-            font-weight: 700;
-            color: #222;
+        .dpa-pathway-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 1.5rem;
+            right: 1.5rem;
+            height: 4px;
+            background-color: var(--premier-charcoal);
+            border-radius: 0 0 4px 4px;
         }
-        .dpa-light-item p {
-            font-size: 0.88rem;
-            color: #555;
-            line-height: 1.4;
+        .dpa-pathway-card.highlight-track::before { background-color: #C13030; }
+        
+        .dpa-pathway-card h4 {
             margin: 0;
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #111;
+        }
+        .dpa-pathway-card p {
+            font-size: 0.94rem !important;
+            color: #444 !important;
+            line-height: 1.52 !important;
+            margin: 0 !important;
         }
 
+        /* Human Connection Card Style */
+        .human-connection-card {
+            background: #FFF9F2;
+            border: 1px solid #F5A623;
+            border-radius: 16px;
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            box-shadow: 0 6px 20px rgba(245,166,35,0.06);
+        }
+        .human-connection-card h3 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--premier-charcoal);
+        }
+
+        /* Premium Editorial Button Theme */
         .card-action-btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 0.6rem 1.25rem;
+            padding: 0.75rem 1.5rem;
             background: transparent;
             color: #222222;
             border: 1px solid #222222;
             border-radius: 6px;
-            font-size: 0.85rem;
+            font-size: 0.88rem;
             font-weight: 600;
             text-decoration: none;
             transition: all 0.2s ease;
             width: fit-content;
-            margin-top: 0.5rem;
         }
         .card-action-btn:hover {
             background: #222222;
             color: #ffffff;
         }
-        
-        .connect-box {
-            background: #f4f6f8;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-top: 1rem;
-            border: 1px solid #e0e0e0;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
+        .card-action-btn.btn-solid-red {
+            background: #C13030;
+            color: #ffffff;
+            border-color: #C13030;
+        }
+        .card-action-btn.btn-solid-red:hover {
+            background: #9c2424;
+            border-color: #9c2424;
         }
     </style>
 </head>
@@ -177,65 +319,104 @@
     <main class="hfy-container">
 
         <section class="celebratory-header">
-            <h1>Community & Equity Resources</h1>
-            <p>This space is built out of a direct commitment to housing transparency, historical truth, and delivering open access to regional financial opportunities for every homebuyer.</p>
+            <h1>Identity, History & Fair Housing</h1>
+            <p>Real estate directly shapes our neighborhood maps, family stability, and long-term security. This space is intentionally designed to deliver transparent access to financial pathways, layout historical tracking data, and support an inclusive path to homeownership for everyone.</p>
         </section>
 
-        <div class="editorial-quote-card">
-            <blockquote>
-                "Banning discrimination based on religion and race in the rental or sale of homes is how we build communities where everyone can live wherever they please."
-            </blockquote>
-            <cite>Inspired by the Legislative and Open Housing Crusade of Sam Smith, Washington State Representative (1958-1967) & Seattle City Council President.</cite>
-        </div>
-
-        <section class="hfy-section-card">
-            <h2>Modern Market Realities</h2>
-            <p>Systemic hurdles like discriminatory neighborhood steering, hidden financing premiums, and unequal market treatment are not just historic relics of the past. Modern housing field studies, such as the comprehensive Newsday investigation, demonstrate that implicit bias and subtle structural obstacles persist in the real estate environment today.</p>
-            <p>True professional stewardship means recognizing these forces actively, protecting consumers through radical transparency, and intentionally leveling the playing field for every single homebuyer who wants to put down roots in our neighborhoods.</p>
-        </section>
-
-        <section class="hfy-section-card">
-            <h2>Historical Deed Tracking</h2>
-            <p>Decades ago, developers across King and Snohomish Counties utilized discriminatory language inside neighborhood plat maps and property deeds—known as racial restrictive covenants—to explicitly bar minority families from buying homes. While these entries were ruled completely illegal and void by state and federal laws decades ago, the text often remains buried deep within historical land titles.</p>
+        <section class="quotes-editorial-grid">
             
-            <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0.5rem 0 0 0; color: #222;">My Offer to the Community</h3>
-            <p>You should never have to look at your home's deed and see remnants of discrimination. If you live in our local area and your home's historic chain of title contains a legacy restrictive covenant, I will handle the research and modification tracking completely free of charge:</p>
+            <div class="editorial-quote-card">
+                <div class="quote-ribbon ribbon-pan-african"></div>
+                <blockquote>
+                    "Banning discrimination based on religion and race in the rental or sale of homes is how we build communities where everyone can live wherever they please."
+                </blockquote>
+                <cite>Inspired by Sam Smith, WA State Representative who introduced the state's first open housing legislation to challenge systemic local redlining.</cite>
+            </div>
+
+            <div class="editorial-quote-card">
+                <div class="quote-ribbon ribbon-jade-gold"></div>
+                <blockquote>
+                    "We need to pass fair housing rules now. A person's skin color or national origin should never dictate what neighborhood backyard their children can play in."
+                </blockquote>
+                <cite>Inspired by Wing Luke, the first Asian American elected to public office in the Pacific Northwest and a relentless advocate for civil rights and urban integration.</cite>
+            </div>
+
+            <div class="editorial-quote-card">
+                <div class="quote-ribbon ribbon-pride-progress"></div>
+                <blockquote>
+                    "Protecting people from housing discrimination based on who they love or how they identify isn't extra treatment—it is establishing standard human dignity."
+                </blockquote>
+                <cite>Inspired by the pioneering housing inclusion works of Cal Anderson and Marsha Botzer, who established early protections for the LGBTQ+ community.</cite>
+            </div>
+
+        </section>
+
+        <section class="hfy-section-card accent-red">
+            <h2>Modern Realities & Industry Testing</h2>
+            <p>It is comfortable to treat fair housing hurdles as simple, solved relics of the mid-20th century, but modern undercover field studies reveal that systemic routing, implicit bias, and unequal financing benchmarks continue to present challenges inside real estate channels today.</p>
+            
+            <div class="documentary-integration-panel">
+                <div class="documentary-meta">
+                    <h3>The Newsday Fair Housing Testing Study</h3>
+                    <p>This major undercover testing investigation utilized paired, identical homebuyers with matching credit profiles to physically measure treatment variances across modern real estate brokerages. Rather than an outdated piece of history, the field documentation caught implicit steering, where buyers of color were routinely directed away from specific suburban neighborhoods, faced far stricter financial pre-screening metrics, and were shown significantly fewer listings than their identical counterparts.</p>
+                </div>
+                <div style="display: flex; justify-content: center;">
+                    <a href="https://www.newsday.com/long-island/real-estate/housing-discrimination-long-island-testing-1.38356199" target="_blank" class="card-action-btn">Examine the Testing Documentation &rarr;</a>
+                </div>
+            </div>
+            
+            <p>Stewardship means looking at these modern tracking realities directly, offering completely un-biased and open neighborhood data, and treating the consumer interests of every single buyer with the same level of protection.</p>
+        </section>
+
+        <section class="hfy-section-card">
+            <h2>The Legacy of Restrictive Covenants</h2>
+            <p>Between 1910 and 1960, developers and neighborhood associations across King and Snohomish Counties stamped explicit discriminatory clauses directly into local plat maps and property deeds. Known as racial restrictive covenants, these agreements legally blocked minority groups from purchasing, renting, or occupying residential homes across entire subdivisions.</p>
+            
+            <div class="evidence-image-container">
+                <img src="assets/images/ccr.jpeg" alt="Racial Restrictive Covenant Example from a Historic Seattle Deed Record">
+                <div class="evidence-photo-caption">This is a real CC&R, on a real property, in Seattle, that I personally came across in my regular real estate research.</div>
+            </div>
+
+            <p>The federal Fair Housing Act of 1968 rendered these provisions completely illegal and void, but the text remains embedded inside thousands of historic local land files. Pulling your title policy and seeing these terms can be an incredibly jarring experience.</p>
+        </section>
+
+        <section class="hfy-section-card accent-red">
+            <h2>My Offer to the Community</h2>
+            <p>You should not have to carry an active stamp of discrimination inside your home's historic public record. Washington State law provides a direct mechanism to strike this text. If you own a home locally and your historic chain of title contains a racial restrictive covenant, I am offering to manage the modification tracking for you completely free of charge:</p>
             
             <ul class="bullet-feature-list">
-                <li><strong>Deed Verification:</strong> I will request and pull your property’s original historical deed documents through the local title registry network to confirm if an entry exists.</li>
-                <li><strong>Document Preparation:</strong> I will fully prepare the official Washington State Restrictive Covenant Modification paperwork required by your local county.</li>
-                <li><strong>Zero-Cost Filing:</strong> I will cover all associated mobile notary expenses and coordinate the submission directly with the King or Snohomish County Auditor's office.</li>
+                <li><strong>Title Registry Research:</strong> I will fully request and pull your property’s original historical deed documents through the title registry network to verify if an entry exists.</li>
+                <li><strong>Modification Document Prep:</strong> I will complete and prepare the official Restrictive Covenant Modification paperwork required by your specific county recording division.</li>
+                <li><strong>Filing & Delivery:</strong> I will arrange any necessary mobile notary steps and submit the finalized files directly to the King County Recorder or Snohomish County Auditor at zero cost to you.</li>
             </ul>
             
-            <a href="#deed-form" class="card-action-btn">Request Historic Deed Review</a>
+            <a href="https://docs.google.com/forms/d/e/1FAIpQLSfnLwN41kn5LUZ2IF-pFMfLLLPlaSwAQlJ7VMOdONLjhSIBwg/viewform?usp=header" target="_blank" class="card-action-btn btn-solid-red">Request a Free Deed Review</a>
         </section>
 
         <section class="hfy-section-card">
-            <h2>Down Payment Assistance Pathways</h2>
-            <p>Bridging the affordability gap is one of the most critical steps to establishing long-term generational security through real estate. Multiple regional public trust funds and state grants exist to expand purchasing power for local families.</p>
+            <h2>Reparative Homeownership Pathways</h2>
+            <p>Closing homeownership wealth gaps requires translating historical awareness into actionable access to modern financing platforms. Multiple public trust funds, state grants, and community down payment tracks exist to help expand purchasing power for impacted households and first-generation buyers.</p>
             
-            <div class="dpa-light-grid">
-                <div class="dpa-light-item">
-                    <h4>Statewide Programs</h4>
-                    <p>WSHFC tracks offering deferred loans and down payment structures.</p>
+            <div class="dpa-pathways-container">
+                <div class="dpa-pathway-card highlight-track">
+                    <h4>Covenant Homeownership Program</h4>
+                    <p>A specialized statewide program providing closing cost and down payment assistance loans to homebuyers who can trace Washington State residency prior to 1968, directly addressing the impact of historic redlining.</p>
                 </div>
-                <div class="dpa-light-item">
-                    <h4>Niche Community Funds</h4>
-                    <p>Specific programs like the Sam Smith "Hi Neighbor" fund or local land trust subsidies.</p>
+                <div class="dpa-pathway-card">
+                    <h4>Sam Smith "Hi Neighbor" Fund</h4>
+                    <p>A deferred assistance second mortgage track designed by HomeSight to build real estate equity and lower down payment friction specifically for moderate-income minority buyers within regional urban centers.</p>
                 </div>
             </div>
             
             <a href="downpayment.html" class="card-action-btn">Launch Down Payment Assistance Finder &rarr;</a>
         </section>
 
-        <section class="hfy-section-card">
-            <h2>Let's Build Your Financing Track</h2>
-            <p>Finding a program that fits your family's dynamic is only the first piece of the puzzle. Maximizing these community resources requires a lending team that understands how to safely layer assistance grants into standard primary mortgages without generating administrative delays.</p>
+        <section class="human-connection-card">
+            <h3>Let's Build Your Lending Team</h3>
+            <p style="margin: 0; font-size: 1.05rem; line-height: 1.65; color: #333;">Identifying assistance tools or mapping your community options is only the first step. Safely integrating down payment assistance, grants, or deferred loans into a standard mortgage pre-approval requires a lending team that understands the operational landscape inside and out.</p>
+            <p style="margin: 0; font-size: 1.05rem; line-height: 1.65; color: #333;">Get in touch with me today and I will connect you with trusted, local mortgage professionals who prioritize community programs, giving you clear, transparent financing options without any corporate sales pressure.</p>
             
-            <div class="connect-box">
-                <strong style="color: #222; font-size: 1rem;">Connect with a Specialized Expert</strong>
-                <p style="margin: 0; font-size: 0.92rem; color: #555;">Get in touch with me today. I will directly connect you with trusted, local mortgage professionals who specialize in Washington State housing assistance programs, ensuring you get transparent guidance tailored to your specific situation.</p>
-            </div>
+            <a href="https://calendar.app.google/98spzj6KQziSxeKR8" target="_blank" class="card-action-btn" style="background: #222; color: #fff; border-color: #222;">Connect with an Joe</a>
         </section>
 
     </main>
