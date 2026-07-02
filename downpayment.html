@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Down Payment Assistance Finder | Joe Sheldon</title>
+    <link rel="stylesheet" href="style.css?v=63">
+    
+    <script src="components.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        .dpa-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        .wizard-card {
+            background: #f4f6f8;
+            border-top: 6px solid var(--premier-charcoal);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+            margin-bottom: 3rem;
+        }
+        .wizard-card h3 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #3D3935;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0.5rem;
+        }
+        .wizard-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+        }
+        @media (min-width: 768px) {
+            .wizard-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        .input-box {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .input-box label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #555555;
+        }
+        .input-box input, .input-box select {
+            padding: 0.6rem 0.75rem;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            color: #222;
+            background: #ffffff;
+            width: 100%;
+            box-sizing: border-box;
+            font-weight: normal;
+        }
+        .input-box input:focus, .input-box select:focus {
+            border-color: #C13030;
+            outline: none;
+        }
+        .btn-search {
+            grid-column: 1 / -1;
+            padding: 0.85rem;
+            background: #C13030;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            margin-top: 0.5rem;
+            width: 100%;
+        }
+        .btn-search:hover { background: #9c2424; }
+
+        /* Program Layout Architecture */
+        .results-heading {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--premier-charcoal);
+            border-bottom: 2px solid var(--premier-beige);
+            padding-bottom: 0.5rem;
+        }
+        .program-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            margin-bottom: 1.5rem;
+            border-left: 4px solid var(--premier-charcoal);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            animation: cardFade 0.3s ease-in-out;
+        }
+        @keyframes cardFade { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .program-card.matched-perfect {
+            border-left-color: #137333;
+        }
+        .program-card h3 {
+            margin: 0;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #222;
+        }
+        .agency-badge {
+            font-size: 0.8rem;
+            color: #666;
+            font-weight: 600;
+            margin-top: -0.25rem;
+        }
+        .program-details-strip {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            background: #f8f9fa;
+            padding: 0.85rem 1.25rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin: 0.25rem 0;
+        }
+        .program-details-strip span strong {
+            font-weight: 700;
+            color: var(--premier-charcoal);
+        }
+        .program-details-strip span var-text {
+            font-weight: normal;
+            color: #444;
+        }
+        .extra-step-alert {
+            background: #fff9f2;
+            border-left: 3px solid #f5a623;
+            padding: 0.75rem 1rem;
+            border-radius: 0 6px 6px 0;
+            font-size: 0.9rem;
+            color: #333;
+        }
+        .program-card p {
+            margin: 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: #444;
+        }
+    </style>
+</head>
+<body class="dpa-page">
+
+    <universal-header></universal-header>
+
+    <main class="dpa-container">
+        
+        <div class="compare-header-box" style="text-align: center; margin-bottom: 2.5rem;">
+            <h1 style="font-size: 2.6rem; font-weight: 900; color: #C13030; margin-bottom: 0.5rem;">Down Payment Assistance Programs</h1>
+            <p class="intro">An un-biased, consolidated directory mapping local down payment assistance programs, grant pools, and housing trust resources across King and Snohomish Counties.</p>
+        </div>
+
+        <section class="wizard-card">
+            <h3>Check Potential Eligibility</h3>
+            <div class="wizard-grid">
+                
+                <div class="input-box">
+                    <label for="citySelect">Where are you planning to buy?</label>
+                    <select id="citySelect"></select>
+                </div>
+
+                <div class="input-box">
+                    <label for="inHouseholdSize">Total household size (number of people living in the home)</label>
+                    <select id="inHouseholdSize">
+                        <option value="1">1 Person</option>
+                        <option value="2">2 People</option>
+                        <option value="3">3 People</option>
+                        <option value="4" selected>4 or More People</option>
+                    </select>
+                </div>
+
+                <div class="input-box">
+                    <label for="inIncome">Total gross annual household income ($)</label>
+                    <input type="number" id="inIncome" value="110000">
+                </div>
+
+                <div class="input-box">
+                    <label for="inFirstTime">Have you owned a primary home in the last 3 years?</label>
+                    <select id="inFirstTime">
+                        <option value="no" selected>No (Or haven't owned a home in 3+ years)</option>
+                        <option value="yes">Yes</option>
+                    </select>
+                </div>
+
+                <button class="btn-search" onclick="evaluateDpaPrograms()">Analyze Matching Programs</button>
+            </div>
+        </section>
+
+        <section id="resultsSection" style="display: none;">
+            <h2 class="results-heading" id="txtResultsHeading">Available Programs</h2>
+            <div id="programsOutputContainer"></div>
+        </section>
+
+    </main>
+
+    <universal-footer></universal-footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const citiesPath = './data/InfoSparks Links - Sheet2.csv';
+            const dpaJsonPath = './data/dpa_programs.json';
+
+            let dataStore = { cities: {}, programs: [] };
+
+            const cleanNum = (str) => {
+                if (str === null || str === undefined || str === 'NaN') return 0;
+                return parseFloat((str).toString().replace(/[^0-9.-]+/g, "")) || 0;
+            };
+            const formatCurrency = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+
+            const fetchCSV = (url) => new Promise((resolve) => {
+                Papa.parse(url, { download: true, header: true, skipEmptyLines: true, complete: res => resolve(res.data), error: () => resolve([]) });
+            });
+
+            async function fetchJSON(path) {
+                try { const res = await fetch(path); if (!res.ok) return []; return JSON.parse(await res.text()); } catch (e) { return []; }
+            }
+
+            Promise.all([
+                fetchCSV(citiesPath), fetchJSON(dpaJsonPath)
+            ]).then(values => {
+                const cityRows = values[0] || [];
+                dataStore.programs = values[1] || [];
+
+                cityRows.forEach(row => {
+                    if (row.City) {
+                        dataStore.cities[row.City.trim().toLowerCase()] = {
+                            city: row.City.trim(),
+                            county: (row.County || '').trim(),
+                            northSound: (row['North Sound'] || '').trim().toLowerCase() === 'x'
+                        };
+                    }
+                });
+
+                populateDropdown();
+            });
+
+            function populateDropdown() {
+                const select = document.getElementById('citySelect');
+                const groups = { 'North Sound': [], 'King County': [], 'Snohomish County': [] };
+
+                Object.values(dataStore.cities).sort((a,b) => a.city.localeCompare(b.city)).forEach(item => {
+                    if (item.northSound) groups['North Sound'].push(item.city);
+                    else if (item.county === 'King') groups['King County'].push(item.city);
+                    else if (item.county === 'Snohomish') groups['Snohomish County'].push(item.city);
+                });
+
+                let html = '';
+                for (let group in groups) {
+                    if (groups[group].length > 0) {
+                        html += `<optgroup label="${group}">`;
+                        groups[group].forEach(city => { html += `<option value="${city}">${city}</option>`; });
+                        html += `</optgroup>`;
+                    }
+                }
+                select.innerHTML = html;
+                
+                // Trigger an initial automated lookup on load if default programs exist
+                if(dataStore.programs.length > 0) evaluateDpaPrograms();
+            }
+
+            window.evaluateDpaPrograms = function() {
+                const targetCityName = document.getElementById('citySelect').value;
+                const cityObj = dataStore.cities[targetCityName.toLowerCase().trim()] || {};
+                const targetCountyName = cityObj.county || '';
+                
+                const householdSize = parseInt(document.getElementById('inHouseholdSize').value) || 4;
+                const userIncome = parseFloat(document.getElementById('inIncome').value) || 0;
+                const ownedRecently = document.getElementById('inFirstTime').value === 'yes';
+
+                const container = document.getElementById('programsOutputContainer');
+                container.innerHTML = '';
+
+                if (dataStore.programs.length === 0) {
+                    container.innerHTML = `<p style="opacity: 0.6;">DPA database tracking profiles are currently synchronizing. Please refresh or check back shortly.</p>`;
+                    document.getElementById('resultsSection').style.display = 'block';
+                    return;
+                }
+
+                let matchesHtml = '';
+                let matchCount = 0;
+
+                dataStore.programs.forEach(prog => {
+                    // 1. Geography validation
+                    const countiesList = prog['Eligible Counties'] ? prog['Eligible Counties'].toLowerCase() : '';
+                    const citiesList = prog['Eligible Cities'] ? prog['Eligible Cities'].toLowerCase() : '';
+                    
+                    const countyMatch = countiesList.includes('all') || countiesList.includes('washington') || countiesList.includes(targetCountyName.toLowerCase());
+                    const cityMatch = citiesList.includes('all') || citiesList.includes(targetCityName.toLowerCase());
+
+                    if (!countyMatch || !cityMatch) return;
+
+                    // 2. First-Time Buyer verification
+                    const fthbRequired = String(prog['First Time Buyer Required']).trim().toLowerCase() === 'yes';
+                    if (fthbRequired && ownedRecently) return;
+
+                    // 3. Scale income cap tier based on household size rows
+                    let incomeCapColumnKey = 'Income Limit 4 Person Plus';
+                    if (householdSize === 1) incomeCapColumnKey = 'Income Limit 1 Person';
+                    else if (householdSize === 2) incomeCapColumnKey = 'Income Limit 2 Person';
+                    else if (householdSize === 3) incomeCapColumnKey = 'Income Limit 3 Person';
+
+                    const rawIncomeCap = cleanNum(prog[incomeCapColumnKey]);
+                    if (rawIncomeCap > 0 && userIncome > rawIncomeCap) return;
+
+                    // Compile details fact panels
+                    matchCount++;
+                    const maxAmount = cleanNum(prog['Max Assistance Amount']) > 0 ? formatCurrency(cleanNum(prog['Max Assistance Amount'])) : 'Varies based on qualification';
+                    const displayCap = rawIncomeCap > 0 ? formatCurrency(rawIncomeCap) : 'No income cap specified';
+                    const extraSteps = prog['Mandatory Extra Steps'] ? String(prog['Mandatory Extra Steps']).trim() : '';
+
+                    let extraStepsMarkup = '';
+                    if (extraSteps && extraSteps !== 'None' && extraSteps !== '-') {
+                        extraStepsMarkup = `<div class="extra-step-alert">📋 <strong>Prerequisite Note:</strong> <var-text>${extraSteps}</var-text></div>`;
+                    }
+
+                    matchesHtml += `
+                        <div class="program-card matched-perfect">
+                            <h3>${prog['Program Name']}</h3>
+                            <div class="agency-badge">Administered by: ${prog['Administering Agency'] || 'Regional Allocation Authority'}</div>
+                            
+                            <div class="program-details-strip">
+                                <span><strong>Assistance Structure:</strong> <var-text>${prog['Assistance Type'] || 'Deferred Second Mortgage'}</var-text></span>
+                                <span><strong>Maximum Assistance:</strong> <var-text>${maxAmount}</var-text></span>
+                                <span><strong>Your Size Income Cap:</strong> <var-text>${displayCap}</var-text></span>
+                            </div>
+                            
+                            <p>${prog['Program Description'] || 'No additional localized sub-notes specified.'}</p>
+                            ${extraStepsMarkup}
+                        </div>
+                    `;
+                });
+
+                if (matchCount === 0) {
+                    container.innerHTML = `<p style="opacity: 0.85; padding: 1rem 0;">No active regional down payment assistant allocations directly match your combination of income, city selection, or past homeownership parameters today.</p>`;
+                } else {
+                    container.innerHTML = matchesHtml;
+                }
+
+                document.getElementById('txtResultsHeading').textContent = `Matching Programs for ${targetCityName} (${matchCount} Found)`;
+                document.getElementById('resultsSection').style.display = 'block';
+            };
+        });
+    </script>
+</body>
+</html>
