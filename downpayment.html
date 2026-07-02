@@ -39,132 +39,147 @@
         @media (min-width: 768px) {
             .wizard-grid { grid-template-columns: repeat(2, 1fr); }
         }
-        .input-box {
+        @media (min-width: 1100px) {
+            .wizard-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+        .input-element-box {
             display: flex;
             flex-direction: column;
             gap: 0.35rem;
         }
-        .input-box label {
-            font-size: 0.85rem;
+        .input-element-box label {
+            font-size: 0.8rem;
             font-weight: 600;
             color: #555555;
         }
-        .input-box input, .input-box select {
+        .input-element-box input, .input-element-box select {
             padding: 0.6rem 0.75rem;
             border: 2px solid #ccc;
             border-radius: 6px;
             font-size: 0.95rem;
+            font-weight: normal;
             color: #222;
             background: #ffffff;
             width: 100%;
             box-sizing: border-box;
-            font-weight: normal;
         }
-        .input-box input:focus, .input-box select:focus {
+        .input-element-box input:focus, .input-element-box select:focus {
             border-color: #C13030;
             outline: none;
         }
-        .btn-search {
-            grid-column: 1 / -1;
-            padding: 0.85rem;
-            background: #C13030;
-            color: #ffffff;
-            border: none;
+        .down-payment-combo-group {
+            display: flex;
+            border: 2px solid #ccc;
             border-radius: 6px;
-            font-size: 0.95rem;
-            font-weight: 700;
+            overflow: hidden;
+            background: #fff;
+        }
+        .down-payment-combo-group input {
+            border: none !important;
+            padding: 0.6rem 0.75rem;
+        }
+        .down-payment-combo-group select {
+            border: none !important;
+            background: #e0e0e0 !important;
+            font-weight: 600 !important;
+            width: 65px !important;
+            padding: 0 0.25rem !important;
+            text-align: center;
             cursor: pointer;
-            transition: background 0.2s ease;
-            margin-top: 0.5rem;
-            width: 100%;
+            border-left: 2px solid #ccc !important;
+            border-radius: 0 !important;
         }
-        .btn-search:hover { background: #9c2424; }
 
-        /* Program Layout Architecture */
-        .results-heading {
-            font-size: 1.4rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            color: var(--premier-charcoal);
-            border-bottom: 2px solid var(--premier-beige);
-            padding-bottom: 0.5rem;
+        /* Narrative Output Display Blocks */
+        .bnl-results-wrapper {
+            display: none;
+            animation: paneFadeIn 0.4s ease-in-out;
         }
-        .program-card {
-            background: #ffffff;
-            border-radius: 12px;
+        @keyframes paneFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .coach-summary-box {
+            background-color: #ffffff;
+            border-left: 4px solid #C13030;
             padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .coach-total-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #222;
+            margin: 0.5rem 0;
+        }
+
+        .narrative-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+        @media (min-width: 768px) {
+            .narrative-grid { grid-template-columns: 1fr 1fr; }
+        }
+        .narrative-card {
+            background: #ffffff;
+            padding: 1.75rem;
+            border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-            margin-bottom: 1.5rem;
-            border-left: 4px solid var(--premier-charcoal);
+            border-top: 4px solid var(--premier-charcoal);
             display: flex;
             flex-direction: column;
             gap: 0.75rem;
-            animation: cardFade 0.3s ease-in-out;
         }
-        @keyframes cardFade { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .program-card.matched-perfect {
-            border-left-color: #137333;
-        }
-        .program-card h3 {
+        .narrative-card h4 {
             margin: 0;
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             font-weight: 700;
             color: #222;
         }
-        .agency-badge {
-            font-size: 0.8rem;
-            color: #666;
-            font-weight: 600;
-            margin-top: -0.25rem;
-        }
-        .program-details-strip {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1.5rem;
+        .narrative-comparison-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
             background: #f8f9fa;
-            padding: 0.85rem 1.25rem;
+            padding: 0.75rem;
             border-radius: 6px;
             font-size: 0.9rem;
-            margin: 0.25rem 0;
         }
-        .program-details-strip span strong {
-            font-weight: 700;
-            color: var(--premier-charcoal);
+        .narrative-comparison-row div span {
+            display: block;
+            font-size: 0.75rem;
+            color: #666;
+            font-weight: 600;
         }
-        .program-details-strip span var-text {
+        .narrative-comparison-row div strong {
+            font-size: 1rem;
             font-weight: normal;
-            color: #444;
+            color: #222;
         }
-        .extra-step-alert {
-            background: #fff9f2;
-            border-left: 3px solid #f5a623;
-            padding: 0.75rem 1rem;
-            border-radius: 0 6px 6px 0;
-            font-size: 0.9rem;
-            color: #333;
-        }
-        .program-card p {
+        .narrative-card p {
             margin: 0;
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             line-height: 1.5;
             color: #444;
         }
     </style>
 </head>
-<body class="dpa-page">
+<body class="down-payment-finder-page">
 
     <universal-header></universal-header>
 
     <main class="dpa-container">
         
         <div class="compare-header-box" style="text-align: center; margin-bottom: 2.5rem;">
-            <h1 style="font-size: 2.6rem; font-weight: 900; color: #C13030; margin-bottom: 0.5rem;">Down Payment Assistance Programs</h1>
-            <p class="intro">An un-biased, consolidated directory mapping local down payment assistance programs, grant pools, and housing trust resources across King and Snohomish Counties.</p>
+            <a href="stats.html" class="back-link">&larr; Back to Market Insights</a>
+            <h1 style="margin-top: 0.5rem; font-size: 2.6rem; font-weight: 900; color: #C13030;">Down Payment Assistance Finder</h1>
+            <p class="intro">An objective screening tool comparing local programs, grants, and deferred homeownership funds based on your specific city and household parameters.</p>
         </div>
 
         <section class="wizard-card">
-            <h3>Check Potential Eligibility</h3>
+            <h3>Check Potential Program Options</h3>
             <div class="wizard-grid">
                 
                 <div class="input-box">
@@ -195,13 +210,18 @@
                     </select>
                 </div>
 
-                <button class="btn-search" onclick="evaluateDpaPrograms()">Analyze Matching Programs</button>
+                <button class="btn-search" onclick="evaluateDpaPrograms()">Analyze Matching Options</button>
             </div>
         </section>
 
         <section id="resultsSection" style="display: none;">
-            <h2 class="results-heading" id="txtResultsHeading">Available Programs</h2>
-            <div id="programsOutputContainer"></div>
+            <div class="coach-summary-box">
+                <h2 style="font-size: 1.4rem; font-weight: 700; margin: 0; color: var(--premier-charcoal);">Directory Screening Summary</h2>
+                <div class="coach-total-number" id="txtTotalMatchesCount">0 Options Identified</div>
+                <p style="max-width: 750px; margin: 0 auto; font-size: 0.95rem; color: #555;">Programs are listed objectively based on your geographical and financial matching parameters.</p>
+            </div>
+            
+            <div class="narrative-grid" id="programsOutputContainer"></div>
         </section>
 
     </main>
@@ -261,14 +281,15 @@
                 let html = '';
                 for (let group in groups) {
                     if (groups[group].length > 0) {
-                        html += `<optgroup label="${group}">`;
-                        groups[group].forEach(city => { html += `<option value="${city}">${city}</option>`; });
+                        html += `<optgroup label="${groupName = group}">`;
+                        groups[group].forEach(city => {
+                            optionsHtml = html += `<option value="${city}">${city}</option>`;
+                        });
                         html += `</optgroup>`;
                     }
                 }
                 select.innerHTML = html;
                 
-                // Trigger an initial automated lookup on load if default programs exist
                 if(dataStore.programs.length > 0) evaluateDpaPrograms();
             }
 
@@ -284,17 +305,10 @@
                 const container = document.getElementById('programsOutputContainer');
                 container.innerHTML = '';
 
-                if (dataStore.programs.length === 0) {
-                    container.innerHTML = `<p style="opacity: 0.6;">DPA database tracking profiles are currently synchronizing. Please refresh or check back shortly.</p>`;
-                    document.getElementById('resultsSection').style.display = 'block';
-                    return;
-                }
-
                 let matchesHtml = '';
                 let matchCount = 0;
 
                 dataStore.programs.forEach(prog => {
-                    // 1. Geography validation
                     const countiesList = prog['Eligible Counties'] ? prog['Eligible Counties'].toLowerCase() : '';
                     const citiesList = prog['Eligible Cities'] ? prog['Eligible Cities'].toLowerCase() : '';
                     
@@ -303,11 +317,9 @@
 
                     if (!countyMatch || !cityMatch) return;
 
-                    // 2. First-Time Buyer verification
                     const fthbRequired = String(prog['First Time Buyer Required']).trim().toLowerCase() === 'yes';
                     if (fthbRequired && ownedRecently) return;
 
-                    // 3. Scale income cap tier based on household size rows
                     let incomeCapColumnKey = 'Income Limit 4 Person Plus';
                     if (householdSize === 1) incomeCapColumnKey = 'Income Limit 1 Person';
                     else if (householdSize === 2) incomeCapColumnKey = 'Income Limit 2 Person';
@@ -316,41 +328,60 @@
                     const rawIncomeCap = cleanNum(prog[incomeCapColumnKey]);
                     if (rawIncomeCap > 0 && userIncome > rawIncomeCap) return;
 
-                    // Compile details fact panels
                     matchCount++;
                     const maxAmount = cleanNum(prog['Max Assistance Amount']) > 0 ? formatCurrency(cleanNum(prog['Max Assistance Amount'])) : 'Varies based on qualification';
                     const displayCap = rawIncomeCap > 0 ? formatCurrency(rawIncomeCap) : 'No income cap specified';
                     const extraSteps = prog['Mandatory Extra Steps'] ? String(prog['Mandatory Extra Steps']).trim() : '';
+                    const officialWebsite = prog['Program Website'] ? String(prog['Program Website']).trim() : '';
 
                     let extraStepsMarkup = '';
                     if (extraSteps && extraSteps !== 'None' && extraSteps !== '-') {
-                        extraStepsMarkup = `<div class="extra-step-alert">📋 <strong>Prerequisite Note:</strong> <var-text>${extraSteps}</var-text></div>`;
+                        extraStepsMarkup = `<div class="extra-step-alert">📋 <strong>Prerequisite Note:</strong> ${extraSteps}</div>`;
+                    }
+
+                    let websiteMarkup = '';
+                    if (officialWebsite && officialWebsite !== '' && officialWebsite !== '-') {
+                        websiteMarkup = `<a href="${officialWebsite}" target="_blank" class="card-action-btn" style="margin-top: auto; display: inline-flex; align-items: center; justify-content: center;">Explore Official Program Website &rarr;</a>`;
                     }
 
                     matchesHtml += `
-                        <div class="program-card matched-perfect">
-                            <h3>${prog['Program Name']}</h3>
-                            <div class="agency-badge">Administered by: ${prog['Administering Agency'] || 'Regional Allocation Authority'}</div>
-                            
-                            <div class="program-details-strip">
-                                <span><strong>Assistance Structure:</strong> <var-text>${prog['Assistance Type'] || 'Deferred Second Mortgage'}</var-text></span>
-                                <span><strong>Maximum Assistance:</strong> <var-text>${maxAmount}</var-text></span>
-                                <span><strong>Your Size Income Cap:</strong> <var-text>${displayCap}</var-text></span>
+                        <div class="narrative-card">
+                            <div>
+                                <h4>${prog['Program Name']}</h4>
+                                <div class="agency-badge">Administered by: ${prog['Administering Agency'] || 'Regional Authority'}</div>
                             </div>
                             
-                            <p>${prog['Program Description'] || 'No additional localized sub-notes specified.'}</p>
+                            <div class="narrative-comparison-row">
+                                <div>
+                                    <span>Assistance Type</span>
+                                    <strong>${prog['Assistance Type'] || 'Deferred Loan'}</strong>
+                                </div>
+                                <div>
+                                    <span>Maximum Limit</span>
+                                    <strong>${maxAmount}</strong>
+                                </div>
+                                <div>
+                                    <span>Your Size Income Cap</span>
+                                    <strong>${displayCap}</strong>
+                                </div>
+                            </div>
+                            
+                            <p>${prog['Program Description'] || 'No additional localized tracking notes specified.'}</p>
                             ${extraStepsMarkup}
+                            ${websiteMarkup}
                         </div>
                     `;
                 });
 
                 if (matchCount === 0) {
-                    container.innerHTML = `<p style="opacity: 0.85; padding: 1rem 0;">No active regional down payment assistant allocations directly match your combination of income, city selection, or past homeownership parameters today.</p>`;
+                    container.style.display = 'block';
+                    container.innerHTML = `<p style="opacity: 0.85; padding: 1rem 0; grid-column: 1 / -1; text-align: center;">No active program options directly match your combination of income, city selection, or past homeownership parameters today.</p>`;
                 } else {
+                    container.style.display = 'grid';
                     container.innerHTML = matchesHtml;
                 }
 
-                document.getElementById('txtResultsHeading').textContent = `Matching Programs for ${targetCityName} (${matchCount} Found)`;
+                document.getElementById('txtTotalMatchesCount').textContent = `${matchCount} Program ${matchCount === 1 ? 'Option' : 'Options'} Identified`;
                 document.getElementById('resultsSection').style.display = 'block';
             };
         });
