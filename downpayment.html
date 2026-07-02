@@ -81,7 +81,7 @@
         .down-payment-combo-group select {
             border: none !important;
             background: #e0e0e0 !important;
-            font-weight: 600 !important;
+            font-weight: 700 !important;
             width: 65px !important;
             padding: 0 0.25rem !important;
             text-align: center;
@@ -130,6 +130,19 @@
             color: #222;
             margin: 0.5rem 0;
         }
+        
+        /* Clear Informational Advisory Disclaimer Banner */
+        .dpa-advisory-disclaimer {
+            background-color: #FFF9F2;
+            border-left: 4px solid #F5A623;
+            padding: 1.25rem;
+            border-radius: 4px 12px 12px 4px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #333;
+            text-align: left;
+            margin-top: 1.25rem;
+        }
 
         .narrative-grid {
             display: grid;
@@ -138,7 +151,7 @@
             margin-bottom: 3rem;
         }
         @media (min-width: 768px) {
-            .narrative-grid { grid-template-columns: 1fr 1fr; }
+            .narrative-grid { grid-template-columns: grid-template-columns: 1fr 1fr; }
         }
         .narrative-card {
             background: #ffffff;
@@ -164,6 +177,7 @@
             padding: 0.75rem;
             border-radius: 6px;
             font-size: 0.9rem;
+            font-weight: normal;
         }
         .narrative-comparison-row div span {
             display: block;
@@ -191,7 +205,6 @@
             color: #333;
         }
 
-        /* Custom Bordered Action Buttons to match stats.html Community Profiles */
         .card-action-btn {
             display: inline-flex;
             align-items: center;
@@ -227,7 +240,7 @@
         </div>
 
         <section class="wizard-card">
-            <h3>Check Potential Program Options</h3>
+            <h3>Explore Program Options</h3>
             <div class="wizard-grid">
                 
                 <div class="input-box">
@@ -258,15 +271,18 @@
                     </select>
                 </div>
 
-                <button class="btn-search" onclick="evaluateDpaPrograms()">Analyze Matching Options</button>
+                <button class="btn-search" onclick="evaluateDpaPrograms()">Find Matching Programs</button>
             </div>
         </section>
 
         <section id="resultsSection" style="display: none;">
             <div class="coach-summary-box">
-                <h2 style="font-size: 1.4rem; font-weight: 700; margin: 0; color: var(--premier-charcoal);">Directory Screening Summary</h2>
+                <h2 style="font-size: 1.4rem; font-weight: 700; margin: 0; color: var(--premier-charcoal);">Potential Matches</h2>
                 <div class="coach-total-number" id="txtTotalMatchesCount">0 Options Identified</div>
-                <p style="max-width: 750px; margin: 0 auto; font-size: 0.95rem; color: #555;">Programs are listed objectively based on your geographical and financial matching parameters.</p>
+                
+                <div class="dpa-advisory-disclaimer">
+                    <strong>Important Notice:</strong> This directory provides a summary of community programs you may match with based on general background guidelines. This does not constitute an application, credit screening, or official pre-qualification for a loan. Program funds, down payment matching rules, and income caps fluctuate frequently based on regional funding cycles. You should research all available routes and speak directly with a licensed mortgage loan officer to verify your eligibility and identify the right financing track for your situation.
+                </div>
             </div>
             
             <div class="narrative-grid" id="programsOutputContainer"></div>
@@ -409,7 +425,7 @@
                                     <strong>${maxAmount}</strong>
                                 </div>
                                 <div>
-                                    <span>Income Limit</span>
+                                    <span>Maximum Allowed Income</span>
                                     <strong>${displayCap}</strong>
                                 </div>
                             </div>
