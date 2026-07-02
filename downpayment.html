@@ -90,13 +90,31 @@
             border-radius: 0 !important;
         }
 
-        /* Narrative Output Display Blocks */
-        .bnl-results-wrapper {
-            display: none;
-            animation: paneFadeIn 0.4s ease-in-out;
+        .btn-search {
+            grid-column: 1 / -1;
+            padding: 0.85rem;
+            background: #C13030;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            margin-top: 0.5rem;
+            width: 100%;
         }
-        @keyframes paneFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .btn-search:hover { background: #9c2424; }
 
+        /* Program Layout Architecture */
+        .results-heading {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--premier-charcoal);
+            border-bottom: 2px solid var(--premier-beige);
+            padding-bottom: 0.5rem;
+        }
         .coach-summary-box {
             background-color: #ffffff;
             border-left: 4px solid #C13030;
@@ -164,6 +182,37 @@
             line-height: 1.5;
             color: #444;
         }
+        .extra-step-alert {
+            background: #fff9f2;
+            border-left: 3px solid #f5a623;
+            padding: 0.75rem 1rem;
+            border-radius: 0 6px 6px 0;
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        /* Custom Bordered Action Buttons to match stats.html Community Profiles */
+        .card-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.6rem 1rem;
+            background: transparent;
+            color: #222222;
+            border: 1px solid #222222;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            letter-spacing: 0.5px;
+            margin-top: 1.25rem;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        .card-action-btn:hover {
+            background: #222222;
+            color: #ffffff;
+        }
     </style>
 </head>
 <body class="down-payment-finder-page">
@@ -173,8 +222,7 @@
     <main class="dpa-container">
         
         <div class="compare-header-box" style="text-align: center; margin-bottom: 2.5rem;">
-            <a href="stats.html" class="back-link">&larr; Back to Market Insights</a>
-            <h1 style="margin-top: 0.5rem; font-size: 2.6rem; font-weight: 900; color: #C13030;">Down Payment Assistance Finder</h1>
+            <h1 style="font-size: 2.6rem; font-weight: 900; color: #C13030; margin-bottom: 0.5rem;">Down Payment Assistance Finder</h1>
             <p class="intro">An objective screening tool comparing local programs, grants, and deferred homeownership funds based on your specific city and household parameters.</p>
         </div>
 
@@ -281,9 +329,9 @@
                 let html = '';
                 for (let group in groups) {
                     if (groups[group].length > 0) {
-                        html += `<optgroup label="${groupName = group}">`;
+                        html += `<optgroup label="${group}">`;
                         groups[group].forEach(city => {
-                            optionsHtml = html += `<option value="${city}">${city}</option>`;
+                            html += `<option value="${city}">${city}</option>`;
                         });
                         html += `</optgroup>`;
                     }
