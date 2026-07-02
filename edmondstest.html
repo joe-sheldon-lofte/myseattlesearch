@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edmonds Community Profile | Joe Sheldon</title>
+    <link rel="stylesheet" href="style.css?v=64">
+    
+    <script src="components.js"></script>
+
+    <style>
+        .community-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        .hero-banner-box {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .hero-banner-box h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            color: #C13030;
+            margin: 0 0 0.5rem 0;
+        }
+        .hero-banner-box .tagline {
+            font-size: 1.1rem;
+            color: #555;
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Lifestyle Metrics Grid Architecture */
+        .metrics-dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            margin-bottom: 3.5rem;
+        }
+        @media (min-width: 768px) {
+            .metrics-dashboard-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        .score-card-box {
+            background: #ffffff;
+            border-top: 4px solid var(--premier-charcoal);
+            border-radius: 12px;
+            padding: 1.75rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .score-card-box.high-score { border-top-color: #137333; }
+        
+        .score-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+        .score-card-header h3 {
+            margin: 0;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #222;
+        }
+        .score-number {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #137333;
+        }
+        .score-card-box p {
+            margin: 0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #555;
+        }
+
+        /* Two-Column Section Split */
+        .community-split-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 3rem;
+            margin-bottom: 3.5rem;
+        }
+        @media (min-width: 900px) {
+            .community-split-layout { grid-template-columns: 1.6fr 1.1fr; }
+        }
+        
+        .content-main-panel h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--premier-charcoal);
+            border-bottom: 2px solid var(--premier-beige);
+            padding-bottom: 0.5rem;
+            margin: 0 0 1.25rem 0;
+        }
+        .content-main-panel p {
+            font-size: 0.98rem;
+            line-height: 1.6;
+            color: #333;
+            margin: 0 0 1.5rem 0;
+        }
+
+        /* Transit & Logistical Estimator Widget */
+        .logistics-widget-card {
+            background: #f4f6f8;
+            border-radius: 14px;
+            padding: 1.75rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            border: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+        .logistics-widget-card h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #222;
+        }
+        .input-inline-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .input-inline-group label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #555;
+        }
+        .input-inline-group select {
+            padding: 0.55rem;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            background: #fff;
+        }
+        .transit-outputs-box {
+            background: #ffffff;
+            border-radius: 6px;
+            padding: 1rem;
+            font-size: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            border: 1px solid #e0e0e0;
+        }
+        .transit-line-row {
+            display: flex;
+            justify-content: space-between;
+        }
+        .transit-line-row span { color: #666; }
+        .transit-line-row strong { font-weight: 600; color: #222; }
+
+        /* Neighborhood Staples & Event Blocks */
+        .staples-list-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .staple-item-row {
+            border-left: 3px solid var(--premier-beige);
+            padding-left: 1rem;
+        }
+        .staple-item-row h4 {
+            margin: 0 0 0.15rem 0;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #222;
+        }
+        .staple-item-row span {
+            font-size: 0.82rem;
+            color: #666;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+        .staple-item-row p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #555;
+            line-height: 1.4;
+        }
+
+        .card-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.55rem 1rem;
+            background: transparent;
+            color: #222222;
+            border: 1px solid #222222;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            margin-top: 1rem;
+            text-align: center;
+        }
+        .card-action-btn:hover {
+            background: #222222;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body class="city-profile-template">
+
+    <universal-header></universal-header>
+
+    <main class="community-container">
+
+        <section class="hero-banner-box">
+            <h1>Edmonds</h1>
+            <p class="tagline">An objective, resident-focused look at the geography, logistical realities, and community spaces that shape daily life in Edmonds.</p>
+        </section>
+
+        <section class="metrics-dashboard-grid">
+            
+            <div class="score-card-box high-score">
+                <div class="score-card-header">
+                    <h3>Shore Score</h3>
+                    <div class="score-number">9.4</div>
+                </div>
+                <p>Calculated based on 23,200 linear feet of continuously accessible, public saltwater shoreline. Higher weights are awarded due to the complete integration of the marine sanctuary, public boardwalks, and unobstructed beach access points.</p>
+            </div>
+
+            <div class="score-card-box high-score">
+                <div class="score-card-header">
+                    <h3>Woof Score</h3>
+                    <div class="score-number">8.8</div>
+                </div>
+                <p>Scored highly due to the presence of the dedicated Edmonds Off-Leash Dog Beach alongside dog-friendly commercial tracking baselines throughout the downtown core. Limits are factored based on leash mandates in formal conservation zones.</p>
+            </div>
+
+            <div class="score-card-box">
+                <div class="score-card-header">
+                    <h3>Park Score</h3>
+                    <div class="score-number">7.9</div>
+                </div>
+                <p>Derived from total public green space acreage per capita. Evaluated by walking-radius proximity metrics across residential zones, anchored significantly by the trail networks of Yost Park and downtown community plazas.</p>
+            </div>
+
+        </section>
+
+        <div class="community-split-layout">
+            
+            <div class="content-main-panel">
+                <h2>The Neighborhood Layout</h2>
+                <p>Edmonds is structured with a distinct geographic transition between its historic beachfront bowl and the higher-elevation residential ridges. The downtown core functions as a flat, highly walkable grid built directly around the ferry terminal and marine parks, shifting into mid-century residential tracks as elevation increases toward Woodway and Westgate.</p>
+                
+                <p>Zoning laws across the waterfront zone restrict high-rise development, maintaining a three-story structural limit that preserves sightlines. Sidewalk networks are densely integrated throughout the bowl but transition to standard suburban roadside profiles in the outer residential plat maps toward Highway 99.</p>
+
+                <h2>Community Staples</h2>
+                <div class="staples-list-group">
+                    <div class="staple-item-row">
+                        <h4>Edmonds Marsh Sanctuary</h4>
+                        <span>Location: 180 W Dayton St</span>
+                        <p>One of the last remaining urban saltwater estuaries in the Puget Sound basin, featuring boardwalk tracks protecting 22 acres of critical habitat for local waterfowl and migratory tracking birds.</p>
+                    </div>
+                    <div class="staple-item-row">
+                        <h4>The Historic Main Street Bowl</h4>
+                        <span>Location: Main St & 5th Ave</span>
+                        <p>A highly concentrated collection of independent retail establishments, local coffee houses, and neighborhood service businesses completely free of standard commercial strip-mall architecture.</p>
+                    </div>
+                    <div class="staple-item-row">
+                        <h4>Yost Park Trail System</h4>
+                        <span>Location: 9535 Bowdoin Way</span>
+                        <p>An preserved old-growth deep ravine park offering unpaved hiking trails tracking alongside Shell Creek, providing total forested canopy isolation right within the suburban framework.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-sidebar-panel">
+                
+                <div class="logistics-widget-card">
+                    <h3>Logistical & Commute Estimator</h3>
+                    <p style="margin:0; font-size:0.88rem; color:#555; line-height:1.4;">Select your primary destination to project baseline travel intervals based on local transit lines and standard highway routing.</p>
+                    
+                    <div class="input-inline-group">
+                        <label for="commuteTarget">Primary Destination</label>
+                        <select id="commuteTarget" onchange="calculateLocalCommute()">
+                            <option value="seattle_train">Downtown Seattle (via Sounder Train)</option>
+                            <option value="seattle_drive">Downtown Seattle (via I-5 Drive)</option>
+                            <option value="bellevue">Bellevue Core (via I-405 Drive)</option>
+                            <option value="everett">Everett Core (via I-5 Drive)</option>
+                        </select>
+                    </div>
+
+                    <div class="transit-outputs-box">
+                        <div class="transit-line-row">
+                            <span>One-Way Duration:</span>
+                            <strong id="lblDuration">28 mins</strong>
+                        </div>
+                        <div class="transit-line-row">
+                            <span>Primary Corridor:</span>
+                            <strong id="lblCorridor">BNSF Rail Line</strong>
+                        </div>
+                        <div class="transit-line-row">
+                            <span>Logistical Note:</span>
+                            <strong id="lblNote" style="font-weight: normal; text-align: right; font-size: 0.82rem; color: #444;">4 southbound morning trains daily.</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 2.5rem; background: #ffffff; border: 1px solid var(--premier-beige); padding: 1.5rem; border-radius: 12px; display: flex; flex-direction: column; gap: 0.5rem;">
+                    <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:#222;">Local Program Tracking</h3>
+                    <p style="margin:0; font-size:0.88rem; color:#555; line-height:1.5;">Edmonds qualifies under multiple municipal and state-level homeownership assistance frameworks, including target regional allocations from ARCH.</p>
+                    <a href="downpayment.html" class="card-action-btn">Scan Down Payment Options &rarr;</a>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <universal-footer></universal-footer>
+
+    <script>
+        function calculateLocalCommute() {
+            const selection = document.getElementById('commuteTarget').value;
+            
+            const durationEl = document.getElementById('lblDuration');
+            const corridorEl = document.getElementById('lblCorridor');
+            const noteEl = document.getElementById('lblNote');
+
+            if (selection === 'seattle_train') {
+                durationEl.textContent = '28 mins';
+                corridorEl.textContent = 'BNSF Rail Line';
+                noteEl.textContent = 'Station located at waterfront. 4 southbound morning runs daily.';
+            } else if (selection === 'seattle_drive') {
+                durationEl.textContent = '35 - 55 mins';
+                corridorEl.textContent = 'I-5 Southbound';
+                noteEl.textContent = 'Highly volatile traffic window during morning peak intervals.';
+            } else if (selection === 'bellevue') {
+                durationEl.textContent = '40 - 60 mins';
+                corridorEl.textContent = 'I-405 Southbound';
+                noteEl.textContent = 'Requires traversing the King/Snohomish county line bottleneck.';
+            } else if (selection === 'everett') {
+                durationEl.textContent = '20 - 30 mins';
+                corridorEl.textContent = 'I-5 Northbound';
+                noteEl.textContent = 'Reverse commute layout. Traffic holds highly predictable.';
+            }
+        }
+    </script>
+</body>
+</html>
