@@ -1,0 +1,39 @@
+name: Scheduled Down Payment Assistance Update
+
+on:
+  schedule:
+    # Runs at 6:00 AM UTC (11:00 PM PST) on the 1st day of every month
+    - cron: '0 6 1 * *'
+  workflow_dispatch: # Allows you to manually trigger it via the GitHub UI anytime
+
+jobs:
+  build-and-update:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repo Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Script Dependencies
+      run: |
+        pip install pandas requests
+
+    - name: Run Data Script
+      run: python scripts/harvest_dpa.py
+
+    - name: Commit and Push Updated Data Files
+      run: |
+        git config --global user.name \"github-actions[bot]\"
+        git config --global user.email \"github-actions[bot]@users.noreply.github.com\"
+        git add data/
+        git diff-index --quiet HEAD || git commit -m "Automated update of down payment assistance programs"
+        
+        # Sync the cloud runner with any recent manual repository changes right before pushing
+        git pull --rebase origin main
+        
+        git push
