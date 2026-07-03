@@ -516,7 +516,14 @@
                     if (rawIncomeCap > 0 && userIncome > rawIncomeCap) return;
 
                     matchCount++;
-                    const maxAmount = cleanNum(prog['Max Assistance Amount']) > 0 ? formatCurrency(cleanNum(prog['Max Assistance Amount'])) : 'Varies based on qualification';
+                    const rawMaxAmount = prog['Max Assistance Amount'] ? String(prog['Max Assistance Amount']).trim() : '';
+const parsedMaxNum = cleanNum(rawMaxAmount);
+let maxAmount = 'Varies based on qualification';
+if (parsedMaxNum > 0) {
+    maxAmount = formatCurrency(parsedMaxNum);
+} else if (rawMaxAmount !== '' && rawMaxAmount !== '0') {
+    maxAmount = rawMaxAmount;
+}
                     const displayCap = rawIncomeCap > 0 ? formatCurrency(rawIncomeCap) : 'No income cap specified';
                     const extraSteps = prog['Mandatory Extra Steps'] ? String(prog['Mandatory Extra Steps']).trim() : '';
                     const officialWebsite = prog['Program Website'] ? String(prog['Program Website']).trim() : '';
