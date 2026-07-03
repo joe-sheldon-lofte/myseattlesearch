@@ -230,7 +230,7 @@
             text-align: center;
         }
         .net-total-number {
-            font-size: 22rem;
+            font-size: 2.2rem;
             font-weight: 900;
             color: #C13030;
             margin: 0.15rem 0;
@@ -450,7 +450,7 @@
                     <label for="inBalance">1st Mortgage Payoff ($)</label>
                     <div class="currency-prefix-container">
                         <span class="prefix-symbol">$</span>
-                        <input type="number" id="inBalance" placeholder="0">
+                        <input type="text" id="inBalance" placeholder="0" oninput="formatGeneralCurrencyInput(this)">
                     </div>
                 </div>
 
@@ -458,7 +458,7 @@
                     <label for="inBalance2">2nd Mortgage Payoff ($)</label>
                     <div class="currency-prefix-container">
                         <span class="prefix-symbol">$</span>
-                        <input type="number" id="inBalance2" placeholder="0">
+                        <input type="text" id="inBalance2" placeholder="0" oninput="formatGeneralCurrencyInput(this)">
                     </div>
                 </div>
 
@@ -484,7 +484,7 @@
                     <label for="inTaxAmount">Annual Property Tax ($)</label>
                     <div class="currency-prefix-container">
                         <span class="prefix-symbol">$</span>
-                        <input type="number" id="inTaxAmount" placeholder="Calculated at 0.9%">
+                        <input type="text" id="inTaxAmount" placeholder="Calculated at 0.9%" oninput="formatGeneralCurrencyInput(this); triggerTaxManualOverrideState();">
                     </div>
                 </div>
 
@@ -506,7 +506,7 @@
                         <input type="text" id="inOtherLabel1" placeholder="Label (e.g. Septic Pumping)" style="flex: 1;">
                         <div class="currency-prefix-container amt-prefix-box amt-input-wide">
                             <span class="prefix-symbol">$</span>
-                            <input type="number" id="inOtherAmt1" placeholder="Amount">
+                            <input type="text" id="inOtherAmt1" placeholder="Amount" class="amt-input-wide" oninput="formatGeneralCurrencyInput(this)">
                         </div>
                     </div>
                 </div>
@@ -517,7 +517,7 @@
                         <input type="text" id="inOtherLabel2" placeholder="Label (e.g. Work Orders)" style="flex: 1;">
                         <div class="currency-prefix-container amt-prefix-box amt-input-wide">
                             <span class="prefix-symbol">$</span>
-                            <input type="number" id="inOtherAmt2" placeholder="Amount">
+                            <input type="text" id="inOtherAmt2" placeholder="Amount" class="amt-input-wide" oninput="formatGeneralCurrencyInput(this)">
                         </div>
                     </div>
                 </div>
@@ -531,7 +531,7 @@
                             </label>
                             <div class="currency-prefix-container amt-prefix-box amt-input-medium">
                                 <span class="prefix-symbol">$</span>
-                                <input type="number" id="inPreInspectCost" value="550" class="amt-input-medium">
+                                <input type="text" id="inPreInspectCost" value="550" class="amt-input-medium" oninput="formatGeneralCurrencyInput(this)">
                             </div>
                         </div>
                         <div class="settlement-option-row">
@@ -540,7 +540,7 @@
                             </label>
                             <div class="currency-prefix-container amt-prefix-box amt-input-medium">
                                 <span class="prefix-symbol">$</span>
-                                <input type="number" id="inHoaCertCost" value="300" class="amt-input-medium">
+                                <input type="text" id="inHoaCertCost" value="300" class="amt-input-medium" oninput="formatGeneralCurrencyInput(this)">
                             </div>
                         </div>
                     </div>
@@ -643,10 +643,6 @@
                 document.getElementById('chkSecondHalf').checked = true;
             }
 
-            document.getElementById('inTaxAmount').addEventListener('input', () => {
-                isTaxManual = true;
-            });
-
             document.addEventListener('click', (e) => {
                 const suggestionsBox = document.getElementById('addressSuggestions');
                 if (!document.getElementById('inSellerAddress').contains(e.target) && !suggestionsBox.contains(e.target)) {
@@ -664,27 +660,50 @@
                         document.getElementById('inPrice').value = priceVal.toLocaleString('en-US');
                     }
                 }
-                if (params.get('bal1')) document.getElementById('inBalance').value = params.get('bal1');
-                if (params.get('bal2')) document.getElementById('inBalance2').value = params.get('bal2');
+                if (params.get('bal1')) {
+                    const val = parseInt(params.get('bal1'), 10);
+                    if (!isNaN(val)) document.getElementById('inBalance').value = val.toLocaleString('en-US');
+                }
+                if (params.get('bal2')) {
+                    const val = parseInt(params.get('bal2'), 10);
+                    if (!isNaN(val)) document.getElementById('inBalance2').value = val.toLocaleString('en-US');
+                }
                 if (params.get('tax')) {
-                    document.getElementById('inTaxAmount').value = params.get('tax');
+                    const val = parseInt(params.get('tax'), 10);
+                    if (!isNaN(val)) document.getElementById('inTaxAmount').value = val.toLocaleString('en-US');
                     isTaxManual = true;
                 }
                 if (params.get('package')) document.getElementById('inListingPackage').value = params.get('package');
                 if (params.get('buyer')) document.getElementById('inBuyerComp').value = params.get('buyer');
                 if (params.get('othl1')) document.getElementById('inOtherLabel1').value = params.get('othl1');
-                if (params.get('otha1')) document.getElementById('inOtherAmt1').value = params.get('otha1');
+                if (params.get('otha1')) {
+                    const val = parseInt(params.get('otha1'), 10);
+                    if (!isNaN(val)) document.getElementById('inOtherAmt1').value = val.toLocaleString('en-US');
+                }
                 if (params.get('othl2')) document.getElementById('inOtherLabel2').value = params.get('othl2');
-                if (params.get('otha2')) document.getElementById('inOtherAmt2').value = params.get('otha2');
+                if (params.get('otha2')) {
+                    const val = parseInt(params.get('otha2'), 10);
+                    if (!isNaN(val)) document.getElementById('inOtherAmt2').value = val.toLocaleString('en-US');
+                }
                 
                 if (params.get('pi') === '1') document.getElementById('chkPreInspection').checked = true;
-                if (params.get('piv')) document.getElementById('inPreInspectCost').value = params.get('piv');
+                if (params.get('piv')) {
+                    const val = parseInt(params.get('piv'), 10);
+                    if (!isNaN(val)) document.getElementById('inPreInspectCost').value = val.toLocaleString('en-US');
+                }
                 if (params.get('hoa') === '1') document.getElementById('chkHoaCert').checked = true;
-                if (params.get('hoav')) document.getElementById('inHoaCertCost').value = params.get('hoav');
+                if (params.get('hoav')) {
+                    const val = parseInt(params.get('hoav'), 10);
+                    if (!isNaN(val)) document.getElementById('inHoaCertCost').value = val.toLocaleString('en-US');
+                }
 
                 calculateNetProceeds();
             }
         });
+
+        function triggerTaxManualOverrideState() {
+            isTaxManual = true;
+        }
 
         function handleAddressAutocompleteSearch(inputEl) {
             clearTimeout(autocompleteDebounceTimer);
@@ -737,13 +756,25 @@
                 input.value = numValue.toLocaleString('en-US');
                 
                 if (!isTaxManual) {
-                    document.getElementById('inTaxAmount').value = Math.round(numValue * 0.009);
+                    document.getElementById('inTaxAmount').value = Math.round(numValue * 0.009).toLocaleString('en-US');
                 }
             } else {
                 if (!isTaxManual) {
                     document.getElementById('inTaxAmount').value = "";
                 }
             }
+        }
+
+        function formatGeneralCurrencyInput(input) {
+            let value = input.value.replace(/[^0-9]/g, "");
+            if (value !== "") {
+                input.value = parseInt(value, 10).toLocaleString('en-US');
+            }
+        }
+
+        function parseFormattedValue(id) {
+            const rawStr = document.getElementById(id).value || '0';
+            return parseFloat(rawStr.replace(/[^0-9.-]+/g, "")) || 0;
         }
 
         function calculateWashingtonStateREET(price) {
@@ -774,26 +805,23 @@
         }
 
         function buildDeepLinkedScenarioUrl() {
-            const rawPriceStr = document.getElementById('inPrice').value || '0';
-            const encodedPrice = rawPriceStr.replace(/[^0-9]/g, "");
-            
             return window.location.origin + window.location.pathname +
                 `?name=${encodeURIComponent(document.getElementById('inSellerName').value)}` +
                 `&address=${encodeURIComponent(document.getElementById('inSellerAddress').value)}` +
-                `&price=${encodedPrice}` +
-                `&bal1=${document.getElementById('inBalance').value}` +
-                `&bal2=${document.getElementById('inBalance2').value}` +
-                `&tax=${document.getElementById('inTaxAmount').value}` +
+                `&price=${(document.getElementById('inPrice').value || '0').replace(/[^0-9]/g, "")}` +
+                `&bal1=${(document.getElementById('inBalance').value || '0').replace(/[^0-9]/g, "")}` +
+                `&bal2=${(document.getElementById('inBalance2').value || '0').replace(/[^0-9]/g, "")}` +
+                `&tax=${(document.getElementById('inTaxAmount').value || '0').replace(/[^0-9]/g, "")}` +
                 `&package=${document.getElementById('inListingPackage').value}` +
                 `&buyer=${document.getElementById('inBuyerComp').value}` +
                 `&othl1=${encodeURIComponent(document.getElementById('inOtherLabel1').value)}` +
-                `&otha1=${document.getElementById('inOtherAmt1').value}` +
+                `&otha1=${(document.getElementById('inOtherAmt1').value || '0').replace(/[^0-9]/g, "")}` +
                 `&othl2=${encodeURIComponent(document.getElementById('inOtherLabel2').value)}` +
-                `&otha2=${document.getElementById('inOtherAmt2').value}` +
+                `&otha2=${(document.getElementById('inOtherAmt2').value || '0').replace(/[^0-9]/g, "")}` +
                 `&pi=${document.getElementById('chkPreInspection').checked ? '1' : '0'}` +
-                `&piv=${document.getElementById('inPreInspectCost').value}` +
+                `&piv=${(document.getElementById('inPreInspectCost').value || '0').replace(/[^0-9]/g, "")}` +
                 `&hoa=${document.getElementById('chkHoaCert').checked ? '1' : '0'}` +
-                `&hoav=${document.getElementById('inHoaCertCost').value}`;
+                `&hoav=${(document.getElementById('inHoaCertCost').value || '0').replace(/[^0-9]/g, "")}`;
         }
 
         function triggerSecurePrintWorkflow() {
@@ -808,11 +836,9 @@
         }
 
         function calculateNetProceeds() {
-            const rawPriceStr = document.getElementById('inPrice').value || '0';
-            const salePrice = parseFloat(rawPriceStr.replace(/[^0-9.-]+/g, "")) || 0;
-            
-            const mortgagePayoff = parseFloat(document.getElementById('inBalance').value) || 0;
-            const mortgagePayoff2 = parseFloat(document.getElementById('inBalance2').value) || 0;
+            const salePrice = parseFormattedValue('inPrice');
+            const mortgagePayoff = parseFormattedValue('inBalance');
+            const mortgagePayoff2 = parseFormattedValue('inBalance2');
             
             const listingPct = parseFloat(document.getElementById('inListingPackage').value) || 2.0;
             const buyerAgentPct = parseFloat(document.getElementById('inBuyerComp').value) || 2.5;
@@ -835,7 +861,7 @@
             const standardDocPrepFee = 100.00;
             const localRecordingFilingFee = 303.50;
 
-            const calculatedTaxAmount = parseFloat(document.getElementById('inTaxAmount').value) || (salePrice * 0.009);
+            const calculatedTaxAmount = parseFormattedValue('inTaxAmount') || (salePrice * 0.009);
             const closingDate = closingDateValue ? new Date(closingDateValue + 'T12:00:00') : new Date();
             const closingYear = closingDate.getFullYear();
             
@@ -861,19 +887,19 @@
             }
 
             const otherLabel1 = document.getElementById('inOtherLabel1').value || 'Additional Expense 1';
-            const otherAmt1 = parseFloat(document.getElementById('inOtherAmt1').value) || 0;
+            const otherAmt1 = parseFormattedValue('inOtherAmt1');
             if (otherAmt1 > 0) totalSellerCosts += otherAmt1;
 
             const otherLabel2 = document.getElementById('inOtherLabel2').value || 'Additional Expense 2';
-            const otherAmt2 = parseFloat(document.getElementById('inOtherAmt2').value) || 0;
+            const otherAmt2 = parseFormattedValue('inOtherAmt2');
             if (otherAmt2 > 0) totalSellerCosts += otherAmt2;
 
             const preInspectChecked = document.getElementById('chkPreInspection').checked;
-            const preInspectCost = parseFloat(document.getElementById('inPreInspectCost').value) || 0;
+            const preInspectCost = parseFormattedValue('inPreInspectCost');
             if (preInspectChecked && preInspectCost > 0) totalSellerCosts += preInspectCost;
 
             const hoaCertChecked = document.getElementById('chkHoaCert').checked;
-            const hoaCertCost = parseFloat(document.getElementById('inHoaCertCost').value) || 0;
+            const hoaCertCost = parseFormattedValue('inHoaCertCost');
             if (hoaCertChecked && hoaCertCost > 0) totalSellerCosts += hoaCertCost;
 
             const estimatedNetProceedsCheck = taxProrationResult < 0 ? (salePrice + Math.abs(taxProrationResult)) - totalSellerCosts : salePrice - totalSellerCosts;
