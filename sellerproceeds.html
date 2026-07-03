@@ -211,6 +211,21 @@
         }
         .btn-calculate:hover { background: #9c2424; }
 
+        .print-trigger-btn {
+            padding: 0.6rem 1.2rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border: 2px solid #C13030;
+            border-radius: 6px;
+            background: #ffffff;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .print-trigger-btn:hover {
+            background: #f4f6f8;
+        }
+
         @media (max-width: 600px) {
             .control-card { padding: 1.25rem; }
             .span-2 { grid-column: span 1 !important; }
@@ -291,18 +306,23 @@
         }
         .partner-logo-box {
             width: 120px;
-            height: auto;
+            height: 65px; /* Fixed height establishes clean framing whitespace */
             display: flex;
             align-items: center;
             justify-content: center;
             background: #ffffff;
             border: 2px solid var(--premier-beige);
             border-radius: 8px;
-            padding: 0.4rem;
+            padding: 0.6rem; /* Enhanced padding to pad tight crops */
             box-sizing: border-box;
             margin: 0 auto;
         }
-        .partner-logo-box img { width: 100%; height: auto; display: block; }
+        .partner-logo-box img { 
+            max-width: 100%; 
+            max-height: 100%; 
+            object-fit: contain; 
+            display: block; 
+        }
         .partner-info h4 { margin: 0 0 0.25rem 0; font-size: 1.15rem; font-weight: 900; color: #3D3935; }
         .partner-info p { margin: 0; font-size: 0.88rem; color: #555; line-height: 1.4; }
 
@@ -368,7 +388,7 @@
                 flex: 0 0 280px !important;
                 align-items: center !important;
                 gap: 0.5rem !important;
-                border: 1.5px dashed #000000 !important;
+                border: 1.5px solid #000000 !important;
                 padding: 0.3rem !important;
                 border-radius: 6px !important;
                 margin-top: 0 !important;
@@ -376,8 +396,10 @@
                 background: #ffffff !important;
             }
             .print-qr-container img {
-                width: 65px !important;
-                height: 65px !important;
+                width: 70px !important;
+                height: 70px !important;
+                border: 1px solid #000000 !important;
+                box-sizing: border-box !important;
             }
             .print-qr-container span {
                 font-size: 7pt !important;
@@ -428,7 +450,8 @@
             }
             .partner-logo-box {
                 width: 70px !important;
-                padding: 0.1rem !important;
+                height: 42px !important; /* Fixed blueprint for print frame */
+                padding: 0.35rem !important; /* Safe whitespace allocation */
                 border: 1px solid #000000 !important;
             }
             .partner-info h4 {
@@ -453,15 +476,6 @@
         <div class="compare-header-box">
             <h1 style="font-size: 2.6rem; font-weight: 900; color: #C13030; margin-bottom: 0.5rem;">Sellers Estimated Net Proceeds</h1>
             <p class="intro" style="margin-bottom: 0.75rem;">See exactly what you will walk away with after paying off existing loans and standard transaction costs.</p>
-    
-            <div class="no-print-section" style="display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
-                <button onclick="triggerSecurePrintWorkflow()" class="print-trigger-btn" title="Print Statement">
-                    🖨️ Print Net Worksheet
-                </button>
-                <button id="btnCopyWorksheetLink" onclick="copyWorksheetDeepLinkToClipboard()" class="print-trigger-btn" style="border-color: #ccc;">
-                     🔗 Copy Worksheet Link
-                </button>
-            </div>
         </div>
 
         <section class="control-card">
@@ -596,6 +610,15 @@
                 </div>
 
                 <button class="btn-calculate" onclick="calculateNetProceeds()">Calculate Estimated Proceeds</button>
+
+                <div id="calcActionButtons" class="no-print-section" style="display: none; justify-content: center; gap: 0.75rem; flex-wrap: wrap; grid-column: 1 / -1; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed #ccc;">
+                    <button onclick="triggerSecurePrintWorkflow()" class="print-trigger-btn" title="Print Statement">
+                        🖨️ Print Net Worksheet
+                    </button>
+                    <button id="btnCopyWorksheetLink" onclick="copyWorksheetDeepLinkToClipboard()" class="print-trigger-btn" style="border-color: #ccc;">
+                         🔗 Copy Worksheet Link
+                    </button>
+                </div>
             </div>
         </section>
 
@@ -625,10 +648,8 @@
                     <p style="max-width: 800px; margin: 0.15rem auto 0 auto; font-size: 0.88rem; color: #555;">Estimated cash remaining after paying off loans and closing costs.</p>
                 </div>
 
-                <div class="print-qr-container print-only-layout" style="align-items: center; border: 2px dashed #000000; padding: 0.5rem; border-radius: 6px;">
-                    <div style="width: 75px; height: 75px; flex-shrink: 0; background: #fff; border: 1px solid #000;">
-                        <img id="printQrCodeImg" src="" alt="Dynamic Scenario QR Code" style="width: 100%; height: 100%; display: block;">
-                    </div>
+                <div class="print-qr-container print-only-layout" style="align-items: center; border: 1.5px solid #000000; padding: 0.5rem; border-radius: 6px;">
+                    <img id="printQrCodeImg" src="" alt="Dynamic Scenario QR Code" style="width: 70px; height: 70px; flex-shrink: 0; background: #fff; border: 1px solid #000; display: block;">
                     <div style="text-align: left;">
                         <strong style="font-size: 8.5pt; color: #000; display: block; margin-bottom: 0.15rem;">Scan to Explore Scenarios</strong>
                         <span style="font-size: 7.5pt; color: #333; line-height: 1.1; display: block;">Scan this code to return to this live worksheet. You can modify purchase price, limits, or recalculate options instantly.</span>
@@ -651,7 +672,7 @@
 
             <div class="partner-block">
                 <div class="partner-logo-box">
-                    <img src="assets/images/rocketclose.png" alt="Rocket Close Logo" onerror="this.src='https://placehold.co/120x60?text=Rocket+Close'">
+                    <img src="/assets/images/rocket-close-logo.png" alt="Rocket Close Logo" onerror="this.src='https://placehold.co/120x60?text=Rocket+Close'">
                 </div>
                 <div class="partner-info">
                     <h4>Rocket Close</h4>
@@ -897,11 +918,23 @@
             const targetScenarioUrl = buildDeepLinkedScenarioUrl();
             const qrImageNode = document.getElementById('printQrCodeImg');
             
+            const originalTitle = document.title;
+            const sellerName = document.getElementById('inSellerName').value.trim() || "Client Profile";
+            const today = new Date();
+            const monthStr = String(today.getMonth() + 1).padStart(2, '0');
+            const dayStr = String(today.getDate()).padStart(2, '0');
+            const dateStr = `${monthStr}-${dayStr}-${today.getFullYear()}`;
+            
+            document.title = `${sellerName} - Estimated Net Proceeds - ${dateStr}`;
+            
             qrImageNode.onload = function() {
                 window.print();
+                setTimeout(() => {
+                    document.title = originalTitle;
+                }, 1000);
             };
             
-            qrImageNode.src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(targetScenarioUrl)}`;
+            qrImageNode.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=0&data=${encodeURIComponent(targetScenarioUrl)}`;
         }
 
         function calculateNetProceeds() {
@@ -917,6 +950,8 @@
                 alert("Please enter a valid property sale price.");
                 return;
             }
+
+            document.getElementById('calcActionButtons').style.display = 'flex';
 
             document.getElementById('printSellerName').textContent = document.getElementById('inSellerName').value || "Client Profile";
             document.getElementById('printSellerAddress').textContent = document.getElementById('inSellerAddress').value || "Not Specified";
