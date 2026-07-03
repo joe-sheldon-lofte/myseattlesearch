@@ -42,10 +42,10 @@
             grid-template-columns: 1fr;
             gap: 1.25rem;
         }
-        @media (min-width: 550px) {
+        @media (min-width: 600px) {
             .form-grid { grid-template-columns: repeat(2, 1fr); }
         }
-        @media (min-width: 900px) {
+        @media (min-width: 950px) {
             .form-grid { grid-template-columns: repeat(4, 1fr); }
         }
         .input-element-box {
@@ -89,9 +89,17 @@
             color: #333;
             cursor: pointer;
         }
-        .checkbox-item input {
+        .checkbox-item input[type="checkbox"] {
             width: auto;
+            margin: 0;
             cursor: pointer;
+        }
+        .checkbox-item input[type="number"] {
+            width: 75px;
+            padding: 0.25rem;
+            font-size: 0.85rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
         }
 
         .btn-calculate {
@@ -109,6 +117,7 @@
             transition: background 0.2s ease;
             margin-top: 0.5rem;
             width: 100%;
+            display: block;
         }
         .btn-calculate:hover { background: #9c2424; }
 
@@ -168,10 +177,11 @@
             align-items: center;
             justify-content: center;
             background: #ffffff;
-            border: 3px solid var(--premier-beige);
-            border-radius: 50%;
-            overflow: hidden;
+            border: 2px solid var(--premier-beige);
+            border-radius: 8px;
+            padding: 0.4rem;
             box-sizing: border-box;
+            margin: 0 auto;
         }
         .partner-logo-box img { width: 100%; height: auto; display: block; }
         .partner-info h4 { margin: 0 0 0.25rem 0; font-size: 1.15rem; font-weight: 900; color: #3D3935; }
@@ -200,7 +210,7 @@
             background-color: #fafafa;
         }
 
-        .print-only-header { display: none; }
+        .print-only-layout { display: none; }
 
         /* ==========================================
            HIGH-IMPACT MARKETING PRINT STYLESHEET
@@ -221,6 +231,9 @@
             universal-header, universal-footer, .compare-header-box,
             .control-card, .print-trigger-btn {
                 display: none !important;
+            }
+            .print-only-layout {
+                display: block !important;
             }
             .print-only-header {
                 display: block !important;
@@ -276,6 +289,16 @@
             .partner-logo-box {
                 border: 1px solid #000000 !important;
             }
+            .print-qr-container {
+                display: flex !important;
+                align-items: center;
+                gap: 1.5rem;
+                margin-top: 1.5rem;
+                border: 2px dashed #000000;
+                padding: 1rem;
+                border-radius: 8px;
+                page-break-inside: avoid !important;
+            }
         }
     </style>
 </head>
@@ -299,17 +322,17 @@
                 
                 <div class="input-element-box" style="grid-column: span 2;">
                     <label for="inSellerName">Seller Name</label>
-                    <input type="text" id="inSellerName" value="Robyn Sneeringer">
+                    <input type="text" id="inSellerName" placeholder="Leave blank or type name">
                 </div>
 
                 <div class="input-element-box" style="grid-column: span 2;">
                     <label for="inSellerAddress">Property Address</label>
-                    <input type="text" id="inSellerAddress" value="739 N 165th St, Shoreline, WA 98133">
+                    <input type="text" id="inSellerAddress" placeholder="Type property address">
                 </div>
 
                 <div class="input-element-box">
                     <label for="inPrice">Target Sale Price ($)</label>
-                    <input type="text" id="inPrice" value="850,000" oninput="formatPriceInput(this)">
+                    <input type="text" id="inPrice" placeholder="Enter price" oninput="formatPriceInput(this)">
                 </div>
 
                 <div class="input-element-box">
@@ -321,8 +344,13 @@
                 </div>
 
                 <div class="input-element-box">
-                    <label for="inBalance">Mortgage Payoff Balance ($)</label>
-                    <input type="number" id="inBalance" value="450000">
+                    <label for="inBalance">1st Mortgage Payoff ($)</label>
+                    <input type="number" id="inBalance" placeholder="0">
+                </div>
+
+                <div class="input-element-box">
+                    <label for="inBalance2">2nd Mortgage Payoff ($)</label>
+                    <input type="number" id="inBalance2" placeholder="0">
                 </div>
 
                 <div class="input-element-box">
@@ -344,13 +372,43 @@
                 </div>
 
                 <div class="input-element-box">
-                    <label for="inTaxRate">Annual Property Tax Rate (%)</label>
-                    <input type="number" id="inTaxRate" value="0.9" step="0.05">
+                    <label for="inTaxAmount">Annual Property Tax ($)</label>
+                    <input type="number" id="inTaxAmount" placeholder="Calculated at 0.9%">
                 </div>
 
-                <div class="input-element-box">
-                    <label>Current Tax Payments</label>
+                <div class="input-element-box" style="grid-column: span 2;">
+                    <label>Custom Addition 1</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="inOtherLabel1" placeholder="Label (e.g. Septic Pumping)" style="flex: 1;">
+                        <input type="number" id="inOtherAmt1" placeholder="Amount ($)" style="width: 120px;">
+                    </div>
+                </div>
+
+                <div class="input-element-box" style="grid-column: span 2;">
+                    <label>Custom Addition 2</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="inOtherLabel2" placeholder="Label (e.g. Work Orders)" style="flex: 1;">
+                        <input type="number" id="inOtherAmt2" placeholder="Amount ($)" style="width: 120px;">
+                    </div>
+                </div>
+
+                <div class="input-element-box" style="grid-column: span 2;">
+                    <label>Pre-filled Settlement Options</label>
                     <div class="checkbox-group-wrapper">
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="chkPreInspect"> Pre-inspection
+                            <input type="number" id="inPreInspectCost" value="550">
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="chkHoaCert"> HOA Resale Cert
+                            <input type="number" id="inHoaCertCost" value="300">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="input-element-box" style="grid-column: span 2;">
+                    <label>Current Tax Payments</label>
+                    <div class="checkbox-group-wrapper" style="padding-top: 0.6rem;">
                         <label class="checkbox-item">
                             <input type="checkbox" id="chkFirstHalf"> First Half Paid
                         </label>
@@ -367,7 +425,7 @@
         <div class="results-wrapper" id="resultsWrapper">
 
             <div id="printHeaderNode" class="print-only-header">
-                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid #C13030; padding-bottom: 12px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid #C13030; padding-bottom: 12px; margin-bottom: 25px;">
                     <div>
                         <h1 style="margin:0; font-size: 2.4rem; font-weight: 900; color: #C13030; letter-spacing: -0.5px;">ESTIMATED NET PROCEEDS</h1>
                         <p style="margin: 3px 0 0 0; font-size: 1rem; font-weight: 800; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">Sellers Financial Settlement Worksheet</p>
@@ -386,7 +444,7 @@
             <div class="net-summary-box">
                 <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0; color: var(--premier-charcoal);">Estimated Net Cash to Seller</h2>
                 <div class="net-total-number" id="txtNetProceeds">$0</div>
-                <p style="max-width: 800px; margin: 0.25rem auto 0 auto; font-size: 0.92rem; color: #555;">Estimated net funding balance at closing after liquidating outstanding primary debt and transaction outlays.</p>
+                <p style="max-width: 800px; margin: 0.25rem auto 0 auto; font-size: 0.92rem; color: #555;">Estimated net funding balance at closing after liquidating outstanding debt and transaction outlays.</p>
             </div>
 
             <div class="table-scroll-container">
@@ -412,6 +470,16 @@
                 </div>
             </div>
 
+            <div class="print-qr-container print-only-layout" style="display: flex; align-items: center; gap: 1.5rem; margin-top: 1.5rem; border: 2px dashed #000000; padding: 1rem; border-radius: 8px;">
+                <div style="width: 120px; height: 120px; flex-shrink: 0; background: #fff; border: 1px solid #000;">
+                    <img id="printQrCodeImg" src="" alt="Dynamic Scenario QR Code" style="width: 100%; height: 100%; display: block;">
+                </div>
+                <div style="text-align: left;">
+                    <strong style="font-size: 10pt; color: #000; display: block; margin-bottom: 0.25rem;">Scan to Explore Scenarios</strong>
+                    <span style="font-size: 9pt; color: #333; line-height: 1.3; display: block;">Scan this code with your smartphone camera to return to this live worksheet. You can adjust the contract purchase price, modify payoff thresholds, or recalculate alternative custom listing options instantly.</span>
+                </div>
+            </div>
+
             <div class="compliance-disclaimer-text">
                 Information Notice: Prorated allocations and transaction outlays listed are examples for general planning. Final settlement paperwork is verified by a licensed escrow officer before closing.
             </div>
@@ -423,6 +491,8 @@
     <universal-footer></universal-footer>
 
     <script>
+        let isTaxManual = false;
+
         document.addEventListener('DOMContentLoaded', () => {
             const today = new Date();
             
@@ -443,12 +513,57 @@
             if (today > octoberDueLimit) {
                 document.getElementById('chkSecondHalf').checked = true;
             }
+
+            document.getElementById('inTaxAmount').addEventListener('input', () => {
+                isTaxManual = true;
+            });
+
+            // Deep-linking router logic to repopulate active scenarios from QR scans
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('price') || params.has('name') || params.has('address')) {
+                if (params.get('name')) document.getElementById('inSellerName').value = params.get('name');
+                if (params.get('address')) document.getElementById('inSellerAddress').value = params.get('address');
+                if (params.get('price')) {
+                    const priceVal = parseInt(params.get('price'), 10);
+                    if (!isNaN(priceVal)) {
+                        document.getElementById('inPrice').value = priceVal.toLocaleString('en-US');
+                    }
+                }
+                if (params.get('bal1')) document.getElementById('inBalance').value = params.get('bal1');
+                if (params.get('bal2')) document.getElementById('inBalance2').value = params.get('bal2');
+                if (params.get('tax')) {
+                    document.getElementById('inTaxAmount').value = params.get('tax');
+                    isTaxManual = true;
+                }
+                if (params.get('package')) document.getElementById('inListingPackage').value = params.get('package');
+                if (params.get('buyer')) document.getElementById('inBuyerComp').value = params.get('buyer');
+                if (params.get('othl1')) document.getElementById('inOtherLabel1').value = params.get('othl1');
+                if (params.get('otha1')) document.getElementById('inOtherAmt1').value = params.get('otha1');
+                if (params.get('othl2')) document.getElementById('inOtherLabel2').value = params.get('othl2');
+                if (params.get('otha2')) document.getElementById('inOtherAmt2').value = params.get('otha2');
+                
+                if (params.get('pi') === '1') document.getElementById('chkPreInspect').checked = true;
+                if (params.get('piv')) document.getElementById('inPreInspectCost').value = params.get('piv');
+                if (params.get('hoa') === '1') document.getElementById('chkHoaCert').checked = true;
+                if (params.get('hoav')) document.getElementById('inHoaCertCost').value = params.get('hoav');
+
+                calculateNetProceeds();
+            }
         });
 
         function formatPriceInput(input) {
             let value = input.value.replace(/[^0-9]/g, "");
             if (value !== "") {
-                input.value = parseInt(value, 10).toLocaleString('en-US');
+                const numValue = parseInt(value, 10);
+                input.value = numValue.toLocaleString('en-US');
+                
+                if (!isTaxManual) {
+                    document.getElementById('inTaxAmount').value = Math.round(numValue * 0.009);
+                }
+            } else {
+                if (!isTaxManual) {
+                    document.getElementById('inTaxAmount').value = "";
+                }
             }
         }
 
@@ -482,10 +597,12 @@
         function calculateNetProceeds() {
             const rawPriceStr = document.getElementById('inPrice').value || '0';
             const salePrice = parseFloat(rawPriceStr.replace(/[^0-9.-]+/g, "")) || 0;
+            
             const mortgagePayoff = parseFloat(document.getElementById('inBalance').value) || 0;
+            const mortgagePayoff2 = parseFloat(document.getElementById('inBalance2').value) || 0;
+            
             const listingPct = parseFloat(document.getElementById('inListingPackage').value) || 2.0;
             const buyerAgentPct = parseFloat(document.getElementById('inBuyerComp').value) || 2.5;
-            const taxRatePct = parseFloat(document.getElementById('inTaxRate').value) || 0.9;
             const closingDateValue = document.getElementById('inClosingDate').value;
 
             if (salePrice <= 0) {
@@ -493,9 +610,9 @@
                 return;
             }
 
-            // Sync print header fields
-            document.getElementById('printSellerName').textContent = document.getElementById('inSellerName').value;
-            document.getElementById('printSellerAddress').textContent = document.getElementById('inSellerAddress').value;
+            // Sync structural parameters to hidden print assets
+            document.getElementById('printSellerName').textContent = document.getElementById('inSellerName').value || "Client Profile";
+            document.getElementById('printSellerAddress').textContent = document.getElementById('inSellerAddress').value || "Not Specified";
 
             const listingBrokerFee = salePrice * (listingPct / 100);
             const buyerBrokerFee = salePrice * (buyerAgentPct / 100);
@@ -506,7 +623,8 @@
             const standardDocPrepFee = 100.00;
             const localRecordingFilingFee = 303.50;
 
-            const annualTaxAmount = salePrice * (taxRatePct / 100);
+            // Property tax proration module logic
+            const calculatedTaxAmount = parseFloat(document.getElementById('inTaxAmount').value) || (salePrice * 0.009);
             const closingDate = closingDateValue ? new Date(closingDateValue + 'T12:00:00') : new Date();
             const closingYear = closingDate.getFullYear();
             
@@ -514,21 +632,39 @@
             const millisecondsInDay = 24 * 60 * 60 * 1000;
             const daysElapsed = Math.floor((closingDate - startOfYear) / millisecondsInDay) + 1;
             
-            const sellerResponsibleTax = (daysElapsed / 365) * annualTaxAmount;
+            const sellerResponsibleTax = (daysElapsed / 365) * calculatedTaxAmount;
 
             const firstHalfPaid = document.getElementById('chkFirstHalf').checked;
             const secondHalfPaid = document.getElementById('chkSecondHalf').checked;
             
             let totalTaxPaidBySeller = 0;
-            if (firstHalfPaid) totalTaxPaidBySeller += annualTaxAmount * 0.5;
-            if (secondHalfPaid) totalTaxPaidBySeller += annualTaxAmount * 0.5;
+            if (firstHalfPaid) totalTaxPaidBySeller += calculatedTaxAmount * 0.5;
+            if (secondHalfPaid) totalTaxPaidBySeller += calculatedTaxAmount * 0.5;
 
             const taxProrationResult = sellerResponsibleTax - totalTaxPaidBySeller;
 
-            let totalSellerCosts = mortgagePayoff + listingBrokerFee + buyerBrokerFee + realEstateExciseTax + escrowClosingCost + ownerTitlePolicyCost + standardDocPrepFee + localRecordingFilingFee;
+            let totalSellerCosts = mortgagePayoff + mortgagePayoff2 + listingBrokerFee + buyerBrokerFee + realEstateExciseTax + escrowClosingCost + ownerTitlePolicyCost + standardDocPrepFee + localRecordingFilingFee;
+            
             if (taxProrationResult > 0) {
                 totalSellerCosts += taxProrationResult;
             }
+
+            // Compile custom additions and pre-filled checkboxes structures
+            const otherLabel1 = document.getElementById('inOtherLabel1').value || 'Custom Addition 1';
+            const otherAmt1 = parseFloat(document.getElementById('inOtherAmt1').value) || 0;
+            if (otherAmt1 > 0) totalSellerCosts += otherAmt1;
+
+            const otherLabel2 = document.getElementById('inOtherLabel2').value || 'Custom Addition 2';
+            const otherAmt2 = parseFloat(document.getElementById('inOtherAmt2').value) || 0;
+            if (otherAmt2 > 0) totalSellerCosts += otherAmt2;
+
+            const preInspectChecked = document.getElementById('chkPreInspect').checked;
+            const preInspectCost = parseFloat(document.getElementById('inPreInspectCost').value) || 0;
+            if (preInspectChecked && preInspectCost > 0) totalSellerCosts += preInspectCost;
+
+            const hoaCertChecked = document.getElementById('chkHoaCert').checked;
+            const hoaCertCost = parseFloat(document.getElementById('inHoaCertCost').value) || 0;
+            if (hoaCertChecked && hoaCertCost > 0) totalSellerCosts += hoaCertCost;
 
             const estimatedNetProceedsCheck = taxProrationResult < 0 ? (salePrice + Math.abs(taxProrationResult)) - totalSellerCosts : salePrice - totalSellerCosts;
 
@@ -540,24 +676,46 @@
                 <tr><td>Contract Sale Price</td><td class="val-credit">${formatCurrency(salePrice)}</td><td>$0</td></tr>
             `;
 
-            if (mortgagePayoff > 0) {
-                ledgerBuffer += `<tr><td>Mortgage Payoff Balance<span class="label-sub">Liquidation of primary debt</span></td><td>$0</td><td class="val-cost">${formatCurrency(mortgagePayoff)}</td></tr>`;
+            if (mortgagePayoff > 0 || mortgagePayoff2 > 0) {
+                ledgerBuffer += `<tr class="section-row"><td colspan="3">Outstanding Encumbrances</td></tr>`;
+                if (mortgagePayoff > 0) {
+                    ledgerBuffer += `<tr><td>1st Mortgage Payoff Balance</td><td>$0</td><td class="val-cost">${formatCurrency(mortgagePayoff)}</td></tr>`;
+                }
+                if (mortgagePayoff2 > 0) {
+                    ledgerBuffer += `<tr><td>2nd Mortgage Payoff Balance</td><td>$0</td><td class="val-cost">${formatCurrency(mortgagePayoff2)}</td></tr>`;
+                }
             }
 
             ledgerBuffer += `
                 <tr class="section-row"><td colspan="3">Real Estate Commission Fees</td></tr>
-                <tr><td>Listing Management Brokerage Fee (${listingPct.toFixed(1)}%)<span class="label-sub">Marketing and advisory coordination</span></td><td>$0</td><td class="val-cost">${formatCurrency(listingBrokerFee)}</td></tr>
-                <tr><td>Buyer Brokerage Commission Fee (${buyerAgentPct.toFixed(1)}%)<span class="label-sub">Procuring broker compensation</span></td><td>$0</td><td class="val-cost">${formatCurrency(buyerBrokerFee)}</td></tr>
+                <tr><td>Listing Management Fee (${listingPct.toFixed(1)}%)</td><td>$0</td><td class="val-cost">${formatCurrency(listingBrokerFee)}</td></tr>
+                <tr><td>Buyer Brokerage Representative Fee (${buyerAgentPct.toFixed(1)}%)</td><td>$0</td><td class="val-cost">${formatCurrency(buyerBrokerFee)}</td></tr>
                 
                 <tr class="section-row"><td colspan="3">Government Taxes</td></tr>
-                <tr><td>Washington State Graduated REET Tax<span class="label-sub">State bracket calculation plus local municipal rate</span></td><td>$0</td><td class="val-cost">${formatCurrency(realEstateExciseTax)}</td></tr>
+                <tr><td>Washington State Graduated REET Tax</td><td>$0</td><td class="val-cost">${formatCurrency(realEstateExciseTax)}</td></tr>
             `;
 
             if (taxProrationResult !== 0) {
                 if (taxProrationResult < 0) {
-                    ledgerBuffer += `<tr><td>Prorated Property Tax Credit<span class="label-sub">Seller reimbursement for pre-paid taxes</span></td><td class="val-credit">${formatCurrency(Math.abs(taxProrationResult))}</td><td>$0</td></tr>`;
+                    ledgerBuffer += `<tr><td>Prorated Property Tax Credit<span class="label-sub">Reimbursement for pre-paid window</span></td><td class="val-credit">${formatCurrency(Math.abs(taxProrationResult))}</td><td>$0</td></tr>`;
                 } else {
-                    ledgerBuffer += `<tr><td>Prorated Property Tax Debit<span class="label-sub">Seller tax allocation through closing date</span></td><td>$0</td><td class="val-cost">${formatCurrency(taxProrationResult)}</td></tr>`;
+                    ledgerBuffer += `<tr><td>Prorated Property Tax Debit<span class="label-sub">Allocation through closing date</span></td><td>$0</td><td class="val-cost">${formatCurrency(taxProrationResult)}</td></tr>`;
+                }
+            }
+
+            if (otherAmt1 > 0 || otherAmt2 > 0 || (preInspectChecked && preInspectCost > 0) || (hoaCertChecked && hoaCertCost > 0)) {
+                ledgerBuffer += `<tr class="section-row"><td colspan="3">Additional Settlement Additions</td></tr>`;
+                if (preInspectChecked && preInspectCost > 0) {
+                    ledgerBuffer += `<tr><td>Pre-inspection Settlement Allocation</td><td>$0</td><td class="val-cost">${formatCurrency(preInspectCost)}</td></tr>`;
+                }
+                if (hoaCertChecked && hoaCertCost > 0) {
+                    ledgerBuffer += `<tr><td>HOA Resale Certificate Fee</td><td>$0</td><td class="val-cost">${formatCurrency(hoaCertCost)}</td></tr>`;
+                }
+                if (otherAmt1 > 0) {
+                    ledgerBuffer += `<tr><td>${otherLabel1}</td><td>$0</td><td class="val-cost">${formatCurrency(otherAmt1)}</td></tr>`;
+                }
+                if (otherAmt2 > 0) {
+                    ledgerBuffer += `<tr><td>${otherLabel2}</td><td>$0</td><td class="val-cost">${formatCurrency(otherAmt2)}</td></tr>`;
                 }
             }
 
@@ -570,6 +728,29 @@
             `;
 
             tbody.innerHTML = ledgerBuffer;
+
+            // Generate deep-linked parameters path to populate the dynamic sheet image node
+            const encodedPrice = rawPriceStr.replace(/[^0-9]/g, "");
+            const trackingUrl = window.location.origin + window.location.pathname +
+                `?name=${encodeURIComponent(document.getElementById('inSellerName').value)}` +
+                `&address=${encodeURIComponent(document.getElementById('inSellerAddress').value)}` +
+                `&price=${encodedPrice}` +
+                `&bal1=${document.getElementById('inBalance').value}` +
+                `&bal2=${document.getElementById('inBalance2').value}` +
+                `&tax=${document.getElementById('inTaxAmount').value}` +
+                `&package=${document.getElementById('inListingPackage').value}` +
+                `&buyer=${document.getElementById('inBuyerComp').value}` +
+                `&othl1=${encodeURIComponent(document.getElementById('inOtherLabel1').value)}` +
+                `&otha1=${document.getElementById('inOtherAmt1').value}` +
+                `&othl2=${encodeURIComponent(document.getElementById('inOtherLabel2').value)}` +
+                `&otha2=${document.getElementById('inOtherAmt2').value}` +
+                `&pi=${preInspectChecked ? '1' : '0'}` +
+                `&piv=${preInspectCost}` +
+                `&hoa=${hoaCertChecked ? '1' : '0'}` +
+                `&hoav=${hoaCertCost}`;
+
+            document.getElementById('printQrCodeImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(trackingUrl)}`;
+
             document.getElementById('resultsWrapper').style.display = 'block';
             document.getElementById('resultsWrapper').scrollIntoView({ behavior: 'smooth' });
         }
