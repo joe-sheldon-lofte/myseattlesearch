@@ -76,7 +76,90 @@
             outline: none;
         }
         
-        /* Free Location Auto-Complete Suggestions Container */
+        /* Clean Visual Dollar Prefix Layout Wrapper */
+        .currency-prefix-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        .currency-prefix-container .prefix-symbol {
+            position: absolute;
+            left: 0.65rem;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #555555;
+            pointer-events: none;
+            user-select: none;
+        }
+        .currency-prefix-container input {
+            padding-left: 1.5rem !important;
+        }
+        
+        /* Responsive Mobile Form Layout Helpers */
+        .custom-add-row {
+            display: flex;
+            gap: 0.5rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .settlement-options-flex {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            width: 100%;
+        }
+        .settlement-option-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #333;
+            cursor: pointer;
+            user-select: none;
+        }
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            cursor: pointer;
+        }
+        
+        @media (max-width: 600px) {
+            .custom-add-row {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .settlement-option-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.35rem;
+                background: #fff;
+                padding: 0.6rem;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+            }
+            .settlement-option-row .currency-prefix-container {
+                max-width: 100%;
+            }
+        }
+
+        .checkbox-group-wrapper {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            padding-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
         .autocomplete-suggestions {
             position: absolute;
             top: 100%;
@@ -106,38 +189,9 @@
             color: #000;
         }
 
-        .checkbox-group-wrapper {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            padding-top: 0.25rem;
-            flex-wrap: wrap;
-        }
-        .checkbox-item {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #333;
-            cursor: pointer;
-        }
-        .checkbox-item input[type="checkbox"] {
-            width: auto;
-            margin: 0;
-            cursor: pointer;
-        }
-        .checkbox-item input[type="number"] {
-            width: 75px;
-            padding: 0.25rem;
-            font-size: 0.85rem;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
         .btn-calculate {
             grid-column: 1 / -1;
-            padding: 0.85rem;
+            padding: 0.95rem 1rem;
             background: #C13030;
             color: #ffffff;
             border: none;
@@ -150,7 +204,9 @@
             transition: background 0.2s ease;
             margin-top: 0.5rem;
             width: 100%;
+            box-sizing: border-box;
             display: block;
+            line-height: 1.2;
         }
         .btn-calculate:hover { background: #9c2424; }
 
@@ -224,7 +280,7 @@
             align-items: center;
             justify-content: center;
             background: #ffffff;
-            border: 2px solid var(--premier-beige);
+            border: 3px solid var(--premier-beige);
             border-radius: 8px;
             padding: 0.4rem;
             box-sizing: border-box;
@@ -334,6 +390,9 @@
                 padding: 0.85rem !important;
                 page-break-inside: avoid !important;
             }
+            .partner-logo-box {
+                border: 1px solid #000000 !important;
+            }
             .print-qr-container {
                 display: flex !important;
                 align-items: center;
@@ -355,7 +414,7 @@
         
         <div class="compare-header-box">
             <h1 style="font-size: 2.6rem; font-weight: 900; color: #C13030; margin-bottom: 0.5rem;">Sellers Estimated Net Proceeds</h1>
-            <p class="intro" style="margin-bottom: 0.75rem;">View estimated net financial balances at closing after liquidating recorded debt and transaction obligations.</p>
+            <p class="intro" style="margin-bottom: 0.75rem;">See exactly what you will walk away with after paying off existing loans and standard transaction costs.</p>
             <button onclick="triggerSecurePrintWorkflow()" class="print-trigger-btn" title="Print Statement">
                 🖨️ Print Net Worksheet
             </button>
@@ -378,7 +437,10 @@
 
                 <div class="input-element-box">
                     <label for="inPrice">Target Sale Price ($)</label>
-                    <input type="text" id="inPrice" placeholder="Enter price" oninput="formatPriceInput(this)">
+                    <div class="currency-prefix-container">
+                        <span class="prefix-symbol">$</span>
+                        <input type="text" id="inPrice" placeholder="Enter price" oninput="formatPriceInput(this)">
+                    </div>
                 </div>
 
                 <div class="input-element-box">
@@ -391,12 +453,18 @@
 
                 <div class="input-element-box">
                     <label for="inBalance">1st Mortgage Payoff ($)</label>
-                    <input type="number" id="inBalance" placeholder="0">
+                    <div class="currency-prefix-container">
+                        <span class="prefix-symbol">$</span>
+                        <input type="number" id="inBalance" placeholder="0">
+                    </div>
                 </div>
 
                 <div class="input-element-box">
                     <label for="inBalance2">2nd Mortgage Payoff ($)</label>
-                    <input type="number" id="inBalance2" placeholder="0">
+                    <div class="currency-prefix-container">
+                        <span class="prefix-symbol">$</span>
+                        <input type="number" id="inBalance2" placeholder="0">
+                    </div>
                 </div>
 
                 <div class="input-element-box">
@@ -419,36 +487,55 @@
 
                 <div class="input-element-box">
                     <label for="inTaxAmount">Annual Property Tax ($)</label>
-                    <input type="number" id="inTaxAmount" placeholder="Calculated at 0.9%">
+                    <div class="currency-prefix-container">
+                        <span class="prefix-symbol">$</span>
+                        <input type="number" id="inTaxAmount" placeholder="Calculated at 0.9%">
+                    </div>
                 </div>
 
                 <div class="input-element-box" style="grid-column: span 2;">
                     <label>Custom Addition 1</label>
-                    <div style="display: flex; gap: 0.5rem;">
+                    <div class="custom-add-row">
                         <input type="text" id="inOtherLabel1" placeholder="Label (e.g. Septic Pumping)" style="flex: 1;">
-                        <input type="number" id="inOtherAmt1" placeholder="Amount ($)" style="width: 120px;">
+                        <div class="currency-prefix-container" style="width: 130px; flex-shrink: 0;">
+                            <span class="prefix-symbol">$</span>
+                            <input type="number" id="inOtherAmt1" placeholder="Amount">
+                        </div>
                     </div>
                 </div>
 
                 <div class="input-element-box" style="grid-column: span 2;">
                     <label>Custom Addition 2</label>
-                    <div style="display: flex; gap: 0.5rem;">
+                    <div class="custom-add-row">
                         <input type="text" id="inOtherLabel2" placeholder="Label (e.g. Work Orders)" style="flex: 1;">
-                        <input type="number" id="inOtherAmt2" placeholder="Amount ($)" style="width: 120px;">
+                        <div class="currency-prefix-container" style="width: 130px; flex-shrink: 0;">
+                            <span class="prefix-symbol">$</span>
+                            <input type="number" id="inOtherAmt2" placeholder="Amount">
+                        </div>
                     </div>
                 </div>
 
                 <div class="input-element-box" style="grid-column: span 2;">
                     <label>Pre-filled Settlement Options</label>
-                    <div class="checkbox-group-wrapper">
-                        <label class="checkbox-item">
-                            <input type="checkbox" id="chkPreInspection"> Pre-inspection
-                            <input type="number" id="inPreInspectCost" value="550">
-                        </label>
-                        <label class="checkbox-item">
-                            <input type="checkbox" id="chkHoaCert"> HOA Resale Cert
-                            <input type="number" id="inHoaCertCost" value="300">
-                        </label>
+                    <div class="settlement-options-flex">
+                        <div class="settlement-option-row">
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="chkPreInspection"> Pre-inspection
+                            </label>
+                            <div class="currency-prefix-container" style="width: 100px; flex-shrink: 0;">
+                                <span class="prefix-symbol">$</span>
+                                <input type="number" id="inPreInspectCost" value="550">
+                            </div>
+                        </div>
+                        <div class="settlement-option-row">
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="chkHoaCert"> HOA Resale Cert
+                            </label>
+                            <div class="currency-prefix-container" style="width: 100px; flex-shrink: 0;">
+                                <span class="prefix-symbol">$</span>
+                                <input type="number" id="inHoaCertCost" value="300">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -565,7 +652,6 @@
                 isTaxManual = true;
             });
 
-            // Close suggestions panel on tapping anywhere else on the document viewport
             document.addEventListener('click', (e) => {
                 const suggestionsBox = document.getElementById('addressSuggestions');
                 if (!document.getElementById('inSellerAddress').contains(e.target) && !suggestionsBox.contains(e.target)) {
@@ -573,7 +659,6 @@
                 }
             });
 
-            // Deep-linking router logic to repopulate active scenarios from QR scans
             const params = new URLSearchParams(window.location.search);
             if (params.has('price') || params.has('name') || params.has('address')) {
                 if (params.get('name')) document.getElementById('inSellerName').value = params.get('name');
@@ -597,7 +682,7 @@
                 if (params.get('othl2')) document.getElementById('inOtherLabel2').value = params.get('othl2');
                 if (params.get('otha2')) document.getElementById('inOtherAmt2').value = params.get('otha2');
                 
-                if (params.get('pi') === '1') document.getElementById('chkPreInspect').checked = true;
+                if (params.get('pi') === '1') document.getElementById('chkPreInspection').checked = true;
                 if (params.get('piv')) document.getElementById('inPreInspectCost').value = params.get('piv');
                 if (params.get('hoa') === '1') document.getElementById('chkHoaCert').checked = true;
                 if (params.get('hoav')) document.getElementById('inHoaCertCost').value = params.get('hoav');
@@ -606,7 +691,6 @@
             }
         });
 
-        // Key-free open-source autocomplete lookup loop
         function handleAddressAutocompleteSearch(inputEl) {
             clearTimeout(autocompleteDebounceTimer);
             const suggestionsBox = document.getElementById('addressSuggestions');
@@ -617,7 +701,6 @@
                 return;
             }
 
-            // Debounce API requests to run cleanly under local network usage thresholds
             autocompleteDebounceTimer = setTimeout(async () => {
                 try {
                     const searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryText)}&countrycodes=us&limit=5`;
@@ -644,7 +727,6 @@
             document.getElementById('inSellerAddress').value = selectedText;
             document.getElementById('addressSuggestions').style.display = 'none';
             
-            // Intuitively scan the match result string to auto-select the county option
             const cleanLower = selectedText.toLowerCase();
             if (cleanLower.includes('snohomish')) {
                 document.getElementById('inCounty').value = 'Snohomish';
@@ -720,7 +802,6 @@
         }
 
         function triggerSecurePrintWorkflow() {
-            // Build the params string exclusively when print is explicitly requested
             const targetScenarioUrl = buildDeepLinkedScenarioUrl();
             const qrImageNode = document.getElementById('printQrCodeImg');
             
@@ -728,7 +809,6 @@
                 window.print();
             };
             
-            // Set image src node to fetch the payload from the server grid once
             qrImageNode.src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(targetScenarioUrl)}`;
         }
 
@@ -811,11 +891,14 @@
                 <tr><td>Contract Sale Price</td><td class="val-credit">${formatCurrency(salePrice)}</td><td>$0</td></tr>
             `;
 
-            if (mortgagePayoff > 0) {
-                ledgerBuffer += `<tr><td>1st Mortgage Payoff Balance</td><td>$0</td><td class="val-cost">${formatCurrency(mortgagePayoff)}</td></tr>`;
-            }
-            if (mortgagePayoff2 > 0) {
-                ledgerBuffer += `<tr><td>2nd Mortgage Payoff Balance</td><td>$0</td><td class="val-cost">${formatCurrency(mortgagePayoff2)}</td></tr>`;
+            if (mortgagePayoff > 0 || mortgagePayoff2 > 0) {
+                ledgerBuffer += `<tr class="section-row"><td colspan="3">Outstanding Encumbrances</td></tr>`;
+                if (mortgagePayoff > 0) {
+                    ledgerBuffer += `<tr><td>1st Mortgage Payoff Balance</td><td>$0</td><td class="val-cost">${formatCurrency(mortgagePayoff)}</td></tr>`;
+                }
+                if (mortgagePayoff2 > 0) {
+                    ledgerBuffer += `<tr><td>2nd Mortgage Payoff Balance</td><td>$0</td><td class="val-cost">${formatCurrency(mortgagePayoff2)}</td></tr>`;
+                }
             }
 
             ledgerBuffer += `
@@ -850,10 +933,10 @@
                 ledgerBuffer += `<tr><td>HOA Resale Certificate Fee</td><td>$0</td><td class="val-cost">${formatCurrency(hoaCertCost)}</td></tr>`;
             }
             if (otherAmt1 > 0) {
-                ledgerBuffer += `<tr><td>Other Custom Cost: ${otherLabel1}</td><td>$0</td><td class="val-cost">${formatCurrency(otherAmt1)}</td></tr>`;
+                ledgerBuffer += `<tr><td>Other Cost: ${otherLabel1}</td><td>$0</td><td class="val-cost">${formatCurrency(otherAmt1)}</td></tr>`;
             }
             if (otherAmt2 > 0) {
-                ledgerBuffer += `<tr><td>Other Custom Cost: ${otherLabel2}</td><td>$0</td><td class="val-cost">${formatCurrency(otherAmt2)}</td></tr>`;
+                ledgerBuffer += `<tr><td>Other Cost: ${otherLabel2}</td><td>$0</td><td class="val-cost">${formatCurrency(otherAmt2)}</td></tr>`;
             }
 
             tbody.innerHTML = ledgerBuffer;
