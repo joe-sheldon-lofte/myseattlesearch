@@ -5,7 +5,6 @@ import urllib.request
 import pandas as pd
 
 # Down Payment Assistance Configuration
-# Change this GID once you create your DPA tab in your master Google Sheet.
 DPA_TAB_GID = "345179894"
 DPA_CSV_URL = f"https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiu3qLYVO9khl6k5s_whzg_UZFzKu7-RHc5fa2tpe3aIlf4wm4IaqQeVd75enhpJvS_lxXgfQRfQ_/pub?gid={DPA_TAB_GID}&single=true&output=csv"
 DPA_OUTPUT_PATH = "data/dpa_programs.json"
@@ -20,7 +19,8 @@ def run_dpa_pipeline():
         with urllib.request.urlopen(req) as response:
             raw_data = response.read().decode('utf-8')
             
-        df_dpa = pd.read_csv(io.StringIO(raw_data))
+        # keep_default_na=False prevents Pandas from converting blank cells or text like N/A into float NaN objects
+        df_dpa = pd.read_csv(io.StringIO(raw_data), keep_default_na=False)
         
         # Clean white spaces from column headers naturally
         df_dpa.columns = [c.strip() for c in df_dpa.columns]
