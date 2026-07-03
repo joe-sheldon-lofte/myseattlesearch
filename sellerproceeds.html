@@ -227,6 +227,10 @@
         }
         @keyframes paneFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
+        .summary-qr-flex-container {
+            width: 100%;
+        }
+
         .net-summary-box {
             background-color: #ffffff;
             border-left: 4px solid #C13030;
@@ -339,17 +343,45 @@
             .results-wrapper {
                 display: block !important;
             }
+            .summary-qr-flex-container {
+                display: flex !important;
+                gap: 0.5rem !important;
+                align-items: stretch !important;
+                margin-bottom: 0.3rem !important;
+                width: 100% !important;
+            }
             .net-summary-box {
+                flex: 1 !important;
                 padding: 0.3rem !important;
                 border-radius: 4px !important;
                 border: 1.5px solid #000000 !important;
                 border-left: 5px solid #C13030 !important;
                 box-shadow: none !important;
                 background: #ffffff !important;
-                margin-bottom: 0.3rem !important;
+                margin-bottom: 0 !important;
             }
             .net-total-number {
                 font-size: 14pt !important;
+            }
+            .print-qr-container {
+                display: flex !important;
+                flex: 0 0 280px !important;
+                align-items: center !important;
+                gap: 0.5rem !important;
+                border: 1.5px dashed #000000 !important;
+                padding: 0.3rem !important;
+                border-radius: 6px !important;
+                margin-top: 0 !important;
+                page-break-inside: avoid !important;
+                background: #ffffff !important;
+            }
+            .print-qr-container img {
+                width: 65px !important;
+                height: 65px !important;
+            }
+            .print-qr-container span {
+                font-size: 7pt !important;
+                line-height: 1.1 !important;
             }
             .table-scroll-container {
                 box-shadow: none !important;
@@ -403,23 +435,6 @@
                 font-size: 9pt !important;
             }
             .partner-info p {
-                font-size: 7.5pt !important;
-            }
-            .print-qr-container {
-                display: flex !important;
-                align-items: center;
-                gap: 0.75rem;
-                margin-top: 0.3rem !important;
-                border: 1.5px dashed #000000;
-                padding: 0.4rem !important;
-                border-radius: 6px;
-                page-break-inside: avoid !important;
-            }
-            .print-qr-container img {
-                width: 75px !important;
-                height: 75px !important;
-            }
-            .print-qr-container span {
                 font-size: 7.5pt !important;
             }
             .compliance-disclaimer-text {
@@ -603,10 +618,22 @@
                 </div>
             </div>
 
-            <div class="net-summary-box">
-                <h2 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: var(--premier-charcoal);">Estimated Net Cash to Seller</h2>
-                <div class="net-total-number" id="txtNetProceeds">$0</div>
-                <p style="max-width: 800px; margin: 0.15rem auto 0 auto; font-size: 0.88rem; color: #555;">Estimated cash remaining after paying off loans and closing costs.</p>
+            <div class="summary-qr-flex-container">
+                <div class="net-summary-box">
+                    <h2 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: var(--premier-charcoal);">Estimated Net Cash to Seller</h2>
+                    <div class="net-total-number" id="txtNetProceeds">$0</div>
+                    <p style="max-width: 800px; margin: 0.15rem auto 0 auto; font-size: 0.88rem; color: #555;">Estimated cash remaining after paying off loans and closing costs.</p>
+                </div>
+
+                <div class="print-qr-container print-only-layout" style="align-items: center; border: 2px dashed #000000; padding: 0.5rem; border-radius: 6px;">
+                    <div style="width: 75px; height: 75px; flex-shrink: 0; background: #fff; border: 1px solid #000;">
+                        <img id="printQrCodeImg" src="" alt="Dynamic Scenario QR Code" style="width: 100%; height: 100%; display: block;">
+                    </div>
+                    <div style="text-align: left;">
+                        <strong style="font-size: 8.5pt; color: #000; display: block; margin-bottom: 0.15rem;">Scan to Explore Scenarios</strong>
+                        <span style="font-size: 7.5pt; color: #333; line-height: 1.1; display: block;">Scan this code to return to this live worksheet. You can modify purchase price, limits, or recalculate options instantly.</span>
+                    </div>
+                </div>
             </div>
 
             <div class="table-scroll-container">
@@ -629,16 +656,6 @@
                 <div class="partner-info">
                     <h4>Rocket Close</h4>
                     <p>Preferred settlement partner. Title and escrow closing services are processed smoothly through Rocket Close.</p>
-                </div>
-            </div>
-
-            <div class="print-qr-container print-only-layout" style="align-items: center; border: 2px dashed #000000; padding: 0.75rem; border-radius: 6px;">
-                <div style="width: 100px; height: 100px; flex-shrink: 0; background: #fff; border: 1px solid #000;">
-                    <img id="printQrCodeImg" src="" alt="Dynamic Scenario QR Code" style="width: 100%; height: 100%; display: block;">
-                </div>
-                <div style="text-align: left;">
-                    <strong style="font-size: 9pt; color: #000; display: block; margin-bottom: 0.15rem;">Scan to Explore Scenarios</strong>
-                    <span style="font-size: 8pt; color: #333; line-height: 1.2; display: block;">Scan this code with your smartphone camera to return to this live worksheet. You can adjust the purchase price, modify payoff thresholds, or recalculate alternative options instantly.</span>
                 </div>
             </div>
 
