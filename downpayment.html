@@ -68,8 +68,17 @@
             outline: none;
         }
 
-        .btn-search {
+        .wizard-buttons-row {
             grid-column: 1 / -1;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+
+        .btn-search {
+            flex: 1;
+            min-width: 220px;
             padding: 0.85rem;
             background: #C13030;
             color: #ffffff;
@@ -79,10 +88,16 @@
             font-weight: 700;
             cursor: pointer;
             transition: background 0.2s ease;
-            margin-top: 0.5rem;
             width: 100%;
         }
         .btn-search:hover { background: #9c2424; }
+        
+        .btn-search.btn-secondary-action {
+            background: var(--premier-charcoal);
+        }
+        .btn-search.btn-secondary-action:hover {
+            background: #222222;
+        }
 
         .results-heading {
             font-size: 1.4rem;
@@ -254,7 +269,7 @@
             }
 
             universal-header, universal-footer, .compare-header-box,
-            .wizard-card, .print-trigger-btn, .card-action-btn {
+            .wizard-card, .print-trigger-btn, .card-action-btn, .wizard-buttons-row {
                 display: none !important;
             }
 
@@ -373,7 +388,10 @@
                     </select>
                 </div>
 
-                <button class="btn-search" onclick="evaluateDpaPrograms()">Find Matching Programs</button>
+                <div class="wizard-buttons-row no-print-section">
+                    <button class="btn-search" onclick="evaluateDpaPrograms(false)">Find Matching Programs</button>
+                    <button class="btn-search btn-secondary-action" onclick="evaluateDpaPrograms(true)">Show All Available Programs</button>
+                </div>
             </div>
         </section>
 
@@ -399,7 +417,7 @@
             </div>
 
             <div class="coach-summary-box">
-                <h2 style="font-size: 1.4rem; font-weight: 700; margin: 0; color: var(--premier-charcoal);">Potential Matches</h2>
+                <h2 id="txtResultsSummaryTitle" style="font-size: 1.4rem; font-weight: 700; margin: 0; color: var(--premier-charcoal);">Potential Matches</h2>
                 <div class="coach-total-number" id="txtTotalMatchesCount">0 Options Identified</div>
                 
                 <div class="dpa-advisory-disclaimer">
@@ -432,7 +450,15 @@
             });
 
             async function fetchJSON(path) {
-                try { const res = await fetch(path); if (!res.ok) return []; return JSON.parse(await res.text()); } catch (e) { return []; }
+                try { 
+                    const res = await fetch(path); 
+                    if (!res.ok) return []; 
+                    const rawText = await res.text();
+                    const cleanedText = rawText.replace(/:\s*NaN/g, ": null");
+                    return JSON.parse(cleanedText); 
+                } catch (e) { 
+                    return []; 
+                }
             }
 
             Promise.all([
@@ -471,16 +497,15 @@
                         groups[group].forEach(city => {
                             html += `<option value="${city}">${city}</option>`;
                         });
-                        optionsHtml = html; // uniform mapping track
                         html += `</optgroup>`;
                     }
                 }
                 select.innerHTML = html;
                 
-                if(dataStore.programs.length > 0) evaluateDpaPrograms();
+                if(dataStore.programs.length > 0) evaluateDpaPrograms(false);
             }
 
-            window.evaluateDpaPrograms = function() {
+            window.evaluateDpaPrograms = function(showAll = false) {
                 const targetCityName = document.getElementById('citySelect').value;
                 const cityObj = dataStore.cities[targetCityName.toLowerCase().trim()] || {};
                 const targetCountyName = cityObj.county || '';
@@ -496,16 +521,38 @@
                 let matchCount = 0;
 
                 dataStore.programs.forEach(prog => {
-                    const countiesList = prog['Eligible Counties'] ? prog['Eligible Counties'].toLowerCase() : '';
-                    const citiesList = prog['Eligible Cities'] ? prog['Eligible Cities'].toLowerCase() : '';
+                    if (!showAll) {
+                        const countiesList = prog['Eligible Counties'] ? prog['Eligible Counties'].toLowerCase() : '';
+                        const citiesList = prog['Eligible Cities'] ? prog['Eligible Cities'].toLowerCase() : '';
+                        
+                        const countyMatch = countiesList.includes('all') || countiesList.includes('washington') || countiesList.includes(targetCountyName.toLowerCase());
+                        const cityMatch = citiesList.includes('all') || citiesList.includes(targetCityName.toLowerCase());
+
+                        if (!countyMatch || !cityMatch) return;
+
+                        const fthbRequired = String(prog['First Time Buyer Required']).trim().toLowerCase() === 'yes';
+                        if (fthbRequired && ownedRecently) return;
+
+                        let incomeCapColumnKey = 'Income Limit 4 Person Plus';
+                        if (householdSize === 1) incomeCapColumnKey = 'Income Limit 1 Person';
+                        else if (householdSize === 2) incomeCapColumnKey = 'Income Limit 2 Person';
+                        else if (householdSize === 3) incomeCapColumnKey = 'Income Limit 3 Person';
+
+                        const rawIncomeCap = cleanNum(prog[incomeCapColumnKey]);
+                        if (rawIncomeCap > 0 && userIncome > rawIncomeCap) return;
+                    }
+
+                    matchCount++;
                     
-                    const countyMatch = countiesList.includes('all') || countiesList.includes('washington') || countiesList.includes(targetCountyName.toLowerCase());
-                    const cityMatch = citiesList.includes('all') || citiesList.includes(targetCityName.toLowerCase());
-
-                    if (!countyMatch || !cityMatch) return;
-
-                    const fthbRequired = String(prog['First Time Buyer Required']).trim().toLowerCase() === 'yes';
-                    if (fthbRequired && ownedRecently) return;
+                    const rawMaxAmount = prog['Max Assistance Amount'] ? String(prog['Max Assistance Amount']).trim() : '';
+                    const parsedMaxNum = cleanNum(rawMaxAmount);
+                    
+                    let maxAmount = 'Varies based on qualification';
+                    if (parsedMaxNum > 0) {
+                        maxAmount = formatCurrency(parsedMaxNum);
+                    } else if (rawMaxAmount !== '' && rawMaxAmount !== '0') {
+                        maxAmount = rawMaxAmount;
+                    }
 
                     let incomeCapColumnKey = 'Income Limit 4 Person Plus';
                     if (householdSize === 1) incomeCapColumnKey = 'Income Limit 1 Person';
@@ -513,23 +560,13 @@
                     else if (householdSize === 3) incomeCapColumnKey = 'Income Limit 3 Person';
 
                     const rawIncomeCap = cleanNum(prog[incomeCapColumnKey]);
-                    if (rawIncomeCap > 0 && userIncome > rawIncomeCap) return;
-
-                    matchCount++;
-                    const rawMaxAmount = prog['Max Assistance Amount'] ? String(prog['Max Assistance Amount']).trim() : '';
-const parsedMaxNum = cleanNum(rawMaxAmount);
-let maxAmount = 'Varies based on qualification';
-if (parsedMaxNum > 0) {
-    maxAmount = formatCurrency(parsedMaxNum);
-} else if (rawMaxAmount !== '' && rawMaxAmount !== '0') {
-    maxAmount = rawMaxAmount;
-}
                     const displayCap = rawIncomeCap > 0 ? formatCurrency(rawIncomeCap) : 'No income cap specified';
+                    
                     const extraSteps = prog['Mandatory Extra Steps'] ? String(prog['Mandatory Extra Steps']).trim() : '';
                     const officialWebsite = prog['Program Website'] ? String(prog['Program Website']).trim() : '';
 
                     let extraStepsMarkup = '';
-                    if (extraSteps && extraSteps !== 'None' && extraSteps !== '-') {
+                    if (extraSteps && extraSteps !== 'None' && extraSteps !== '-' && extraSteps !== 'NaN') {
                         extraStepsMarkup = `<div class="extra-step-alert">📋 <strong>Prerequisite Note:</strong> ${extraSteps}</div>`;
                     }
 
@@ -555,12 +592,17 @@ if (parsedMaxNum > 0) {
                                     <strong>${maxAmount}</strong>
                                 </div>
                                 <div>
-                                    <span>Maximum Allowed Income</span>
+                                    <span>Maximum Income (${householdSize === 4 ? '4+ Box' : householdSize + ' Person'})</span>
                                     <strong>${displayCap}</strong>
                                 </div>
                             </div>
                             
                             <p>${prog['Program Description'] || 'No additional local tracking notes specified.'}</p>
+                            
+                            <div style="font-size: 0.85rem; color: #555555; border-top: 1px dashed #eaeaea; padding-top: 0.5rem; margin-top: 0.25rem;">
+                                📍 <strong>Geographic Eligibility:</strong> Counties: ${prog['Eligible Counties'] || 'All'} | Cities: ${prog['Eligible Cities'] || 'All'}
+                            </div>
+                            
                             ${extraStepsMarkup}
                             ${websiteMarkup}
                         </div>
@@ -575,8 +617,19 @@ if (parsedMaxNum > 0) {
                     container.innerHTML = matchesHtml;
                 }
 
-                document.getElementById('txtTotalMatchesCount').textContent = `${matchCount} Program ${matchCount === 1 ? 'Option' : 'Options'} Identified`;
+                const summaryTitleEl = document.getElementById('txtResultsSummaryTitle');
+                if (showAll) {
+                    summaryTitleEl.textContent = "Complete Program Directory";
+                    document.getElementById('txtTotalMatchesCount').textContent = `${matchCount} Total Programs Listed`;
+                } else {
+                    summaryTitleEl.textContent = "Potential Matches";
+                    document.getElementById('txtTotalMatchesCount').textContent = `${matchCount} Program ${matchCount === 1 ? 'Option' : 'Options'} Identified`;
+                }
+                
                 document.getElementById('resultsSection').style.display = 'block';
+                if (!showAll) {
+                    document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+                }
             };
         });
     </script>
