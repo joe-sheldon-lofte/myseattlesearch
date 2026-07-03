@@ -13,17 +13,136 @@
         @media (max-width: 768px) {
             .news-dashboard-grid {
                 display: flex !important;
-                flex-direction: column-reverse !important; /* Forces the sidebar (Rates) to the top on mobile */
+                flex-direction: column-reverse !important;
                 gap: 2rem !important;
             }
             .financial-sidebar {
-                position: static !important; /* Disables sticky on mobile for clean scrolling */
+                position: static !important;
                 width: 100%;
             }
         }
         @media (min-width: 769px) {
             .news-dashboard-grid {
-                grid-template-columns: 1fr 380px !important; /* Clean layout balance for desktop */
+                grid-template-columns: 1fr 380px !important;
+            }
+        }
+
+        .print-trigger-btn {
+            background-color: transparent;
+            border: 1px solid #b3b3b3;
+            color: #666666;
+            padding: 0.5rem 1.25rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-top: 0.5rem;
+        }
+        .print-trigger-btn:hover {
+            border-color: var(--premier-charcoal);
+            color: var(--premier-charcoal);
+            background-color: #fafafa;
+        }
+
+        .print-only-header { display: none; }
+
+        /* ==========================================
+           HIGH-IMPACT MARKETING PRINT STYLESHEET
+           ========================================== */
+        @media print {
+            @page {
+                size: letter;
+                margin: 0.45in;
+            }
+            
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                font-size: 9.5pt !important;
+                line-height: 1.25 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            universal-header, universal-footer, .events-header, 
+            .print-trigger-btn, .no-print-section {
+                display: none !important;
+            }
+
+            .print-only-header {
+                display: block !important;
+                width: 100% !important;
+            }
+
+            .news-dashboard-grid {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 1.5rem !important;
+            }
+
+            .financial-sidebar {
+                width: 100% !important;
+                position: static !important;
+            }
+
+            .profile-card {
+                padding: 1rem !important;
+                border: 2px solid #000000 !important;
+                border-radius: 8px !important;
+                background: #ffffff !important;
+                box-shadow: none !important;
+                margin-bottom: 1rem !important;
+                page-break-inside: avoid !important;
+            }
+            .profile-card h3 {
+                font-size: 9pt !important;
+                font-weight: 900 !important;
+                color: #000000 !important;
+                margin-bottom: 0.75rem !important;
+            }
+            .profile-card div {
+                font-size: 11pt !important;
+                font-weight: 900 !important;
+                color: #000000 !important;
+            }
+            .profile-card canvas {
+                max-height: 150px !important;
+            }
+
+            .news-feed-column h2 {
+                font-size: 13pt !important;
+                font-weight: 900 !important;
+                color: #C13030 !important;
+                border-bottom: 2.5px solid #000000 !important;
+                padding-bottom: 4px !important;
+                text-transform: uppercase !important;
+                margin-top: 1rem !important;
+            }
+
+            .review-card {
+                padding: 1rem 0 !important;
+                border-radius: 0 !important;
+                border: none !important;
+                border-bottom: 1px dashed #000000 !important;
+                background: transparent !important;
+                margin-bottom: 1rem !important;
+                page-break-inside: avoid !important;
+            }
+            .review-card h3 a {
+                font-size: 11pt !important;
+                font-weight: 900 !important;
+                color: #000000 !important;
+            }
+            .review-card p {
+                font-size: 9pt !important;
+                color: #333333 !important;
+                line-height: 1.3 !important;
             }
         }
     </style>
@@ -34,13 +153,30 @@
 
     <main class="container" style="max-width: 1200px; padding-bottom: 5rem;">
         
-        <div class="events-header" style="text-align: left; margin-bottom: 3rem;">
-            <!-- Smart Dynamic Greeting Insertion -->
+        <div class="events-header" style="text-align: left; margin-bottom: 2rem;">
             <h1 style="font-size: 2.5rem; margin-top: 1rem; line-height: 1.2;">
                 <span id="dynamic-greeting" style="display: block; font-size: 1.5rem; font-weight: 400; color: var(--premier-charcoal); opacity: 0.8; margin-bottom: 0.25rem;"></span>
                 Local & Market News
             </h1>
-            <p id="live-date" class="intro" style="font-size: 1rem; opacity: 0.7; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;"></p>
+            <p id="live-date" class="intro" style="font-size: 1rem; opacity: 0.7; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1rem;"></p>
+            <div class="no-print-section">
+                <button onclick="window.print()" class="print-trigger-btn" title="Print Market Update">
+                    🖨️ Print Market Update
+                </button>
+            </div>
+        </div>
+
+        <div id="printHeaderNode" class="print-only-header">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid #C13030; padding-bottom: 12px; margin-bottom: 25px;">
+                <div>
+                    <h1 style="margin:0; font-size: 2.4rem; font-weight: 900; color: #C13030; letter-spacing: -0.5px;">LOCAL & MARKET NEWS WIRE</h1>
+                    <p style="margin: 3px 0 0 0; font-size: 1rem; font-weight: 800; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">Live Interest Rates & Neighborhood Housing Feeds</p>
+                </div>
+                <div style="text-align: right;">
+                    <h3 style="margin:0; font-size: 1.3rem; font-weight: 900; color: #3D3935;">JOE SHELDON</h3>
+                    <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: #555;">myseattlesearch.com</p>
+                </div>
+            </div>
         </div>
 
         <div class="news-dashboard-grid" style="display: grid; grid-template-columns: 1fr; gap: 2.5rem; align-items: start;">
@@ -54,31 +190,31 @@
                 </div>
             </section>
 
-            <aside class="financial-sidebar" style="position: sticky; top: 2rem; display: flex; flex-direction: column; gap: 2rem;">
+            <aside class="financial-sidebar">
                 
-                <div class="profile-card" style="padding: 2rem; border-radius: 12px; background-color: var(--white); margin: 0;">
+                <div class="profile-card" style="padding: 2rem; border-radius: 12px; background-color: var(--white); margin: 0 0 2rem 0; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
                     <h3 style="font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase; color: var(--premier-charcoal); margin-bottom: 1.5rem; text-align: center; font-weight: 700;">Today's Average Market Rates</h3>
                     
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center;">
                         <div>
                             <span style="font-size: 0.75rem; font-weight: bold; color: var(--premier-charcoal); display: block; margin-bottom: 0.25rem;">30-YR CONV</span>
-                            <div id="rate-conv" style="font-size: 1.5rem; font-weight: 800; color: #C13030;">--%</div>
+                            <div id="rate-conv" style="font-size: 1.5rem; font-weight: 800; color: #C13030;">Awaiting...</div>
                         </div>
                         <div style="border-left: 1px solid var(--light-gray); border-right: 1px solid var(--light-gray);">
                             <span style="font-size: 0.75rem; font-weight: bold; color: var(--premier-charcoal); display: block; margin-bottom: 0.25rem;">30-YR FHA</span>
-                            <div id="rate-fha" style="font-size: 1.5rem; font-weight: 800; color: #2B2D42;">--%</div>
+                            <div id="rate-fha" style="font-size: 1.5rem; font-weight: 800; color: #2B2D42;">Awaiting...</div>
                         </div>
                         <div>
                             <span style="font-size: 0.75rem; font-weight: bold; color: var(--premier-charcoal); display: block; margin-bottom: 0.25rem;">30-YR VA</span>
-                            <div id="rate-va" style="font-size: 1.5rem; font-weight: 800; color: #4A90E2;">--%</div>
+                            <div id="rate-va" style="font-size: 1.5rem; font-weight: 800; color: #4A90E2;">Awaiting...</div>
                         </div>
                     </div>
                     
                     <p style="font-size: 0.8rem; opacity: 0.6; margin-top: 1.5rem; margin-bottom: 0; text-align: center;">Rates provided by Mortgage News Daily</p>
                 </div>
 
-                <div class="profile-card" style="padding: 1.5rem; border-radius: 12px; background-color: var(--white); margin: 0;">
-                    <h3 style="font-size: 0.9rem; font-weight: 700; color: var(--premier-charcoal); margin-bottom: 1rem;">Historical Product Trends (Past 30 Days)</h3>
+                <div class="profile-card" style="padding: 1.5rem; border-radius: 12px; background-color: var(--white); margin: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+                    <h3 style="font-size: 0.9rem; font-weight: 700; color: var(--premier-charcoal); margin-bottom: 1rem;">30-Day Interest Rate Trends</h3>
                     <div style="position: relative; width: 100%; height: 200px;">
                         <canvas id="rateTrendChart"></canvas>
                     </div>
@@ -92,7 +228,6 @@
     <universal-footer></universal-footer>
 
     <script>
-        // Set up the Live Date and Timed Greetings
         const now = new Date();
         document.getElementById('live-date').innerText = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         
@@ -259,7 +394,7 @@
             }
 
             container.innerHTML = articles.map(article => `
-                <article class="review-card" style="background-color: var(--white); margin-bottom: 1.5rem; padding: 2rem; border-left: 3px solid ${article.source === 'Redfin Analytics' ? '#C13030' : 'var(--premier-charcoal)'};">
+                <article class="review-card" style="background-color: var(--white); margin-bottom: 1.5rem; padding: 2rem; border-left: 3px solid ${article.source === 'Redfin Analytics' ? '#C13030' : 'var(--premier-charcoal)'}; box-shadow: 0 4px 12px rgba(0,0,0,0.04); border-radius: 8px;">
                     <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 0.5rem;">
                         <span>${article.source}</span>
                         <span>${article.pubDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>

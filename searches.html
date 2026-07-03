@@ -6,16 +6,137 @@
     <title>Curated Home Searches | Joe Sheldon</title>
     <link rel="stylesheet" href="style.css?v=17">
     <script src="components.js"></script>
+    <style>
+        .print-trigger-btn {
+            background-color: transparent;
+            border: 1px solid #b3b3b3;
+            color: #666666;
+            padding: 0.5rem 1.25rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-bottom: 2rem;
+        }
+        .print-trigger-btn:hover {
+            border-color: var(--premier-charcoal);
+            color: var(--premier-charcoal);
+            background-color: #fafafa;
+        }
+
+        .print-only-header, .print-url { display: none; }
+
+        /* ==========================================
+           HIGH-IMPACT MARKETING PRINT STYLESHEET
+           ========================================== */
+        @media print {
+            @page {
+                size: letter;
+                margin: 0.45in;
+            }
+            
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                font-size: 9.5pt !important;
+                line-height: 1.25 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            universal-header, universal-footer, .events-header, 
+            .print-trigger-btn, .search-overlay, .search-action {
+                display: none !important;
+            }
+
+            .print-only-header {
+                display: block !important;
+                width: 100% !important;
+            }
+
+            .searches-grid {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 12px !important;
+            }
+
+            .search-card {
+                background: #ffffff !important;
+                background-image: none !important;
+                padding: 1rem !important;
+                border: 2px solid #000000 !important;
+                border-radius: 8px !important;
+                box-shadow: none !important;
+                display: block !important;
+                height: auto !important;
+                page-break-inside: avoid !important;
+            }
+
+            .search-content {
+                position: static !important;
+                transform: none !important;
+                padding: 0 !important;
+            }
+
+            .search-title {
+                font-size: 11pt !important;
+                font-weight: 900 !important;
+                color: #C13030 !important;
+                margin-bottom: 0.25rem !important;
+            }
+            .search-desc {
+                font-size: 9pt !important;
+                color: #000000 !important;
+                margin-bottom: 0.5rem !important;
+            }
+            
+            .print-url {
+                display: block !important;
+                font-size: 8.5pt !important;
+                font-family: monospace !important;
+                color: #333333 !important;
+                word-break: break-all !important;
+                border-top: 1px dashed #000000 !important;
+                padding-top: 0.25rem !important;
+                margin-top: 0.25rem !important;
+            }
+        }
+    </style>
 </head>
 <body class="searches-page">
 
-<universal-header></universal-header>
+    <universal-header></universal-header>
 
     <main class="container">
         
-        <div class="events-header">
+        <div class="events-header" style="text-align: center; margin-bottom: 1.5rem;">
             <h1 style="margin-top: 1rem;">Curated Home Searches</h1>
-            <p class="intro">Hand-picked lists updated in real-time to help you find exactly what you're looking for or just have fun exploring the local markets.</p>
+            <p class="intro">Curated lists to explore the area or have viewing premium homes for sale.</p>
+        </div>
+
+        <div class="hfy-actions-container" style="text-align: center;">
+            <button onclick="window.print()" class="print-trigger-btn" title="Print Search List">
+                🖨️ Print Search Checklist
+            </button>
+        </div>
+
+        <div id="printHeaderNode" class="print-only-header">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid #C13030; padding-bottom: 12px; margin-bottom: 25px;">
+                <div>
+                    <h1 style="margin:0; font-size: 2.4rem; font-weight: 900; color: #C13030; letter-spacing: -0.5px;">CURATED MARKET LINK CHECKLIST</h1>
+                    <p style="margin: 3px 0 0 0; font-size: 1rem; font-weight: 800; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">Bespoke Search Configurations & Active Map Feeds</p>
+                </div>
+                <div style="text-align: right;">
+                    <h3 style="margin:0; font-size: 1.3rem; font-weight: 900; color: #3D3935;">JOE SHELDON</h3>
+                    <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: #555;">myseattlesearch.com</p>
+                </div>
+            </div>
         </div>
 
         <div class="searches-grid">
@@ -26,6 +147,7 @@
                     <h3 class="search-title">North Sound Open Houses</h3>
                     <p class="search-desc">Open Houses this week in North King and South Snohomish Counties.</p>
                     <span class="search-action">View Homes &rarr;</span>
+                    <span class="print-url">Link: https://www.redfin.com/city/10421/WA/Lynnwood/filter/property-type=house+condo+townhouse,open-house=thisweekend</span>
                 </div>
             </a>
 
@@ -35,15 +157,17 @@
                     <h3 class="search-title">North Sound Starter Homes</h3>
                     <p class="search-desc">Homes in North King and South Snohomish Counties under $500k.</p>
                     <span class="search-action">View Homes &rarr;</span>
+                    <span class="print-url">Link: https://www.redfin.com/city/10421/WA/Lynnwood/filter/property-type=house+condo+townhouse,max-price=500k</span>
                 </div>
             </a>
 
-            <a href="https://www.redfin.com/city/10421/WA/Lynnwood/filter/property-type=house+condo,min-price=5M,viewport=48.20345:47.43813:-121.50725:-122.75557,no-outline" target="_blank" class="search-card" style="background-image: url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80');">
+            <a href="https://www.redfin.com/city/10421/WA/Lynnwood/filter/property-type=house+condo,min-price=5M,viewport=48.20345:47.43813:-121.50725:-122.75557,no-outline" target="_blank" class="search-card" style="background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80');">
                 <div class="search-overlay"></div>
                 <div class="search-content">
                     <h3 class="search-title">The Millionaire's List</h3>
                     <p class="search-desc">Luxury estates in King and Snohomish Counties over $5M.</p>
                     <span class="search-action">View Homes &rarr;</span>
+                    <span class="print-url">Link: https://www.redfin.com/city/10421/WA/Lynnwood/filter/property-type=house+condo,min-price=5M</span>
                 </div>
             </a>
 
@@ -51,8 +175,9 @@
                 <div class="search-overlay"></div>
                 <div class="search-content">
                     <h3 class="search-title">Waterfront Living</h3>
-                    <p class="search-desc">Beautiful waterfront homes in King and Snohomish Counties.</p>
+                    <p class="search-desc"> Waterfront homes available in King and Snohomish Counties.</p>
                     <span class="search-action">View Homes &rarr;</span>
+                    <span class="print-url">Link: https://www.redfin.com/city/10421/WA/Lynnwood/filter/property-type=house+condo,min-price=1M,water-front</span>
                 </div>
             </a>
 
@@ -60,8 +185,9 @@
                 <div class="search-overlay"></div>
                 <div class="search-content">
                     <h3 class="search-title">Mid-Century Moderns</h3>
-                    <p class="search-desc">Classic Mid-century Modern homes available in King County.</p>
+                    <p class="search-desc">Classic Mid-century Modern architectural styles available in King County.</p>
                     <span class="search-action">View Homes &rarr;</span>
+                    <span class="print-url">Link: https://www.redfin.com/city/10421/WA/Lynnwood/filter/property-type=house+condo,remarks=mid+century+modern</span>
                 </div>
             </a>
 

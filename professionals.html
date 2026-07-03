@@ -9,7 +9,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
     <style>
-        /* New Disclaimer Banner Styles */
         .disclaimer-banner {
             background-color: #f9f9f9; 
             border-left: 4px solid #F5A623; 
@@ -18,13 +17,12 @@
             border-radius: 4px 12px 12px 4px;
             font-size: 0.9rem;
             line-height: 1.5;
-            margin: 0 auto 2.5rem auto;
+            margin: 0 auto 1.5rem auto;
             max-width: 800px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.03);
             text-align: left;
         }
 
-        /* Cleaned Layout Rules for Professional Contacts */
         .pro-contact-wrapper {
             margin-top: 1rem;
             display: flex;
@@ -32,7 +30,6 @@
             gap: 0.5rem;
         }
 
-        /* Legal Requirements Card Section */
         .pro-legal {
             margin-top: 1rem;
             padding-top: 0.75rem;
@@ -62,6 +59,121 @@
             color: #1F4E5B;
             text-decoration: underline;
         }
+
+        .print-trigger-btn {
+            background-color: transparent;
+            border: 1px solid #b3b3b3;
+            color: #666666;
+            padding: 0.5rem 1.25rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-bottom: 2rem;
+        }
+        .print-trigger-btn:hover {
+            border-color: var(--premier-charcoal);
+            color: var(--premier-charcoal);
+            background-color: #fafafa;
+        }
+
+        .print-only-header { display: none; }
+
+        /* ==========================================
+           HIGH-IMPACT MARKETING PRINT STYLESHEET
+           ========================================== */
+        @media print {
+            @page {
+                size: letter;
+                margin: 0.45in;
+            }
+            
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                font-size: 9.5pt !important;
+                line-height: 1.25 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            universal-header, universal-footer, .events-header, 
+            .filter-nav-container, .print-trigger-btn, .legal-link,
+            .pro-link.website {
+                display: none !important;
+            }
+
+            .print-only-header {
+                display: block !important;
+                width: 100% !important;
+            }
+
+            .disclaimer-banner {
+                font-size: 8.5pt !important;
+                border: 1px solid #000000 !important;
+                background: #fafafa !important;
+                padding: 0.5rem !important;
+                margin-bottom: 1.5rem !important;
+                max-width: 100% !important;
+            }
+
+            .pro-grid {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 14px !important;
+            }
+
+            .pro-card {
+                padding: 1rem !important;
+                border: 2px solid #000000 !important;
+                border-radius: 8px !important;
+                background: #ffffff !important;
+                box-shadow: none !important;
+                display: flex !important;
+                flex-direction: column !important;
+                page-break-inside: avoid !important;
+            }
+            .pro-category-tag {
+                font-size: 7.5pt !important;
+                font-weight: 900 !important;
+                color: #C13030 !important;
+                text-transform: uppercase !important;
+                margin-bottom: 0.25rem !important;
+            }
+            .pro-name {
+                font-size: 11pt !important;
+                font-weight: 900 !important;
+                color: #000000 !important;
+                margin: 0 !important;
+            }
+            .pro-company {
+                font-size: 9pt !important;
+                font-weight: 700 !important;
+                color: #333333 !important;
+            }
+            .pro-area {
+                font-size: 8.5pt !important;
+                color: #555555 !important;
+            }
+            .pro-link {
+                font-size: 9pt !important;
+                color: #000000 !important;
+                text-decoration: none !important;
+                font-weight: 700 !important;
+            }
+            .pro-legal {
+                font-size: 8pt !important;
+                border-top: 1px dashed #000000 !important;
+                margin-top: 0.5rem !important;
+                padding-top: 0.5rem !important;
+            }
+        }
     </style>
 </head>
 <body class="pro-page">
@@ -70,13 +182,32 @@
 
     <main class="container">
         
-        <div class="events-header" style="text-align: center;">
+        <div class="events-header" style="text-align: center; margin-bottom: 1.5rem;">
             <h1 style="margin-top: 1rem; font-size: 2.5rem;">My Preferred Professionals</h1>
             <p class="intro">A curated list of trusted local experts I rely on to get the job done right.</p>
         </div>
 
+        <div class="hfy-actions-container" style="text-align: center;">
+            <button onclick="window.print()" class="print-trigger-btn" title="Print This Directory">
+                🖨️ Print Professional Directory
+            </button>
+        </div>
+
+        <div id="printHeaderNode" class="print-only-header">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid #C13030; padding-bottom: 12px; margin-bottom: 25px;">
+                <div>
+                    <h1 style="margin:0; font-size: 2.4rem; font-weight: 900; color: #C13030; letter-spacing: -0.5px;">PREFERRED VENDOR DIRECTORY</h1>
+                    <p style="margin: 3px 0 0 0; font-size: 1rem; font-weight: 800; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">Pre-Vetted Local Experts & Professional Resources</p>
+                </div>
+                <div style="text-align: right;">
+                    <h3 style="margin:0; font-size: 1.3rem; font-weight: 900; color: #3D3935;">JOE SHELDON</h3>
+                    <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: #555;">myseattlesearch.com</p>
+                </div>
+            </div>
+        </div>
+
         <div class="disclaimer-banner">
-            ⚠️ <strong>Consumer Notice:</strong> While I have had positive experiences working with the professionals listed below, it is strictly your responsibility to verify that they hold the proper, active credentials, licenses, and insurance policies required for your specific job prior to hiring. 
+            ⚠️ <strong>Consumer Notice:</strong> While I have had positive experiences working with the professionals listed below, it is your responsibility to verify that they hold the proper, active credentials, licenses, and insurance policies required for your specific job before hiring.
         </div>
 
         <div class="filter-nav-container">
@@ -106,10 +237,8 @@
                     const filterNav = document.getElementById('filterNav');
                     const proGrid = document.getElementById('proGrid');
 
-                    // Filter out rows missing core info to protect sorting execution
                     data = data.filter(row => row['Category'] && row['Category'].trim() && row['Business/Vendor Name'] && row['Business/Vendor Name'].trim());
 
-                    // Two-Tier Alpha Sorting Engine: Primary = Category, Secondary = Vendor Name
                     data.sort((a, b) => {
                         const compareCategory = a['Category'].trim().localeCompare(b['Category'].trim());
                         if (compareCategory !== 0) return compareCategory;
@@ -181,7 +310,7 @@
                                         <span style="line-height: 1.4;"><strong>Credentials:</strong> ${legalReq}</span>`;
                             
                             if (legalLink) {
-                                card += `<a href="${legalLink}" target="_blank" class="legal-link">Verify active credentials &rarr;</a>`;
+                                card += `<a href="${legalLink}" target="_blank" class="legal-link">🛡️ Verify active credentials &rarr;</a>`;
                             }
                             card += `</div>`;
                         }
@@ -190,7 +319,6 @@
                         cardsHTML += card;
                     });
 
-                    // Build navigation using categories pre-sorted via alphabetical index arrays
                     const sortedCategories = Array.from(categories).sort();
                     let filtersHTML = '<button class="filter-btn active" data-filter="all">All</button>';
                     sortedCategories.forEach(cat => {
