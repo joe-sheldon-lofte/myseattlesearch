@@ -87,7 +87,6 @@
         
         .span-2 { grid-column: span 2; }
         
-        /* Currency Input Prefix Formatting Rules */
         .currency-prefix-container {
             position: relative;
             display: flex;
@@ -205,42 +204,6 @@
         }
         .btn-calculate:hover { background: #9c2424; }
 
-        /* Responsive Mobile Layout Stacking Logic */
-        @media (max-width: 600px) {
-            .control-card {
-                padding: 1.25rem;
-            }
-            .span-2 {
-                grid-column: span 1 !important;
-            }
-            .custom-add-row {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-            .custom-add-row .currency-prefix-container,
-            .custom-add-row .amt-input-wide {
-                width: 100% !important;
-            }
-            .settlement-option-row {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.5rem;
-                background: #ffffff;
-                padding: 0.75rem;
-                border: 1px solid #ccc;
-                border-radius: 6px;
-                width: 100%;
-                box-sizing: border-box;
-            }
-            .settlement-option-row .currency-prefix-container,
-            .settlement-option-row .amt-input-medium {
-                width: 100% !important;
-            }
-            .btn-calculate {
-                padding: 1.1rem 1rem;
-            }
-        }
-
         .results-wrapper {
             display: none;
             animation: paneFadeIn 0.4s ease-in-out;
@@ -250,17 +213,17 @@
         .net-summary-box {
             background-color: #ffffff;
             border-left: 4px solid #C13030;
-            padding: 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            margin-bottom: 2rem;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            margin-bottom: 1.5rem;
             text-align: center;
         }
         .net-total-number {
-            font-size: 3rem;
+            font-size: 2.2rem;
             font-weight: 900;
             color: #C13030;
-            margin: 0.25rem 0;
+            margin: 0.15rem 0;
             line-height: 1;
         }
 
@@ -283,6 +246,7 @@
         .ledger-table th { background: #f4f6f8; font-size: 0.75rem; font-weight: 900; text-transform: uppercase; color: #555; padding: 0.85rem; border-bottom: 2px solid #000; }
         .ledger-table td { padding: 0.85rem; font-size: 0.9rem; font-weight: 700; color: #333; border-bottom: 1px solid #eef0f2; }
         .ledger-table tr.section-row td { background: #fdfdfd; font-size: 0.95rem; font-weight: 800; color: #C13030; border-bottom: 1px solid #eaeaea; padding: 0.6rem 1rem; }
+        .ledger-table tr.total-summary-row td { background: #f4f6f8; font-size: 1.05rem; font-weight: 900; border-top: 2px solid #000000; border-bottom: 2px double #000000; padding: 1rem 0.85rem; }
         .ledger-table tr:hover td { background: #fafafa; }
         
         .label-sub { display: block; font-size: 0.75rem; color: #666; font-weight: 500; margin-top: 0.1rem; }
@@ -321,44 +285,33 @@
         .partner-info h4 { margin: 0 0 0.25rem 0; font-size: 1.15rem; font-weight: 900; color: #3D3935; }
         .partner-info p { margin: 0; font-size: 0.88rem; color: #555; line-height: 1.4; }
 
-        .print-trigger-btn {
-            background-color: transparent;
-            border: 1px solid #b3b3b3;
-            color: #666666;
-            padding: 0.5rem 1.25rem;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            cursor: pointer;
-            transition: all 0.15s ease-in-out;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            margin-top: 0.5rem;
-        }
-        .print-trigger-btn:hover {
-            border-color: var(--premier-charcoal);
-            color: var(--premier-charcoal);
-            background-color: #fafafa;
-        }
-
+        /* Screen Protection Layer for Print Assets */
         .print-only-layout { display: none; }
 
+        @media (max-width: 600px) {
+            .control-card { padding: 1.25rem; }
+            .span-2 { grid-column: span 1 !important; }
+            .custom-add-row { flex-direction: column; gap: 0.5rem; }
+            .custom-add-row .currency-prefix-container, .custom-add-row .amt-input-wide { width: 100% !important; }
+            .settlement-option-row { flex-direction: column; align-items: flex-start; gap: 0.5rem; background: #ffffff; padding: 0.75rem; border: 1px solid #ccc; border-radius: 6px; width: 100%; box-sizing: border-box; }
+            .settlement-option-row .currency-prefix-container, .settlement-option-row .amt-input-medium { width: 100% !important; }
+            .btn-calculate { padding: 1.1rem 1rem; }
+        }
+
         /* ==========================================
-           HIGH-IMPACT MARKETING PRINT STYLESHEET
+           HIGH-IMPACT ANALYSIS PRINT STYLESHEET
            ========================================== */
         @media print {
             @page {
                 size: letter;
-                margin: 0.45in;
+                margin: 0.3in;
             }
             body {
                 background: #ffffff !important;
                 color: #000000 !important;
-                font-size: 9.5pt !important;
-                line-height: 1.25 !important;
+                font-size: 9pt !important;
+                line-height: 1.2 !important;
+                padding-top: 0 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
@@ -367,7 +320,7 @@
                 display: none !important;
             }
             .print-only-layout {
-                display: block !important;
+                display: flex !important;
             }
             .print-only-header {
                 display: block !important;
@@ -377,61 +330,73 @@
                 display: block !important;
             }
             .net-summary-box {
-                padding: 1rem !important;
-                border-radius: 8px !important;
-                border: 2px solid #000000 !important;
-                border-left: 6px solid #C13030 !important;
+                padding: 0.75rem !important;
+                border-radius: 6px !important;
+                border: 1.5px solid #000000 !important;
+                border-left: 5px solid #C13030 !important;
                 box-shadow: none !important;
                 background: #ffffff !important;
-                margin-bottom: 1rem !important;
+                margin-bottom: 0.75rem !important;
             }
             .net-total-number {
-                font-size: 24pt !important;
+                font-size: 20pt !important;
             }
             .table-scroll-container {
                 box-shadow: none !important;
                 border: none !important;
-                margin-top: 0.75rem !important;
+                margin-top: 0.5rem !important;
                 overflow: visible !important;
             }
             .ledger-table th {
                 background: #f4f6f8 !important;
                 color: #000000 !important;
-                border-bottom: 3px solid #000000 !important;
+                border-bottom: 2px solid #000000 !important;
                 font-weight: 900 !important;
-                font-size: 8.5pt !important;
+                font-size: 8pt !important;
+                padding: 0.5rem !important;
             }
             .ledger-table td {
-                border-bottom: 1px solid #000000 !important;
-                padding: 0.5rem 6px !important;
-                font-size: 9pt !important;
+                border-bottom: 1px solid #e0e0e0 !important;
+                padding: 0.4rem 6px !important;
+                font-size: 8.5pt !important;
             }
             .ledger-table tr.section-row td {
                 background: #eaeaea !important;
                 color: #000000 !important;
                 font-weight: 900 !important;
-                border-bottom: 2px solid #000000 !important;
-                font-size: 9.5pt !important;
+                border-bottom: 1.5px solid #000000 !important;
+                font-size: 9pt !important;
+                padding: 0.4rem 6px !important;
+            }
+            .ledger-table tr.total-summary-row td {
+                padding: 0.6rem 6px !important;
+                font-size: 10pt !important;
+                border-top: 2px solid #000000 !important;
+                border-bottom: 2px double #000000 !important;
             }
             .partner-block {
-                display: flex !important;
-                margin-top: 1.5rem !important;
-                border: 2px solid #000000 !important;
-                border-radius: 8px !important;
-                padding: 0.85rem !important;
+                display: grid !important;
+                grid-template-columns: 100px 1fr !important;
+                margin-top: 1rem !important;
+                border: 1.5px solid #000000 !important;
+                border-radius: 6px !important;
+                padding: 0.6rem !important;
+                gap: 1rem !important;
                 page-break-inside: avoid !important;
             }
             .partner-logo-box {
+                width: 100px !important;
+                padding: 0.25rem !important;
                 border: 1px solid #000000 !important;
             }
             .print-qr-container {
                 display: flex !important;
                 align-items: center;
-                gap: 1.5rem;
-                margin-top: 1.5rem;
-                border: 2px dashed #000000;
-                padding: 1rem;
-                border-radius: 8px;
+                gap: 1.25rem;
+                margin-top: 1rem;
+                border: 1.5px dashed #000000;
+                padding: 0.75rem;
+                border-radius: 6px;
                 page-break-inside: avoid !important;
             }
         }
@@ -606,9 +571,9 @@
             </div>
 
             <div class="net-summary-box">
-                <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0; color: var(--premier-charcoal);">Estimated Net Cash to Seller</h2>
+                <h2 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: var(--premier-charcoal);">Estimated Net Cash to Seller</h2>
                 <div class="net-total-number" id="txtNetProceeds">$0</div>
-                <p style="max-width: 800px; margin: 0.25rem auto 0 auto; font-size: 0.92rem; color: #555;">Estimated net funding balance at closing after liquidating outstanding debt and transaction outlays.</p>
+                <p style="max-width: 800px; margin: 0.15rem auto 0 auto; font-size: 0.88rem; color: #555;">Estimated cash remaining after paying off loans and closing costs.</p>
             </div>
 
             <div class="table-scroll-container">
@@ -630,11 +595,11 @@
                 </div>
                 <div class="partner-info">
                     <h4>Rocket Close</h4>
-                    <p>Preferred escrow closing partner. Escrow settlement files and title verification services are coordinated through Rocket Close for transparent timeline management.</p>
+                    <p>Preferred settlement partner. Title and escrow closing services are processed smoothly through Rocket Close.</p>
                 </div>
             </div>
 
-            <div class="print-qr-container print-only-layout" style="display: flex; align-items: center; gap: 1.5rem; margin-top: 1.5rem; border: 2px dashed #000000; padding: 1rem; border-radius: 8px;">
+            <div class="print-qr-container print-only-layout" style="align-items: center; border: 2px dashed #000000; padding: 1rem; border-radius: 8px;">
                 <div style="width: 120px; height: 120px; flex-shrink: 0; background: #fff; border: 1px solid #000;">
                     <img id="printQrCodeImg" src="" alt="Dynamic Scenario QR Code" style="width: 100%; height: 100%; display: block;">
                 </div>
@@ -972,6 +937,15 @@
                     ledgerBuffer += `<tr><td>Additional Expense: ${otherLabel2}</td><td>$0</td><td class="val-cost">${formatCurrency(otherAmt2)}</td></tr>`;
                 }
             }
+
+            // Append final total calculation summary row at the bottom of the table ledger
+            ledgerBuffer += `
+                <tr class="total-summary-row">
+                    <td>Estimated Net Proceeds Total</td>
+                    <td class="val-credit">${formatCurrency(estimatedNetProceedsCheck)}</td>
+                    <td>$0</td>
+                </tr>
+            `;
 
             tbody.innerHTML = ledgerBuffer;
             document.getElementById('resultsWrapper').style.display = 'block';
