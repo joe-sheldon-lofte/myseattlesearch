@@ -21,6 +21,13 @@
             text-align: center;
             margin-bottom: 2rem;
         }
+        .action-buttons-wrapper {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
         .control-card {
             background: #f4f6f8;
             border-top: 6px solid var(--premier-charcoal);
@@ -298,19 +305,19 @@
         .print-only-layout { display: none; }
 
         /* ==========================================
-           HIGH-IMPACT ANALYSIS PRINT STYLESHEET
+           HIGH-IMPACT COMPACT PRINT STYLESHEET
            ========================================== */
         @media print {
             @page {
                 size: letter;
-                margin: 0.3in;
+                margin: 0.2in;
             }
             body {
                 background: #ffffff !important;
                 color: #000000 !important;
-                font-size: 9pt !important;
-                line-height: 1.2 !important;
-                padding-top: 0 !important;
+                font-size: 8pt !important;
+                line-height: 1.15 !important;
+                padding: 0 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
@@ -324,26 +331,30 @@
             .print-only-header {
                 display: block !important;
                 width: 100% !important;
+                margin-bottom: 10px !important;
+            }
+            .print-only-header h1 {
+                font-size: 18pt !important;
             }
             .results-wrapper {
                 display: block !important;
             }
             .net-summary-box {
-                padding: 0.75rem !important;
-                border-radius: 6px !important;
+                padding: 0.4rem !important;
+                border-radius: 4px !important;
                 border: 1.5px solid #000000 !important;
                 border-left: 5px solid #C13030 !important;
                 box-shadow: none !important;
                 background: #ffffff !important;
-                margin-bottom: 0.75rem !important;
+                margin-bottom: 0.4rem !important;
             }
             .net-total-number {
-                font-size: 20pt !important;
+                font-size: 16pt !important;
             }
             .table-scroll-container {
                 box-shadow: none !important;
                 border: none !important;
-                margin-top: 0.5rem !important;
+                margin-top: 0.25rem !important;
                 overflow: visible !important;
             }
             .ledger-table th {
@@ -352,51 +363,68 @@
                 border-bottom: 2px solid #000000 !important;
                 font-weight: 900 !important;
                 font-size: 8pt !important;
-                padding: 0.5rem !important;
+                padding: 0.4rem !important;
             }
             .ledger-table td {
                 border-bottom: 1px solid #e0e0e0 !important;
-                padding: 0.4rem 6px !important;
-                font-size: 8.5pt !important;
+                padding: 0.3rem 4px !important;
+                font-size: 8pt !important;
             }
             .ledger-table tr.section-row td {
                 background: #eaeaea !important;
                 color: #000000 !important;
                 font-weight: 900 !important;
                 border-bottom: 1.5px solid #000000 !important;
-                font-size: 9pt !important;
-                padding: 0.4rem 6px !important;
+                font-size: 8.5pt !important;
+                padding: 0.3rem 4px !important;
             }
             .ledger-table tr.total-summary-row td {
-                padding: 0.6rem 6px !important;
-                font-size: 10pt !important;
+                padding: 0.4rem 4px !important;
+                font-size: 9.5pt !important;
                 border-top: 2px solid #000000 !important;
                 border-bottom: 2px double #000000 !important;
             }
             .partner-block {
                 display: grid !important;
-                grid-template-columns: 100px 1fr !important;
-                margin-top: 1rem !important;
+                grid-template-columns: 80px 1fr !important;
+                margin-top: 0.5rem !important;
                 border: 1.5px solid #000000 !important;
                 border-radius: 6px !important;
-                padding: 0.6rem !important;
-                gap: 1rem !important;
+                padding: 0.4rem !important;
+                gap: 0.75rem !important;
                 page-break-inside: avoid !important;
             }
             .partner-logo-box {
-                width: 100px !important;
-                padding: 0.25rem !important;
+                width: 80px !important;
+                padding: 0.15rem !important;
                 border: 1px solid #000000 !important;
+            }
+            .partner-info h4 {
+                font-size: 10pt !important;
+            }
+            .partner-info p {
+                font-size: 8pt !important;
             }
             .print-qr-container {
                 display: flex !important;
                 align-items: center;
-                gap: 1.25rem;
-                margin-top: 1rem;
+                gap: 1rem;
+                margin-top: 0.5rem;
                 border: 1.5px dashed #000000;
-                padding: 0.75rem;
+                padding: 0.5rem;
                 border-radius: 6px;
                 page-break-inside: avoid !important;
+            }
+            .print-qr-container img {
+                width: 90px !important;
+                height: 90px !important;
+            }
+            .print-qr-container span {
+                font-size: 8pt !important;
+            }
+            .compliance-disclaimer-text {
+                font-size: 7pt !important;
+                margin-top: 0.5rem !important;
             }
         }
     </style>
@@ -410,9 +438,14 @@
         <div class="compare-header-box">
             <h1 style="font-size: 2.6rem; font-weight: 900; color: #C13030; margin-bottom: 0.5rem;">Sellers Estimated Net Proceeds</h1>
             <p class="intro" style="margin-bottom: 0.75rem;">See exactly what you will walk away with after paying off existing loans and standard transaction costs.</p>
-            <button onclick="triggerSecurePrintWorkflow()" class="print-trigger-btn" title="Print Statement">
-                🖨️ Print Net Worksheet
-            </button>
+            <div class="no-print-section" style="display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
+                <button onclick="triggerSecurePrintWorkflow()" class="print-trigger-btn" title="Print Statement">
+                    🖨️ Print Net Worksheet
+                </button>
+                <button id="btnCopyWorksheetLink" onclick="copyWorksheetDeepLinkToClipboard()" class="print-trigger-btn" style="border-color: #ccc;">
+                    🔗 Copy Worksheet Link
+                </button>
+            </div>
         </div>
 
         <section class="control-card">
@@ -563,7 +596,7 @@
                         <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: #555;">myseattlesearch.com</p>
                     </div>
                 </div>
-                <div style="margin-bottom: 20px; font-size: 10pt; line-height: 1.4; color: #000; text-align: left;">
+                <div style="margin-bottom: 15px; font-size: 10pt; line-height: 1.4; color: #000; text-align: left;">
                     <strong>Prepared For:</strong> <span id="printSellerName">Not Specified</span><br>
                     <strong>Property Address:</strong> <span id="printSellerAddress">Not Specified</span>
                 </div>
@@ -598,13 +631,13 @@
                 </div>
             </div>
 
-            <div class="print-qr-container print-only-layout" style="align-items: center; border: 2px dashed #000000; padding: 1rem; border-radius: 8px;">
-                <div style="width: 120px; height: 120px; flex-shrink: 0; background: #fff; border: 1px solid #000;">
+            <div class="print-qr-container print-only-layout" style="align-items: center; border: 2px dashed #000000; padding: 0.75rem; border-radius: 6px;">
+                <div style="width: 100px; height: 100px; flex-shrink: 0; background: #fff; border: 1px solid #000;">
                     <img id="printQrCodeImg" src="" alt="Dynamic Scenario QR Code" style="width: 100%; height: 100%; display: block;">
                 </div>
                 <div style="text-align: left;">
-                    <strong style="font-size: 10pt; color: #000; display: block; margin-bottom: 0.25rem;">Scan to Explore Scenarios</strong>
-                    <span style="font-size: 9pt; color: #333; line-height: 1.3; display: block;">Scan this code with your smartphone camera to return to this live worksheet. You can adjust the contract purchase price, modify payoff thresholds, or recalculate alternative custom listing options instantly.</span>
+                    <strong style="font-size: 9pt; color: #000; display: block; margin-bottom: 0.15rem;">Scan to Explore Scenarios</strong>
+                    <span style="font-size: 8pt; color: #333; line-height: 1.2; display: block;">Scan this code with your smartphone camera to return to this live worksheet. You can adjust the purchase price, modify payoff thresholds, or recalculate alternative options instantly.</span>
                 </div>
             </div>
 
@@ -650,39 +683,38 @@
                 }
             });
 
+            // Router unpacking compressed query string tokens
             const params = new URLSearchParams(window.location.search);
-            if (params.has('price') || params.has('name') || params.has('address')) {
-                if (params.get('name')) document.getElementById('inSellerName').value = params.get('name');
-                if (params.get('address')) document.getElementById('inSellerAddress').value = params.get('address');
-                if (params.get('price')) {
-                    const priceVal = parseInt(params.get('price'), 10);
-                    if (!isNaN(priceVal)) {
-                        document.getElementById('inPrice').value = priceVal.toLocaleString('en-US');
-                    }
+            if (params.has('p') || params.has('n') || params.has('ad')) {
+                if (params.get('n')) document.getElementById('inSellerName').value = params.get('n');
+                if (params.get('ad')) document.getElementById('inSellerAddress').value = params.get('ad');
+                if (params.get('p')) {
+                    const priceVal = parseInt(params.get('p'), 10);
+                    if (!isNaN(priceVal)) document.getElementById('inPrice').value = priceVal.toLocaleString('en-US');
                 }
-                if (params.get('bal1')) {
-                    const val = parseInt(params.get('bal1'), 10);
+                if (params.get('b1')) {
+                    const val = parseInt(params.get('b1'), 10);
                     if (!isNaN(val)) document.getElementById('inBalance').value = val.toLocaleString('en-US');
                 }
-                if (params.get('bal2')) {
-                    const val = parseInt(params.get('bal2'), 10);
+                if (params.get('b2')) {
+                    const val = parseInt(params.get('b2'), 10);
                     if (!isNaN(val)) document.getElementById('inBalance2').value = val.toLocaleString('en-US');
                 }
-                if (params.get('tax')) {
-                    const val = parseInt(params.get('tax'), 10);
+                if (params.get('t')) {
+                    const val = parseInt(params.get('t'), 10);
                     if (!isNaN(val)) document.getElementById('inTaxAmount').value = val.toLocaleString('en-US');
                     isTaxManual = true;
                 }
-                if (params.get('package')) document.getElementById('inListingPackage').value = params.get('package');
-                if (params.get('buyer')) document.getElementById('inBuyerComp').value = params.get('buyer');
-                if (params.get('othl1')) document.getElementById('inOtherLabel1').value = params.get('othl1');
-                if (params.get('otha1')) {
-                    const val = parseInt(params.get('otha1'), 10);
+                if (params.get('lp')) document.getElementById('inListingPackage').value = params.get('lp');
+                if (params.get('bc')) document.getElementById('inBuyerComp').value = params.get('bc');
+                if (params.get('l1')) document.getElementById('inOtherLabel1').value = params.get('l1');
+                if (params.get('v1')) {
+                    const val = parseInt(params.get('v1'), 10);
                     if (!isNaN(val)) document.getElementById('inOtherAmt1').value = val.toLocaleString('en-US');
                 }
-                if (params.get('othl2')) document.getElementById('inOtherLabel2').value = params.get('othl2');
-                if (params.get('otha2')) {
-                    const val = parseInt(params.get('otha2'), 10);
+                if (params.get('l2')) document.getElementById('inOtherLabel2').value = params.get('l2');
+                if (params.get('v2')) {
+                    const val = parseInt(params.get('v2'), 10);
                     if (!isNaN(val)) document.getElementById('inOtherAmt2').value = val.toLocaleString('en-US');
                 }
                 
@@ -691,9 +723,9 @@
                     const val = parseInt(params.get('piv'), 10);
                     if (!isNaN(val)) document.getElementById('inPreInspectCost').value = val.toLocaleString('en-US');
                 }
-                if (params.get('hoa') === '1') document.getElementById('chkHoaCert').checked = true;
-                if (params.get('hoav')) {
-                    const val = parseInt(params.get('hoav'), 10);
+                if (params.get('h') === '1') document.getElementById('chkHoaCert').checked = true;
+                if (params.get('hv')) {
+                    const val = parseInt(params.get('hv'), 10);
                     if (!isNaN(val)) document.getElementById('inHoaCertCost').value = val.toLocaleString('en-US');
                 }
 
@@ -804,24 +836,38 @@
             return reetStateTotal + reetLocalTotal;
         }
 
+        // Compressed deep linked parameter payload structure to maintain a shortened text link footprint natively
         function buildDeepLinkedScenarioUrl() {
             return window.location.origin + window.location.pathname +
-                `?name=${encodeURIComponent(document.getElementById('inSellerName').value)}` +
-                `&address=${encodeURIComponent(document.getElementById('inSellerAddress').value)}` +
-                `&price=${(document.getElementById('inPrice').value || '0').replace(/[^0-9]/g, "")}` +
-                `&bal1=${(document.getElementById('inBalance').value || '0').replace(/[^0-9]/g, "")}` +
-                `&bal2=${(document.getElementById('inBalance2').value || '0').replace(/[^0-9]/g, "")}` +
-                `&tax=${(document.getElementById('inTaxAmount').value || '0').replace(/[^0-9]/g, "")}` +
-                `&package=${document.getElementById('inListingPackage').value}` +
-                `&buyer=${document.getElementById('inBuyerComp').value}` +
-                `&othl1=${encodeURIComponent(document.getElementById('inOtherLabel1').value)}` +
-                `&otha1=${(document.getElementById('inOtherAmt1').value || '0').replace(/[^0-9]/g, "")}` +
-                `&othl2=${encodeURIComponent(document.getElementById('inOtherLabel2').value)}` +
-                `&otha2=${(document.getElementById('inOtherAmt2').value || '0').replace(/[^0-9]/g, "")}` +
+                `?n=${encodeURIComponent(document.getElementById('inSellerName').value)}` +
+                `&ad=${encodeURIComponent(document.getElementById('inSellerAddress').value)}` +
+                `&p=${(document.getElementById('inPrice').value || '0').replace(/[^0-9]/g, "")}` +
+                `&b1=${(document.getElementById('inBalance').value || '0').replace(/[^0-9]/g, "")}` +
+                `&b2=${(document.getElementById('inBalance2').value || '0').replace(/[^0-9]/g, "")}` +
+                `&t=${(document.getElementById('inTaxAmount').value || '0').replace(/[^0-9]/g, "")}` +
+                `&lp=${document.getElementById('inListingPackage').value}` +
+                `&bc=${document.getElementById('inBuyerComp').value}` +
+                `&l1=${encodeURIComponent(document.getElementById('inOtherLabel1').value)}` +
+                `&v1=${(document.getElementById('inOtherAmt1').value || '0').replace(/[^0-9]/g, "")}` +
+                `&l2=${encodeURIComponent(document.getElementById('inOtherLabel2').value)}` +
+                `&v2=${(document.getElementById('inOtherAmt2').value || '0').replace(/[^0-9]/g, "")}` +
                 `&pi=${document.getElementById('chkPreInspection').checked ? '1' : '0'}` +
                 `&piv=${(document.getElementById('inPreInspectCost').value || '0').replace(/[^0-9]/g, "")}` +
-                `&hoa=${document.getElementById('chkHoaCert').checked ? '1' : '0'}` +
-                `&hoav=${(document.getElementById('inHoaCertCost').value || '0').replace(/[^0-9]/g, "")}`;
+                `&h=${document.getElementById('chkHoaCert').checked ? '1' : '0'}` +
+                `&hv=${(document.getElementById('inHoaCertCost').value || '0').replace(/[^0-9]/g, "")}`;
+        }
+
+        function copyWorksheetDeepLinkToClipboard() {
+            const compiledLink = buildDeepLinkedScenarioUrl();
+            navigator.clipboard.writeText(compiledLink).then(() => {
+                const btn = document.getElementById('btnCopyWorksheetLink');
+                btn.textContent = "✓ Link Copied!";
+                setTimeout(() => {
+                    btn.textContent = "🔗 Copy Worksheet Link";
+                }, 2000);
+            }).catch(err => {
+                console.error("Clipboard capture exception flag:", err);
+            });
         }
 
         function triggerSecurePrintWorkflow() {
@@ -974,10 +1020,6 @@
             tbody.innerHTML = ledgerBuffer;
             document.getElementById('resultsWrapper').style.display = 'block';
             document.getElementById('resultsWrapper').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function formatCurrency(num) {
-            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
         }
     </script>
 </body>
