@@ -29,6 +29,7 @@
             box-shadow: 0 6px 20px rgba(0,0,0,0.05);
             margin-bottom: 2.5rem;
             box-sizing: border-box;
+            width: 100%;
         }
         .control-card h3 {
             margin: 0 0 1.5rem 0;
@@ -43,6 +44,7 @@
             display: grid;
             grid-template-columns: 1fr;
             gap: 1.25rem;
+            width: 100%;
         }
         @media (min-width: 600px) {
             .form-grid { grid-template-columns: repeat(2, 1fr); }
@@ -56,6 +58,9 @@
             gap: 0.35rem;
             text-align: left;
             position: relative;
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
         }
         .input-element-box label {
             font-size: 0.8rem;
@@ -70,17 +75,19 @@
             color: #222;
             background: #ffffff;
             width: 100%;
+            max-width: 100%;
+            min-width: 0;
             box-sizing: border-box;
+            display: block;
         }
         .input-element-box input:focus, .input-element-box select:focus {
             border-color: #C13030;
             outline: none;
         }
         
-        /* Desktop column spanning utility classes */
         .span-2 { grid-column: span 2; }
         
-        /* Clean Visual Dollar Prefix Containers */
+        /* Currency Input Prefix Formatting Rules */
         .currency-prefix-container {
             position: relative;
             display: flex;
@@ -101,11 +108,9 @@
             padding-left: 1.5rem !important;
         }
         
-        /* Desktop Width Utility Classes */
         .amt-input-wide { width: 130px; flex-shrink: 0; }
         .amt-input-medium { width: 100px; flex-shrink: 0; }
         
-        /* Layout Row Blocks */
         .custom-add-row {
             display: flex;
             gap: 0.5rem;
@@ -200,7 +205,7 @@
         }
         .btn-calculate:hover { background: #9c2424; }
 
-        /* Mobile Layout Stacking and Override Engine */
+        /* Responsive Mobile Layout Stacking Logic */
         @media (max-width: 600px) {
             .control-card {
                 padding: 1.25rem;
@@ -212,7 +217,8 @@
                 flex-direction: column;
                 gap: 0.5rem;
             }
-            .custom-add-row .currency-prefix-container {
+            .custom-add-row .currency-prefix-container,
+            .custom-add-row .amt-input-wide {
                 width: 100% !important;
             }
             .settlement-option-row {
@@ -226,7 +232,8 @@
                 width: 100%;
                 box-sizing: border-box;
             }
-            .settlement-option-row .currency-prefix-container {
+            .settlement-option-row .currency-prefix-container,
+            .settlement-option-row .amt-input-medium {
                 width: 100% !important;
             }
             .btn-calculate {
@@ -304,7 +311,7 @@
             align-items: center;
             justify-content: center;
             background: #ffffff;
-            border: 3px solid var(--premier-beige);
+            border: 2px solid var(--premier-beige);
             border-radius: 8px;
             padding: 0.4rem;
             box-sizing: border-box;
@@ -497,7 +504,7 @@
                 </div>
 
                 <div class="input-element-box">
-                    <label for="inListingPackage">Listing Offer</label>
+                    <label for="inListingPackage">Listing Package</label>
                     <select id="inListingPackage">
                         <option value="2.0">Base Listing Package (2.0%)</option>
                         <option value="3.0">Full Premium Concierge (3.0%)</option>
@@ -505,7 +512,7 @@
                 </div>
 
                 <div class="input-element-box">
-                    <label for="inBuyerComp">Buyer Agent Commission (%)</label>
+                    <label for="inBuyerComp">Buyer Agent Compensation (%)</label>
                     <input type="number" id="inBuyerComp" value="2.5" step="0.1">
                 </div>
 
@@ -518,52 +525,6 @@
                 </div>
 
                 <div class="input-element-box span-2">
-                    <label>Custom Addition 1</label>
-                    <div class="custom-add-row">
-                        <input type="text" id="inOtherLabel1" placeholder="Label (e.g. Septic Pumping)" style="flex: 1;">
-                        <div class="currency-prefix-container amt-prefix-box">
-                            <span class="prefix-symbol">$</span>
-                            <input type="number" id="inOtherAmt1" placeholder="Amount" class="amt-input-wide">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="input-element-box span-2">
-                    <label>Custom Addition 2</label>
-                    <div class="custom-add-row">
-                        <input type="text" id="inOtherLabel2" placeholder="Label (e.g. Work Orders)" style="flex: 1;">
-                        <div class="currency-prefix-container amt-prefix-box">
-                            <span class="prefix-symbol">$</span>
-                            <input type="number" id="inOtherAmt2" placeholder="Amount" class="amt-input-wide">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="input-element-box span-2">
-                    <label>Pre-filled Settlement Options</label>
-                    <div class="settlement-options-flex">
-                        <div class="settlement-option-row">
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="chkPreInspection"> Pre-inspection
-                            </label>
-                            <div class="currency-prefix-container amt-prefix-box">
-                                <span class="prefix-symbol">$</span>
-                                <input type="number" id="inPreInspectCost" value="550" class="amt-input-medium">
-                            </div>
-                        </div>
-                        <div class="settlement-option-row">
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="chkHoaCert"> HOA Resale Cert
-                            </label>
-                            <div class="currency-prefix-container amt-prefix-box">
-                                <span class="prefix-symbol">$</span>
-                                <input type="number" id="inHoaCertCost" value="300" class="amt-input-medium">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="input-element-box span-2">
                     <label>Current Tax Payments</label>
                     <div class="checkbox-group-wrapper" style="padding-top: 0.6rem;">
                         <label class="checkbox-item">
@@ -572,6 +533,52 @@
                         <label class="checkbox-item">
                             <input type="checkbox" id="chkSecondHalf"> Second Half Paid
                         </label>
+                    </div>
+                </div>
+
+                <div class="input-element-box span-2">
+                    <label>Additional Expenses 1</label>
+                    <div class="custom-add-row">
+                        <input type="text" id="inOtherLabel1" placeholder="Label (e.g. Septic Pumping)" style="flex: 1;">
+                        <div class="currency-prefix-container amt-prefix-box amt-input-wide">
+                            <span class="prefix-symbol">$</span>
+                            <input type="number" id="inOtherAmt1" placeholder="Amount">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-element-box span-2">
+                    <label>Additional Expenses 2</label>
+                    <div class="custom-add-row">
+                        <input type="text" id="inOtherLabel2" placeholder="Label (e.g. Work Orders)" style="flex: 1;">
+                        <div class="currency-prefix-container amt-prefix-box amt-input-wide">
+                            <span class="prefix-symbol">$</span>
+                            <input type="number" id="inOtherAmt2" placeholder="Amount">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-element-box span-2">
+                    <label>Additional Expenses Options</label>
+                    <div class="settlement-options-flex">
+                        <div class="settlement-option-row">
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="chkPreInspection"> Pre-inspection
+                            </label>
+                            <div class="currency-prefix-container amt-prefix-box amt-input-medium">
+                                <span class="prefix-symbol">$</span>
+                                <input type="number" id="inPreInspectCost" value="550">
+                            </div>
+                        </div>
+                        <div class="settlement-option-row">
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="chkHoaCert"> HOA Resale Certificate
+                            </label>
+                            <div class="currency-prefix-container amt-prefix-box amt-input-medium">
+                                <span class="prefix-symbol">$</span>
+                                <input type="number" id="inHoaCertCost" value="300">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -889,11 +896,11 @@
                 totalSellerCosts += taxProrationResult;
             }
 
-            const otherLabel1 = document.getElementById('inOtherLabel1').value || 'Custom Addition 1';
+            const otherLabel1 = document.getElementById('inOtherLabel1').value || 'Additional Expense 1';
             const otherAmt1 = parseFloat(document.getElementById('inOtherAmt1').value) || 0;
             if (otherAmt1 > 0) totalSellerCosts += otherAmt1;
 
-            const otherLabel2 = document.getElementById('inOtherLabel2').value || 'Custom Addition 2';
+            const otherLabel2 = document.getElementById('inOtherLabel2').value || 'Additional Expense 2';
             const otherAmt2 = parseFloat(document.getElementById('inOtherAmt2').value) || 0;
             if (otherAmt2 > 0) totalSellerCosts += otherAmt2;
 
@@ -927,8 +934,8 @@
 
             ledgerBuffer += `
                 <tr class="section-row"><td colspan="3">Real Estate Commission Fees</td></tr>
-                <tr><td>Listing Management Brokerage Fee (${listingPct.toFixed(1)}%)</td><td>$0</td><td class="val-cost">${formatCurrency(listingBrokerFee)}</td></tr>
-                <tr><td>Buyer Brokerage Commission Fee (${buyerAgentPct.toFixed(1)}%)</td><td>$0</td><td class="val-cost">${formatCurrency(buyerBrokerFee)}</td></tr>
+                <tr><td>Listing Package Fee (${listingPct.toFixed(1)}%)</td><td>$0</td><td class="val-cost">${formatCurrency(listingBrokerFee)}</td></tr>
+                <tr><td>Buyer Agent Compensation Fee (${buyerAgentPct.toFixed(1)}%)</td><td>$0</td><td class="val-cost">${formatCurrency(buyerBrokerFee)}</td></tr>
                 
                 <tr class="section-row"><td colspan="3">Government Taxes</td></tr>
                 <tr><td>Washington State Graduated REET Tax</td><td>$0</td><td class="val-cost">${formatCurrency(realEstateExciseTax)}</td></tr>
@@ -953,16 +960,16 @@
             if (preInspectChecked && preInspectCost > 0 || hoaCertChecked && hoaCertCost > 0 || otherAmt1 > 0 || otherAmt2 > 0) {
                 ledgerBuffer += `<tr class="section-row"><td colspan="3">Additional Settlement Details</td></tr>`;
                 if (preInspectChecked && preInspectCost > 0) {
-                    ledgerBuffer += `<tr><td>Pre-inspection Settlement Allocation</td><td>$0</td><td class="val-cost">${formatCurrency(preInspectCost)}</td></tr>`;
+                    ledgerBuffer += `<tr><td>Pre-inspection Expense</td><td>$0</td><td class="val-cost">${formatCurrency(preInspectCost)}</td></tr>`;
                 }
                 if (hoaCertChecked && hoaCertCost > 0) {
-                    ledgerBuffer += `<tr><td>HOA Resale Certificate Fee</td><td>$0</td><td class="val-cost">${formatCurrency(hoaCertCost)}</td></tr>`;
+                    ledgerBuffer += `<tr><td>HOA Resale Certificate Expense</td><td>$0</td><td class="val-cost">${formatCurrency(hoaCertCost)}</td></tr>`;
                 }
                 if (otherAmt1 > 0) {
-                    ledgerBuffer += `<tr><td>Other Cost: ${otherLabel1}</td><td>$0</td><td class="val-cost">${formatCurrency(otherAmt1)}</td></tr>`;
+                    ledgerBuffer += `<tr><td>Additional Expense: ${otherLabel1}</td><td>$0</td><td class="val-cost">${formatCurrency(otherAmt1)}</td></tr>`;
                 }
                 if (otherAmt2 > 0) {
-                    ledgerBuffer += `<tr><td>Other Cost: ${otherLabel2}</td><td>$0</td><td class="val-cost">${formatCurrency(otherAmt2)}</td></tr>`;
+                    ledgerBuffer += `<tr><td>Additional Expense: ${otherLabel2}</td><td>$0</td><td class="val-cost">${formatCurrency(otherAmt2)}</td></tr>`;
                 }
             }
 
