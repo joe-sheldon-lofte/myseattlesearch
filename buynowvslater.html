@@ -90,7 +90,34 @@
             border-radius: 0 !important;
         }
 
-        /* Narrative Output Display Blocks */
+        .btn-crunch-timeline {
+            grid-column: 1 / -1;
+            padding: 0.85rem;
+            background: #C13030;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            margin-top: 0.5rem;
+            width: 100%;
+            display: block;
+        }
+        .btn-crunch-timeline:hover { background: #9c2424; }
+
+        .baselines-summary-strip {
+            grid-column: span 2; 
+            margin: 0; 
+            align-items: center; 
+            display: flex;
+            font-size: 0.9rem;
+            color: #444;
+        }
+
         .bnl-results-wrapper {
             display: none;
             animation: paneFadeIn 0.4s ease-in-out;
@@ -170,6 +197,111 @@
             line-height: 1.5;
             color: #444;
         }
+
+        .print-trigger-btn {
+            background-color: transparent;
+            border: 1px solid #b3b3b3;
+            color: #666666;
+            padding: 0.5rem 1.25rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-top: 1rem;
+        }
+        .print-trigger-btn:hover {
+            border-color: var(--premier-charcoal);
+            color: var(--premier-charcoal);
+            background-color: #fafafa;
+        }
+
+        .print-only-header { display: none; }
+
+        /* ==========================================
+           HIGH-IMPACT MARKETING PRINT STYLESHEET
+           ========================================== */
+        @media print {
+            @page {
+                size: letter;
+                margin: 0.45in;
+            }
+            
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                font-size: 9.5pt !important;
+                line-height: 1.25 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            universal-header, universal-footer, .compare-header-box,
+            .strategy-control-card, .print-trigger-btn {
+                display: none !important;
+            }
+
+            .print-only-header {
+                display: block !important;
+                width: 100% !important;
+            }
+
+            .bnl-results-wrapper {
+                display: block !important;
+            }
+
+            .coach-summary-box {
+                padding: 1.25rem !important;
+                border-radius: 8px !important;
+                border: 2px solid #000000 !important;
+                border-left: 6px solid #C13030 !important;
+                box-shadow: none !important;
+                background: #ffffff !important;
+                margin-bottom: 1.5rem !important;
+            }
+            .coach-summary-box.advantage-waiting {
+                border-left-color: #137333 !important;
+            }
+            .coach-total-number {
+                font-size: 24pt !important;
+                margin: 0.25rem 0 !important;
+            }
+
+            .narrative-grid {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 14px !important;
+            }
+            .narrative-card {
+                padding: 1rem !important;
+                border-radius: 8px !important;
+                border: 2px solid #000000 !important;
+                border-top: 6px solid #3D3935 !important;
+                box-shadow: none !important;
+                background: #ffffff !important;
+                page-break-inside: avoid !important;
+            }
+            .narrative-comparison-row {
+                border: 1px solid #000000 !important;
+                background: #fafafa !important;
+                padding: 0.5rem !important;
+            }
+            .narrative-comparison-row div span {
+                font-size: 7.5pt !important;
+            }
+            .narrative-comparison-row div strong {
+                font-size: 10pt !important;
+            }
+            .narrative-card p {
+                font-size: 9pt !important;
+                line-height: 1.3 !important;
+            }
+        }
     </style>
 </head>
 <body class="buy-now-vs-later-page">
@@ -178,9 +310,9 @@
 
     <main class="bnl-container">
         
-        <div class="compare-header-box" style="text-align: center; margin-bottom: 2.5rem;">
+        <div class="compare-header-box">
             <h1 style="font-size: 2.6rem; font-weight: 900; color: #C13030; margin-bottom: 0.5rem;">Buying Now vs. Waiting</h1>
-            <p class="intro">An objective comparison analyzing the mathematical differences between an immediate home purchase and a delayed timeline based on historical data and custom financing tracks.</p>
+            <p class="intro">A straightforward look at how the total cost of buying a home today compares to waiting, using local market history and your personal goals.</p>
         </div>
 
         <section class="strategy-control-card">
@@ -253,7 +385,7 @@
                     </div>
                 </div>
 
-                <div class="baselines-summary-strip" style="grid-column: span 2; margin: 0; align-items: center; display: flex;">
+                <div class="baselines-summary-strip">
                     <span>Calculated annualized home price growth in this city: <strong id="lblAppreciationRate">4.5%</strong></span>
                 </div>
 
@@ -263,9 +395,28 @@
 
         <div class="bnl-results-wrapper" id="resultsWrapper">
             
+            <div style="display: flex; justify-content: center; margin-bottom: 1.5rem;" class="no-print-section">
+                <button onclick="window.print()" class="print-trigger-btn" title="Print Strategic Analysis">
+                    🖨️ Print This Summary Report
+                </button>
+            </div>
+
+            <div id="printHeaderNode" class="print-only-header">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid #C13030; padding-bottom: 12px; margin-bottom: 25px;">
+                    <div>
+                        <h1 style="margin:0; font-size: 2.4rem; font-weight: 900; color: #C13030; letter-spacing: -0.5px;">COST OF WAITING ANALYSIS</h1>
+                        <p style="margin: 3px 0 0 0; font-size: 1rem; font-weight: 800; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">Strategic Entry vs. Delayed Purchasing Evaluation</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <h3 style="margin:0; font-size: 1.3rem; font-weight: 900; color: #3D3935;">JOE SHELDON</h3>
+                        <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: #555;">myseattlesearch.com</p>
+                    </div>
+                </div>
+            </div>
+
             <div class="coach-summary-box" id="summaryBoxBlock">
-                <h2 style="font-size: 1.4rem; font-weight: 700; margin: 0; color: var(--premier-charcoal);" id="txtSummaryTitle">Financial Variance Summary</h2>
-                <p style="margin: 4px 0 0 0; font-size: 0.95rem; color: #555;" id="txtSummarySubtitle">The combined mathematical difference across home prices, rental costs, and mortgage balance reductions equals:</p>
+                <h2 style="font-size: 1.4rem; font-weight: 700; margin: 0; color: var(--premier-charcoal);" id="txtSummaryTitle">Cost of Waiting Summary</h2>
+                <p style="margin: 4px 0 0 0; font-size: 0.95rem; color: #555;" id="txtSummarySubtitle">When combining projected home price growth, rent paid while waiting, and the expected mortgage loan reduction over this timeframe, the total calculated variance is:</p>
                 <div class="coach-total-number" id="txtTotalCostOfWaiting">$0</div>
                 <p style="max-width: 750px; margin: 0 auto; font-size: 0.95rem; color: #333; line-height: 1.5;" id="txtCoachConclusion">Analyzing calculations...</p>
             </div>
@@ -284,7 +435,7 @@
                             <strong id="valPriceLater">--</strong>
                         </div>
                     </div>
-                    <p id="descPriceChase">This metric establishes the projected difference in baseline purchase prices between an immediate entry and a delayed timeframe based on local market trends.</p>
+                    <p id="descPriceChase">This tracks how projected home price changes affect the final cost of the property at the end of your waiting period.</p>
                 </div>
 
                 <div class="narrative-card">
@@ -299,7 +450,7 @@
                             <strong id="valDownLater">--</strong>
                         </div>
                     </div>
-                    <p id="descDownTrap">This section tracks how changes in purchase price impact the relationship between your down payment capital and the remaining primary loan balance.</p>
+                    <p id="descDownTrap">This shows how changes in the purchase price alter the relationship between your available down payment savings and the remaining loan size.</p>
                 </div>
 
                 <div class="narrative-card">
@@ -314,7 +465,7 @@
                             <strong id="valPaymentLater">--</strong>
                         </div>
                     </div>
-                    <p id="descBreakdownQualifying">Changes in base prices directly alter your primary loan size. This calculation shows how projected property value changes intersect with your estimated future interest rate, mapping out changes to both your monthly outlays and income requirements.</p>
+                    <p id="descBreakdownQualifying">This calculates how changes in the base purchase price and future interest rates combine to impact your regular monthly payment and the annual income required by lenders.</p>
                 </div>
 
                 <div class="narrative-card">
@@ -329,7 +480,7 @@
                             <strong id="valMissedPaydown">--</strong>
                         </div>
                     </div>
-                    <p id="descSunkProgress">This section analyzes the structural trade-offs of delaying a purchase, itemizing cumulative rent costs during the waiting window alongside the principal mortgage reduction achieved from day one.</p>
+                    <p id="descSunkProgress">This calculates the total rent paid during your waiting window alongside the expected drop in your loan balance that would occur under an active mortgage over that same time.</p>
                 </div>
 
             </div>
@@ -500,7 +651,7 @@
                 else if (loanType === 'FHA') pmiLater = (loanAmountLater * 0.0055 / 12);
                 const totalPaymentLater = monthlyPILater + taxAndInsLater + pmiLater;
 
-                // --- 3. MATHEMATICAL VARIANCE MODELS ---
+                // --- 3. THE COST TRAILING MODELS ---
                 const priceIncreasePenalty = priceLater - priceNow;
                 const totalRentSunk = baseRent * 12 * waitYears;
                 
@@ -531,21 +682,20 @@
                 document.getElementById('valRentSunk').textContent = formatCurrency(totalRentSunk);
                 document.getElementById('valMissedPaydown').textContent = formatCurrency(accumulatedPaydown);
 
-                // Update individual narrative description blocks objectively
-                document.getElementById('descPriceChase').textContent = `Based on historical data for ${city}, a ${waitYears}-${waitYears === 1 ? 'year' : 'year'} wait projects a price shift from ${formatCurrency(priceNow)} to ${formatCurrency(priceLater)}, representing a difference of ${formatCurrency(Math.abs(priceIncreasePenalty))} in the purchase price basis.`;
+                document.getElementById('descPriceChase').textContent = `Based on historical trends in ${city}, a waiting period of ${waitYears} ${waitYears === 1 ? 'year' : 'years'} is projected to shift the purchase price from ${formatCurrency(priceNow)} to ${formatCurrency(priceLater)}, a difference of ${formatCurrency(Math.abs(priceIncreasePenalty))}.`;
                 
                 const extraSavingsTarget = cashDownLater - cashDownNow;
                 if (extraSavingsTarget > 0) {
-                    document.getElementById('descDownTrap').textContent = `With a projected price increase of ${formatCurrency(priceIncreasePenalty)}, saving an additional ${formatCurrency(extraSavingsTarget)} results in a future loan balance of ${formatCurrency(loanAmountLater)}, compared to a balance of ${formatCurrency(loanAmountNow)} if purchasing today.`;
+                    document.getElementById('descDownTrap').textContent = `With a projected price change of ${formatCurrency(priceIncreasePenalty)}, saving an additional ${formatCurrency(extraSavingsTarget)} results in an estimated future loan balance of ${formatCurrency(loanAmountLater)}, compared to a balance of ${formatCurrency(loanAmountNow)} if purchasing today.`;
                 } else {
-                    document.getElementById('descDownTrap').textContent = `An increasing price basis shifts your primary loan size upward, which alters the standard relationship between your initial cash contribution and the total borrowed balance.`;
+                    document.getElementById('descDownTrap').textContent = `This tracks how changes in the purchase price alter the relationship between your available down payment savings and the remaining loan size.`;
                 }
 
                 const incomeNow = (totalPaymentNow / 0.33) * 12;
                 const incomeLater = (totalPaymentLater / 0.33) * 12;
-                document.getElementById('descBreakdownQualifying').textContent = `Lenders using a standard 33% debt-to-income allocation for housing costs require an estimated annual household income of ${formatCurrency(incomeNow)} for an immediate purchase. A delayed purchase requires an estimated annual household income of ${formatCurrency(incomeLater)} based on the projected future price and interest rate.`;
+                document.getElementById('descBreakdownQualifying').textContent = `Based on a standard lending allocation for housing costs, an immediate purchase requires an estimated annual household income of ${formatCurrency(incomeNow)}. A delayed purchase requires an estimated annual household income of ${formatCurrency(incomeLater)} based on the projected future price and interest rate.`;
 
-                // --- 5. ADAPTIVE SUMMARY CONCLUSION (TRUE TRANSPARENCY) ---
+                // --- 5. ADAPTIVE SUMMARY CONCLUSION ---
                 const summaryBox = document.getElementById('summaryBoxBlock');
                 const totalTextEl = document.getElementById('txtTotalCostOfWaiting');
                 const titleEl = document.getElementById('txtSummaryTitle');
@@ -554,19 +704,19 @@
                 if (absoluteFinancialLoss > 0) {
                     summaryBox.classList.remove('advantage-waiting');
                     totalTextEl.classList.remove('advantage-waiting');
-                    titleEl.textContent = "Financial Variance Summary";
-                    subtitleEl.textContent = "Based on these inputs, purchasing a home now shows a lower total calculated outlay compared to waiting. The estimated difference is:";
+                    titleEl.textContent = "Cost of Waiting Summary";
+                    subtitleEl.textContent = "Based on these inputs, a purchase today results in a lower total calculated financial outlay over this timeframe. The difference between the two tracks is:";
                     totalTextEl.textContent = formatCurrency(absoluteFinancialLoss);
 
-                    document.getElementById('txtCoachConclusion').textContent = `Based on historical trends, the compounding effect of property growth and ongoing rental outlays creates a net financial disadvantage to delaying your purchase in this scenario. While waiting for a lower interest rate alters your debt structure, the baseline price growth often shifts your qualification requirements higher. Securing the asset at today's pricing baseline allows you to establish equity paydown immediately, with the option to refinance your underlying mortgage debt if market interest rates drop in the future.`;
+                    document.getElementById('txtCoachConclusion').textContent = `Historical data indicates that home price growth and rent outlays frequently combine to create a higher total cost if a purchase is delayed. Securing the home at today's price sets your baseline cost and begins reducing your loan balance right away. If interest rates drop down the road, homeowners can explore refinancing options to lower their regular monthly payments without needing to catch up to a higher purchase price.`;
                 } else {
                     summaryBox.classList.add('advantage-waiting');
                     totalTextEl.classList.add('advantage-waiting');
-                    titleEl.textContent = "Financial Variance Summary";
-                    subtitleEl.textContent = "Based on these inputs, delaying your purchase shows a lower total calculated outlay compared to buying now. The estimated difference is:";
+                    titleEl.textContent = "Cost of Waiting Summary";
+                    subtitleEl.textContent = "Based on these inputs, a delayed purchase results in a lower total calculated financial outlay over this timeframe. The difference between the two tracks is:";
                     totalTextEl.textContent = formatCurrency(Math.abs(absoluteFinancialLoss));
 
-                    document.getElementById('txtCoachConclusion').textContent = `Over the next ${waitYears} ${waitYears === 1 ? 'year' : 'years'}, the combination of a lower projected interest rate and an increased down payment capital position balances out the ${formatCurrency(totalRentSunk)} spent on rent and the projected price increase of ${formatCurrency(priceIncreasePenalty)}. This results in a calculated difference of ${formatCurrency(Math.abs(absoluteFinancialLoss))} in favor of waiting.`;
+                    document.getElementById('txtCoachConclusion').textContent = `In this scenario, delaying the purchase aligns with a lower total calculated outlay. Over the next ${waitYears} ${waitYears === 1 ? 'year' : 'years'}, the financial benefit of a lower projected interest rate and an increased down payment outweighs both the total rent paid while waiting and the projected home price growth of ${formatCurrency(priceIncreasePenalty)}.`;
                 }
 
                 document.getElementById('resultsWrapper').style.display = 'block';

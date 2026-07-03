@@ -19,7 +19,7 @@
             grid-template-columns: 1fr 1fr;
             gap: 1.5rem;
             max-width: 700px;
-            margin: 0 auto 3rem auto;
+            margin: 0 auto 1.5rem auto;
             background: #ffffff;
             padding: 1.5rem;
             border-radius: 12px;
@@ -53,7 +53,6 @@
             border-color: var(--redfin-red);
         }
         
-        /* Stylize select optgroups to be clean and standard weight */
         .city-dropdown optgroup {
             font-weight: 600;
             font-style: normal;
@@ -63,7 +62,34 @@
             font-weight: normal;
         }
 
-        /* 3-Column Comparison Matrix Table Grid */
+        .compare-actions-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .print-trigger-btn {
+            background-color: transparent;
+            border: 1px solid #b3b3b3;
+            color: #666666;
+            padding: 0.5rem 1.25rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .print-trigger-btn:hover {
+            border-color: var(--premier-charcoal);
+            color: var(--premier-charcoal);
+            background-color: #fafafa;
+        }
+
         .matrix-wrapper {
             width: 100%;
             overflow-x: auto;
@@ -122,6 +148,76 @@
         .matrix-row:not(.main-header):not(.section-header):hover {
             background-color: var(--featured-highlight);
         }
+
+        .print-only-header { display: none; }
+
+        /* ==========================================
+           HIGH-IMPACT MARKETING PRINT STYLESHEET
+           ========================================== */
+        @media print {
+            @page {
+                size: letter;
+                margin: 0.45in;
+            }
+            
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                font-size: 9.5pt !important;
+                line-height: 1.25 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            universal-header, universal-footer, .back-link,
+            .compare-selectors-row, .compare-actions-container {
+                display: none !important;
+            }
+
+            .print-only-header {
+                display: block !important;
+                width: 100% !important;
+            }
+
+            .matrix-wrapper {
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                margin-bottom: 0 !important;
+            }
+
+            .matrix-row {
+                border-bottom: 2px solid #000000 !important;
+                page-break-inside: avoid !important;
+            }
+            .matrix-row.main-header {
+                background-color: #f4f6f8 !important;
+                color: #000000 !important;
+                border-bottom: 3px solid #000000 !important;
+            }
+            .matrix-row.main-header .matrix-cell {
+                font-weight: 900 !important;
+                color: #000000 !important;
+            }
+            .matrix-row.section-header {
+                background-color: #eaeaea !important;
+                color: #C13030 !important;
+                font-weight: 900 !important;
+                border-bottom: 2px solid #000000 !important;
+            }
+            .matrix-cell.metric-label {
+                border-right: 2px solid #000000 !important;
+                font-weight: 900 !important;
+                color: #000000 !important;
+            }
+            .matrix-cell.city-val:nth-child(2) {
+                border-right: 2px solid #000000 !important;
+            }
+            .matrix-cell {
+                padding: 0.75rem 0.5rem !important;
+                font-size: 9pt !important;
+                color: #000000 !important;
+            }
+        }
     </style>
 </head>
 <body class="compare-page">
@@ -131,9 +227,9 @@
     <main class="container" style="max-width: 1000px; padding-bottom: 5rem;">
         
         <div class="compare-header-box">
-            <a href="stats.html" class="back-link">&larr; Back to Market Insights</a>
+            <a href="stats.html" class="back-link" style="color: var(--premier-charcoal); font-weight: 700; text-decoration: underline;">&larr; Back to Market Insights</a>
             <h1 style="margin-top: 0.5rem; font-size: 2.6rem; font-weight: 900; color: #C13030;">Compare Communities Side-by-Side</h1>
-            <p class="intro">Pick any two cities to see how their neighborhoods, schools, safety, and local housing markets stack up.</p>
+            <p class="intro">Pick any two cities to see how their neighborhoods, schools, safety parameters, and housing markets stack up.</p>
         </div>
 
         <div class="compare-selectors-row">
@@ -147,9 +243,36 @@
             </div>
         </div>
 
-        <div class="matrix-wrapper">
-            <div class="matrix-table" id="comparisonMatrix">
+        <div class="compare-actions-container">
+            <button onclick="window.print()" class="print-trigger-btn" title="Print Side-by-Side Comparison">
+                🖨️ Print Comparison Sheet
+            </button>
+        </div>
+
+        <div id="printHeaderNode" class="print-only-header">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid #C13030; padding-bottom: 12px; margin-bottom: 25px;">
+                <div>
+                    <h1 style="margin:0; font-size: 2.4rem; font-weight: 900; color: #C13030; letter-spacing: -0.5px;">COMMUNITY COMPARISON PROFILE</h1>
+                    <p style="margin: 3px 0 0 0; font-size: 1rem; font-weight: 800; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">Side-by-Side Neighborhood Analytics</p>
                 </div>
+                <div style="text-align: right;">
+                    <h3 style="margin:0; font-size: 1.3rem; font-weight: 900; color: #3D3935;">JOE SHELDON</h3>
+                    <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: #555;">myseattlesearch.com</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="matrix-wrapper">
+            <table class="matrix-table">
+                <thead>
+                    <tr class="matrix-row main-header">
+                        <th class="matrix-cell">Comparison Metric</th>
+                        <th class="matrix-cell" id="lblCityHeader1">City 1</th>
+                        <th class="matrix-cell" id="lblCityHeader2">City 2</th>
+                    </tr>
+                </thead>
+                <tbody id="matrixTableBodyOutput"></tbody>
+            </table>
         </div>
 
     </main>
@@ -160,6 +283,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const categoriesPath = './data/InfoSparks Links - Sheet2.csv';
             const redfinPath = './data/redfin_stats.json';
+            const infosparksPath = './data/infosparks_stats.json';
             const mobilityPath = './data/walk_transit_bike_scores.json';
             const schoolPath = './data/school_ratings.json';
             const crimePath = './data/crime_stats.json';
@@ -168,7 +292,7 @@
             const surveillancePath = './data/surveillance_stats.json';
 
             let dataStore = { 
-                cities: {}, redfin: [], mobility: {}, schools: {}, crime: {}, climate: {}, emergency: {}, surveillance: {} 
+                cities: {}, redfin: [], infosparks: {}, mobility: {}, schools: {}, crime: {}, climate: {}, emergency: {}, surveillance: {} 
             };
 
             const cleanNum = (str) => {
@@ -185,18 +309,19 @@
             };
 
             Promise.all([
-                fetchCSV(categoriesPath), fetchJSON(redfinPath), fetchJSON(mobilityPath),
+                fetchCSV(categoriesPath), fetchJSON(redfinPath), fetchJSON(infosparksPath), fetchJSON(mobilityPath),
                 fetchJSON(schoolPath), fetchJSON(crimePath), fetchJSON(climatePath),
                 fetchJSON(emergencyPath), fetchJSON(surveillancePath)
             ]).then(values => {
                 const categoryRows = values[0] || [];
                 dataStore.redfin = values[1] || [];
-                dataStore.mobility = values[2] || {};
-                dataStore.schools = values[3] || {};
-                dataStore.crime = values[4] || {};
-                dataStore.climate = values[5] || {};
-                dataStore.emergency = values[6] || {};
-                dataStore.surveillance = values[7] || {};
+                dataStore.infosparks = values[2] && values[2].feeds ? values[2].feeds : (values[2] || {});
+                dataStore.mobility = values[3] || {};
+                dataStore.schools = values[4] || {};
+                dataStore.crime = values[5] || {};
+                dataStore.climate = values[6] || {};
+                dataStore.emergency = values[7] || {};
+                dataStore.surveillance = values[8] || {};
 
                 categoryRows.forEach(row => {
                     if (row.City) {
@@ -296,136 +421,133 @@
                 const city1 = document.getElementById('city1Select').value;
                 const city2 = document.getElementById('city2Select').value;
 
+                document.getElementById('lblCityHeader1').textContent = city1;
+                document.getElementById('lblCityHeader2').textContent = city2;
+
                 const s1 = extractCityStats(city1);
                 const s2 = extractCityStats(city2);
 
-                const container = document.getElementById('comparisonMatrix');
+                const container = document.getElementById('matrixTableBodyOutput');
 
                 let html = `
-                    <div class="matrix-row main-header">
-                        <div class="matrix-cell">Neighborhood Feature</div>
-                        <div class="matrix-cell">${city1}</div>
-                        <div class="matrix-cell">${city2}</div>
-                    </div>
-                    
-                    <div class="matrix-row section-header">
-                        <div class="matrix-cell" style="grid-column: span 3;">Real Estate Market Info</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Months of Housing Supply (Inventory)</div>
-                        <div class="matrix-cell city-val">${s1.supply} mos</div>
-                        <div class="matrix-cell city-val">${s2.supply} mos</div>
-                    </div>
+                    <tr class="matrix-row section-header">
+                        <td class="matrix-cell" style="grid-column: span 3;">Real Estate Market Conditions</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">Months of Housing Supply (Available Inventory)</td>
+                        <td class="matrix-cell city-val">${s1.supply} mos</td>
+                        <td class="matrix-cell city-val">${s2.supply} mos</td>
+                    </tr>
 
-                    <div class="matrix-row section-header">
-                        <div class="matrix-cell" style="grid-column: span 3;">Getting Around & Mobility</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Walk Score® (How walkable it is)</div>
-                        <div class="matrix-cell city-val">${s1.walk}</div>
-                        <div class="matrix-cell city-val">${s2.walk}</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Transit Score® (Public transportation access)</div>
-                        <div class="matrix-cell city-val">${s1.transit}</div>
-                        <div class="matrix-cell city-val">${s2.transit}</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Bike Score® (Bike friendliness)</div>
-                        <div class="matrix-cell city-val">${s1.bike}</div>
-                        <div class="matrix-cell city-val">${s2.bike}</div>
-                    </div>
+                    <tr class="matrix-row section-header">
+                        <td class="matrix-cell" style="grid-column: span 3;">Neighborhood Mobility & Walkability</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">Walk Score® (Pedestrian Convenience)</td>
+                        <td class="matrix-cell city-val">${s1.walk}</td>
+                        <td class="matrix-cell city-val">${s2.walk}</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">Transit Score® (Public Transit Access)</td>
+                        <td class="matrix-cell city-val">${s1.transit}</td>
+                        <td class="matrix-cell city-val">${s2.transit}</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">Bike Score® (Biking Safety & Lanes)</td>
+                        <td class="matrix-cell city-val">${s1.bike}</td>
+                        <td class="matrix-cell city-val">${s2.bike}</td>
+                    </tr>
 
-                    <div class="matrix-row section-header">
-                        <div class="matrix-cell" style="grid-column: span 3;">Local Public Schools</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Academic Index Score (PSAI)</div>
-                        <div class="matrix-cell city-val">${s1.psai}</div>
-                        <div class="matrix-cell city-val">${s2.psai}</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Students Passing State Math Exams</div>
-                        <div class="matrix-cell city-val">${s1.math}</div>
-                        <div class="matrix-cell city-val">${s2.math}</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Students Passing State Reading/Writing Exams</div>
-                        <div class="matrix-cell city-val">${s1.ela}</div>
-                        <div class="matrix-cell city-val">${s2.ela}</div>
-                    </div>
+                    <tr class="matrix-row section-header">
+                        <td class="matrix-cell" style="grid-column: span 3;">Local Public School Performance</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">School Academic Score (PSAI Rating)</td>
+                        <td class="matrix-cell city-val">${s1.psai}</td>
+                        <td class="matrix-cell city-val">${s2.psai}</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">Students Meeting State Math Standards</td>
+                        <td class="matrix-cell city-val">${s1.math}</td>
+                        <td class="matrix-cell city-val">${s2.math}</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">Students Meeting State Reading & Writing Standards</td>
+                        <td class="matrix-cell city-val">${s1.ela}</td>
+                        <td class="matrix-cell city-val">${s2.ela}</td>
+                    </tr>
 
-                    <div class="matrix-row section-header">
-                        <div class="matrix-cell" style="grid-column: span 3;">Weather & Climate</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Overall Weather Comfort Score</div>
-                        <div class="matrix-cell city-val">${s1.comfort}</div>
-                        <div class="matrix-cell city-val">${s2.comfort}</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Average Summer High Temperature</div>
-                        <div class="matrix-cell city-val">${s1.high}</div>
-                        <div class="matrix-cell city-val">${s2.high}</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Average Winter Low Temperature</div>
-                        <div class="matrix-cell city-val">${s1.low}</div>
-                        <div class="matrix-cell city-val">${s2.low}</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Average Yearly Rainfall</div>
-                        <div class="matrix-cell city-val">${s1.rain}</div>
-                        <div class="matrix-cell city-val">${s2.rain}</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Average Sunny Days Per Year</div>
-                        <div class="matrix-cell city-val">${s1.sun}</div>
-                        <div class="matrix-cell city-val">${s2.sun}</div>
-                    </div>
+                    <tr class="matrix-row section-header">
+                        <td class="matrix-cell" style="grid-column: span 3;">Local Weather & Environment</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">Overall Climate Comfort Rating</td>
+                        <td class="matrix-cell city-val">${s1.comfort}</td>
+                        <td class="matrix-cell city-val">${s2.comfort}</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">Average Summer Highs</td>
+                        <td class="matrix-cell city-val">${s1.high}</td>
+                        <td class="matrix-cell city-val">${s2.high}</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">Average Winter Lows</td>
+                        <td class="matrix-cell city-val">${s1.low}</td>
+                        <td class="matrix-cell city-val">${s2.low}</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">Average Annual Rainfall</td>
+                        <td class="matrix-cell city-val">${s1.rain}</td>
+                        <td class="matrix-cell city-val">${s2.rain}</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">Average Sunny Days</td>
+                        <td class="matrix-cell city-val">${s1.sun}</td>
+                        <td class="matrix-cell city-val">${s2.sun}</td>
+                    </tr>
 
-                    <div class="matrix-row section-header">
-                        <div class="matrix-cell" style="grid-column: span 3;">Safety & Emergency Services</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Violent Crime Rate (Yearly per 1,000 neighbors)</div>
-                        <div class="matrix-cell city-val">${s1.violent}</div>
-                        <div class="matrix-cell city-val">${s2.violent}</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Property Crime Rate (Yearly per 1,000 neighbors)</div>
-                        <div class="matrix-cell city-val">${s1.property}</div>
-                        <div class="matrix-cell city-val">${s2.property}</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Fire Response Class Rating (Lower cuts insurance costs)</div>
-                        <div class="matrix-cell city-val">${s1.wsrb}</div>
-                        <div class="matrix-cell city-val">${s2.wsrb}</div>
-                    </div>
+                    <tr class="matrix-row section-header">
+                        <td class="matrix-cell" style="grid-column: span 3;">Safety & Emergency Services</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">Violent Crime Rate (Annual per 1,000 residents)</td>
+                        <td class="matrix-cell city-val">${s1.violent}</td>
+                        <td class="matrix-cell city-val">${s2.violent}</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">Property Crime Rate (Annual per 1,000 residents)</td>
+                        <td class="matrix-cell city-val">${s1.property}</td>
+                        <td class="matrix-cell city-val">${s2.property}</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">Fire Protection Rating (Lower classes reduce premium costs)</td>
+                        <td class="matrix-cell city-val">${s1.wsrb}</td>
+                        <td class="matrix-cell city-val">${s2.wsrb}</td>
+                    </tr>
 
-                    <div class="matrix-row section-header">
-                        <div class="matrix-cell" style="grid-column: span 3;">Municipal Surveillance</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Surveillance Score</div>
-                        <div class="matrix-cell city-val">${s1.survScore}</div>
-                        <div class="matrix-cell city-val">${s2.survScore}</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">License Plate Tracking Cameras (ALPR)</div>
-                        <div class="matrix-cell city-val">${s1.alpr}</div>
-                        <div class="matrix-cell city-val">${s2.alpr}</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Speed & Red-Light Enforcement Cameras</div>
-                        <div class="matrix-cell city-val">${s1.traffic}</div>
-                        <div class="matrix-cell city-val">${s2.traffic}</div>
-                    </div>
-                    <div class="matrix-row">
-                        <div class="matrix-cell metric-label">Public Space Safety Security Cameras (CCTV)</div>
-                        <div class="matrix-cell city-val">${s1.cctv}</div>
-                        <div class="matrix-cell city-val">${s2.cctv}</div>
-                    </div>
+                    <tr class="matrix-row section-header">
+                        <td class="matrix-cell" style="grid-column: span 3;">Local Safety Camera Networks</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">Camera Infrastructure Score</td>
+                        <td class="matrix-cell city-val">${s1.survScore}</td>
+                        <td class="matrix-cell city-val">${s2.survScore}</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">License Plate Scanning Cameras (ALPR)</td>
+                        <td class="matrix-cell city-val">${s1.alpr}</td>
+                        <td class="matrix-cell city-val">${s2.alpr}</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">Speed & Red-Light Safety Cameras</td>
+                        <td class="matrix-cell city-val">${s1.traffic}</td>
+                        <td class="matrix-cell city-val">${s2.traffic}</td>
+                    </tr>
+                    <tr class="matrix-row">
+                        <td class="matrix-cell metric-label">Public Area Security Cameras (CCTV)</td>
+                        <td class="matrix-cell city-val">${s1.cctv}</td>
+                        <td class="matrix-cell city-val">${s2.cctv}</td>
+                    </tr>
                 `;
 
                 container.innerHTML = html;
