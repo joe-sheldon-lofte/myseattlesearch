@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sellers Estimated Net Proceeds | Joe Sheldon</title>
-    <link rel="stylesheet" href="style.css?v=69">
+    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=69">
     
     <script src="components.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -14,6 +14,7 @@
             max-width: 1000px;
             margin: 0 auto;
             padding: 2rem 1rem;
+            min-height: 75vh;
         }
         .compare-header-box {
             text-align: center;
@@ -167,11 +168,10 @@
             align-items: center;
             justify-content: center;
             background: #ffffff;
-            border: 2px solid var(--premier-beige);
-            border-radius: 8px;
-            padding: 0.4rem;
+            border: 3px solid var(--premier-beige);
+            border-radius: 50%;
+            overflow: hidden;
             box-sizing: border-box;
-            margin: 0 auto;
         }
         .partner-logo-box img { width: 100%; height: auto; display: block; }
         .partner-info h4 { margin: 0 0 0.25rem 0; font-size: 1.15rem; font-weight: 900; color: #3D3935; }
@@ -294,12 +294,22 @@
         </div>
 
         <section class="control-card">
-            <h3>Property & Transaction Details</h3>
+            <h3>Property &amp; Transaction Details</h3>
             <div class="form-grid">
                 
+                <div class="input-element-box" style="grid-column: span 2;">
+                    <label for="inSellerName">Seller Name</label>
+                    <input type="text" id="inSellerName" value="Robyn Sneeringer">
+                </div>
+
+                <div class="input-element-box" style="grid-column: span 2;">
+                    <label for="inSellerAddress">Property Address</label>
+                    <input type="text" id="inSellerAddress" value="739 N 165th St, Shoreline, WA 98133">
+                </div>
+
                 <div class="input-element-box">
                     <label for="inPrice">Target Sale Price ($)</label>
-                    <input type="number" id="inPrice" value="850000">
+                    <input type="text" id="inPrice" value="850,000" oninput="formatPriceInput(this)">
                 </div>
 
                 <div class="input-element-box">
@@ -357,7 +367,7 @@
         <div class="results-wrapper" id="resultsWrapper">
 
             <div id="printHeaderNode" class="print-only-header">
-                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid #C13030; padding-bottom: 12px; margin-bottom: 25px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid #C13030; padding-bottom: 12px; margin-bottom: 20px;">
                     <div>
                         <h1 style="margin:0; font-size: 2.4rem; font-weight: 900; color: #C13030; letter-spacing: -0.5px;">ESTIMATED NET PROCEEDS</h1>
                         <p style="margin: 3px 0 0 0; font-size: 1rem; font-weight: 800; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">Sellers Financial Settlement Worksheet</p>
@@ -366,6 +376,10 @@
                         <h3 style="margin:0; font-size: 1.3rem; font-weight: 900; color: #3D3935;">JOE SHELDON</h3>
                         <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: #555;">myseattlesearch.com</p>
                     </div>
+                </div>
+                <div style="margin-bottom: 20px; font-size: 10pt; line-height: 1.4; color: #000; text-align: left;">
+                    <strong>Prepared For:</strong> <span id="printSellerName"></span><br>
+                    <strong>Property Address:</strong> <span id="printSellerAddress"></span>
                 </div>
             </div>
 
@@ -431,6 +445,13 @@
             }
         });
 
+        function formatPriceInput(input) {
+            let value = input.value.replace(/[^0-9]/g, "");
+            if (value !== "") {
+                input.value = parseInt(value, 10).toLocaleString('en-US');
+            }
+        }
+
         function calculateWashingtonStateREET(price) {
             let reetStateTotal = 0;
             const tier1Cap = 525000;
@@ -459,7 +480,8 @@
         }
 
         function calculateNetProceeds() {
-            const salePrice = parseFloat(document.getElementById('inPrice').value) || 0;
+            const rawPriceStr = document.getElementById('inPrice').value || '0';
+            const salePrice = parseFloat(rawPriceStr.replace(/[^0-9.-]+/g, "")) || 0;
             const mortgagePayoff = parseFloat(document.getElementById('inBalance').value) || 0;
             const listingPct = parseFloat(document.getElementById('inListingPackage').value) || 2.0;
             const buyerAgentPct = parseFloat(document.getElementById('inBuyerComp').value) || 2.5;
@@ -470,6 +492,10 @@
                 alert("Please enter a valid property sale price.");
                 return;
             }
+
+            // Sync print header fields
+            document.getElementById('printSellerName').textContent = document.getElementById('inSellerName').value;
+            document.getElementById('printSellerAddress').textContent = document.getElementById('inSellerAddress').value;
 
             const listingBrokerFee = salePrice * (listingPct / 100);
             const buyerBrokerFee = salePrice * (buyerAgentPct / 100);
