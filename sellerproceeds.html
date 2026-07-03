@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sellers Estimated Net Proceeds | Joe Sheldon</title>
+    <link rel="stylesheet" href="style.css?v=69">
+    
+    <script src="components.js"></script>
+
+    <style>
+        .proceeds-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        .control-card {
+            background: #f4f6f8;
+            border-top: 6px solid var(--premier-charcoal);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+            margin-bottom: 2.5rem;
+        }
+        .control-card h3 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #3D3935;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0.5rem;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+        }
+        @media (min-width: 768px) {
+            .form-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (min-width: 1100px) {
+            .form-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+        .input-element-box {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .input-element-box label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #555555;
+        }
+        .input-element-box input, .input-element-box select {
+            padding: 0.6rem 0.75rem;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: normal;
+            color: #222;
+            background: #ffffff;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .input-element-box input:focus, .input-element-box select:focus {
+            border-color: #C13030;
+            outline: none;
+        }
+        .checkbox-group-wrapper {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            padding-top: 0.25rem;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #333;
+            cursor: pointer;
+        }
+        .checkbox-item input {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .btn-calculate {
+            grid-column: 1 / -1;
+            padding: 0.85rem;
+            background: #C13030;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            margin-top: 0.5rem;
+            width: 100%;
+            display: block;
+        }
+        .btn-calculate:hover { background: #9c2424; }
+
+        /* Output View Structures */
+        .results-wrapper {
+            display: none;
+            animation: paneFadeIn 0.4s ease-in-out;
+        }
+        @keyframes paneFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .net-summary-box {
+            background-color: #ffffff;
+            border-left: 4px solid #C13030;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 2.5rem;
+            text-align: center;
+        }
+        .net-total-number {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: #C13030;
+            margin: 0.5rem 0;
+            line-height: 1;
+        }
+
+        .table-scroll-container { width: 100%; overflow-x: auto; margin-top: 1rem; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); border: 1px solid #eaeaea; }
+        .ledger-table { width: 100%; border-collapse: collapse; text-align: left; min-width: 600px; }
+        .ledger-table th { background: #f4f6f8; font-size: 0.75rem; font-weight: 900; text-transform: uppercase; color: #555; padding: 1rem; border-bottom: 2px solid #000; }
+        .ledger-table td { padding: 1.15rem 1rem; font-size: 0.95rem; font-weight: 700; color: #333; border-bottom: 1px solid #eef0f2; }
+        .ledger-table tr.section-row td { background: #fdfdfd; font-size: 1rem; font-weight: 800; color: #C13030; border-bottom: 1px solid #eaeaea; padding: 0.75rem 1rem; }
+        .ledger-table tr:hover td { background: #fafafa; }
+        
+        .label-sub { display: block; font-size: 0.78rem; color: #666; font-weight: 500; margin-top: 0.15rem; }
+        .val-cost { color: #C13030; }
+        .val-credit { color: #137333; }
+
+        .partner-block {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            background: #fdfdfd;
+            border: 1px solid #eaeaea;
+            border-radius: 12px;
+            padding: 1.75rem;
+            margin-top: 3rem;
+            align-items: center;
+        }
+        @media (min-width: 600px) {
+            .partner-block { grid-template-columns: 120px 1fr; gap: 2rem; }
+        }
+        .partner-logo-box {
+            width: 120px;
+            height: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 2px solid var(--premier-beige);
+            border-radius: 8px;
+            padding: 0.5rem;
+            box-sizing: border-box;
+        }
+        .partner-logo-box img { width: 100%; height: auto; display: block; }
+        .partner-info h4 { margin: 0 0 0.25rem 0; font-size: 1.25rem; font-weight: 900; color: #3D3935; }
+        .partner-info p { margin: 0; font-size: 0.92rem; color: #555; line-height: 1.5; }
+
+        .print-trigger-btn {
+            background-color: transparent;
+            border: 1px solid #b3b3b3;
+            color: #666666;
+            padding: 0.5rem 1.25rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-top: 1rem;
+        }
+        .print-trigger-btn:hover {
+            border-color: var(--premier-charcoal);
+            color: var(--premier-charcoal);
+            background-color: #fafafa;
+        }
+
+        .print-only-header { display: none; }
+
+        /* ==========================================
+           HIGH-IMPACT MARKETING PRINT STYLESHEET
+           ========================================== */
+        @media print {
+            @page {
+                size: letter;
+                margin: 0.45in;
+            }
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                font-size: 9.5pt !important;
+                line-height: 1.25 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            universal-header, universal-footer, .compare-header-box,
+            .control-card, .print-trigger-btn {
+                display: none !important;
+            }
+            .print-only-header {
+                display: block !important;
+                width: 100% !important;
+            }
+            .results-wrapper {
+                display: block !important;
+            }
+            .net-summary-box {
+                padding: 1.25rem !important;
+                border-radius: 8px !important;
+                border: 2px solid #000000 !important;
+                border-left: 6px solid #C13030 !important;
+                box-shadow: none !important;
+                background: #ffffff !important;
+                margin-bottom: 1.5rem !important;
+            }
+            .net-total-number {
+                font-size: 28pt !important;
+            }
+            .table-scroll-container {
+                box-shadow: none !important;
+                border: none !important;
+                margin-top: 1rem !important;
+            }
+            .ledger-table {
+                width: 100% !important;
+            }
+            .ledger-table th {
+                background: #f4f6f8 !important;
+                color: #000000 !important;
+                border-bottom: 3px solid #000000 !important;
+                font-weight: 900 !important;
+                font-size: 8.5pt !important;
+            }
+            .ledger-table td {
+                border-bottom: 1px solid #000000 !important;
+                padding: 0.6rem 6px !important;
+                font-size: 9pt !important;
+            }
+            .ledger-table tr.section-row td {
+                background: #eaeaea !important;
+                color: #000000 !important;
+                font-weight: 900 !important;
+                border-bottom: 2px solid #000000 !important;
+                font-size: 9.5pt !important;
+            }
+            .partner-block {
+                display: flex !important;
+                margin-top: 2rem !important;
+                border: 2px solid #000000 !important;
+                border-radius: 8px !important;
+                padding: 1rem !important;
+                page-break-inside: avoid !important;
+            }
+            .partner-logo-box {
+                border: 1px solid #000000 !important;
+            }
+        }
+    </style>
+</head>
+<body class="proceeds-page">
+
+    <universal-header></universal-header>
+
+    <main class="proceeds-container">
+        
+        <div class="compare-header-box">
+            <h1 style="font-size: 2.6rem; font-weight: 900; color: #C13030; margin-bottom: 0.5rem;">Sellers Estimated Net Proceeds</h1>
+            <p class="intro">An analysis tracking local tax structures, title insurance parameters, and standard transaction closing outlays to calculate estimated net balance proceeds.</p>
+        </div>
+
+        <section class="control-card">
+            <h3>Property & Transaction Parameters</h3>
+            <div class="form-grid">
+                
+                <div class="input-element-box">
+                    <label for="inPrice">Target Sale Price ($)</label>
+                    <input type="number" id="inPrice" value="850000">
+                </div>
+
+                <div class="input-element-box">
+                    <label for="inCounty">Property County</label>
+                    <select id="inCounty">
+                        <option value="King">King County</option>
+                        <option value="Snohomish">Snohomish County</option>
+                    </select>
+                </div>
+
+                <div class="input-element-box">
+                    <label for="inBalance">Current Mortgage Balance ($)</label>
+                    <input type="number" id="inBalance" value="450000">
+                </div>
+
+                <div class="input-element-box">
+                    <label for="inClosingDate">Target Closing Date</label>
+                    <input type="date" id="inClosingDate">
+                </div>
+
+                <div class="input-element-box">
+                    <label for="inListingPackage">Listing Management Option</label>
+                    <select id="inListingPackage">
+                        <option value="2.0">Base Listing Package (2.0%)</option>
+                        <option value="3.0">Full Premium Concierge (3.0%)</option>
+                    </select>
+                </div>
+
+                <div class="input-element-box">
+                    <label for="inBuyerComp">Buyer Agent Compensation (%)</label>
+                    <input type="number" id="inBuyerComp" value="2.5" step="0.1">
+                </div>
+
+                <div class="input-element-box">
+                    <label for="inTaxRate">Annual Property Tax Rate (%)</label>
+                    <input type="number" id="inTaxRate" value="0.9" step="0.05">
+                </div>
+
+                <div class="input-element-box">
+                    <label>Current Tax Status</label>
+                    <div class="checkbox-group-wrapper">
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="chkFirstHalf"> First Half Paid
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="chkSecondHalf"> Second Half Paid
+                        </label>
+                    </div>
+                </div>
+
+                <button class="btn-calculate" onclick="calculateNetProceeds()">Calculate Estimated Proceeds</button>
+            </div>
+        </section>
+
+        <div class="results-wrapper" id="resultsWrapper">
+            
+            <div style="display: flex; justify-content: center; margin-bottom: 1.5rem;" class="no-print-section">
+                <button onclick="window.print()" class="print-trigger-btn" title="Print Net Analysis">
+                    🖨️ Print Net Worksheet
+                </button>
+            </div>
+
+            <div id="printHeaderNode" class="print-only-header">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid #C13030; padding-bottom: 12px; margin-bottom: 25px;">
+                    <div>
+                        <h1 style="margin:0; font-size: 2.4rem; font-weight: 900; color: #C13030; letter-spacing: -0.5px;">ESTIMATED NET PROCEEDS PROFILE</h1>
+                        <p style="margin: 3px 0 0 0; font-size: 1rem; font-weight: 800; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">Sellers Financial Settlement Worksheet</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <h3 style="margin:0; font-size: 1.3rem; font-weight: 900; color: #3D3935;">JOE SHELDON</h3>
+                        <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: #555;">myseattlesearch.com</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="net-summary-box">
+                <h2 style="font-size: 1.4rem; font-weight: 700; margin: 0; color: var(--premier-charcoal);">Estimated Net Cash to Seller</h2>
+                <div class="net-total-number" id="txtNetProceeds">$0</div>
+                <p style="max-width: 800px; margin: 0.5rem auto 0 auto; font-size: 0.95rem; color: #555; line-height: 1.5;">This represents the estimated remaining cash balance folder funds at closing after liquidating your recorded mortgage debt and accounting for standard transaction settlement obligations.</p>
+            </div>
+
+            <div class="table-scroll-container">
+                <table class="ledger-table">
+                    <thead>
+                        <tr>
+                            <th>Settlement Item Description</th>
+                            <th>Credit to Seller</th>
+                            <th>Cost to Seller</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledgerTableBody"></tbody>
+                </table>
+            </div>
+
+            <div class="partner-block">
+                <div class="partner-logo-box">
+                    <img src="assets/images/rocketclose.png" alt="Rocket Close Logo" onerror="this.src='https://placehold.co/120x60?text=Rocket+Close'">
+                </div>
+                <div class="partner-info">
+                    <h4>Rocket Close</h4>
+                    <p>Preferred Settlement and Title Partner. Title insurance policies and escrow settlement services are processed securely through Rocket Close to provide transparent file custody and responsive closing management timelines.</p>
+                </div>
+            </div>
+
+            <div class="compliance-disclaimer-text">
+                Information Notice: All figures, prorated values, settlement line tracking metrics, and tax tier computations generated on this matrix are for consumer educational and planning purposes. Local county recording values, interest factors, and escrow reserves shift frequently depending on transaction timelines. This document does not constitute a formal closing disclosure or binding title commitment. Final settlement statements are legally secured by a licensed escrow officer prior to closing.
+            </div>
+
+        </div>
+
+    </main>
+
+    <universal-footer></universal-footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            
+            // Format dynamic default closing date to 30 days out
+            const defaultClosing = new Date();
+            defaultClosing.setDate(today.getDate() + 30);
+            
+            const monthStr = String(defaultClosing.getMonth() + 1).padStart(2, '0');
+            const dayStr = String(defaultClosing.getDate()).padStart(2, '0');
+            document.getElementById('inClosingDate').value = `${defaultClosing.getFullYear()}-${monthStr}-${dayStr}`;
+
+            // Automated baseline logic tracking the current date relative to WA tax due dates
+            const currentYear = today.getFullYear();
+            const aprilDueLimit = new Date(currentYear, 3, 30);
+            const octoberDueLimit = new Date(currentYear, 9, 31);
+
+            if (today > aprilDueLimit) {
+                document.getElementById('chkFirstHalf').checked = true;
+            }
+            if (today > octoberDueLimit) {
+                document.getElementById('chkSecondHalf').checked = true;
+            }
+        });
+
+        function calculateWashingtonStateREET(price) {
+            let reetStateTotal = 0;
+            
+            // 2026 Graduated State REET Brackets
+            const tier1Cap = 525000;
+            const tier2Cap = 1525000;
+            const tier3Cap = 3025000;
+
+            if (price <= tier1Cap) {
+                reetStateTotal += price * 0.0110;
+            } else {
+                reetStateTotal += tier1Cap * 0.0110;
+                if (price <= tier2Cap) {
+                    reetStateTotal += (price - tier1Cap) * 0.0128;
+                } else {
+                    reetStateTotal += (tier2Cap - tier1Cap) * 0.0128;
+                    if (price <= tier3Cap) {
+                        reetStateTotal += (price - tier2Cap) * 0.0275;
+                    } else {
+                        reetStateTotal += (tier3Cap - tier2Cap) * 0.0275;
+                        reetStateTotal += (price - tier3Cap) * 0.0300;
+                    }
+                }
+            }
+
+            // Standard local municipal county rate allocation addition of 0.50 percent
+            const reetLocalTotal = price * 0.0050;
+            return reetStateTotal + reetLocalTotal;
+        }
+
+        function calculateNetProceeds() {
+            const salePrice = parseFloat(document.getElementById('inPrice').value) || 0;
+            const mortgagePayoff = parseFloat(document.getElementById('inBalance').value) || 0;
+            const listingPct = parseFloat(document.getElementById('inListingPackage').value) || 2.0;
+            const buyerAgentPct = parseFloat(document.getElementById('inBuyerComp').value) || 2.5;
+            const taxRatePct = parseFloat(document.getElementById('inTaxRate').value) || 0.9;
+            const closingDateValue = document.getElementById('inClosingDate').value;
+
+            if (salePrice <= 0) {
+                alert("Please enter a valid property sale price.");
+                return;
+            }
+
+            // 1. Commission Outlay Tracking Fractions
+            const listingBrokerFee = salePrice * (listingPct / 100);
+            const buyerBrokerFee = salePrice * (buyerAgentPct / 100);
+
+            // 2. REET Tax Graduation Layer Module
+            const realEstateExciseTax = calculateWashingtonStateREET(salePrice);
+
+            // 3. Rocket Close Title and Settlement Matrix Models
+            const escrowClosingCost = (salePrice * 0.0004) + 958.51;
+            const ownerTitlePolicyCost = (salePrice * 0.0012) + 1143.82;
+
+            // 4. Fixed Document and Recording Settlement Parameters
+            const standardDocPrepFee = 100.00;
+            const localRecordingFilingFee = 303.50;
+
+            // 5. Property Tax Calendar Proration Calculations
+            const annualTaxAmount = salePrice * (taxRatePct / 100);
+            
+            const closingDate = closingDateValue ? new Date(closingDateValue + 'T12:00:00') : new Date();
+            const closingYear = closingDate.getFullYear();
+            
+            const startOfYear = new Date(closingYear, 0, 1);
+            const millisecondsInDay = 24 * 60 * 60 * 1000;
+            const daysElapsed = Math.floor((closingDate - startOfYear) / millisecondsInDay) + 1;
+            
+            const sellerResponsibleTax = (daysElapsed / 365) * annualTaxAmount;
+
+            const firstHalfPaid = document.getElementById('chkFirstHalf').checked;
+            const secondHalfPaid = document.getElementById('chkSecondHalf').checked;
+            
+            let totalTaxPaidBySeller = 0;
+            if (firstHalfPaid) totalTaxPaidBySeller += annualTaxAmount * 0.5;
+            if (secondHalfPaid) totalTaxPaidBySeller += annualTaxAmount * 0.5;
+
+            const taxProrationResult = sellerResponsibleTax - totalTaxPaidBySeller;
+
+            // 6. Compile Ledger Outputs
+            let totalSellerCosts = mortgagePayoff + listingBrokerFee + buyerBrokerFee + realEstateExciseTax + escrowClosingCost + ownerTitlePolicyCost + standardDocPrepFee + localRecordingFilingFee;
+            
+            if (taxProrationResult > 0) {
+                totalSellerCosts += taxProrationResult;
+            }
+
+            const estimatedNetProceedsCheck = taxProrationResult < 0 ? (salePrice + Math.abs(taxProrationResult)) - totalSellerCosts : salePrice - totalSellerCosts;
+
+            // Render Dynamic Interface Views
+            document.getElementById('txtNetProceeds').textContent = formatCurrency(estimatedNetProceedsCheck);
+            
+            const tbody = document.getElementById('ledgerTableBody');
+            let ledgerBuffer = `
+                <tr class="section-row"><td colspan="3">Gross Property Value Tracking</td></tr>
+                <tr><td>Property Gross Contract Sale Price</td><td class="val-credit">${formatCurrency(salePrice)}</td><td>$0</td></tr>
+            `;
+
+            if (mortgagePayoff > 0) {
+                ledgerBuffer += `<tr><td>Mortgage Lien Payoff Balance<span class="label-sub">Liquidation of outstanding primary recorded debt obligations</span></td><td>$0</td><td class="val-cost">${formatCurrency(mortgagePayoff)}</td></tr>`;
+            }
+
+            ledgerBuffer += `
+                <tr class="section-row"><td colspan="3">Real Estate Brokerage Fee Splits</td></tr>
+                <tr><td>Listing Brokerage Management Fee (${listingPct.toFixed(1)}%)<span class="label-sub">Property marketing, listing syndication, and transaction coordination</span></td><td>$0</td><td class="val-cost">${formatCurrency(listingBrokerFee)}</td></tr>
+                <tr><td>Buyer Brokerage Representative Fee (${buyerAgentPct.toFixed(1)}%)<span class="label-sub">Procuring broker contract negotiation and advisory compensation</span></td><td>$0</td><td class="val-cost">${formatCurrency(buyerBrokerFee)}</td></tr>
+                
+                <tr class="section-row"><td colspan="3">State and Municipal Taxation outlays</td></tr>
+                <tr><td>Washington State Graduated REET Tax<span class="label-sub">Four-tier state baseline calculations plus local municipal county allocation</span></td><td>$0</td><td class="val-cost">${formatCurrency(realEstateExciseTax)}</td></tr>
+            `;
+
+            if (taxProrationResult !== 0) {
+                if (taxProrationResult < 0) {
+                    ledgerBuffer += `<tr><td>Prorated Property Tax Credit<span class="label-sub">Seller reimbursement for ${Math.abs(Math.floor((totalTaxPaidBySeller - sellerResponsibleTax) / (annualTaxAmount / 365)))} days of pre-paid taxes covering through the closing horizon</span></td><td class="val-credit">${formatCurrency(Math.abs(taxProrationResult))}</td><td>$0</td></tr>`;
+                } else {
+                    ledgerBuffer += `<tr><td>Prorated Property Tax Debit<span class="label-sub">Seller tax liability allocation for ${Math.floor(taxProrationResult / (annualTaxAmount / 365))} days of ownership preceding the settlement date</span></td><td>$0</td><td class="val-cost">${formatCurrency(taxProrationResult)}</td></tr>`;
+                }
+            }
+
+            ledgerBuffer += `
+                <tr class="section-row"><td colspan="3">Rocket Close Settlement and Recording Costs</td></tr>
+                <tr><td>Escrow Settlement Closing Fee<span class="label-sub">Document processing, transaction accounting management, and file closing services</span></td><td>$0</td><td class="val-cost">${formatCurrency(escrowClosingCost)}</td></tr>
+                <tr><td>Owner Title Insurance Policy Premium<span class="label-sub">Clear title verification warranty protection for the incoming purchaser</span></td><td>$0</td><td class="val-cost">${formatCurrency(ownerTitlePolicyCost)}</td></tr>
+                <tr><td>Standard Document Preparation Fee</td><td>$0</td><td class="val-cost">${formatCurrency(standardDocPrepFee)}</td></tr>
+                <tr><td>County Auditor Recording and Filing Fee</td><td>$0</td><td class="val-cost">${formatCurrency(localRecordingFilingFee)}</td></tr>
+            `;
+
+            tbody.innerHTML = ledgerBuffer;
+            document.getElementById('resultsWrapper').style.display = 'block';
+            document.getElementById('resultsWrapper').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+        }
+    </script>
+</body>
+</html>
