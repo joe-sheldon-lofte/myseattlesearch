@@ -204,6 +204,16 @@
         }
         .btn-calculate:hover { background: #9c2424; }
 
+        @media (max-width: 600px) {
+            .control-card { padding: 1.25rem; }
+            .span-2 { grid-column: span 1 !important; }
+            .custom-add-row { flex-direction: column; gap: 0.5rem; }
+            .custom-add-row .currency-prefix-container, .custom-add-row .amt-input-wide { width: 100% !important; }
+            .settlement-option-row { flex-direction: column; align-items: flex-start; gap: 0.5rem; background: #ffffff; padding: 0.75rem; border: 1px solid #ccc; border-radius: 6px; width: 100%; box-sizing: border-box; }
+            .settlement-option-row .currency-prefix-container, .settlement-option-row .amt-input-medium { width: 100% !important; }
+            .btn-calculate { padding: 1.1rem 1rem; }
+        }
+
         .results-wrapper {
             display: none;
             animation: paneFadeIn 0.4s ease-in-out;
@@ -220,7 +230,7 @@
             text-align: center;
         }
         .net-total-number {
-            font-size: 2.2rem;
+            font-size: 22rem;
             font-weight: 900;
             color: #C13030;
             margin: 0.15rem 0;
@@ -285,18 +295,7 @@
         .partner-info h4 { margin: 0 0 0.25rem 0; font-size: 1.15rem; font-weight: 900; color: #3D3935; }
         .partner-info p { margin: 0; font-size: 0.88rem; color: #555; line-height: 1.4; }
 
-        /* Screen Protection Layer for Print Assets */
         .print-only-layout { display: none; }
-
-        @media (max-width: 600px) {
-            .control-card { padding: 1.25rem; }
-            .span-2 { grid-column: span 1 !important; }
-            .custom-add-row { flex-direction: column; gap: 0.5rem; }
-            .custom-add-row .currency-prefix-container, .custom-add-row .amt-input-wide { width: 100% !important; }
-            .settlement-option-row { flex-direction: column; align-items: flex-start; gap: 0.5rem; background: #ffffff; padding: 0.75rem; border: 1px solid #ccc; border-radius: 6px; width: 100%; box-sizing: border-box; }
-            .settlement-option-row .currency-prefix-container, .settlement-option-row .amt-input-medium { width: 100% !important; }
-            .btn-calculate { padding: 1.1rem 1rem; }
-        }
 
         /* ==========================================
            HIGH-IMPACT ANALYSIS PRINT STYLESHEET
@@ -532,7 +531,7 @@
                             </label>
                             <div class="currency-prefix-container amt-prefix-box amt-input-medium">
                                 <span class="prefix-symbol">$</span>
-                                <input type="number" id="inPreInspectCost" value="550">
+                                <input type="number" id="inPreInspectCost" value="550" class="amt-input-medium">
                             </div>
                         </div>
                         <div class="settlement-option-row">
@@ -541,7 +540,7 @@
                             </label>
                             <div class="currency-prefix-container amt-prefix-box amt-input-medium">
                                 <span class="prefix-symbol">$</span>
-                                <input type="number" id="inHoaCertCost" value="300">
+                                <input type="number" id="inHoaCertCost" value="300" class="amt-input-medium">
                             </div>
                         </div>
                     </div>
@@ -898,7 +897,7 @@
             }
 
             ledgerBuffer += `
-                <tr class="section-row"><td colspan="3">Real Estate Commission Fees</td></tr>
+                <tr class="section-row"><td colspan="3">Real Estate Transaction Compensation</td></tr>
                 <tr><td>Listing Package Fee (${listingPct.toFixed(1)}%)</td><td>$0</td><td class="val-cost">${formatCurrency(listingBrokerFee)}</td></tr>
                 <tr><td>Buyer Agent Compensation Fee (${buyerAgentPct.toFixed(1)}%)</td><td>$0</td><td class="val-cost">${formatCurrency(buyerBrokerFee)}</td></tr>
                 
@@ -938,7 +937,6 @@
                 }
             }
 
-            // Append final total calculation summary row at the bottom of the table ledger
             ledgerBuffer += `
                 <tr class="total-summary-row">
                     <td>Estimated Net Proceeds Total</td>
