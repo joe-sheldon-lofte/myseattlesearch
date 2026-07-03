@@ -879,6 +879,13 @@
             qrImageNode.src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(targetScenarioUrl)}`;
         }
 
+function formatCurrency(value) {
+    if (value < 0) {
+        return '-$' + Math.round(Math.abs(value)).toLocaleString('en-US');
+    }
+    return '$' + Math.round(value).toLocaleString('en-US');
+}
+
         function calculateNetProceeds() {
             const salePrice = parseFormattedValue('inPrice');
             const mortgagePayoff = parseFormattedValue('inBalance');
