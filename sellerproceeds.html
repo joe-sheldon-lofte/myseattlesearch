@@ -28,6 +28,7 @@
             padding: 2rem;
             box-shadow: 0 6px 20px rgba(0,0,0,0.05);
             margin-bottom: 2.5rem;
+            box-sizing: border-box;
         }
         .control-card h3 {
             margin: 0 0 1.5rem 0;
@@ -76,12 +77,16 @@
             outline: none;
         }
         
-        /* Clean Visual Dollar Prefix Layout Wrapper */
+        /* Desktop column spanning utility classes */
+        .span-2 { grid-column: span 2; }
+        
+        /* Clean Visual Dollar Prefix Containers */
         .currency-prefix-container {
             position: relative;
             display: flex;
             align-items: center;
             width: 100%;
+            box-sizing: border-box;
         }
         .currency-prefix-container .prefix-symbol {
             position: absolute;
@@ -96,7 +101,11 @@
             padding-left: 1.5rem !important;
         }
         
-        /* Responsive Mobile Form Layout Helpers */
+        /* Desktop Width Utility Classes */
+        .amt-input-wide { width: 130px; flex-shrink: 0; }
+        .amt-input-medium { width: 100px; flex-shrink: 0; }
+        
+        /* Layout Row Blocks */
         .custom-add-row {
             display: flex;
             gap: 0.5rem;
@@ -131,25 +140,6 @@
             width: auto;
             margin: 0;
             cursor: pointer;
-        }
-        
-        @media (max-width: 600px) {
-            .custom-add-row {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-            .settlement-option-row {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.35rem;
-                background: #fff;
-                padding: 0.6rem;
-                border: 1px solid #ccc;
-                border-radius: 6px;
-            }
-            .settlement-option-row .currency-prefix-container {
-                max-width: 100%;
-            }
         }
 
         .checkbox-group-wrapper {
@@ -191,7 +181,7 @@
 
         .btn-calculate {
             grid-column: 1 / -1;
-            padding: 0.95rem 1rem;
+            padding: 1rem;
             background: #C13030;
             color: #ffffff;
             border: none;
@@ -209,6 +199,40 @@
             line-height: 1.2;
         }
         .btn-calculate:hover { background: #9c2424; }
+
+        /* Mobile Layout Stacking and Override Engine */
+        @media (max-width: 600px) {
+            .control-card {
+                padding: 1.25rem;
+            }
+            .span-2 {
+                grid-column: span 1 !important;
+            }
+            .custom-add-row {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .custom-add-row .currency-prefix-container {
+                width: 100% !important;
+            }
+            .settlement-option-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+                background: #ffffff;
+                padding: 0.75rem;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            .settlement-option-row .currency-prefix-container {
+                width: 100% !important;
+            }
+            .btn-calculate {
+                padding: 1.1rem 1rem;
+            }
+        }
 
         .results-wrapper {
             display: none;
@@ -424,12 +448,12 @@
             <h3>Property &amp; Transaction Details</h3>
             <div class="form-grid">
                 
-                <div class="input-element-box" style="grid-column: span 2;">
+                <div class="input-element-box span-2">
                     <label for="inSellerName">Seller Name</label>
                     <input type="text" id="inSellerName" placeholder="Leave blank or type name">
                 </div>
 
-                <div class="input-element-box" style="grid-column: span 2;">
+                <div class="input-element-box span-2">
                     <label for="inSellerAddress">Property Address</label>
                     <input type="text" id="inSellerAddress" placeholder="Type address to search..." oninput="handleAddressAutocompleteSearch(this)" autocomplete="off">
                     <div id="addressSuggestions" class="autocomplete-suggestions" style="display: none;"></div>
@@ -493,53 +517,53 @@
                     </div>
                 </div>
 
-                <div class="input-element-box" style="grid-column: span 2;">
+                <div class="input-element-box span-2">
                     <label>Custom Addition 1</label>
                     <div class="custom-add-row">
                         <input type="text" id="inOtherLabel1" placeholder="Label (e.g. Septic Pumping)" style="flex: 1;">
-                        <div class="currency-prefix-container" style="width: 130px; flex-shrink: 0;">
+                        <div class="currency-prefix-container amt-prefix-box">
                             <span class="prefix-symbol">$</span>
-                            <input type="number" id="inOtherAmt1" placeholder="Amount">
+                            <input type="number" id="inOtherAmt1" placeholder="Amount" class="amt-input-wide">
                         </div>
                     </div>
                 </div>
 
-                <div class="input-element-box" style="grid-column: span 2;">
+                <div class="input-element-box span-2">
                     <label>Custom Addition 2</label>
                     <div class="custom-add-row">
                         <input type="text" id="inOtherLabel2" placeholder="Label (e.g. Work Orders)" style="flex: 1;">
-                        <div class="currency-prefix-container" style="width: 130px; flex-shrink: 0;">
+                        <div class="currency-prefix-container amt-prefix-box">
                             <span class="prefix-symbol">$</span>
-                            <input type="number" id="inOtherAmt2" placeholder="Amount">
+                            <input type="number" id="inOtherAmt2" placeholder="Amount" class="amt-input-wide">
                         </div>
                     </div>
                 </div>
 
-                <div class="input-element-box" style="grid-column: span 2;">
+                <div class="input-element-box span-2">
                     <label>Pre-filled Settlement Options</label>
                     <div class="settlement-options-flex">
                         <div class="settlement-option-row">
                             <label class="checkbox-item">
                                 <input type="checkbox" id="chkPreInspection"> Pre-inspection
                             </label>
-                            <div class="currency-prefix-container" style="width: 100px; flex-shrink: 0;">
+                            <div class="currency-prefix-container amt-prefix-box">
                                 <span class="prefix-symbol">$</span>
-                                <input type="number" id="inPreInspectCost" value="550">
+                                <input type="number" id="inPreInspectCost" value="550" class="amt-input-medium">
                             </div>
                         </div>
                         <div class="settlement-option-row">
                             <label class="checkbox-item">
                                 <input type="checkbox" id="chkHoaCert"> HOA Resale Cert
                             </label>
-                            <div class="currency-prefix-container" style="width: 100px; flex-shrink: 0;">
+                            <div class="currency-prefix-container amt-prefix-box">
                                 <span class="prefix-symbol">$</span>
-                                <input type="number" id="inHoaCertCost" value="300">
+                                <input type="number" id="inHoaCertCost" value="300" class="amt-input-medium">
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="input-element-box" style="grid-column: span 2;">
+                <div class="input-element-box span-2">
                     <label>Current Tax Payments</label>
                     <div class="checkbox-group-wrapper" style="padding-top: 0.6rem;">
                         <label class="checkbox-item">
@@ -926,17 +950,20 @@
                 <tr><td>County Auditor Recording and Filing Fee</td><td>$0</td><td class="val-cost">${formatCurrency(localRecordingFilingFee)}</td></tr>
             `;
 
-            if (preInspectChecked && preInspectCost > 0) {
-                ledgerBuffer += `<tr><td>Pre-inspection Settlement Allocation</td><td>$0</td><td class="val-cost">${formatCurrency(preInspectCost)}</td></tr>`;
-            }
-            if (hoaCertChecked && hoaCertCost > 0) {
-                ledgerBuffer += `<tr><td>HOA Resale Certificate Fee</td><td>$0</td><td class="val-cost">${formatCurrency(hoaCertCost)}</td></tr>`;
-            }
-            if (otherAmt1 > 0) {
-                ledgerBuffer += `<tr><td>Other Cost: ${otherLabel1}</td><td>$0</td><td class="val-cost">${formatCurrency(otherAmt1)}</td></tr>`;
-            }
-            if (otherAmt2 > 0) {
-                ledgerBuffer += `<tr><td>Other Cost: ${otherLabel2}</td><td>$0</td><td class="val-cost">${formatCurrency(otherAmt2)}</td></tr>`;
+            if (preInspectChecked && preInspectCost > 0 || hoaCertChecked && hoaCertCost > 0 || otherAmt1 > 0 || otherAmt2 > 0) {
+                ledgerBuffer += `<tr class="section-row"><td colspan="3">Additional Settlement Details</td></tr>`;
+                if (preInspectChecked && preInspectCost > 0) {
+                    ledgerBuffer += `<tr><td>Pre-inspection Settlement Allocation</td><td>$0</td><td class="val-cost">${formatCurrency(preInspectCost)}</td></tr>`;
+                }
+                if (hoaCertChecked && hoaCertCost > 0) {
+                    ledgerBuffer += `<tr><td>HOA Resale Certificate Fee</td><td>$0</td><td class="val-cost">${formatCurrency(hoaCertCost)}</td></tr>`;
+                }
+                if (otherAmt1 > 0) {
+                    ledgerBuffer += `<tr><td>Other Cost: ${otherLabel1}</td><td>$0</td><td class="val-cost">${formatCurrency(otherAmt1)}</td></tr>`;
+                }
+                if (otherAmt2 > 0) {
+                    ledgerBuffer += `<tr><td>Other Cost: ${otherLabel2}</td><td>$0</td><td class="val-cost">${formatCurrency(otherAmt2)}</td></tr>`;
+                }
             }
 
             tbody.innerHTML = ledgerBuffer;
