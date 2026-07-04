@@ -143,13 +143,12 @@ class UniversalFooter extends HTMLElement {
                 disclaimerBox.style.display = 'none';
             }
 
-} catch (error) {
+        } catch (error) {
             console.error("Regulatory disclosure generation error:", error);
             disclaimerBox.style.display = 'none';
         }
 
-        // Clean JavaScript Injection for Cloudflare Web Analytics
-if (!document.getElementById('cloudflare-analytics-beacon')) {
+        if (!document.getElementById('cloudflare-analytics-beacon')) {
             const cfScript = document.createElement('script');
             cfScript.id = 'cloudflare-analytics-beacon';
             cfScript.defer = true;
@@ -261,6 +260,302 @@ class LocalReviews extends HTMLElement {
     }
 }
 
+/**
+ * polymorphic, Scalable Native Quiz Evaluation Web Component
+ * Syntax call: <quiz-engine quiz-id="1"></quiz-engine>
+ */
+/* File: components.js (QuizEngine Section Update) */
+
+class QuizEngine extends HTMLElement {
+    constructor() {
+        super();
+        this.quizData = null;
+        this.questions = [];
+        this.routing = [];
+        this.currentStep = -1;
+        this.leadInfo = { firstName: '', lastName: '', email: '', phone: '' };
+        this.answers = [];
+        this.scores = { typeA: 0, typeB: 0, typeC: 0, typeD: 0, typeE: 0, typeF: 0 };
+        this.totalTallyScore = 0;
+    }
+
+    async connectedCallback() {
+        const quizIdAttr = this.getAttribute('quiz-id');
+        if (!quizIdAttr) {
+            this.innerHTML = `<div style="color:red; font-weight:bold; padding:1rem; text-align:center;">Engine Error: Attribute 'quiz-id' is required.</div>`;
+            return;
+        }
+        
+        this.innerHTML = `<div style="text-align:center; padding:3rem; font-size:1.1rem; color:#666;">Hydrating dynamic strategy options...</div>`;
+        
+        try {
+            // Read from the clean local fast JSON compilation cache
+            const response = await fetch('./data/quizzes.json');
+            const data = await response.json();
+            this.quizData = data[quizIdAttr];
+            
+            if (!this.quizData) {
+                this.innerHTML = `<div style="color:red; font-weight:bold; padding:1rem; text-align:center;">Engine Error: Quiz ID ${quizIdAttr} not found in localized database.</div>`;
+                return;
+            }
+
+            this.questions = this.quizData.questions || [];
+            this.routing = this.quizData.routing || [];
+
+            // 📅 EXECUTE SCHEDULING CALENDAR DATE GATE ROUTINES
+            if (!this.checkDateAvailability()) {
+                this.innerHTML = `
+                    <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:3rem 2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); text-align:center; border-top:6px solid #ccc;">
+                        <div style="font-size:3rem; margin-bottom:1rem;">📅</div>
+                        <h3 style="color:#333; margin:0 0 0.75rem 0;">Assessment Unavailable</h3>
+                        <p style="color:#666; font-size:0.95rem; line-height:1.5; margin:0;">This quiz strategy module is not available at this time. Please check back later or join our upcoming buyer/seller classes.</p>
+                    </div>`;
+                return;
+            }
+
+            this.renderOnboarding();
+        } catch (err) {
+            console.error("Quiz Engine Initialization Interrupted:", err);
+            this.innerHTML = `<div style="color:red; font-weight:bold; padding:1rem; text-align:center;">Failed to compile quiz metadata pipeline.</div>`;
+        }
+    }
+
+    checkDateAvailability() {
+        if (!this.quizData.startDate && !this.quizData.endDate) return true; // Empty fields mean no restrictions
+        
+        const today = new Date();
+        today.setHours(0,0,0,0); // Zero out hours to match row dates perfectly
+
+        if (this.quizData.startDate) {
+            const start = new Date(this.quizData.startDate + "T00:00:00");
+            if (today < start) return false;
+        }
+
+        if (this.quizData.endDate) {
+            const end = new Date(this.quizData.endDate + "T00:00:00");
+            if (today > end) return false;
+        }
+
+        return true;
+    }
+
+    renderOnboarding() {
+        this.innerHTML = `
+            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); border-top: 6px solid #A6192E;">
+                <h2 style="text-align:center; color:#A6192E; margin-top:0; font-size:1.6rem; line-height:1.3;">${this.quizData.webTitle}</h2>
+                <p style="text-align:center; color:#555; line-height:1.6; margin-bottom:2rem; font-size:0.98rem;">${this.quizData.introText}</p>
+                
+                <form id="quiz-lead-form" style="display:flex; flex-direction:column; gap:1.25rem;">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                        <div>
+                            <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color:#333;">First Name *</label>
+                            <input type="text" id="quiz-firstName" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; font-size:0.95rem;">
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color:#333;">Last Name *</label>
+                            <input type="text" id="quiz-lastName" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; font-size:0.95rem;">
+                        </div>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color:#333;">Email Address *</label>
+                        <input type="email" id="quiz-email" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; font-size:0.95rem;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color:#333;">Phone Number *</label>
+                        <input type="tel" id="quiz-phone" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; font-size:0.95rem;">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="margin-top:1rem; padding:0.9rem; font-size:1rem; font-weight:bold; letter-spacing:0.5px;">Begin Strategy Blueprint</button>
+                </form>
+            </div>
+        `;
+
+        this.querySelector('#quiz-lead-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.leadInfo.firstName = this.querySelector('#quiz-firstName').value.trim();
+            this.leadInfo.lastName = this.querySelector('#quiz-lastName').value.trim();
+            this.leadInfo.email = this.querySelector('#quiz-email').value.trim();
+            this.leadInfo.phone = this.querySelector('#quiz-phone').value.trim();
+            
+            this.currentStep = 0;
+            this.renderQuestion();
+        });
+    }
+
+    renderQuestion() {
+        if (this.currentStep >= this.questions.length) {
+            this.processCalculationsAndSubmit();
+            return;
+        }
+
+        const rawQuestion = this.questions[this.currentStep];
+        const parts = rawQuestion.split('||');
+        const questionText = parts[0].trim();
+        const progressPercentage = Math.round(((this.currentStep) / this.questions.length) * 100);
+
+        let interfaceHTML = '';
+
+        if (this.quizData.scoringType === 'matrix_4quadrant') {
+            interfaceHTML = `
+                <p style="font-size:0.9rem; color:#888; text-align:center; font-weight:bold; margin-bottom:0.5rem;">Rate your level of agreement:</p>
+                <div style="display:grid; grid-template-columns: repeat(10, 1fr); gap:6px; margin:2rem 0 1rem 0;">
+                    ${Array.from({length: 10}, (_, i) => i + 1).map(num => `
+                        <button type="button" class="matrix-choice-btn" data-val="${num}" style="padding: 0.8rem 0; border:1px solid #ddd; background:#fff; font-weight:bold; border-radius:6px; cursor:pointer; transition:all 0.2s ease; font-size:0.95rem;">${num}</button>
+                    `).join('')}
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:0.78rem; font-weight:700; color:#666; padding:0 4px; margin-bottom:2rem;">
+                    <span>1 - Strongly Disagree</span>
+                    <span>10 - Strongly Agree</span>
+                </div>
+            `;
+        } else {
+            const choices = parts[1].split('|').map(c => c.trim());
+            interfaceHTML = `
+                <div style="display:flex; flex-direction:column; gap:0.9rem; margin:2rem 0;">
+                    ${choices.map((choice) => {
+                        const pointsMatch = choice.match(/\[(\d+)\]/);
+                        const pointsValue = pointsMatch ? parseInt(pointsMatch[1]) : 0;
+                        const clearText = choice.replace(/\[\d+\]/, '').trim();
+                        return `
+                            <button type="button" class="tally-choice-btn" data-points="${pointsValue}" data-text="${clearText}" style="text-align:left; padding:1rem; border:1px solid #ddd; background:#fff; border-radius:8px; cursor:pointer; transition:all 0.2s ease; font-size:0.98rem; line-height:1.4; font-weight:500;">${clearText}</button>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        this.innerHTML = `
+            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); min-height:350px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box;">
+                <div>
+                    <div style="width:100%; background:#eee; height:6px; border-radius:3px; margin-bottom:2rem; overflow:hidden;">
+                        <div style="width:${progressPercentage}%; background:#A6192E; height:100%; transition:width 0.3s ease;"></div>
+                    </div>
+                    <div style="font-size:0.8rem; font-weight:800; color:#A6192E; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.5rem; text-align:center;">Statement ${this.currentStep + 1} of ${this.questions.length}</div>
+                    <h3 style="text-align:center; font-size:1.22rem; font-weight:600; line-height:1.5; color:#222; margin:0 0 1.5rem 0; padding:0 10px;">"${questionText}"</h3>
+                </div>
+                <div>${interfaceHTML}</div>
+            </div>
+        `;
+
+        this.querySelectorAll('.matrix-choice-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const numericValue = parseInt(btn.getAttribute('data-val'));
+                const traitBucket = parts[1] ? parts[1].trim() : 'typeA';
+                
+                this.answers.push(numericValue);
+                if (this.scores[traitBucket] !== undefined) this.scores[traitBucket] += numericValue;
+                
+                this.currentStep++;
+                this.renderQuestion();
+            });
+        });
+
+        this.querySelectorAll('.tally-choice-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const points = parseInt(btn.getAttribute('data-points'));
+                const chosenText = btn.getAttribute('data-text');
+                
+                this.answers.push(chosenText + " [" + points + "]");
+                this.totalTallyScore += points;
+                
+                this.currentStep++;
+                this.renderQuestion();
+            });
+        });
+    }
+
+    async processCalculationsAndSubmit() {
+        this.innerHTML = `
+            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:4rem 2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); text-align:center;">
+                <div class="spinner" style="border: 4px solid rgba(166,25,46,0.1); border-left-color: #A6192E; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 1.5rem auto;"></div>
+                <h3 style="color:#222; margin:0 0 0.5rem 0;">Analyzing Metrics...</h3>
+                <p style="color:#666; font-size:0.95rem; margin:0;">Securing your strategic blueprint vault access token.</p>
+                <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+            </div>
+        `;
+
+        let outcomeKey = '';
+        let finalOutcome = '';
+        let dynamicRedirectDestinationUrl = '';
+
+        if (this.quizData.scoringType === 'matrix_4quadrant') {
+            let highestVal = -1;
+            for (const [bucket, value] of Object.entries(this.scores)) {
+                if (value > highestVal) {
+                    highestVal = value;
+                    outcomeKey = bucket;
+                }
+            }
+            
+            for (const rStr of this.routing) {
+                if (rStr.includes('||')) {
+                    const rParts = rStr.split('||');
+                    if (rParts[0].trim() === outcomeKey) {
+                        dynamicRedirectDestinationUrl = rParts[1].trim(); // Grabs whatever full URL structure you wrote!
+                        
+                        // Extract a pretty outcome name string for tracking databases
+                        let baselineExtract = dynamicRedirectDestinationUrl.split('/').pop().replace('.html', '');
+                        if (baselineExtract.includes('#')) baselineExtract = baselineExtract.split('#')[1];
+                        finalOutcome = baselineExtract.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                        break;
+                    }
+                }
+            }
+        } else {
+            for (const rStr of this.routing) {
+                if (rStr.includes('||')) {
+                    const rParts = rStr.split('||');
+                    const rangeParts = rParts[0].trim().split('-');
+                    const min = parseInt(rangeParts[0]);
+                    const max = parseInt(rangeParts[1]);
+                    
+                    if (this.totalTallyScore >= min && this.totalTallyScore <= max) {
+                        dynamicRedirectDestinationUrl = rParts[1].trim();
+                        outcomeKey = rParts[0].trim();
+                        
+                        let baselineExtract = dynamicRedirectDestinationUrl.split('/').pop().replace('.html', '');
+                        if (baselineExtract.includes('#')) baselineExtract = baselineExtract.split('#')[1];
+                        finalOutcome = baselineExtract.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                        break;
+                    }
+                }
+            }
+        }
+
+        const submissionPayload = {
+            quizId: this.quizData.id,
+            firstName: this.leadInfo.firstName,
+            lastName: this.leadInfo.lastName,
+            email: this.leadInfo.email,
+            phone: this.leadInfo.phone,
+            outcomeKey: outcomeKey,
+            finalOutcome: finalOutcome,
+            totalTallyScore: this.totalTallyScore,
+            scores: this.scores,
+            answers: this.answers
+        };
+
+        try {
+            fetch(this.quizData.webhookUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(submissionPayload)
+            });
+        } catch (postErr) {
+            print("Payload buffer dispatch exception logs:", postErr);
+        }
+
+        // Forward the client's name out via parameter strings to authorize dynamic layout greetings
+        const parameterGlue = dynamicRedirectDestinationUrl.includes('?') ? '&' : '?';
+        const finalTargetLink = dynamicRedirectDestinationUrl + parameterGlue + "name=" + encodeURIComponent(this.leadInfo.firstName);
+
+        setTimeout(() => {
+            window.location.href = finalTargetLink;
+        }, 600);
+    }
+}
+
 customElements.define('universal-header', UniversalHeader);
 customElements.define('universal-footer', UniversalFooter);
 customElements.define('local-reviews', LocalReviews);
+customElements.define('quiz-engine', QuizEngine);

@@ -1,0 +1,35 @@
+# File: .github/workflows/quizzes_pipeline.yml
+name: Quiz Engine Sync Pipeline
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Executes automatically every Sunday at midnight
+  workflow_dispatch: # Allows you to force trigger the compilation instantly in GitHub UI
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Vault Source Repository
+        uses: actions/checkout@v3
+
+      - name: Configure Python Infrastructure environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install Network Pipeline Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Execute Serialization Data Harvest Script
+        run: python scripts/harvest_quizzes.py
+
+      - name: Commit and Push Compiled JSON Data Assets back to Repo
+        run: |
+          git config --global user.name "GitHub Actions Automation Pipeline"
+          git config --global user.email "actions@github.com"
+          git add data/quizzes.json
+          git diff-index --quiet HEAD || git commit -m "Automated Pipeline Update: Synchronized quizzes.json assets"
+          git push
