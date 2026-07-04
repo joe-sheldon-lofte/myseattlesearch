@@ -14,7 +14,7 @@ def harvest_quizzes():
     if response.status_code != 200:
         raise Exception(f"Network endpoint unreachable. Status Code: {response.status_code}")
     
-    # 🌟 CRITICAL FIX: Explicitly force UTF-8 text decoding to strip character artifacts
+    # Force UTF-8 text decoding to strip character artifacts cleanly
     response.encoding = 'utf-8'
     
     csv_text = response.text.splitlines()
@@ -54,13 +54,14 @@ def harvest_quizzes():
             "webhookUrl": row.get("Webhook URL", "").strip(),
             "emailSubject": row.get("Email Subject", "").strip(),
             "userTags": row.get("User Tags", "").strip(),
+            "requiredFields": row.get("Required Fields", "").strip(), # 🌟 New Dynamic Field Requirement Layer
             "startDate": row.get("Start Date", "").strip(),
             "endDate": row.get("End Date", "").strip(),
             "questions": questions,
             "routing": routing
         }
         
-    os.makedirs(DATA_DIR, ensure_copy=True)
+    # Build directory if missing and save the data cache asset
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(quizzes_db, f, indent=4, ensure_ascii=False)

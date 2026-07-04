@@ -260,12 +260,6 @@ class LocalReviews extends HTMLElement {
     }
 }
 
-/**
- * polymorphic, Scalable Native Quiz Evaluation Web Component
- * Syntax call: <quiz-engine quiz-id="1"></quiz-engine>
- */
-/* File: components.js (QuizEngine Section Update) */
-
 class QuizEngine extends HTMLElement {
     constructor() {
         super();
@@ -282,27 +276,25 @@ class QuizEngine extends HTMLElement {
     async connectedCallback() {
         const quizIdAttr = this.getAttribute('quiz-id');
         if (!quizIdAttr) {
-            this.innerHTML = `<div style="color:red; font-weight:bold; padding:1rem; text-align:center;">Engine Error: Attribute 'quiz-id' is required.</div>`;
+            this.innerHTML = `<div style="color:#C13030; font-weight:bold; padding:1rem; text-align:center;">Engine Error: Attribute 'quiz-id' is required.</div>`;
             return;
         }
         
-        this.innerHTML = `<div style="text-align:center; padding:3rem; font-size:1.1rem; color:#666;">Hydrating dynamic strategy options...</div>`;
+        this.innerHTML = `<div style="text-align:center; padding: 3rem; font-size:1.1rem; color:#666;">Hydrating dynamic strategy options...</div>`;
         
         try {
-            // Read from the clean local fast JSON compilation cache
             const response = await fetch('./data/quizzes.json');
             const data = await response.json();
             this.quizData = data[quizIdAttr];
             
             if (!this.quizData) {
-                this.innerHTML = `<div style="color:red; font-weight:bold; padding:1rem; text-align:center;">Engine Error: Quiz ID ${quizIdAttr} not found in localized database.</div>`;
+                this.innerHTML = `<div style="color:#C13030; font-weight:bold; padding:1rem; text-align:center;">Engine Error: Quiz ID ${quizIdAttr} not found in localized database.</div>`;
                 return;
             }
 
             this.questions = this.quizData.questions || [];
             this.routing = this.quizData.routing || [];
 
-            // 📅 EXECUTE SCHEDULING CALENDAR DATE GATE ROUTINES
             if (!this.checkDateAvailability()) {
                 this.innerHTML = `
                     <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:3rem 2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); text-align:center; border-top:6px solid #ccc;">
@@ -316,15 +308,15 @@ class QuizEngine extends HTMLElement {
             this.renderOnboarding();
         } catch (err) {
             console.error("Quiz Engine Initialization Interrupted:", err);
-            this.innerHTML = `<div style="color:red; font-weight:bold; padding:1rem; text-align:center;">Failed to compile quiz metadata pipeline.</div>`;
+            this.innerHTML = `<div style="color:#C13030; font-weight:bold; padding:1rem; text-align:center;">Failed to compile quiz metadata pipeline.</div>`;
         }
     }
 
     checkDateAvailability() {
-        if (!this.quizData.startDate && !this.quizData.endDate) return true; // Empty fields mean no restrictions
+        if (!this.quizData.startDate && !this.quizData.endDate) return true;
         
         const today = new Date();
-        today.setHours(0,0,0,0); // Zero out hours to match row dates perfectly
+        today.setHours(0,0,0,0);
 
         if (this.quizData.startDate) {
             const start = new Date(this.quizData.startDate + "T00:00:00");
@@ -340,29 +332,38 @@ class QuizEngine extends HTMLElement {
     }
 
     renderOnboarding() {
+        // 🌟 RESOLVE DYNAMIC FORM FIELD REQUIREMENT HOOKS
+        const reqStr = this.quizData.requiredFields || 'firstName,lastName,email';
+        const reqFields = reqStr.split(',').map(f => f.trim().toLowerCase());
+        
+        const isFNReq = reqFields.includes('firstname') ? 'required' : '';
+        const isLNReq = reqFields.includes('lastname') ? 'required' : '';
+        const isEMReq = reqFields.includes('email') ? 'required' : '';
+        const isPHReq = reqFields.includes('phone') ? 'required' : '';
+
         this.innerHTML = `
-            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); border-top: 6px solid #A6192E;">
-                <h2 style="text-align:center; color:#A6192E; margin-top:0; font-size:1.6rem; line-height:1.3;">${this.quizData.webTitle}</h2>
+            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); border-top: 6px solid #C13030;">
+                <h2 style="text-align:center; color:#C13030; margin-top:0; font-size:1.6rem; line-height:1.3;">${this.quizData.webTitle}</h2>
                 <p style="text-align:center; color:#555; line-height:1.6; margin-bottom:2rem; font-size:0.98rem;">${this.quizData.introText}</p>
                 
                 <form id="quiz-lead-form" style="display:flex; flex-direction:column; gap:1.25rem;">
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
                         <div>
-                            <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color:#333;">First Name *</label>
-                            <input type="text" id="quiz-firstName" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; font-size:0.95rem;">
+                            <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color:#333;">First Name ${isFNReq ? '*' : ''}</label>
+                            <input type="text" id="quiz-firstName" ${isFNReq} style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; font-size:0.95rem;">
                         </div>
                         <div>
-                            <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color:#333;">Last Name *</label>
-                            <input type="text" id="quiz-lastName" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; font-size:0.95rem;">
+                            <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color:#333;">Last Name ${isLNReq ? '*' : ''}</label>
+                            <input type="text" id="quiz-lastName" ${isLNReq} style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; font-size:0.95rem;">
                         </div>
                     </div>
                     <div>
-                        <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color:#333;">Email Address *</label>
-                        <input type="email" id="quiz-email" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; font-size:0.95rem;">
+                        <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color:#333;">Email Address ${isEMReq ? '*' : ''}</label>
+                        <input type="email" id="quiz-email" ${isEMReq} style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; font-size:0.95rem;">
                     </div>
                     <div>
-                        <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color:#333;">Phone Number *</label>
-                        <input type="tel" id="quiz-phone" required style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; font-size:0.95rem;">
+                        <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color:#333;">Phone Number ${isPHReq ? '*' : ''}</label>
+                        <input type="tel" id="quiz-phone" ${isPHReq} style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; font-size:0.95rem;">
                     </div>
                     <button type="submit" class="btn btn-primary" style="margin-top:1rem; padding:0.9rem; font-size:1rem; font-weight:bold; letter-spacing:0.5px;">Begin Strategy Blueprint</button>
                 </form>
@@ -423,13 +424,14 @@ class QuizEngine extends HTMLElement {
             `;
         }
 
+        // 🌟 ACCURATE BRAND RED COLOR (#C13030) SYMMETRY FOR METRICS AND PROGRESS
         this.innerHTML = `
-            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); min-height:350px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box;">
+            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); min-height:350px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; border-top: 6px solid #C13030;">
                 <div>
                     <div style="width:100%; background:#eee; height:6px; border-radius:3px; margin-bottom:2rem; overflow:hidden;">
-                        <div style="width:${progressPercentage}%; background:#A6192E; height:100%; transition:width 0.3s ease;"></div>
+                        <div style="width:${progressPercentage}%; background:#C13030; height:100%; transition:width 0.3s ease;"></div>
                     </div>
-                    <div style="font-size:0.8rem; font-weight:800; color:#A6192E; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.5rem; text-align:center;">Statement ${this.currentStep + 1} of ${this.questions.length}</div>
+                    <div style="font-size:0.8rem; font-weight:800; color:#C13030; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.5rem; text-align:center;">Statement ${this.currentStep + 1} of ${this.questions.length}</div>
                     <h3 style="text-align:center; font-size:1.22rem; font-weight:600; line-height:1.5; color:#222; margin:0 0 1.5rem 0; padding:0 10px;">"${questionText}"</h3>
                 </div>
                 <div>${interfaceHTML}</div>
@@ -465,8 +467,8 @@ class QuizEngine extends HTMLElement {
 
     async processCalculationsAndSubmit() {
         this.innerHTML = `
-            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:4rem 2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); text-align:center;">
-                <div class="spinner" style="border: 4px solid rgba(166,25,46,0.1); border-left-color: #A6192E; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 1.5rem auto;"></div>
+            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:4rem 2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); text-align:center; border-top: 6px solid #C13030;">
+                <div class="spinner" style="border: 4px solid rgba(193,48,48,0.1); border-left-color: #C13030; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 1.5rem auto;"></div>
                 <h3 style="color:#222; margin:0 0 0.5rem 0;">Analyzing Metrics...</h3>
                 <p style="color:#666; font-size:0.95rem; margin:0;">Securing your strategic blueprint vault access token.</p>
                 <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
@@ -490,9 +492,8 @@ class QuizEngine extends HTMLElement {
                 if (rStr.includes('||')) {
                     const rParts = rStr.split('||');
                     if (rParts[0].trim() === outcomeKey) {
-                        dynamicRedirectDestinationUrl = rParts[1].trim(); // Grabs whatever full URL structure you wrote!
+                        dynamicRedirectDestinationUrl = rParts[1].trim();
                         
-                        // Extract a pretty outcome name string for tracking databases
                         let baselineExtract = dynamicRedirectDestinationUrl.split('/').pop().replace('.html', '');
                         if (baselineExtract.includes('#')) baselineExtract = baselineExtract.split('#')[1];
                         finalOutcome = baselineExtract.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -542,10 +543,9 @@ class QuizEngine extends HTMLElement {
                 body: JSON.stringify(submissionPayload)
             });
         } catch (postErr) {
-            print("Payload buffer dispatch exception logs:", postErr);
+            console.error("Payload buffer dispatch exception logs:", postErr);
         }
 
-        // Forward the client's name out via parameter strings to authorize dynamic layout greetings
         const parameterGlue = dynamicRedirectDestinationUrl.includes('?') ? '&' : '?';
         const finalTargetLink = dynamicRedirectDestinationUrl + parameterGlue + "name=" + encodeURIComponent(this.leadInfo.firstName);
 
