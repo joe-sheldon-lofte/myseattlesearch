@@ -244,8 +244,8 @@ class LocalReviews extends HTMLElement {
                     : '';
 
                 return `
-                    <div class="review-component-card" style="background: #ffffff; padding: 1.75rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; flex-direction: column; border-top: 5px solid #C13030;">
-                        <div style="color: #C13030; font-size: 1rem; font-weight: 800; margin-bottom: 0.75rem; letter-spacing: 0.5px;">5.0 <span style="font-size: 1.1rem; letter-spacing: 1px;">${stars}</span></div>
+                    <div class="review-component-card" style="background: #ffffff; padding: 1.75rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; flex-direction: column; border-top: 5px solid var(--redfin-red);">
+                        <div style="color: var(--redfin-red); font-size: 1rem; font-weight: 800; margin-bottom: 0.75rem; letter-spacing: 0.5px;">5.0 <span style="font-size: 1.1rem; letter-spacing: 1px;">${stars}</span></div>
                         ${snippetMarkup}
                         <p style="margin: 0 0 1.25rem 0; font-size: 0.95rem; color: #222222; line-weight: 500; line-height: 1.6;">${rev.fullText}</p>
                         <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #222222; opacity: 0.7;">— ${rev.reviewer}</div>
@@ -268,19 +268,20 @@ class QuizEngine extends HTMLElement {
         this.routing = [];
         this.currentStep = -1;
         this.leadInfo = { firstName: '', lastName: '', email: '', phone: '' };
-        this.answers = [];
-        this.scores = { typeA: 0, typeB: 0, typeC: 0, typeD: 0, typeE: 0, typeF: 0 };
-        this.totalTallyScore = 0;
+        
+        // 🔄 NEW CACHED INTERACTIVE SELECTION DATA MODELS
+        this.answers = []; // Indexes match the currentStep sequence
+        this.currentSelection = null; 
     }
 
     async connectedCallback() {
         const quizIdAttr = this.getAttribute('quiz-id');
         if (!quizIdAttr) {
-            this.innerHTML = `<div style="color:#C13030; font-weight:bold; padding:1rem; text-align:center;">Engine Error: Attribute 'quiz-id' is required.</div>`;
+            this.innerHTML = `<div style="color:var(--redfin-red); font-weight:bold; padding:1rem; text-align:center;">Engine Error: Attribute 'quiz-id' is required.</div>`;
             return;
         }
         
-        this.innerHTML = `<div style="text-align:center; padding: 3rem; font-size:1.1rem; color:#666;">Hydrating dynamic strategy options...</div>`;
+        this.innerHTML = `<div style="text-align:center; padding:3rem; font-size:1.1rem; color:#666;">Hydrating dynamic strategy options...</div>`;
         
         try {
             const response = await fetch('./data/quizzes.json');
@@ -288,7 +289,7 @@ class QuizEngine extends HTMLElement {
             this.quizData = data[quizIdAttr];
             
             if (!this.quizData) {
-                this.innerHTML = `<div style="color:#C13030; font-weight:bold; padding:1rem; text-align:center;">Engine Error: Quiz ID ${quizIdAttr} not found in localized database.</div>`;
+                this.innerHTML = `<div style="color:var(--redfin-red); font-weight:bold; padding:1rem; text-align:center;">Engine Error: Quiz ID ${quizIdAttr} not found in localized database.</div>`;
                 return;
             }
 
@@ -308,7 +309,7 @@ class QuizEngine extends HTMLElement {
             this.renderOnboarding();
         } catch (err) {
             console.error("Quiz Engine Initialization Interrupted:", err);
-            this.innerHTML = `<div style="color:#C13030; font-weight:bold; padding:1rem; text-align:center;">Failed to compile quiz metadata pipeline.</div>`;
+            this.innerHTML = `<div style="color:var(--redfin-red); font-weight:bold; padding:1rem; text-align:center;">Failed to compile quiz metadata pipeline.</div>`;
         }
     }
 
@@ -332,7 +333,6 @@ class QuizEngine extends HTMLElement {
     }
 
     renderOnboarding() {
-        // 🌟 RESOLVE DYNAMIC FORM FIELD REQUIREMENT HOOKS
         const reqStr = this.quizData.requiredFields || 'firstName,lastName,email';
         const reqFields = reqStr.split(',').map(f => f.trim().toLowerCase());
         
@@ -342,8 +342,8 @@ class QuizEngine extends HTMLElement {
         const isPHReq = reqFields.includes('phone') ? 'required' : '';
 
         this.innerHTML = `
-            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); border-top: 6px solid #C13030;">
-                <h2 style="text-align:center; color:#C13030; margin-top:0; font-size:1.6rem; line-height:1.3;">${this.quizData.webTitle}</h2>
+            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); border-top: 6px solid var(--redfin-red);">
+                <h2 style="text-align:center; color:var(--redfin-red); margin-top:0; font-size:1.6rem; line-height:1.3;">${this.quizData.webTitle}</h2>
                 <p style="text-align:center; color:#555; line-height:1.6; margin-bottom:2rem; font-size:0.98rem;">${this.quizData.introText}</p>
                 
                 <form id="quiz-lead-form" style="display:flex; flex-direction:column; gap:1.25rem;">
@@ -365,7 +365,7 @@ class QuizEngine extends HTMLElement {
                         <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color:#333;">Phone Number ${isPHReq ? '*' : ''}</label>
                         <input type="tel" id="quiz-phone" ${isPHReq} style="width:100%; padding:0.75rem; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; font-size:0.95rem;">
                     </div>
-                    <button type="submit" class="btn btn-primary" style="margin-top:1rem; padding:0.9rem; font-size:1rem; font-weight:bold; letter-spacing:0.5px;">Begin Strategy Blueprint</button>
+                    <button type="submit" class="btn btn-primary" style="margin-top:1rem; padding:0.9rem; font-size:1rem; font-weight:bold; letter-spacing:0.5px;">Start the Quiz</button>
                 </form>
             </div>
         `;
@@ -393,17 +393,22 @@ class QuizEngine extends HTMLElement {
         const questionText = parts[0].trim();
         const progressPercentage = Math.round(((this.currentStep) / this.questions.length) * 100);
 
+        // Pull previous answer selection to pre-populate if they went backward
+        const existingAnswer = this.answers[this.currentStep];
+        this.currentSelection = existingAnswer !== undefined ? existingAnswer : null;
+
         let interfaceHTML = '';
 
         if (this.quizData.scoringType === 'matrix_4quadrant') {
             interfaceHTML = `
-                <p style="font-size:0.9rem; color:#888; text-align:center; font-weight:bold; margin-bottom:0.5rem;">Rate your level of agreement:</p>
-                <div style="display:grid; grid-template-columns: repeat(10, 1fr); gap:6px; margin:2rem 0 1rem 0;">
-                    ${Array.from({length: 10}, (_, i) => i + 1).map(num => `
-                        <button type="button" class="matrix-choice-btn" data-val="${num}" style="padding: 0.8rem 0; border:1px solid #ddd; background:#fff; font-weight:bold; border-radius:6px; cursor:pointer; transition:all 0.2s ease; font-size:0.95rem;">${num}</button>
-                    `).join('')}
+                <p style="font-size:0.9rem; color:#888; text-align:center; font-weight:bold; margin-bottom:0.75rem;">Rate your level of agreement:</p>
+                <div class="matrix-grid-layout" style="display:grid; grid-template-columns: repeat(5, 1fr); gap:10px; margin:1.5rem 0 1rem 0;">
+                    ${Array.from({length: 10}, (_, i) => i + 1).map(num => {
+                        const isSelected = this.currentSelection === num ? 'selected-active' : '';
+                        return `<button type="button" class="matrix-choice-btn ${isSelected}" data-val="${num}">${num}</button>`;
+                    }).join('')}
                 </div>
-                <div style="display:flex; justify-content:space-between; font-size:0.78rem; font-weight:700; color:#666; padding:0 4px; margin-bottom:2rem;">
+                <div style="display:flex; justify-content:between; font-size:0.78rem; font-weight:700; color:#666; margin-bottom:1.5rem; justify-content: space-between;">
                     <span>1 - Strongly Disagree</span>
                     <span>10 - Strongly Agree</span>
                 </div>
@@ -411,64 +416,134 @@ class QuizEngine extends HTMLElement {
         } else {
             const choices = parts[1].split('|').map(c => c.trim());
             interfaceHTML = `
-                <div style="display:flex; flex-direction:column; gap:0.9rem; margin:2rem 0;">
-                    ${choices.map((choice) => {
+                <div class="tally-radio-list" style="display:flex; flex-direction:column; gap:12px; margin:1.5rem 0;">
+                    ${choices.map((choice, index) => {
                         const pointsMatch = choice.match(/\[(\d+)\]/);
                         const pointsValue = pointsMatch ? parseInt(pointsMatch[1]) : 0;
                         const clearText = choice.replace(/\[\d+\]/, '').trim();
+                        const isSelected = this.currentSelection && this.currentSelection.index === index ? 'selected-active' : '';
+                        
                         return `
-                            <button type="button" class="tally-choice-btn" data-points="${pointsValue}" data-text="${clearText}" style="text-align:left; padding:1rem; border:1px solid #ddd; background:#fff; border-radius:8px; cursor:pointer; transition:all 0.2s ease; font-size:0.98rem; line-height:1.4; font-weight:500;">${clearText}</button>
+                            <button type="button" class="tally-choice-btn ${isSelected}" data-index="${index}" data-points="${pointsValue}" data-text="${clearText}">
+                                ${clearText}
+                            </button>
                         `;
                     }).join('')}
                 </div>
             `;
         }
 
-        // 🌟 ACCURATE BRAND RED COLOR (#C13030) SYMMETRY FOR METRICS AND PROGRESS
+        // 🌟 EMBED SCOPED HOVER AND HIGH-CONTRAST DYNAMIC VARIABLE COLOR STYLES
         this.innerHTML = `
-            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); min-height:350px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; border-top: 6px solid #C13030;">
+            <style>
+                .matrix-choice-btn, .tally-choice-btn {
+                    padding: 0.8rem;
+                    border: 1px solid #ddd;
+                    background: #fff;
+                    font-weight: bold;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    color: #222;
+                }
+                /* HOVER STATES */
+                .matrix-choice-btn:hover, .tally-choice-btn:hover {
+                    border-color: var(--redfin-red);
+                    background: #fff5f5;
+                }
+                /* ACTIVE CLICK SELECTION HIGHLIGHTS */
+                .matrix-choice-btn.selected-active, .tally-choice-btn.selected-active {
+                    background: var(--redfin-red) !important;
+                    color: #fff !important;
+                    border-color: var(--redfin-red) !important;
+                    box-shadow: 0 4px 10px rgba(193,48,48,0.2);
+                }
+                .nav-control-btn {
+                    padding: 0.6rem 1.5rem;
+                    font-size: 0.9rem;
+                    font-weight: bold;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+                .nav-control-btn:disabled {
+                    opacity: 0.3;
+                    cursor: not-allowed;
+                }
+            </style>
+            
+            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); min-height:380px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; border-top: 6px solid var(--redfin-red);">
                 <div>
                     <div style="width:100%; background:#eee; height:6px; border-radius:3px; margin-bottom:2rem; overflow:hidden;">
-                        <div style="width:${progressPercentage}%; background:#C13030; height:100%; transition:width 0.3s ease;"></div>
+                        <div style="width:${progressPercentage}%; background:var(--redfin-red); height:100%; transition:width 0.3s ease;"></div>
                     </div>
-                    <div style="font-size:0.8rem; font-weight:800; color:#C13030; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.5rem; text-align:center;">Statement ${this.currentStep + 1} of ${this.questions.length}</div>
+                    <div style="font-size:0.8rem; font-weight:800; color:var(--redfin-red); text-transform:uppercase; letter-spacing:1px; margin-bottom:0.5rem; text-align:center;">Statement ${this.currentStep + 1} of ${this.questions.length}</div>
                     <h3 style="text-align:center; font-size:1.22rem; font-weight:600; line-height:1.5; color:#222; margin:0 0 1.5rem 0; padding:0 10px;">"${questionText}"</h3>
+                    
+                    <div>${interfaceHTML}</div>
                 </div>
-                <div>${interfaceHTML}</div>
+                
+                <div class="quiz-navigation-tier" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f0f0f0; padding-top: 1.25rem; margin-top: 1rem;">
+                    <button type="button" id="quiz-back-trigger" class="btn btn-secondary nav-control-btn" ${this.currentStep === 0 ? 'disabled' : ''}>Back</button>
+                    <button type="button" id="quiz-next-trigger" class="btn btn-primary nav-control-btn" ${this.currentSelection === null ? 'disabled' : ''}>Next</button>
+                </div>
             </div>
         `;
 
+        this.attachInteractiveSelectionListeners();
+    }
+
+    attachInteractiveSelectionListeners() {
+        const nextBtn = this.querySelector('#quiz-next-trigger');
+        const backBtn = this.querySelector('#quiz-back-trigger');
+
+        // Matrix Mode Click Events
         this.querySelectorAll('.matrix-choice-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                const numericValue = parseInt(btn.getAttribute('data-val'));
-                const traitBucket = parts[1] ? parts[1].trim() : 'typeA';
+                this.querySelectorAll('.matrix-choice-btn').forEach(b => b.classList.remove('selected-active'));
+                btn.classList.add('selected-active');
                 
-                this.answers.push(numericValue);
-                if (this.scores[traitBucket] !== undefined) this.scores[traitBucket] += numericValue;
-                
-                this.currentStep++;
-                this.renderQuestion();
+                this.currentSelection = parseInt(btn.getAttribute('data-val'));
+                nextBtn.removeAttribute('disabled');
             });
         });
 
+        // Tally Mode Choice Click Events
         this.querySelectorAll('.tally-choice-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                const points = parseInt(btn.getAttribute('data-points'));
-                const chosenText = btn.getAttribute('data-text');
+                this.querySelectorAll('.tally-choice-btn').forEach(b => b.classList.remove('selected-active'));
+                btn.classList.add('selected-active');
                 
-                this.answers.push(chosenText + " [" + points + "]");
-                this.totalTallyScore += points;
-                
-                this.currentStep++;
-                this.renderQuestion();
+                this.currentSelection = {
+                    index: parseInt(btn.getAttribute('data-index')),
+                    points: parseInt(btn.getAttribute('data-points')),
+                    text: btn.getAttribute('data-text')
+                };
+                nextBtn.removeAttribute('disabled');
             });
+        });
+
+        // Navigation Execution Anchors
+        nextBtn.addEventListener('click', () => {
+            if (this.currentSelection === null) return;
+            
+            // Save choice mapping stably in step index array
+            this.answers[this.currentStep] = this.currentSelection;
+            this.currentStep++;
+            this.renderQuestion();
+        });
+
+        backBtn.addEventListener('click', () => {
+            if (this.currentStep === 0) return;
+            this.currentStep--;
+            this.renderQuestion();
         });
     }
 
     async processCalculationsAndSubmit() {
         this.innerHTML = `
-            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:4rem 2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); text-align:center; border-top: 6px solid #C13030;">
-                <div class="spinner" style="border: 4px solid rgba(193,48,48,0.1); border-left-color: #C13030; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 1.5rem auto;"></div>
+            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:4rem 2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); text-align:center; border-top: 6px solid var(--redfin-red);">
+                <div class="spinner" style="border: 4px solid rgba(193,48,48,0.1); border-left-color: var(--redfin-red); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 1.5rem auto;"></div>
                 <h3 style="color:#222; margin:0 0 0.5rem 0;">Analyzing Metrics...</h3>
                 <p style="color:#666; font-size:0.95rem; margin:0;">Securing your strategic blueprint vault access token.</p>
                 <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
@@ -478,10 +553,32 @@ class QuizEngine extends HTMLElement {
         let outcomeKey = '';
         let finalOutcome = '';
         let dynamicRedirectDestinationUrl = '';
+        
+        // Initialize evaluation sum variables fresh
+        const computedScores = { typeA: 0, typeB: 0, typeC: 0, typeD: 0, typeE: 0, typeF: 0 };
+        let computedTallyTotal = 0;
+
+        // 🧠 FLUID DELAYED ARITHMETIC LOOP RUNNING ACROSS STABLE CACHED RESPONSES
+        this.questions.forEach((rawQuestion, stepIndex) => {
+            const parts = rawQuestion.split('||');
+            const storedChoice = this.answers[stepIndex];
+
+            if (this.quizData.scoringType === 'matrix_4quadrant') {
+                const traitBucket = parts[1] ? parts[1].trim() : 'typeA';
+                const numericScore = parseInt(storedChoice) || 0;
+                if (computedScores[traitBucket] !== undefined) {
+                    computedScores[traitBucket] += numericScore;
+                }
+            } else {
+                if (storedChoice && storedChoice.points !== undefined) {
+                    computedTallyTotal += storedChoice.points;
+                }
+            }
+        });
 
         if (this.quizData.scoringType === 'matrix_4quadrant') {
             let highestVal = -1;
-            for (const [bucket, value] of Object.entries(this.scores)) {
+            for (const [bucket, value] of Object.entries(computedScores)) {
                 if (value > highestVal) {
                     highestVal = value;
                     outcomeKey = bucket;
@@ -509,7 +606,7 @@ class QuizEngine extends HTMLElement {
                     const min = parseInt(rangeParts[0]);
                     const max = parseInt(rangeParts[1]);
                     
-                    if (this.totalTallyScore >= min && this.totalTallyScore <= max) {
+                    if (computedTallyTotal >= min && computedTallyTotal <= max) {
                         dynamicRedirectDestinationUrl = rParts[1].trim();
                         outcomeKey = rParts[0].trim();
                         
@@ -522,6 +619,14 @@ class QuizEngine extends HTMLElement {
             }
         }
 
+        // Structure clean payload answers strings for history auditing logs
+        const formattedHistoryAnswers = this.questions.map((rawQ, idx) => {
+            const chosen = this.answers[idx];
+            return this.quizData.scoringType === 'matrix_4quadrant' 
+                ? parseInt(chosen) 
+                : `${chosen.text} [${chosen.points}]`;
+        });
+
         const submissionPayload = {
             quizId: this.quizData.id,
             firstName: this.leadInfo.firstName,
@@ -530,9 +635,9 @@ class QuizEngine extends HTMLElement {
             phone: this.leadInfo.phone,
             outcomeKey: outcomeKey,
             finalOutcome: finalOutcome,
-            totalTallyScore: this.totalTallyScore,
-            scores: this.scores,
-            answers: this.answers
+            totalTallyScore: computedTallyTotal,
+            scores: computedScores,
+            answers: formattedHistoryAnswers
         };
 
         try {
