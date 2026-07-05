@@ -184,6 +184,10 @@ class QuizEngine extends HTMLElement {
     }
 }
 
+customElements.define('universal-header', UniversalHeader);
+customElements.define('universal-footer', UniversalFooter);
+customElements.define('quiz-engine', QuizEngine);
+
 /* ============================================================================
    AUTOMATED HOLIDAY THEME ACCENT SWITCHBOARD ENGINE (BULLETPROOF MMDD)
    ============================================================================ */
@@ -245,6 +249,32 @@ class QuizEngine extends HTMLElement {
     }
 })();
 
-customElements.define('universal-header', UniversalHeader);
-customElements.define('universal-footer', UniversalFooter);
-customElements.define('quiz-engine', QuizEngine);
+/* Temporary test version for the bottom of components.js */
+(function initializeHolidayThemes() {
+    // 🌟 THE SANITY CHECK: This will force a popup the second the page loads
+    alert("Switchboard script is actively running!"); 
+
+    const now = new Date();
+    const todayValue = (now.getMonth() + 1) * 100 + now.getDate(); 
+
+    const holidaySchedule = [
+        {
+            name: "4th of July Patriotic Test Theme",
+            startMMDD: 704,  
+            endMMDD: 706,    
+            themeVariables: {
+                "--card-accent-color": "#1B365D",    
+                "--dynamic-bg-highlight": "#F0F4F8"  
+            }
+        }
+    ];
+
+    for (const holiday of holidaySchedule) {
+        if (todayValue >= holiday.startMMDD && todayValue <= holiday.endMMDD) {
+            for (const [cssVariable, targetValue] of Object.entries(holiday.themeVariables)) {
+                document.documentElement.style.setProperty(cssVariable, targetValue);
+            }
+            break; 
+        }
+    }
+})();
