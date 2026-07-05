@@ -23,6 +23,7 @@ class UniversalHeader extends HTMLElement {
                         <li><a href="/sellers.html">Sell with Joe</a></li>
                         <li><a href="/movedna.html">MoveDNA Assessment</a></li>
                         <li><a href="/quizzes/index.html">Interactive Quizzes</a></li>
+                        <li><a href="/calculators.html">Real Estate Calculators</a></li>
                         <li><a href="/events.html">Classes & Events</a></li>
                         <li><a href="/professionals.html">Preferred Professionals</a></li>
                     </ul>
@@ -50,7 +51,7 @@ class UniversalFooter extends HTMLElement {
                 <p class="office-address">3400 188th St SW, Ste 165<br>Lynnwood, WA 98037</p>
                 <p style="margin-top: 1rem; font-size: 0.85rem; opacity: 0.7; display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap;">
                     <a href="/hereforyou.html" style="color: var(--premier-beige); text-decoration: underline;">Housing Equity Commitment</a>
-                    <a href="/calculators.html" style="color: var(--premier-beige); text-decoration: underline;">Real Estate Calculators</a>
+                    <a href="/calculators.html" style="color: var(--premier-beige); text-decoration: underline; font-weight: bold;">Real Estate Calculators</a>
                 </p>
             </div>
         </footer>
@@ -70,7 +71,7 @@ class QuizEngine extends HTMLElement {
     async connectedCallback() {
         const quizIdAttr = this.getAttribute('quiz-id');
         if (!quizIdAttr) {
-            this.innerHTML = `<div style="color:var(--redfin-red); font-weight:bold; padding:1rem; text-align:center;">Engine Error: Attribute 'quiz-id' is required.</div>`;
+            this.innerHTML = `<div style="color:var(--card-accent-color); font-weight:bold; padding:1rem; text-align:center;">Engine Error: Attribute 'quiz-id' is required.</div>`;
             return;
         }
         
@@ -82,7 +83,7 @@ class QuizEngine extends HTMLElement {
             this.quizData = data[quizIdAttr];
             
             if (!this.quizData) {
-                this.innerHTML = `<div style="color:var(--redfin-red); font-weight:bold; padding:1rem; text-align:center;">Engine Error: Quiz ID ${quizIdAttr} not found.</div>`;
+                this.innerHTML = `<div style="color:var(--card-accent-color); font-weight:bold; padding:1rem; text-align:center;">Engine Error: Quiz ID ${quizIdAttr} not found.</div>`;
                 return;
             }
 
@@ -99,7 +100,7 @@ class QuizEngine extends HTMLElement {
             this.renderOnboarding();
         } catch (err) {
             console.error("Quiz Initialization Interrupted:", err);
-            this.innerHTML = `<div style="color:var(--redfin-red); font-weight:bold; padding:1rem; text-align:center;">Failed to connect to template cache.</div>`;
+            this.innerHTML = `<div style="color:var(--card-accent-color); font-weight:bold; padding:1rem; text-align:center;">Failed to connect to template cache.</div>`;
         }
     }
 
@@ -129,8 +130,8 @@ class QuizEngine extends HTMLElement {
         const isPHReq = reqFields.includes('phone') ? 'required' : '';
 
         this.innerHTML = `
-            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); border-top: 6px solid var(--redfin-red);">
-                <h2 style="text-align:center; color:var(--redfin-red); margin-top:0; font-size:1.6rem; line-height:1.3;">${this.quizData.webTitle}</h2>
+            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); border-top: 6px solid var(--card-accent-color);">
+                <h2 style="text-align:center; color:var(--card-accent-color); margin-top:0; font-size:1.6rem; line-height:1.3;">${this.quizData.webTitle}</h2>
                 <p style="text-align:center; color:#555; line-height:1.6; margin-bottom:2rem; font-size:0.98rem;">${this.quizData.introText}</p>
                 
                 <form id="quiz-lead-form" style="display:flex; flex-direction:column; gap:1.25rem;">
@@ -169,21 +170,19 @@ class QuizEngine extends HTMLElement {
             this.currentStep = 0;
             this.innerHTML = `<div style="text-align:center; padding:4rem; color:#666;">Initializing quiz engine module...</div>`;
             
-            // 🌟 LAZY-LOAD EXECUTION INTERACTION LAYER BASED ON SCORING TYPE COLUMN VALUE
             try {
                 const modulePath = `/quizzes/engines/${this.quizData.scoringType}.js`;
                 const engineModule = await import(modulePath);
-                
-                // Hand operational execution over to the specialized code module script file
                 engineModule.initializeQuizTrack(this);
             } catch (err) {
                 console.error("Critical: Failed to resolve scoring module file:", err);
-                this.innerHTML = `<div style="color:var(--redfin-red); font-weight:bold; padding:2rem; text-align:center;">Engine Error: Could not launch script logic file '/quizzes/engines/${this.quizData.scoringType}.js'.</div>`;
+                this.innerHTML = `<div style="color:var(--card-accent-color); font-weight:bold; padding:2rem; text-align:center;">Engine Error: Could not launch script logic file '/quizzes/engines/${this.quizData.scoringType}.js'.</div>`;
             }
         });
     }
 }
 
+// 🌟 RESTORED: Fully Dynamic, Location-Safe Review Engine
 class LocalReviews extends HTMLElement {
     async connectedCallback() {
         const limit = parseInt(this.getAttribute('limit')) || 3;
@@ -195,7 +194,8 @@ class LocalReviews extends HTMLElement {
         const gridContainer = this.querySelector('.reviews-component-grid');
 
         try {
-            const response = await fetch('./data/Stats_Reviews%20-%20Reviews.csv');
+            // 🌟 FIXED: Swapped to a root-relative path so files load flawlessly from any folder sub-level
+            const response = await fetch('/data/Stats_Reviews%20-%20Reviews.csv');
             if (!response.ok) throw new Error('Network file retrieval failed');
             const csvText = await response.text();
 
@@ -268,11 +268,12 @@ class LocalReviews extends HTMLElement {
                     ? `<h4 style="margin: 0 0 0.75rem 0; font-size: 1.05rem; font-style: italic; color: #222222; line-height: 1.4;">"${rev.snippet}"</h4>`
                     : '';
 
+                // 🌟 FIXED: Swapped out raw color hexes to listen directly to your master var hooks
                 return `
-                    <div class="review-component-card" style="background: #ffffff; padding: 1.75rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; flex-direction: column; border-top: 5px solid #C13030;">
-                        <div style="color: #C13030; font-size: 1rem; font-weight: 800; margin-bottom: 0.75rem; letter-spacing: 0.5px;">5.0 <span style="font-size: 1.1rem; letter-spacing: 1px;">${stars}</span></div>
+                    <div class="review-component-card" style="background: #ffffff; padding: 1.75rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; flex-direction: column; border-top: 5px solid var(--card-accent-color);">
+                        <div style="color: var(--card-accent-color); font-size: 1rem; font-weight: 800; margin-bottom: 0.75rem; letter-spacing: 0.5px;">5.0 <span style="font-size: 1.1rem; letter-spacing: 1px;">${stars}</span></div>
                         ${snippetMarkup}
-                        <p style="margin: 0 0 1.25rem 0; font-size: 0.95rem; color: #222222; line-weight: 500; line-height: 1.6;">${rev.fullText}</p>
+                        <p style="margin: 0 0 1.25rem 0; font-size: 0.95rem; color: #222222; font-weight: 500; line-height: 1.6;">${rev.fullText}</p>
                         <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #222222; opacity: 0.7;">— ${rev.reviewer}</div>
                     </div>
                 `;
@@ -285,6 +286,8 @@ class LocalReviews extends HTMLElement {
     }
 }
 
+// Global Core Custom Elements Registries
 customElements.define('universal-header', UniversalHeader);
 customElements.define('universal-footer', UniversalFooter);
 customElements.define('quiz-engine', QuizEngine);
+customElements.define('local-reviews', LocalReviews); // 🌟 THE KEY MISSING LINK LINE
