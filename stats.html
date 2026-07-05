@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Local Community Insights | Joe Sheldon</title>
-    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=60">
+    <link class="main-stylesheet" rel="stylesheet" href="/style.css?v=60">
     
-    <script src="components.js"></script>
+    <script src="/components.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -728,7 +728,7 @@
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 2rem; gap: 0.75rem;" class="web-header-row">
                 <h2 id="currentCityHeader" style="font-size: 3rem; font-weight: 900; color: #C13030; text-align: center; margin: 0; letter-spacing: -0.5px;"></h2>
                 <div class="dashboard-actions no-print-section" style="display: flex; gap: 0.75rem; justify-content: center;">
-                    <a href="statscompare.html" class="print-trigger-btn" style="text-decoration: none;" title="Compare Two Cities Side-by-Side">
+                    <a href="/statscompare.html" class="print-trigger-btn" style="text-decoration: none;" title="Compare Two Cities Side-by-Side">
                         📊 Compare Cities
                     </a>
                     <button onclick="window.print()" class="print-trigger-btn" title="Print City Fact Sheet">
@@ -1084,21 +1084,20 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
 
-            const urlSnapshot = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=701119614&single=true&output=csv';
-            const urlHistorical = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1473136505&single=true&output=csv';
-            
-            // Core data payload path variables
-            const redfinPath = './data/redfin_stats.json';
-            const infosparksPath = './data/infosparks_stats.json';
-            const mobilityPath = './data/walk_transit_bike_scores.json';
-            const schoolPath = './data/school_ratings.json';
-            const crimePath = './data/crime_stats.json';
-            const climatePath = './data/climate_comfort.json';
-            const emergencyPath = './data/public_safety_emergency.json';
-            const surveillancePath = './data/surveillance_stats.json';
-            
-            // New City Directory Reference
-            const categoriesPath = './data/InfoSparks Links - Sheet2.csv';
+    const urlSnapshot = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=701119614&single=true&output=csv';
+    const urlHistorical = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1473136505&single=true&output=csv';
+    
+    // 🌟 FIXED: All paths converted to root-relative strings to preserve engine loads across directories
+    const redfinPath = '/data/redfin_stats.json';
+    const infosparksPath = '/data/infosparks_stats.json';
+    const mobilityPath = '/data/walk_transit_bike_scores.json';
+    const schoolPath = '/data/school_ratings.json';
+    const crimePath = '/data/crime_stats.json';
+    const climatePath = '/data/climate_comfort.json';
+    const emergencyPath = '/data/public_safety_emergency.json';
+    const surveillancePath = '/data/surveillance_stats.json';
+    
+    const categoriesPath = '/data/InfoSparks Links - Sheet2.csv';
 
             let dataStore = { 
                 snapshot: [], historical: [], redfin: [], infosparks: {}, 
