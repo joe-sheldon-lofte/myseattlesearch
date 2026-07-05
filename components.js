@@ -188,19 +188,21 @@ customElements.define('universal-header', UniversalHeader);
 customElements.define('universal-footer', UniversalFooter);
 customElements.define('quiz-engine', QuizEngine);
 
+/* Replace the holiday switchboard at the absolute bottom of components.js */
+
 /* ============================================================================
-   AUTOMATED HOLIDAY THEME ACCENT SWITCHBOARD ENGINE (BULLETPROOF MMDD)
+   AUTOMATED HOLIDAY THEME ACCENT SWITCHBOARD & VISUAL CORNER BADGE ENGINE
    ============================================================================ */
 (function initializeHolidayThemes() {
     const now = new Date();
-    // 📅 Convert today's date into a simple integer (e.g., July 4th becomes 704)
     const todayValue = (now.getMonth() + 1) * 100 + now.getDate(); 
 
     const holidaySchedule = [
         {
-            name: "4th of July Patriotic Test Theme",
-            startMMDD: 704,  // July 4th
-            endMMDD: 706,    // July 6th (Extended to ensure it catches your test window!)
+            name: "4th of July Patriotic Theme",
+            startMMDD: 704,  
+            endMMDD: 706,    
+            badgeEmoji: "🎆", // 🌟 Dynamic visual asset indicator
             themeVariables: {
                 "--card-accent-color": "#1B365D",    
                 "--dynamic-bg-highlight": "#F0F4F8"  
@@ -208,8 +210,9 @@ customElements.define('quiz-engine', QuizEngine);
         },
         {
             name: "Halloween",
-            startMMDD: 1015, // Oct 15th
-            endMMDD: 1101,   // Nov 1st
+            startMMDD: 1015, 
+            endMMDD: 1101,   
+            badgeEmoji: "🎃", 
             themeVariables: {
                 "--card-accent-color": "#E65100",    
                 "--dynamic-bg-highlight": "#FFF3E0"  
@@ -217,8 +220,9 @@ customElements.define('quiz-engine', QuizEngine);
         },
         {
             name: "Thanksgiving",
-            startMMDD: 1115, // Nov 15th
-            endMMDD: 1130,   // Nov 30th
+            startMMDD: 1115, 
+            endMMDD: 1130,   
+            badgeEmoji: "🦃", 
             themeVariables: {
                 "--card-accent-color": "#8D6E63",    
                 "--dynamic-bg-highlight": "#FFF8E1"  
@@ -226,8 +230,9 @@ customElements.define('quiz-engine', QuizEngine);
         },
         {
             name: "Winter Holidays",
-            startMMDD: 1201, // Dec 1st
-            endMMDD: 1227,   // Dec 27th
+            startMMDD: 1201, 
+            endMMDD: 1227,   
+            badgeEmoji: "🎄", 
             themeVariables: {
                 "--card-accent-color": "#2E7D32",    
                 "--dynamic-bg-highlight": "#F5F5F5"  
@@ -235,15 +240,53 @@ customElements.define('quiz-engine', QuizEngine);
         }
     ];
 
-    console.log(`[Theme Switchboard] Engine scanning. Today's numeric value: ${todayValue}`);
-
     for (const holiday of holidaySchedule) {
         if (todayValue >= holiday.startMMDD && todayValue <= holiday.endMMDD) {
-            console.log(`[Theme Switchboard] SUCCESS: Activating seasonal layout styling: ${holiday.name}`);
             
+            // 1. Inject Theme Color Tokens into Root DOM
             for (const [cssVariable, targetValue] of Object.entries(holiday.themeVariables)) {
                 document.documentElement.style.setProperty(cssVariable, targetValue);
             }
+            
+            // 2. Inject Corner Triangle Ribbon Layout Rules
+            const styles = document.createElement('style');
+            styles.innerHTML = `
+                .holiday-corner-triangle {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 0;
+                    height: 0;
+                    border-top: 65px solid var(--card-accent-color);
+                    border-right: 65px solid transparent;
+                    z-index: 1005; /* Keeps it layered cleanly on top of fixed headers */
+                    pointer-events: none;
+                    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15));
+                }
+                .holiday-corner-graphic {
+                    position: fixed;
+                    top: 8px;
+                    left: 8px;
+                    z-index: 1006;
+                    font-size: 1.2rem;
+                    transform: rotate(-45deg);
+                    transform-origin: center;
+                    pointer-events: none;
+                    line-height: 1;
+                }
+            `;
+            document.head.appendChild(styles);
+
+            // 3. Mount Visual Triangle Elements to Viewport
+            const triangleNode = document.createElement('div');
+            triangleNode.className = 'holiday-corner-triangle';
+            
+            const graphicNode = document.createElement('div');
+            graphicNode.className = 'holiday-corner-graphic';
+            graphicNode.textContent = holiday.badgeEmoji;
+
+            document.body.appendChild(triangleNode);
+            document.body.appendChild(graphicNode);
             break; 
         }
     }
