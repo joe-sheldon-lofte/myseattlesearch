@@ -184,110 +184,107 @@ class QuizEngine extends HTMLElement {
     }
 }
 
+class LocalReviews extends HTMLElement {
+    async connectedCallback() {
+        const limit = parseInt(this.getAttribute('limit')) || 3;
+        
+        let pageName = window.location.pathname.split('/').pop().toLowerCase().trim();
+        if (!pageName || pageName === "") pageName = "index.html";
+
+        this.innerHTML = `<div class="reviews-component-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; width: 100%; margin: 2rem 0;">Loading reviews...</div>`;
+        const gridContainer = this.querySelector('.reviews-component-grid');
+
+        try {
+            const response = await fetch('./data/Stats_Reviews%20-%20Reviews.csv');
+            if (!response.ok) throw new Error('Network file retrieval failed');
+            const csvText = await response.text();
+
+            const parseCSVRows = (text) => {
+                const lines = [];
+                let row = [""];
+                let inQuotes = false;
+
+                for (let i = 0; i < text.length; i++) {
+                    let char = text[i];
+                    let nextChar = text[i+1];
+                    if (char === '"') {
+                        if (inQuotes && nextChar === '"') { row[row.length - 1] += '"'; i++; }
+                        else { inQuotes = !inQuotes; }
+                    } else if (char === ',' && !inQuotes) {
+                        row.push('');
+                    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+                        if (char === '\r' && nextChar === '\n') { i++; }
+                        lines.push(row);
+                        row = [''];
+                    } else {
+                        row[row.length - 1] += char;
+                    }
+                }
+                if (row.length > 1 || row[0] !== '') lines.push(row);
+                return lines;
+            };
+
+            const allRows = parseCSVRows(csvText);
+            if (allRows.length < 2) { gridContainer.innerHTML = ''; return; }
+
+            const headers = allRows[0].map(h => h.trim().toLowerCase());
+            const targetPageIndex = headers.indexOf(pageName);
+
+            if (targetPageIndex === -1) { gridContainer.innerHTML = ''; return; }
+
+            const indexReviewer = headers.indexOf('reviewer');
+            const indexRating = headers.indexOf('star rating');
+            const indexSnippet = headers.indexOf('snippet');
+            const indexFull = headers.indexOf('full review');
+
+            const validReviews = [];
+            for (let i = 1; i < allRows.length; i++) {
+                const currentRow = allRows[i];
+                if (!currentRow[targetPageIndex]) continue;
+                
+                const pageMarker = currentRow[targetPageIndex].trim().toLowerCase();
+                if (pageMarker === 'x') {
+                    validReviews.push({
+                        reviewer: currentRow[indexReviewer] || 'Verified Client',
+                        rating: parseInt(currentRow[indexRating]) || 5,
+                        snippet: currentRow[indexSnippet] ? currentRow[indexSnippet].trim() : '',
+                        fullText: currentRow[indexFull] || ''
+                    });
+                }
+            }
+
+            if (validReviews.length === 0) { gridContainer.innerHTML = ''; return; }
+
+            for (let i = validReviews.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [validReviews[i], validReviews[j]] = [validReviews[j], validReviews[i]];
+            }
+
+            const selectedReviews = validReviews.slice(0, limit);
+
+            gridContainer.innerHTML = selectedReviews.map(rev => {
+                const stars = '★'.repeat(rev.rating) + '☆'.repeat(5 - rev.rating);
+                const snippetMarkup = rev.snippet && rev.snippet !== "" 
+                    ? `<h4 style="margin: 0 0 0.75rem 0; font-size: 1.05rem; font-style: italic; color: #222222; line-height: 1.4;">"${rev.snippet}"</h4>`
+                    : '';
+
+                return `
+                    <div class="review-component-card" style="background: #ffffff; padding: 1.75rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; flex-direction: column; border-top: 5px solid #C13030;">
+                        <div style="color: #C13030; font-size: 1rem; font-weight: 800; margin-bottom: 0.75rem; letter-spacing: 0.5px;">5.0 <span style="font-size: 1.1rem; letter-spacing: 1px;">${stars}</span></div>
+                        ${snippetMarkup}
+                        <p style="margin: 0 0 1.25rem 0; font-size: 0.95rem; color: #222222; line-weight: 500; line-height: 1.6;">${rev.fullText}</p>
+                        <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #222222; opacity: 0.7;">— ${rev.reviewer}</div>
+                    </div>
+                `;
+            }).join('');
+
+        } catch (error) {
+            console.error('Contextual reviews execution error:', error);
+            gridContainer.innerHTML = '';
+        }
+    }
+}
+
 customElements.define('universal-header', UniversalHeader);
 customElements.define('universal-footer', UniversalFooter);
 customElements.define('quiz-engine', QuizEngine);
-
-/* Replace the holiday switchboard at the absolute bottom of components.js */
-
-/* ============================================================================
-   AUTOMATED HOLIDAY THEME ACCENT SWITCHBOARD & VISUAL CORNER BADGE ENGINE
-   ============================================================================ */
-(function initializeHolidayThemes() {
-    const now = new Date();
-    const todayValue = (now.getMonth() + 1) * 100 + now.getDate(); 
-
-    const holidaySchedule = [
-        {
-            name: "4th of July Patriotic Theme",
-            startMMDD: 704,  
-            endMMDD: 706,    
-            badgeEmoji: "🎆", // 🌟 Dynamic visual asset indicator
-            themeVariables: {
-                "--card-accent-color": "#1B365D",    
-                "--dynamic-bg-highlight": "#F0F4F8"  
-            }
-        },
-        {
-            name: "Halloween",
-            startMMDD: 1015, 
-            endMMDD: 1101,   
-            badgeEmoji: "🎃", 
-            themeVariables: {
-                "--card-accent-color": "#E65100",    
-                "--dynamic-bg-highlight": "#FFF3E0"  
-            }
-        },
-        {
-            name: "Thanksgiving",
-            startMMDD: 1115, 
-            endMMDD: 1130,   
-            badgeEmoji: "🦃", 
-            themeVariables: {
-                "--card-accent-color": "#8D6E63",    
-                "--dynamic-bg-highlight": "#FFF8E1"  
-            }
-        },
-        {
-            name: "Winter Holidays",
-            startMMDD: 1201, 
-            endMMDD: 1227,   
-            badgeEmoji: "🎄", 
-            themeVariables: {
-                "--card-accent-color": "#2E7D32",    
-                "--dynamic-bg-highlight": "#F5F5F5"  
-            }
-        }
-    ];
-
-    for (const holiday of holidaySchedule) {
-        if (todayValue >= holiday.startMMDD && todayValue <= holiday.endMMDD) {
-            
-            // 1. Inject Theme Color Tokens into Root DOM
-            for (const [cssVariable, targetValue] of Object.entries(holiday.themeVariables)) {
-                document.documentElement.style.setProperty(cssVariable, targetValue);
-            }
-            
-            // 2. Inject Corner Triangle Ribbon Layout Rules
-            const styles = document.createElement('style');
-            styles.innerHTML = `
-                .holiday-corner-triangle {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 0;
-                    height: 0;
-                    border-top: 65px solid var(--card-accent-color);
-                    border-right: 65px solid transparent;
-                    z-index: 1005; /* Keeps it layered cleanly on top of fixed headers */
-                    pointer-events: none;
-                    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15));
-                }
-                .holiday-corner-graphic {
-                    position: fixed;
-                    top: 8px;
-                    left: 8px;
-                    z-index: 1006;
-                    font-size: 1.2rem;
-                    transform: rotate(-45deg);
-                    transform-origin: center;
-                    pointer-events: none;
-                    line-height: 1;
-                }
-            `;
-            document.head.appendChild(styles);
-
-            // 3. Mount Visual Triangle Elements to Viewport
-            const triangleNode = document.createElement('div');
-            triangleNode.className = 'holiday-corner-triangle';
-            
-            const graphicNode = document.createElement('div');
-            graphicNode.className = 'holiday-corner-graphic';
-            graphicNode.textContent = holiday.badgeEmoji;
-
-            document.body.appendChild(triangleNode);
-            document.body.appendChild(graphicNode);
-            break; 
-        }
-    }
-})();
