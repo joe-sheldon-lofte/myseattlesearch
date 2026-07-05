@@ -401,6 +401,7 @@
                 const resData = await response.json();
 
                 if (!resData.success || !resData.payload || resData.payload.length < 11) {
+                    console.error("🔒 SECURE ADVISORY ENGINE ERROR:", resData);
                     loadingState.style.display = 'none';
                     errorState.style.display = 'block';
                     return;
