@@ -381,6 +381,8 @@
             const loadingState = document.getElementById('loadingState');
             const errorState = document.getElementById('errorState');
             const portalContent = document.getElementById('portalContent');
+            const errorHeadline = document.getElementById('errorHeadline');
+            const errorText = document.getElementById('errorText');
 
             // 1. URL Parameter Extraction
             const urlParams = new URLSearchParams(window.location.search);
@@ -392,22 +394,31 @@
                 return;
             }
 
-            // 🌟 PASTE YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL HERE:
+            // Deployed Google Apps Script Web App Endpoint URL string
             const webAppApiUrl = 'https://script.google.com/macros/s/AKfycbyYNKt7Xsiiko0Dlgk7UKAAoEcLXQREs0wICfqyanJRUPE2pi3cSc19GeYy8JZPZ10Z/exec';
 
             try {
-                // Fetch the secure array payload from your backend micro-service API
                 const response = await fetch(`${webAppApiUrl}?type=project&id=${encodeURIComponent(projectId)}`);
                 const resData = await response.json();
 
-                if (!resData.success || !resData.payload || resData.payload.length < 11) {
-                    console.error("🔒 SECURE ADVISORY ENGINE ERROR:", resData);
+                // Diagnostic Interceptor: Catches server rejections safely
+                if (!resData.success) {
+                    errorHeadline.textContent = "API Server Rejection";
+                    errorText.innerHTML = `<strong>Reason:</strong> ${resData.error || 'Unknown server rejection payload.'}<br><br><em>Check if you authorized your account access permissions when publishing the Google script!</em>`;
                     loadingState.style.display = 'none';
                     errorState.style.display = 'block';
                     return;
                 }
 
-                // Pass the raw row data grid straight into your legacy UI render logic
+                if (!resData.payload || resData.payload.length < 11) {
+                    errorHeadline.textContent = "Data Schema Shortfall";
+                    errorText.innerHTML = `<strong>Reason:</strong> Tab rows detected: ${resData.payload ? resData.payload.length : 0}.<br><br><em>Your code safety rules require a sheet layout with at least 11 filled rows (Overview Rows 1-8, Headers on 11, Data starting on 12). If this is a blank test tab, add a few rows of filler data!</em>`;
+                    loadingState.style.display = 'none';
+                    errorState.style.display = 'block';
+                    return;
+                }
+
+                // Pass data cleanly into render pipelines
                 renderMetadata(resData.payload);
                 renderTaskCards(resData.payload);
                 
@@ -416,12 +427,14 @@
 
             } catch (err) {
                 console.error("Secure API Data Fetch Interrupted:", err);
+                errorHeadline.textContent = "Connection Dropped";
+                errorText.innerHTML = `<strong>Reason:</strong> Browser fetch failed or thrown cross-origin error block.<br><br><em>Error parameters: ${err.message}</em>`;
                 loadingState.style.display = 'none';
                 errorState.style.display = 'block';
             }
         });
 
-        // --- UI Rendering Functions (Preserved Layout Paradigms) ---
+        // --- Safe-Casting UI Rendering Engine Functions ---
 
         function renderMetadata(data) {
             const metaContainer = document.getElementById('metadataDashboard');
@@ -430,8 +443,9 @@
             for (let i = 0; i <= 7; i++) {
                 const row = data[i];
                 if (row) {
-                    const key = (row[0] || '').trim();
-                    const val = (row[1] || '').trim();
+                    // 🌟 FIXED: String() casting prevents numerical data from crashing .trim()
+                    const key = String(row[0] !== undefined && row[0] !== null ? row[0] : '').trim();
+                    const val = String(row[1] !== undefined && row[1] !== null ? row[1] : '').trim();
                     
                     if (key || val) {
                         metaHtml += `
@@ -455,9 +469,10 @@
                 const row = data[i];
                 if (!row) continue;
 
-                const colA = (row[0] || '').trim(); 
-                const colB = (row[1] || '').trim(); 
-                const colC = (row[2] || '').trim(); 
+                // 🌟 FIXED: String() casting added to data table loop parameters
+                const colA = String(row[0] !== undefined && row[0] !== null ? row[0] : '').trim(); 
+                const colB = String(row[1] !== undefined && row[1] !== null ? row[1] : '').trim(); 
+                const colC = String(row[2] !== undefined && row[2] !== null ? row[2] : '').trim(); 
 
                 if (!colA && !colB && !colC) continue;
 
@@ -470,7 +485,7 @@
                 `;
 
                 for (let c = 2; c <= 10; c++) {
-                    let cellData = row[c] ? row[c].toString().trim() : '';
+                    let cellData = row[c] !== undefined && row[c] !== null ? row[c].toString().trim() : '';
                     
                     if (cellData) {
                         let label = headers[c] ? headers[c].toString().trim() : `Detail`;
@@ -487,13 +502,13 @@
 
                 let actionsHtml = '';
                 
-                const fileLink = row[11] ? row[11].toString().trim() : '';
+                const fileLink = row[11] !== undefined && row[11] !== null ? row[11].toString().trim() : '';
                 if (fileLink && (fileLink.startsWith('http') || fileLink.startsWith('www'))) {
                     const cleanLink = fileLink.startsWith('http') ? fileLink : 'https://' + fileLink;
                     actionsHtml += `<a href="${cleanLink}" target="_blank" class="action-btn">📄 View File &rarr;</a>`;
                 }
 
-                const vendorLink = row[12] ? row[12].toString().trim() : '';
+                const vendorLink = row[12] !== undefined && row[12] !== null ? row[12].toString().trim() : '';
                 if (vendorLink && (vendorLink.startsWith('http') || vendorLink.startsWith('www'))) {
                     const cleanLink2 = vendorLink.startsWith('http') ? vendorLink : 'https://' + vendorLink;
                     actionsHtml += `<a href="${cleanLink2}" target="_blank" class="action-btn">🛡️ Verify Vendor Info &rarr;</a>`;
@@ -535,5 +550,7 @@
             container.innerHTML = cardsHtml;
         }
     </script>
+</body>
+</html>
 </body>
 </html>
