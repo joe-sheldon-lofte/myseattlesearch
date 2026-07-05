@@ -1,13 +1,19 @@
 /* File: style.css */
 
 /* Color Palette */
+/* Update the top of style.css */
 :root {
+    /* Your Master Baseline Color Palettes */
     --redfin-red: #C13030;
     --premier-beige: #EFECE5;
     --premier-charcoal: #3D3935;
     --white: #ffffff;
     --featured-highlight: #FDFBFA;
     --light-gray: #e0e0e0;
+
+    /* 🌟 HOLIDAY SWITCHBOARD HOOKS (Elements site-wide must point to these two tokens) */
+    --card-accent-color: var(--redfin-red);
+    --dynamic-bg-highlight: var(--featured-highlight);
 }
 
 /* Global Styles */
@@ -1483,3 +1489,72 @@ footer {
         grid-template-columns: 1fr 340px !important;
     }
 }
+
+/* Add to the absolute bottom of components.js */
+
+/* ============================================================================
+   AUTOMATED HOLIDAY THEME ACCENT SWITCHBOARD ENGINE
+   ============================================================================ */
+(function initializeHolidayThemes() {
+    // 🌟 YOUR HEADLESS CONFIGURATION MATRIX
+    // Dates use MM-DD format to automatically check and run seamlessly every single year
+    const holidaySchedule = [
+        {
+            name: "4th of July",
+            startMonthDay: "07-04",
+            endMonthDay: "07-05",
+            themeVariables: {
+                "--card-accent-color": "#1B365D",    // Premium Americana Navy Blue
+                "--dynamic-bg-highlight": "#F0F4F8"  // Crisp Ice Blue Card Background Tint
+            }
+        },
+        {
+            name: "Halloween",
+            startMonthDay: "10-15",
+            endMonthDay: "11-01",
+            themeVariables: {
+                "--card-accent-color": "#E65100",    // Festive Spooky Orange
+                "--dynamic-bg-highlight": "#FFF3E0"  // Soft Warm Amber Tint
+            }
+        },
+        {
+            name: "Thanksgiving",
+            startMonthDay: "11-15",
+            endMonthDay: "11-30",
+            themeVariables: {
+                "--card-accent-color": "#8D6E63",    // Warm Autumn Cranberry/Muted Brown
+                "--dynamic-bg-highlight": "#FFF8E1"  // Harvest Cream Tint
+            }
+        },
+        {
+            name: "Winter Holidays",
+            startMonthDay: "12-01",
+            endMonthDay: "12-27",
+            themeVariables: {
+                "--card-accent-color": "#2E7D32",    // Elegant Pacific Northwest Evergreen Green
+                "--dynamic-bg-highlight": "#F5F5F5"  // Winter Soft Gray/White Tint
+            }
+        }
+    ];
+
+    // 📅 CALENDAR EVALUATION SYSTEM
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const todayTimestamp = now.getTime();
+
+    for (const holiday of holidaySchedule) {
+        // Build valid timestamps using the current running calendar year
+        const start = new Date(`${currentYear}-${holiday.startMonthDay}T00:00:00`).getTime();
+        const end = new Date(`${currentYear}-${holiday.endMonthDay}T23:59:59`).getTime();
+
+        // If today falls safely within the date window, instantly override the document root styles
+        if (todayTimestamp >= start && todayTimestamp <= end) {
+            console.log(`[Theme Switchboard] Activating seasonal layout styling: ${holiday.name}`);
+            
+            for (const [cssVariable, targetValue] of Object.entries(holiday.themeVariables)) {
+                document.documentElement.style.setProperty(cssVariable, targetValue);
+            }
+            break; // Active match found, kill the loop
+        }
+    }
+})();
