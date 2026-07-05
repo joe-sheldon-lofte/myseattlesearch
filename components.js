@@ -50,7 +50,7 @@ class UniversalFooter extends HTMLElement {
                 <p class="office-address">3400 188th St SW, Ste 165<br>Lynnwood, WA 98037</p>
                 <p style="margin-top: 1rem; font-size: 0.85rem; opacity: 0.7; display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap;">
                     <a href="/hereforyou.html" style="color: var(--premier-beige); text-decoration: underline;">Housing Equity Commitment</a>
-                    <a href="/calculators.html" style="color: var(--premier-beige); text-decoration: underline; font-weight: bold;">Real Estate Calculators</a>
+                    <a href="/calculators.html" style="color: var(--premier-beige); text-decoration: underline;">Real Estate Calculators</a>
                 </p>
             </div>
         </footer>
