@@ -5,7 +5,7 @@ class UniversalHeader extends HTMLElement {
         this.innerHTML = `
         <header class="main-header">
             <div class="nav-container">
-                <a href="index.html" class="nav-brand">Joe Sheldon</a>
+                <a href="/index.html" class="nav-brand">Joe Sheldon</a>
                 <button class="hamburger" id="hamburgerMenu" aria-label="Toggle Menu">
                     <span class="bar"></span>
                     <span class="bar"></span>
@@ -16,14 +16,14 @@ class UniversalHeader extends HTMLElement {
             <nav class="fullscreen-menu" id="navMenu">
                 <div class="menu-content-wrapper">
                     <ul class="menu-links">
-                        <li><a href="index.html">Home</a></li>
-                        <li><a href="stats.html">Market Insights</a></li>
-                        <li><a href="news.html">Market News</a></li>
-                        <li><a href="searches.html">Curated Searches</a></li>
-                        <li><a href="sellers.html">Sell with Joe</a></li>
-                        <li><a href="movedna.html">MoveDNA Assessment</a></li>
-                        <li><a href="events.html">Classes & Events</a></li>
-                        <li><a href="professionals.html">Preferred Professionals</a></li>
+                        <li><a href="/index.html">Home</a></li>
+                        <li><a href="/stats.html">Market Insights</a></li>
+                        <li><a href="/news.html">Market News</a></li>
+                        <li><a href="/searches.html">Curated Searches</a></li>
+                        <li><a href="/sellers.html">Sell with Joe</a></li>
+                        <li><a href="/movedna.html">MoveDNA Assessment</a></li>
+                        <li><a href="/events.html">Classes & Events</a></li>
+                        <li><a href="/professionals.html">Preferred Professionals</a></li>
                     </ul>
                     
                     <div class="menu-socials">
@@ -64,9 +64,9 @@ class UniversalFooter extends HTMLElement {
         this.innerHTML = `
         <footer>
             <div class="footer-content" style="max-width: 1000px; margin: 0 auto; width: 100%;">
-                <img src="assets/images/redfin.png" alt="Redfin Logo" class="footer-logo">
+                <img src="/assets/images/redfin.png" alt="Redfin Logo" class="footer-logo">
                 <p class="office-address">3400 188th St SW, Ste 165<br>Lynnwood, WA 98037</p>
-                <p style="margin-top: 1rem; font-size: 0.8rem; opacity: 0.6;"><a href="hereforyou.html" style="color: var(--premier-beige); text-decoration: underline;">My Commitment to Housing Equity & Resources</a></p>
+                <p style="margin-top: 1rem; font-size: 0.8rem; opacity: 0.6;"><a href="/hereforyou.html" style="color: var(--premier-beige); text-decoration: underline;">My Commitment to Housing Equity & Resources</a></p>
                 
                 <div id="dynamic-disclaimers-box" style="max-width: 750px; margin: 1.75rem auto 0 auto; padding-top: 1.25rem; border-top: 1px solid rgba(239, 236, 229, 0.15); font-size: 0.72rem; line-height: 1.5; text-align: justify; opacity: 0.5; color: var(--premier-beige); padding-left: 1rem; padding-right: 1rem; box-sizing: border-box;"></div>
             </div>
@@ -170,7 +170,8 @@ class LocalReviews extends HTMLElement {
         const gridContainer = this.querySelector('.reviews-component-grid');
 
         try {
-            const response = await fetch('./data/Stats_Reviews%20-%20Reviews.csv');
+            // 🌟 FIXED: Local review fetching now targets the absolute root data repository folder
+            const response = await fetch('/data/Stats_Reviews%20-%20Reviews.csv');
             if (!response.ok) throw new Error('Network file retrieval failed');
             const csvText = await response.text();
 
@@ -268,9 +269,7 @@ class QuizEngine extends HTMLElement {
         this.routing = [];
         this.currentStep = -1;
         this.leadInfo = { firstName: '', lastName: '', email: '', phone: '' };
-        
-        // 🔄 NEW CACHED INTERACTIVE SELECTION DATA MODELS
-        this.answers = []; // Indexes match the currentStep sequence
+        this.answers = [];
         this.currentSelection = null; 
     }
 
@@ -284,7 +283,8 @@ class QuizEngine extends HTMLElement {
         this.innerHTML = `<div style="text-align:center; padding:3rem; font-size:1.1rem; color:#666;">Hydrating dynamic strategy options...</div>`;
         
         try {
-            const response = await fetch('./data/quizzes.json');
+            // 🌟 FIXED: Quiz configurations fetch now targets the absolute root JSON file
+            const response = await fetch('/data/quizzes.json');
             const data = await response.json();
             this.quizData = data[quizIdAttr];
             
@@ -393,7 +393,6 @@ class QuizEngine extends HTMLElement {
         const questionText = parts[0].trim();
         const progressPercentage = Math.round(((this.currentStep) / this.questions.length) * 100);
 
-        // Pull previous answer selection to pre-populate if they went backward
         const existingAnswer = this.answers[this.currentStep];
         this.currentSelection = existingAnswer !== undefined ? existingAnswer : null;
 
@@ -433,7 +432,6 @@ class QuizEngine extends HTMLElement {
             `;
         }
 
-        // 🌟 EMBED SCOPED HOVER AND HIGH-CONTRAST DYNAMIC VARIABLE COLOR STYLES
         this.innerHTML = `
             <style>
                 .matrix-choice-btn, .tally-choice-btn {
@@ -446,12 +444,10 @@ class QuizEngine extends HTMLElement {
                     transition: all 0.2s ease;
                     color: #222;
                 }
-                /* HOVER STATES */
                 .matrix-choice-btn:hover, .tally-choice-btn:hover {
                     border-color: var(--redfin-red);
                     background: #fff5f5;
                 }
-                /* ACTIVE CLICK SELECTION HIGHLIGHTS */
                 .matrix-choice-btn.selected-active, .tally-choice-btn.selected-active {
                     background: var(--redfin-red) !important;
                     color: #fff !important;
@@ -497,23 +493,19 @@ class QuizEngine extends HTMLElement {
         const nextBtn = this.querySelector('#quiz-next-trigger');
         const backBtn = this.querySelector('#quiz-back-trigger');
 
-        // Matrix Mode Click Events
         this.querySelectorAll('.matrix-choice-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 this.querySelectorAll('.matrix-choice-btn').forEach(b => b.classList.remove('selected-active'));
                 btn.classList.add('selected-active');
-                
                 this.currentSelection = parseInt(btn.getAttribute('data-val'));
                 nextBtn.removeAttribute('disabled');
             });
         });
 
-        // Tally Mode Choice Click Events
         this.querySelectorAll('.tally-choice-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 this.querySelectorAll('.tally-choice-btn').forEach(b => b.classList.remove('selected-active'));
                 btn.classList.add('selected-active');
-                
                 this.currentSelection = {
                     index: parseInt(btn.getAttribute('data-index')),
                     points: parseInt(btn.getAttribute('data-points')),
@@ -523,11 +515,8 @@ class QuizEngine extends HTMLElement {
             });
         });
 
-        // Navigation Execution Anchors
         nextBtn.addEventListener('click', () => {
             if (this.currentSelection === null) return;
-            
-            // Save choice mapping stably in step index array
             this.answers[this.currentStep] = this.currentSelection;
             this.currentStep++;
             this.renderQuestion();
@@ -554,11 +543,9 @@ class QuizEngine extends HTMLElement {
         let finalOutcome = '';
         let dynamicRedirectDestinationUrl = '';
         
-        // Initialize evaluation sum variables fresh
         const computedScores = { typeA: 0, typeB: 0, typeC: 0, typeD: 0, typeE: 0, typeF: 0 };
         let computedTallyTotal = 0;
 
-        // 🧠 FLUID DELAYED ARITHMETIC LOOP RUNNING ACROSS STABLE CACHED RESPONSES
         this.questions.forEach((rawQuestion, stepIndex) => {
             const parts = rawQuestion.split('||');
             const storedChoice = this.answers[stepIndex];
@@ -619,7 +606,6 @@ class QuizEngine extends HTMLElement {
             }
         }
 
-        // Structure clean payload answers strings for history auditing logs
         const formattedHistoryAnswers = this.questions.map((rawQ, idx) => {
             const chosen = this.answers[idx];
             return this.quizData.scoringType === 'matrix_4quadrant' 
