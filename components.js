@@ -184,6 +184,67 @@ class QuizEngine extends HTMLElement {
     }
 }
 
+/* ============================================================================
+   AUTOMATED HOLIDAY THEME ACCENT SWITCHBOARD ENGINE (BULLETPROOF MMDD)
+   ============================================================================ */
+(function initializeHolidayThemes() {
+    const now = new Date();
+    // 📅 Convert today's date into a simple integer (e.g., July 4th becomes 704)
+    const todayValue = (now.getMonth() + 1) * 100 + now.getDate(); 
+
+    const holidaySchedule = [
+        {
+            name: "4th of July Patriotic Test Theme",
+            startMMDD: 704,  // July 4th
+            endMMDD: 706,    // July 6th (Extended to ensure it catches your test window!)
+            themeVariables: {
+                "--card-accent-color": "#1B365D",    
+                "--dynamic-bg-highlight": "#F0F4F8"  
+            }
+        },
+        {
+            name: "Halloween",
+            startMMDD: 1015, // Oct 15th
+            endMMDD: 1101,   // Nov 1st
+            themeVariables: {
+                "--card-accent-color": "#E65100",    
+                "--dynamic-bg-highlight": "#FFF3E0"  
+            }
+        },
+        {
+            name: "Thanksgiving",
+            startMMDD: 1115, // Nov 15th
+            endMMDD: 1130,   // Nov 30th
+            themeVariables: {
+                "--card-accent-color": "#8D6E63",    
+                "--dynamic-bg-highlight": "#FFF8E1"  
+            }
+        },
+        {
+            name: "Winter Holidays",
+            startMMDD: 1201, // Dec 1st
+            endMMDD: 1227,   // Dec 27th
+            themeVariables: {
+                "--card-accent-color": "#2E7D32",    
+                "--dynamic-bg-highlight": "#F5F5F5"  
+            }
+        }
+    ];
+
+    console.log(`[Theme Switchboard] Engine scanning. Today's numeric value: ${todayValue}`);
+
+    for (const holiday of holidaySchedule) {
+        if (todayValue >= holiday.startMMDD && todayValue <= holiday.endMMDD) {
+            console.log(`[Theme Switchboard] SUCCESS: Activating seasonal layout styling: ${holiday.name}`);
+            
+            for (const [cssVariable, targetValue] of Object.entries(holiday.themeVariables)) {
+                document.documentElement.style.setProperty(cssVariable, targetValue);
+            }
+            break; 
+        }
+    }
+})();
+
 customElements.define('universal-header', UniversalHeader);
 customElements.define('universal-footer', UniversalFooter);
 customElements.define('quiz-engine', QuizEngine);
