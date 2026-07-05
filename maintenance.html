@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Home Maintenance Hub | Joe Sheldon</title>
+    
+    <link class="main-stylesheet" rel="stylesheet" href="/style.css">
+    <script src="/components.js"></script>
+    <style>
+        /* Component Scope Styling Rules */
+        .portal-container { max-width: 1000px; margin: 3rem auto; padding: 0 1.5rem; min-height: 70vh; }
+        
+        .portal-header-box { 
+            background: #ffffff; 
+            padding: 2.5rem; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
+            border-top: 6px solid var(--card-accent-color); 
+            margin-bottom: 2.5rem; 
+            text-align: center; 
+        }
+        .portal-header-box h1 { font-size: 2.4rem; font-weight: 900; margin-bottom: 0.35rem; color: var(--premier-charcoal); letter-spacing: -0.5px; }
+        .property-subhead { font-size: 1.1rem; font-style: italic; color: #555555; font-weight: 500; }
+        
+        .track-section { margin-bottom: 3.5rem; }
+        .track-section h2 { font-size: 1.5rem; font-weight: 800; border-bottom: 2px solid var(--premier-beige); padding-bottom: 0.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; color: var(--premier-charcoal); }
+        
+        .task-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 1.5rem; }
+        .task-card { 
+            background: #ffffff; 
+            border-radius: 10px; 
+            padding: 1.75rem; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02); 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            border-left: 6px solid var(--premier-charcoal); 
+            transition: transform 0.2s ease, box-shadow 0.2s ease; 
+        }
+        .task-card:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.06); }
+        
+        /* Dynamic Urgency Indicators overriding baseline structures */
+        .status-overdue { border-left-color: #C13030 !important; }
+        .status-upcoming { border-left-color: #F5A623 !important; }
+        .status-healthy { border-left-color: #137333 !important; }
+        
+        .tag-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
+        .badge { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 0.25rem 0.6rem; border-radius: 4px; }
+        .badge-cat { background: var(--premier-beige); color: var(--premier-charcoal); }
+        .badge-alert { background: #FFF5F5; color: #C13030; }
+        .badge-warning { background: #FFFBF0; color: #B06000; }
+        .badge-safe { background: #E6F4EA; color: #137333; }
+
+        .task-title { font-size: 1.25rem; font-weight: 800; color: #222222; margin-bottom: 0.5rem; line-height: 1.3; }
+        .task-details { font-size: 0.92rem; color: #555555; line-height: 1.5; margin-bottom: 1.5rem; flex-grow: 1; text-align: left; }
+        .task-meta-footer { font-size: 0.82rem; font-weight: 700; border-top: 1px dashed var(--premier-beige); padding-top: 0.85rem; color: #666666; display: flex; justify-content: space-between; }
+        
+        .state-message { text-align: center; padding: 4rem 2rem; background: #ffffff; border-radius: 12px; font-weight: 600; color: #555555; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid var(--premier-beige); }
+    </style>
+</head>
+<body class="maintenance-portal-view">
+
+<universal-header></universal-header>
+
+<main class="portal-container" id="portalMount">
+    <div class="state-message">
+        <p>🔄 Initializing secure validation logs and connecting to regional home metrics engine...</p>
+    </div>
+</main>
+
+<universal-footer></universal-footer>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const mount = document.getElementById('portalMount');
+        
+        // 🌟 PASTE YOUR COPIED MAINTENANCE GOOGLE APPS SCRIPT WEB APP URL HERE:
+        const maintenanceApiUrl = 'https://script.google.com/macros/s/AKfycbygTS1ENh67pCtLwTuSxv_n4fCgxzcR0WQBDrmLFfaWNtOOwRYA_iA50bmHyoSCkBgS/exec';
+        
+        // Isolate the unique ID string parameter from the magic link URL query string
+        const urlParams = new URLSearchParams(window.location.search);
+        const clientId = urlParams.get('id');
+        
+        if (!clientId) {
+            mount.innerHTML = `
+                <div class="state-message" style="border-top: 5px solid #C13030;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
+                    <h3>Access Restricted</h3>
+                    <p style="font-weight: 500; font-size: 0.95rem; margin-top: 0.5rem; color: #666;">This system module requires a valid individual access token. Please verify using the private link provided in your home advisory welcome package.</p>
+                </div>`;
+            return;
+        }
+        
+        try {
+            const endpoint = `${maintenanceApiUrl}?id=${encodeURIComponent(clientId)}`;
+            const response = await fetch(endpoint);
+            const dataResult = await response.json();
+            
+            if (!dataResult.success) {
+                mount.innerHTML = `
+                    <div class="state-message" style="border-top: 5px solid #C13030;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+                        <h3>Profile Not Resolved</h3>
+                        <p style="font-weight: 500; font-size: 0.95rem; margin-top: 0.5rem; color: #666;">Error details: ${dataResult.error}</p>
+                    </div>`;
+                return;
+            }
+            
+            processAndRenderDashboard(dataResult.profile, dataResult.tasks);
+            
+        } catch (error) {
+            console.error("Critical serverless portal pipeline drop:", error);
+            mount.innerHTML = `
+                <div class="state-message">
+                    <p style="color: #C13030; font-weight: bold;">Connection to data pipeline mapping timed out. Please refresh the dashboard viewport.</p>
+                </div>`;
+        }
+    });
+
+    function processAndRenderDashboard(profile, tasks) {
+        const mount = document.getElementById('portalMount');
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        
+        const categoryEmojis = {
+            'Roof': '🏠', 'Electrical': '⚡', 'Plumbing': '🔧', 
+            'HVAC': '🔥', 'Water': '💧', 'Siding': '🧱', 'Safety': '🛡️'
+        };
+
+        let overdueHtml = '';
+        let upcomingHtml = '';
+        let longTermHtml = '';
+        
+        let overdueCount = 0;
+        let upcomingCount = 0;
+        let longTermCount = 0;
+
+        tasks.forEach(task => {
+            const dueTarget = new Date(task.dueDate + "T00:00:00");
+            const millisecondGap = dueTarget.getTime() - today.getTime();
+            const daysRemaining = Math.ceil(millisecondGap / (1000 * 60 * 60 * 24));
+            
+            // Safe string-casting variables prevent empty cell structural type crashes
+            const taskCategory = String(task.category || 'General').trim();
+            const taskName = String(task.taskName || 'Routine Upkeep').trim();
+            const taskDetails = String(task.details || 'No task notes provided for this tracking item.').trim();
+            const taskFrequency = String(task.frequency || '12').trim();
+            const taskDueDate = String(task.dueDate || '').trim();
+
+            const icon = categoryEmojis[taskCategory] || '📋';
+            let statusCardClass = 'status-healthy';
+            let badgeMarkup = `<span class="badge badge-safe">Protected</span>`;
+            
+            if (daysRemaining < 0) {
+                statusCardClass = 'status-overdue';
+                badgeMarkup = `<span class="badge badge-alert">Action Required</span>`;
+                overdueCount++;
+            } else if (daysRemaining <= 45) {
+                statusCardClass = 'status-upcoming';
+                badgeMarkup = `<span class="badge badge-warning">Due within ${daysRemaining} Days</span>`;
+                upcomingCount++;
+            } else {
+                longTermCount++;
+            }
+
+            const cardTemplate = `
+                <div class="task-card ${statusCardClass}">
+                    <div>
+                        <div class="tag-row">
+                            <span class="badge badge-cat"><span>${icon}</span> ${taskCategory}</span>
+                            ${badgeMarkup}
+                        </div>
+                        <h3 class="task-title">${taskName}</h3>
+                        <p class="task-details">${taskDetails}</p>
+                    </div>
+                    <div class="task-meta-footer">
+                        <span>🗓️ Target: ${taskDueDate}</span>
+                        <span>⏱️ Every ${taskFrequency} Months</span>
+                    </div>
+                </div>
+            `;
+
+            if (daysRemaining < 0) overdueHtml += cardTemplate;
+            else if (daysRemaining <= 45) upcomingHtml += cardTemplate;
+            else longTermHtml += cardTemplate;
+        });
+
+        mount.innerHTML = `
+            <div class="portal-header-box">
+                <div style="font-size: 0.85rem; font-weight: 800; color: var(--card-accent-color); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.4rem;">Home Asset Optimization</div>
+                <h1>Home Maintenance Advisor</h1>
+                <p class="property-subhead">Active Protection Pipeline for ${profile.clientName}: <strong>${profile.propertyAddress}</strong></p>
+            </div>
+
+            ${overdueCount > 0 ? `
+                <section class="track-section">
+                    <h2 style="color: #C13030;">🚨 Past Due Upkeep Tasks (${overdueCount})</h2>
+                    <div class="task-grid">${overdueHtml}</div>
+                </section>
+            ` : ''}
+
+            <section class="track-section">
+                <h2>📅 Upcoming Milestones (Next 45 Days)</h2>
+                <div class="task-grid">
+                    ${upcomingHtml || `<p style="grid-column: 1/-1; opacity:0.6; font-style:italic; font-weight:500; padding:1.5rem 0; text-align:center;">🎉 Fantastic news! All seasonal system and property environment tracking limits are clear.</p>`}
+                </div>
+            </section>
+
+            <section class="track-section">
+                <h2>🛡️ Long-Term Maintenance & Protection Cycles</h2>
+                <div class="task-grid">
+                    ${longTermHtml || `<p style="grid-column: 1/-1; opacity:0.6; font-style:italic; font-weight:500; padding:1.5rem 0; text-align:center;">No long-term infrastructure items tracked on this thread.</p>`}
+                </div>
+            </section>
+        `;
+    }
+</script>
+
+</body>
+</html>
