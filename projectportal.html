@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project Status Portal | Joe Sheldon</title>
     
-    <link class="main-stylesheet" rel="stylesheet" href="style.css">
-    <script src="components.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <link class="main-stylesheet" rel="stylesheet" href="/style.css">
+    <script src="/components.js"></script>
 
     <style>
         /* CSS Reset for Portal to prevent overflow */
@@ -364,13 +363,11 @@
             
             <div class="portal-overview-header">
                 <h1 class="portal-title">Project Overview</h1>
-                <div class="header-metadata-grid" id="metadataDashboard">
-                    </div>
+                <div class="header-metadata-grid" id="metadataDashboard"></div>
             </div>
 
             <h2 class="portal-section-header">Project Task Breakdown</h2>
-            <div class="task-list" id="taskCardsContainer">
-                </div>
+            <div class="task-list" id="taskCardsContainer"></div>
 
         </div>
 
@@ -379,190 +376,163 @@
     <universal-footer></universal-footer>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             
             const loadingState = document.getElementById('loadingState');
             const errorState = document.getElementById('errorState');
             const portalContent = document.getElementById('portalContent');
 
-            // 1. URL Extraction
+            // 1. URL Parameter Extraction
             const urlParams = new URLSearchParams(window.location.search);
             const projectId = urlParams.get('id');
 
-            // Trigger Error Rule if ID is missing entirely
             if (!projectId) {
                 loadingState.style.display = 'none';
                 errorState.style.display = 'block';
                 return;
             }
 
-            // 2. Data Fetching
-            const csvEndpoint = `https://docs.google.com/spreadsheets/d/e/2PACX-1vQz8wU220SDL-NKOjpP2IlMaz49lDmewUC2ufY82GXKz9SMtJHXOHmbfuHyO6xnEN9kipuTkxuOAQwU/pub?output=csv&gid=${encodeURIComponent(projectId)}`;
+            // 🌟 PASTE YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL HERE:
+            const webAppApiUrl = 'https://script.google.com/macros/s/AKfycbyYNKt7Xsiiko0Dlgk7UKAAoEcLXQREs0wICfqyanJRUPE2pi3cSc19GeYy8JZPZ10Z/exec';
 
-            Papa.parse(csvEndpoint, {
-                download: true,
-                skipEmptyLines: false, // Keep false initially to maintain exact row indexing
-                complete: function(results) {
-                    const data = results.data;
+            try {
+                // Fetch the secure array payload from your backend micro-service API
+                const response = await fetch(`${webAppApiUrl}?type=project&id=${encodeURIComponent(projectId)}`);
+                const resData = await response.json();
 
-                    // Error Check: Did the sheet return valid data matching our index rules?
-                    if (!data || data.length < 11) {
-                        loadingState.style.display = 'none';
-                        errorState.style.display = 'block';
-                        return;
-                    }
-
-                    try {
-                        renderMetadata(data);
-                        renderTaskCards(data);
-                        
-                        // Hide loading, show portal
-                        loadingState.style.display = 'none';
-                        portalContent.style.display = 'block';
-                    } catch (err) {
-                        console.error("Portal Data Parsing Error:", err);
-                        loadingState.style.display = 'none';
-                        errorState.style.display = 'block';
-                    }
-                },
-                error: function(err) {
-                    console.error("PapaParse Network Error:", err);
+                if (!resData.success || !resData.payload || resData.payload.length < 11) {
                     loadingState.style.display = 'none';
                     errorState.style.display = 'block';
+                    return;
                 }
-            });
 
-            // --- UI Rendering Functions ---
-
-            // Block A: Rows 1-8 (Index 0-7)
-            function renderMetadata(data) {
-                const metaContainer = document.getElementById('metadataDashboard');
-                let metaHtml = '';
-
-                for (let i = 0; i <= 7; i++) {
-                    const row = data[i];
-                    if (row) {
-                        const key = (row[0] || '').trim();
-                        const val = (row[1] || '').trim();
-                        
-                        // Rule: If A or B contains text, render it. Skip blank lines.
-                        if (key || val) {
-                            metaHtml += `
-                                <div class="header-meta-item">
-                                    <span class="header-meta-key">${key}</span>
-                                    <span class="header-meta-val">${val}</span>
-                                </div>
-                            `;
-                        }
-                    }
-                }
-                metaContainer.innerHTML = metaHtml;
-            }
-
-            // Block C & D: Rows 11+ (Headers on 10, Data 11+)
-            function renderTaskCards(data) {
-                const container = document.getElementById('taskCardsContainer');
-                let cardsHtml = '';
+                // Pass the raw row data grid straight into your legacy UI render logic
+                renderMetadata(resData.payload);
+                renderTaskCards(resData.payload);
                 
-                // Store Row 11 as the dynamic header blueprint
-                const headers = data[10] || [];
+                loadingState.style.display = 'none';
+                portalContent.style.display = 'block';
 
-                // Loop through Row 12 onwards
-                for (let i = 11; i < data.length; i++) {
-                    const row = data[i];
-                    if (!row) continue;
+            } catch (err) {
+                console.error("Secure API Data Fetch Interrupted:", err);
+                loadingState.style.display = 'none';
+                errorState.style.display = 'block';
+            }
+        });
 
-                    const colA = (row[0] || '').trim(); // Task Name
-                    const colB = (row[1] || '').trim(); // Task Details (long text)
-                    const colC = (row[2] || '').trim(); // Vendor Name
+        // --- UI Rendering Functions (Preserved Layout Paradigms) ---
 
-                    // Rule: Skip if A, B, and C are entirely blank
-                    if (!colA && !colB && !colC) continue;
+        function renderMetadata(data) {
+            const metaContainer = document.getElementById('metadataDashboard');
+            let metaHtml = '';
 
-                    // Begin Card Build (Horizontal format)
-                    let card = `
-                        <div class="task-card">
-                            <div class="task-card-header">
-                                <h3>${colA || 'Unnamed Task'}</h3>
+            for (let i = 0; i <= 7; i++) {
+                const row = data[i];
+                if (row) {
+                    const key = (row[0] || '').trim();
+                    const val = (row[1] || '').trim();
+                    
+                    if (key || val) {
+                        metaHtml += `
+                            <div class="header-meta-item">
+                                <span class="header-meta-key">${key}</span>
+                                <span class="header-meta-val">${val}</span>
                             </div>
-                            <div class="task-card-body">
-                    `;
-
-                    // Generate Data Grid for Columns C through K (Indexes 2 through 10)
-                    for (let c = 2; c <= 10; c++) {
-                        let cellData = row[c] ? row[c].trim() : '';
-                        
-                        if (cellData) {
-                            let label = headers[c] ? headers[c].trim() : `Detail`;
-                            card += `
-                                <div class="task-detail">
-                                    <span class="detail-label">${label}</span>
-                                    <span class="detail-val">${cellData}</span>
-                                </div>
-                            `;
-                        }
+                        `;
                     }
+                }
+            }
+            metaContainer.innerHTML = metaHtml;
+        }
+
+        function renderTaskCards(data) {
+            const container = document.getElementById('taskCardsContainer');
+            let cardsHtml = '';
+            const headers = data[10] || [];
+
+            for (let i = 11; i < data.length; i++) {
+                const row = data[i];
+                if (!row) continue;
+
+                const colA = (row[0] || '').trim(); 
+                const colB = (row[1] || '').trim(); 
+                const colC = (row[2] || '').trim(); 
+
+                if (!colA && !colB && !colC) continue;
+
+                let card = `
+                    <div class="task-card">
+                        <div class="task-card-header">
+                            <h3>${colA || 'Unnamed Task'}</h3>
+                        </div>
+                        <div class="task-card-body">
+                `;
+
+                for (let c = 2; c <= 10; c++) {
+                    let cellData = row[c] ? row[c].toString().trim() : '';
                     
-                    card += `</div>`; // Close task-card-body
-
-                    // Generate Actions Footer & Notes Box (Columns B, L & M)
-                    let actionsHtml = '';
-                    
-                    const fileLink = row[11] ? row[11].trim() : '';
-                    if (fileLink && (fileLink.startsWith('http') || fileLink.startsWith('www'))) {
-                        const cleanLink = fileLink.startsWith('http') ? fileLink : 'https://' + fileLink;
-                        actionsHtml += `<a href="${cleanLink}" target="_blank" class="action-btn">📄 View File &rarr;</a>`;
+                    if (cellData) {
+                        let label = headers[c] ? headers[c].toString().trim() : `Detail`;
+                        card += `
+                            <div class="task-detail">
+                                <span class="detail-label">${label}</span>
+                                <span class="detail-val">${cellData}</span>
+                            </div>
+                        `;
                     }
+                }
+                
+                card += `</div>`; 
 
-                    const vendorLink = row[12] ? row[12].trim() : '';
-                    if (vendorLink && (vendorLink.startsWith('http') || vendorLink.startsWith('www'))) {
-                        const cleanLink2 = vendorLink.startsWith('http') ? vendorLink : 'https://' + vendorLink;
-                        actionsHtml += `<a href="${cleanLink2}" target="_blank" class="action-btn">🛡️ Verify Vendor Info &rarr;</a>`;
-                    }
-
-                    // Only render the footer section if there are buttons OR detailed notes to display
-                    if (actionsHtml !== '' || colB !== '') {
-                        card += `<div class="task-card-footer">`;
-                        
-                        // Inject the long text details box (Left Side)
-                        if (colB !== '') {
-                            card += `
-                                <div class="task-notes-wrapper">
-                                    <span class="detail-label" style="display: block; margin-bottom: 0.35rem; color: #222; text-align: left;">Task Details</span>
-                                    <div class="task-card-notes">
-                                        <div class="notes-content">${colB}</div>
-                                    </div>
-                                </div>
-                            `;
-                        } else {
-                            // Failsafe empty div to keep flexbox justified correctly if there are buttons but no notes
-                            card += `<div class="task-notes-wrapper" style="display: none;"></div>`;
-                        }
-
-                        // Inject Action Buttons (Right Side)
-                        if (actionsHtml !== '') {
-                            let actionAlign = colB !== '' ? 'text-align: right;' : 'text-align: left;';
-                            // If there are no notes, align the 'Links & Actions' label to the left instead of floating it to the right on mobile
-                            
-                            card += `
-                                <div class="task-card-actions">
-                                    <span class="detail-label" style="margin-bottom: 0.15rem; display: block; width: 100%; ${actionAlign}">Links & Actions</span>
-                                    ${actionsHtml}
-                                </div>
-                            `;
-                        }
-                        
-                        card += `</div>`; // Close task-card-footer
-                    }
-
-                    card += `</div>`; // Close task-card
-                    cardsHtml += card;
+                let actionsHtml = '';
+                
+                const fileLink = row[11] ? row[11].toString().trim() : '';
+                if (fileLink && (fileLink.startsWith('http') || fileLink.startsWith('www'))) {
+                    const cleanLink = fileLink.startsWith('http') ? fileLink : 'https://' + fileLink;
+                    actionsHtml += `<a href="${cleanLink}" target="_blank" class="action-btn">📄 View File &rarr;</a>`;
                 }
 
-                container.innerHTML = cardsHtml;
+                const vendorLink = row[12] ? row[12].toString().trim() : '';
+                if (vendorLink && (vendorLink.startsWith('http') || vendorLink.startsWith('www'))) {
+                    const cleanLink2 = vendorLink.startsWith('http') ? vendorLink : 'https://' + vendorLink;
+                    actionsHtml += `<a href="${cleanLink2}" target="_blank" class="action-btn">🛡️ Verify Vendor Info &rarr;</a>`;
+                }
+
+                if (actionsHtml !== '' || colB !== '') {
+                    card += `<div class="task-card-footer">`;
+                    
+                    if (colB !== '') {
+                        card += `
+                            <div class="task-notes-wrapper">
+                                <span class="detail-label" style="display: block; margin-bottom: 0.35rem; color: #222; text-align: left;">Task Details</span>
+                                <div class="task-card-notes">
+                                    <div class="notes-content">${colB}</div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        card += `<div class="task-notes-wrapper" style="display: none;"></div>`;
+                    }
+
+                    if (actionsHtml !== '') {
+                        let actionAlign = colB !== '' ? 'text-align: right;' : 'text-align: left;';
+                        card += `
+                            <div class="task-card-actions">
+                                <span class="detail-label" style="margin-bottom: 0.15rem; display: block; width: 100%; ${actionAlign}">Links & Actions</span>
+                                ${actionsHtml}
+                            </div>
+                        `;
+                    }
+                    
+                    card += `</div>`; 
+                }
+
+                card += `</div>`; 
+                cardsHtml += card;
             }
 
-        });
+            container.innerHTML = cardsHtml;
+        }
     </script>
 </body>
 </html>
