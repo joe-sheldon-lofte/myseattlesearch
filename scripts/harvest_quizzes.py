@@ -9,14 +9,12 @@ DATA_DIR = "data"
 OUTPUT_FILE = os.path.join(DATA_DIR, "quizzes.json")
 
 def harvest_quizzes():
-    print("Initiating automated quiz configuration pull from Google Sheets...")
+    print("Initiating flat-column data harvest pull from Google Sheets...")
     response = requests.get(CSV_URL)
     if response.status_code != 200:
         raise Exception(f"Network endpoint unreachable. Status Code: {response.status_code}")
     
-    # Force UTF-8 text decoding to strip character artifacts cleanly
     response.encoding = 'utf-8'
-    
     csv_text = response.text.splitlines()
     reader = csv.DictReader(csv_text)
     
@@ -27,46 +25,63 @@ def harvest_quizzes():
         if not quiz_id:
             continue
             
-        print(f"Serializing Quiz Configuration ID: {quiz_id} - {row.get('Quiz Name')}")
+        print(f"Serializing Quiz ID: {quiz_id} - {row.get('Quiz Name')}")
         
-        # Gather indexed questions from Q1 to Q20 gracefully
+        try:
+            rank_value = int(row.get("Rank", "0").strip() or 0)
+        except ValueError:
+            rank_value = 0
+        
+        # Harvest Unrolled Questions
         questions = []
         for i in range(1, 21):
-            q_val = row.get(f"Q{i}", "").strip()
-            if q_val:
-                questions.append(q_val)
+            q_text = row.get(f"Q{i} Text", "").strip()
+            q_bucket = row.get(f"Q{i} Bucket", "").strip()
+            if q_text:
+                questions.append({
+                    "text": q_text,
+                    "bucket": q_bucket
+                })
                 
-        # Gather indexed results routing from R1 to R10 gracefully
+        # Harvest Unrolled Results Slots
         routing = []
-        for i in range(1, 11):
-            r_val = row.get(f"R{i}", "").strip()
-            if r_val:
-                routing.append(r_val)
+        for j in range(1, 11):
+            r_key = row.get(f"R{j} Key", "").strip()
+            r_url = row.get(f"R{j} URL", "").strip()
+            if r_key or r_url:
+                routing.append({
+                    "key": r_key,
+                    "url": r_url,
+                    "heading": row.get(f"R{j} Heading", "").strip(),
+                    "subheading": row.get(f"R{j} Subheading", "").strip(),
+                    "details": row.get(f"R{j} Details", "").strip(),
+                    "additionalDetails": row.get(f"R{j} Additional Details", "").strip()
+                })
                 
-        # Inject standard nested block schema contract
         quizzes_db[quiz_id] = {
             "id": int(quiz_id),
             "name": row.get("Quiz Name", "").strip(),
             "webTitle": row.get("Quiz Web Title", "").strip(),
             "introText": row.get("Intro Text", "").strip(),
             "scoringType": row.get("Scoring Type", "").strip(),
-            "resultsUrl": row.get("Results URL", "").strip(),
+            "requiredFields": row.get("Required Fields", "").strip(),
+            "rank": rank_value,
+            "quizImage": row.get("Quiz Image", "").strip(), # 🌟 New Explicit Image Property Map
+            "showInCatalog": row.get("Show In Catalog", "").strip(),
+            "startDate": row.get("Start Date", "").strip(),
+            "endDate": row.get("End Date", "").strip(),
             "webhookUrl": row.get("Webhook URL", "").strip(),
             "emailSubject": row.get("Email Subject", "").strip(),
             "userTags": row.get("User Tags", "").strip(),
-            "requiredFields": row.get("Required Fields", "").strip(), # 🌟 New Dynamic Field Requirement Layer
-            "startDate": row.get("Start Date", "").strip(),
-            "endDate": row.get("End Date", "").strip(),
             "questions": questions,
             "routing": routing
         }
         
-    # Build directory if missing and save the data cache asset
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(quizzes_db, f, indent=4, ensure_ascii=False)
         
-    print(f"Compilation pipeline completed successfully! Saved structural asset to: {OUTPUT_FILE}")
+    print(f"Compilation finished! Local schema saved to: {OUTPUT_FILE}")
 
 if __name__ == "__main__":
     harvest_quizzes()

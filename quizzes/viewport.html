@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assessment Session | Joe Sheldon</title>
+    <link rel="stylesheet" href="/style.css?v=42">
+    <script src="/components.js"></script>
+</head>
+<body>
+<universal-header></universal-header>
+<main style="min-height:65vh; padding-bottom:4rem;">
+    <div id="viewport-image-mount" style="max-width:600px; margin:2rem auto 0 auto; padding:0 1.5rem; box-sizing:border-box;"></div>
+    
+    <div id="viewport-mount"></div>
+    
+    <div style="text-align:center; margin-top:2rem;">
+        <a href="/quizzes/index.html" style="color:#555; font-weight:bold; text-decoration:none; font-size:0.9rem;">← Cancel and Return to Hub</a>
+    </div>
+</main>
+<universal-footer></universal-footer>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const id = new URLSearchParams(window.location.search).get('id');
+        if (!id) return;
+
+        try {
+            const res = await fetch('/data/quizzes.json');
+            const db = await res.json();
+            const quiz = db[id];
+            
+            if (quiz && quiz.quizImage) {
+                // 🌟 Inject Focused Banner Image above Question Component if populated
+                document.getElementById('viewport-image-mount').innerHTML = `
+                    <img src="${quiz.quizImage}" alt="" style="width:100%; max-height:220px; object-fit:cover; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.04); display:block; margin:0 auto;">
+                `;
+            }
+        } catch (e) { console.error("Optional image layer fetch omitted:", e); }
+
+        const tag = document.createElement('quiz-engine');
+        tag.setAttribute('quiz-id', id);
+        document.getElementById('viewport-mount').appendChild(tag);
+    });
+</script>
+</body>
+</html>
