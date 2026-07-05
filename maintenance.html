@@ -8,7 +8,6 @@
     <link class="main-stylesheet" rel="stylesheet" href="/style.css">
     <script src="/components.js"></script>
     <style>
-        /* Component Scope Styling Rules */
         .portal-container { max-width: 1000px; margin: 3rem auto; padding: 0 1.5rem; min-height: 70vh; }
         
         .portal-header-box { 
@@ -40,7 +39,6 @@
         }
         .task-card:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.06); }
         
-        /* Dynamic Urgency Indicators overriding baseline structures */
         .status-overdue { border-left-color: #C13030 !important; }
         .status-upcoming { border-left-color: #F5A623 !important; }
         .status-healthy { border-left-color: #137333 !important; }
@@ -57,6 +55,10 @@
         .task-meta-footer { font-size: 0.82rem; font-weight: 700; border-top: 1px dashed var(--premier-beige); padding-top: 0.85rem; color: #666666; display: flex; justify-content: space-between; }
         
         .state-message { text-align: center; padding: 4rem 2rem; background: #ffffff; border-radius: 12px; font-weight: 600; color: #555555; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid var(--premier-beige); }
+        
+        /* Diagnostic Monitor Area Styles */
+        .debug-panel { background: #FFF9E6; border: 2px dashed #F5A623; border-radius: 8px; padding: 1.5rem; margin-top: 3rem; text-align: left; font-family: monospace; font-size: 0.9rem; color: #333; }
+        .debug-panel h4 { color: #B06000; margin-top: 0; font-size: 1.1rem; text-transform: uppercase; margin-bottom: 0.5rem; }
     </style>
 </head>
 <body class="maintenance-portal-view">
@@ -75,10 +77,9 @@
     document.addEventListener('DOMContentLoaded', async () => {
         const mount = document.getElementById('portalMount');
         
-        // 🌟 PASTE YOUR COPIED MAINTENANCE GOOGLE APPS SCRIPT WEB APP URL HERE:
-        const maintenanceApiUrl = 'https://script.google.com/macros/s/AKfycbygTS1ENh67pCtLwTuSxv_n4fCgxzcR0WQBDrmLFfaWNtOOwRYA_iA50bmHyoSCkBgS/exec';
+        // 🌟 PASTE YOUR UPDATED MAINTENANCE GOOGLE APPS SCRIPT WEB APP URL HERE:
+        const maintenanceApiUrl = 'https://script.google.com/macros/s/AKfycbyYNKt7Xsiiko0Dlgk7UKAAoEcLXQREs0wICfqyanJRUPE2pi3cSc19GeYy8JZPZ10Z/exec';
         
-        // Isolate the unique ID string parameter from the magic link URL query string
         const urlParams = new URLSearchParams(window.location.search);
         const clientId = urlParams.get('id');
         
@@ -107,7 +108,7 @@
                 return;
             }
             
-            processAndRenderDashboard(dataResult.profile, dataResult.tasks);
+            processAndRenderDashboard(dataResult);
             
         } catch (error) {
             console.error("Critical serverless portal pipeline drop:", error);
@@ -118,8 +119,13 @@
         }
     });
 
-    function processAndRenderDashboard(profile, tasks) {
+    function processAndRenderDashboard(serverPayload) {
         const mount = document.getElementById('portalMount');
+        const profile = serverPayload.profile;
+        const tasks = serverPayload.tasks;
+        const schemaAlert = serverPayload.schemaStatus;
+        const libraryKeys = serverPayload.libraryKeys || [];
+        
         const today = new Date();
         today.setHours(0,0,0,0);
         
@@ -135,16 +141,26 @@
         let overdueCount = 0;
         let upcomingCount = 0;
         let longTermCount = 0;
+        let diagnosticMismatches = [];
 
         tasks.forEach(task => {
             const dueTarget = new Date(task.dueDate + "T00:00:00");
             const millisecondGap = dueTarget.getTime() - today.getTime();
             const daysRemaining = Math.ceil(millisecondGap / (1000 * 60 * 60 * 24));
             
-            // Safe string-casting variables prevent empty cell structural type crashes
             const taskCategory = String(task.category || 'General').trim();
             const taskName = String(task.taskName || 'Routine Upkeep').trim();
-            const taskDetails = String(task.details || 'No task notes provided for this tracking item.').trim();
+            
+            // Collect relational connection drop info for the debug panel
+            if (!task.debugMatch) {
+                diagnosticMismatches.push(taskName);
+            }
+
+            let taskDetails = String(task.details || '').trim();
+            if (taskDetails === "") {
+                taskDetails = `<span style="color:#d32f2f; font-weight:700;">⚠️ Connection Mismatch:</span> could not locate description metrics matching the name <code>"${taskName}"</code> inside your MasterReference tab.`;
+            }
+
             const taskFrequency = String(task.frequency || '12').trim();
             const taskDueDate = String(task.dueDate || '').trim();
 
@@ -186,6 +202,28 @@
             else longTermHtml += cardTemplate;
         });
 
+        // 3. Build Dynamic On-Screen Diagnostic Monitor Output
+        let debugPanelHtml = '';
+        if (schemaAlert || diagnosticMismatches.length > 0) {
+            debugPanelHtml = `
+                <div class="debug-panel">
+                    <h4>🛠️ System Architecture Diagnostic Monitor</h4>
+                    ${schemaAlert ? `<p style="color:#C13030; font-weight:bold;">⚠️ ${schemaAlert}</p>` : ''}
+                    ${diagnosticMismatches.length > 0 ? `
+                        <p><strong>🚨 Missing Master Connections (${diagnosticMismatches.length}):</strong></p>
+                        <ul>
+                            ${diagnosticMismatches.map(m => `<li>Log string <code>"${m}"</code> does not match any Master library row.</li>`).join('')}
+                        </ul>
+                        <p><strong>📋 Verified Keys Loaded From MasterReference Tab (${libraryKeys.length}):</strong></p>
+                        <div style="max-height:150px; overflow-y:auto; background:#fff; padding:10px; border:1px solid #ccc; border-radius:4px; font-size:0.85rem;">
+                            ${libraryKeys.length > 0 ? libraryKeys.map(k => `&bull; <code>"${k}"</code><br>`).join('') : 'None loaded. Check tab name!'}
+                        </div>
+                        <p style="margin-top:1rem; font-style:italic; font-size:0.85rem; color:#555;">Fix Tip: Check for minor spelling, hyphenation, or spacing differences between the missing log strings and the verified master list keys above!</p>
+                    ` : ''}
+                </div>
+            `;
+        }
+
         mount.innerHTML = `
             <div class="portal-header-box">
                 <div style="font-size: 0.85rem; font-weight: 800; color: var(--card-accent-color); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.4rem;">Home Asset Optimization</div>
@@ -213,6 +251,8 @@
                     ${longTermHtml || `<p style="grid-column: 1/-1; opacity:0.6; font-style:italic; font-weight:500; padding:1.5rem 0; text-align:center;">No long-term infrastructure items tracked on this thread.</p>`}
                 </div>
             </section>
+
+            ${debugPanelHtml}
         `;
     }
 </script>
