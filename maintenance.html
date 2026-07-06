@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Home Maintenance Hub | Joe Sheldon</title>
+    <title>Home Care Schedule & Maintenance | Joe Sheldon</title>
     
     <link class="main-stylesheet" rel="stylesheet" href="/style.css">
     <script src="/components.js"></script>
@@ -15,17 +15,45 @@
             padding: 2.5rem; 
             border-radius: 12px; 
             box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
-            border-top: 6px solid var(--card-accent-color); 
-            margin-bottom: 2.5rem; 
+            border-top: 6px solid var(--premier-charcoal); 
+            margin-bottom: 1.5rem; 
             text-align: center; 
         }
-        .portal-header-box h1 { font-size: 2.4rem; font-weight: 900; margin-bottom: 0.35rem; color: var(--premier-charcoal); letter-spacing: -0.5px; }
-        .property-subhead { font-size: 1.1rem; font-style: italic; color: #555555; font-weight: 500; }
+        .portal-header-box h1 { font-size: 2.4rem; font-weight: 900; margin-bottom: 0.5rem; color: var(--premier-charcoal); letter-spacing: -0.5px; }
+        .property-subhead { font-size: 1.1rem; color: #555555; font-weight: 500; }
+
+        /* Global Vetted Contractor Directory Callout Strip */
+        .directory-banner {
+            background: #F4F6F8;
+            border: 1px solid #E6E9EC;
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+            text-align: left;
+        }
+        .directory-text { font-size: 0.95rem; color: #333; font-weight: 500; margin: 0; line-height: 1.4; }
+        .directory-btn { 
+            padding: 0.5rem 1.25rem; 
+            background: #3D3935; 
+            color: #ffffff !important; 
+            text-decoration: none; 
+            font-weight: 700; 
+            font-size: 0.85rem; 
+            border-radius: 6px; 
+            white-space: nowrap;
+            transition: background 0.2s ease;
+        }
+        .directory-btn:hover { background: #C13030; }
         
         .track-section { margin-bottom: 3.5rem; }
         .track-section h2 { font-size: 1.5rem; font-weight: 800; border-bottom: 2px solid var(--premier-beige); padding-bottom: 0.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; color: var(--premier-charcoal); }
         
-        .task-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 1.5rem; }
+        .task-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
         .task-card { 
             background: #ffffff; 
             border-radius: 10px; 
@@ -36,6 +64,9 @@
             justify-content: space-between; 
             border-left: 6px solid var(--premier-charcoal); 
             transition: transform 0.2s ease, box-shadow 0.2s ease; 
+            border-top: 1px solid #eaeaea;
+            border-right: 1px solid #eaeaea;
+            border-bottom: 1px solid #eaeaea;
         }
         .task-card:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.06); }
         
@@ -46,16 +77,49 @@
         .tag-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
         .badge { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 0.25rem 0.6rem; border-radius: 4px; }
         .badge-cat { background: var(--premier-beige); color: var(--premier-charcoal); }
-        .badge-alert { background: #FFF5F5; color: #C13030; }
-        .badge-warning { background: #FFFBF0; color: #B06000; }
-        .badge-safe { background: #E6F4EA; color: #137333; }
+        .badge-schedule { background: #E8F0FE; color: #1967D2; } /* Replaces old 'Protected' tag with useful pop of color frequency marker */
 
-        .task-title { font-size: 1.25rem; font-weight: 800; color: #222222; margin-bottom: 0.5rem; line-height: 1.3; }
-        .task-details { font-size: 0.92rem; color: #555555; line-height: 1.5; margin-bottom: 1.5rem; flex-grow: 1; text-align: left; }
-        .task-meta-footer { font-size: 0.82rem; font-weight: 700; border-top: 1px dashed var(--premier-beige); padding-top: 0.85rem; color: #666666; display: flex; justify-content: space-between; }
+        .task-title { font-size: 1.35rem; font-weight: 800; color: #222222; margin-bottom: 0.65rem; line-height: 1.3; text-align: left; }
+        .task-details { font-size: 0.95rem; color: #555555; line-height: 1.5; margin-bottom: 1.25rem; flex-grow: 1; text-align: left; }
+        
+        /* Video & Professional Vendor Information Blocks */
+        .card-resource-block {
+            margin-bottom: 1.25rem;
+            padding: 0.85rem;
+            background: #F8F9FA;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: #444;
+            line-height: 1.4;
+            text-align: left;
+            border-left: 3px solid #6C757D;
+        }
+        .video-link-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #C13030;
+            text-decoration: none;
+            margin-bottom: 1.25rem;
+            align-self: flex-start;
+        }
+        .video-link-btn:hover { text-decoration: underline; }
+
+        /* Emphasized Target Metric Elements */
+        .task-meta-footer { 
+            font-size: 1.05rem; 
+            font-weight: 800; 
+            border-top: 1px dashed var(--premier-beige); 
+            padding-top: 1rem; 
+            color: #222222; 
+            display: flex; 
+            justify-content: space-between; 
+        }
+        .meta-target-label { color: #C13030; }
         
         .state-message { text-align: center; padding: 4rem 2rem; background: #ffffff; border-radius: 12px; font-weight: 600; color: #555555; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid var(--premier-beige); }
-        
         .debug-panel { background: #FFF9E6; border: 2px dashed #F5A623; border-radius: 8px; padding: 1.5rem; margin-top: 3rem; text-align: left; font-family: monospace; font-size: 0.9rem; color: #333; }
         .debug-panel h4 { color: #B06000; margin-top: 0; font-size: 1.1rem; text-transform: uppercase; margin-bottom: 0.5rem; }
     </style>
@@ -66,7 +130,7 @@
 
 <main class="portal-container" id="portalMount">
     <div class="state-message">
-        <p>🔄 Initializing secure validation logs and connecting to regional home metrics engine...</p>
+        <p>🔄 Loading your personalized home maintenance schedule...</p>
     </div>
 </main>
 
@@ -76,7 +140,7 @@
     document.addEventListener('DOMContentLoaded', async () => {
         const mount = document.getElementById('portalMount');
         
-        // 🌟 PASTE YOUR DEDICATED MAINTENANCE GOOGLE APPS SCRIPT WEB APP URL HERE:
+        // 🌟 PASTE YOUR RE-DEPLOYED WEB APP ENDPOINT URL PARAMETER HERE:
         const maintenanceApiUrl = 'https://script.google.com/macros/s/AKfycbx1plZwYv_afhSHj41TTBeBeoOiAwGmUtJI90TL7WWKPnLMfAlh7-QkvpfG8cAaGdtC/exec';
         
         const urlParams = new URLSearchParams(window.location.search);
@@ -86,8 +150,8 @@
             mount.innerHTML = `
                 <div class="state-message" style="border-top: 5px solid #C13030;">
                     <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
-                    <h3>Access Restricted</h3>
-                    <p style="font-weight: 500; font-size: 0.95rem; margin-top: 0.5rem; color: #666;">This system module requires a valid individual access token. Please verify using the private link provided in your home advisory welcome package.</p>
+                    <h3>Private Link Required</h3>
+                    <p style="font-weight: 500; font-size: 0.95rem; margin-top: 0.5rem; color: #666;">This schedule dashboard is personalized for each home. Please click the secure link sent to you in your property care welcome message.</p>
                 </div>`;
             return;
         }
@@ -101,8 +165,8 @@
                 mount.innerHTML = `
                     <div class="state-message" style="border-top: 5px solid #C13030;">
                         <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
-                        <h3>Profile Not Resolved</h3>
-                        <p style="font-weight: 500; font-size: 0.95rem; margin-top: 0.5rem; color: #666;">Error details: ${dataResult.error}</p>
+                        <h3>Schedule Not Found</h3>
+                        <p style="font-weight: 500; font-size: 0.95rem; margin-top: 0.5rem; color: #666;">Error parameters: ${dataResult.error}</p>
                     </div>`;
                 return;
             }
@@ -113,7 +177,7 @@
             console.error("Critical serverless portal pipeline drop:", error);
             mount.innerHTML = `
                 <div class="state-message">
-                    <p style="color: #C13030; font-weight: bold;">Connection to data pipeline mapping timed out. Please refresh the dashboard viewport.</p>
+                    <p style="color: #C13030; font-weight: bold;">Connection timed out. Please give the page a quick refresh.</p>
                 </div>`;
         }
     });
@@ -148,48 +212,61 @@
             const daysRemaining = Math.ceil(millisecondGap / (1000 * 60 * 60 * 24));
             
             const taskCategory = String(task.category || 'General').trim();
-            const taskName = String(task.taskName || 'Routine Upkeep').trim();
+            const taskTitleText = String(task.taskTitle || 'Routine Maintenance').trim();
+            const taskIDKey = String(task.taskName || '').trim();
             
             if (!task.debugMatch) {
-                diagnosticMismatches.push(taskName);
+                diagnosticMismatches.push(taskIDKey);
             }
 
             let taskDetails = String(task.details || '').trim();
             if (taskDetails === "") {
-                taskDetails = `<span style="color:#d32f2f; font-weight:700;">⚠️ Connection Mismatch:</span> could not locate description metrics matching the alphanumeric Task ID <code>"${taskName}"</code> inside your MasterReference tab.`;
+                taskDetails = `<span style="color:#d32f2f; font-weight:700;">⚠️ Data Match Mismatch:</span> Could not find details row matching numeric Task ID <code>"${taskIDKey}"</code> inside your MasterReference tab.`;
             }
 
             const taskFrequency = String(task.frequency || '12').trim();
             const taskDueDate = String(task.dueDate || '').trim();
-
             const icon = categoryEmojis[taskCategory] || '📋';
+            
             let statusCardClass = 'status-healthy';
-            let badgeMarkup = `<span class="badge badge-safe">Protected</span>`;
             
             if (daysRemaining < 0) {
                 statusCardClass = 'status-overdue';
-                badgeMarkup = `<span class="badge badge-alert">Action Required</span>`;
                 overdueCount++;
             } else if (daysRemaining <= 45) {
                 statusCardClass = 'status-upcoming';
-                badgeMarkup = `<span class="badge badge-warning">Due within ${daysRemaining} Days</span>`;
                 upcomingCount++;
             } else {
                 longTermCount++;
             }
 
+            // Dynamic video asset markup logic
+            let videoMarkup = '';
+            if (task.video && task.video.trim() !== "") {
+                videoMarkup = `<a href="${task.video.trim()}" target="_blank" class="video-link-btn">🎥 Watch Tutorial Video</a>`;
+            }
+
+            // Dynamic provider vendor markup engine allocation
+            let vendorMarkup = '';
+            if (task.vendor && task.vendor.trim() !== "") {
+                vendorMarkup = `<div class="card-resource-block">${task.vendor}</div>`;
+            }
+
             const cardTemplate = `
                 <div class="task-card ${statusCardClass}">
-                    <div>
+                    <div style="display: flex; flex-direction: column;">
                         <div class="tag-row">
                             <span class="badge badge-cat"><span>${icon}</span> ${taskCategory}</span>
-                            ${badgeMarkup}
+                            <span class="badge badge-schedule">Cycle: ${taskFrequency} Mos</span>
                         </div>
-                        <h3 class="task-title" style="text-transform: capitalize;">${taskName.replace(/-/g, ' ')}</h3>
+                        <h3 class="task-title">${taskTitleText}</h3>
                         <p class="task-details">${taskDetails}</p>
+                        
+                        ${videoMarkup}
+                        ${vendorMarkup}
                     </div>
                     <div class="task-meta-footer">
-                        <span>🗓️ Target: ${taskDueDate}</span>
+                        <span>🗓️ <span class="meta-target-label">Due:</span> ${taskDueDate}</span>
                         <span>⏱️ Every ${taskFrequency} Months</span>
                     </div>
                 </div>
@@ -222,29 +299,35 @@
 
         mount.innerHTML = `
             <div class="portal-header-box">
-                <div style="font-size: 0.85rem; font-weight: 800; color: var(--card-accent-color); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.4rem;">Home Asset Optimization</div>
-                <h1>Home Maintenance Advisor</h1>
-                <p class="property-subhead">Active Protection Pipeline for ${profile.clientName}: <strong>${profile.propertyAddress}</strong></p>
+                <h1>Home Care Checklist</h1>
+                <p class="property-subhead">Scheduled tasks for <strong>${profile.clientName}</strong> at <strong>${profile.propertyAddress}</strong></p>
+            </div>
+
+            <div class="directory-banner">
+                <p class="directory-text">
+                    <strong>Need a trusted local pro?</strong> Browse through my personally vetted directory of professional contractors, or click the button to verify business licenses, safety metrics, and trade credentials.
+                </p>
+                <a href="professionals.html" class="directory-btn">Open Contractor Directory &rarr;</a>
             </div>
 
             ${overdueCount > 0 ? `
                 <section class="track-section">
-                    <h2 style="color: #C13030;">🚨 Past Due Upkeep Tasks (${overdueCount})</h2>
+                    <h2 style="color: #C13030;">🚨 Overdue Tasks (${overdueCount})</h2>
                     <div class="task-grid">${overdueHtml}</div>
                 </section>
             ` : ''}
 
             <section class="track-section">
-                <h2>📅 Upcoming Milestones (Next 45 Days)</h2>
+                <h2>📅 Coming Up (Next 45 Days)</h2>
                 <div class="task-grid">
-                    ${upcomingHtml || `<p style="grid-column: 1/-1; opacity:0.6; font-style:italic; font-weight:500; padding:1.5rem 0; text-align:center;">🎉 Fantastic news! All seasonal system and property environment tracking limits are clear.</p>`}
+                    ${upcomingHtml || `<p style="grid-column: 1/-1; opacity:0.7; font-style:italic; font-weight:500; padding:2rem 0; text-align:center;">🎉 Nice job! All your seasonal home maintenance tasks are completely up to date.</p>`}
                 </div>
             </section>
 
             <section class="track-section">
-                <h2>🛡️ Long-Term Maintenance & Protection Cycles</h2>
+                <h2>🗓️ Routine & Long-Term Care</h2>
                 <div class="task-grid">
-                    ${longTermHtml || `<p style="grid-column: 1/-1; opacity:0.6; font-style:italic; font-weight:500; padding:1.5rem 0; text-align:center;">No long-term infrastructure items tracked on this thread.</p>`}
+                    ${longTermHtml || `<p style="grid-column: 1/-1; opacity:0.6; font-style:italic; font-weight:500; padding:1.5rem 0; text-align:center;">No upcoming long-term care tasks found on this thread.</p>`}
                 </div>
             </section>
 
