@@ -250,9 +250,6 @@
 
         .print-only-header { display: none; }
 
-        /* ==========================================
-           HIGH-IMPACT MARKETING PRINT STYLESHEET
-           ========================================== */
         @media print {
             @page {
                 size: letter;
@@ -502,10 +499,12 @@
                 }
                 select.innerHTML = html;
                 
-                if(dataStore.programs.length > 0) evaluateDpaPrograms(false);
+                // 🌟 UPDATED: Added true flag to pass into the background engine parser on initialize limits
+                if(dataStore.programs.length > 0) evaluateDpaPrograms(false, true);
             }
 
-            window.evaluateDpaPrograms = function(showAll = false) {
+            // 🌟 UPDATED: Formulated tracking configurations to utilize type-safe skipScroll controls
+            window.evaluateDpaPrograms = function(showAll = false, skipScroll = false) {
                 const targetCityName = document.getElementById('citySelect').value;
                 const cityObj = dataStore.cities[targetCityName.toLowerCase().trim()] || {};
                 const targetCountyName = cityObj.county || '';
@@ -627,7 +626,9 @@
                 }
                 
                 document.getElementById('resultsSection').style.display = 'block';
-                if (!showAll) {
+                
+                // 🌟 UPDATED: View transition layout locks unless skipScroll is passed as a true override parameter
+                if (!showAll && !skipScroll) {
                     document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
                 }
             };
