@@ -43,7 +43,7 @@ class UniversalHeader extends HTMLElement {
 }
 
 class UniversalFooter extends HTMLElement {
-    connectedCallback() {
+    async connectedCallback() {
         this.innerHTML = `
         <footer>
             <div class="footer-content" style="max-width: 1000px; margin: 0 auto; width: 100%;">
@@ -51,11 +51,89 @@ class UniversalFooter extends HTMLElement {
                 <p class="office-address">3400 188th St SW, Ste 165<br>Lynnwood, WA 98037</p>
                 <p style="margin-top: 1rem; font-size: 0.85rem; opacity: 0.7; display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap;">
                     <a href="/hereforyou.html" style="color: var(--premier-beige); text-decoration: underline;">Housing Equity Commitment</a>
-                    <a href="/calculators.html" style="color: var(--premier-beige); text-decoration: underline; font-weight: bold;">Real Estate Calculators</a>
+                    <a href="/calculators.html" style="color: var(--premier-beige); text-decoration: underline;">Real Estate Calculators</a>
                 </p>
+                
+                <div id="dynamic-disclaimers-box" style="max-width: 750px; margin: 1.75rem auto 0 auto; padding-top: 1.25rem; border-top: 1px solid rgba(239, 236, 229, 0.15); font-size: 0.72rem; line-height: 1.5; text-align: justify; opacity: 0.5; color: var(--premier-beige); padding-left: 1rem; padding-right: 1rem; box-sizing: border-box;"></div>
             </div>
         </footer>
         `;
+
+        // 🌟 MERGED: Live Spreadsheet-Driven Regulatory Disclosure Content Streamer
+        const disclaimerBox = this.querySelector('#dynamic-disclaimers-box');
+        const disclaimersUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiu3qLYVO9khl6k5s_whzg_UZFzKu7-RHc5fa2tpe3aIlf4wm4IaqQeVd75enhpJvS_lxXgfQRfQ_/pub?gid=107250527&single=true&output=csv';
+
+        let currentPageName = window.location.pathname.split('/').pop().toLowerCase().trim();
+        if (!currentPageName || currentPageName === "") currentPageName = "index.html";
+
+        try {
+            const response = await fetch(disclaimersUrl);
+            if (!response.ok) throw new Error('Data endpoint unreachable');
+            const csvText = await response.text();
+
+            const parseCSVRows = (text) => {
+                const lines = [];
+                let row = [""];
+                let inQuotes = false;
+
+                for (let i = 0; i < text.length; i++) {
+                    let char = text[i];
+                    let nextChar = text[i+1];
+                    if (char === '"') {
+                        if (inQuotes && nextChar === '"') { row[row.length - 1] += '"'; i++; }
+                        else { inQuotes = !inQuotes; }
+                    } else if (char === ',' && !inQuotes) {
+                        row.push('');
+                    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+                        if (char === '\r' && nextChar === '\n') { i++; }
+                        lines.push(row);
+                        row = [''];
+                    } else {
+                        row[row.length - 1] += char;
+                    }
+                }
+                if (row.length > 1 || row[0] !== '') lines.push(row);
+                return lines;
+            };
+
+            const allRows = parseCSVRows(csvText);
+            if (allRows.length < 2) { disclaimerBox.style.display = 'none'; return; }
+
+            let siteWideText = '';
+            let pageSpecificText = '';
+
+            for (let i = 1; i < allRows.length; i++) {
+                const row = allRows[i];
+                if (!row || row.length < 2) continue;
+
+                const targetKey = row[0].trim().toLowerCase();
+                const textValue = row[1].trim();
+
+                if (targetKey === 'site') {
+                    siteWideText = textValue;
+                } else if (targetKey === currentPageName) {
+                    pageSpecificText = textValue;
+                }
+            }
+
+            let outputMarkup = '';
+            if (siteWideText) {
+                outputMarkup += `<p style="margin: 0 0 0.75rem 0; text-align: justify;">${siteWideText}</p>`;
+            }
+            if (pageSpecificText) {
+                outputMarkup += `<p style="margin: 0; text-align: justify;">${pageSpecificText}</p>`;
+            }
+
+            if (outputMarkup) {
+                disclaimerBox.innerHTML = outputMarkup;
+            } else {
+                disclaimerBox.style.display = 'none';
+            }
+
+        } catch (error) {
+            console.error("Regulatory disclosure generation error:", error);
+            disclaimerBox.style.display = 'none';
+        }
     }
 }
 
@@ -182,7 +260,6 @@ class QuizEngine extends HTMLElement {
     }
 }
 
-// 🌟 RESTORED: Fully Dynamic, Location-Safe Review Engine
 class LocalReviews extends HTMLElement {
     async connectedCallback() {
         const limit = parseInt(this.getAttribute('limit')) || 3;
@@ -194,7 +271,6 @@ class LocalReviews extends HTMLElement {
         const gridContainer = this.querySelector('.reviews-component-grid');
 
         try {
-            // 🌟 FIXED: Swapped to a root-relative path so files load flawlessly from any folder sub-level
             const response = await fetch('/data/Stats_Reviews%20-%20Reviews.csv');
             if (!response.ok) throw new Error('Network file retrieval failed');
             const csvText = await response.text();
@@ -268,7 +344,6 @@ class LocalReviews extends HTMLElement {
                     ? `<h4 style="margin: 0 0 0.75rem 0; font-size: 1.05rem; font-style: italic; color: #222222; line-height: 1.4;">"${rev.snippet}"</h4>`
                     : '';
 
-                // 🌟 FIXED: Swapped out raw color hexes to listen directly to your master var hooks
                 return `
                     <div class="review-component-card" style="background: #ffffff; padding: 1.75rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; flex-direction: column; border-top: 5px solid var(--card-accent-color);">
                         <div style="color: var(--card-accent-color); font-size: 1rem; font-weight: 800; margin-bottom: 0.75rem; letter-spacing: 0.5px;">5.0 <span style="font-size: 1.1rem; letter-spacing: 1px;">${stars}</span></div>
@@ -290,4 +365,4 @@ class LocalReviews extends HTMLElement {
 customElements.define('universal-header', UniversalHeader);
 customElements.define('universal-footer', UniversalFooter);
 customElements.define('quiz-engine', QuizEngine);
-customElements.define('local-reviews', LocalReviews); // 🌟 THE KEY MISSING LINK LINE
+customElements.define('local-reviews', LocalReviews);
