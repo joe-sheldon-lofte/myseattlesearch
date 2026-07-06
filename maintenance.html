@@ -56,7 +56,6 @@
         
         .state-message { text-align: center; padding: 4rem 2rem; background: #ffffff; border-radius: 12px; font-weight: 600; color: #555555; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid var(--premier-beige); }
         
-        /* Diagnostic Monitor Area Styles */
         .debug-panel { background: #FFF9E6; border: 2px dashed #F5A623; border-radius: 8px; padding: 1.5rem; margin-top: 3rem; text-align: left; font-family: monospace; font-size: 0.9rem; color: #333; }
         .debug-panel h4 { color: #B06000; margin-top: 0; font-size: 1.1rem; text-transform: uppercase; margin-bottom: 0.5rem; }
     </style>
@@ -77,8 +76,8 @@
     document.addEventListener('DOMContentLoaded', async () => {
         const mount = document.getElementById('portalMount');
         
-        // 🌟 PASTE YOUR UPDATED MAINTENANCE GOOGLE APPS SCRIPT WEB APP URL HERE:
-        const maintenanceApiUrl = 'https://script.google.com/macros/s/AKfycbygTS1ENh67pCtLwTuSxv_n4fCgxzcR0WQBDrmLFfaWNtOOwRYA_iA50bmHyoSCkBgS/exec';
+        // 🌟 PASTE YOUR DEDICATED MAINTENANCE GOOGLE APPS SCRIPT WEB APP URL HERE:
+        const maintenanceApiUrl = 'https://script.google.com/macros/s/AKfycbx1plZwYv_afhSHj41TTBeBeoOiAwGmUtJI90TL7WWKPnLMfAlh7-QkvpfG8cAaGdtC/exec';
         
         const urlParams = new URLSearchParams(window.location.search);
         const clientId = urlParams.get('id');
@@ -151,14 +150,13 @@
             const taskCategory = String(task.category || 'General').trim();
             const taskName = String(task.taskName || 'Routine Upkeep').trim();
             
-            // Collect relational connection drop info for the debug panel
             if (!task.debugMatch) {
                 diagnosticMismatches.push(taskName);
             }
 
             let taskDetails = String(task.details || '').trim();
             if (taskDetails === "") {
-                taskDetails = `<span style="color:#d32f2f; font-weight:700;">⚠️ Connection Mismatch:</span> could not locate description metrics matching the name <code>"${taskName}"</code> inside your MasterReference tab.`;
+                taskDetails = `<span style="color:#d32f2f; font-weight:700;">⚠️ Connection Mismatch:</span> could not locate description metrics matching the alphanumeric Task ID <code>"${taskName}"</code> inside your MasterReference tab.`;
             }
 
             const taskFrequency = String(task.frequency || '12').trim();
@@ -187,7 +185,7 @@
                             <span class="badge badge-cat"><span>${icon}</span> ${taskCategory}</span>
                             ${badgeMarkup}
                         </div>
-                        <h3 class="task-title">${taskName}</h3>
+                        <h3 class="task-title" style="text-transform: capitalize;">${taskName.replace(/-/g, ' ')}</h3>
                         <p class="task-details">${taskDetails}</p>
                     </div>
                     <div class="task-meta-footer">
@@ -202,7 +200,6 @@
             else longTermHtml += cardTemplate;
         });
 
-        // 3. Build Dynamic On-Screen Diagnostic Monitor Output
         let debugPanelHtml = '';
         if (schemaAlert || diagnosticMismatches.length > 0) {
             debugPanelHtml = `
@@ -210,15 +207,14 @@
                     <h4>🛠️ System Architecture Diagnostic Monitor</h4>
                     ${schemaAlert ? `<p style="color:#C13030; font-weight:bold;">⚠️ ${schemaAlert}</p>` : ''}
                     ${diagnosticMismatches.length > 0 ? `
-                        <p><strong>🚨 Missing Master Connections (${diagnosticMismatches.length}):</strong></p>
+                        <p><strong>🚨 Missing Relational Token ID Connections (${diagnosticMismatches.length}):</strong></p>
                         <ul>
-                            ${diagnosticMismatches.map(m => `<li>Log string <code>"${m}"</code> does not match any Master library row.</li>`).join('')}
+                            ${diagnosticMismatches.map(m => `<li>Log Task ID key <code>"${m}"</code> does not match any row under Column A of your MasterReference sheet.</li>`).join('')}
                         </ul>
-                        <p><strong>📋 Verified Keys Loaded From MasterReference Tab (${libraryKeys.length}):</strong></p>
+                        <p><strong>📋 Valid Task IDs Loaded From MasterReference Tab (${libraryKeys.length}):</strong></p>
                         <div style="max-height:150px; overflow-y:auto; background:#fff; padding:10px; border:1px solid #ccc; border-radius:4px; font-size:0.85rem;">
-                            ${libraryKeys.length > 0 ? libraryKeys.map(k => `&bull; <code>"${k}"</code><br>`).join('') : 'None loaded. Check tab name!'}
+                            ${libraryKeys.length > 0 ? libraryKeys.map(k => `&bull; <code>"${k}"</code><br>`).join('') : 'None loaded. Check column A header label text!'}
                         </div>
-                        <p style="margin-top:1rem; font-style:italic; font-size:0.85rem; color:#555;">Fix Tip: Check for minor spelling, hyphenation, or spacing differences between the missing log strings and the verified master list keys above!</p>
                     ` : ''}
                 </div>
             `;
