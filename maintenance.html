@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home Care Schedule & Maintenance | Joe Sheldon</title>
+    <title>Home Care Checklist & Maintenance | Joe Sheldon</title>
     
     <link class="main-stylesheet" rel="stylesheet" href="/style.css">
     <script src="/components.js"></script>
+    
     <style>
+        /* Lean page additions to prevent bloated CSS footprints */
         .portal-container { max-width: 1000px; margin: 3rem auto; padding: 0 1.5rem; min-height: 70vh; }
         
         .portal-header-box { 
@@ -15,20 +17,20 @@
             padding: 2.5rem; 
             border-radius: 12px; 
             box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
-            border-top: 6px solid var(--premier-charcoal); 
-            margin-bottom: 1.5rem; 
+            border-top: 6px solid #C13030; /* Splash of Redfin red on the header block */
+            border-bottom: 2px solid #E6E9EC;
+            margin-bottom: 2rem; 
             text-align: center; 
         }
         .portal-header-box h1 { font-size: 2.4rem; font-weight: 900; margin-bottom: 0.5rem; color: var(--premier-charcoal); letter-spacing: -0.5px; }
         .property-subhead { font-size: 1.1rem; color: #555555; font-weight: 500; }
 
-        /* Global Vetted Contractor Directory Callout Strip */
         .directory-banner {
             background: #F4F6F8;
             border: 1px solid #E6E9EC;
             border-radius: 8px;
             padding: 1.25rem;
-            margin-bottom: 3rem;
+            margin-bottom: 3.5rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -62,7 +64,7 @@
             display: flex; 
             flex-direction: column; 
             justify-content: space-between; 
-            border-left: 6px solid var(--premier-charcoal); 
+            border-left: 6px solid var(--premier-charcoal); /* Resolves card edge to match global site layout styles */
             transition: transform 0.2s ease, box-shadow 0.2s ease; 
             border-top: 1px solid #eaeaea;
             border-right: 1px solid #eaeaea;
@@ -70,19 +72,27 @@
         }
         .task-card:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.06); }
         
+        /* Unified semantic state triggers overriding default weights */
         .status-overdue { border-left-color: #C13030 !important; }
         .status-upcoming { border-left-color: #F5A623 !important; }
-        .status-healthy { border-left-color: #137333 !important; }
+        .status-healthy { border-left-color: var(--premier-charcoal) !important; }
         
         .tag-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
-        .badge { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 0.25rem 0.6rem; border-radius: 4px; }
-        .badge-cat { background: var(--premier-beige); color: var(--premier-charcoal); }
-        .badge-schedule { background: #E8F0FE; color: #1967D2; } /* Replaces old 'Protected' tag with useful pop of color frequency marker */
-
-        .task-title { font-size: 1.35rem; font-weight: 800; color: #222222; margin-bottom: 0.65rem; line-height: 1.3; text-align: left; }
-        .task-details { font-size: 0.95rem; color: #555555; line-height: 1.5; margin-bottom: 1.25rem; flex-grow: 1; text-align: left; }
+        .badge { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 0.25rem 0.6rem; border-radius: 4px; color: #fff; }
         
-        /* Video & Professional Vendor Information Blocks */
+        /* Category-specific color rules */
+        .cat-roof { background-color: #5A626A; }
+        .cat-siding { background-color: #8D7B68; }
+        .cat-hvac { background-color: #E67E22; }
+        .cat-plumbing { background-color: #2980B9; }
+        .cat-electrical { background-color: #D35400; }
+        .cat-water { background-color: #1F3A60; }
+        .cat-other { background-color: #7F8C8D; }
+
+        /* Highly stylized Redfin red prominent typography */
+        .task-title { font-size: 1.4rem; font-weight: 900; color: #C13030; margin-bottom: 0.65rem; line-height: 1.3; text-align: left; letter-spacing: -0.25px; }
+        .task-details { font-size: 0.95rem; color: #444444; line-height: 1.5; margin-bottom: 1.25rem; flex-grow: 1; text-align: left; }
+        
         .card-resource-block {
             margin-bottom: 1.25rem;
             padding: 0.85rem;
@@ -92,7 +102,7 @@
             color: #444;
             line-height: 1.4;
             text-align: left;
-            border-left: 3px solid #6C757D;
+            border-left: 3px solid #3D3935;
         }
         .video-link-btn {
             display: inline-flex;
@@ -107,7 +117,7 @@
         }
         .video-link-btn:hover { text-decoration: underline; }
 
-        /* Emphasized Target Metric Elements */
+        /* Emphasized Target Metric Text Blocks */
         .task-meta-footer { 
             font-size: 1.05rem; 
             font-weight: 800; 
@@ -115,9 +125,13 @@
             padding-top: 1rem; 
             color: #222222; 
             display: flex; 
-            justify-content: space-between; 
+            flex-direction: column;
+            gap: 0.25rem;
+            text-align: left;
         }
-        .meta-target-label { color: #C13030; }
+        .meta-row-item { display: flex; justify-content: space-between; width: 100%; }
+        .meta-target-label { color: #666666; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .meta-target-val { color: #222222; font-weight: 800; }
         
         .state-message { text-align: center; padding: 4rem 2rem; background: #ffffff; border-radius: 12px; font-weight: 600; color: #555555; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid var(--premier-beige); }
         .debug-panel { background: #FFF9E6; border: 2px dashed #F5A623; border-radius: 8px; padding: 1.5rem; margin-top: 3rem; text-align: left; font-family: monospace; font-size: 0.9rem; color: #333; }
@@ -130,7 +144,7 @@
 
 <main class="portal-container" id="portalMount">
     <div class="state-message">
-        <p>🔄 Loading your personalized home maintenance schedule...</p>
+        <p>🔄 Loading your personalized home care checklist...</p>
     </div>
 </main>
 
@@ -140,8 +154,8 @@
     document.addEventListener('DOMContentLoaded', async () => {
         const mount = document.getElementById('portalMount');
         
-        // 🌟 PASTE YOUR RE-DEPLOYED WEB APP ENDPOINT URL PARAMETER HERE:
-        const maintenanceApiUrl = 'https://script.google.com/macros/s/AKfycbx1plZwYv_afhSHj41TTBeBeoOiAwGmUtJI90TL7WWKPnLMfAlh7-QkvpfG8cAaGdtC/exec';
+        // 🌟 PASTE YOUR UPDATED MAINTENANCE GOOGLE APPS SCRIPT WEB APP URL HERE:
+        const maintenanceApiUrl = 'https://script.google.com/macros/s/AKfycbyYNKt7Xsiiko0Dlgk7UKAAoEcLXQREs0wICfqyanJRUPE2pi3cSc19GeYy8JZPZ10Z/exec';
         
         const urlParams = new URLSearchParams(window.location.search);
         const clientId = urlParams.get('id');
@@ -151,7 +165,7 @@
                 <div class="state-message" style="border-top: 5px solid #C13030;">
                     <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
                     <h3>Private Link Required</h3>
-                    <p style="font-weight: 500; font-size: 0.95rem; margin-top: 0.5rem; color: #666;">This schedule dashboard is personalized for each home. Please click the secure link sent to you in your property care welcome message.</p>
+                    <p style="font-weight: 500; font-size: 0.95rem; margin-top: 0.5rem; color: #666;">This care checklist is personalized for each home. Please click the private link provided in your property update package.</p>
                 </div>`;
             return;
         }
@@ -166,7 +180,7 @@
                     <div class="state-message" style="border-top: 5px solid #C13030;">
                         <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
                         <h3>Schedule Not Found</h3>
-                        <p style="font-weight: 500; font-size: 0.95rem; margin-top: 0.5rem; color: #666;">Error parameters: ${dataResult.error}</p>
+                        <p style="font-weight: 500; font-size: 0.95rem; margin-top: 0.5rem; color: #666;">Error parameter log: ${dataResult.error}</p>
                     </div>`;
                 return;
             }
@@ -177,7 +191,7 @@
             console.error("Critical serverless portal pipeline drop:", error);
             mount.innerHTML = `
                 <div class="state-message">
-                    <p style="color: #C13030; font-weight: bold;">Connection timed out. Please give the page a quick refresh.</p>
+                    <p style="color: #C13030; font-weight: bold;">Connection timed out. Please give the dashboard page a quick refresh.</p>
                 </div>`;
         }
     });
@@ -192,9 +206,9 @@
         const today = new Date();
         today.setHours(0,0,0,0);
         
-        const categoryEmojis = {
-            'Roof': '🏠', 'Electrical': '⚡', 'Plumbing': '🔧', 
-            'HVAC': '🔥', 'Water': '💧', 'Siding': '🧱', 'Safety': '🛡️'
+        const categoryClasses = {
+            'roof': 'cat-roof', 'siding': 'cat-siding', 'hvac': 'cat-hvac', 
+            'plumbing': 'cat-plumbing', 'electrical': 'cat-electrical', 'water': 'cat-water'
         };
 
         let overdueHtml = '';
@@ -211,9 +225,12 @@
             const millisecondGap = dueTarget.getTime() - today.getTime();
             const daysRemaining = Math.ceil(millisecondGap / (1000 * 60 * 60 * 24));
             
-            const taskCategory = String(task.category || 'General').trim();
-            const taskTitleText = String(task.taskTitle || 'Routine Maintenance').trim();
-            const taskIDKey = String(task.taskName || '').trim();
+            const taskCategory = String(task.category || 'Other').trim();
+            const cleanCatKey = taskCategory.toLowerCase();
+            const assignedCatClass = categoryClasses[cleanCatKey] || 'cat-other';
+            
+            const taskTitleText = String(task.taskTitle || 'Routine Care Task').trim();
+            const taskIDKey = String(task.taskId || '').trim();
             
             if (!task.debugMatch) {
                 diagnosticMismatches.push(taskIDKey);
@@ -221,15 +238,13 @@
 
             let taskDetails = String(task.details || '').trim();
             if (taskDetails === "") {
-                taskDetails = `<span style="color:#d32f2f; font-weight:700;">⚠️ Data Match Mismatch:</span> Could not find details row matching numeric Task ID <code>"${taskIDKey}"</code> inside your MasterReference tab.`;
+                taskDetails = `<span style="color:#d32f2f; font-weight:700;">⚠️ Connection Mismatch:</span> Could not locate description details matching Task ID number <code>"${taskIDKey}"</code> inside your MasterReference tab.`;
             }
 
             const taskFrequency = String(task.frequency || '12').trim();
             const taskDueDate = String(task.dueDate || '').trim();
-            const icon = categoryEmojis[taskCategory] || '📋';
             
             let statusCardClass = 'status-healthy';
-            
             if (daysRemaining < 0) {
                 statusCardClass = 'status-overdue';
                 overdueCount++;
@@ -240,13 +255,11 @@
                 longTermCount++;
             }
 
-            // Dynamic video asset markup logic
             let videoMarkup = '';
             if (task.video && task.video.trim() !== "") {
                 videoMarkup = `<a href="${task.video.trim()}" target="_blank" class="video-link-btn">🎥 Watch Tutorial Video</a>`;
             }
 
-            // Dynamic provider vendor markup engine allocation
             let vendorMarkup = '';
             if (task.vendor && task.vendor.trim() !== "") {
                 vendorMarkup = `<div class="card-resource-block">${task.vendor}</div>`;
@@ -256,8 +269,7 @@
                 <div class="task-card ${statusCardClass}">
                     <div style="display: flex; flex-direction: column;">
                         <div class="tag-row">
-                            <span class="badge badge-cat"><span>${icon}</span> ${taskCategory}</span>
-                            <span class="badge badge-schedule">Cycle: ${taskFrequency} Mos</span>
+                            <span class="badge ${assignedCatClass}">${taskCategory}</span>
                         </div>
                         <h3 class="task-title">${taskTitleText}</h3>
                         <p class="task-details">${taskDetails}</p>
@@ -266,8 +278,14 @@
                         ${vendorMarkup}
                     </div>
                     <div class="task-meta-footer">
-                        <span>🗓️ <span class="meta-target-label">Due:</span> ${taskDueDate}</span>
-                        <span>⏱️ Every ${taskFrequency} Months</span>
+                        <div class="meta-row-item">
+                            <span class="meta-target-label">Next Due Date:</span>
+                            <span class="meta-target-val">${taskDueDate}</span>
+                        </div>
+                        <div class="meta-row-item">
+                            <span class="meta-target-label">Frequency:</span>
+                            <span class="meta-target-val">Every ${taskFrequency} Months</span>
+                        </div>
                     </div>
                 </div>
             `;
@@ -286,9 +304,9 @@
                     ${diagnosticMismatches.length > 0 ? `
                         <p><strong>🚨 Missing Relational Token ID Connections (${diagnosticMismatches.length}):</strong></p>
                         <ul>
-                            ${diagnosticMismatches.map(m => `<li>Log Task ID key <code>"${m}"</code> does not match any row under Column A of your MasterReference sheet.</li>`).join('')}
+                            ${diagnosticMismatches.map(m => `<li>Log Row Task ID number <code>"${m}"</code> does not match any index in Column A of your MasterReference tab.</li>`).join('')}
                         </ul>
-                        <p><strong>📋 Valid Task IDs Loaded From MasterReference Tab (${libraryKeys.length}):</strong></p>
+                        <p><strong>📋 Valid Numeric Task IDs Loaded From MasterReference Tab (${libraryKeys.length}):</strong></p>
                         <div style="max-height:150px; overflow-y:auto; background:#fff; padding:10px; border:1px solid #ccc; border-radius:4px; font-size:0.85rem;">
                             ${libraryKeys.length > 0 ? libraryKeys.map(k => `&bull; <code>"${k}"</code><br>`).join('') : 'None loaded. Check column A header label text!'}
                         </div>
@@ -305,7 +323,7 @@
 
             <div class="directory-banner">
                 <p class="directory-text">
-                    <strong>Need a trusted local pro?</strong> Browse through my personally vetted directory of professional contractors, or click the button to verify business licenses, safety metrics, and trade credentials.
+                    <strong>Looking for a trusted contractor?</strong> Browse my personally vetted directory of local pros, or verify license metrics and safety credentials instantly.
                 </p>
                 <a href="professionals.html" class="directory-btn">Open Contractor Directory &rarr;</a>
             </div>
@@ -320,14 +338,14 @@
             <section class="track-section">
                 <h2>📅 Coming Up (Next 45 Days)</h2>
                 <div class="task-grid">
-                    ${upcomingHtml || `<p style="grid-column: 1/-1; opacity:0.7; font-style:italic; font-weight:500; padding:2rem 0; text-align:center;">🎉 Nice job! All your seasonal home maintenance tasks are completely up to date.</p>`}
+                    ${upcomingHtml || `<p style="grid-column: 1/-1; opacity:0.7; font-style:italic; font-weight:500; padding:2rem 0; text-align:center;">🎉 Nice job! Your home care schedule is completely up to date.</p>`}
                 </div>
             </section>
 
             <section class="track-section">
                 <h2>🗓️ Routine & Long-Term Care</h2>
                 <div class="task-grid">
-                    ${longTermHtml || `<p style="grid-column: 1/-1; opacity:0.6; font-style:italic; font-weight:500; padding:1.5rem 0; text-align:center;">No upcoming long-term care tasks found on this thread.</p>`}
+                    ${longTermHtml || `<p style="grid-column: 1/-1; opacity:0.6; font-style:italic; font-weight:500; padding:1.5rem 0; text-align:center;">No long-term care tasks currently scheduled.</p>`}
                 </div>
             </section>
 
