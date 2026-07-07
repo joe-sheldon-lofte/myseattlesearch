@@ -203,7 +203,7 @@
             const mountNode = document.getElementById('programs-mount-node');
             const chips = document.querySelectorAll('.filter-chip');
             
-            // 🌟 SWAP CONFIGURATION: Update this placeholder with your newly published ThirdPartyPrograms tab link
+            // 🌟 TARGET RECONFIGURED: Built exactly using your live spreadsheet tab GID configuration token
             const csvEndpointUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiu3qLYVO9khl6k5s_whzg_UZFzKu7-RHc5fa2tpe3aIlf4wm4IaqQeVd75enhpJvS_lxXgfQRfQ_/pub?gid=1211694447&single=true&output=csv';
             
             let masterProgramsDataset = [];
@@ -214,9 +214,9 @@
                 header: true,
                 skipEmptyLines: true,
                 complete: function(results) {
-                    // Extract data records matching schema design
+                    // 🌟 MAPPED TO NEW COLUMNS: Filter rows looking for "Display" instead of old text values
                     masterProgramsDataset = results.data.filter(row => {
-                        return row['Show On Web'] && row['Show On Web'].trim().toLowerCase() === 'yes';
+                        return row['Display'] && row['Display'].trim().toLowerCase() === 'yes';
                     });
                     
                     renderProgramCards('all');
@@ -234,8 +234,9 @@
                 const filteredRows = masterProgramsDataset.filter(program => {
                     if (filterScope === 'all') return true;
                     
+                    // Checks exact Target Audience text values
                     const audience = program['Target Audience'] ? program['Target Audience'].trim().toLowerCase() : '';
-                    return audience === filterScope || audience === 'both';
+                    return audience.includes(filterScope) || audience === 'both';
                 });
 
                 if (filteredRows.length === 0) {
@@ -244,23 +245,24 @@
                 }
 
                 filteredRows.forEach(p => {
+                    // 🌟 MAPPED TO NEW COLUMNS: Extracted using your exact updated spelling metrics
                     htmlOutput += `
                         <div class="tpp-card">
                             <div class="card-top-block">
-                                <span class="category-badge">${p['Category Display'] || 'Specialty Track'}</span>
+                                <span class="category-badge">${p['Category'] || 'Specialty Track'}</span>
                                 <h3>${p['Program Name'] || 'Alternative Solution'}</h3>
                                 
                                 <div class="stress-callout-box">
-                                    <p>🎯 ${p['Stress Point Solved'] || 'Strategic Optimization'}</p>
+                                    <p>🎯 ${p['Summary'] || 'Strategic Optimization'}</p>
                                 </div>
                                 
-                                <p class="program-hook-text">${p['Short Hook'] || ''}</p>
+                                <p class="program-hook-text">${p['Purpose'] || ''}</p>
                             </div>
                             
                             <div class="card-bottom-block">
                                 <div class="metadata-spec-list">
-                                    <div class="spec-item"><strong>Estimated Fees:</strong> ${p['Client Cost Summary'] || 'Contact for custom estimation'}</div>
-                                    <div class="spec-item"><strong>Primary Edge:</strong> ${p['Primary Consumer Benefit'] || 'Enhanced negotiation power'}</div>
+                                    <div class="spec-item"><strong>Estimated Fees:</strong> ${p['Client Fees & Costs'] || 'Contact for custom estimation'}</div>
+                                    <div class="spec-item"><strong>Primary Edge:</strong> ${p['Benefit'] || 'Enhanced negotiation power'}</div>
                                     <div class="spec-item"><strong>Criteria:</strong> ${p['Property Restrictions'] || 'Subject to local appraisal standards'}</div>
                                 </div>
                                 
