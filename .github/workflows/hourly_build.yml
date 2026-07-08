@@ -1,11 +1,11 @@
-/* File: .github/workflows/hourly_build.yml */
+# File: .github/workflows/hourly_build.yml
 name: Hourly Fast Data & Site Build
 
 on:
   schedule:
     # Runs at the top of every hour (Minute 0)
     - cron: '0 * * * *'
-  workflow_dispatch: # Allows you to manually trigger it via GitHub UI anytime
+  workflow_dispatch:
 
 jobs:
   build-and-update:
@@ -34,7 +34,6 @@ jobs:
         git add data/
         git diff-index --quiet HEAD || git commit -m "Automated hourly data fetch"
         
-        # Sync the cloud runner with any recent manual repository changes
         git pull --rebase origin main
         
         git push

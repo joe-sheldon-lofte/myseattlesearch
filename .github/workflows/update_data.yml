@@ -1,11 +1,11 @@
-/* File: .github/workflows/update_data.yml */
+# File: .github/workflows/update_data.yml
 name: Daily Master Data Update
 
 on:
   schedule:
     # Runs every day at 6:00 AM UTC (11:00 PM PST)
     - cron: '0 6 * * *'
-  workflow_dispatch: # Allows you to manually trigger it via GitHub UI anytime
+  workflow_dispatch:
 
 jobs:
   build-and-update:
@@ -40,7 +40,6 @@ jobs:
         git add data/
         git diff-index --quiet HEAD || git commit -m "Automated daily update of macro market statistics"
         
-        # Sync the cloud runner with any recent manual repository changes right before pushing
         git pull --rebase origin main
         
         git push
