@@ -1,15 +1,16 @@
+<!-- File: loancomp.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Financing Strategy Comparison | Joe Sheldon</title>
-    <link class="main-stylesheet" rel="stylesheet" href="style.css?v=63">
-    <script src="components.js"></script>
+    <link class="main-stylesheet" rel="stylesheet" href="/style.css?v=63">
+    <script src="/components.js"></script>
     <style>
         .matrix-container { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem; min-height: 75vh; }
         .strategy-deck { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
-        .strategy-card { background: #f4f6f8; border-top: 5px solid var(--premier-charcoal); border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.04); position: relative; display: flex; flex-direction: column; justify-content: space-between; }
+        .strategy-card { background: #f4f6f8; border-top: 5px solid #3D3935; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.04); position: relative; display: flex; flex-direction: column; justify-content: space-between; }
         .card-header-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e0e0e0; padding-bottom: 0.5rem; margin-bottom: 1rem; }
         .card-header-row h3 { margin: 0; font-size: 1.1rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: #3D3935; }
         .btn-delete-card { background: transparent; border: none; color: #d32f2f; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; cursor: pointer; }
@@ -19,15 +20,15 @@
         .input-item-box { display: flex; flex-direction: column; gap: 0.25rem; }
         .input-item-box label { font-size: 0.7rem; font-weight: 800; color: #555; text-transform: uppercase; letter-spacing: 0.3px; }
         .input-item-box input, .input-item-box select { padding: 0.5rem 0.6rem; border: 2px solid #ccc; border-radius: 6px; font-size: 0.9rem; font-weight: 500; color: #222; background: #fff; width: 100%; box-sizing: border-box; }
-        .input-item-box input:focus, .input-item-box select:focus { border-color: #C13030; outline: none; }
+        .input-item-box input:focus, .input-item-box select:focus { border-color: var(--card-accent-color, #C13030); outline: none; }
         .down-payment-input-group { display: flex; border: 2px solid #ccc; border-radius: 6px; overflow: hidden; background: #fff; }
         .down-payment-input-group input { border: none !important; padding: 0.5rem 0.6rem; font-weight: 500; }
         .down-payment-input-group select { border: none !important; background: #e0e0e0 !important; font-weight: 700 !important; width: 55px !important; padding: 0 0.25rem !important; text-align: center; cursor: pointer; border-left: 2px solid #ccc !important; border-radius: 0 !important; }
         .deck-control-tray { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-bottom: 3rem; }
         .matrix-action-btn { padding: 0.65rem 1.5rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s ease; border: 2px solid transparent; }
-        .btn-add-profile { background: transparent; border-color: var(--premier-charcoal); color: var(--premier-charcoal); }
-        .btn-add-profile:hover { background: var(--premier-charcoal); color: #fff; }
-        .btn-recalculate-matrix { background: #C13030; color: #fff; font-size: 0.95rem; padding: 0.75rem 2rem; }
+        .btn-add-profile { background: transparent; border-color: #3D3935; color: #3D3935; }
+        .btn-add-profile:hover { background: #3D3935; color: #fff; }
+        .btn-recalculate-matrix { background: var(--card-accent-color, #C13030); color: #fff; font-size: 0.95rem; padding: 0.75rem 2rem; }
         .btn-recalculate-matrix:hover { background: #9c2424; }
         .btn-duplicate-card { background: #e2e6ea; color: #333; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; padding: 0.4rem 0.75rem; border: none; border-radius: 4px; margin-top: 1rem; cursor: pointer; width: fit-content; }
         .btn-duplicate-card:hover { background: #dae0e5; }
@@ -41,18 +42,18 @@
         .matrix-output-table td { padding: 1.15rem 1rem; font-size: 0.95rem; font-weight: 700; color: #333; border-bottom: 1px solid #eef0f2; }
         .matrix-output-table tr:hover td { background: #fafafa; }
         .cell-bold-headline { font-weight: 800 !important; color: #222 !important; }
-        .cell-cash-highlight { color: #C13030 !important; font-weight: 800 !important; }
+        .cell-cash-highlight { color: var(--card-accent-color, #C13030) !important; font-weight: 800 !important; }
         .cell-payment-large { font-size: 1.15rem !important; font-weight: 900 !important; color: #000000 !important; }
         .loan-officer-referral-block { display: grid; grid-template-columns: 1fr; gap: 1.5rem; background: #fdfdfd; border: 1px solid #eaeaea; border-radius: 12px; padding: 1.75rem; margin-top: 3rem; align-items: center; }
         @media (min-width: 600px) { .loan-officer-referral-block { grid-template-columns: 100px 1fr; gap: 2rem; } }
-        .officer-avatar-img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--premier-beige); }
+        .officer-avatar-img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #EBE9E4; }
         .officer-info h4 { margin: 0 0 0.25rem 0; font-size: 1.25rem; font-weight: 900; color: #3D3935; }
         .officer-info p { margin: 0 0 1rem 0; font-size: 0.9rem; color: #666; font-weight: 600; }
-        .officer-apply-btn { display: inline-flex; background: var(--premier-charcoal); color: #fff; padding: 0.5rem 1.25rem; border-radius: 4px; font-size: 0.85rem; font-weight: 700; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px; border: none; cursor: pointer; }
+        .officer-apply-btn { display: inline-flex; background: #3D3935; color: #fff; padding: 0.5rem 1.25rem; border-radius: 4px; font-size: 0.85rem; font-weight: 700; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px; border: none; cursor: pointer; }
         .officer-apply-btn:hover { background: #222; }
         .compliance-disclaimer-text { font-size: 0.78rem; line-height: 1.4; color: #777; margin-top: 1.5rem; text-align: center; border-top: 1px dashed #dddddd; padding-top: 1rem; font-weight: 500; }
         .print-matrix-trigger { background: transparent; border: 1px solid #b3b3b3; color: #666; padding: 0.45rem 1.25rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; display: block; margin: 2rem auto 0 auto; }
-        .print-matrix-trigger:hover { border-color: #333; color: #222; background: #fafafa; }
+        .print-matrix-trigger:hover { border-color: #333; color: #222; background: var(--dynamic-bg-highlight, #fafafa); }
         .print-only-header, .officer-print-info { display: none; }
         @media print {
             @page { size: letter; margin: 0.5in; }
@@ -81,7 +82,7 @@
     <universal-header></universal-header>
     <main class="matrix-container">
         <div class="events-header" style="text-align: center; margin-bottom: 2.5rem;">
-            <h1 style="margin-top: 1rem; font-size: 2.6rem; font-weight: 900; color: #C13030; letter-spacing: -0.5px;">Financing Strategy Matrix</h1>
+            <h1 style="margin-top: 1rem; font-size: 2.6rem; font-weight: 900; color: var(--card-accent-color, #C13030); letter-spacing: -0.5px;">Financing Strategy Matrix</h1>
             <p class="intro">Configure and evaluate multiple customized mortgage scenarios side-by-side.</p>
         </div>
 
@@ -94,7 +95,7 @@
 
         <div class="matrix-results-card" id="resultsCardWrapper">
             <div class="print-only-header">
-                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid #C13030; padding-bottom: 12px; margin-bottom: 25px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid var(--card-accent-color, #C13030); padding-bottom: 12px; margin-bottom: 25px;">
                     <div>
                         <h1 style="margin:0;">Strategic Financing Matrix</h1>
                         <p style="margin: 3px 0 0 0;">Custom Mortgage Comparison Profile</p>
@@ -105,7 +106,7 @@
                     </div>
                 </div>
             </div>
-            <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--premier-charcoal); margin: 0; text-transform: none; letter-spacing: normal;">Side-by-Side Comparison Matrix</h2>
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: #3D3935; margin: 0; text-transform: none; letter-spacing: normal;">Side-by-Side Comparison Matrix</h2>
             <div class="table-scroll-container">
                 <table class="matrix-output-table">
                     <thead>
@@ -125,7 +126,7 @@
             </div>
 
             <div class="loan-officer-referral-block">
-                <img src="assets/images/carly.jpg" class="officer-avatar-img" alt="Carly Ozuna | Rocket Mortgage" onerror="this.src='https://placehold.co/100x100?text=Carly+Ozuna'">
+                <img src="/assets/images/carly.jpg" class="officer-avatar-img" alt="Carly Ozuna | Rocket Mortgage" onerror="this.src='https://placehold.co/100x100?text=Carly+Ozuna'">
                 <div class="officer-info">
                     <h4>Carly Ozuna</h4>
                     <p>Rocket Mortgage | Lending Partner</p>
@@ -168,9 +169,10 @@
                         const latestRow = validRows[validRows.length - 1];
                         const latestVals = Object.values(latestRow);
                         
-                        const convRate = parseFloat(latestVals[1]) * 100;
-                        const fhaRate = parseFloat(latestVals[2]) * 100;
-                        const vaRate = parseFloat(latestVals[3]) * 100;
+                        // Fixed: Values are strings with %, parseFloat just pulls the correct decimal structure out.
+                        const convRate = parseFloat(latestVals[1]);
+                        const fhaRate = parseFloat(latestVals[2]);
+                        const vaRate = parseFloat(latestVals[3]);
 
                         if (!isNaN(convRate)) {
                             coreProgramRateRegistry['Conventional'] = convRate;
