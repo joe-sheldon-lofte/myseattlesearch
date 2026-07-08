@@ -1,4 +1,4 @@
-/* File: scripts/harvest_infosparks.py */
+# File: scripts/harvest_infosparks.py
 import pandas as pd
 import json
 import os
@@ -9,7 +9,6 @@ from datetime import datetime
 # ==========================================
 # CONFIGURATION
 # ==========================================
-# Your live Google Sheets Published CSV link for the InfoSparks tab
 INFOSPARKS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRJ4hZJC9sUesHsGz6ixvm6_nQUFD9FaOGxAr3Dy5g3teqtUuDzJrjT31Vl5mQn2jGi9L8qe90hZ_7P/pub?gid=0&single=true&output=csv"
 
 OUTPUT_FILE = "data/infosparks_stats.json"
@@ -17,10 +16,8 @@ OUTPUT_FILE = "data/infosparks_stats.json"
 def harvest_infosparks():
     print("Starting InfoSparks Live Feed Pipeline...")
     try:
-        # 1. Fetch the configuration sheet you just published
         config_df = pd.read_csv(INFOSPARKS_CSV_URL)
         
-        # 2. Find the correct column names dynamically (in case headers change slightly)
         group_col = next((c for c in config_df.columns if "group" in c.lower()), None)
         cities_col = next((c for c in config_df.columns if "city" in c.lower() or "cities" in c.lower()), None)
         metric_col = next((c for c in config_df.columns if "metric" in c.lower()), None)
@@ -28,7 +25,6 @@ def harvest_infosparks():
 
         master_feeds = {}
 
-        # 3. Loop through every row in your InfoSparks sheet
         for idx, row in config_df.iterrows():
             group_val = str(row[group_col]).strip() if group_col and pd.notna(row[group_col]) else f"{idx}"
             metric_val = str(row[metric_col]).strip() if metric_col and pd.notna(row[metric_col]) else "metric"
@@ -36,9 +32,8 @@ def harvest_infosparks():
             url = str(row[link_col]).strip() if link_col and pd.notna(row[link_col]) else ""
             
             if not url.startswith("http"):
-                continue # Skip empty rows
+                continue
 
-            # Create a clean reference key for the frontend to use (e.g. "group_1_median_sale_price")
             clean_key = f"group_{group_val}_{metric_val}".lower()
             for char in [" ", "-", "/", "(", ")", ","]:
                 clean_key = clean_key.replace(char, "_")
@@ -48,13 +43,11 @@ def harvest_infosparks():
 
             print(f"Fetching MLS Feed: {clean_key}...")
             
-            # 4. Fetch the actual MLS data from the ShowingTime link
             try:
                 req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
                 with urllib.request.urlopen(req) as response:
                     raw_text = response.read().decode('utf-8')
                 
-                # Clean up the raw ShowingTime CSV to find where the actual data starts
                 lines = raw_text.strip().split('\n')
                 header_idx = 0
                 for line_num, line in enumerate(lines):
@@ -67,7 +60,6 @@ def harvest_infosparks():
                 df = pd.read_csv(io.StringIO(clean_csv_text))
                 df.columns = [c.strip() for c in df.columns]
                 
-                # 5. Store the clean data in our master dictionary
                 master_feeds[clean_key] = {
                     "meta": {
                         "group": group_val,
@@ -79,7 +71,6 @@ def harvest_infosparks():
             except Exception as e:
                 print(f"Error downloading feed from URL on row {idx}: {e}")
 
-        # 6. Save everything to a single JSON file
         output_payload = {
             "last_compiled": datetime.utcnow().isoformat() + "Z",
             "feeds": master_feeds

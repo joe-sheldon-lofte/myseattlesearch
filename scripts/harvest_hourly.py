@@ -1,4 +1,4 @@
-/* File: scripts/harvest_hourly.py */
+# File: scripts/harvest_hourly.py
 import pandas as pd
 import json
 import os
@@ -15,7 +15,6 @@ OUTPUT_RATES_FILE = "data/hourly_rates.json"
 def harvest_hourly_data():
     print("Fetching Hourly Dashboard & Rates Data...")
     try:
-        # 1. Fetch & Save Market Dashboard
         print(" -> Downloading Market Dashboard...")
         df_market = pd.read_csv(MARKET_DASHBOARD_CSV_URL)
         if 'City' in df_market.columns:
@@ -29,7 +28,6 @@ def harvest_hourly_data():
             json.dump(market_records, f, indent=4)
         print(f"✅ Saved {len(market_records)} cities to {OUTPUT_MARKET_FILE}")
 
-        # 2. Fetch & Save Mortgage Rates
         print(" -> Downloading Mortgage Rates...")
         df_rates = pd.read_csv(RATES_CSV_URL)
         df_rates = df_rates.fillna("")

@@ -1,4 +1,4 @@
-/* File: scripts/harvest_redfin.py */
+# File: scripts/harvest_redfin.py
 import os
 import json
 import urllib.request
@@ -11,7 +11,6 @@ REDFIN_METRO_URL = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin
 CITY_DATA_PATH = "data/city_data.json"
 REDFIN_OUTPUT_PATH = "data/redfin_stats.json"
 
-TARGET_PROPERTY_TYPES = ["Single Family Residential", "Condo/Co-op"]
 START_DATE = "2024-01-01"
 
 REDFIN_COLUMNS = [
@@ -22,19 +21,15 @@ REDFIN_COLUMNS = [
 ]
 
 def load_target_cities():
-    """Dynamically loads the city expansion list from the new city_data.json"""
     fallback_cities = ["Shoreline", "Lake Forest Park", "Mountlake Terrace", "Lynnwood", "Mukilteo", "Brier", "Kenmore", "Kirkland", "Edmonds"]
     if not os.path.exists(CITY_DATA_PATH):
-        print(f"Config note: {CITY_DATA_PATH} not found. Utilizing default core city array.")
         return fallback_cities
     try:
         with open(CITY_DATA_PATH, 'r') as f:
             city_data = json.load(f)
         cities_list = [item['City'] for item in city_data if 'City' in item and item['City'].strip()]
-        print(f"Successfully loaded {len(cities_list)} target markets dynamically from JSON.")
         return cities_list if cities_list else fallback_cities
     except Exception as e:
-        print(f"Error reading city configuration file: {e}. Falling back to default array.")
         return fallback_cities
 
 def run_redfin_pipeline(target_cities):
@@ -42,7 +37,6 @@ def run_redfin_pipeline(target_cities):
     filtered_chunks = []
     target_cities_lower = [c.lower() for c in target_cities]
     
-    # PHASE A: FETCH TARGET PUGET SOUND CITIES
     try:
         print(f"Streaming City-Level Data for {len(target_cities)} target markets...")
         req_city = urllib.request.Request(REDFIN_CITY_URL, headers={'User-Agent': 'Mozilla/5.0'})
@@ -86,7 +80,6 @@ def run_redfin_pipeline(target_cities):
     except Exception as e:
         print(f"Error processing Redfin City segments: {e}")
 
-    # PHASE B: FETCH SEATTLE METRO AREA
     try:
         print("Streaming Metro-Level Data for Seattle Metro...")
         req_metro = urllib.request.Request(REDFIN_METRO_URL, headers={'User-Agent': 'Mozilla/5.0'})
@@ -120,7 +113,6 @@ def run_redfin_pipeline(target_cities):
     except Exception as e:
         print(f"Error processing Redfin Metro segments: {e}")
 
-    # PHASE C: CONSOLIDATE, CALCULATE & WRITE
     if filtered_chunks:
         master_df = pd.concat(filtered_chunks, ignore_index=True)
         off_mkt = pd.to_numeric(master_df["off_market_in_two_weeks"], errors='coerce').fillna(0)
