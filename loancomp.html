@@ -353,7 +353,7 @@
         let uniqueCardIndex = 0;
         const conformingLoanCapBoundary = 832750;
 
-        const coreProgramRateRegistry = {
+        let coreProgramRateRegistry = {
             'Conventional': 6.50,
             'FHA': 6.125,
             'VA': 6.125,
@@ -362,8 +362,40 @@
         };
 
         document.addEventListener('DOMContentLoaded', () => {
-            addNewStrategyInputCard('Strategy A', 'Conventional', '', '', '%', 6.50, '', '');
-            addNewStrategyInputCard('Strategy B', 'Conventional', '', '', '%', 6.50, '', '');
+            // Fetch live rates to sync new cards
+            fetch('/data/hourly_rates.json')
+                .then(response => response.json())
+                .then(rows => {
+                    if (rows && rows.length > 0) {
+                        rows.sort((a, b) => new Date(a.Date.split(' ')[0]) - new Date(b.Date.split(' ')[0]));
+                        const latestRow = rows[rows.length - 1];
+                        
+                        const convRate = latestRow['30 Year Conventional'] * 100;
+                        const fhaRate = latestRow['30 Year FHA'] * 100;
+                        const vaRate = latestRow['30 Year VA'] * 100;
+
+                        if (!isNaN(convRate)) {
+                            coreProgramRateRegistry['Conventional'] = convRate;
+                            coreProgramRateRegistry['Conventional-DPA'] = convRate + 0.50; // Standard markup for DPA
+                        }
+                        if (!isNaN(fhaRate)) {
+                            coreProgramRateRegistry['FHA'] = fhaRate;
+                            coreProgramRateRegistry['FHA-DPA'] = fhaRate + 0.50;
+                        }
+                        if (!isNaN(vaRate)) coreProgramRateRegistry['VA'] = vaRate;
+                        
+                        // Create initial cards after fetching live rates
+                        addNewStrategyInputCard('Strategy A', 'Conventional', '', '', '%', coreProgramRateRegistry['Conventional'].toFixed(3), '', '');
+                        addNewStrategyInputCard('Strategy B', 'FHA', '', '', '%', coreProgramRateRegistry['FHA'].toFixed(3), '', '');
+                    } else {
+                        throw new Error("No live rates found");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error loading live rates, defaulting to baselines", error);
+                    addNewStrategyInputCard('Strategy A', 'Conventional', '', '', '%', 6.50, '', '');
+                    addNewStrategyInputCard('Strategy B', 'FHA', '', '', '%', 6.125, '', '');
+                });
         });
 
         function addNewStrategyInputCard(label = '', type = 'Conventional', price = '', downVal = '', downUnit = '%', rate = '', fees = '', closing = '') {
@@ -468,7 +500,7 @@
             }
             const rateInput = document.getElementById(`rate_${id}`);
             if (rateInput && coreProgramRateRegistry[val]) {
-                rateInput.value = coreProgramRateRegistry[val];
+                rateInput.value = coreProgramRateRegistry[val].toFixed(3);
             }
             evaluateCardUnderwritingConstraints(id, 'program');
         }

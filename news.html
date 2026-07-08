@@ -6,7 +6,6 @@
     <title>Local & Market News | Joe Sheldon</title>
     <link rel="stylesheet" href="style.css?v=46">
     <script src="components.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Mobile-first layout adjustments for the Bento Grid */
@@ -242,7 +241,6 @@
         }
         document.getElementById('dynamic-greeting').innerText = greetingText;
 
-        const RATES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1486733951&single=true&output=csv';
         const RSS2JSON_API_KEY = 'qn0nkjjyjzx57kngwiztpolphebbnx4umjse5pt7';
         
         const FEEDS = [
@@ -251,42 +249,35 @@
             { url: 'https://www.seattleweekly.com/feed/', source: 'Seattle Weekly', filterKeywords: [] }
         ];
 
-        Papa.parse(RATES_CSV_URL, {
-            download: true,
-            header: false,
-            skipEmptyLines: true,
-            complete: function(results) {
-                const rows = results.data;
-                
-                if (rows.length > 1) {
-                    const dataRows = rows.slice(1);
+        // Fetch Live Rates directly from the new Hourly SSG Pipeline
+        fetch('/data/hourly_rates.json')
+            .then(response => response.json())
+            .then(rows => {
+                if (rows && rows.length > 0) {
+                    rows.sort((a, b) => new Date(a.Date.split(' ')[0]) - new Date(b.Date.split(' ')[0]));
                     
-                    dataRows.sort((a, b) => {
-                        const dateA = new Date(a[0].split(' ')[0]);
-                        const dateB = new Date(b[0].split(' ')[0]);
-                        return dateA - dateB;
-                    });
+                    const latestRow = rows[rows.length - 1];
                     
-                    const latestRow = dataRows[dataRows.length - 1];
-                    document.getElementById('rate-conv').innerText = parseFloat(latestRow[1]).toFixed(2) + '%';
-                    document.getElementById('rate-fha').innerText = parseFloat(latestRow[2]).toFixed(2) + '%';
-                    document.getElementById('rate-va').innerText = parseFloat(latestRow[3]).toFixed(2) + '%';
+                    // Multiply by 100 since the old CSV exported decimals like 0.065
+                    document.getElementById('rate-conv').innerText = (latestRow['30 Year Conventional'] * 100).toFixed(2) + '%';
+                    document.getElementById('rate-fha').innerText = (latestRow['30 Year FHA'] * 100).toFixed(2) + '%';
+                    document.getElementById('rate-va').innerText = (latestRow['30 Year VA'] * 100).toFixed(2) + '%';
                     
-                    const lookbackData = dataRows.slice(-30);
+                    const lookbackData = rows.slice(-30);
                     
                     const labels = lookbackData.map(row => {
-                        const cleanDateStr = row[0].split(' ')[0];
+                        const cleanDateStr = row.Date.split(' ')[0];
                         return new Date(cleanDateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                     });
                     
-                    const convRates = lookbackData.map(row => parseFloat(row[1]));
-                    const fhaRates = lookbackData.map(row => parseFloat(row[2]));
-                    const vaRates = lookbackData.map(row => parseFloat(row[3]));
+                    const convRates = lookbackData.map(row => row['30 Year Conventional'] * 100);
+                    const fhaRates = lookbackData.map(row => row['30 Year FHA'] * 100);
+                    const vaRates = lookbackData.map(row => row['30 Year VA'] * 100);
                     
                     initMultiTrendChart(labels, convRates, fhaRates, vaRates);
                 }
-            }
-        });
+            })
+            .catch(error => console.error("Error loading rates:", error));
 
         function initMultiTrendChart(labels, convData, fhaData, vaData) {
             const ctx = document.getElementById('rateTrendChart').getContext('2d');

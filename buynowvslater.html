@@ -336,7 +336,7 @@
 
                 <div class="input-element-box">
                     <label for="inLoanType">Loan Program</label>
-                    <select id="inLoanType">
+                    <select id="inLoanType" onchange="updateDisplayedRate()">
                         <option value="Conventional">Conventional</option>
                         <option value="FHA">Standard FHA</option>
                         <option value="VA">VA Loan</option>
@@ -492,8 +492,42 @@
     <universal-footer></universal-footer>
 
     <script>
+        let parsedFeedRatesRegistry = {
+            'Conventional': 6.50,
+            'FHA': 6.125,
+            'VA': 6.125
+        };
+
+        function updateDisplayedRate() {
+            const loanType = document.getElementById('inLoanType').value;
+            if (parsedFeedRatesRegistry[loanType]) {
+                document.getElementById('inRateNow').value = parsedFeedRatesRegistry[loanType].toFixed(3);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            const categoriesPath = './data/InfoSparks Links - Sheet2.csv';
+            // Fetch live rates for dynamic "Rate Today" input
+            fetch('/data/hourly_rates.json')
+                .then(response => response.json())
+                .then(rows => {
+                    if (rows && rows.length > 0) {
+                        rows.sort((a, b) => new Date(a.Date.split(' ')[0]) - new Date(b.Date.split(' ')[0]));
+                        const latestRow = rows[rows.length - 1];
+                        
+                        const convRate = latestRow['30 Year Conventional'] * 100;
+                        const fhaRate = latestRow['30 Year FHA'] * 100;
+                        const vaRate = latestRow['30 Year VA'] * 100;
+
+                        if (!isNaN(convRate)) parsedFeedRatesRegistry['Conventional'] = convRate;
+                        if (!isNaN(fhaRate)) parsedFeedRatesRegistry['FHA'] = fhaRate;
+                        if (!isNaN(vaRate)) parsedFeedRatesRegistry['VA'] = vaRate;
+                        
+                        updateDisplayedRate();
+                    }
+                })
+                .catch(error => console.error("Error loading live rates, defaulting to 6.5%", error));
+
+            const categoriesPath = './data/city_data.json';
             const infosparksPath = './data/infosparks_stats.json';
 
             let dataStore = { cities: {}, infosparks: {}, computedAppreciation: 4.5 };
@@ -504,16 +538,12 @@
             };
             const formatCurrency = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
 
-            const fetchCSV = (url) => new Promise((resolve) => {
-                Papa.parse(url, { download: true, header: true, skipEmptyLines: true, complete: res => resolve(res.data), error: () => resolve([]) });
-            });
-
             const fetchJSON = async (path) => {
                 try { const res = await fetch(path); if (!res.ok) return null; return JSON.parse((await res.text()).replace(/:\s*NaN/g, ": null")); } catch (e) { return null; }
             };
 
             Promise.all([
-                fetchCSV(categoriesPath), fetchJSON(infosparksPath)
+                fetchJSON(categoriesPath), fetchJSON(infosparksPath)
             ]).then(values => {
                 const categoryRows = values[0] || [];
                 const is = values[1];
@@ -522,9 +552,7 @@
                 categoryRows.forEach(row => {
                     if (row.City) {
                         dataStore.cities[row.City.trim().toLowerCase()] = {
-                            city: row.City.trim(),
-                            county: (row.County || '').trim(),
-                            northSound: (row['North Sound'] || '').trim().toLowerCase() === 'x'
+                            city: row.City.trim()
                         };
                     }
                 });
@@ -534,27 +562,12 @@
 
             function populateDropdown() {
                 const select = document.getElementById('citySelect');
-                const groups = { 'North Sound': [], 'King County': [], 'Snohomish County': [] };
-
-                Object.values(dataStore.cities).sort((a,b) => a.city.localeCompare(b.city)).forEach(item => {
-                    if (item.northSound) groups['North Sound'].push(item.city);
-                    else if (item.county === 'King') groups['King County'].push(item.city);
-                    else if (item.county === 'Snohomish') groups['Snohomish County'].push(item.city);
-                });
-
                 let optionsHtml = '';
-                for (let groupName in groups) {
-                    if (groups[groupName].length > 0) {
-                        optionsHtml += `<optgroup label="${groupName}">`;
-                        groups[groupName].forEach(city => {
-                            optionsHtml += `<option value="${city}">${city}</option>`;
-                        });
-                        optionsHtml += `</optgroup>`;
-                    }
-                }
+                Object.values(dataStore.cities).sort((a,b) => a.city.localeCompare(b.city)).forEach(item => {
+                    optionsHtml += `<option value="${item.city}">${item.city}</option>`;
+                });
                 select.innerHTML = optionsHtml;
                 select.addEventListener('change', handleCityChange);
-                
                 handleCityChange();
             }
 

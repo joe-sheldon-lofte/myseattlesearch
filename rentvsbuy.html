@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Renting vs. Buying: Your 30-Year Wealth Journey | Joe Sheldon</title>
     <link class="main-stylesheet" rel="stylesheet" href="style.css?v=66">
-    
     <script src="components.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
     <style>
         .rvb-container {
@@ -433,7 +431,6 @@
         };
 
         let activeLockStateAutomated = true;
-        const rawRateFeedCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1486733951&single=true&output=csv";
 
         document.addEventListener('DOMContentLoaded', () => {
             fetchLiveDailyMarketRates();
@@ -441,35 +438,23 @@
 
         async function fetchLiveDailyMarketRates() {
             try {
-                const res = await fetch(rawRateFeedCsvUrl);
-                if (!res.ok) throw new Error("Fallback required");
-                const text = await res.text();
+                const res = await fetch('/data/hourly_rates.json');
+                if (!res.ok) throw new Error("Rates JSON not found");
+                const rows = await res.json();
                 
-                Papa.parse(text, {
-                    header: false,
-                    skipEmptyLines: true,
-                    complete: (results) => {
-                        const rows = results.data;
-                        if (rows && rows.length > 1) {
-                            const dataRows = rows.slice(1);
-                            dataRows.sort((a, b) => {
-                                const dateA = new Date(a[0].split(' ')[0]);
-                                const dateB = new Date(b[0].split(' ')[0]);
-                                return dateA - dateB;
-                            });
-                            
-                            const latestRow = dataRows[dataRows.length - 1];
-                            const convRate = parseFloat(latestRow[1]);
-                            const fhaRate = parseFloat(latestRow[2]);
-                            const vaRate = parseFloat(latestRow[3]);
+                if (rows && rows.length > 0) {
+                    rows.sort((a, b) => new Date(a.Date.split(' ')[0]) - new Date(b.Date.split(' ')[0]));
+                    const latestRow = rows[rows.length - 1];
+                    
+                    const convRate = latestRow['30 Year Conventional'] * 100;
+                    const fhaRate = latestRow['30 Year FHA'] * 100;
+                    const vaRate = latestRow['30 Year VA'] * 100;
 
-                            if (!isNaN(convRate)) parsedFeedRatesRegistry['Conventional'] = convRate;
-                            if (!isNaN(fhaRate)) parsedFeedRatesRegistry['FHA'] = fhaRate;
-                            if (!isNaN(vaRate)) parsedFeedRatesRegistry['VA'] = vaRate;
-                        }
-                        evaluateLiveRateLockAdjustments();
-                    }
-                });
+                    if (!isNaN(convRate)) parsedFeedRatesRegistry['Conventional'] = convRate;
+                    if (!isNaN(fhaRate)) parsedFeedRatesRegistry['FHA'] = fhaRate;
+                    if (!isNaN(vaRate)) parsedFeedRatesRegistry['VA'] = vaRate;
+                }
+                evaluateLiveRateLockAdjustments();
             } catch (e) {
                 console.error("Error fetching live rates feed, utilizing baseline fallbacks:", e);
                 evaluateLiveRateLockAdjustments();
