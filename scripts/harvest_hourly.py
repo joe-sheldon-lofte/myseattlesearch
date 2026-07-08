@@ -6,7 +6,7 @@ import os
 # ==========================================
 # CONFIGURATION
 # ==========================================
-MARKET_DASHBOARD_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=0&single=true&output=csv"
+MARKET_DASHBOARD_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=701119614&single=true&output=csv"
 RATES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1486733951&single=true&output=csv"
 
 OUTPUT_MARKET_FILE = "data/hourly_market.json"
