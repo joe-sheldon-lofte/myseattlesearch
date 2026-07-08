@@ -1,10 +1,10 @@
-/* File: .github/workflows/update_data.yml */
-name: Daily Master Data Update
+/* File: .github/workflows/hourly_build.yml */
+name: Hourly Fast Data & Site Build
 
 on:
   schedule:
-    # Runs every day at 6:00 AM UTC (11:00 PM PST)
-    - cron: '0 6 * * *'
+    # Runs at the top of every hour (Minute 0)
+    - cron: '0 * * * *'
   workflow_dispatch: # Allows you to manually trigger it via GitHub UI anytime
 
 jobs:
@@ -24,23 +24,17 @@ jobs:
       run: |
         pip install pandas requests
 
-    - name: Harvest City Data Schema
-      run: python scripts/harvest_city_data.py
-      
-    - name: Harvest InfoSparks Market Data
-      run: python scripts/harvest_infosparks.py
-      
-    - name: Harvest Redfin Market Data
-      run: python scripts/harvest_redfin.py
+    - name: Harvest Hourly Dashboard Data
+      run: python scripts/harvest_hourly.py
 
-    - name: Commit and Push Updated Data Files
+    - name: Commit and Push Updated Hourly Data
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
         git add data/
-        git diff-index --quiet HEAD || git commit -m "Automated daily update of macro market statistics"
+        git diff-index --quiet HEAD || git commit -m "Automated hourly data fetch"
         
-        # Sync the cloud runner with any recent manual repository changes right before pushing
+        # Sync the cloud runner with any recent manual repository changes
         git pull --rebase origin main
         
         git push
