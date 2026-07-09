@@ -20,12 +20,17 @@ jobs:
       with:
         python-version: '3.11'
 
+    # MODIFIED: Added feedparser to the installation script
     - name: Install Script Dependencies
       run: |
-        pip install pandas requests
+        pip install pandas requests feedparser
 
     - name: Harvest Hourly Dashboard Data
       run: python scripts/harvest_hourly.py
+
+    # NEW: Run the hyper-local news aggregator loop
+    - name: Harvest Hyper-Local Market News Feeds
+      run: python scripts/harvest_news.py
 
     - name: Commit and Push Updated Hourly Data
       run: |

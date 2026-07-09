@@ -25,6 +25,23 @@ module.exports = function(eleventyConfig) {
   eleventyConfig.ignores.add("scripts/");
   eleventyConfig.ignores.add(".github/");
 
+  // --- NEW: GLOBAL BUILD TIMESTAMP SHORTCODE ---
+  eleventyConfig.addShortcode("buildTime", function() {
+    const now = new Date();
+    const formattingRules = {
+      timeZone: 'America/Los_Angeles',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZoneName: 'short'
+    };
+    // Returns clean programmatic text output: "July 09, 2026 at 1:15 PM PDT"
+    return new Intl.DateTimeFormat('en-US', formattingRules).format(now).replace(',', ' at');
+  });
+
   return {
     htmlTemplateEngine: false, 
     templateFormats: ["njk", "md"], 
@@ -33,7 +50,6 @@ module.exports = function(eleventyConfig) {
       input: ".",          
       output: "_site",     
       includes: "_includes"
-      // data: "data" has been REMOVED so Eleventy ignores the frontend JSON files
     }
   };
 };

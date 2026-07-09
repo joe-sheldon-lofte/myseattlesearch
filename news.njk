@@ -1,0 +1,354 @@
+---
+layout: base.njk
+pagination:
+  data: news_helper
+  size: 1
+  alias: channel
+permalink: "{{ channel.permalinkPath }}"
+---
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    /* Fixed Content Wrapper & Grid Restrictions */
+    .news-fixed-container {
+        width: 100%;
+        max-width: 1140px;
+        margin: 0 auto;
+        padding: 1.5rem 1rem;
+        box-sizing: border-box;
+    }
+    
+    .news-editorial-layout-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        align-items: start;
+        width: 100%;
+    }
+
+    /* Strict Desktop Column Control: Left 2/3 (Main), Right 1/3 (Sidebar) */
+    @media (min-width: 900px) {
+        .news-editorial-layout-grid {
+            grid-template-columns: 2fr 1fr;
+        }
+    }
+
+    /* Brand Aligned Curved Pill Buttons */
+    .category-navigation-link {
+        padding: 0.4rem 1.1rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-decoration: none;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-radius: 50px;
+        transition: all 0.15s ease-in-out;
+        border: 2px solid var(--card-accent-color);
+    }
+
+    .submarket-refinement-pill {
+        background-color: var(--dynamic-bg-highlight);
+        border: 1px solid transparent;
+        color: var(--premier-charcoal);
+        padding: 0.3rem 0.75rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        border-radius: 50px;
+        cursor: pointer;
+        text-transform: capitalize;
+        transition: all 0.1s ease-in-out;
+    }
+
+    .submarket-refinement-pill:hover {
+        opacity: 0.85;
+    }
+</style>
+
+<div class="news-fixed-container">
+    
+    <!-- Editorial Identity Masthead Header -->
+    <header class="events-header" style="text-align: left; margin-bottom: 2rem; border-bottom: 2px solid var(--premier-beige); padding-bottom: 1rem; width: 100%;">
+        <h1 style="font-size: 2.25rem; color: var(--premier-charcoal); margin: 0 0 0.5rem 0; font-weight: 700;">
+            <span id="dynamic-greeting" style="display: block; font-size: 1.15rem; font-weight: 400; opacity: 0.75; margin-bottom: 0.25rem;">Hello, Welcome back</span>
+            Local and Real Estate News
+        </h1>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-top: 0.75rem;">
+            <p id="live-date" style="font-size: 0.8rem; opacity: 0.7; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; color: var(--premier-charcoal);"></p>
+            <div class="no-print-section" style="display: flex; align-items: center; gap: 1rem;">
+                <span style="font-size: 0.85rem; font-weight: 700; background-color: var(--dynamic-bg-highlight); color: var(--card-accent-color); padding: 0.25rem 0.75rem; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">{{ channel.subCategoryName }}</span>
+                <button onclick="window.print()" class="print-trigger-btn" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.15); background: #fff; cursor: pointer;">🖨️ Print Wire</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Global Primary Pill Filter Control Row -->
+    <nav class="no-print-section" style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 2.5rem; border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 1rem; width: 100%;">
+        {% for tab in channel.tabs %}
+            {% set directory_prefix = "/news/" if tab.slug else "/news" %}
+            {% set target_url = directory_prefix + (tab.slug + "/" if tab.slug else "") %}
+            {% set matches_active = channel.activeFilter == tab.filterKey %}
+            
+            <a href="{{ target_url }}" 
+               class="category-navigation-link"
+               style="
+                 background-color: {% if matches_active %}var(--card-accent-color){% else %}transparent{% endif %};
+                 color: {% if matches_active %}var(--white){% else %}var(--card-accent-color){% endif %};
+               "
+               onmouseover="if(!{{ matches_active }}) { this.style.backgroundColor='var(--dynamic-bg-highlight)'; }"
+               onmouseout="if(!{{ matches_active }}) { this.style.backgroundColor='transparent'; }"
+            >
+                {{ tab.name }}
+            </a>
+        {% endfor %}
+    </nav>
+
+    <!-- Master Layout Split Grid Frame -->
+    <div class="news-editorial-layout-grid">
+        
+        <!-- LEFT COLUMN (2/3 Split): Balanced Chronological News Wire Stream -->
+        <main class="news-wire-feed-section" style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+            <h2 style="font-size: 1.25rem; margin: 0 0 0.5rem 0; color: var(--premier-charcoal); border-bottom: 2px solid var(--premier-beige); padding-bottom: 0.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">The Wire</h2>
+            
+            <div id="unified-news-stream" style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+                {% for article in channel.articles %}
+                    {% set city_strings = article.cities | join(',') if article.cities.length > 0 else 'macro' %}
+                    
+                    <article class="review-card news-editorial-item" 
+                             data-cities="{{ city_strings }}" 
+                             data-source="{{ article.source }}"
+                             style="background-color: var(--white); padding: 1.25rem 1.5rem; border-left: 4px solid {% if article.paywall %}var(--card-accent-color){% else %}var(--premier-charcoal){% endif %}; box-shadow: 0 2px 6px rgba(0,0,0,0.02); border-radius: 6px; border-top: 1px solid rgba(0,0,0,0.03); border-right: 1px solid rgba(0,0,0,0.03); border-bottom: 1px solid rgba(0,0,0,0.03); margin: 0; box-sizing: border-box;"
+                    >
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 0.5rem;">
+                            <span style="color: var(--premier-charcoal);">{{ article.source }}</span>
+                            
+                            {% if article.paywall %}
+                                <span style="display: inline-flex; align-items: center; gap: 0.2rem; color: var(--card-accent-color); font-weight: 800;" title="Premium Subscription Node">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                    PREMIUM SOURCE
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <h3 style="font-size: 1.15rem; margin: 0 0 0.5rem 0; line-height: 1.35; font-weight: 700;">
+                            <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer" style="color: var(--premier-charcoal); text-decoration: none; transition: color 0.1s ease;" onmouseover="this.style.color='var(--card-accent-color)'" onmouseout="this.style.color='var(--premier-charcoal)'">
+                                {{ article.title }}
+                            </a>
+                        </h3>
+
+                        <!-- Content Excerpt Paragraph Container -->
+                        <p style="font-size: 0.85rem; line-height: 1.45; color: #4a5568; margin: 0 0 0.75rem 0; opacity: 0.9;">
+                            {{ article.excerpt }}
+                        </p>
+
+                        <div style="font-size: 0.7rem; opacity: 0.5; font-style: italic;">
+                            {{ article.published }}
+                        </div>
+                    </article>
+                {% else %}
+                    <div class="review-card" style="background-color: var(--white); padding: 2rem; text-align: center; border-radius: 6px; width: 100%; box-sizing: border-box;">
+                        <p style="font-weight: bold; opacity: 0.5; margin: 0; font-size: 0.9rem;">No updates actively synchronized for this tracking region footprint today.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </main>
+
+        <!-- RIGHT COLUMN (1/3 Split): Sticky Marketplace Rates + Curved Pill Filters -->
+        <aside class="financial-sidebar" style="width: 100%;">
+            <div class="sidebar-sticky-panel" style="position: sticky; top: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">
+                
+                <!-- 1. Live Average Financial Tracking Card -->
+                <div class="profile-card" style="padding: 1.25rem; border-radius: 8px; background-color: var(--white); box-shadow: 0 2px 6px rgba(0,0,0,0.02); text-align: center; border: 1px solid rgba(0,0,0,0.04); box-sizing: border-box; width: 100%;">
+                    <h3 style="font-size: 0.75rem; letter-spacing: 0.5px; text-transform: uppercase; color: var(--premier-charcoal); margin: 0 0 1rem 0; font-weight: 700; opacity: 0.8;">Today's Average Mortgage Rates</h3>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.25rem; width: 100%;">
+                        <div>
+                            <span style="font-size: 0.65rem; font-weight: bold; color: var(--premier-charcoal); display: block; margin-bottom: 0.25rem; white-space: nowrap;">30-YR CONV</span>
+                            <div id="rate-conv" style="font-size: 1.15rem; font-weight: 800; color: var(--card-accent-color);">--</div>
+                        </div>
+                        <div style="border-left: 1px solid var(--light-gray); border-right: 1px solid var(--light-gray);">
+                            <span style="font-size: 0.65rem; font-weight: bold; color: var(--premier-charcoal); display: block; margin-bottom: 0.25rem; white-space: nowrap;">30-YR FHA</span>
+                            <div id="rate-fha" style="font-size: 1.15rem; font-weight: 800; color: var(--premier-charcoal);">--</div>
+                        </div>
+                        <div>
+                            <span style="font-size: 0.65rem; font-weight: bold; color: var(--premier-charcoal); display: block; margin-bottom: 0.25rem; white-space: nowrap;">30-YR VA</span>
+                            <div id="rate-va" style="font-size: 1.15rem; font-weight: 800; color: var(--premier-charcoal);">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Integrated Line Analytics Frame Card -->
+                <div class="profile-card" style="padding: 1rem; border-radius: 8px; background-color: var(--white); box-shadow: 0 2px 6px rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.04); box-sizing: border-box; width: 100%;">
+                    <h3 style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--premier-charcoal); margin: 0 0 0.75rem 0; opacity: 0.8;">30-Day Interest Rate Trends</h3>
+                    <div style="position: relative; width: 100%; height: 140px;">
+                        <canvas id="rateTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 3. Localized Geographic & Publisher Sub-Filter Switchdeck -->
+                <div class="profile-card no-print-section" style="padding: 1.25rem; border-radius: 8px; background-color: var(--white); box-shadow: 0 2px 6px rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.04); box-sizing: border-box; width: 100%;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--premier-beige); padding-bottom: 0.5rem; margin-bottom: 1rem;">
+                        <h3 style="margin: 0; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--premier-charcoal);">Refine Local Feed</h3>
+                        <button id="filter-reset-trigger" style="background: none; border: none; font-size: 0.7rem; font-weight: 700; color: var(--card-accent-color); cursor: pointer; text-transform: uppercase; padding: 0;">Reset</button>
+                    </div>
+
+                    <!-- Municipal Refinement Module -->
+                    {% if channel.sidebarCities.length > 0 %}
+                    <div style="margin-bottom: 1.25rem;">
+                        <h4 style="margin: 0 0 0.5rem 0; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; opacity: 0.6; letter-spacing: 0.5px;">Filter By City</h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
+                            {% for city in channel.sidebarCities %}
+                            <button class="subfilter-pill city-pill submarket-refinement-pill" data-target-city="{{ city }}">
+                                {{ city | replace('-', ' ') }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Source Channel Refinement Module -->
+                    {% if channel.sidebarSources.length > 0 %}
+                    <div>
+                        <h4 style="margin: 0 0 0.5rem 0; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; opacity: 0.6; letter-spacing: 0.5px;">Filter By Publisher</h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
+                            {% for source in channel.sidebarSources %}
+                            <button class="subfilter-pill source-pill submarket-refinement-pill" data-target-source="{{ source }}" style="white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">
+                                {{ source }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+            </div>
+        </aside>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // --- PART A: TIME STAMP & GREETING EVALUATIONS ---
+    const now = new Date();
+    const liveDateEl = document.getElementById('live-date');
+    if (liveDateEl) {
+        liveDateEl.innerText = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+    
+    const currentHour = now.getHours();
+    let greetingText = "Hello, Welcome back";
+    if (currentHour < 12) greetingText = "Good Morning";
+    else if (currentHour < 17) greetingText = "Good Afternoon";
+    else greetingText = "Good Evening";
+    
+    const greetingEl = document.getElementById('dynamic-greeting');
+    if (greetingEl) greetingEl.innerText = greetingText;
+
+    // --- PART B: USER FEED CLIENT REFINEMENT INTERACTION TRACK ---
+    const cards = document.querySelectorAll(".news-editorial-item");
+    const pills = document.querySelectorAll(".subfilter-pill");
+    const resetBtn = document.getElementById("filter-reset-trigger");
+
+    let currentFilterType = null; 
+    let currentFilterValue = null;
+
+    pills.forEach(pill => {
+        pill.addEventListener("click", function() {
+            pills.forEach(p => {
+                p.style.backgroundColor = "var(--premier-beige)";
+                p.style.color = "var(--premier-charcoal)";
+                p.style.borderColor = "transparent";
+            });
+
+            this.style.backgroundColor = "var(--card-accent-color)";
+            this.style.color = "var(--white)";
+            this.style.borderColor = "var(--card-accent-color)";
+
+            if (this.dataset.targetCity) {
+                currentFilterType = "city";
+                currentFilterValue = this.dataset.targetCity;
+            } else if (this.dataset.targetSource) {
+                currentFilterType = "source";
+                currentFilterValue = this.dataset.targetSource;
+            }
+
+            evaluateCardVisibility();
+        });
+    });
+
+    if (resetBtn) {
+        resetBtn.addEventListener("click", function() {
+            pills.forEach(p => {
+                p.style.backgroundColor = "var(--premier-beige)";
+                p.style.color = "var(--premier-charcoal)";
+                p.style.borderColor = "transparent";
+            });
+            currentFilterType = null;
+            currentFilterValue = null;
+            cards.forEach(card => card.style.display = "block");
+        });
+    }
+
+    function evaluateCardVisibility() {
+        cards.forEach(card => {
+            if (currentFilterType === "city") {
+                const cardCities = card.dataset.cities.split(",");
+                card.style.display = cardCities.includes(currentFilterValue) ? "block" : "none";
+            } else if (currentFilterType === "source") {
+                card.style.display = (card.dataset.source === currentFilterValue) ? "block" : "none";
+            }
+        });
+    }
+
+    // --- PART C: SIDEBAR FINANCIAL DATA FETCH ENGINE ---
+    fetch('/data/hourly_rates.json')
+        .then(response => response.json())
+        .then(rows => {
+            if (rows && rows.length > 0) {
+                const validRows = rows.filter(r => Object.values(r)[0] && String(Object.values(r)[0]).trim() !== '');
+                validRows.sort((a, b) => new Date(Object.values(a)[0].split(' ')[0]) - new Date(Object.values(b)[0].split(' ')[0]));
+                
+                const latestRow = validRows[validRows.length - 1];
+                const latestVals = Object.values(latestRow);
+                
+                document.getElementById('rate-conv').innerText = parseFloat(latestVals[1]).toFixed(2) + '%';
+                document.getElementById('rate-fha').innerText = parseFloat(latestVals[2]).toFixed(2) + '%';
+                document.getElementById('rate-va').innerText = parseFloat(latestVals[3]).toFixed(2) + '%';
+                
+                const lookbackData = validRows.slice(-30);
+                const labels = lookbackData.map(row => {
+                    const cleanDateStr = Object.values(row)[0].split(' ')[0];
+                    return new Date(cleanDateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                });
+                
+                const convRates = lookbackData.map(row => parseFloat(Object.values(row)[1]));
+                const fhaRates = lookbackData.map(row => parseFloat(Object.values(row)[2]));
+                const vaRates = lookbackData.map(row => parseFloat(Object.values(row)[3]));
+                
+                const ctxChart = document.getElementById('rateTrendChart');
+                if (ctxChart) {
+                    new Chart(ctxChart.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                { label: 'Conv', data: convRates, borderColor: '#C13030', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.1 },
+                                { label: 'FHA', data: fhaRates, borderColor: '#2B2D42', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.1 },
+                                { label: 'VA', data: vaRates, borderColor: '#4A90E2', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.1 }
+                            ]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false, 
+                            plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 8, weight: 'bold' } } } }, 
+                            scales: { 
+                                x: { grid: { display: false }, ticks: { maxTicksLimit: 4, font: { size: 8 } } }, 
+                                y: { grid: { color: '#f5f5f5' }, ticks: { font: { size: 8 } } } 
+                            } 
+                        }
+                    });
+                }
+            }
+        })
+        .catch(err => console.error("Error loading financial trend metrics:", err));
+});
+</script>
