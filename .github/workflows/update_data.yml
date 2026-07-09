@@ -22,7 +22,7 @@ jobs:
 
     - name: Install Script Dependencies
       run: |
-        pip install pandas requests
+        pip install pandas requests openpyxl
 
     - name: Harvest City Data Schema
       run: python scripts/harvest_city_data.py
@@ -32,6 +32,9 @@ jobs:
       
     - name: Harvest Redfin Market Data
       run: python scripts/harvest_redfin.py
+      
+    - name: Harvest Website Master Ledger Sheet
+      run: python scripts/harvest_website_data_sheet.py
 
     - name: Commit and Push Updated Data Files
       run: |
