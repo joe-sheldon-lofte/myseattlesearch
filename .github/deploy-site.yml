@@ -1,8 +1,9 @@
-name: Deploy Eleventy Site
+# File: .github/workflows/deploy-site.yml
+name: Deploy Eleventy Hub
 
 on:
   push:
-    branches: ["main"] # Or "master" if your default branch is master
+    branches: ["main", "master"] # Listens to both names to prevent configuration blindspots
 
 permissions:
   contents: read
@@ -20,29 +21,29 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Codebase
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node Engine
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - name: Install dependencies
+      - name: Install Project Dependencies
         run: npm install
 
-      - name: Build Eleventy Site
+      - name: Build Static Site Generator
         run: npx @11ty/eleventy
 
-      - name: Setup Pages
+      - name: Configure GitHub Pages Routing
         uses: actions/configure-pages@v4
 
-      - name: Upload artifact
+      - name: Upload Compiled Distribution
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '_site' # Tells GitHub to ONLY deploy the compiled Eleventy folder!
+          path: '_site'
 
-      - name: Deploy to GitHub Pages
+      - name: Execute Live Deployment
         id: deployment
         uses: actions/deploy-pages@v4
