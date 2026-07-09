@@ -1,1830 +1,265 @@
+<!-- File: stats.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Local Community Insights | Joe Sheldon</title>
-    <link class="main-stylesheet" rel="stylesheet" href="/style.css?v=60">
     
+    <!-- Core Styles and Web Components -->
+    <link class="main-stylesheet" rel="stylesheet" href="/style.css">
     <script src="/components.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        .data-warning-banner {
-            background-color: #FFF9E6; 
-            border-left: 4px solid #d32f2f; 
-            color: var(--premier-charcoal); 
-            padding: 1rem 1.25rem;
-            border-radius: 4px 12px 12px 4px;
-            font-size: 0.95rem;
-            line-height: 1.5;
-            margin-bottom: 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-            text-align: left;
+        .stats-hub-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 1rem 5rem 1rem;
         }
 
-        .market-climate-container {
-            background: #ffffff;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        .events-header {
+            text-align: center;
             margin-bottom: 3rem;
-            text-align: center;
-        }
-        .market-bar-wrapper {
-            position: relative;
-            margin: 2rem 0 1rem 0;
-            padding: 0 10px;
-        }
-        .market-bar-track {
-            height: 14px;
-            border-radius: 7px;
-            background: linear-gradient(to right, #C13030 0%, #F5A623 35%, #E0E0E0 50%, #4A90E2 65%, #1F4E5B 100%);
-            width: 100%;
-        }
-        .market-needle {
-            position: absolute;
-            top: -6px;
-            left: 50%;
-            width: 4px;
-            height: 26px;
-            background: var(--premier-charcoal);
-            border-radius: 2px;
-            transition: left 0.6s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-        .market-needle::after {
-            content: '';
-            position: absolute;
-            top: -8px;
-            left: -6px;
-            width: 0;
-            height: 0;
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            border-top: 10px solid var(--premier-charcoal);
-        }
-        .market-scale-labels {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--premier-charcoal);
-            opacity: 0.8;
-            margin-top: 0.5rem;
-            padding: 0 5px;
-        }
-
-        .filter-nav-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 2rem;
-            gap: 1.25rem;
-        }
-        .filter-nav {
-            display: flex;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-            justify-content: center;
-            width: 100%;
         }
         
-        #regionSelector {
-            padding-bottom: 1.25rem;
-            border-bottom: 1px solid #dcdcdc;
+        .events-header h1 {
+            margin-top: 3rem;
+            font-size: 2.8rem;
+            font-weight: 900;
+            color: var(--card-accent-color, #333);
+        }
+
+        .intro {
+            font-size: 1.15rem;
+            color: #555;
             max-width: 600px;
-            margin: 0 auto;
-        }
-        #regionSelector .filter-btn {
-            border-color: #C13030;
-            color: #C13030;
-        }
-        #regionSelector .filter-btn.active, 
-        #regionSelector .filter-btn:hover {
-            background-color: #C13030;
-            border-color: #C13030;
-            color: #ffffff;
+            margin: 1rem auto 0;
         }
 
-        .filter-btn {
-            background: transparent;
-            border: 2px solid #ccc;
-            padding: 0.5rem 1.5rem;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: var(--premier-charcoal);
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .filter-btn.active {
-            background: var(--premier-charcoal);
-            border-color: var(--premier-charcoal);
-            color: var(--white);
-        }
-        
-        .custom-select-wrapper {
-            position: relative;
-            width: 100%;
-            max-width: 320px;
-            margin: 0 auto;
-        }
-        .custom-select-btn {
-            width: 100%;
-            padding: 0.8rem 1.5rem;
-            background: #fff;
-            border: 2px solid var(--premier-charcoal);
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 800;
-            color: var(--premier-charcoal);
-            text-align: left;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        .custom-select-menu {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            width: 100%;
-            background: #fff;
-            border: 1px solid #eaeaea;
-            border-radius: 8px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            max-height: 300px;
-            overflow-y: auto;
-            z-index: 100;
-            display: none;
-            flex-direction: column;
-            margin-top: 0.5rem;
-        }
-        .custom-select-menu.active { display: flex; }
-        .custom-select-item {
-            padding: 0.75rem 1.5rem;
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #444;
-            cursor: pointer;
-            border-bottom: 1px solid #f5f5f5;
-            text-align: left;
-            background: transparent;
-            border-left: none; border-right: none; border-top: none;
-            width: 100%;
-            transition: background 0.1s ease;
-        }
-        .custom-select-item:hover { background: #f9f9f9; color: var(--premier-charcoal); }
-
-        .section-header {
+        /* North Sound Pill Buttons */
+        .section-title {
             text-align: center;
-            margin: 4rem 0 2rem 0;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--premier-beige);
-            color: var(--premier-charcoal);
-        }
-        .section-header h2 {
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: 800;
-            margin-bottom: 0.25rem;
-            color: #C13030;
-        }
-        .section-header p {
-            font-size: 1.05rem;
-            opacity: 0.85;
-            font-style: italic;
-            margin-bottom: 0.5rem;
-        }
-
-        .update-stamp {
-            font-size: 0.85rem;
-            font-weight: 800;
-            color: #C13030;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-top: 0.5rem;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.25rem;
-            margin: 2rem 0;
-            width: 100%;
-        }
-        @media (min-width: 768px) {
-            .stats-grid { grid-template-columns: repeat(4, 1fr); }
-        }
-
-        .stat-card {
-            background-color: #ffffff;
-            padding: 1.75rem 1rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            border-top: 5px solid var(--premier-charcoal);
-        }
-        .stat-card.card-pending { border-top-color: #d32f2f; }
-        .stat-card.card-sold { border-top-color: #a0a0a0; }
-
-        .stat-card h4 {
-            font-size: 0.95rem;
+            color: var(--premier-charcoal, #333);
+            margin-bottom: 1.5rem;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: var(--premier-charcoal);
-            opacity: 0.85;
-            margin-bottom: 0.75rem;
-            font-weight: 800;
-        }
-        .stat-value {
-            font-size: 2.2rem;
-            font-weight: 800;
-            color: var(--premier-charcoal);
-            margin-bottom: 0.5rem;
-            line-height: 1;
-            transition: color 0.3s ease;
-        }
-        .stat-label {
-            font-size: 0.85rem;
-            font-style: italic;
-            font-weight: 700;
-            opacity: 0.7;
-            text-transform: uppercase;
         }
 
-        .charts-container {
+        .pill-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 4rem;
+        }
+
+        .pill-btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.6rem 1.5rem;
+            background: #ffffff;
+            border: 2px solid var(--light-gray, #eaeaea);
+            border-radius: 50px;
+            color: var(--premier-charcoal, #333);
+            font-weight: 700;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+
+        .pill-btn:hover {
+            border-color: var(--card-accent-color, #C13030);
+            background: var(--card-accent-color, #C13030);
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        /* Dropdown Layout */
+        .county-dropdowns-wrapper {
             display: grid;
             grid-template-columns: 1fr;
             gap: 2rem;
-            width: 100%;
-            margin-top: 1rem;
+            background: var(--dynamic-bg-highlight, #fdfdfd);
+            padding: 2.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--light-gray, #eaeaea);
         }
+
         @media (min-width: 768px) {
-            .charts-container { grid-template-columns: 1fr 1fr; }
+            .county-dropdowns-wrapper {
+                grid-template-columns: 1fr 1fr;
+            }
         }
 
-        .chart-box {
-            background-color: #ffffff;
-            padding: 1.75rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-            margin-bottom: 1.5rem;
-        }
-        .chart-box h3 {
-            margin-bottom: 0.35rem;
-            font-size: 1.25rem;
-            font-weight: 700;
-        }
-        .chart-desc {
-            font-size: 0.95rem;
-            opacity: 0.85;
-            margin-bottom: 1.25rem;
-            color: #333;
-        }
-
-        .educational-note {
-            background-color: #f9f9f9;
-            border-left: 3px solid var(--premier-charcoal);
-            padding: 0.85rem 1rem;
-            font-size: 0.9rem;
-            line-height: 1.5;
-            color: #444;
-            margin-top: 1rem;
-            border-radius: 0 8px 8px 0;
-        }
-        
-        .compliance-footer {
-            font-size: 0.8rem;
-            font-weight: 500;
-            opacity: 0.85; 
-            color: var(--premier-charcoal);
-            line-height: 1.5;
-            margin-top: 1.5rem;
-            border-top: 1px solid var(--light-gray);
-            padding-top: 0.75rem;
-        }
-
-        .community-metrics-section {
-            margin: 4rem 0 2rem 0;
-            padding: 2.5rem 2rem;
-            background: #ffffff;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            border-top: 4px solid var(--premier-beige);
-        }
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 2rem;
-            margin-top: 1.5rem;
-        }
-        .metric-card {
-            background: #fdfdfd;
-            border: 1px solid #eaeaea;
-            border-radius: 12px;
-            padding: 1.5rem;
+        .dropdown-group {
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .metric-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.05);
-        }
-        .metric-card h3 {
-            margin: 0 0 1.25rem 0;
-            font-size: 1.15rem;
-            font-weight: 800;
-            color: #222222;
-            border-bottom: 2px solid #eaeaea;
-            padding-bottom: 0.5rem;
-        }
-        
-        .safety-subhead {
-            font-size: 0.9rem; 
-            color: #555; 
-            font-weight: 800; 
-            display: block; 
-            letter-spacing: 0.5px; 
-            text-transform: uppercase; 
-            margin: 0 0 0.5rem 0;
-        }
-
-        .walkscore-container {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        .score-badge {
-            color: #ffffff;
-            font-size: 1.5rem;
-            font-weight: 800;
-            width: 52px;
-            height: 52px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 10px;
-            flex-shrink: 0;
-        }
-        .score-info .score-desc {
-            font-weight: 800;
-            color: #222222;
-            font-size: 1rem;
-            line-height: 1.2;
-        }
-        .score-info .score-sub {
-            font-size: 0.8rem;
-            color: #555555;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-        .card-action-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.6rem 1rem;
-            background: transparent;
-            color: #222222;
-            border: 1px solid #222222;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            text-decoration: none;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-top: 1.25rem;
-            transition: all 0.2s ease;
-            text-align: center;
-        }
-        .card-action-btn:hover {
-            background: #222222;
-            color: #ffffff;
-        }
-
-        .psai-info-toggle, .custom-info-toggle {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #4A90E2;
-            cursor: pointer;
-            text-decoration: underline;
-            margin-top: 0.25rem;
-            display: inline-block;
-        }
-        .psai-dropdown, .custom-notice-block {
-            display: none;
-            background: #f4f6f8;
-            border-left: 3px solid #1F4E5B;
-            padding: 1rem;
-            margin-top: 1rem;
-            border-radius: 0 8px 8px 0;
-            font-size: 0.9rem;
-            color: #333;
-            line-height: 1.5;
-        }
-        .psai-dropdown.active, .custom-notice-block.active {
-            display: block;
-        }
-        
-        .suppressed-badge {
-            background: #a0a0a0 !important;
-            font-size: 1.1rem !important;
-        }
-
-        .info-badge-inline {
-            display: inline-block;
-            padding: 0.35rem 0.7rem;
-            font-size: 0.8rem;
-            font-weight: 800;
-            border-radius: 4px;
-            margin-top: 0.5rem;
-        }
-        .badge-green { background: #E6F4EA; color: #137333; }
-        .badge-neutral { background: #F1F3F4; color: #444; }
-
-        .climate-metrics-list, .surveillance-metrics-list {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
             gap: 0.75rem;
-            margin: 1rem 0;
-        }
-        .climate-mini-item, .surv-mini-item {
-            background: #fcfcfc;
-            border: 1px solid #eaeaea;
-            padding: 0.5rem;
-            border-radius: 6px;
-        }
-        .climate-mini-item span, .surv-mini-item span {
-            display: block;
-            font-size: 0.75rem;
-            color: #555;
-            font-weight: 800;
-            text-transform: uppercase;
-        }
-        .climate-mini-item strong, .surv-mini-item strong {
-            font-size: 1.15rem;
-            color: #222;
-            font-weight: 800;
         }
 
-        .print-trigger-btn {
-            background-color: transparent;
-            border: 1px solid #b3b3b3;
-            color: #666666;
-            padding: 0.5rem 1.25rem;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .dropdown-group label {
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--premier-charcoal, #333);
+        }
+
+        .modern-select {
+            padding: 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--premier-charcoal, #333);
+            background-color: #ffffff;
+            border: 2px solid var(--light-gray, #eaeaea);
+            border-radius: 8px;
+            outline: none;
             cursor: pointer;
-            transition: all 0.15s ease-in-out;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-        }
-        .print-trigger-btn:hover {
-            border-color: var(--premier-charcoal);
-            color: var(--premier-charcoal);
-            background-color: #fafafa;
+            transition: border-color 0.2s ease;
+            appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg fill="%23333" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+            background-repeat: no-repeat;
+            background-position-x: 96%;
+            background-position-y: 50%;
         }
 
-        .print-only-header { display: none; }
+        .modern-select:hover, .modern-select:focus {
+            border-color: var(--card-accent-color, #C13030);
+        }
 
-        @media print {
-            @page {
-                size: letter;
-                margin: 0.45in;
-            }
-            
-            body {
-                background: #ffffff !important;
-                color: #000000 !important;
-                font-size: 9.5pt !important;
-                line-height: 1.25 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-
-            universal-header, universal-footer, .events-header, 
-            .data-warning-banner, .filter-nav-container, .print-trigger-btn,
-            .no-print-section, .educational-note, .card-action-btn, 
-            .psai-info-toggle, .custom-info-toggle, .psai-dropdown, 
-            .compliance-footer, .chart-box p.chart-desc, .custom-notice-block,
-            .dashboard-actions {
-                display: none !important;
-            }
-
-            .print-only-header {
-                display: block !important;
-                width: 100% !important;
-            }
-
-            .section-header {
-                margin: 1.75rem 0 0.85rem 0 !important;
-                padding-bottom: 4px !important;
-                text-align: left !important;
-                border-bottom: 2.5px solid #000000 !important;
-            }
-            .section-header h2 {
-                font-size: 14pt !important;
-                font-weight: 900 !important;
-                margin: 0 !important;
-                color: #C13030 !important;
-                text-transform: uppercase !important;
-                letter-spacing: 0.5px !important;
-            }
-            .section-header p {
-                font-size: 9.5pt !important;
-                font-weight: 700 !important;
-                margin: 2px 0 0 0 !important;
-                color: #333333 !important;
-            }
-
-            #currentCityHeader {
-                font-size: 26pt !important;
-                font-weight: 900 !important;
-                text-align: left !important;
-                margin-bottom: 0.25rem !important;
-                color: #C13030 !important;
-            }
-            .web-header-row {
-                justify-content: flex-start !important;
-                align-items: flex-start !important;
-                margin-bottom: 0 !important;
-            }
-
-            .stats-grid {
-                display: grid !important;
-                grid-template-columns: repeat(4, 1fr) !important;
-                gap: 10px !important;
-                margin: 0.75rem 0 !important;
-            }
-            .stat-card {
-                padding: 0.75rem 0.5rem !important;
-                border-radius: 6px !important;
-                border: 2px solid #000000 !important;
-                border-top: 6px solid #C13030 !important;
-                box-shadow: none !important;
-                background: #fdfdfd !important;
-            }
-            .stat-card h4 {
-                font-size: 8pt !important;
-                font-weight: 900 !important;
-                color: #000000 !important;
-                margin-bottom: 0.35rem !important;
-            }
-            .stat-value {
-                font-size: 17pt !important;
-                font-weight: 900 !important;
-                color: #000000 !important;
-                margin-bottom: 0.15rem !important;
-            }
-            .stat-label {
-                font-size: 7.5pt !important;
-                font-weight: 800 !important;
-                color: #444444 !important;
-            }
-
-            .market-climate-container {
-                padding: 1rem !important;
-                border: 2px solid #000000 !important;
-                border-radius: 8px !important;
-                margin-bottom: 1.25rem !important;
-                box-shadow: none !important;
-                background: #ffffff !important;
-            }
-            .market-bar-wrapper { margin: 1.25rem 0 0.35rem 0 !important; }
-            .market-needle { background: #000000 !important; width: 5px !important; }
-            .market-needle::after { border-top-color: #000000 !important; }
-            .market-scale-labels { font-size: 8.5pt !important; font-weight: 900 !important; color: #000000 !important; }
-            #climateLabelText { margin-top: 0.5rem !important; font-size: 10.5pt !important; font-weight: 900 !important; color: #C13030 !important; }
-
-            .charts-container {
-                display: grid !important;
-                grid-template-columns: 1fr 1fr !important;
-                gap: 16px !important;
-                margin-top: 0.75rem !important;
-            }
-            .chart-box {
-                padding: 0.75rem !important;
-                border: 2px solid #000000 !important;
-                border-radius: 8px !important;
-                box-shadow: none !important;
-            }
-            .chart-box h3 { font-size: 11pt !important; font-weight: 900 !important; color: #000000 !important; margin-bottom: 0.5rem !important; }
-            .chart-box canvas { max-height: 145px !important; }
-
-            .community-metrics-section {
-                margin-top: 2rem !important;
-                padding: 0 !important;
-                background: transparent !important;
-                box-shadow: none !important;
-                border-top: none !important;
-            }
-            .community-metrics-section h2 { 
-                font-size: 15pt !important; 
-                font-weight: 900 !important; 
-                text-align: left !important; 
-                color: #C13030 !important;
-                border-bottom: 2.5px solid #000000 !important;
-                padding-bottom: 4px !important;
-                text-transform: uppercase !important;
-            }
-            
-            .metrics-grid {
-                display: grid !important;
-                grid-template-columns: 1fr 1fr !important;
-                gap: 14px !important;
-                margin-top: 0.75rem !important;
-            }
-            .metric-card {
-                padding: 1rem !important;
-                border-radius: 8px !important;
-                border: 2px solid #000000 !important;
-                background: #ffffff !important;
-                box-shadow: none !important;
-                page-break-inside: avoid !important;
-            }
-            .metric-card h3 { 
-                font-size: 11pt !important; 
-                font-weight: 900 !important; 
-                color: #C13030 !important; 
-                border-bottom: 1.5px solid #000000 !important;
-                padding-bottom: 0.35rem !important;
-                margin-bottom: 0.75rem !important;
-            }
-            
-            .walkscore-container { gap: 0.75rem !important; margin-bottom: 0.6rem !important; }
-            .score-badge { 
-                width: 38px !important; 
-                height: 38px !important; 
-                font-size: 12pt !important; 
-                font-weight: 900 !important; 
-                border-radius: 6px !important; 
-                border: 1px solid #000000 !important;
-            }
-            .score-info .score-desc { font-size: 9.5pt !important; font-weight: 900 !important; color: #000000 !important; }
-            .score-info .score-sub { font-size: 7.5pt !important; font-weight: 800 !important; color: #444444 !important; }
-            
-            #schoolDistrictName, #txtFireAgency, #safetyAgencyHeader { font-size: 10pt !important; font-weight: 900 !important; color: #000000 !important; margin-bottom: 0.5rem !important; }
-            #schoolDataActive, #activeCrimeStatsContainer, #surveillanceActiveData { display: block !important; }
-            
-            .climate-metrics-list, .surveillance-metrics-list { gap: 6px !important; margin: 0.5rem 0 !important; }
-            .climate-mini-item, .surv-mini-item { padding: 0.35rem !important; border: 1px solid #000000 !important; border-radius: 4px !important; background: #fafafa !important; }
-            .climate-mini-item span, .surv-mini-item span { font-size: 7.5pt !important; font-weight: 900 !important; color: #333333 !important; }
-            .climate-mini-item strong, .surv-mini-item strong { font-size: 11pt !important; font-weight: 900 !important; color: #000000 !important; }
-            
-            #barMathScore, #barElaScore { background: #000000 !important; height: 100% !important; }
-            div[style*="background:#eaeaea"] { border: 1px solid #000000 !important; background: #ffffff !important; }
+        .loading-text {
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #555;
+            margin: 3rem 0;
         }
     </style>
 </head>
 <body class="stats-page">
 
+    <!-- Your Custom Web Component Header -->
     <universal-header></universal-header>
 
-    <main class="container" style="max-width: 1100px; padding-bottom: 5rem;">
+    <main class="stats-hub-container">
         
-        <div class="events-header" style="text-align: center; margin-bottom: 2rem;">
-            <h1 style="margin-top: 1rem; font-size: 2.8rem; font-weight: 900; color: #C13030;">Local Community Insights</h1>
-            <p class="intro">Real-time data and historical trends for the Pacific Northwest.</p>
+        <!-- Page Header -->
+        <div class="events-header">
+            <h1>Local Community Insights</h1>
+            <p class="intro">Real-time data, historical housing trends, and neighborhood metrics for the Pacific Northwest.</p>
         </div>
 
-        <div class="filter-nav-container">
-            <div class="filter-nav" id="regionSelector">
-                <button class="filter-btn active" data-region="North Sound">North Sound</button>
-                <button class="filter-btn" data-region="King County">King County</button>
-                <button class="filter-btn" data-region="Snohomish County">Snohomish County</button>
-            </div>
-            <div class="filter-nav" id="citySelector">
-                <p style="font-weight: 600; color: #555;">Loading market data...</p>
-            </div>
-        </div>
+        <div id="loading-indicator" class="loading-text">Loading community directory...</div>
 
-        <div id="dashboardContent" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
+        <!-- Directory Content (Hidden until JS loads data) -->
+        <div id="directory-content" style="display: none;">
             
-            <div class="print-only-header">
-                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid #C13030; padding-bottom: 12px; margin-bottom: 20px;">
-                    <div>
-                        <h1 style="margin:0; font-size: 2.4rem; font-weight: 900; color: #C13030; letter-spacing: -0.5px;">COMMUNITY REPORT PROFILE</h1>
-                        <p style="margin: 3px 0 0 0; font-size: 1rem; font-weight: 800; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">Bespoke Real Estate Data Feeds</p>
-                    </div>
-                    <div style="text-align: right;">
-                        <h3 style="margin:0; font-size: 1.3rem; font-weight: 900; color: #3D3935;">JOE SHELDON</h3>
-                        <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: #555;">myseattlesearch.com</p>
-                    </div>
-                </div>
+            <!-- Featured North Sound Section -->
+            <h2 class="section-title">North Sound</h2>
+            <div id="north-sound-pills" class="pill-container">
+                <!-- Pill buttons injected here -->
             </div>
 
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 2rem; gap: 0.75rem;" class="web-header-row">
-                <h2 id="currentCityHeader" style="font-size: 3rem; font-weight: 900; color: #C13030; text-align: center; margin: 0; letter-spacing: -0.5px;"></h2>
-                <div class="dashboard-actions no-print-section" style="display: flex; gap: 0.75rem; justify-content: center;">
-                    <a href="/statscompare.html" class="print-trigger-btn" style="text-decoration: none;" title="Compare Two Cities Side-by-Side">
-                        📊 Compare Cities
-                    </a>
-                    <button onclick="window.print()" class="print-trigger-btn" title="Print City Fact Sheet">
-                        🖨️ Print Insights
-                    </button>
-                </div>
-            </div>
-            
-            <div class="section-header no-print-section" style="margin-top: 0; border-bottom: none; padding-bottom: 0;">
-                <h2 style="font-size: 1.5rem; color: #C13030;">Real Estate Market Conditions</h2>
-                <p>Live housing supply, demand indicators, and environment metrics for this city.</p>
-            </div>
-
-            <div class="market-climate-container">
-                <h3 style="font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; margin: 0; color: var(--premier-charcoal);">Current Market Climate</h3>
-                <div class="market-bar-wrapper">
-                    <div class="market-bar-track"></div>
-                    <div class="market-needle" id="climateNeedle"></div>
-                </div>
-                <div class="market-scale-labels">
-                    <span>Hot Seller's (0)</span>
-                    <span>Balanced (3.0)</span>
-                    <span>Hot Buyer's (6.0)</span>
-                </div>
-                <p id="climateLabelText" style="font-size: 0.95rem; font-weight: 700; margin-top: 1rem; margin-bottom: 0; color: var(--premier-charcoal);">Checking conditions...</p>
-            </div>
-            
-            <div id="realTimeWrapper">
-                <div class="section-header">
-                    <h2>Real-Time Heartbeat</h2>
-                    <p>A snapshot of the active market, tracking new listings, pending contracts, and local home sales right now.</p>
-                    <div class="update-stamp" id="stampRealTime"></div>
-                </div>
-
-                <div class="stats-grid">
-                    <div class="stat-card card-listings">
-                        <h4>New Listings</h4>
-                        <div class="stat-value" id="valNewListings">--</div>
-                        <div class="stat-label">Last 7 Days</div>
-                    </div>
-                    <div class="stat-card card-pending">
-                        <h4>Pending Offers</h4>
-                        <div class="stat-value" id="valPending">--</div>
-                        <div class="stat-label">Last 7 Days</div>
-                    </div>
-                    <div class="stat-card card-sold">
-                        <h4>Closed Sales</h4>
-                        <div class="stat-value" id="valSold">--</div>
-                        <div class="stat-label">Last 7 Days</div>
-                    </div>
-                    <div class="stat-card card-price">
-                        <h4>Avg New Price</h4>
-                        <div class="stat-value" id="valAvgPrice" style="font-size: 1.8rem;">--</div>
-                        <div class="stat-label">Last 7 Days</div>
-                    </div>
-                </div>
-
-                <div class="chart-box" style="margin-bottom: 2rem;">
-                    <h3>Snapshot Trend</h3>
-                    <p class="chart-desc">Historical trend of listings hitting the market vs. going pending.</p>
-                    <div style="position: relative; height: 300px;"><canvas id="velocityChart"></canvas></div>
-                    <div class="educational-note">
-                        <strong>How to read this:</strong> When the Pending line gets closer to or crosses above New Listings, it means homes are selling faster than new ones are hitting the market. This shows an ultra-fast environment where available inventory is being snapped up quickly.
-                    </div>
-                </div>
-            </div> 
-            
-            <div class="section-header">
-                <h2>Market Velocity & Competition</h2>
-                <p>Psychological metrics showing how fast inventory moves and how aggressive buyers are.</p>
-                <div class="update-stamp" id="stampVelocity"></div>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-card" style="border-top-color: #F5A623;">
-                    <h4>Median Days on Market</h4>
-                    <div class="stat-value" id="valDOM">--</div>
-                    <div class="stat-label">Velocity</div>
-                </div>
-                <div class="stat-card" style="border-top-color: #F5A623;">
-                    <h4>Sold Above List</h4>
-                    <div class="stat-value" id="valAboveList">--</div>
-                    <div class="stat-label">Bidding Wars</div>
-                </div>
-                <div class="stat-card" style="border-top-color: #F5A623;">
-                    <h4>Off Market &lt; 2 Weeks</h4>
-                    <div class="stat-value" id="valUrgency">--</div>
-                    <div class="stat-label">Buyer Urgency</div>
-                </div>
-                <div class="stat-card" style="border-top-color: #F5A623;">
-                    <h4>Market Friction Index</h4>
-                    <div class="stat-value" id="valFriction">--</div>
-                    <div class="stat-label">0-100 Score</div>
-                </div>
-            </div>
-            
-            <div class="educational-note" style="margin-bottom: 2rem; margin-top: -1rem;">
-                <strong>Understanding Speed:</strong> "Off Market in 2 Weeks" shows how quickly buyers are making confident offers. The <strong>Market Friction Index</strong> is a 0-100 score that rates how competitive the market is. Higher scores mean a fast-moving market that favors sellers, while lower scores mean a calmer pace that gives buyers more breathing room.
-            </div>
-            <div class="compliance-footer" style="margin-bottom: 3rem;">
-                Market data provided by the <a href="https://www.redfin.com/news/data-center/" target="_blank" style="color: var(--redfin-red); text-decoration: underline; font-weight: 700;">Redfin Data Center</a>.
-            </div>
-
-            <div class="section-header">
-                <h2>Long-Term Trends</h2>
-                <p>Long term cycles and market shift tracking.</p>
-                <div class="update-stamp" id="stampMacro"></div>
-            </div>
-
-            <div class="charts-container">
-                <div class="chart-box">
-                    <h3>Historic Median Sale Price</h3>
-                    <div style="position: relative; height: 260px;"><canvas id="macroPriceChart"></canvas></div>
-                </div>
+            <!-- County Dropdown Section -->
+            <h2 class="section-title" style="margin-top: 4rem;">Explore By County</h2>
+            <div class="county-dropdowns-wrapper">
                 
-                <div class="chart-box">
-                    <h3>Historic Closed Sales Volume</h3>
-                    <div style="position: relative; height: 260px;"><canvas id="macroSalesChart"></canvas></div>
+                <div class="dropdown-group">
+                    <label for="king-county-select">King County</label>
+                    <select id="king-county-select" class="modern-select">
+                        <option value="">Select a community...</option>
+                        <!-- Options injected here -->
+                    </select>
                 </div>
 
-                <div class="chart-box">
-                    <h3>Historic Average Days on Market</h3>
-                    <div style="position: relative; height: 260px;"><canvas id="macroDOMChart"></canvas></div>
+                <div class="dropdown-group">
+                    <label for="snohomish-county-select">Snohomish County</label>
+                    <select id="snohomish-county-select" class="modern-select">
+                        <option value="">Select a community...</option>
+                        <!-- Options injected here -->
+                    </select>
                 </div>
 
-                <div class="chart-box">
-                    <h3>Buyer Showings Per Listing</h3>
-                    <p class="chart-desc" style="margin-bottom: 0.5rem; font-size: 0.9rem;">Real world foot traffic in homes for sale.</p>
-                    <div style="position: relative; height: 260px;"><canvas id="macroShowsChart"></canvas></div>
-                </div>
             </div>
-            
-            <div class="educational-note" style="margin-top: 2rem;">
-                <strong>Looking at Long-Term Trends:</strong> The Buyer Showings Per Listing index tracks real people touring homes in person. By comparing physical showings with closed sales, we can see exactly how much foot traffic it takes to get a home under contract in this neighborhood over time.
-            </div>
-            <div class="compliance-footer" style="margin-bottom: 1rem;">
-                Attribution: Based on information from the Northwest Multiple Listing Service. Statistics not compiled or published by NWMLS. Data represents the most recent rolling 12-month period and is updated monthly.
-            </div>
-
-            <section class="community-metrics-section">
-                <h2>Community Profile & Lifestyle</h2>
-                <p style="color: #555; font-size: 1.05rem; margin-bottom: 2rem; text-align: center; font-weight: 500;">City-wide data, insights, and resources.</p>
-                
-                <div class="metrics-grid">
-                    <div class="metric-card" id="walkScoreCard">
-                        <div>
-                            <h3>Accessibility & Mobility</h3>
-                            <div class="walkscore-container" style="margin-bottom: 1.25rem;">
-                                <div class="score-badge" id="cityWalkScore" style="background: #C13030;">--</div>
-                                <div class="score-info">
-                                    <div class="score-desc" id="cityWalkDesc">Loading...</div>
-                                    <div class="score-sub">Walk Score®</div>
-                                </div>
-                            </div>
-                            <div class="walkscore-container" style="margin-bottom: 1.25rem;">
-                                <div class="score-badge" id="cityTransitScore" style="background: #4A90E2;">--</div>
-                                <div class="score-info">
-                                    <div class="score-desc" id="cityTransitDesc">Awaiting sync...</div>
-                                    <div class="score-sub">Transit Score®</div>
-                                </div>
-                            </div>
-                            <div class="walkscore-container" style="margin-bottom: 1rem;">
-                                <div class="score-badge" id="cityBikeScore" style="background: #1F4E5B;">--</div>
-                                <div class="score-info">
-                                    <div class="score-desc" id="cityBikeDesc">Awaiting sync...</div>
-                                    <div class="score-sub">Bike Score®</div>
-                                </div>
-                            </div>
-                        </div>
-                        <a href="#" id="walkScoreLink" target="_blank" class="card-action-btn">Explore City on Walk Score &rarr;</a>
-                    </div>
-
-                    <div class="metric-card" id="schoolDistrictCard">
-                        <div>
-                            <h3>School District & Rankings</h3>
-                            <p id="schoolDistrictName" style="font-size: 1.05rem; font-weight: 800; margin: 0 0 1rem 0; color: var(--premier-charcoal);">Loading District Profile...</p>
-                            
-                            <div id="schoolDataActive">
-                                <div class="walkscore-container" style="margin-bottom: 0.5rem;">
-                                    <div class="score-badge" id="districtCustomScore" style="background: #1F4E5B; font-size: 1.35rem;">--</div>
-                                    <div class="score-info">
-                                        <div class="score-desc" id="districtCustomVibe">Awaiting Classification</div>
-                                        <div class="score-sub">Puget Sound Academic Index (PSAI)</div>
-                                    </div>
-                                </div>
-                                <span class="psai-info-toggle" onclick="document.getElementById('psaiExplanation').classList.toggle('active')">How is this calculated?</span>
-                                <div id="psaiExplanation" class="psai-dropdown">
-                                    <strong>About the PSAI</strong><br>The Puget Sound Academic Index (PSAI) is a straightforward, independent 1-to-10 rating that shows general test proficiency for local public school districts.<br><br>Instead of using hidden corporate algorithms like big real estate search sites, the PSAI uses direct public records from the Washington Office of Superintendent of Public Instruction (OSPI).<br><br><strong>How It's Calculated:</strong> We look at the actual percentage of students in the district who met or exceeded grade-level standards on the state's math and reading/writing assessments. We average those two scores together and place them on a clear 10-point scale so you can make an easy, honest comparison.
-                                </div>
-                                <div style="margin-top: 1.25rem; margin-bottom: 0.85rem;">
-                                    <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:800; margin-bottom:0.25rem; color:#444;">
-                                        <span>📐 MATH PROFICIENCY</span>
-                                        <span id="txtMathScore">--</span>
-                                    </div>
-                                    <div style="background:#eaeaea; height:8px; border-radius:4px; width:100%; position:relative;">
-                                        <div id="barMathScore" style="background:#C13030; height:100%; width:0%; border-radius:4px; transition: width 0.6s ease;"></div>
-                                    </div>
-                                </div>
-                                <div style="margin-bottom: 1rem;">
-                                    <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:800; margin-bottom:0.25rem; color:#444;">
-                                        <span>📖 ELA PROFICIENCY</span>
-                                        <span id="txtElaScore">--</span>
-                                    </div>
-                                    <div style="background:#eaeaea; height:8px; border-radius:4px; width:100%; position:relative;">
-                                        <div id="barElaScore" style="background:#4A90E2; height:100%; width:0%; border-radius:4px; transition: width 0.6s ease;"></div>
-                                    </div>
-                                </div>
-                                <span style="font-size: 0.8rem; text-transform: uppercase; color: #555; font-weight: 800; display:block; line-height:1.3;">Compared against State Baselines (<span id="lblStateBaselines">Math -- / ELA --</span>)</span>
-                            </div>
-                            <div id="schoolDataSuppressed" style="display: none; padding: 1rem 0;">
-                                <div class="walkscore-container" style="margin-bottom: 1rem;">
-                                    <div class="score-badge suppressed-badge">N/A</div>
-                                    <div class="score-info">
-                                        <div class="score-desc">Data Sealed</div>
-                                        <div class="score-sub">Privacy Protection</div>
-                                    </div>
-                                </div>
-                                <p style="font-size: 0.95rem; color: #333; line-height: 1.5; margin: 0;">ℹ️ <span id="txtSuppressionStatus">Data not available</span>. State testing scores are legally sealed for very small student populations to fully protect student privacy.</p>
-                            </div>
-                        </div>
-                        <a href="https://www.greatschools.org/" id="greatSchoolsLink" target="_blank" class="card-action-btn" style="margin-top: 1.5rem;">View detailed ratings and boundaries on GreatSchools &rarr;</a>
-                    </div>
-
-                    <div class="metric-card" id="climateComfortCard">
-                        <div>
-                            <h3>Climate & Microclimate Profile</h3>
-                            <div class="walkscore-container" style="margin-bottom: 0.75rem;">
-                                <div class="score-badge" id="climateComfortScore" style="background: #F5A623;">--</div>
-                                <div class="score-info">
-                                    <div class="score-desc" id="climateStationLabel">Loading NOAA Profile...</div>
-                                    <div class="score-sub">Comfort Index Score</div>
-                                </div>
-                            </div>
-                            <p id="climateSummaryText" style="font-size: 0.95rem; color: #333; line-height: 1.4; margin: 0.5rem 0 1rem 0; font-style: italic;">Awaiting coordinates sync...</p>
-                            <div class="climate-metrics-list">
-                                <div class="climate-mini-item">
-                                    <span>☀️ Summer High</span>
-                                    <strong id="txtSummerHigh">--</strong>
-                                </div>
-                                <div class="climate-mini-item">
-                                    <span>❄️ Winter Low</span>
-                                    <strong id="txtWinterLow">--</strong>
-                                </div>
-                                <div class="climate-mini-item">
-                                    <span>🌧️ Annual Rain</span>
-                                    <strong id="txtAnnualRain">--</strong>
-                                </div>
-                                <div class="climate-mini-item">
-                                    <span>🌤️ Sunny Days</span>
-                                    <strong id="txtSunnyDays">--</strong>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="metric-card" id="publicSafetyCard">
-                        <div>
-                            <h3>Emergency Services</h3>
-                            
-                            <div style="margin-bottom: 1.5rem;">
-                                <span class="safety-subhead">CRIME & PUBLIC SAFETY</span>
-                                <div style="font-size: 0.95rem; font-weight: 700; margin: 0 0 0.75rem 0; color: #333;" id="safetyAgencyHeader">Local Public Safety Status</div>
-                                
-                                <div id="crimeNoticeBadge" class="custom-notice-block" style="border-left-color: #C13030; margin-bottom: 1rem; background: #FFF5F5;">
-                                    ℹ️ Official FBI NIBRS data is currently pending or unmapped for this municipality. View live local community logs via the button below.
-                                </div>
-
-                                <div id="activeCrimeStatsContainer" style="display:none; margin-bottom: 1rem;">
-                                    <div style="display: flex; gap: 1rem; margin-bottom: 0.5rem;">
-                                        <div>
-                                            <span style="font-size:0.8rem; color:#555; font-weight:800; display:block;">💥 VIOLENT CRIMES RATE</span>
-                                            <strong id="txtViolentRate" style="font-size:1.4rem; color:#222; font-weight:800;">--</strong>
-                                            <span style="font-size:0.8rem; color:#555; display:block; font-weight: 600;">per 1,000 residents</span>
-                                        </div>
-                                        <div>
-                                            <span style="font-size:0.8rem; color:#555; font-weight:800; display:block;">🏡 PROPERTY CRIMES RATE</span>
-                                            <strong id="txtPropertyRate" style="font-size:1.4rem; color:#222; font-weight:800;">--</strong>
-                                            <span style="font-size:0.8rem; color:#555; display:block; font-weight: 600;">per 1,000 residents</span>
-                                        </div>
-                                    </div>
-                                    <span class="custom-info-toggle" onclick="document.getElementById('crimeExplanation').classList.toggle('active')">What do these numbers mean?</span>
-                                    <div id="crimeExplanation" class="psai-dropdown">
-                                        <strong>What 'Per 1,000 Neighbors' Means:</strong> This gives us a fair way to compare a small town to a major city. For example, a property crime rate of 20.0 means that for every 1,000 people living in this city, about 20 property reports (like theft or vandalism) are filed each year.<br><br><strong>The Categories:</strong><br>• <em>Violent Crime:</em> Includes safety incidents involving people, such as assault or robbery.<br>• <em>Property Crime:</em> Includes incidents involving property, such as break-ins, car thefts, or vandalism.
-                                    </div>
-                                </div>
-                                <a href="#" id="spotCrimeLink" target="_blank" class="card-action-btn" style="margin-top: 0; width: 100%;">View additional local crime data on SpotCrime &rarr;</a>
-                            </div>
-
-                            <div style="border-top: 2px solid #eaeaea; padding-top: 1rem; margin-bottom: 1.5rem;">
-                                <span class="safety-subhead">🚒 FIRE & RISK PROTECTION</span>
-                                <div style="font-size: 0.95rem; font-weight: 700; color: #333; margin-top: 0.25rem;" id="txtFireAgency">Loading Responder Profile...</div>
-                                <div id="fireBadgeContainer"></div>
-                            </div>
-
-                            <div style="border-top: 2px solid #eaeaea; padding-top: 1rem;">
-                                <span class="safety-subhead">🏥 EMERGENCY MEDICAL</span>
-                                <div style="font-size: 0.95rem; color: #333; margin-top: 0.25rem;" id="hospitalProximityContainer">
-                                    Loading proximity calculations...
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="metric-card" id="surveillanceCard">
-                        <div>
-                            <h3>Municipal Surveillance Profile</h3>
-                            <div class="walkscore-container" style="margin-bottom: 0.75rem;">
-                                <div class="score-badge" id="surveillanceScoreBadge" style="background: #1F4E5B;">--</div>
-                                <div class="score-info">
-                                    <div class="score-desc" id="surveillanceAgencyLabel">Loading infrastructure density...</div>
-                                    <div class="score-sub">Surveillance Score (1-100)</div>
-                                </div>
-                            </div>
-                            <div id="surveillanceNoticeBlock" class="custom-notice-block" style="border-left-color: #F5A623; background: #FFFBF0; margin-bottom: 1rem;">
-                                ℹ️ <strong>Data Note:</strong> Surveillance data is currently not available for this city.
-                            </div>
-                            <div id="surveillanceActiveData" style="display: none;">
-                                <div class="surveillance-metrics-list">
-                                    <div class="surv-mini-item">
-                                        <span>🚗 ALPR Cams</span>
-                                        <strong id="txtAlprCount">--</strong>
-                                    </div>
-                                    <div class="surv-mini-item">
-                                        <span>🚦 Traffic Cams</span>
-                                        <strong id="txtTrafficCount">--</strong>
-                                    </div>
-                                    <div class="surv-mini-item">
-                                        <span>📹 General CCTV</span>
-                                        <strong id="txtCctvCount">--</strong>
-                                    </div>
-                                    <div class="surv-mini-item">
-                                        <span>💻 Data Platforms</span>
-                                        <strong id="txtSoftwareCount">--</strong>
-                                    </div>
-                                </div>
-                                <span class="custom-info-toggle" onclick="document.getElementById('surveillanceExplanation').classList.toggle('active')">What do these categories mean?</span>
-                                <div id="surveillanceExplanation" class="psai-dropdown">
-                                    <strong>License Plate Readers (ALPR):</strong> Local cameras that scan license plates to help track vehicle locations.<br><br><strong>Traffic Cameras:</strong> Automated speed and red-light enforcement cameras (this doesn't include normal state highway traffic flow cameras).<br><br><strong>Public Space Cameras (CCTV):</strong> Standard public security or property monitoring camera networks.<br><br><strong>Software Systems:</strong> Tech platforms or tracking systems used by local agencies to monitor public safety data.
-                                </div>
-                            </div>
-                        </div>
-                        <span style="font-size: 0.85rem; color: #555; font-weight: 700; display: block; margin-top: 1.25rem; line-height: 1.4;">Data provided by Deflock via OpenStreetMap and the Atlas of Surveillance.</span>
-                    </div>
-                </div>
-            </section>
-
         </div>
-        
+
     </main>
 
+    <!-- Your Custom Web Component Footer -->
     <universal-footer></universal-footer>
 
+    <!-- Script to dynamically generate the UI from your JSON -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-
-    const urlSnapshot = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=701119614&single=true&output=csv';
-    const urlHistorical = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1473136505&single=true&output=csv';
-    
-    // 🌟 FIXED: All paths converted to root-relative strings to preserve engine loads across directories
-    const redfinPath = '/data/redfin_stats.json';
-    const infosparksPath = '/data/infosparks_stats.json';
-    const mobilityPath = '/data/walk_transit_bike_scores.json';
-    const schoolPath = '/data/school_ratings.json';
-    const crimePath = '/data/crime_stats.json';
-    const climatePath = '/data/climate_comfort.json';
-    const emergencyPath = '/data/public_safety_emergency.json';
-    const surveillancePath = '/data/surveillance_stats.json';
-    
-    const categoriesPath = '/data/InfoSparks Links - Sheet2.csv';
-
-            let dataStore = { 
-                snapshot: [], historical: [], redfin: [], infosparks: {}, 
-                mobility: {}, schools: {}, crime: {}, climate: {}, emergency: {}, surveillance: {} 
-            };
+    document.addEventListener('DOMContentLoaded', async () => {
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const directoryContent = document.getElementById('directory-content');
+        const pillContainer = document.getElementById('north-sound-pills');
+        const kingSelect = document.getElementById('king-county-select');
+        const snohomishSelect = document.getElementById('snohomish-county-select');
+        
+        try {
+            const response = await fetch('/data/city_data.json');
+            if (!response.ok) throw new Error("Data fetch failed");
             
-            // Region Mapping Registry
-            let cityRegions = {};
-            let allCities = [];
-            let currentRegion = 'North Sound';
-            let currentCity = '';
+            const rawData = await response.json();
             
-            let velocityChartInstance = null;
-            let macroPriceChartInstance = null; 
-            let macroSalesChartInstance = null;
-            let macroDOMChartInstance = null;
-            let macroShowsChartInstance = null;
-
-            const cleanNum = (str) => {
-                if (str === null || str === undefined || str === 'NaN') return 0;
-                return parseFloat((str).toString().replace(/[^0-9.-]+/g, "")) || 0;
-            };
-            const formatCurrency = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
-            const formatPercent = (num) => (num * 100).toFixed(1) + '%';
-
-            const getRowValueForCity = (row, city) => {
-                if (!row || !city) return null;
-                const target = city.toLowerCase().trim();
-                for (let key in row) {
-                    if (key.toLowerCase().trim() === target) return row[key];
+            // Deduplicate the cities (Handling the "Bothell Anomaly")
+            const uniqueCities = [];
+            const seenCities = new Set();
+            
+            for (const item of rawData) {
+                if (item.City && !seenCities.has(item.City)) {
+                    seenCities.add(item.City);
+                    uniqueCities.push(item);
                 }
-                return null;
-            };
-
-            const getTopOfHour = () => {
-                const now = new Date();
-                now.setMinutes(0, 0, 0);
-                return now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-            };
-
-            const getThirdBusinessDay = () => {
-                const now = new Date();
-                let count = 0;
-                let day = 1;
-                while (count < 3) {
-                    let d = new Date(now.getFullYear(), now.getMonth(), day);
-                    let dayOfWeek = d.getDay();
-                    if (dayOfWeek !== 0 && dayOfWeek !== 6) count++;
-                    if (count < 3) day++;
+            }
+            
+            uniqueCities.sort((a, b) => a.City.localeCompare(b.City));
+            
+            uniqueCities.forEach(city => {
+                const slug = city.City.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+                const url = `/communities/${slug}/stats/`;
+                
+                if (city['North Sound'] && city['North Sound'].toLowerCase() === 'x') {
+                    const pill = document.createElement('a');
+                    pill.href = url;
+                    pill.className = 'pill-btn';
+                    pill.textContent = city.City;
+                    pill.setAttribute('rel', 'prefetch'); 
+                    pillContainer.appendChild(pill);
                 }
-                return new Date(now.getFullYear(), now.getMonth(), day).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-            };
 
-            const fetchCSV = (url) => new Promise((resolve) => {
-                Papa.parse(url, { 
-                    download: true, 
-                    header: true, 
-                    skipEmptyLines: true, 
-                    complete: res => resolve(res.data),
-                    error: err => {
-                        console.error("PapaParse Fetch Error:", err);
-                        resolve([]); 
-                    }
-                });
-            });
+                const option = document.createElement('option');
+                option.value = url;
+                option.textContent = city.City;
 
-            const fetchJSON = async (path) => {
-                try { 
-                    const res = await fetch(path);
-                    if (!res.ok) return null;
-                    const rawText = await res.text();
-                    const cleanedText = rawText.replace(/:\s*NaN/g, ": null");
-                    return JSON.parse(cleanedText); 
-                } 
-                catch (e) { 
-                    return null; 
-                }
-            };
-
-            Promise.all([
-                fetchCSV(urlSnapshot),
-                fetchCSV(urlHistorical),
-                fetchJSON(redfinPath),
-                fetchJSON(infosparksPath),
-                fetchJSON(mobilityPath),
-                fetchJSON(schoolPath),
-                fetchJSON(crimePath),
-                fetchJSON(climatePath),
-                fetchJSON(emergencyPath),
-                fetchJSON(surveillancePath),
-                fetchCSV(categoriesPath)
-            ]).then(values => {
-                dataStore.snapshot = values[0] || [];
-                dataStore.historical = values[1] || [];
-                
-                let rf = values[2];
-                dataStore.redfin = Array.isArray(rf) ? rf : (rf && rf.records ? rf.records : []);
-                
-                let is = values[3];
-                dataStore.infosparks = is && is.feeds ? is.feeds : (is || {});
-
-                dataStore.mobility = values[4] || {};
-                dataStore.schools = values[5] || {};
-                dataStore.crime = values[6] || {};
-                dataStore.climate = values[7] || {};
-                dataStore.emergency = values[8] || {};
-                dataStore.surveillance = values[9] || {};
-                
-                const categoryRows = values[10] || [];
-                categoryRows.forEach(row => {
-                    if (row.City) {
-                        cityRegions[row.City.trim().toLowerCase()] = {
-                            city: row.City.trim(),
-                            county: (row.County || '').trim(),
-                            northSound: (row['North Sound'] || '').trim().toLowerCase() === 'x',
-                            policeName: (row['Police Department Name'] || '').trim(),
-                            policeCrimePage: (row['Police Department Crime Page'] || '').trim()
-                        };
-                    }
-                });
-                
-                allCities = Object.values(cityRegions).map(c => c.city).sort();
-                if (allCities.length === 0) {
-                    allCities = [...new Set(dataStore.snapshot.map(row => row.City ? row.City.trim() : ''))].filter(Boolean).sort();
+                if (city.County && city.County.toLowerCase().includes('king')) {
+                    kingSelect.appendChild(option.cloneNode(true));
                 }
                 
-                if (allCities.length > 0) {
-                    renderCityButtons();
-                } else {
-                    document.getElementById('citySelector').innerHTML = `<p style="color: #d32f2f; font-weight: bold;">Connection to data pipeline interrupted. Please refresh the page.</p>`;
-                }
-            }).catch(err => {
-                console.error("Critical loading error across Promise block:", err);
-                document.getElementById('citySelector').innerHTML = `<p style="color: #d32f2f; font-weight: bold;">Connection to data pipeline interrupted. Please refresh the page.</p>`;
-            });
-
-            document.querySelectorAll('#regionSelector .filter-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    document.querySelectorAll('#regionSelector .filter-btn').forEach(b => b.classList.remove('active'));
-                    e.target.classList.add('active');
-                    currentRegion = e.target.getAttribute('data-region');
-                    renderCityButtons();
-                });
-            });
-
-            document.addEventListener('click', (e) => {
-                const menu = document.getElementById('customSelectMenu');
-                const toggleBtn = document.getElementById('customSelectBtn');
-                if (menu && menu.classList.contains('active')) {
-                    if (!toggleBtn.contains(e.target) && !menu.contains(e.target)) {
-                        menu.classList.remove('active');
-                    }
+                if (city.County && city.County.toLowerCase().includes('snohomish')) {
+                    snohomishSelect.appendChild(option.cloneNode(true));
                 }
             });
 
-            const renderCityButtons = () => {
-                let filteredCities = allCities.filter(c => {
-                    const data = cityRegions[c.toLowerCase()] || {};
-                    if (currentRegion === 'North Sound') return data.northSound;
-                    if (currentRegion === 'King County') return data.county === 'King';
-                    if (currentRegion === 'Snohomish County') return data.county === 'Snohomish';
-                    return true; 
-                });
-
-                if (filteredCities.length === 0) filteredCities = allCities;
-
-                const citySelector = document.getElementById('citySelector');
-                
-                let htmlOutput = '';
-                if (currentRegion === 'North Sound') {
-                    htmlOutput = filteredCities.map((city, i) => {
-                        const isActive = city === currentCity || (!filteredCities.includes(currentCity) && i === 0);
-                        return `<button class="filter-btn ${isActive ? 'active' : ''}" data-city="${city}">${city}</button>`;
-                    }).join('');
-                } else {
-                    const displayCity = (currentCity && filteredCities.includes(currentCity)) ? currentCity : 'Select a city...';
-                    htmlOutput = `
-                        <div class="custom-select-wrapper">
-                            <button class="custom-select-btn" id="customSelectBtn">
-                                <span id="customSelectLabel">${displayCity}</span>
-                                <span style="font-size: 0.8rem; margin-left: 10px;">▼</span>
-                            </button>
-                            <div class="custom-select-menu" id="customSelectMenu">
-                                ${filteredCities.map(city => `<button class="custom-select-item" data-city="${city}">${city}</button>`).join('')}
-                            </div>
-                        </div>
-                    `;
-                }
-
-                citySelector.innerHTML = htmlOutput;
-
-                if (!filteredCities.includes(currentCity) && filteredCities.length > 0) {
-                    currentCity = filteredCities[0];
-                    if (document.getElementById('customSelectLabel')) {
-                        document.getElementById('customSelectLabel').textContent = currentCity;
-                    }
-                    updateDashboard();
-                }
-
-                if (currentRegion === 'North Sound') {
-                    document.querySelectorAll('#citySelector .filter-btn').forEach(btn => {
-                        btn.addEventListener('click', (e) => {
-                            document.querySelectorAll('#citySelector .filter-btn').forEach(b => b.classList.remove('active'));
-                            e.target.classList.add('active');
-                            currentCity = e.target.getAttribute('data-city');
-                            updateDashboard();
-                        });
-                    });
-                } else {
-                    const toggleBtn = document.getElementById('customSelectBtn');
-                    const menu = document.getElementById('customSelectMenu');
-                    const label = document.getElementById('customSelectLabel');
-                    
-                    if (toggleBtn) {
-                        toggleBtn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            menu.classList.toggle('active');
-                        });
-                    }
-
-                    document.querySelectorAll('.custom-select-item').forEach(item => {
-                        item.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            currentCity = e.target.getAttribute('data-city');
-                            label.textContent = currentCity;
-                            menu.classList.remove('active');
-                            updateDashboard();
-                        });
-                    });
-                }
+            const navigateToCity = (e) => {
+                const url = e.target.value;
+                if (url) window.location.href = url;
             };
 
-            const updateDashboard = () => {
-                document.getElementById('dashboardContent').style.display = 'block';
-                setTimeout(() => document.getElementById('dashboardContent').style.opacity = '1', 50);
-                
-                document.getElementById('currentCityHeader').textContent = currentCity;
-                document.getElementById('stampRealTime').textContent = 'Updated Hourly • Last Update: Today at ' + getTopOfHour();
-                document.getElementById('stampMacro').textContent = 'Updated Monthly • Last Update: ' + getThirdBusinessDay();
-                
-                const currentCityObj = cityRegions[currentCity.toLowerCase()];
-                const isNorthSound = currentCityObj ? currentCityObj.northSound : false;
-                
-                if (isNorthSound) {
-                    document.getElementById('realTimeWrapper').style.display = 'block';
-                    renderRealTime();
-                } else {
-                    document.getElementById('realTimeWrapper').style.display = 'none';
-                }
+            kingSelect.addEventListener('change', navigateToCity);
+            snohomishSelect.addEventListener('change', navigateToCity);
 
-                const currentSupplyValue = renderVelocity();
-                renderMacro(currentSupplyValue);
-                renderMobilityMetrics();
-                renderSchoolMetrics();
-                renderClimateMetrics();
-                renderPublicSafetyMetrics();
-                renderSurveillanceMetrics();
-            };
-
-            const renderRealTime = () => {
-                const citySnap = dataStore.snapshot.find(row => row.City && row.City.trim() === currentCity) || {};
-                document.getElementById('valNewListings').textContent = cleanNum(citySnap['New Listings']);
-                document.getElementById('valPending').textContent = cleanNum(citySnap['Pending']);
-                document.getElementById('valSold').textContent = cleanNum(citySnap['Sold']);
-                document.getElementById('valAvgPrice').textContent = formatCurrency(cleanNum(citySnap['Avg New Price']));
-
-                const cityHistory = dataStore.historical
-                    .filter(row => row.City && row.City.trim() === currentCity && row.Timestamp)
-                    .sort((a, b) => new Date(a.Timestamp) - new Date(b.Timestamp));
-
-                const labels = cityHistory.map(row => {
-                    const d = new Date(row.Timestamp);
-                    return isNaN(d.getTime()) ? '' : `${d.getMonth()+1}/${d.getDate()}`;
-                }).filter(l => l !== '');
-                
-                if (velocityChartInstance) velocityChartInstance.destroy();
-                const ctxVel = document.getElementById('velocityChart').getContext('2d');
-                velocityChartInstance = new Chart(ctxVel, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            { label: 'New Listings', data: cityHistory.map(row => cleanNum(row['New Listings'])), borderColor: '#3D3935', tension: 0.3 },
-                            { label: 'Pending', data: cityHistory.map(row => cleanNum(row['Pending'])), borderColor: '#d32f2f', tension: 0.3 }
-                        ]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-                });
-            };
-
-            const renderVelocity = () => {
-                const rfData = dataStore.redfin
-                    .filter(r => r.city && r.city.toLowerCase().trim() === currentCity.toLowerCase().trim())
-                    .sort((a, b) => new Date(b.period_begin) - new Date(a.period_begin)); 
-
-                let activeSupply = 0;
-
-                if (rfData.length > 0) {
-                    const latest = rfData[0];
-                    activeSupply = cleanNum(latest.months_of_supply);
-
-                    const rfDate = new Date(latest.period_end || latest.period_begin);
-                    if(!isNaN(rfDate)) {
-                        document.getElementById('stampVelocity').textContent = 'Updated Monthly • Last Update: ' + rfDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-                    }
-                    
-                    document.getElementById('valDOM').textContent = latest.median_dom !== null && !isNaN(latest.median_dom) ? latest.median_dom : '--';
-                    document.getElementById('valAboveList').textContent = latest.sold_above_list !== null && !isNaN(latest.sold_above_list) ? formatPercent(cleanNum(latest.sold_above_list)) : '--';
-                    document.getElementById('valUrgency').textContent = latest.off_market_in_two_weeks !== null && !isNaN(latest.off_market_in_two_weeks) ? formatPercent(cleanNum(latest.off_market_in_two_weeks)) : '--';
-                    
-                    const frictionVal = latest.market_friction_index;
-                    const valFrictionEl = document.getElementById('valFriction');
-
-                    if (frictionVal !== undefined && frictionVal !== null && !isNaN(frictionVal)) {
-                        valFrictionEl.textContent = Math.round(frictionVal);
-                        
-                        let colorClass = '#3D3935'; 
-                        if (frictionVal >= 80) colorClass = '#C13030';
-                        else if (frictionVal >= 60) colorClass = '#d32f2f';
-                        else if (frictionVal >= 40) colorClass = '#F5A623';
-                        else if (frictionVal >= 20) colorClass = '#4A90E2';
-                        else colorClass = '#1F4E5B';
-
-                        valFrictionEl.style.color = colorClass;
-                    } else {
-                        valFrictionEl.textContent = '--';
-                        valFrictionEl.style.color = 'var(--premier-charcoal)';
-                    }
-                } else {
-                    document.getElementById('stampVelocity').textContent = 'Updated Monthly • Awaiting Data Sync';
-                    document.getElementById('valDOM').textContent = '--';
-                    document.getElementById('valAboveList').textContent = '--';
-                    document.getElementById('valUrgency').textContent = '--';
-                    document.getElementById('valFriction').textContent = '--';
-                    document.getElementById('valFriction').style.color = 'var(--premier-charcoal)';
-                }
-                return activeSupply;
-            };
-
-            const extractInfosparksData = (metricSuffix, city) => {
-                const target = city.toLowerCase().trim();
-                for (let feedKey in dataStore.infosparks) {
-                    if (feedKey.toLowerCase().includes(metricSuffix.toLowerCase())) {
-                        const feed = dataStore.infosparks[feedKey];
-                        let rows = Array.isArray(feed) ? feed : (feed.data || []);
-                        
-                        if (rows.length > 0) {
-                            const validRow = rows.find(r => r.Date && !String(r.Date).includes("All data from"));
-                            if (validRow) {
-                                const hasCity = Object.keys(validRow).some(k => k.toLowerCase().trim() === target);
-                                if (hasCity) {
-                                    return rows.filter(row => {
-                                        if (!row || !row.Date || String(row.Date).includes("All data from")) return false;
-                                        let val = getRowValueForCity(row, city);
-                                        return val !== null && val !== undefined && val !== 'NaN' && !Number.isNaN(val);
-                                    }).map(row => {
-                                        return { label: row.Date, val: cleanNum(getRowValueForCity(row, city)) };
-                                    }).slice(-12); // Restricts chart presentation to exactly the most recent 12 months
-                                }
-                            }
-                        }
-                    }
-                }
-                return []; 
-            };
-
-            const renderMacro = (fallbackSupply) => {
-                const priceTimeline = extractInfosparksData('median_sale_price', currentCity);
-                const salesTimeline = extractInfosparksData('closed_sales', currentCity);
-                const domTimeline = extractInfosparksData('average_days_on_market', currentCity);
-                const showsTimeline = extractInfosparksData('shows_per_listing', currentCity);
-                const supplyTimeline = extractInfosparksData('months_supply_closed', currentCity);
-
-                let currentSupply = fallbackSupply;
-                if (supplyTimeline.length > 0) {
-                    currentSupply = supplyTimeline[supplyTimeline.length - 1].val;
-                }
-
-                const clampedSupply = Math.max(0, Math.min(6, currentSupply));
-                const percentagePosition = (clampedSupply / 6) * 100;
-                document.getElementById('climateNeedle').style.left = `calc(${percentagePosition}% - 2px)`;
-
-                let climateVibe = "Balanced Market";
-                if (currentSupply <= 1.25) climateVibe = "Hot Seller's Market";
-                else if (currentSupply <= 2.4) climateVibe = "Seller's Market";
-                else if (currentSupply <= 3.5) climateVibe = "Balanced Market";
-                else if (currentSupply <= 4.74) climateVibe = "Buyer's Market";
-                else climateVibe = "Hot Buyer's Market";
-
-                document.getElementById('climateLabelText').textContent = `${climateVibe} (${currentSupply.toFixed(2)} Months Supply)`;
-
-                if (macroPriceChartInstance) macroPriceChartInstance.destroy();
-                macroPriceChartInstance = new Chart(document.getElementById('macroPriceChart').getContext('2d'), {
-                    type: 'line',
-                    data: {
-                        labels: priceTimeline.map(t => t.label),
-                        datasets: [{ label: 'Median Price', data: priceTimeline.map(t => t.val), borderColor: '#3D3935', fill: true, backgroundColor: 'rgba(61, 57, 53, 0.05)', tension: 0.2 }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-                });
-
-                if (macroSalesChartInstance) macroSalesChartInstance.destroy();
-                macroSalesChartInstance = new Chart(document.getElementById('macroSalesChart').getContext('2d'), {
-                    type: 'bar',
-                    data: {
-                        labels: salesTimeline.map(t => t.label),
-                        datasets: [{ label: 'Closed Sales', data: salesTimeline.map(t => t.val), backgroundColor: '#a0a0a0' }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-                });
-
-                if (macroDOMChartInstance) macroDOMChartInstance.destroy();
-                macroDOMChartInstance = new Chart(document.getElementById('macroDOMChart').getContext('2d'), {
-                    type: 'line',
-                    data: {
-                        labels: domTimeline.map(t => t.label),
-                        datasets: [{ label: 'Avg DOM', data: domTimeline.map(t => t.val), borderColor: '#d32f2f', tension: 0.2, fill: false }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-                });
-
-                if (macroShowsChartInstance) macroShowsChartInstance.destroy();
-                macroShowsChartInstance = new Chart(document.getElementById('macroShowsChart').getContext('2d'), {
-                    type: 'line',
-                    data: {
-                        labels: showsTimeline.map(t => t.label),
-                        datasets: [{ label: 'Buyer Showings Per Listing', data: showsTimeline.map(t => t.val), borderColor: '#4A90E2', tension: 0.2, fill: false }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-                });
-            };
-
-            const renderMobilityMetrics = () => {
-                let activeScores = null;
-                const targetCity = currentCity.trim().toLowerCase();
-                const safeTarget = targetCity.replace(/[^a-z0-9]/g, '');
-
-                if (dataStore.mobility) {
-                    if (Array.isArray(dataStore.mobility)) {
-                        activeScores = dataStore.mobility.find(item => {
-                            const name = (item.City || item.city || item.Name || item.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                            return name === safeTarget;
-                        });
-                    } else {
-                        const matchedKey = Object.keys(dataStore.mobility).find(key => 
-                            key.toLowerCase().replace(/[^a-z0-9]/g, '') === safeTarget
-                        );
-                        if (matchedKey) activeScores = dataStore.mobility[matchedKey];
-                    }
-                }
-                
-                const getScore = (obj, keys) => {
-                    for (let k of keys) {
-                        if (obj[k] !== undefined && obj[k] !== null) return obj[k];
-                    }
-                    return '--';
-                };
-                
-                if (activeScores) {
-                    document.getElementById('cityWalkScore').textContent = getScore(activeScores, ['walk_score', 'walkScore', 'Walk Score', 'walk']);
-                    const walkDesc = getScore(activeScores, ['description', 'walk_description', 'walkDescription']);
-                    document.getElementById('cityWalkDesc').textContent = walkDesc === '--' ? 'Data Available' : walkDesc;
-                    
-                    document.getElementById('cityTransitScore').textContent = getScore(activeScores, ['transit_score', 'transitScore', 'Transit Score', 'transit']);
-                    const transDesc = getScore(activeScores, ['transit_description', 'transitDescription']);
-                    document.getElementById('cityTransitDesc').textContent = transDesc === '--' ? 'Data Available' : transDesc;
-                    
-                    document.getElementById('cityBikeScore').textContent = getScore(activeScores, ['bike_score', 'bikeScore', 'Bike Score', 'bike']);
-                    const bikeDesc = getScore(activeScores, ['bike_description', 'bikeDescription']);
-                    document.getElementById('cityBikeDesc').textContent = bikeDesc === '--' ? 'Data Available' : bikeDesc;
-                    
-                    document.getElementById('walkScoreLink').href = activeScores.link || `https://www.walkscore.com/WA/${encodeURIComponent(currentCity.trim())}`;
-                    document.getElementById('walkScoreLink').style.display = 'inline-flex';
-                } else {
-                    document.getElementById('cityWalkScore').textContent = '--';
-                    document.getElementById('cityTransitScore').textContent = '--';
-                    document.getElementById('cityBikeScore').textContent = '--';
-                    document.getElementById('cityWalkDesc').textContent = 'Metrics normalizing...';
-                    document.getElementById('cityTransitDesc').textContent = 'Awaiting classification';
-                    document.getElementById('cityBikeDesc').textContent = 'Awaiting classification';
-                    document.getElementById('walkScoreLink').style.display = 'none';
-                }
-            };
-
-            const renderSchoolMetrics = () => {
-                const targetCity = currentCity.trim();
-                let districtData = null;
-                
-                if (dataStore.schools) {
-                    const matchedKey = Object.keys(dataStore.schools).find(key => key.toLowerCase() === targetCity.toLowerCase());
-                    if (matchedKey) districtData = dataStore.schools[matchedKey];
-                }
-
-                const activeContainer = document.getElementById('schoolDataActive');
-                const suppressedContainer = document.getElementById('schoolDataSuppressed');
-
-                if (districtData) {
-                    document.getElementById('schoolDistrictName').textContent = districtData.district_name || 'Local Public District';
-                    
-                    if (districtData.custom_score === null) {
-                        activeContainer.style.display = 'none';
-                        suppressedContainer.style.display = 'block';
-                        document.getElementById('txtSuppressionStatus').textContent = districtData.status || "Data suppressed";
-                    } else {
-                        activeContainer.style.display = 'block';
-                        suppressedContainer.style.display = 'none';
-
-                        const scoreVal = districtData.custom_score !== undefined ? districtData.custom_score.toFixed(1) : '--';
-                        document.getElementById('districtCustomScore').textContent = scoreVal;
-                        
-                        let customVibe = "Average Performance";
-                        if (districtData.custom_score >= 8.0) customVibe = "Exceptional System";
-                        else if (districtData.custom_score >= 6.0) customVibe = "Strong Academic Profile";
-                        else if (districtData.custom_score >= 4.0) customVibe = "Solid Baseline Academics";
-                        else customVibe = "Needs Local District Adjustments";
-                        document.getElementById('districtCustomVibe').textContent = customVibe;
-
-                        const mathPct = districtData.district_math_proficiency || 0;
-                        document.getElementById('txtMathScore').textContent = mathPct.toFixed(1) + '%';
-                        document.getElementById('barMathScore').style.width = `${Math.min(100, mathPct)}%`;
-
-                        const elaPct = districtData.district_ela_proficiency || 0;
-                        document.getElementById('txtElaScore').textContent = elaPct.toFixed(1) + '%';
-                        document.getElementById('barElaScore').style.width = `${Math.min(100, elaPct)}%`;
-
-                        const baseMath = districtData.state_math_baseline !== undefined ? districtData.state_math_baseline.toFixed(0) + '%' : '--';
-                        const baseEla = districtData.state_ela_baseline !== undefined ? districtData.state_ela_baseline.toFixed(0) + '%' : '--';
-                        document.getElementById('lblStateBaselines').textContent = `Math: ${baseMath} / ELA: ${baseEla}`;
-                    }
-
-                    const citySlug = targetCity.toLowerCase().replace(/\s+/g, '-');
-                    document.getElementById('greatSchoolsLink').href = `https://www.greatschools.org/washington/${citySlug}/`;
-                } else {
-                    document.getElementById('schoolDistrictName').textContent = 'District Profile Unavailable';
-                    activeContainer.style.display = 'block';
-                    suppressedContainer.style.display = 'none';
-                    document.getElementById('districtCustomScore').textContent = '--';
-                    document.getElementById('districtCustomVibe').textContent = 'Metrics currently normalizing...';
-                    document.getElementById('txtMathScore').textContent = '--';
-                    document.getElementById('barMathScore').style.width = '0%';
-                    document.getElementById('txtElaScore').textContent = '--';
-                    document.getElementById('barElaScore').style.width = '0%';
-                    document.getElementById('lblStateBaselines').textContent = 'Math -- / ELA --';
-                    document.getElementById('greatSchoolsLink').href = "https://www.greatschools.org/";
-                }
-            };
-
-            const renderClimateMetrics = () => {
-                const targetCity = currentCity.trim();
-                let climateData = null;
-                
-                if (dataStore.climate) {
-                    const matchedKey = Object.keys(dataStore.climate).find(key => key.toLowerCase() === targetCity.toLowerCase());
-                    if (matchedKey) climateData = dataStore.climate[matchedKey];
-                }
-
-                if (climateData) {
-                    const score = climateData.comfort_index_score;
-                    document.getElementById('climateComfortScore').textContent = score !== null && score !== undefined ? score.toFixed(1) : '--';
-                    document.getElementById('climateStationLabel').textContent = climateData.assigned_weather_station || 'Assigned NOAA Node';
-                    document.getElementById('climateSummaryText').textContent = climateData.microclimate_summary || 'Microclimate narrative configuration pending.';
-                    
-                    const m = climateData.metrics || {};
-                    document.getElementById('txtSummerHigh').textContent = m.average_summer_high_f !== undefined && m.average_summer_high_f !== null ? `${m.average_summer_high_f}°F` : '--';
-                    document.getElementById('txtWinterLow').textContent = m.average_winter_low_f !== undefined && m.average_winter_low_f !== null ? `${m.average_winter_low_f}°F` : '--';
-                    document.getElementById('txtAnnualRain').textContent = m.annual_rainfall_inches !== undefined && m.annual_rainfall_inches !== null ? `${m.annual_rainfall_inches}"` : '--';
-                    document.getElementById('txtSunnyDays').textContent = m.annual_sunny_days !== undefined && m.annual_sunny_days !== null ? m.annual_sunny_days : '--';
-                } else {
-                    document.getElementById('climateComfortScore').textContent = '--';
-                    document.getElementById('climateStationLabel').textContent = 'Station Sync Pending';
-                    document.getElementById('climateSummaryText').textContent = 'Environmental indicators currently normalizing across tracking grids.';
-                    document.getElementById('txtSummerHigh').textContent = '--';
-                    document.getElementById('txtWinterLow').textContent = '--';
-                    document.getElementById('txtAnnualRain').textContent = '--';
-                    document.getElementById('txtSunnyDays').textContent = '--';
-                }
-            };
-
-            const renderPublicSafetyMetrics = () => {
-                const targetCity = currentCity.trim();
-                const cityKey = targetCity.toLowerCase();
-                const cityDirData = cityRegions[cityKey] || {};
-                
-                let crimeData = null;
-                if (dataStore.crime) {
-                    const matchedCrimeKey = Object.keys(dataStore.crime).find(key => key.toLowerCase() === cityKey);
-                    if (matchedCrimeKey) crimeData = dataStore.crime[matchedCrimeKey];
-                }
-
-                let safetyData = null;
-                if (dataStore.emergency) {
-                    const matchedSafetyKey = Object.keys(dataStore.emergency).find(key => key.toLowerCase() === cityKey);
-                    if (matchedSafetyKey) safetyData = dataStore.emergency[matchedSafetyKey];
-                }
-
-                const noticeBadge = document.getElementById('crimeNoticeBadge');
-                const statsContainer = document.getElementById('activeCrimeStatsContainer');
-                const ctaBtn = document.getElementById('spotCrimeLink');
-
-                // Determine Dynamic Link & Source
-                let crimeLink = cityDirData.policeCrimePage;
-                let isSpotCrime = crimeLink ? crimeLink.toLowerCase().includes('spotcrime') : true;
-                let crimeSource = isSpotCrime ? 'SpotCrime' : (cityDirData.policeName || 'Department Website');
-
-                if (crimeData && crimeData.granular_crime_link) {
-                    crimeLink = crimeData.granular_crime_link;
-                    isSpotCrime = crimeLink.toLowerCase().includes('spotcrime');
-                    crimeSource = isSpotCrime ? 'SpotCrime' : (crimeData.police_agency || 'Department Website');
-                }
-
-                if (!crimeLink) {
-                    crimeLink = `https://spotcrime.com/wa/${encodeURIComponent(targetCity.toLowerCase())}`;
-                }
-
-                if (crimeData) {
-                    document.getElementById('safetyAgencyHeader').textContent = crimeData.police_agency || cityDirData.policeName || 'Local Law Enforcement';
-                    
-                    if (crimeData.status === "No Historical Data Reported" || crimeData.per_capita_violent_rate === null) {
-                        statsContainer.style.display = 'none';
-                        noticeBadge.classList.add('active');
-                    } else {
-                        noticeBadge.classList.remove('active');
-                        statsContainer.style.display = 'block';
-                        
-                        document.getElementById('txtViolentRate').textContent = typeof crimeData.per_capita_violent_rate === 'number' ? crimeData.per_capita_violent_rate.toFixed(2) : '--';
-                        document.getElementById('txtPropertyRate').textContent = typeof crimeData.per_capita_property_rate === 'number' ? crimeData.per_capita_property_rate.toFixed(1) : '--';
-                    }
-                } else {
-                    document.getElementById('safetyAgencyHeader').textContent = cityDirData.policeName || 'Local Public Safety Status';
-                    statsContainer.style.display = 'none';
-                    noticeBadge.classList.add('active');
-                }
-
-                ctaBtn.href = crimeLink;
-                ctaBtn.innerHTML = `View additional local crime data on ${crimeSource} &rarr;`;
-
-                const fireBadgeEl = document.getElementById('fireBadgeContainer');
-                const hospitalContainer = document.getElementById('hospitalProximityContainer');
-
-                if (safetyData) {
-                    const f = safetyData.fire_service || {};
-                    document.getElementById('txtFireAgency').textContent = f.agency_name || 'Regional Fire Authority';
-                    
-                    if (f.wsrb_protection_class === null || f.wsrb_protection_class === undefined) {
-                        fireBadgeEl.innerHTML = `<span class="info-badge-inline badge-neutral">ℹ️ WSRB Fire Rating Evaluation Under Review.</span>`;
-                    } else {
-                        const insImpact = f.homeowners_insurance_impact || '';
-                        let tipMarkup = '';
-                        if (insImpact === "Highly Favorable" || f.wsrb_protection_class <= 3) {
-                            tipMarkup = `<br><span style="font-size:0.8rem; color:#137333; display:block; margin-top:0.25rem; font-weight:700;">💰 Smart Buyer Tip: This city maintains an exceptional fire protection rating. This directly reduces your baseline annual homeowner's insurance premiums.</span>`;
-                        }
-                        fireBadgeEl.innerHTML = `
-                            <span class="info-badge-inline badge-green">WSRB Protection Class: ${f.wsrb_protection_class}</span>
-                            <span class="info-badge-inline badge-neutral">${insImpact}</span>
-                            ${tipMarkup}
-                        `;
-                    }
-
-                    const m = safetyData.emergency_medical || {};
-                    if (m.nearest_hospital_facility) {
-                        const dist = typeof m.distance_proximity_miles === 'number' ? m.distance_proximity_miles.toFixed(1) : '--';
-                        hospitalContainer.innerHTML = `
-                            <div style="margin-top:0.5rem; line-height:1.4;">
-                                Your nearest 24/7 Emergency Department is <strong>${m.nearest_hospital_facility}</strong>, located <strong>${dist}</strong> miles away.
-                                <div style="font-size:0.85rem; font-weight:700; color:#555; margin-top:0.25rem;">CMS Quality Standard: ${m.cms_hospital_quality_rating || '--'}</div>
-                            </div>
-                        `;
-                    } else {
-                        hospitalContainer.textContent = 'Proximity logging matrix mapping pending.';
-                    }
-                } else {
-                    document.getElementById('txtFireAgency').textContent = 'Responder Profile Sync Pending';
-                    fireBadgeEl.innerHTML = `<span class="info-badge-inline badge-neutral">ℹ️ WSRB Fire Rating Evaluation Under Review.</span>`;
-                    hospitalContainer.textContent = 'Local proximity calculations pending.';
-                }
-            };
-
-            const renderSurveillanceMetrics = () => {
-                const targetCity = currentCity.trim();
-                let survData = null;
-
-                if (dataStore.surveillance) {
-                    const matchedKey = Object.keys(dataStore.surveillance).find(key => key.toLowerCase() === targetCity.toLowerCase());
-                    if (matchedKey) survData = dataStore.surveillance[matchedKey];
-                }
-
-                const noticeBlock = document.getElementById('surveillanceNoticeBlock');
-                const inventoryDataContainer = document.getElementById('surveillanceActiveData');
-                const badgeEl = document.getElementById('surveillanceScoreBadge');
-
-                if (survData) {
-                    document.getElementById('surveillanceAgencyLabel').textContent = survData.serving_agency || 'Municipal Security Grid';
-                    
-                    if (survData.status && (String(survData.status).includes("Insufficient Data") || survData.surveillance_score === null)) {
-                        badgeEl.textContent = '--';
-                        badgeEl.style.background = '#a0a0a0';
-                        inventoryDataContainer.style.display = 'none';
-                        noticeBlock.classList.add('active');
-                    } else {
-                        noticeBlock.classList.remove('active');
-                        inventoryDataContainer.style.display = 'block';
-                        
-                        const scoreVal = survData.surveillance_score;
-                        badgeEl.textContent = scoreVal !== null && scoreVal !== undefined ? scoreVal : '--';
-                        
-                        if (scoreVal !== null && scoreVal !== undefined) {
-                            if (scoreVal >= 70) badgeEl.style.background = '#C13030';
-                            else if (scoreVal >= 40) badgeEl.style.background = '#1F4E5B';
-                            else badgeEl.style.background = '#4A90E2';
-                        }
-
-                        const inv = survData.infrastructure_inventories || {};
-                        document.getElementById('txtAlprCount').textContent = inv.detected_alpr_cameras !== undefined && inv.detected_alpr_cameras !== null ? inv.detected_alpr_cameras : 0;
-                        document.getElementById('txtTrafficCount').textContent = inv.detected_traffic_cameras !== undefined && inv.detected_traffic_cameras !== null ? inv.detected_traffic_cameras : 0;
-                        document.getElementById('txtCctvCount').textContent = inv.detected_general_cctv !== undefined && inv.detected_general_cctv !== null ? inv.detected_general_cctv : 0;
-                        document.getElementById('txtSoftwareCount').textContent = inv.active_institutional_software_capabilities !== undefined && inv.active_institutional_software_capabilities !== null ? inv.active_institutional_software_capabilities : 0;
-                    }
-                } else {
-                    badgeEl.textContent = '--';
-                    badgeEl.style.background = '#a0a0a0';
-                    document.getElementById('surveillanceAgencyLabel').textContent = 'Audit Matrix Offline';
-                    inventoryDataContainer.style.display = 'none';
-                    noticeBlock.classList.add('active');
-                }
-            };
-        });
+            loadingIndicator.style.display = 'none';
+            directoryContent.style.display = 'block';
+            
+        } catch (error) {
+            console.error("Error loading city directory:", error);
+            loadingIndicator.innerHTML = '<span style="color: var(--card-accent-color, #d32f2f);">Unable to load community directory at this time. Please refresh.</span>';
+        }
+    });
     </script>
 </body>
 </html>
-}
