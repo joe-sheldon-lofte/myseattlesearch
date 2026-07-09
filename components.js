@@ -18,7 +18,7 @@ class UniversalHeader extends HTMLElement {
                     <ul class="menu-links">
                         <li><a href="/index.html">Home</a></li>
                         <li><a href="/stats.html">Market Insights</a></li>
-                        <li><a href="/news.html">Market News</a></li>
+                        <li><a href="/news/">Market News</a></li>
                         <li><a href="/searches.html">Curated Searches</a></li>
                         <li><a href="/sellers.html">Sell with Joe</a></li>
                         <li><a href="/movedna.html">MoveDNA Assessment</a></li>
@@ -42,8 +42,6 @@ class UniversalHeader extends HTMLElement {
     }
 }
 
-/* File: components.js (UniversalFooter Section) */
-
 class UniversalFooter extends HTMLElement {
     async connectedCallback() {
         this.innerHTML = `
@@ -61,16 +59,14 @@ class UniversalFooter extends HTMLElement {
         </footer>
         `;
 
-        // Live Spreadsheet-Driven Regulatory Disclosure Content Streamer
         const disclaimerBox = this.querySelector('#dynamic-disclaimers-box');
         const disclaimersUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiu3qLYVO9khl6k5s_whzg_UZFzKu7-RHc5fa2tpe3aIlf4wm4IaqQeVd75enhpJvS_lxXgfQRfQ_/pub?gid=107250527&single=true&output=csv';
 
-        // 🌟 FIXED: Directory-aware path extraction configuration
         let currentPageName = window.location.pathname.toLowerCase().trim();
         if (currentPageName === "/" || currentPageName === "") {
             currentPageName = "index.html";
         } else if (currentPageName.startsWith("/")) {
-            currentPageName = currentPageName.substring(1); // Strips leading slash to create clean targets
+            currentPageName = currentPageName.substring(1);
         }
 
         try {
