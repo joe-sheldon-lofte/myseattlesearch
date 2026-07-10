@@ -2,8 +2,22 @@
 import os
 import io
 import json
+import math
 import requests
 import pandas as pd
+
+def clean_nan_values(data_node):
+    """
+    Recursively scrubs data objects to replace standalone float NaN parameters 
+    with clean standard JSON null representations, preventing compiler breaks.
+    """
+    if isinstance(data_node, dict):
+        return {key: clean_nan_values(val) for key, val in data_node.items()}
+    elif isinstance(data_node, list):
+        return [clean_nan_values(element) for element in data_node]
+    elif isinstance(data_node, float) and math.isnan(data_node):
+        return None
+    return data_node
 
 def harvest_workbook_pipeline():
     # Absolute master spreadsheet connection string
@@ -33,9 +47,6 @@ def harvest_workbook_pipeline():
         for sheet_name in excel_file_wrapper.sheet_names:
             # Load individual sheet frames into pandas datasets
             dataframe = pd.read_excel(excel_file_wrapper, sheet_name=sheet_name)
-            
-            # Type Sanitization: Strip pandas float NaN bounds to ensure true JSON null outputs
-            dataframe = dataframe.where(pd.notnull(dataframe), None)
             
             # Standardize structural target filenames
             target_file_name = f"{sheet_name.lower()}.json"
@@ -70,9 +81,12 @@ def harvest_workbook_pipeline():
                 # Fallback mapping loop for general programmatic listings collections
                 final_formatted_payload = dataframe.to_dict(orient='records')
             
+            # Deep scrub the payloads to strip illegal NaN floats before exporting
+            sanitized_payload = clean_nan_values(final_formatted_payload)
+            
             # Commit structural json data strings down to the local file system
             with open(target_destination_path, 'w', encoding='utf-8') as output_file_sink:
-                json.dump(final_formatted_payload, output_file_sink, indent=2, ensure_ascii=False)
+                json.dump(sanitized_payload, output_file_sink, indent=2, ensure_ascii=False)
                 
             print(f"💾 Raw static payload records exported cleanly: {target_destination_path}")
             
