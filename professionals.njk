@@ -1,0 +1,292 @@
+---
+layout: base.njk
+title: "Preferred Professionals | Joe Sheldon"
+permalink: /professionals/index.html
+---
+<style>
+    .disclaimer-banner {
+        background-color: var(--dynamic-bg-highlight); 
+        border-left: 4px solid var(--card-accent-color); 
+        color: var(--premier-charcoal); 
+        padding: 1rem 1.25rem;
+        border-radius: 4px 12px 12px 4px;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin: 0 auto 1.5rem auto;
+        max-width: 800px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        text-align: left;
+    }
+
+    .pro-contact-wrapper {
+        margin-top: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .pro-legal {
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--dynamic-bg-highlight);
+        font-size: 0.75rem;
+        color: var(--premier-charcoal);
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        text-align: left;
+        opacity: 0.85;
+    }
+    .pro-legal strong {
+        color: var(--premier-charcoal);
+        font-weight: 700;
+    }
+    .legal-link {
+        display: inline-flex;
+        align-items: center;
+        color: var(--card-accent-color);
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.75rem;
+        margin-top: 0.15rem;
+        transition: color 0.2s ease;
+    }
+    .legal-link:hover {
+        color: var(--premier-charcoal);
+        text-decoration: underline;
+    }
+
+    .print-trigger-btn {
+        background-color: transparent;
+        border: 1px solid var(--premier-beige, #b3b3b3);
+        color: var(--premier-charcoal);
+        padding: 0.5rem 1.25rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all 0.15s ease-in-out;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin-bottom: 2rem;
+    }
+    .print-trigger-btn:hover {
+        border-color: var(--premier-charcoal);
+        color: var(--premier-charcoal);
+        background-color: var(--dynamic-bg-highlight);
+    }
+
+    .print-only-header { display: none; }
+
+    /* ==========================================
+       HIGH-IMPACT MARKETING PRINT STYLESHEET
+       ========================================== */
+    @media print {
+        @page {
+            size: letter;
+            margin: 0.45in;
+        }
+        
+        body {
+            background: white !important;
+            color: black !important;
+            font-size: 9.5pt !important;
+            line-height: 1.25 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        universal-header, universal-footer, .events-header, 
+        .filter-nav-container, .print-trigger-btn, .legal-link,
+        .pro-link.website, .build-freshness-wrapper {
+            display: none !important;
+        }
+
+        .print-only-header {
+            display: block !important;
+            width: 100% !important;
+        }
+
+        .disclaimer-banner {
+            font-size: 8.5pt !important;
+            border: 1px solid black !important;
+            background: var(--dynamic-bg-highlight) !important;
+            padding: 0.5rem !important;
+            margin-bottom: 1.5rem !important;
+            max-width: 100% !important;
+        }
+
+        .pro-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 14px !important;
+        }
+
+        .pro-card {
+            padding: 1rem !important;
+            border: 2px solid black !important;
+            border-radius: 8px !important;
+            background: white !important;
+            box-shadow: none !important;
+            display: flex !important;
+            flex-direction: column !important;
+            page-break-inside: avoid !important;
+        }
+        .pro-category-tag {
+            font-size: 7.5pt !important;
+            font-weight: 900 !important;
+            color: var(--card-accent-color) !important;
+            text-transform: uppercase !important;
+            margin-bottom: 0.25rem !important;
+        }
+        .pro-name {
+            font-size: 11pt !important;
+            font-weight: 900 !important;
+            color: black !important;
+            margin: 0 !important;
+        }
+        .pro-company {
+            font-size: 9pt !important;
+            font-weight: 700 !important;
+            color: black !important;
+        }
+        .pro-area {
+            font-size: 8.5pt !important;
+            color: black !important;
+        }
+        .pro-link {
+            font-size: 9pt !important;
+            color: black !important;
+            text-decoration: none !important;
+            font-weight: 700 !important;
+        }
+        .pro-legal {
+            font-size: 8pt !important;
+            border-top: 1px dashed black !important;
+            margin-top: 0.5rem !important;
+            padding-top: 0.5rem !important;
+        }
+    }
+</style>
+
+<div class="pro-page">
+    <main class="container">
+        
+        <div class="events-header" style="text-align: center; margin-bottom: 1.5rem;">
+            <h1 style="margin-top: 1rem; font-size: 2.5rem;">My Preferred Professionals</h1>
+            <p class="intro">A curated list of trusted local experts I rely on to get the job done right.</p>
+        </div>
+
+        <div class="hfy-actions-container" style="text-align: center;">
+            <button onclick="window.print()" class="print-trigger-btn" title="Print This Directory">
+                🖨️ Print Professional Directory
+            </button>
+        </div>
+
+        <div id="printHeaderNode" class="print-only-header">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid var(--card-accent-color); padding-bottom: 12px; margin-bottom: 25px;">
+                <div>
+                    <h1 style="margin:0; font-size: 2.4rem; font-weight: 900; color: var(--card-accent-color); letter-spacing: -0.5px;">PREFERRED VENDOR DIRECTORY</h1>
+                    <p style="margin: 3px 0 0 0; font-size: 1rem; font-weight: 800; color: black; text-transform: uppercase; letter-spacing: 0.5px;">Pre-Vetted Local Experts & Professional Resources</p>
+                </div>
+                <div style="text-align: right;">
+                    <h3 style="margin:0; font-size: 1.3rem; font-weight: 900; color: var(--premier-charcoal);">JOE SHELDON</h3>
+                    <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: var(--premier-charcoal);">myseattlesearch.com</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="disclaimer-banner">
+            ⚠️ <strong>Consumer Notice:</strong> While I have had positive experiences working with the professionals listed below, it is your responsibility to verify that they hold the proper, active credentials, licenses, and insurance policies required for your specific job before hiring.
+        </div>
+
+        <div class="filter-nav-container">
+            <div class="filter-nav" id="filterNav">
+                <button class="filter-btn active" data-filter="all">All</button>
+                {% for category in professionals.categories %}
+                <button class="filter-btn" data-filter="{{ category }}">{{ category }}</button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="pro-grid" id="proGrid">
+            {% for vendor in professionals.vendors %}
+            <div class="pro-card" data-category="{{ vendor.category }}">
+                <div class="pro-card-content">
+                    <div class="pro-header">
+                        <div class="pro-category-tag">{{ vendor.category }}</div>
+                    </div>
+                    <h3 class="pro-name">{{ vendor.name }}</h3>
+                    
+                    {% if vendor.company %}
+                    <p class="pro-company">({{ vendor.company }})</p>
+                    {% endif %}
+                    
+                    {% if vendor.additionalInfo %}
+                    <p class="pro-area">{{ vendor.additionalInfo }}</p>
+                    {% endif %}
+                    
+                    <div class="pro-contact-wrapper">
+                        {% if vendor.phone %}
+                        <a href="tel:{{ vendor.phoneClean }}" class="pro-link phone">{{ vendor.phone }}</a>
+                        {% endif %}
+                        {% if vendor.email %}
+                        <a href="mailto:{{ vendor.email }}" class="pro-link email">{{ vendor.email }}</a>
+                        {% endif %}
+                        {% if vendor.website %}
+                        <a href="{{ vendor.website }}" target="_blank" class="pro-link website">Visit Website</a>
+                        {% endif %}
+                    </div>
+
+                    {% if vendor.legalReq %}
+                    <div class="pro-legal">
+                        <span style="line-height: 1.4;"><strong>Credentials:</strong> {{ vendor.legalReq }}</span>
+                        {% if vendor.legalLink %}
+                        <a href="{{ vendor.legalLink }}" target="_blank" class="legal-link">🛡️ Verify active credentials &rarr;</a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+    </main>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const proCards = document.querySelectorAll('.pro-card');
+
+        const applyFilter = (btn) => {
+            filterBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const filterValue = btn.getAttribute('data-filter');
+            proCards.forEach(c => {
+                if (filterValue === 'all') {
+                    c.style.display = 'flex';
+                } else {
+                    c.style.display = c.getAttribute('data-category') === filterValue ? 'flex' : 'none';
+                }
+            });
+        };
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => applyFilter(btn));
+        });
+
+        // Track deep-linked category configurations from cross-page navigation parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const categoryParam = urlParams.get('category');
+        if (categoryParam) {
+            // Find pill match using case-insensitive raw text value properties
+            const targetBtn = Array.from(filterBtns).find(b => b.getAttribute('data-filter').toLowerCase().replace(/[^a-z0-9]+/g, '-') === categoryParam);
+            if (targetBtn) applyFilter(targetBtn);
+        }
+    });
+</script>

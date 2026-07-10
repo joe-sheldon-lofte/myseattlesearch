@@ -25,7 +25,7 @@ class UniversalHeader extends HTMLElement {
                         <li><a href="/quizzes/index.html">Interactive Quizzes</a></li>
                         <li><a href="/calculators.html">Real Estate Calculators</a></li>
                         <li><a href="/events.html">Classes & Events</a></li>
-                        <li><a href="/professionals.html">Preferred Professionals</a></li>
+                        <li><a href="/professionals/">Preferred Professionals</a></li>
                     </ul>
                 </div>
             </nav>
