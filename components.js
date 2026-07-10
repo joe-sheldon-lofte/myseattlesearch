@@ -19,7 +19,7 @@ class UniversalHeader extends HTMLElement {
                         <li><a href="/index.html">Home</a></li>
                         <li><a href="/stats.html">Market Insights</a></li>
                         <li><a href="/news/">Market News</a></li>
-                        <li><a href="/searches.html">Curated Searches</a></li>
+                        <li><a href="/searches/">Curated Searches</a></li>
                         <li><a href="/sellers/">Sell with Joe</a></li>
                         <li><a href="/movedna.html">MoveDNA Assessment</a></li>
                         <li><a href="/quizzes/index.html">Interactive Quizzes</a></li>
