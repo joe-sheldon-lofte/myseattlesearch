@@ -1,0 +1,150 @@
+---
+layout: base.njk
+title: "Upcoming Home Buying Classes & Local Real Estate Events"
+permalink: /events/index.html
+---
+<div class="events-directory-wrapper" style="width: 100%; max-width: 1140px; margin: 0 auto; padding: 2rem 1rem;">
+    
+    <!-- Editorial Header Section -->
+    <header class="directory-header" style="text-align: center; margin-bottom: 3rem; border-bottom: 2px solid rgba(0,0,0,0.05); padding-bottom: 1.5rem;">
+        <h1 style="font-size: 2.5rem; font-weight: 900; color: var(--card-accent-color); letter-spacing: -0.75px; margin-bottom: 0.5rem;">Local Real Estate Classes & Events</h1>
+        <p style="font-size: 1.1rem; color: var(--premier-charcoal); opacity: 0.8; max-width: 700px; margin: 0 auto;">Join our expert-led workshops, property tours, and home buying seminars designed to help you confidently navigate the Pacific Northwest housing landscape.</p>
+    </header>
+
+    <!-- 2/3 vs 1/3 Responsive Newspaper Grid Layout Framework -->
+    <div class="grid-container" style="display: grid; grid-template-columns: 1fr; gap: 2.5rem;">
+        
+        <!-- Primary Main Informational Content Stream (Left Column on Widescreen) -->
+        <main class="events-main-stream" style="display: flex; flex-direction: column; gap: 2.5rem;">
+            
+            <!-- SECTION A: Core Featured Classes & Seminars -->
+            <section class="featured-events-block">
+                <h2 style="font-size: 1.5rem; font-weight: 800; border-left: 4px solid var(--card-accent-color); padding-left: 0.75rem; margin-bottom: 1.5rem; color: var(--premier-charcoal);">Featured Core Classes & Events</h2>
+                
+                {% if events.featured.length > 0 %}
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        {% for event in events.featured %}
+                            <article class="event-card" style="background-color: var(--dynamic-bg-highlight); border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; padding: 1.75rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1.25rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: transform 0.2s ease;">
+                                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0.5rem;">
+                                        <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--card-accent-color);">{{ event.type }}</span>
+                                        <span style="font-size: 0.95rem; font-weight: 700; color: var(--premier-charcoal); opacity: 0.9;">导 {{ event.displayDate }} {% if event.displayStartTime %}@ {{ event.displayStartTime }}{% endif %}</span>
+                                    </div>
+                                    <h3 style="font-size: 1.35rem; font-weight: 800; line-height: 1.2; color: var(--premier-charcoal); margin: 0.15rem 0;">{{ event.title }}</h3>
+                                    {% if event.subtitle %}
+                                        <p style="font-size: 0.95rem; font-weight: 600; opacity: 0.75; margin: 0;">{{ event.subtitle }}</p>
+                                    {% endif %}
+                                    <span style="font-size: 0.85rem; font-weight: 600; opacity: 0.7; margin-top: 0.25rem;">📍 {{ event.locationName }} — {{ event.streetAddress }}</span>
+                                </div>
+                                <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 1rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 0.8rem; font-weight: 700; opacity: 0.6;">Hosts:</span>
+                                        {% for host in event.hosts %}
+                                            <span style="font-size: 0.85rem; font-weight: 600; background: rgba(0,0,0,0.04); padding: 0.2rem 0.5rem; border-radius: 4px;">{{ host.name }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    <a href="/events/{{ event.id }}/" class="btn btn-primary" style="padding: 0.6rem 1.5rem; font-size: 0.9rem; text-decoration: none; font-weight: 700; text-align: center;">View Details & Register</a>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div style="background: rgba(0,0,0,0.02); border: 1px dashed rgba(0,0,0,0.1); border-radius: 6px; padding: 2rem; text-align: center; opacity: 0.7;">
+                        <p style="margin: 0; font-weight: 600;">No core classes are currently scheduled at this time. Check back shortly!</p>
+                    </div>
+                {% endif %}
+            </section>
+
+            <!-- SECTION B: Partner Broker Open Houses & Regional Events -->
+            <section class="partner-events-block">
+                <h2 style="font-size: 1.4rem; font-weight: 800; border-left: 4px solid var(--premier-charcoal); padding-left: 0.75rem; margin-bottom: 1.5rem; color: var(--premier-charcoal); opacity: 0.9;">Partner Broker Open Houses & Regional Events</h2>
+                
+                {% if events.partner.length > 0 %}
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        {% for event in events.partner %}
+                            <article class="event-card" style="background-color: var(--white); border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1.2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.01);">
+                                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                                    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0.5rem;">
+                                        <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--premier-charcoal); opacity: 0.7;">{{ event.type }}</span>
+                                        <span style="font-size: 0.9rem; font-weight: 700; opacity: 0.85;">导 {{ event.displayDate }} {% if event.displayStartTime %}@ {{ event.displayStartTime }}{% endif %}</span>
+                                    </div>
+                                    <h3 style="font-size: 1.25rem; font-weight: 800; line-height: 1.2; color: var(--premier-charcoal);">{{ event.title }}</h3>
+                                    <span style="font-size: 0.85rem; font-weight: 600; opacity: 0.7;">📍 {{ event.locationName }} — {{ event.streetAddress }}</span>
+                                </div>
+                                <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; border-top: 1px dashed rgba(0,0,0,0.06); padding-top: 0.75rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 0.8rem; font-weight: 700; opacity: 0.6;">Hosts:</span>
+                                        {% for host in event.hosts %}
+                                            <span style="font-size: 0.85rem; font-weight: 600; background: rgba(0,0,0,0.04); padding: 0.2rem 0.5rem; border-radius: 4px;">{{ host.name }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    <a href="/events/{{ event.id }}/" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.85rem; text-decoration: none; font-weight: 700; text-align: center;">View Details</a>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div style="background: rgba(0,0,0,0.01); border: 1px dashed rgba(0,0,0,0.06); border-radius: 6px; padding: 2rem; text-align: center; opacity: 0.6;">
+                        <p style="margin: 0; font-size: 0.9rem; font-style: italic;">No regional partner events are currently scheduled at this time.</p>
+                    </div>
+                {% endif %}
+            </section>
+        </main>
+
+        <!-- Right Sidebar Anchors & Utilities (Collapses underneath beautifully on mobile layout states) -->
+        <aside class="events-sidebar" style="display: flex; flex-direction: column; gap: 2rem;">
+            
+            <!-- Classroom Locations Box -->
+            <div class="sidebar-widget-box" style="background-color: var(--white); border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; padding: 1.5rem;">
+                <h3 style="font-size: 1.1rem; font-weight: 800; border-bottom: 2px solid var(--card-accent-color); padding-bottom: 0.5rem; margin-bottom: 1rem; color: var(--premier-charcoal); text-transform: uppercase; letter-spacing: 0.5px;">Location Details</h3>
+                <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                    <div>
+                        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--premier-charcoal); margin-bottom: 0.15rem;">Redfin Lynnwood Office</h4>
+                        <p style="font-size: 0.85rem; line-height: 1.4; opacity: 0.8; margin: 0;">3400 188th St SW, Ste 165<br>Lynnwood, WA 98037</p>
+                    </div>
+                    <div style="border-top: 1px solid rgba(0,0,0,0.05); padding-top: 0.75rem;">
+                        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--premier-charcoal); margin-bottom: 0.15rem;">Redfin Bellevue Office</h4>
+                        <p style="font-size: 0.85rem; line-height: 1.4; opacity: 0.8; margin: 0;">1450 114th Ave SE, Ste 230<br>Bellevue, WA 98004</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Host Matrix Directories -->
+            <div class="sidebar-widget-box" style="background-color: var(--white); border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; padding: 1.5rem;">
+                <h3 style="font-size: 1.1rem; font-weight: 800; border-bottom: 2px solid var(--premier-charcoal); padding-bottom: 0.5rem; margin-bottom: 1.25rem; color: var(--premier-charcoal); text-transform: uppercase; letter-spacing: 0.5px;">Event Host(s)</h3>
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    {% for host in events.hostsList %}
+                        <div style="display: flex; align-items: flex-start; gap: 0.85rem;">
+                            {% if host.photo %}
+                                <img src="{{ host.photo }}" alt="{{ host.name }}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0;">
+                            {% endif %}
+                            <div style="display: flex; flex-direction: column; gap: 0.15rem;">
+                                <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--premier-charcoal); margin: 0;">{{ host.name }}</h4>
+                                {% if host.phone %}
+                                    <a href="tel:{{ host.phone | replace('-', '') }}" style="font-size: 0.8rem; color: var(--premier-charcoal); opacity: 0.75; text-decoration: none; font-weight: 600;">📞 {{ host.phone }}</a>
+                                {% endif %}
+                                {% if host.email %}
+                                    <a href="mailto:{{ host.email }}" style="font-size: 0.8rem; color: var(--card-accent-color); text-decoration: none; font-weight: 600; word-break: break-all;">✉️ {{ host.email }}</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </aside>
+    </div>
+</div>
+
+<!-- Embedded Locked Newspaper Grid Styling Rule Injection -->
+<style>
+    @media (min-width: 768px) {
+        .grid-container {
+            grid-template-columns: 2fr 1fr !important;
+        }
+    }
+    .event-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.04) !important;
+    }
+</style>

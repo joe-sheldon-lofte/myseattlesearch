@@ -1,0 +1,324 @@
+---
+layout: base.njk
+pagination:
+  data: events.allActive
+  size: 1
+  alias: event
+  addAllPages: true
+permalink: "/events/{{ event.id }}/index.html"
+eleventyComputed:
+  title: "{{ event.title }}"
+---
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Event",
+  "name": "{{ event.title }}",
+  "startDate": "{{ event.date }}T{{ event.startTime }}",
+  "endDate": "{{ event.date }}T{{ event.endTime }}",
+  "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+  "eventStatus": "https://schema.org/EventScheduled",
+  "location": {
+    "@type": "Place",
+    "name": "{{ event.locationName }}",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "{{ event.streetAddress }}",
+      "addressLocality": "{{ event.city }}",
+      "addressRegion": "WA",
+      "addressCountry": "US"
+    }
+  },
+  "description": "{{ event.description | replace('\"', '\\\"') }}",
+  "organizer": {
+    "@type": "Organization",
+    "name": "Joe Sheldon Real Estate",
+    "url": "https://myseattlesearch.com"
+  }
+}
+</script>
+
+<div class="event-detail-container" style="width: 100%; max-width: 1140px; margin: 0 auto; padding: 2rem 1rem;">
+    
+    <nav class="no-print-section" style="margin-bottom: 1.5rem;">
+        <a href="/events/" style="color: var(--premier-charcoal); text-decoration: underline; font-weight: 700; font-size: 0.9rem;">&larr; Back to All Classes & Events</a>
+    </nav>
+
+    <div class="event-editorial-grid" style="display: grid; grid-template-columns: 1fr; gap: 2.5rem; width: 100%;">
+        
+        <main class="event-main-content" style="display: flex; flex-direction: column; gap: 1.75rem;">
+            
+            <section class="event-title-card" style="background-color: var(--white); border-top: 5px solid var(--card-accent-color); border-radius: 8px; padding: 1.75rem; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border-right: 1px solid rgba(0,0,0,0.04); border-bottom: 1px solid rgba(0,0,0,0.04); border-left: 1px solid rgba(0,0,0,0.04);">
+                <span style="display: inline-block; background-color: var(--dynamic-bg-highlight); color: var(--card-accent-color); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 0.25rem 0.6rem; border-radius: 4px; margin-bottom: 0.75rem;">{{ event.type }}</span>
+                <h1 style="font-size: 1.75rem; font-weight: 800; line-height: 1.25; color: var(--premier-charcoal); margin: 0 0 0.5rem 0; letter-spacing: -0.5px;">{{ event.title }}</h1>
+                {% if event.subtitle %}
+                    <p style="font-size: 1.05rem; font-weight: 500; opacity: 0.8; line-height: 1.4; margin: 0 0 1rem 0; color: var(--premier-charcoal);">{{ event.subtitle }}</p>
+                {% endif %}
+                
+                <div style="display: flex; flex-wrap: wrap; gap: 1.25rem; font-size: 0.95rem; font-weight: 700; color: var(--premier-charcoal); border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 0.85rem; margin-top: 0.85rem;">
+                    <div>📅 Date: <strong style="color: var(--card-accent-color);">{{ event.displayDate }}</strong></div>
+                    <div>⏰ Time: <strong style="color: var(--card-accent-color);">{{ event.displayStartTime }}{% if event.displayEndTime %} - {{ event.displayEndTime }}{% endif %}</strong></div>
+                </div>
+            </section>
+
+            {% if event.images.length > 0 %}
+                <section class="event-gallery-frame" style="display: grid; grid-template-columns: 1fr; gap: 1rem; width: 100%;">
+                    {% if event.images.length == 1 %}
+                        <div style="width: 100%; max-height: 400px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                            <img src="{{ event.images[0] }}" alt="{{ event.title }} Feature Portfolio Image" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                        </div>
+                    {% elif event.images.length == 2 %}
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%;">
+                            {% for img in event.images %}
+                                <div style="width: 100%; max-height: 300px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+                                    <img src="{{ img }}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="gallery-three-up-matrix" style="display: grid; grid-template-columns: 1fr; gap: 1rem; width: 100%;">
+                            <div style="width: 100%; max-height: 380px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); grid-column: span 1;">
+                                <img src="{{ event.images[0] }}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%;">
+                                <div style="width: 100%; max-height: 180px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+                                    <img src="{{ event.images[1] }}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                                </div>
+                                <div style="width: 100%; max-height: 180px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+                                    <img src="{{ event.images[2] }}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </section>
+            {% endif %}
+
+            <section class="event-description-box" style="background-color: var(--white); border-radius: 8px; padding: 1.75rem; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.05);">
+                <h2 style="font-size: 1.15rem; font-weight: 800; color: var(--premier-charcoal); margin-top: 0; margin-bottom: 0.85rem; border-bottom: 2px solid var(--premier-beige); padding-bottom: 0.4rem;">Event Overview & Details</h2>
+                <p style="font-size: 0.95rem; line-height: 1.65; color: var(--premier-charcoal); white-space: pre-line; margin: 0; text-align: justify;">{{ event.description }}</p>
+            </section>
+
+            {% if event.registration %}
+                <section class="registration-form-panel" id="registrationFormWrapper" style="background-color: var(--white); border-radius: 12px; padding: 2rem; box-shadow: 0 6px 25px rgba(0,0,0,0.04); border: 2px solid var(--card-accent-color); position: relative;">
+                    
+                    <div id="formInputStatePanel">
+                        <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--premier-charcoal); margin-top: 0; margin-bottom: 0.35rem;">Secure Your Free Attendance Spot</h2>
+                        <p style="font-size: 0.9rem; color: var(--premier-charcoal); opacity: 0.75; margin: 0 0 1.25rem 0;">Registration is entirely free and takes less than 30 seconds.</p>
+                        
+                        <form id="eventAttendeeRegistrationForm" style="display: flex; flex-direction: column; gap: 1rem;">
+                            <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                                <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--premier-charcoal); text-transform: uppercase; letter-spacing: 0.5px;">Full Name *</label>
+                                    <input type="text" id="regName" required placeholder="John Doe" style="padding: 0.65rem; border: 2px solid var(--premier-beige); border-radius: 6px; font-size: 0.95rem; color: var(--premier-charcoal); outline: none; width: 100%; box-sizing: border-box;">
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--premier-charcoal); text-transform: uppercase; letter-spacing: 0.5px;">Email Address *</label>
+                                    <input type="email" id="regEmail" required placeholder="john@example.com" style="padding: 0.65rem; border: 2px solid var(--premier-beige); border-radius: 6px; font-size: 0.95rem; color: var(--premier-charcoal); outline: none; width: 100%; box-sizing: border-box;">
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;" class="form-row-two-col-desktop">
+                                <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--premier-charcoal); text-transform: uppercase; letter-spacing: 0.5px;">Phone Number *</label>
+                                    <input type="tel" id="regPhone" required placeholder="206-555-0199" style="padding: 0.65rem; border: 2px solid var(--premier-beige); border-radius: 6px; font-size: 0.95rem; color: var(--premier-charcoal); outline: none; width: 100%; box-sizing: border-box;">
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--premier-charcoal); text-transform: uppercase; letter-spacing: 0.5px;">Number of People Attending *</label>
+                                    <select id="regAttending" style="padding: 0.65rem; border: 2px solid var(--premier-beige); border-radius: 6px; font-size: 0.95rem; color: var(--premier-charcoal); outline: none; background: var(--white); cursor: pointer; width: 100%; box-sizing: border-box;">
+                                        <option value="1" selected>1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                        <option value="6">6</option>
+                                        <option value="7">7</option>
+                                        <option value="8">8</option>
+                                        <option value="9">9</option>
+                                        <option value="10">10</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary" id="submitRegBtn" style="padding: 0.85rem; font-size: 1rem; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 0.5rem; width: 100%;">Register</button>
+                        </form>
+                    </div>
+
+                    <div id="formSuccessStatePanel" style="display: none; text-align: center; padding: 1rem 0;">
+                        <div style="font-size: 3rem; margin-bottom: 0.75rem;">🎉</div>
+                        <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--card-accent-color); margin: 0 0 0.5rem 0;">Registration Confirmed!</h2>
+                        <p style="font-size: 0.95rem; color: var(--premier-charcoal); max-width: 500px; margin: 0 auto 1.5rem auto; line-height: 1.5;">Thank you, <strong id="successClientName">Attendee</strong>. Your seats for <strong>{{ event.title }}</strong> are locked in.</p>
+                        
+                        <div style="background: var(--dynamic-bg-highlight); border: 1px solid var(--premier-beige); border-radius: 8px; padding: 1.25rem; max-width: 400px; margin: 0 auto; display: flex; flex-direction: column; gap: 0.75rem;">
+                            <strong style="font-size: 0.85rem; color: var(--premier-charcoal); text-transform: uppercase; letter-spacing: 0.5px; display: block;">Add This Event to Your Calendar</strong>
+                            <button type="button" class="btn btn-secondary interactive-sidebar-btn" onclick="triggerNativeIcsCalendarDownload()" style="padding: 0.65rem 1.25rem; font-size: 0.9rem; font-weight: bold; width: auto; align-self: center; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;">📅 Add Event to Calendar</button>
+                        </div>
+                    </div>
+                </section>
+            {% endif %}
+
+        </main>
+
+        <aside class="event-sidebar-column" style="display: flex; flex-direction: column; gap: 1.75rem;">
+            
+            <div class="sidebar-action-tray no-print-section" style="display: flex; flex-direction: column; gap: 0.75rem; width: 100%;">
+                <a href="{{ event.mapsLink }}" target="_blank" class="btn btn-secondary interactive-sidebar-btn" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.85rem; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.95rem;">📍 Map It</a>
+                <button type="button" class="btn btn-primary interactive-sidebar-btn" id="copyDetailsBtn" onclick="executeEventMetadataClipboardCopy()" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.85rem; border-radius: 8px; border: none; font-weight: bold; font-size: 0.95rem; cursor: pointer; background-color: var(--premier-charcoal);">📋 Copy Event Details</button>
+                <button type="button" class="btn btn-primary interactive-sidebar-btn" onclick="triggerNativeIcsCalendarDownload()" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.85rem; border-radius: 8px; border: none; font-weight: bold; font-size: 0.95rem; cursor: pointer; background-color: var(--card-accent-color);">📅 Add Event to Calendar</button>
+            </div>
+
+            <div class="sidebar-widget-box" style="background-color: var(--white); border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; padding: 1.25rem; text-align: left;">
+                <h3 style="font-size: 0.9rem; font-weight: 800; border-bottom: 2px solid var(--card-accent-color); padding-bottom: 0.4rem; margin-top: 0; margin-bottom: 0.75rem; color: var(--premier-charcoal); text-transform: uppercase; letter-spacing: 0.5px;">Location Details</h3>
+                <h4 style="font-size: 0.95rem; font-weight: 800; margin: 0 0 0.25rem 0; color: var(--premier-charcoal);">{{ event.locationName }}</h4>
+                <p style="font-size: 0.88rem; line-height: 1.4; opacity: 0.85; margin: 0;">{{ event.streetAddress }}</p>
+                
+                {% if event.legacyLink %}
+                    <div class="no-print-section" style="margin-top: 1rem; padding-top: 0.85rem; border-top: 1px dashed rgba(0,0,0,0.08);">
+                        <span style="display: block; font-size: 0.7rem; font-weight: 700; color: var(--premier-charcoal); opacity: 0.6; text-transform: uppercase; margin-bottom: 0.25rem;">Alternative Ticket Track:</span>
+                        <a href="{{ event.legacyLink }}" target="_blank" style="font-size: 0.82rem; color: var(--card-accent-color); font-weight: bold; text-decoration: underline;">View External Registration Node &rarr;</a>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="sidebar-widget-box" style="background-color: var(--white); border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; padding: 1.25rem; text-align: left;">
+                <h3 style="font-size: 0.9rem; font-weight: 800; border-bottom: 2px solid var(--premier-charcoal); padding-bottom: 0.4rem; margin-top: 0; margin-bottom: 1rem; color: var(--premier-charcoal); text-transform: uppercase; letter-spacing: 0.5px;">Event Host(s)</h3>
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    {% for host in event.hosts %}
+                        <div style="display: flex; align-items: flex-start; gap: 0.75rem; border-bottom: {% if not loop.last %}1px dashed rgba(0,0,0,0.05){% else %}none{% endif %}; padding-bottom: {% if not loop.last %}0.85rem{% else %}0{% endif %};">
+                            {% if host.photo %}
+                                <img src="{{ host.photo }}" alt="{{ host.name }}" style="width: 48px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid var(--premier-beige); flex-shrink: 0;">
+                            {% endif %}
+                            <div style="display: flex; flex-direction: column; gap: 0.15rem; min-width: 0;">
+                                <h4 style="font-size: 0.9rem; font-weight: 800; color: var(--premier-charcoal); margin: 0;">{{ host.name }}</h4>
+                                <span style="font-size: 0.82rem; line-height: 1.4; color: var(--premier-charcoal); opacity: 0.8; text-align: justify; margin-bottom: 0.2rem;">{{ host.description }}</span>
+                                {% if host.phone %}
+                                    <a href="tel:{{ host.phone | replace('-', '') }}" style="font-size: 0.8rem; color: var(--premier-charcoal); opacity: 0.8; text-decoration: none; font-weight: 600;">📞 {{ host.phone }}</a>
+                                {% endif %}
+                                {% if host.email %}
+                                    <a href="mailto:{{ host.email }}" style="font-size: 0.8rem; color: var(--card-accent-color); text-decoration: none; font-weight: 600; word-break: break-all;">✉️ {{ host.email }}</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </aside>
+
+    </div>
+</div>
+
+<style>
+    @media (min-width: 768px) {
+        .event-editorial-grid {
+            grid-template-columns: 2fr 1fr !important;
+        }
+        .form-row-two-col-desktop {
+            grid-template-columns: 1fr 1fr !important;
+        }
+    }
+    /* Native brightness modifier darkens *any* color variable beautifully on mouse hover */
+    .interactive-sidebar-btn {
+        transition: background-color 0.2s ease, filter 0.2s ease !important;
+    }
+    .interactive-sidebar-btn:hover {
+        filter: brightness(0.9) !important;
+    }
+</style>
+
+<script>
+    const EVENT_CLIPBOARD_STRING_TEXT = "Event Profile: {{ event.title }} | Date: {{ event.displayDate }} ({{ event.displayStartTime }} - {{ event.displayEndTime }}) | Location: {{ event.locationName }} — {{ event.streetAddress }}";
+
+    function executeEventMetadataClipboardCopy() {
+        navigator.clipboard.writeText(EVENT_CLIPBOARD_STRING_TEXT).then(() => {
+            const btn = document.getElementById('copyDetailsBtn');
+            const originalLabel = btn.innerHTML;
+            btn.textContent = "✓ Event Details Copied!";
+            btn.style.backgroundColor = "var(--dynamic-bg-highlight)";
+            btn.style.color = "var(--card-accent-color)";
+            setTimeout(() => {
+                btn.innerHTML = originalLabel;
+                btn.style.backgroundColor = "";
+                btn.style.color = "";
+            }, 2000);
+        }).catch(err => {
+            console.error("Critical clipboard capture exemption pass:", err);
+        });
+    }
+
+    function triggerNativeIcsCalendarDownload() {
+        const cleanDateNoHyphens = "{{ event.date }}".replace(/-/g, '');
+        const cleanStartTimeNoColons = "{{ event.startTime }}".replace(/:/g, '') + "00";
+        const cleanEndTimeNoColons = "{{ event.endTime }}".replace(/:/g, '') + "00";
+
+        const icsFilePayloadStructureStr = [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//MySeattleSearch//Real Estate Calendar Asset//EN",
+            "BEGIN:VEVENT",
+            "UID:{{ event.id }}@myseattlesearch.com",
+            "DTSTAMP:" + cleanDateNoHyphens + "T" + cleanStartTimeNoColons,
+            "DTSTART:" + cleanDateNoHyphens + "T" + cleanStartTimeNoColons,
+            "DTEND:" + cleanDateNoHyphens + "T" + cleanEndTimeNoColons,
+            "SUMMARY:{{ event.title | replace(',', '\\,') }}",
+            "DESCRIPTION:{{ event.type }} hosted by Joe Sheldon. Details online: https://myseattlesearch.com/events/{{ event.id }}/",
+            "LOCATION:{{ event.locationName | replace(',', '\\,') }} - {{ event.streetAddress | replace(',', '\\,') }}",
+            "END:VEVENT",
+            "END:VCALENDAR"
+        ].join("\r\n");
+
+        const dataConduitBlobNode = new Blob([icsFilePayloadStructureStr], { type: 'text/calendar;charset=utf-8' });
+        const temporaryAnchorConduitLink = document.createElement('a');
+        temporaryAnchorConduitLink.href = window.URL.createObjectURL(dataConduitBlobNode);
+        temporaryAnchorConduitLink.download = "event-{{ event.id }}.ics";
+        document.body.appendChild(temporaryAnchorConduitLink);
+        temporaryAnchorConduitLink.click();
+        document.body.removeChild(temporaryAnchorConduitLink);
+    }
+
+    {% if event.registration %}
+    document.addEventListener('DOMContentLoaded', () => {
+        const targetApiEndpointWebUrl = 'https://script.google.com/macros/s/AKfycbz4KdyYPmarA0Gahw8CSReRvARmqFe02uh0CX4ROXzgDfSUxZnGiSNjoQFwXXiu9Ka6/exec';
+        const registrationFormElement = document.getElementById('eventAttendeeRegistrationForm');
+
+        if (registrationFormElement) {
+            registrationFormElement.addEventListener('submit', async (formEvent) => {
+                formEvent.preventDefault();
+                
+                const submitButtonSink = document.getElementById('submitRegBtn');
+                submitButtonSink.disabled = true;
+                submitButtonSink.textContent = "Registering....";
+
+                const clientNameInputText = document.getElementById('regName').value.trim();
+
+                const JSON_API_INGESTION_PAYLOAD = {
+                    eventId: "{{ event.id }}",
+                    eventName: "{{ event.title }}",
+                    eventDate: "{{ event.displayDate }}",
+                    name: clientNameInputText,
+                    emailAddress: document.getElementById('regEmail').value.trim(),
+                    phoneNumber: document.getElementById('regPhone').value.trim(),
+                    numberAttending: document.getElementById('regAttending').value
+                };
+
+                try {
+                    await fetch(targetApiEndpointWebUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(JSON_API_INGESTION_PAYLOAD)
+                    });
+
+                    document.getElementById('successClientName').textContent = clientNameInputText.split(' ')[0];
+                    document.getElementById('formInputStatePanel').style.display = 'none';
+                    document.getElementById('formSuccessStatePanel').style.display = 'block';
+                    document.getElementById('registrationFormWrapper').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                } catch (networkThresholdException) {
+                    console.error("API transmission pass exception caught:", networkThresholdException);
+                    alert("Service connection briefly interrupted. Please hit submit again to log your registration.");
+                    submitButtonSink.disabled = false;
+                    submitButtonSink.textContent = "Register";
+                }
+            });
+        }
+    });
+    {% endif %}
+</script>
