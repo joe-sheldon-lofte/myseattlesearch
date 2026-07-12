@@ -1,4 +1,4 @@
-# File: scripts/harvest_website_data_sheet.py
+/* File: scripts/harvest_website_data_sheet.py */
 import os
 import io
 import json
@@ -8,6 +8,8 @@ import datetime
 import requests
 import pandas as pd
 import urllib.parse
+import boto3
+from PIL import Image
 
 def clean_nan_values(data_node):
     """
@@ -30,13 +32,118 @@ def generate_url_slug(text_input):
     processed_string = re.sub(r'[^a-z0-9\s-]', '', processed_string)
     return re.sub(r'[\s-]+', '-', processed_string)
 
-def harvest_workbook_pipeline():
-    SOURCE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiu3qLYVO9khl6k5s_whzg_UZFzKu7-RHc5fa2tpe3aIlf4wm4IaqQeVd75enhpJvS_lxXgfQRfQ_/pub?output=csv"
-    xlsx_target_url = SOURCE_URL.replace("output=csv", "output=xlsx")
+def convert_and_upload_to_r2(cell_value, sheet_name):
+    """
+    Scans an individual cell value. If it contains a temporary Google Drive share link,
+    downloads it, compresses it to WebP format, uploads it to Cloudflare R2 under an 
+    organized folder matching the sheet tab name, and writes back the new URL to Google Sheets.
+    """
+    if not isinstance(cell_value, str) or "drive.google.com" not in cell_value:
+        return cell_value
+
+    # Extract the unique file ID from common Google Drive shared link layouts
+    match = re.search(r'/file/d/([a-zA-Z0-9_-]+)', cell_value)
+    if not match:
+        match = re.search(r'id=([a-zA-Z0-9_-]+)', cell_value)
+        
+    if not match:
+        return cell_value  # Return original value if string can't be parsed
+
+    file_id = match.group(1)
     
-    print("📡 Handshaking with Google Sheet workbook node...")
+    # Retrieve security vault credentials from environment variables
+    r2_access_key = os.environ.get("R2_ACCESS_KEY_ID")
+    r2_secret_key = os.environ.get("R2_SECRET_ACCESS_KEY")
+    r2_endpoint = os.environ.get("R2_ENDPOINT_URL")
+    r2_bucket = os.environ.get("R2_BUCKET_NAME")
+    sheets_api_url = os.environ.get("SHEETS_API_URL_WEBSITE_DATA")
+    
+    custom_domain = "https://assets.myseattlesearch.com"
+    
+    # Safety Check: If R2 vault isn't configured, skip processing and preserve old link
+    if not all([r2_access_key, r2_secret_key, r2_endpoint, r2_bucket]):
+        print(f"⚠️ R2 environment secrets missing. Preserving original Drive asset for ID: {file_id}")
+        return cell_value
+
+    print(f"📸 Found Google Drive asset in tab '{sheet_name}' (ID: {file_id}). Optimizing to WebP...")
+    
     try:
-        response = requests.get(xlsx_target_url, timeout=30)
+        # 1. Download raw image from Google's public streaming endpoint
+        download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+        download_response = requests.get(download_url, timeout=30)
+        download_response.raise_for_status()
+        
+        # 2. Feed raw bytes into Pillow image processor
+        raw_image_bytes = io.BytesIO(download_response.content)
+        processed_image = Image.open(raw_image_bytes)
+        
+        # Ensure image profile colors compile down cleanly without transparency anomalies
+        if processed_image.mode in ("RGBA", "P"):
+            processed_image = processed_image.convert("RGBA")
+        else:
+            processed_image = processed_image.convert("RGB")
+            
+        # 3. Compress image directly into an in-memory byte buffer
+        webp_byte_stream = io.BytesIO()
+        processed_image.save(webp_byte_stream, format="WEBP", quality=80)
+        webp_byte_stream.seek(0)
+        
+        # 4. Initialize secure link block to Cloudflare R2 API
+        s3_client = boto3.client(
+            "s3",
+            endpoint_url=r2_endpoint,
+            aws_access_key_id=r2_access_key,
+            aws_secret_access_key=r2_secret_key,
+            region_name="auto"
+        )
+        
+        # Nest assets under virtual folder paths matching your Sheet tab name
+        object_key = f"{sheet_name.lower()}/{file_id}.webp"
+        
+        # 5. Hand off optimized WebP block directly to Cloudflare
+        s3_client.put_object(
+            Bucket=r2_bucket,
+            Key=object_key,
+            Body=webp_byte_stream,
+            ContentType="image/webp"
+        )
+        
+        permanent_r2_url = f"{custom_domain}/{object_key}"
+        print(f"🚀 Asset successfully transferred to Cloudflare: {permanent_r2_url}")
+        
+        # 6. Trigger Docs Script API to overwrite the old Drive link inside your sheet cell
+        if sheets_api_url:
+            print(f"✍️ Synchronization handshake: Writing link back to Sheet tab '{sheet_name}'...")
+            writeback_payload = {
+                "sheetName": sheet_name,
+                "oldValue": cell_value,
+                "newValue": permanent_r2_url
+            }
+            api_response = requests.post(sheets_api_url, json=writeback_payload, timeout=30)
+            if api_response.status_code == 200:
+                print(f"✅ Google Workbook cell synchronized: {api_response.json().get('message')}")
+            else:
+                print(f"❌ Handshake failed with status code: {api_response.status_code}")
+        else:
+            print("⚠️ SHEETS_API_URL_WEBSITE_DATA secret missing. Skipping live workbook update.")
+            
+        return permanent_r2_url
+        
+    except Exception as process_fault:
+        print(f"❌ Image extraction loop crash on asset {file_id}: {process_fault}")
+        return cell_value
+
+def harvest_workbook_pipeline():
+    # Fetch the secure live URL target from your repository secrets vault
+    SOURCE_URL = os.environ.get("GOOGLE_SHEET_LIVE_URL")
+    
+    if not SOURCE_URL:
+        print("❌ Error: GOOGLE_SHEET_LIVE_URL configuration parameter is missing from environment layout contexts.")
+        return
+
+    print("📡 Handshaking real-time with Google Sheet master workbook node...")
+    try:
+        response = requests.get(SOURCE_URL, timeout=30)
         response.raise_for_status()
         workbook_bytes = io.BytesIO(response.content)
     except Exception as network_error:
@@ -62,6 +169,9 @@ def harvest_workbook_pipeline():
                     string_team_id = str(raw_team_id).strip().replace(".0", "")
                     member_name = str(team_row.get("Name", "")).strip()
                     
+                    raw_photo_link = str(team_row.get("Photo", "")).strip() if pd.notna(team_row.get("Photo")) else ""
+                    optimized_photo_link = convert_and_upload_to_r2(raw_photo_link, "Team")
+                    
                     member_object = {
                         "id": string_team_id,
                         "teamPage": str(team_row.get("Team Page", "No")).strip().lower() == "yes",
@@ -72,13 +182,12 @@ def harvest_workbook_pipeline():
                         "email": str(team_row.get("Email", "")).strip() if pd.notna(team_row.get("Email")) else "",
                         "website": str(team_row.get("Website", "")).strip() if pd.notna(team_row.get("Website")) else "",
                         "description": str(team_row.get("Description", "")).strip() if pd.notna(team_row.get("Description")) else "",
-                        "photo": str(team_row.get("Photo", "")).strip() if pd.notna(team_row.get("Photo")) else ""
+                        "photo": optimized_photo_link
                     }
                     team_lookup_directory[string_team_id] = member_object
                     compiled_team_payload.append(member_object)
 
         for sheet_name in excel_file_wrapper.sheet_names:
-            # Handle special formatting sheets explicitly, let fallbacks handle the rest
             if sheet_name == "Team":
                 sanitized_payload = clean_nan_values(compiled_team_payload)
                 target_destination_path = os.path.join(output_directory, "team.json")
@@ -93,7 +202,11 @@ def harvest_workbook_pipeline():
             final_formatted_payload = None
             
             if sheet_name == "Stats":
-                final_formatted_payload = dataframe.iloc[0].to_dict() if not dataframe.empty else {}
+                stats_dict = dataframe.iloc[0].to_dict() if not dataframe.empty else {}
+                for key, val in stats_dict.items():
+                    if isinstance(val, str) and "drive.google.com" in val:
+                        stats_dict[key] = convert_and_upload_to_r2(val, sheet_name)
+                final_formatted_payload = stats_dict
                     
             elif sheet_name == "Disclaimers":
                 disclaimers_lookup_map = {}
@@ -115,18 +228,15 @@ def harvest_workbook_pipeline():
                     if not event_id_clean or event_id_clean == "nan":
                         continue
 
-                    # COMPLIANCE GATING LOOP: Check Build-Time Publication Schedules
                     raw_publish_date = event_row.get("Publish Date")
                     if pd.notna(raw_publish_date):
                         try:
                             publish_datetime = pd.to_datetime(raw_publish_date).date()
                             if publish_datetime > today_date:
-                                # Suppress release: future dated marketing asset holds logic threshold
                                 continue
                         except:
                             pass
 
-                    # Clean Date parsing strings
                     raw_date_stamp = event_row.get("Date")
                     clean_date_string = ""
                     if pd.notna(raw_date_stamp):
@@ -147,7 +257,6 @@ def harvest_workbook_pipeline():
                     start_time_clean = build_time_string(event_row.get("Start Time"))
                     end_time_clean = build_time_string(event_row.get("End Time"))
 
-                    # Stitch Relational host indices out from our cached central Team dictionary
                     host_ids_raw = str(event_row.get("Host IDs", "")).strip()
                     comma_separated_host_ids = host_ids_raw.split(",")
                     associated_host_objects = []
@@ -173,7 +282,8 @@ def harvest_workbook_pipeline():
                     for target_img_header in ["Image 1 Link", "Image 2 Link", "Image 3 Link"]:
                         individual_img_url = str(event_row.get(target_img_header, "")).strip()
                         if individual_img_url and individual_img_url.lower() != "nan":
-                            event_image_assets.append(individual_img_url)
+                            optimized_img_url = convert_and_upload_to_r2(individual_img_url, "Events")
+                            event_image_assets.append(optimized_img_url)
 
                     def evaluate_affirmative_switch(switch_value):
                         return str(switch_value).strip().lower() == "yes"
@@ -203,7 +313,14 @@ def harvest_workbook_pipeline():
                     })
                 final_formatted_payload = compiled_events
             else:
-                final_formatted_payload = dataframe.to_dict(orient='records')
+                generic_processed_records = []
+                for _, basic_row in dataframe.iterrows():
+                    row_dictionary = basic_row.to_dict()
+                    for cell_key, cell_value in row_dictionary.items():
+                        if isinstance(cell_value, str) and "drive.google.com" in cell_value:
+                            row_dictionary[cell_key] = convert_and_upload_to_r2(cell_value, sheet_name)
+                    generic_processed_records.append(row_dictionary)
+                final_formatted_payload = generic_processed_records
             
             sanitized_payload = clean_nan_values(final_formatted_payload)
             with open(target_destination_path, 'w', encoding='utf-8') as output_file_sink:
