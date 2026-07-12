@@ -1,4 +1,4 @@
-/* File: scripts/harvest_website_data_sheet.py */
+# File: scripts/harvest_website_data_sheet.py */
 import os
 import io
 import json
