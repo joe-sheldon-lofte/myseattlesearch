@@ -42,6 +42,12 @@ module.exports = function(eleventyConfig) {
     return new Intl.DateTimeFormat('en-US', formattingRules).format(now).replace(',', ' at');
   });
 
+  // Universal Number & Currency Formatting Filter
+eleventyConfig.addFilter("localeString", function(value) {
+    if (!value) return "0";
+    return Number(value).toLocaleString('en-US');
+});
+
   return {
     htmlTemplateEngine: false, 
     templateFormats: ["njk", "md"], 

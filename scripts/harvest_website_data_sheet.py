@@ -32,45 +32,87 @@ def generate_url_slug(text_input):
     processed_string = re.sub(r'[^a-z0-9\s-]', '', processed_string)
     return re.sub(r'[\s-]+', '-', processed_string)
 
+def load_existing_r2_cache():
+    """
+    Scans the repository's data directory for pre-compiled JSON files. Extracts all
+    historical Cloudflare R2 URLs to build a high-performance local cache mapping
+    Google Drive File IDs directly to their custom subdomain assets.
+    """
+    cache_index = {}
+    data_folder = "data"
+    
+    if not os.path.exists(data_folder):
+        return cache_index
+        
+    print("🧠 Initializing Git-Based JSON Cache Engine...")
+    for target_json_file in os.listdir(data_folder):
+        if not target_json_file.endswith(".json") or target_json_file == "quizzes.json":
+            continue
+            
+        full_file_path = os.path.join(data_folder, target_json_file)
+        try:
+            with open(full_file_path, "r", encoding="utf-8") as file_stream:
+                raw_json_text = file_stream.read()
+                
+            # Regex sweeps for any assets.myseattlesearch.com image URL configurations
+            discovered_urls = re.findall(r'https://assets\.myseattlesearch\.com/[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+\.webp', raw_json_text)
+            for asset_url in discovered_urls:
+                # Extract the unique file ID component right before the extension block
+                file_id_match = re.search(r'/([a-zA-Z0-9_-]+)\.webp$', asset_url)
+                if file_id_match:
+                    extracted_id = file_id_match.group(1)
+                    cache_index[extracted_id] = asset_url
+        except Exception as cache_fault:
+            print(f"⚠️ Warning: Skipping cache indexing parse on file {target_json_file}: {cache_fault}")
+            
+    if cache_index:
+        print(f"✅ Cache Engine Online. Indexed {len(cache_index)} historical assets across your repository files.")
+    else:
+        print("ℹ️ Zero historical asset records indexed. Starting a clean-slate compilation pass.")
+    return cache_index
+
+# Global initialization of the local image cache matrix index
+GLOBAL_R2_CACHE = load_existing_r2_cache()
+
 def convert_and_upload_to_r2(cell_value, sheet_name):
     """
-    Scans an individual cell value. If it contains a temporary Google Drive share link,
-    downloads it, compresses it to WebP format, uploads it to Cloudflare R2 under an 
-    organized folder matching the sheet tab name, and writes back the new URL to Google Sheets.
+    Checks if an individual cell contains a Google Drive link. Cross-references 
+    the file ID against the repository cache index. Reuses historical URLs instantly,
+    or falls back to download, compress, and upload new media on demand.
     """
     if not isinstance(cell_value, str) or "drive.google.com" not in cell_value:
         return cell_value
 
-    # Extract the unique file ID from common Google Drive shared link layouts
+    # Extract the unique file ID from common Google Drive link structures
     match = re.search(r'/file/d/([a-zA-Z0-9_-]+)', cell_value)
     if not match:
         match = re.search(r'id=([a-zA-Z0-9_-]+)', cell_value)
         
     if not match:
-        return cell_value  # Return original value if string can't be parsed
+        return cell_value  
 
     file_id = match.group(1)
     
-    # Retrieve security vault credentials from environment variables
+    # 🌟 THE SMART BYPASS: Check if this asset file ID has already been converted historically
+    if file_id in GLOBAL_R2_CACHE:
+        print(f"⚡ Cache Hit! Reusing optimized R2 asset for ID: {file_id}")
+        return GLOBAL_R2_CACHE[file_id]
+        
+    # Cache Miss: Process and upload a new asset
     r2_access_key = os.environ.get("R2_ACCESS_KEY_ID")
     r2_secret_key = os.environ.get("R2_SECRET_ACCESS_KEY")
     r2_endpoint = os.environ.get("R2_ENDPOINT_URL")
     r2_bucket = os.environ.get("R2_BUCKET_NAME")
-    
-    # 🌟 DIAGNOSTIC TEST: Bypassing GitHub Secrets to test your URL hunch directly
-    sheets_api_url = "https://script.google.com/macros/s/AKfycbwo8gtNP1UKZMiAU0K1bFbV-qZxf85_FrjvQTs-WQsUNRA_RQIJvUqs3-XIoJ1lUAiX/exec"
-    
     custom_domain = "https://assets.myseattlesearch.com"
     
-    # Safety Check: If R2 vault isn't configured, skip processing and preserve old link
     if not all([r2_access_key, r2_secret_key, r2_endpoint, r2_bucket]):
-        print(f"⚠️ R2 environment secrets missing. Preserving original Drive asset for ID: {file_id}")
+        print(f"⚠️ R2 environment secrets missing. Preserving original Drive link for ID: {file_id}")
         return cell_value
 
-    print(f"📸 Found Google Drive asset in tab '{sheet_name}' (ID: {file_id}). Optimizing to WebP...")
+    print(f"📸 New image discovered in tab '{sheet_name}' (ID: {file_id}). Compressing to WebP...")
     
     try:
-        # 1. Download raw image from Google's public streaming endpoint
+        # 1. Download raw image from Google's delivery server
         download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
         download_response = requests.get(download_url, timeout=30)
         download_response.raise_for_status()
@@ -79,7 +121,6 @@ def convert_and_upload_to_r2(cell_value, sheet_name):
         raw_image_bytes = io.BytesIO(download_response.content)
         processed_image = Image.open(raw_image_bytes)
         
-        # Ensure image profile colors compile down cleanly without transparency anomalies
         if processed_image.mode in ("RGBA", "P"):
             processed_image = processed_image.convert("RGBA")
         else:
@@ -90,7 +131,7 @@ def convert_and_upload_to_r2(cell_value, sheet_name):
         processed_image.save(webp_byte_stream, format="WEBP", quality=80)
         webp_byte_stream.seek(0)
         
-        # 4. Initialize secure link block to Cloudflare R2 API
+        # 4. Connect to Cloudflare R2 API
         s3_client = boto3.client(
             "s3",
             endpoint_url=r2_endpoint,
@@ -99,10 +140,9 @@ def convert_and_upload_to_r2(cell_value, sheet_name):
             region_name="auto"
         )
         
-        # Nest assets under virtual folder paths matching your Sheet tab name
         object_key = f"{sheet_name.lower()}/{file_id}.webp"
         
-        # 5. Hand off optimized WebP block directly to Cloudflare
+        # 5. Deliver optimized file directly to Cloudflare
         s3_client.put_object(
             Bucket=r2_bucket,
             Key=object_key,
@@ -112,35 +152,16 @@ def convert_and_upload_to_r2(cell_value, sheet_name):
         
         permanent_r2_url = f"{custom_domain}/{object_key}"
         print(f"🚀 Asset successfully transferred to Cloudflare: {permanent_r2_url}")
-        
-        # 6. Trigger Docs Script API to overwrite the old Drive link inside your sheet cell
-        if sheets_api_url:
-            print(f"✍️ Synchronization handshake: Writing link back to Sheet tab '{sheet_name}'...")
-            writeback_payload = {
-                "sheetName": sheet_name,
-                "oldValue": cell_value,
-                "newValue": permanent_r2_url
-            }
-            api_response = requests.post(sheets_api_url, json=writeback_payload, timeout=30)
-            if api_response.status_code == 200:
-                print(f"✅ Google Workbook cell synchronized: {api_response.json().get('message')}")
-            else:
-                print(f"❌ Handshake failed with status code: {api_response.status_code}")
-        else:
-            print("⚠️ Web App URL target is empty. Skipping live workbook update.")
-            
         return permanent_r2_url
         
     except Exception as process_fault:
-        print(f"❌ Image extraction loop crash on asset {file_id}: {process_fault}")
+        print(f"❌ Image processing error on asset {file_id}: {process_fault}")
         return cell_value
 
 def harvest_workbook_pipeline():
-    # Fetch the secure live URL target from your repository secrets vault
     SOURCE_URL = os.environ.get("GOOGLE_SHEET_LIVE_URL")
-    
     if not SOURCE_URL:
-        print("❌ Error: GOOGLE_SHEET_LIVE_URL configuration parameter is missing from environment layout contexts.")
+        print("❌ Error: GOOGLE_SHEET_LIVE_URL configuration parameter is missing from environment.")
         return
 
     print("📡 Handshaking real-time with Google Sheet master workbook node...")
@@ -295,7 +316,7 @@ def harvest_workbook_pipeline():
                         "type": str(event_row.get("Type", "")).strip() if pd.notna(event_row.get("Type")) else "Home Buying Class",
                         "status": "Active",
                         "title": str(event_row.get("Title", "")).strip() if pd.notna(event_row.get("Title")) else "",
-                        "subtitle": str(event_row.get("Subtitle", "")).strip() if pd.notna(event_row.get("Subtitle")).lower() != "nan" else None,
+                        "subtitle": str(event_row.get("Subtitle", "")).strip() if pd.notna(event_row.get("Subtitle")) and str(event_row.get("Subtitle")).lower() != "nan" else None,
                         "date": clean_date_string,
                         "startTime": start_time_clean,
                         "endTime": end_time_clean,

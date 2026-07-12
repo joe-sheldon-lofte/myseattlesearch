@@ -1,0 +1,468 @@
+---
+layout: base.njk
+title: "Track Record & Featured Listings | Joe Sheldon"
+permalink: /sales/index.html
+---
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+<style>
+    .sales-dashboard {
+        max-width: 1140px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .editorial-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2.5rem;
+        margin-top: 3rem;
+    }
+
+    @media (min-width: 768px) {
+        .editorial-grid {
+            grid-template-columns: 2fr 1fr;
+        }
+    }
+
+    .filter-deck {
+        display: flex;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+        margin-bottom: 2rem;
+        background-color: var(--dynamic-bg-highlight);
+        padding: 1rem;
+        border-radius: 8px;
+    }
+
+    .filter-pill {
+        background: var(--white);
+        border: 1px solid var(--premier-beige);
+        padding: 0.6rem 1.2rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        color: var(--premier-charcoal);
+    }
+
+    .filter-pill.active, .filter-pill:hover {
+        background: var(--card-accent-color);
+        color: var(--white);
+        border-color: var(--card-accent-color);
+    }
+
+    .showcase-section {
+        margin-bottom: 3.5rem;
+    }
+
+    .showcase-section h2 {
+        font-size: 1.6rem;
+        border-bottom: 2px solid var(--premier-beige);
+        padding-bottom: 0.5rem;
+        margin-bottom: 1.5rem;
+        color: var(--premier-charcoal);
+        font-weight: 800;
+    }
+
+    .showcase-cards-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.75rem;
+    }
+
+    @media (min-width: 600px) {
+        .showcase-cards-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .property-showcase-card {
+        background: var(--white);
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        border: 1px solid var(--premier-beige);
+        transition: transform 0.2s ease;
+        position: relative;
+    }
+
+    .property-showcase-card:hover {
+        transform: translateY(-4px);
+    }
+
+    .card-frame {
+        width: 100%;
+        height: 220px;
+        background: var(--dynamic-bg-highlight);
+        position: relative;
+    }
+
+    .card-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .representation-badge {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        background: rgba(0, 0, 0, 0.8);
+        color: var(--white);
+        padding: 0.35rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        z-index: 2;
+    }
+
+    .representation-badge.seller-track {
+        background: var(--card-accent-color);
+    }
+
+    .card-body-content {
+        padding: 1.25rem;
+    }
+
+    .card-body-content h3 {
+        font-size: 1.25rem;
+        margin: 0 0 0.25rem 0;
+        color: var(--premier-charcoal);
+        font-weight: 700;
+    }
+
+    .property-metrics-row {
+        font-size: 0.9rem;
+        opacity: 0.8;
+        margin-bottom: 1rem;
+    }
+
+    .ledger-container {
+        background: var(--white);
+        border-radius: 8px;
+        border: 1px solid var(--premier-beige);
+        overflow: hidden;
+    }
+
+    .ledger-row {
+        display: grid;
+        grid-template-columns: 2.2fr 1fr 1fr 0.8fr;
+        padding: 1rem;
+        border-bottom: 1px solid var(--premier-beige);
+        font-size: 0.9rem;
+        align-items: center;
+    }
+
+    .ledger-row:last-child {
+        border-bottom: none;
+    }
+
+    .ledger-row.header {
+        background: var(--dynamic-bg-highlight);
+        font-weight: 700;
+        border-bottom: 2px solid var(--premier-beige);
+        color: var(--premier-charcoal);
+    }
+
+    .ledger-row:not(.header):hover {
+        background: #fdfdfd;
+    }
+
+    .ledger-action-link {
+        color: var(--premier-charcoal);
+        font-weight: bold;
+        text-decoration: none;
+        display: inline-block;
+        margin-left: 0.5rem;
+    }
+
+    .ledger-action-link:hover {
+        color: var(--card-accent-color);
+    }
+
+    .role-indicator-pill {
+        display: inline-block;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: #e2e8f0;
+        color: #475569;
+        text-align: center;
+        width: 75px;
+    }
+
+    .role-indicator-pill.seller-role {
+        background: #fff5f5;
+        color: var(--card-accent-color);
+        border: 1px solid var(--premier-beige);
+    }
+
+    #sales-spatial-map {
+        height: 500px;
+        border-radius: 12px;
+        border: 1px solid var(--premier-beige);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+        z-index: 1;
+    }
+
+    .map-marker-dot {
+        border-radius: 50%;
+        border: 2px solid var(--white);
+        box-shadow: 0 0 4px rgba(0,0,0,0.3);
+    }
+    
+    .marker-sold {
+        background: var(--card-accent-color);
+    }
+    
+    .marker-active-pending {
+        background: #10b981; 
+    }
+
+    .pulsing-glow {
+        position: relative;
+    }
+    .pulsing-glow::after {
+        content: '';
+        position: absolute;
+        top: -4px; left: -4px; right: -4px; bottom: -4px;
+        border-radius: 50%;
+        border: 2px solid #10b981;
+        animation: markerPulse 1.8s infinite ease-out;
+        opacity: 0;
+    }
+    @keyframes markerPulse {
+        0% { transform: scale(0.6); opacity: 0.8; }
+        100% { transform: scale(2.2); opacity: 0; }
+    }
+</style>
+
+<!-- Pre-compute the total sold count natively using Nunjucks array filtering -->
+{% set totalSoldCount = 0 %}
+{% for prop in sales %}
+    {% if prop.Status == 'Sold' %}{% set totalSoldCount = totalSoldCount + 1 %}{% endif %}
+{% endfor %}
+
+<div class="sales-dashboard">
+    <div class="events-header" style="text-align: center; margin-bottom: 3.5rem;">
+        <h1>Proven Local Success</h1>
+        <p class="intro" style="max-width: 700px; margin: 0 auto;">A look at my track record helping home buyers and sellers achieve their goals across Western Washington. Take a look at my current active properties, homes under contract, and complete sales history.</p>
+    </div>
+
+    <!-- Active Listings -->
+    <section class="showcase-section">
+        <h2>Featured Active Listings</h2>
+        <div class="showcase-cards-grid">
+            {% set activeCount = 0 %}
+            {% for property in sales %}
+                {% if property.Status == 'Active' %}
+                    {% set activeCount = activeCount + 1 %}
+                    <div class="property-showcase-card">
+                        <div class="card-frame">
+                            <span class="representation-badge {% if property.Representation == 'Seller' %}seller-track{% endif %}">
+                                {{ property.Representation }}
+                            </span>
+                            <img src="{{ property['Image URL 1'] if property['Image URL 1'] else '/assets/images/hero-living-room.jpg' }}" alt="{{ property.Address }}">
+                        </div>
+                        <div class="card-body-content">
+                            <h3>{{ property.Address }}</h3>
+                            <p style="margin: 0 0 0.5rem 0; opacity: 0.7; font-size: 0.95rem;">{{ property.City }}, {{ property.State }}</p>
+                            <div class="property-metrics-row">
+                                <strong>{{ property.Bedrooms }}</strong> Beds • <strong>{{ property.Bathrooms }}</strong> Baths • <strong>{{ property['Square Footage'] | localeString }}</strong> SqFt
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--premier-beige); padding-top: 1rem;">
+                                <strong style="color: var(--card-accent-color); font-size: 1.3rem;">${{ property['Listing Price'] | localeString }}</strong>
+                                <a href="/sales/mls-{{ property['MLS Number'] }}/" class="btn btn-secondary btn-small" style="margin: 0;">View Property Details</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+            {% if activeCount == 0 %}
+                <p style="font-style: italic; opacity: 0.6; background: var(--dynamic-bg-highlight); padding: 1.5rem; border-radius: 8px; text-align: center; width: 100%;">We don't have any active public listings at this exact moment. Reach out to hear about upcoming homes launching off-market soon!</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Pending Listings -->
+    <section class="showcase-section">
+        <h2>Under Contract & Pending</h2>
+        <div class="showcase-cards-grid">
+            {% set pendingCount = 0 %}
+            {% for property in sales %}
+                {% if property.Status == 'Pending' %}
+                    {% set pendingCount = pendingCount + 1 %}
+                    <div class="property-showcase-card">
+                        <div class="card-frame">
+                            <span class="representation-badge {% if property.Representation == 'Seller' %}seller-track{% endif %}">
+                                {{ property.Representation }}
+                            </span>
+                            <img src="{{ property['Image URL 1'] if property['Image URL 1'] else '/assets/images/hero-living-room.jpg' }}" alt="{{ property.Address }}">
+                        </div>
+                        <div class="card-body-content">
+                            <h3>{{ property.Address }}</h3>
+                            <p style="margin: 0 0 0.5rem 0; opacity: 0.7; font-size: 0.95rem;">{{ property.City }}, {{ property.State }}</p>
+                            <div class="property-metrics-row">
+                                <strong>{{ property.Bedrooms }}</strong> Beds • <strong>{{ property.Bathrooms }}</strong> Baths • <strong>{{ property['Square Footage'] | localeString }}</strong> SqFt
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--premier-beige); padding-top: 1rem;">
+                                <strong style="color: var(--premier-charcoal); font-size: 1.3rem;">${{ property['Listing Price'] | localeString }}</strong>
+                                <a href="/sales/mls-{{ property['MLS Number'] }}/" class="btn btn-secondary btn-small" style="margin: 0;">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+            {% if pendingCount == 0 %}
+                <p style="font-style: italic; opacity: 0.6; background: var(--dynamic-bg-highlight); padding: 1.5rem; border-radius: 8px; text-align: center; width: 100%;">All of our recently under-contract homes have successfully completed their transactions and moved to sold.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Editorial Matrix Grid -->
+    <div class="editorial-grid">
+        
+        <!-- Archive Table -->
+        <div>
+            <h2 style="font-size: 1.6rem; margin-bottom: 0.5rem; color: var(--premier-charcoal); font-weight: 800;">Past Sales History</h2>
+            <p style="opacity: 0.7; font-size: 0.95rem; margin-bottom: 1.5rem;">Browse our local sales history history. Use the filters below to focus on specific service zones.</p>
+            
+            <div class="filter-deck">
+                <button class="filter-pill active" onclick="applyMarketFilter('all')">All Areas</button>
+                <button class="filter-pill" onclick="applyMarketFilter('north-sound')">North Sound</button>
+                <button class="filter-pill" onclick="applyMarketFilter('king-county')">King County</button>
+                <button class="filter-pill" onclick="applyMarketFilter('snohomish-county')">Snohomish County</button>
+                <button class="filter-pill" onclick="applyMarketFilter('other')">Other Areas</button>
+            </div>
+
+            <div class="ledger-container" id="sales-ledger-body">
+                <div class="ledger-row header">
+                    <div>Property Address</div>
+                    <div>City</div>
+                    <div>Sold Price</div>
+                    <div style="text-align: right;">My Role</div>
+                </div>
+                
+                {% for property in sales %}
+                    {% if property.Status == 'Sold' %}
+                        <div class="ledger-row real-estate-sale-row" data-regions="{{ property.regions | join(' ') }}">
+                            <div style="font-weight: 600; color: var(--premier-charcoal);">
+                                <a href="/sales/mls-{{ property['MLS Number'] }}/" style="color: inherit; text-decoration: none;">{{ property.Address }}</a>
+                                <a href="/sales/mls-{{ property['MLS Number'] }}/" class="ledger-action-link">&rarr;</a>
+                            </div>
+                            <div style="color: #555;">{{ property.City }}</div>
+                            <div style="font-weight: 700; color: var(--premier-charcoal);">${{ property['Selling Price'] | localeString }}</div>
+                            <div style="text-align: right; display: flex; justify-content: flex-end; align-items: center;">
+                                <span class="role-indicator-pill {% if property.Representation == 'Seller' %}seller-role{% endif %}">
+                                    {{ property.Representation }}
+                                </span>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Dynamic Map -->
+        <div>
+            <div style="position: sticky; top: 2rem;">
+                <h2 style="font-size: 1.6rem; margin-bottom: 0.5rem; color: var(--premier-charcoal); font-weight: 800;">Map of Sales</h2>
+                <p style="opacity: 0.7; font-size: 0.95rem; margin-bottom: 1.5rem;">See all {{ totalSoldCount }} sales.</p>
+                <div id="sales-spatial-map"></div>
+                <div style="margin-top: 1rem; display: flex; gap: 1rem; font-size: 0.8rem; font-weight: 600; justify-content: center;">
+                    <span style="display: flex; align-items: center; gap: 0.35rem;"><span style="display:inline-block; width:10px; height:10px; background:#10b981; border-radius:50%;"></span> Active / Pending</span>
+                    <span style="display: flex; align-items: center; gap: 0.35rem;"><span style="display:inline-block; width:10px; height:10px; background:var(--card-accent-color); border-radius:50%;"></span> Closed Sales Archive</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let globalLeafletMapInstance = null;
+    const globalLeafletMarkersArray = [];
+
+    function applyMarketFilter(selectedRegionTag) {
+        const pills = document.querySelectorAll('.filter-pill');
+        pills.forEach(p => p.classList.remove('active'));
+        event.target.classList.add('active');
+
+        const dataRows = document.querySelectorAll('.real-estate-sale-row');
+        dataRows.forEach(row => {
+            const rowRegions = row.getAttribute('data-regions').split(' ');
+            if (selectedRegionTag === 'all' || rowRegions.includes(selectedRegionTag)) {
+                row.style.display = 'grid';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        globalLeafletMarkersArray.forEach(markerContainer => {
+            if (selectedRegionTag === 'all' || markerContainer.regions.includes(selectedRegionTag)) {
+                globalLeafletMapInstance.addLayer(markerContainer.layer);
+            } else {
+                globalLeafletMapInstance.removeLayer(markerContainer.layer);
+            }
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        globalLeafletMapInstance = L.map('sales-spatial-map', {
+            center: [47.63, -122.31],
+            zoom: 9,
+            scrollWheelZoom: false
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(globalLeafletMapInstance);
+
+        const compiledPropertiesPayload = {{ sales | dump | safe }};
+
+        compiledPropertiesPayload.forEach(function(property) {
+            if (!property.Latitude || !property.Longitude) return;
+            
+            const latNum = parseFloat(property.Latitude);
+            const lngNum = parseFloat(property.Longitude);
+            if (isNaN(latNum) || isNaN(lngNum)) return;
+
+            let classConfig = "map-marker-dot marker-sold";
+            if (property.Status === "Active" || property.Status === "Pending") {
+                classConfig = "map-marker-dot marker-active-pending pulsing-glow";
+            }
+
+            const cleanMarkerElementIcon = L.divIcon({
+                className: classConfig,
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            });
+
+            const popupHtml = `
+                <div style="font-family: system-ui, sans-serif; font-size: 13px; padding: 2px; width: 180px;">
+                    <strong style="font-size: 14px; color: var(--premier-charcoal); display: block; margin-bottom: 2px;">${property.Address}</strong>
+                    <span style="color: #666; display: block; margin-bottom: 6px;">${property.City}, WA</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 6px;">
+                        <span style="font-weight: 700; color: var(--card-accent-color);">${property.Status === 'Sold' ? '$' + Number(property['Selling Price']).toLocaleString() : '$' + Number(property['Listing Price']).toLocaleString()}</span>
+                        <a href="/sales/mls-${property['MLS Number']}/" style="color: var(--card-accent-color); font-weight: bold; text-decoration: none;">View details &rarr;</a>
+                    </div>
+                </div>
+            `;
+
+            const nativeMarkerLayer = L.marker([latNum, lngNum], { icon: cleanMarkerElementIcon })
+                                       .bindPopup(popupHtml);
+
+            nativeMarkerLayer.addTo(globalLeafletMapInstance);
+
+            globalLeafletMarkersArray.push({
+                regions: property.regions || ['other'],
+                layer: nativeMarkerLayer
+            });
+        });
+    });
+</script>

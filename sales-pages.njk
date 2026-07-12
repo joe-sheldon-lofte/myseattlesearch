@@ -1,0 +1,224 @@
+---
+layout: base.njk
+pagination:
+  data: sales
+  size: 1
+  alias: property
+permalink: "/sales/mls-{{ property['MLS Number'] }}/index.html"
+eleventyComputed:
+  title: "{{ property.Address }}, {{ property.City }} | Property Portfolio"
+---
+
+<style>
+    .listing-hero-banner {
+        width: 100%;
+        height: 400px;
+        position: relative;
+        background: var(--dynamic-bg-highlight);
+        overflow: hidden;
+    }
+
+    .listing-hero-banner img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .listing-fallback-banner {
+        width: 100%;
+        height: 300px;
+        background: linear-gradient(135deg, var(--premier-charcoal) 0%, #2c3e50 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: var(--white);
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .listing-page-layout {
+        max-width: 1140px;
+        margin: 0 auto;
+        padding: 3rem 1rem;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 3rem;
+    }
+
+    @media (min-width: 768px) {
+        .listing-page-layout {
+            grid-template-columns: 2fr 1fr;
+        }
+    }
+
+    .meta-metrics-strip {
+        display: flex;
+        gap: 1.5rem;
+        margin: 1.5rem 0;
+        background: var(--dynamic-bg-highlight);
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        border: 1px solid var(--premier-beige);
+        flex-wrap: wrap;
+    }
+
+    .metric-bubble-item {
+        flex: 1;
+        min-width: 80px;
+    }
+
+    .metric-bubble-item strong {
+        font-size: 1.4rem;
+        color: var(--premier-charcoal);
+    }
+
+    .transaction-card-box {
+        background: var(--white);
+        border: 1px solid var(--premier-beige);
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        position: sticky;
+        top: 2rem;
+    }
+
+    .pricing-timeline-matrix {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 1.5rem 0;
+    }
+
+    .pricing-timeline-matrix td, .pricing-timeline-matrix th {
+        border-bottom: 1px solid var(--premier-beige);
+        padding: 0.85rem;
+        text-align: left;
+        font-size: 0.95rem;
+    }
+
+    .pricing-timeline-matrix th {
+        background-color: var(--dynamic-bg-highlight);
+        color: var(--premier-charcoal);
+        font-weight: 700;
+    }
+</style>
+
+{% if property['Image URL 1'] %}
+    <div class="listing-hero-banner">
+        <img src="{{ property['Image URL 1'] }}" alt="Property cover image for {{ property.Address }}">
+    </div>
+{% else %}
+    <div class="listing-fallback-banner">
+        <h2 style="color: var(--white); font-size: 2.25rem; margin: 0 0 0.5rem 0; font-weight: 800;">{{ property.Address }}</h2>
+        <p style="color: var(--premier-beige); font-size: 1.15rem; margin: 0; font-weight: 500;">{{ property.City }}, {{ property.State }} {{ property['Zip Code'] }}</p>
+    </div>
+{% endif %}
+
+<div class="listing-page-layout">
+    
+    <main>
+        <span class="role-indicator-pill {% if property.Representation == 'Seller' %}seller-role{% endif %}" style="font-size: 0.8rem; padding: 0.35rem 0.75rem; width: auto; font-weight: 700; border-radius: 4px;">
+            Represented {{ property.Representation }}
+        </span>
+        
+        <h1 style="font-size: 2.25rem; margin-top: 1rem; margin-bottom: 0.25rem; color: var(--premier-charcoal); font-weight: 800;">
+            {{ property.Address }}
+        </h1>
+        <p style="font-size: 1.15rem; opacity: 0.7; margin-top: 0; margin-bottom: 2.5rem; font-weight: 500;">
+            {{ property.City }}, {{ property.State }} {{ property['Zip Code'] }}
+        </p>
+
+        <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: var(--premier-charcoal); font-weight: 800;">Property Overview</h3>
+        
+        <div class="meta-metrics-strip">
+            <div class="metric-bubble-item">
+                <strong>{{ property.Bedrooms }}</strong><br><span style="font-size: 0.8rem; opacity: 0.7;">Beds</span>
+            </div>
+            <div class="metric-bubble-item">
+                <strong>{{ property.Bathrooms }}</strong><br><span style="font-size: 0.8rem; opacity: 0.7;">Baths</span>
+            </div>
+            <div class="metric-bubble-item">
+                <strong>{{ property['Square Footage'] | localeString }}</strong><br><span style="font-size: 0.8rem; opacity: 0.7;">Sq. Ft.</span>
+            </div>
+            {% if property['Lot Square Footage'] %}
+            <div class="metric-bubble-item">
+                <strong>{{ property['Lot Square Footage'] | localeString }}</strong><br><span style="font-size: 0.8rem; opacity: 0.7;">Lot Size (SqFt)</span>
+            </div>
+            {% endif %}
+            <div class="metric-bubble-item">
+                <strong>{{ property['Year Built'] }}</strong><br><span style="font-size: 0.8rem; opacity: 0.7;">Year Built</span>
+            </div>
+        </div>
+
+        <h3 style="font-size: 1.3rem; margin-top: 3rem; color: var(--premier-charcoal); font-weight: 800;">Sale & Pricing History</h3>
+        <table class="pricing-timeline-matrix">
+            <thead>
+                <tr>
+                    <th>Milestone Details</th>
+                    <th>Price / Timeline Info</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Original List Price</td>
+                    <td style="font-weight: 600; color: #444;">${{ property['Original Price'] | localeString }}</td>
+                </tr>
+                <tr>
+                    <td>Final Listing Price</td>
+                    <td style="font-weight: 600; color: #444;">${{ property['Listing Price'] | localeString }}</td>
+                </tr>
+                {% if property['Selling Price'] %}
+                <tr>
+                    <td><strong>Final Sold Price</strong></td>
+                    <td><strong style="color: var(--card-accent-color); font-size: 1.15rem;">${{ property['Selling Price'] | localeString }}</strong></td>
+                </tr>
+                {% endif %}
+                {% if property.DOM %}
+                <tr>
+                    <td>Days on Market</td>
+                    <td style="font-weight: 600; color: #444;">{{ property.DOM }} Days</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td>Closed Date</td>
+                    <td style="font-weight: 600; color: #444;">{{ property['Selling Date'] }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        {% set extraImagesFound = false %}
+        {% for imgKey in ['Image URL 2', 'Image URL 3', 'Image URL 4', 'Image URL 5'] %}
+            {% if property[imgKey] %}{% set extraImagesFound = true %}{% endif %}
+        {% endfor %}
+
+        {% if extraImagesFound %}
+            <h3 style="font-size: 1.3rem; margin-top: 3.5rem; margin-bottom: 1.25rem; color: var(--premier-charcoal); font-weight: 800;">Property Gallery</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem;">
+                {% for imgKey in ['Image URL 2', 'Image URL 3', 'Image URL 4', 'Image URL 5'] %}
+                    {% if property[imgKey] %}
+                        <img src="{{ property[imgKey] }}" alt="Property gallery image for {{ property.Address }}" style="width: 100%; height: 170px; object-fit: cover; border-radius: 6px; border: 1px solid var(--premier-beige);">
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </main>
+
+    <aside>
+        <div class="transaction-card-box">
+            <h4 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--premier-charcoal); font-weight: 800;">Looking for More Info?</h4>
+            <p style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 1.75rem; line-height: 1.5; text-align: left;">
+                This transaction has officially closed, but you can see this home's history and all homes for sale on Redfin.
+            </p>
+            
+            <a href="{{ property['Redfin Link'] if property['Redfin Link'] else 'https://www.redfin.com' }}" target="_blank" class="btn btn-primary" style="display: block; width: 100%; box-sizing: border-box; text-align: center; font-size: 0.95rem; padding: 0.85rem 1rem; font-weight: 700; background: var(--card-accent-color); border-color: var(--card-accent-color);">
+                View on Redfin
+            </a>
+
+            <hr style="border: none; border-top: 1px solid var(--premier-beige); margin: 2rem 0 1.5rem 0;">
+            
+            <p style="font-size: 0.75rem; color: #64748b; line-height: 1.5; text-align: left; margin: 0; font-style: italic;">
+                Listing courtesy of: {{ property['Listing Office Name'] }}
+            </p>
+        </div>
+    </aside>
+</div>
