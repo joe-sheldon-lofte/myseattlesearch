@@ -56,7 +56,9 @@ def convert_and_upload_to_r2(cell_value, sheet_name):
     r2_secret_key = os.environ.get("R2_SECRET_ACCESS_KEY")
     r2_endpoint = os.environ.get("R2_ENDPOINT_URL")
     r2_bucket = os.environ.get("R2_BUCKET_NAME")
-    sheets_api_url = os.environ.get("SHEETS_API_URL_WEBSITE_DATA")
+    
+    # 🌟 DIAGNOSTIC TEST: Bypassing GitHub Secrets to test your URL hunch directly
+    sheets_api_url = "https://script.google.com/macros/s/AKfycbwo8gtNP1UKZMiAU0K1bFbV-qZxf85_FrjvQTs-WQsUNRA_RQIJvUqs3-XIoJ1lUAiX/exec"
     
     custom_domain = "https://assets.myseattlesearch.com"
     
@@ -125,7 +127,7 @@ def convert_and_upload_to_r2(cell_value, sheet_name):
             else:
                 print(f"❌ Handshake failed with status code: {api_response.status_code}")
         else:
-            print("⚠️ SHEETS_API_URL_WEBSITE_DATA secret missing. Skipping live workbook update.")
+            print("⚠️ Web App URL target is empty. Skipping live workbook update.")
             
         return permanent_r2_url
         
@@ -293,7 +295,7 @@ def harvest_workbook_pipeline():
                         "type": str(event_row.get("Type", "")).strip() if pd.notna(event_row.get("Type")) else "Home Buying Class",
                         "status": "Active",
                         "title": str(event_row.get("Title", "")).strip() if pd.notna(event_row.get("Title")) else "",
-                        "subtitle": str(event_row.get("Subtitle", "")).strip() if pd.notna(event_row.get("Subtitle")) and str(event_row.get("Subtitle")).lower() != "nan" else None,
+                        "subtitle": str(event_row.get("Subtitle", "")).strip() if pd.notna(event_row.get("Subtitle")).lower() != "nan" else None,
                         "date": clean_date_string,
                         "startTime": start_time_clean,
                         "endTime": end_time_clean,
