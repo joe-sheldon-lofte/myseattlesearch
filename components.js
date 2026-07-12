@@ -52,6 +52,7 @@ class UniversalFooter extends HTMLElement {
                 <p style="margin-top: 1rem; font-size: 0.85rem; opacity: 0.7; display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap;">
                     <a href="/hereforyou.html" style="color: var(--premier-beige); text-decoration: underline;">Housing Equity Commitment</a>
                     <a href="/calculators.html" style="color: var(--premier-beige); text-decoration: underline;">Real Estate Calculators</a>
+                    <a href="/team/" style="color: var(--premier-beige); text-decoration: underline;">Joe's Team</a>
                 </p>
                 
                 <div id="dynamic-disclaimers-box" style="max-width: 750px; margin: 1.75rem auto 0 auto; padding-top: 1.25rem; border-top: 1px solid rgba(239, 236, 229, 0.15); font-size: 0.72rem; line-height: 1.5; text-align: justify; opacity: 0.5; color: var(--premier-beige); padding-left: 1rem; padding-right: 1rem; box-sizing: border-box;"></div>

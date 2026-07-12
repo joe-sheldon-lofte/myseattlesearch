@@ -1,7 +1,10 @@
+# File: scripts/harvest_website_data_sheet.py
 import os
 import io
 import json
 import math
+import re
+import datetime
 import requests
 import pandas as pd
 import urllib.parse
@@ -19,12 +22,19 @@ def clean_nan_values(data_node):
         return None
     return data_node
 
+def generate_url_slug(text_input):
+    """
+    Normalizes human names into clean, URL-safe string identifiers.
+    """
+    processed_string = str(text_input).lower().strip()
+    processed_string = re.sub(r'[^a-z0-9\s-]', '', processed_string)
+    return re.sub(r'[\s-]+', '-', processed_string)
+
 def harvest_workbook_pipeline():
     SOURCE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiu3qLYVO9khl6k5s_whzg_UZFzKu7-RHc5fa2tpe3aIlf4wm4IaqQeVd75enhpJvS_lxXgfQRfQ_/pub?output=csv"
     xlsx_target_url = SOURCE_URL.replace("output=csv", "output=xlsx")
     
     print("📡 Handshaking with Google Sheet workbook node...")
-    
     try:
         response = requests.get(xlsx_target_url, timeout=30)
         response.raise_for_status()
@@ -40,58 +50,83 @@ def harvest_workbook_pipeline():
         excel_file_wrapper = pd.ExcelFile(workbook_bytes)
         print(f"📋 Workbook loaded successfully. Tabs discovered: {excel_file_wrapper.sheet_names}")
         
-        hosts_lookup_directory = {}
-        if "EventHosts" in excel_file_wrapper.sheet_names:
-            hosts_dataframe = pd.read_excel(excel_file_wrapper, sheet_name="EventHosts")
-            for _, host_row in hosts_dataframe.iterrows():
-                raw_host_id = host_row.get("Host ID")
-                if pd.notna(raw_host_id):
-                    string_host_id = str(raw_host_id).strip()
-                    if string_host_id.endswith(".0"):
-                        string_host_id = string_host_id[:-2]
+        # Primary parsing pass: Build our master relational Team directory index
+        team_lookup_directory = {}
+        compiled_team_payload = []
+        
+        if "Team" in excel_file_wrapper.sheet_names:
+            team_dataframe = pd.read_excel(excel_file_wrapper, sheet_name="Team")
+            for _, team_row in team_dataframe.iterrows():
+                raw_team_id = team_row.get("Team ID")
+                if pd.notna(raw_team_id):
+                    string_team_id = str(raw_team_id).strip().replace(".0", "")
+                    member_name = str(team_row.get("Name", "")).strip()
                     
-                    hosts_lookup_directory[string_host_id] = {
-                        "id": string_host_id,
-                        "name": str(host_row.get("Host Name", "")).strip() if pd.notna(host_row.get("Host Name")) else "",
-                        "phone": str(host_row.get("Host Phone", "")).strip() if pd.notna(host_row.get("Host Phone")) else "",
-                        "email": str(host_row.get("Host Email", "")).strip() if pd.notna(host_row.get("Host Email")) else "",
-                        "website": str(host_row.get("Host Website", "")).strip() if pd.notna(host_row.get("Host Website")) else "",
-                        "description": str(host_row.get("Host Description", "")).strip() if pd.notna(host_row.get("Host Description")) else "",
-                        "photo": str(host_row.get("Host Photo Link", "")).strip() if pd.notna(host_row.get("Host Photo Link")) else ""
+                    member_object = {
+                        "id": string_team_id,
+                        "teamPage": str(team_row.get("Team Page", "No")).strip().lower() == "yes",
+                        "position": str(team_row.get("Position", "")).strip(),
+                        "name": member_name,
+                        "slug": generate_url_slug(member_name),
+                        "phone": str(team_row.get("Phone", "")).strip() if pd.notna(team_row.get("Phone")) else "",
+                        "email": str(team_row.get("Email", "")).strip() if pd.notna(team_row.get("Email")) else "",
+                        "website": str(team_row.get("Website", "")).strip() if pd.notna(team_row.get("Website")) else "",
+                        "description": str(team_row.get("Description", "")).strip() if pd.notna(team_row.get("Description")) else "",
+                        "photo": str(team_row.get("Photo", "")).strip() if pd.notna(team_row.get("Photo")) else ""
                     }
+                    team_lookup_directory[string_team_id] = member_object
+                    compiled_team_payload.append(member_object)
 
         for sheet_name in excel_file_wrapper.sheet_names:
+            # Handle special formatting sheets explicitly, let fallbacks handle the rest
+            if sheet_name == "Team":
+                sanitized_payload = clean_nan_values(compiled_team_payload)
+                target_destination_path = os.path.join(output_directory, "team.json")
+                with open(target_destination_path, 'w', encoding='utf-8') as output_file_sink:
+                    json.dump(sanitized_payload, output_file_sink, indent=2, ensure_ascii=False)
+                print(f"💾 Centralized Team roster metrics committed: {target_destination_path}")
+                continue
+                
             dataframe = pd.read_excel(excel_file_wrapper, sheet_name=sheet_name)
             target_file_name = f"{sheet_name.lower()}.json"
             target_destination_path = os.path.join(output_directory, target_file_name)
             final_formatted_payload = None
             
             if sheet_name == "Stats":
-                if not dataframe.empty:
-                    final_formatted_payload = dataframe.iloc[0].to_dict()
-                else:
-                    final_formatted_payload = {}
+                final_formatted_payload = dataframe.iloc[0].to_dict() if not dataframe.empty else {}
                     
             elif sheet_name == "Disclaimers":
                 disclaimers_lookup_map = {}
                 for _, data_row in dataframe.iterrows():
                     page_key = data_row.get("Page")
-                    disclaimer_value = data_row.get("Disclaimer")
                     if page_key:
-                        disclaimers_lookup_map[str(page_key)] = disclaimer_value
+                        disclaimers_lookup_map[str(page_key)] = data_row.get("Disclaimer")
                 final_formatted_payload = disclaimers_lookup_map
                 
             elif sheet_name == "Events":
                 compiled_events = []
+                today_date = datetime.date.today()
+                
                 for _, event_row in dataframe.iterrows():
-                    status_string = str(event_row.get("Status", "")).strip().lower()
-                    if status_string != "active":
+                    if str(event_row.get("Status", "")).strip().lower() != "active":
                         continue
                         
                     event_id_clean = str(event_row.get("Event ID", "")).strip().lower()
                     if not event_id_clean or event_id_clean == "nan":
                         continue
 
+                    # COMPLIANCE GATING LOOP: Check Build-Time Publication Schedules
+                    raw_publish_date = event_row.get("Publish Date")
+                    if pd.notna(raw_publish_date):
+                        try:
+                            publish_datetime = pd.to_datetime(raw_publish_date).date()
+                            if publish_datetime > today_date:
+                                # Suppress release: future dated marketing asset holds logic threshold
+                                continue
+                        except:
+                            pass
+
+                    # Clean Date parsing strings
                     raw_date_stamp = event_row.get("Date")
                     clean_date_string = ""
                     if pd.notna(raw_date_stamp):
@@ -101,10 +136,8 @@ def harvest_workbook_pipeline():
                             clean_date_string = str(raw_date_stamp).strip()
 
                     def build_time_string(time_input_node):
-                        if pd.isna(time_input_node):
-                            return None
-                        if hasattr(time_input_node, 'strftime'):
-                            return time_input_node.strftime('%H:%M')
+                        if pd.isna(time_input_node): return None
+                        if hasattr(time_input_node, 'strftime'): return time_input_node.strftime('%H:%M')
                         time_string_raw = str(time_input_node).strip()
                         if ":" in time_string_raw:
                             time_segments = time_string_raw.split(":")
@@ -114,15 +147,14 @@ def harvest_workbook_pipeline():
                     start_time_clean = build_time_string(event_row.get("Start Time"))
                     end_time_clean = build_time_string(event_row.get("End Time"))
 
+                    # Stitch Relational host indices out from our cached central Team dictionary
                     host_ids_raw = str(event_row.get("Host IDs", "")).strip()
                     comma_separated_host_ids = host_ids_raw.split(",")
                     associated_host_objects = []
                     for host_id_element in comma_separated_host_ids:
-                        target_host_key = host_id_element.strip()
-                        if target_host_key.endswith(".0"):
-                            target_host_key = target_host_key[:-2]
-                        if target_host_key in hosts_lookup_directory:
-                            associated_host_objects.append(hosts_lookup_directory[target_host_key])
+                        target_host_key = host_id_element.strip().replace(".0", "")
+                        if target_host_key in team_lookup_directory:
+                            associated_host_objects.append(team_lookup_directory[target_host_key])
 
                     raw_city_text = str(event_row.get("City", "")).strip()
                     geographic_taxonomy_array = [raw_city_text.lower()] if raw_city_text and raw_city_text.lower() != "nan" else []
@@ -176,7 +208,6 @@ def harvest_workbook_pipeline():
             sanitized_payload = clean_nan_values(final_formatted_payload)
             with open(target_destination_path, 'w', encoding='utf-8') as output_file_sink:
                 json.dump(sanitized_payload, output_file_sink, indent=2, ensure_ascii=False)
-                
             print(f"💾 Static payload records exported cleanly: {target_destination_path}")
             
         print("✅ Data serialization complete. Spreadsheet assets synchronized.")
