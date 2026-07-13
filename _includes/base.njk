@@ -23,5 +23,248 @@
     </div>
     
     <script src="/components.js"></script>
+
+<style>
+    /* 1. Dynamic Notification Top Banner */
+    #celebration-banner {
+        display: none; /* Controlled by JS checking system clock */
+        width: 100%;
+        background-color: var(--premier-charcoal);
+        color: var(--white);
+        text-align: center;
+        padding: 0.65rem 1rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        box-sizing: border-box;
+        border-bottom: 1px solid var(--premier-beige);
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+    }
+    #celebration-banner:hover {
+        background-color: var(--card-accent-color);
+    }
+    #celebration-banner span {
+        text-decoration: underline;
+        margin-left: 0.5rem;
+        font-weight: 700;
+    }
+
+    /* 2. Immersive Takeover Screen Overlay */
+    #celebration-overlay {
+        display: none; /* Controlled by JS memory logs */
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        z-index: 999999;
+        box-sizing: border-box;
+    }
+
+    /* 3. True Widescreen / Mobile Canva Background Wrapper */
+    .celebration-canvas {
+        width: 100%; height: 100%;
+        background-position: center;
+        background-size: cover;
+        background-repeat: no-repeat;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        box-sizing: border-box;
+        position: relative;
+        background-image: var(--bg-mobile); /* Mobile Default */
+    }
+
+    @media (min-width: 768px) {
+        .celebration-canvas {
+            background-image: var(--bg-desktop); /* Desktop Override */
+        }
+    }
+
+    /* 4. High-Contrast Legibility Tint Shield */
+    .celebration-tint-shield {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.8) 100%);
+        z-index: 1;
+    }
+
+    /* 5. Central Text Overlay Card */
+    .celebration-editorial-card {
+        position: relative;
+        z-index: 2;
+        max-width: 600px;
+        width: 100%;
+        text-align: center;
+        color: var(--white);
+        padding: 2.5rem 1.5rem;
+        box-sizing: border-box;
+    }
+
+    .celebration-editorial-card h2 {
+        font-size: 2.25rem;
+        font-weight: 800;
+        margin: 0 0 1rem 0;
+        color: var(--white);
+        letter-spacing: -0.5px;
+        line-height: 1.15;
+    }
+
+    .celebration-editorial-card p {
+        font-size: 1.05rem;
+        line-height: 1.6;
+        opacity: 0.95;
+        margin: 0 0 2rem 0;
+        color: var(--premier-beige);
+    }
+
+    /* 6. Dynamic Action Navigation Link Button */
+    .celebration-action-btn {
+        display: inline-block;
+        background-color: var(--card-accent-color);
+        color: var(--white);
+        text-decoration: none;
+        padding: 0.85rem 2rem;
+        font-size: 0.9rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-radius: 4px;
+        transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+    .celebration-action-btn:hover {
+        transform: translateY(-2px);
+        opacity: 0.95;
+    }
+
+    /* 7. Centered Close Controller Pill at Bottom */
+    .celebration-close-trigger {
+        position: absolute;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2;
+        background-color: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.3);
+        color: var(--white);
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 0.6rem 1.25rem;
+        border-radius: 30px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        backdrop-filter: blur(5px);
+        transition: all 0.15s ease-in-out;
+    }
+    .celebration-close-trigger:hover {
+        background-color: var(--white);
+        color: var(--premier-charcoal);
+        border-color: var(--white);
+    }
+</style>
+
+<div id="celebration-banner" onclick="openCelebrationOverlay()">
+    <span id="banner-text-anchor">Acknowledge Local Celebration</span>
+</div>
+
+<div id="celebration-overlay">
+    <div class="celebration-canvas" id="canvas-bg-target">
+        <div class="celebration-tint-shield"></div>
+        
+        <article class="celebration-editorial-card">
+            <h2 id="celebration-heading">Acknowledge Moment</h2>
+            <p id="celebration-message">Loading message summary...</p>
+            <a href="#" id="celebration-link" target="_blank" class="celebration-action-btn">Learn More</a>
+        </article>
+
+        <button class="celebration-close-trigger" onclick="dismissCelebrationOverlay()">
+            ✕ Close & Continue to Site
+        </button>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // 1. Safely serialize Eleventy's parsed Google Sheets celebrations database
+        const activeCampaigns = {{ celebrations | dump | safe if celebrations else "[]" }};
+        if (!activeCampaigns || activeCampaigns.length === 0) return;
+
+        // 2. Locate the active date window matching today's local system clock
+        const today = new Date();
+        const activeCampaign = activeCampaigns.find(event => {
+            const startDate = new Date(event['Start Date'] || event.startDate);
+            const endDate = new Date(event['End Date'] || event.endDate);
+            // Include today completely
+            endDate.setHours(23, 59, 59, 999);
+            return today >= startDate && today <= endDate;
+        });
+
+        if (!activeCampaign) return; // No active campaigns scheduled for today
+
+        // 3. Map values to memory caches
+        const id = activeCampaign['Celebration ID'] || activeCampaign.id;
+        const name = activeCampaign['Celebration Name'] || activeCampaign.name;
+        const headline = activeCampaign.Headline || activeCampaign.headline;
+        const desc = activeCampaign.Description || activeCampaign.description;
+        const linkText = activeCampaign['Resource Link Label'] || activeCampaign.linkLabel;
+        const linkUrl = activeCampaign['Resource Link'] || activeCampaign.linkUrl;
+        const mobileImg = activeCampaign['Mobile Image'] || activeCampaign.mobileImage;
+        const desktopImg = activeCampaign['Desktop Image'] || activeCampaign.desktopImage;
+
+        // 4. Inject campaign text & background assets dynamically into the layout
+        document.getElementById('celebration-heading').textContent = headline;
+        document.getElementById('celebration-message').textContent = desc;
+        document.getElementById('banner-text-anchor').innerHTML = `Currently Acknowledging: ${name}. <span>Click to read our community announcement &rarr;</span>`;
+        
+        const linkButton = document.getElementById('celebration-link');
+        if (linkUrl) {
+            linkButton.href = linkUrl;
+            linkButton.textContent = linkText || "Learn More";
+            linkButton.style.display = "inline-block";
+        } else {
+            linkButton.style.display = "none";
+        }
+
+        // Apply Canva background assets via CSS custom variables
+        const bgContainer = document.getElementById('canvas-bg-target');
+        bgContainer.style.setProperty('--bg-mobile', `url('${mobileImg}')`);
+        bgContainer.style.setProperty('--bg-desktop', `url('${desktopImg}')`);
+
+        // 5. Query browser memory logs to check if user has already seen this event
+        const storageKey = `dismissed-celebration-${id}`;
+        window.activeCelebrationKey = storageKey; // Save global identifier
+
+        if (localStorage.getItem(storageKey) === 'true') {
+            // User dismissed this event earlier: keep overlay closed, show top banner
+            document.getElementById('celebration-banner').style.display = 'block';
+        } else {
+            // First time loading: launch full cover overlay
+            openCelebrationOverlay();
+        }
+    });
+
+    // 6. View Controller Handlers
+    function openCelebrationOverlay() {
+        document.getElementById('celebration-overlay').style.display = 'block';
+        document.getElementById('celebration-banner').style.display = 'none';
+        document.body.style.overflow = 'hidden'; // Stop background page scrolling
+    }
+
+    function dismissCelebrationOverlay() {
+        document.getElementById('celebration-overlay').style.display = 'none';
+        document.getElementById('celebration-banner').style.display = 'block';
+        document.body.style.overflow = ''; // Restore standard scrolling
+        
+        // Log dismissal into browser memory cache
+        if (window.activeCelebrationKey) {
+            localStorage.setItem(window.activeCelebrationKey, 'true');
+        }
+    }
+</script>
+
 </body>
 </html>
