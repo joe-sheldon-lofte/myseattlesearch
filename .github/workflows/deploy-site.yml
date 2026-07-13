@@ -2,8 +2,18 @@
 name: Deploy Eleventy Hub
 
 on:
+  # 1. Direct Code Syncs: Triggers when you push template or style updates locally
   push:
-    branches: ["main", "master"] # Listens to both names to prevent configuration blindspots
+    branches: ["main", "master"]
+
+  # 2. Manual Override: Activates the missing "Run workflow" dashboard button 
+  workflow_dispatch:
+
+  # 3. The Chain Reaction: Listens for your data harvester script to finish
+  workflow_run:
+    workflows: ["Hourly Fast Data & Site Build"]
+    types:
+      - completed
 
 permissions:
   contents: read
@@ -16,6 +26,8 @@ concurrency:
 
 jobs:
   deploy:
+    # CRITICAL SECURITY GATE: Run if it's a manual click, a code change, OR a successful automated harvest run
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

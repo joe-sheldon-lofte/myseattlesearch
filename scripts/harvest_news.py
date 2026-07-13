@@ -3,103 +3,120 @@ import os
 import json
 import re
 import feedparser
-from datetime import datetime
+import requests
 from dateutil import parser
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
-MASTER_FEEDS = [
-    # === Macro Market Verticals ===
-    {"source": "Seattle Times Real Estate", "url": "https://www.seattletimes.com/business/real-estate/feed/", "category": "real-estate", "paywall": True, "cities": []},
-    {"source": "Redfin Blog", "url": "https://www.redfin.com/blog/feed/", "category": "real-estate", "paywall": False, "cities": []},
-    {"source": "Mortgage News Daily", "url": "https://www.mortgagenewsdaily.com/rss", "category": "real-estate", "paywall": False, "cities": []},
-    {"source": "GeekWire Business & Tech", "url": "https://www.geekwire.com/feed/", "category": "business", "paywall": False, "cities": []},
-    {"source": "Puget Sound Business Journal", "url": "https://www.bizjournals.com/seattle/feed/", "category": "business", "paywall": True, "cities": []},
-    {"source": "Daily Journal of Commerce", "url": "https://www.djc.com/rss/", "category": "business", "paywall": True, "cities": []},
-
-    # === North Sound Footprint ===
-    {"source": "Edmonds Beacon", "url": "https://www.edmondsbeacon.com/feed/", "category": "north-sound", "paywall": False, "cities": ["edmonds"]},
-    {"source": "MyEdmondsNews", "url": "https://myedmondsnews.com/feed/", "category": "north-sound", "paywall": False, "cities": ["edmonds"]},
-    {"source": "Lynnwood Times", "url": "https://lynnwoodtimes.com/feed/", "category": "north-sound", "paywall": False, "cities": ["lynnwood"]},
-    {"source": "MLTnews", "url": "https://mltnews.com/feed/", "category": "north-sound", "paywall": False, "cities": ["mountlake-terrace"]},
-    {"source": "Shoreline Area News", "url": "https://www.shorelineareanews.com/feeds/posts/default?alt=rss", "category": "north-sound", "paywall": False, "cities": ["shoreline", "lake-forest-park"]},
-    {"source": "Bothell Kenmore Reporter", "url": "https://www.bothell-reporter.com/feed/", "category": "north-sound", "paywall": False, "cities": ["bothell", "kenmore"]},
-    {"source": "Kirkland Reporter", "url": "https://www.kirklandreporter.com/feed/", "category": "north-sound", "paywall": False, "cities": ["kirkland"]},
-
-    # === Seattle Proper Footprint ===
-    {"source": "The Urbanist", "url": "https://www.theurbanist.org/feed/", "category": "seattle", "paywall": False, "cities": ["seattle"]},
-    {"source": "Capitol Hill Seattle News", "url": "https://capitolhillseattle.com/feed", "category": "seattle", "paywall": False, "cities": ["seattle"]},
-    {"source": "West Seattle Blog", "url": "https://westseattleblog.com/feed", "category": "seattle", "paywall": False, "cities": ["seattle"]},
-    {"source": "Seattle Weekly", "url": "https://www.seattleweekly.com/feed/", "category": "seattle", "paywall": False, "cities": ["seattle"]},
-    {"source": "Seattle PI", "url": "https://www.seattlepi.com/feed/", "category": "seattle", "paywall": False, "cities": ["seattle"]},
-    {"source": "My Ballard", "url": "https://www.myballard.com/feed/", "category": "seattle", "paywall": False, "cities": ["seattle"]},
-    {"source": "Phinneywood", "url": "https://www.phinneywood.com/feed/", "category": "seattle", "paywall": False, "cities": ["seattle"]},
-
-    # === Eastside Footprint ===
-    {"source": "425 Magazine", "url": "https://425magazine.com/feed/", "category": "eastside", "paywall": False, "cities": ["bellevue", "issaquah", "kirkland", "redmond"]},
-
-    # === Snohomish County Macro Footprint ===
-    {"source": "Everett Herald", "url": "https://www.heraldnet.com/feed/", "category": "snohomish-county", "paywall": True, "cities": ["everett"]},
-    {"source": "Stanwood Camano News", "url": "https://www.scnews.com/search/?f=rss", "category": "snohomish-county", "paywall": False, "cities": ["stanwood"]},
-    {"source": "Marysville Globe", "url": "https://www.marysvilleglobe.com/feed/", "category": "snohomish-county", "paywall": False, "cities": ["marysville"]},
-    {"source": "Arlington Times", "url": "https://www.arlingtontimes.com/feed/", "category": "snohomish-county", "paywall": False, "cities": ["arlington"]},
-
-    # === South King Footprint ===
-    {"source": "Kent Reporter", "url": "https://www.kentreporter.com/feed/", "category": "south-king", "paywall": False, "cities": ["kent"]},
-    {"source": "Renton Reporter", "url": "https://www.rentonreporter.com/feed/", "category": "south-king", "paywall": False, "cities": ["renton"]},
-    {"source": "Federal Way Mirror", "url": "https://www.federalwaymirror.com/feed/", "category": "south-king", "paywall": False, "cities": ["federal-way"]},
-    {"source": "The Waterland Blog", "url": "https://waterlandblog.com/feed/", "category": "south-king", "paywall": False, "cities": ["des-moines"]},
-    {"source": "Covington-Maple Valley-Black Diamond Reporter", "url": "https://www.covingtonreporter.com/feed/", "category": "south-king", "paywall": False, "cities": ["covington", "maple-valley", "black-diamond"]},
-    {"source": "Auburn Reporter", "url": "https://www.auburnreporter.com/feed/", "category": "south-king", "paywall": False, "cities": ["auburn"]},
-    {"source": "Enumclaw Courier-Herald", "url": "https://www.courierherald.com/feed/", "category": "south-king", "paywall": False, "cities": ["enumclaw"]}
-]
-
-def harvest_and_normalize_all():
-    normalized_collection = []
+def harvest_news_feeds():
+    input_config_path = os.path.join("data", "news.json")
+    output_feed_path = os.path.join("data", "market_news.json")
     
-    for entry in MASTER_FEEDS:
+    if not os.path.exists(input_config_path):
+        print(f"❌ Error: Configuration source file missing at {input_config_path}")
+        return
+
+    # Protect raw data integrity by enforcing a strict read-only process
+    print("📖 Reading master news source registry from spreadsheet ledger...")
+    with open(input_config_path, "r", encoding="utf-8") as file_stream:
+        sources_list = json.load(file_stream)
+
+    compiled_articles = []
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+
+    for source in sources_list:
+        feed_name = source.get("Name", "Unknown Source")
+        rss_url = source.get("RSS Feed URL")
+        paywall_flag = str(source.get("Paywall", "No")).strip().lower() == "yes"
+        
+        city_raw = source.get("City")
+        cities_array = [str(city_raw).strip().lower().replace(" ", "-")] if city_raw and str(city_raw).lower() != "nan" else []
+        
+        # Parse and translate categories into clean, deduplicated URL slugs
+        categories_raw = source.get("Categories", "")
+        categories_array = []
+        if categories_raw:
+            for cat in categories_raw.split(","):
+                clean_cat = cat.strip().lower().replace(" ", "-")
+                if clean_cat and clean_cat not in categories_array:
+                    categories_array.append(clean_cat)
+
+        if not rss_url:
+            continue
+
+        print(f"📡 Ingesting Source: {feed_name}...")
         try:
-            feed_payload = feedparser.parse(entry["url"])
-            for item in feed_payload.entries[:15]:
-                # Extract and clean summary text (remove HTML blocks cleanly)
-                raw_summary = item.get("summary", item.get("description", ""))
-                clean_summary = re.sub(r'<[^>]+>', '', raw_summary)
-                clean_summary = clean_summary.replace('\n', ' ').strip()
+            response = requests.get(rss_url, headers=headers, timeout=15)
+            if response.status_code != 200:
+                continue
                 
-                # Truncate summary into a clean presentation excerpt
-                excerpt = clean_summary[:150] + "..." if len(clean_summary) > 150 else clean_summary
-                if not excerpt or excerpt == "...":
-                    excerpt = "Click to view full coverage article from the publisher source feed."
-
-                # Clean and re-format published time layout, stripping "+0000" or offsets
-                raw_date = item.get("published", datetime.utcnow().isoformat())
-                try:
-                    parsed_dt = parser.parse(raw_date)
-                    clean_date = parsed_dt.strftime("%a, %b %d, %Y at %I:%M %p")
-                except:
-                    clean_date = str(raw_date).replace(" +0000", "").replace(" GMT", "")
-
-                story_record = {
-                    "title": item.get("title", "Local Market Update Node"),
-                    "link": item.get("link", "#"),
-                    "source": entry["source"],
-                    "category": entry["category"],
-                    "paywall": entry["paywall"],
-                    "cities": entry["cities"],
-                    "excerpt": excerpt,
-                    "published": clean_date,
-                    "timestamp": parsed_dt.timestamp() if 'parsed_dt' in locals() else 0
-                }
-                normalized_collection.append(story_record)
-        except Exception as err:
-            pass
+            feed_data = feedparser.parse(response.content)
             
-    # CRITICAL: Sort the entire multi-source array chronologically descending by true timestamp
-    normalized_collection.sort(key=lambda x: x["timestamp"], reverse=True)
+            for entry in feed_data.entries:
+                title = entry.get("title", "").strip()
+                link = entry.get("link", "").strip()
+                
+                raw_summary = entry.get("summary") or entry.get("description") or ""
+                clean_excerpt = re.sub(r'<[^>]+>', '', raw_summary)
+                clean_excerpt = " ".join(clean_excerpt.split())
+                
+                if len(clean_excerpt) > 220:
+                    clean_excerpt = clean_excerpt[:220] + "..."
 
-    target_destination = os.path.join("data", "market_news.json")
-    os.makedirs(os.path.dirname(target_destination), exist_ok=True)
-    
-    with open(target_destination, "w", encoding="utf-8") as file_pointer:
-        json.dump(normalized_collection, file_pointer, indent=2)
+                # Explicitly parse and normalize timestamps to Pacific Time parameters
+                raw_date = entry.get("published") or entry.get("updated") or entry.get("created")
+                published_str = ""
+                iso_sort_str = ""
+                
+                if raw_date:
+                    try:
+                        parsed_datetime = parser.parse(str(raw_date))
+                        if parsed_datetime.tzinfo is None:
+                            parsed_datetime = parsed_datetime.replace(tzinfo=ZoneInfo("UTC"))
+                        
+                        pacific_datetime = parsed_datetime.astimezone(ZoneInfo("America/Los_Angeles"))
+                        published_str = pacific_datetime.strftime("%a, %b %d, %Y at %I:%M %p")
+                        iso_sort_str = pacific_datetime.isoformat()
+                    except Exception:
+                        now_pac = datetime.now(ZoneInfo("America/Los_Angeles"))
+                        published_str = now_pac.strftime("%a, %b %d, %Y at %I:%M %p")
+                        iso_sort_str = now_pac.isoformat()
+                else:
+                    now_pac = datetime.now(ZoneInfo("America/Los_Angeles"))
+                    published_str = now_pac.strftime("%a, %b %d, %Y at %I:%M %p")
+                    iso_sort_str = now_pac.isoformat()
+
+                if not title or not link:
+                    continue
+
+                compiled_articles.append({
+                    "source": feed_name,
+                    "title": title,
+                    "link": link,
+                    "excerpt": clean_excerpt if clean_excerpt else "Click view details to read the full update on the publisher's main wire feed.",
+                    "published": published_str,
+                    "paywall": paywall_flag,
+                    "cities": cities_array,
+                    "categories": categories_array,
+                    "_isoSort": iso_sort_str
+                })
+        except Exception as error:
+            print(f"⚠️ Skipping entry pass for {feed_name}: {error}")
+
+    # Order articles by ISO timestamp strings (Newest First)
+    compiled_articles.sort(key=lambda x: x.get("_isoSort", ""), reverse=True)
+    final_truncated_feed = compiled_articles[:200]
+
+    # Drop tracking keys before committing output parameters to disk
+    for article in final_truncated_feed:
+        article.pop("_isoSort", None)
+
+    with open(output_feed_path, "w", encoding="utf-8") as output_stream:
+        json.dump(final_truncated_feed, output_stream, indent=2, ensure_ascii=False)
+        
+    print(f"✅ Data processing complete. Synchronized {len(final_truncated_feed)} articles inside {output_feed_path}")
 
 if __name__ == "__main__":
-    harvest_and_normalize_all()
+    harvest_news_feeds()
