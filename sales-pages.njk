@@ -4,165 +4,300 @@ pagination:
   data: sales
   size: 1
   alias: listing
-permalink: "/sales/{{ listing.address | slugify }}/index.html"
+permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (listing['MLS Number'] or listing.mlsNumber) | slugify }}/index.html"
 ---
 
 <style>
-    /* Fixed Content Wrapper Boundaries */
-    .profile-fixed-container {
+    .listing-hero-banner-container {
         width: 100%;
         max-width: 1140px;
         margin: 0 auto;
-        padding: 1.5rem 1rem;
-        box-sizing: border-box;
-    }
-
-    /* Locked 4:3 Showcase Canvas Box Frame */
-    .listing-hero-showcase-box {
-        width: 100%;
-        max-width: 1140px;
         aspect-ratio: 4 / 3;
+        position: relative;
+        background: var(--dynamic-bg-highlight);
         overflow: hidden;
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-        background-color: var(--dynamic-bg-highlight);
-        margin-bottom: 2rem;
-        border: 1px solid var(--dynamic-bg-highlight);
     }
 
-    .listing-hero-showcase-box img {
+    .listing-hero-banner-container img {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        object-position: center;
     }
 
-    /* Structured Column Distribution */
-    .profile-details-split-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 2rem;
-        width: 100%;
-    }
-
-    @media (min-width: 900px) {
-        .profile-details-split-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            align-items: start;
-        }
-    }
-
-    .spec-metric-node {
-        padding: 0.75rem;
-        background-color: var(--dynamic-bg-highlight);
-        border-radius: 6px;
-        text-align: center;
-    }
-
-    .spec-metric-title {
-        display: block;
-        font-size: 0.65rem;
+    .floating-overlay-badge {
+        position: absolute;
+        top: 1.25rem;
+        left: 1.25rem;
+        z-index: 10;
+        background-color: rgba(0,0,0,0.85);
+        color: var(--white);
+        font-size: 0.7rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        opacity: 0.6;
-        margin-bottom: 0.25rem;
+        padding: 0.45rem 0.85rem;
+        border-radius: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
 
-    .spec-metric-value {
-        font-size: 1.1rem;
+    .floating-overlay-badge.seller-accent {
+        background-color: var(--card-accent-color);
+    }
+
+    .listing-fallback-banner {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, var(--premier-charcoal) 0%, #2c3e50 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: var(--white);
+        text-align: center;
+        padding: 2rem;
+        box-sizing: border-box;
+    }
+
+    .listing-page-layout {
+        max-width: 1140px;
+        margin: 0 auto;
+        padding: 3rem 1rem;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 3rem;
+        box-sizing: border-box;
+    }
+
+    @media (min-width: 768px) {
+        .listing-page-layout {
+            grid-template-columns: 2fr 1fr;
+        }
+    }
+
+    .meta-metrics-strip {
+        display: flex;
+        gap: 1.5rem;
+        margin: 1.5rem 0;
+        background: var(--dynamic-bg-highlight);
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        border: 1px solid var(--premier-beige);
+        flex-wrap: wrap;
+    }
+
+    .metric-bubble-item {
+        flex: 1;
+        min-width: 80px;
+    }
+
+    .metric-bubble-item strong {
+        font-size: 1.4rem;
+        color: var(--premier-charcoal);
+    }
+
+    .transaction-card-box {
+        background: var(--white);
+        border: 1px solid var(--premier-beige);
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        position: sticky;
+        top: 2rem;
+    }
+
+    .pricing-timeline-matrix {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 1.5rem 0;
+    }
+
+    .pricing-timeline-matrix td, .pricing-timeline-matrix th {
+        border-bottom: 1px solid var(--premier-beige);
+        padding: 0.85rem;
+        text-align: left;
+        font-size: 0.95rem;
+    }
+
+    .pricing-timeline-matrix th {
+        background-color: var(--dynamic-bg-highlight);
+        color: var(--premier-charcoal);
+        font-weight: 700;
+    }
+
+    /* Additional Image Gallery Framework */
+    .property-gallery-grid-block {
+        max-width: 1140px;
+        margin: 0 auto;
+        padding: 0 1rem 3rem 1rem;
+        box-sizing: border-box;
+    }
+
+    .property-gallery-grid-block h3 {
+        font-size: 1.3rem;
+        color: var(--premier-charcoal);
         font-weight: 800;
+        margin-bottom: 1.25rem;
+    }
+
+    .gallery-structural-columns {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+    }
+
+    .gallery-photo-canvas {
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        overflow: hidden;
+        border-radius: 6px;
+        background-color: var(--dynamic-bg-highlight);
+        border: 1px solid var(--premier-beige);
+    }
+
+    .gallery-photo-canvas img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
 </style>
 
-<div class="profile-fixed-container">
-    
-    <!-- Navigation Back Link -->
-    <nav class="no-print-section" style="margin-bottom: 1.25rem; width: 100%;">
-        <a href="/sales/" style="color: var(--card-accent-color); text-decoration: none; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 0.3rem;">
-            🡔 Back To Inventory Catalog
-        </a>
-    </nav>
+<div class="listing-hero-banner-container">
+    <span class="floating-overlay-badge {% if listing.Representation == 'Seller' %}seller-accent{% endif %}">
+        Represented {{ listing.Representation if listing.Representation else "Client" }}
+    </span>
 
-    <!-- 🌟 RECALIBRATED 4:3 PRIMARY IMMERSIVE CANVAS MODULE -->
-    <section class="listing-hero-showcase-box">
-        {% if listing.imageUrl %}
-            <img src="{{ listing.imageUrl }}" alt="Primary property architecture showcase for {{ listing.address }}" fetchpriority="high">
-        {% else %}
-            <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; opacity: 0.5; font-weight: bold;">Property Image Synchronizing...</div>
-        {% endif %}
-    </section>
-
-    <!-- Split Editorial Information Stream Grid -->
-    <div class="profile-details-split-grid">
-        
-        <!-- Left Side Primary Block (2/3 Split) -->
-        <main style="display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">
-            
-            <header style="border-bottom: 2px solid var(--dynamic-bg-highlight); padding-bottom: 1rem; width: 100%;">
-                <h1 style="font-size: 2rem; margin: 0 0 0.5rem 0; font-weight: 700; line-height: 1.2;">
-                    {{ listing.address }}
-                </h1>
-                <p style="font-size: 1.15rem; margin: 0; opacity: 0.75; text-transform: capitalize;">
-                    {{ listing.city }}, WA
-                </p>
-            </header>
-
-            <!-- Quick Glance Core Specification Grid -->
-            <section style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; width: 100%;">
-                <div class="spec-metric-node">
-                    <span class="spec-metric-title">Bedrooms</span>
-                    <span class="spec-metric-value">{{ listing.beds }}</span>
-                </div>
-                <div class="spec-metric-node">
-                    <span class="spec-metric-title">Bathrooms</span>
-                    <span class="spec-metric-value">{{ listing.baths }}</span>
-                </div>
-                <div class="spec-metric-node">
-                    <span class="spec-metric-title">Square Feet</span>
-                    <span class="spec-metric-value">{{ listing.sqft }}</span>
-                </div>
-            </section>
-
-            <!-- Property Overview Commentary -->
-            <section style="line-height: 1.6; opacity: 0.9; font-size: 0.95rem;">
-                <h2 style="font-size: 1.25rem; margin: 0 0 0.75rem 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--dynamic-bg-highlight); padding-bottom: 0.25rem;">Property Description</h2>
-                <p>
-                    {{ listing.description if listing.description else "Detailed agent summary ledger update is currently being filed into the system registry database. Reach out below to request full transaction parameters, local boundary assessments, and community infrastructure indices directly." }}
-                </p>
-            </section>
-
-        </main>
-
-        <!-- Right Side Financial & Lead Capture Block (1/3 Split) -->
-        <aside style="width: 100%;">
-            <div style="position: sticky; top: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">
-                
-                <!-- Pricing Highlights Card -->
-                <div class="profile-card" style="padding: 1.5rem; border-radius: 8px; background-color: var(--white); box-shadow: 0 2px 6px rgba(0,0,0,0.02); border: 1px solid var(--dynamic-bg-highlight); text-align: center; box-sizing: border-box; width: 100%;">
-                    <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; display: block; margin-bottom: 0.25rem;">Market Valuation</span>
-                    <div style="font-size: 2rem; font-weight: 800; color: var(--card-accent-color); margin-bottom: 0.5rem;">
-                        {{ listing.price }}
-                    </div>
-                    <span style="display: inline-block; font-size: 0.65rem; font-weight: 700; padding: 0.25rem 0.5rem; background-color: var(--dynamic-bg-highlight); border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
-                        MLS ID: #{{ listing.mlsNumber if listing.mlsNumber else "Pending" }}
-                    </span>
-                </div>
-
-                <!-- Friendly Coach Call-To-Action Box -->
-                <div class="profile-card" style="padding: 1.5rem; border-radius: 8px; background-color: var(--white); box-shadow: 0 2px 6px rgba(0,0,0,0.02); border: 1px solid var(--dynamic-bg-highlight); box-sizing: border-box; width: 100%;">
-                    <h3 style="margin: 0 0 0.5rem 0; font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Want to grab a look?</h3>
-                    <p style="font-size: 0.8rem; line-height: 1.45; opacity: 0.75; margin: 0 0 1.25rem 0;">
-                        Let’s bypass the typical real estate runaround. If you want to check out this house in person, run a private analysis on the neighbor comps, or talk through zoning adjustments, let me know. I'm ready when you are.
-                    </p>
-                    <a href="mailto:tours@myseattlesearch.com?subject=Private%20Tour%20Request:%20{{ listing.address | urlencode }}" class="category-navigation-link" style="display: block; text-align: center; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 0.6rem 1rem; border-radius: 4px; background-color: var(--card-accent-color); color: var(--white); text-decoration: none; border: 2px solid var(--card-accent-color); transition: opacity 0.15s ease;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-                        Schedule A Private Tour
-                    </a>
-                </div>
-
-            </div>
-        </aside>
-
-    </div>
+    {% if listing['Image URL 1'] %}
+        <img src="{{ listing['Image URL 1'] }}" alt="Primary property showcase architecture for {{ listing.Address or listing.address }}">
+    {% else %}
+        <div class="listing-fallback-banner">
+            <h2 style="color: var(--white); font-size: 2.25rem; margin: 0 0 0.5rem 0; font-weight: 800;">{{ listing.Address or listing.address }}</h2>
+            <p style="color: var(--premier-beige); font-size: 1.15rem; margin: 0; font-weight: 500;">{{ listing.City or listing.city }}, WA {{ listing['Zip Code'] }}</p>
+        </div>
+    {% endif %}
 </div>
+
+<div class="listing-page-layout">
+    
+    <main>
+        <h1 style="font-size: 2.25rem; margin-top: 0; margin-bottom: 0.25rem; color: var(--premier-charcoal); font-weight: 800;">
+            {{ listing.Address or listing.address }}
+        </h1>
+        <p style="font-size: 1.15rem; opacity: 0.7; margin-top: 0; margin-bottom: 2.5rem; font-weight: 500;">
+            {{ listing.City or listing.city }}, WA {{ listing['Zip Code'] }}
+        </p>
+
+        <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: var(--premier-charcoal); font-weight: 800;">Property Overview</h3>
+        
+        <div class="meta-metrics-strip">
+            <div class="metric-bubble-item">
+                <strong>{{ listing.Bedrooms if listing.Bedrooms else (listing.beds if listing.beds else "0") }}</strong><br><span style="font-size: 0.8rem; opacity: 0.7;">Beds</span>
+            </div>
+            <div class="metric-bubble-item">
+                <strong>{{ listing.Bathrooms if listing.Bathrooms else (listing.baths if listing.baths else "0") }}</strong><br><span style="font-size: 0.8rem; opacity: 0.7;">Baths</span>
+            </div>
+            <div class="metric-bubble-item">
+                <strong>{{ listing['Square Footage'].toLocaleString() if listing['Square Footage'] else (listing.sqft.toLocaleString() if listing.sqft else "0") }}</strong><br><span style="font-size: 0.8rem; opacity: 0.7;">Sq. Ft.</span>
+            </div>
+            <div class="metric-bubble-item">
+                <strong>{{ listing['Year Built'] if listing['Year Built'] else "N/A" }}</strong><br><span style="font-size: 0.8rem; opacity: 0.7;">Year Built</span>
+            </div>
+        </div>
+
+        <h3 style="font-size: 1.3rem; margin-top: 3rem; color: var(--premier-charcoal); font-weight: 800;">Sale & Pricing History</h3>
+        <table class="pricing-timeline-matrix">
+            <thead>
+                <tr>
+                    <th>Milestone Details</th>
+                    <th>Price / Timeline Info</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Original List Price</td>
+                    <td style="font-weight: 600; color: #444;">
+                        ${{ listing['Original Price'].toLocaleString() if listing['Original Price'] else (listing['Listing Price'].toLocaleString() if listing['Listing Price'] else (listing.price if listing.price else "Pending")) }}
+                    </td>
+                </tr>
+                <tr>
+                    <td>Final Listing Price</td>
+                    <td style="font-weight: 600; color: #444;">
+                        ${{ listing['Listing Price'].toLocaleString() if listing['Listing Price'] else (listing.price if listing.price else "Pending") }}
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Final Sold Price</strong></td>
+                    <td>
+                        <strong style="color: var(--card-accent-color); font-size: 1.15rem;">
+                            {% if listing.Status == "Sold" or listing.status == "Sold" or listing['Selling Price'] %}
+                                ${{ listing['Selling Price'].toLocaleString() if listing['Selling Price'] else listing.price }}
+                            {% else %}
+                                Active - Tour Today!
+                            {% endif %}
+                        </strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Days on Market</td>
+                    <td style="font-weight: 600; color: #444;">
+                        {{ listing.DOM if listing.DOM else "0" }} Days
+                    </td>
+                </tr>
+                <tr>
+                    <td>Closed Date</td>
+                    <td style="font-weight: 600; color: #444;">
+                        {{ listing['Selling Date'] if listing['Selling Date'] else "Active Tracking" }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </main>
+
+    <aside>
+        <div class="transaction-card-box">
+            <h4 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--premier-charcoal); font-weight: 800;">Looking for More Info?</h4>
+            <p style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 1.75rem; line-height: 1.5; text-align: left;">
+                This transaction record is synced with our local catalog framework. You can analyze ongoing micro-market shifts or check neighboring comps directly on Redfin.
+            </p>
+            
+            <a href="{{ listing['Redfin Link'] if listing['Redfin Link'] else 'https://www.redfin.com' }}" target="_blank" class="btn btn-primary" style="display: block; width: 100%; box-sizing: border-box; text-align: center; font-size: 0.95rem; padding: 0.85rem 1rem; font-weight: 700; background: var(--card-accent-color); border-color: var(--card-accent-color); color: var(--white); text-decoration: none; border-radius: 4px;">
+                View on Redfin
+            </a>
+
+            <hr style="border: none; border-top: 1px solid var(--premier-beige); margin: 2rem 0 1.5rem 0;">
+            
+            <p style="font-size: 0.75rem; color: #64748b; line-height: 1.5; text-align: left; margin: 0; font-style: italic;">
+                Listing courtesy of: {{ listing['Listing Office Name'] if listing['Listing Office Name'] else "NWMLS Matrix Ingestion" }}
+            </p>
+        </div>
+    </aside>
+</div>
+
+{% if listing['Image URL 2'] or listing['Image URL 3'] or listing['Image URL 4'] or listing['Image URL 5'] %}
+<section class="property-gallery-grid-block">
+    <h3>Additional Property Gallery</h3>
+    <div class="gallery-structural-columns">
+        {% if listing['Image URL 2'] %}
+        <div class="gallery-photo-canvas">
+            <img src="{{ listing['Image URL 2'] }}" alt="Secondary property snapshot 2 for {{ listing.Address or listing.address }}" loading="lazy">
+        </div>
+        {% endif %}
+        {% if listing['Image URL 3'] %}
+        <div class="gallery-photo-canvas">
+            <img src="{{ listing['Image URL 3'] }}" alt="Secondary property snapshot 3 for {{ listing.Address or listing.address }}" loading="lazy">
+        </div>
+        {% endif %}
+        {% if listing['Image URL 4'] %}
+        <div class="gallery-photo-canvas">
+            <img src="{{ listing['Image URL 4'] }}" alt="Secondary property snapshot 4 for {{ listing.Address or listing.address }}" loading="lazy">
+        </div>
+        {% endif %}
+        {% if listing['Image URL 5'] %}
+        <div class="gallery-photo-canvas">
+            <img src="{{ listing['Image URL 5'] }}" alt="Secondary property snapshot 5 for {{ listing.Address or listing.address }}" loading="lazy">
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endif %}
