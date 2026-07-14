@@ -1,0 +1,618 @@
+---
+layout: base.njk
+title: "Down Payment Assistance Finder | Joe Sheldon"
+permalink: /downpayment.html
+---
+
+<style>
+    .dpa-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+    .wizard-card {
+        background: var(--dynamic-bg-highlight);
+        border-top: 6px solid var(--premier-charcoal);
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+        margin-bottom: 3rem;
+    }
+    .wizard-card h3 {
+        margin: 0 0 1.5rem 0;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--premier-charcoal);
+        border-bottom: 2px solid var(--light-gray, #e0e0e0);
+        padding-bottom: 0.5rem;
+    }
+    .wizard-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+    @media (min-width: 768px) {
+        .wizard-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 1100px) {
+        .wizard-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    .input-element-box {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+    .input-element-box label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #555555;
+    }
+    .input-element-box input, .input-element-box select {
+        padding: 0.6rem 0.75rem;
+        border: 2px solid var(--light-gray, #ccc);
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-weight: normal;
+        color: #222;
+        background: #ffffff;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .input-element-box input:focus, .input-element-box select:focus {
+        border-color: var(--card-accent-color);
+        outline: none;
+    }
+
+    .wizard-buttons-row {
+        grid-column: 1 / -1;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-top: 0.5rem;
+    }
+
+    .btn-search {
+        flex: 1;
+        min-width: 220px;
+        padding: 0.85rem;
+        background: var(--card-accent-color);
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.2s ease;
+        width: 100%;
+    }
+    .btn-search:hover { background: #9c2424; }
+    
+    .btn-search.btn-secondary-action {
+        background: var(--premier-charcoal);
+    }
+    .btn-search.btn-secondary-action:hover {
+        background: #222222;
+    }
+
+    .results-heading {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: var(--premier-charcoal);
+        border-bottom: 2px solid var(--premier-beige);
+        padding-bottom: 0.5rem;
+    }
+    .coach-summary-box {
+        background-color: #ffffff;
+        border-left: 4px solid var(--card-accent-color);
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    .coach-total-number {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #222;
+        margin: 0.5rem 0;
+    }
+    
+    .dpa-advisory-disclaimer {
+        background-color: var(--dynamic-bg-highlight);
+        border-left: 4px solid #F5A623;
+        padding: 1.25rem;
+        border-radius: 4px 12px 12px 4px;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        color: #333;
+        text-align: left;
+        margin-top: 1.25rem;
+    }
+
+    .narrative-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+    @media (min-width: 768px) {
+        .narrative-grid { grid-template-columns: 1fr 1fr; }
+    }
+    .narrative-card {
+        background: #ffffff;
+        padding: 1.75rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        border-top: 4px solid var(--premier-charcoal);
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    .narrative-card h4 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #222;
+    }
+    .agency-badge {
+        font-size: 0.85rem;
+        color: #666;
+        font-weight: 600;
+        margin-top: -0.25rem;
+        margin-bottom: 0.25rem;
+    }
+    .narrative-comparison-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        background: var(--dynamic-bg-highlight);
+        padding: 0.75rem;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: normal;
+    }
+    .narrative-comparison-row div span {
+        display: block;
+        font-size: 0.75rem;
+        color: #666;
+        font-weight: 600;
+    }
+    .narrative-comparison-row div strong {
+        font-size: 1rem;
+        font-weight: normal;
+        color: #222;
+    }
+    .narrative-card p {
+        margin: 0;
+        font-size: 0.92rem;
+        line-height: 1.5;
+        color: #444;
+    }
+    .extra-step-alert {
+        background: var(--dynamic-bg-highlight);
+        border-left: 3px solid #f5a623;
+        padding: 0.75rem 1rem;
+        border-radius: 0 6px 6px 0;
+        font-size: 0.9rem;
+        color: #333;
+    }
+
+    .card-action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.6rem 1rem;
+        background: transparent;
+        color: #222222;
+        border: 1px solid #222222;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-decoration: none;
+        letter-spacing: 0.5px;
+        margin-top: 1.25rem;
+        transition: all 0.2s ease;
+        text-align: center;
+    }
+    .card-action-btn:hover {
+        background: #222222;
+        color: #ffffff;
+    }
+
+    .print-trigger-btn {
+        background-color: transparent;
+        border: 1px solid var(--light-gray, #b3b3b3);
+        color: #666666;
+        padding: 0.5rem 1.25rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all 0.15s ease-in-out;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin-bottom: 1.5rem;
+    }
+    .print-trigger-btn:hover {
+        border-color: var(--premier-charcoal);
+        color: var(--premier-charcoal);
+        background-color: var(--dynamic-bg-highlight);
+    }
+
+    .print-only-header { display: none; }
+
+    @media print {
+        @page {
+            size: letter;
+            margin: 0.45in;
+        }
+        
+        body {
+            background: #ffffff !important;
+            color: #000000 !important;
+            font-size: 9.5pt !important;
+            line-height: 1.25 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        universal-header, universal-footer, .compare-header-box,
+        .wizard-card, .print-trigger-btn, .card-action-btn, .wizard-buttons-row {
+            display: none !important;
+        }
+
+        .print-only-header {
+            display: block !important;
+            width: 100% !important;
+        }
+
+        #resultsSection {
+            display: block !important;
+        }
+
+        .coach-summary-box {
+            padding: 1.25rem !important;
+            border-radius: 8px !important;
+            border: 2px solid #000000 !important;
+            border-left: 6px solid var(--card-accent-color) !important;
+            box-shadow: none !important;
+            background: #ffffff !important;
+            margin-bottom: 1.5rem !important;
+        }
+        .coach-total-number {
+            font-size: 20pt !important;
+            margin: 0.25rem 0 !important;
+        }
+        .dpa-advisory-disclaimer {
+            font-size: 8.5pt !important;
+            border: 1px solid #000000 !important;
+            background: #fafafa !important;
+            padding: 0.5rem !important;
+        }
+
+        .narrative-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 14px !important;
+        }
+        .narrative-card {
+            padding: 1rem !important;
+            border-radius: 8px !important;
+            border: 2px solid #000000 !important;
+            border-top: 6px solid var(--premier-charcoal) !important;
+            box-shadow: none !important;
+            background: #ffffff !important;
+            page-break-inside: avoid !important;
+        }
+        .agency-badge {
+            font-size: 8pt !important;
+            color: #333333 !important;
+        }
+        .narrative-comparison-row {
+            border: 1px solid #000000 !important;
+            background: #fafafa !important;
+            padding: 0.5rem !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+        }
+        .narrative-comparison-row div span {
+            font-size: 7.5pt !important;
+        }
+        .narrative-comparison-row div strong {
+            font-size: 9.5pt !important;
+        }
+        .narrative-card p {
+            font-size: 9pt !important;
+            line-height: 1.3 !important;
+        }
+        .extra-step-alert {
+            border-left: 3px solid #f5a623 !important;
+            background: #fff9f2 !important;
+            font-size: 8.5pt !important;
+            padding: 0.35rem !important;
+        }
+    }
+</style>
+
+<div class="dpa-container">
+    
+    <div class="compare-header-box">
+        <h1 style="font-size: 2.6rem; font-weight: 900; color: var(--card-accent-color); margin-bottom: 0.5rem;">Down Payment Assistance Finder</h1>
+        <p class="intro">A screening tool to view local assistance programs, community grants, and deferred loans based on your target city and household profile.</p>
+    </div>
+
+    <section class="wizard-card">
+        <h3>Explore Program Options</h3>
+        <div class="wizard-grid">
+            
+            <div class="input-element-box">
+                <label for="citySelect">Where are you planning to buy?</label>
+                <select id="citySelect"></select>
+            </div>
+
+            <div class="input-element-box">
+                <label for="inHouseholdSize">Total household size (number of people living in the home)</label>
+                <select id="inHouseholdSize">
+                    <option value="1">1 Person</option>
+                    <option value="2">2 People</option>
+                    <option value="3">3 People</option>
+                    <option value="4" selected>4 or More People</option>
+                </select>
+            </div>
+
+            <div class="input-element-box">
+                <label for="inIncome">Total gross annual household income ($)</label>
+                <input type="number" id="inIncome" value="110000">
+            </div>
+
+            <div class="input-element-box">
+                <label for="inFirstTime">Have you owned a primary home in the last 3 years?</label>
+                <select id="inFirstTime">
+                    <option value="no" selected>No (Or haven't owned a home in 3 or more years)</option>
+                    <option value="yes">Yes</option>
+                </select>
+            </div>
+
+            <div class="wizard-buttons-row no-print-section">
+                <button class="btn-search" onclick="evaluateDpaPrograms(false)">Find Matching Programs</button>
+                <button class="btn-search btn-secondary-action" onclick="evaluateDpaPrograms(true)">Show All Available Programs</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="resultsSection" style="display: none;">
+        
+        <div style="display: flex; justify-content: center;" class="no-print-section">
+            <button onclick="window.print()" class="print-trigger-btn" title="Print Program Summary">
+                🖨️ Print Program Summary
+            </button>
+        </div>
+
+        <div id="printHeaderNode" class="print-only-header">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid var(--card-accent-color); padding-bottom: 12px; margin-bottom: 25px;">
+                <div>
+                    <h1 style="margin:0; font-size: 2.4rem; font-weight: 900; color: var(--card-accent-color); letter-spacing: -0.5px;">DOWN PAYMENT ASSISTANCE GUIDE</h1>
+                    <p style="margin: 3px 0 0 0; font-size: 1rem; font-weight: 800; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">Custom Community Program Screening Report</p>
+                </div>
+                <div style="text-align: right;">
+                    <h3 style="margin:0; font-size: 1.3rem; font-weight: 900; color: var(--premier-charcoal);">JOE SHELDON</h3>
+                    <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: #555;">myseattlesearch.com</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="coach-summary-box">
+            <h2 id="txtResultsSummaryTitle" style="font-size: 1.4rem; font-weight: 700; margin: 0; color: var(--premier-charcoal);">Potential Matches</h2>
+            <div class="coach-total-number" id="txtTotalMatchesCount">0 Options Identified</div>
+            
+            <div class="dpa-advisory-disclaimer">
+                <strong>Important Notice:</strong> This directory provides a summary of community programs based on general baseline guidelines. This screen does not constitute a formal application, credit evaluation, or loan approval. Program funding allocations, matching rules, and qualifying thresholds vary over time. Researching available local resources and speaking directly with a licensed mortgage loan professional can help confirm individual eligibility and establish a qualified financing track.
+            </div>
+        </div>
+        
+        <div class="narrative-grid" id="programsOutputContainer"></div>
+    </section>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const citiesPath = '/data/city_data.json';
+        const dpaJsonPath = '/data/dpa_programs.json';
+
+        let dataStore = { cities: {}, programs: [] };
+
+        const cleanNum = (str) => {
+            if (str === null || str === undefined || str === 'NaN') return 0;
+            return parseFloat((str).toString().replace(/[^0-9.-]+/g, "")) || 0;
+        };
+        const formatCurrency = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+
+        async function fetchJSON(path) {
+            try { 
+                const res = await fetch(path); 
+                if (!res.ok) return []; 
+                const rawText = await res.text();
+                const cleanedText = rawText.replace(/:\s*NaN/g, ": null");
+                return JSON.parse(cleanedText); 
+            } catch (e) { 
+                return []; 
+            }
+        }
+
+        Promise.all([
+            fetchJSON(citiesPath), fetchJSON(dpaJsonPath)
+        ]).then(values => {
+            const cityRows = values[0] || [];
+            dataStore.programs = values[1] || [];
+
+            cityRows.forEach(row => {
+                if (row.City) {
+                    dataStore.cities[row.City.trim().toLowerCase()] = {
+                        city: row.City.trim(),
+                        county: (row.County || '').trim(),
+                        northSound: (row['North Sound'] || '').trim().toLowerCase() === 'x'
+                    };
+                }
+            });
+
+            populateDropdown();
+        });
+
+        function populateDropdown() {
+            const select = document.getElementById('citySelect');
+            const groups = { 'North Sound': [], 'King County': [], 'Snohomish County': [] };
+
+            Object.values(dataStore.cities).sort((a,b) => a.city.localeCompare(b.city)).forEach(item => {
+                if (item.northSound) groups['North Sound'].push(item.city);
+                else if (item.county === 'King') groups['King County'].push(item.city);
+                else if (item.county === 'Snohomish') groups['Snohomish County'].push(item.city);
+            });
+
+            let html = '';
+            for (let group in groups) {
+                if (groups[group].length > 0) {
+                    html += `<optgroup label="${group}">`;
+                    groups[group].forEach(city => {
+                        html += `<option value="${city}">${city}</option>`;
+                    });
+                    html += `</optgroup>`;
+                }
+            }
+            select.innerHTML = html;
+            
+            if(dataStore.programs.length > 0) evaluateDpaPrograms(false, true);
+        }
+
+        window.evaluateDpaPrograms = function(showAll = false, skipScroll = false) {
+            const targetCityName = document.getElementById('citySelect').value;
+            const cityObj = dataStore.cities[targetCityName.toLowerCase().trim()] || {};
+            const targetCountyName = cityObj.county || '';
+            
+            const householdSize = parseInt(document.getElementById('inHouseholdSize').value) || 4;
+            const userIncome = parseFloat(document.getElementById('inIncome').value) || 0;
+            const ownedRecently = document.getElementById('inFirstTime').value === 'yes';
+
+            const container = document.getElementById('programsOutputContainer');
+            container.innerHTML = '';
+
+            let matchesHtml = '';
+            let matchCount = 0;
+
+            dataStore.programs.forEach(prog => {
+                if (!showAll) {
+                    const countiesList = prog['Eligible Counties'] ? prog['Eligible Counties'].toLowerCase() : '';
+                    const citiesList = prog['Eligible Cities'] ? prog['Eligible Cities'].toLowerCase() : '';
+                    
+                    const countyMatch = countiesList.includes('all') || countiesList.includes('washington') || countiesList.includes(targetCountyName.toLowerCase());
+                    const cityMatch = citiesList.includes('all') || citiesList.includes(targetCityName.toLowerCase());
+
+                    if (!countyMatch || !cityMatch) return;
+
+                    const fthbRequired = String(prog['First Time Buyer Required']).trim().toLowerCase() === 'yes';
+                    if (fthbRequired && ownedRecently) return;
+
+                    let incomeCapColumnKey = 'Income Limit 4 Person Plus';
+                    if (householdSize === 1) incomeCapColumnKey = 'Income Limit 1 Person';
+                    else if (householdSize === 2) incomeCapColumnKey = 'Income Limit 2 Person';
+                    else if (householdSize === 3) incomeCapColumnKey = 'Income Limit 3 Person';
+
+                    const rawIncomeCap = cleanNum(prog[incomeCapColumnKey]);
+                    if (rawIncomeCap > 0 && userIncome > rawIncomeCap) return;
+                }
+
+                matchCount++;
+                
+                const rawMaxAmount = prog['Max Assistance Amount'] ? String(prog['Max Assistance Amount']).trim() : '';
+                const parsedMaxNum = cleanNum(rawMaxAmount);
+                
+                let maxAmount = 'Varies based on qualification';
+                if (parsedMaxNum > 0) {
+                    maxAmount = formatCurrency(parsedMaxNum);
+                } else if (rawMaxAmount !== '' && rawMaxAmount !== '0') {
+                    maxAmount = rawMaxAmount;
+                }
+
+                let incomeCapColumnKey = 'Income Limit 4 Person Plus';
+                if (householdSize === 1) incomeCapColumnKey = 'Income Limit 1 Person';
+                else if (householdSize === 2) incomeCapColumnKey = 'Income Limit 2 Person';
+                else if (householdSize === 3) incomeCapColumnKey = 'Income Limit 3 Person';
+
+                const rawIncomeCap = cleanNum(prog[incomeCapColumnKey]);
+                const displayCap = rawIncomeCap > 0 ? formatCurrency(rawIncomeCap) : 'No income cap specified';
+                
+                const extraSteps = prog['Mandatory Extra Steps'] ? String(prog['Mandatory Extra Steps']).trim() : '';
+                const officialWebsite = prog['Program Website'] ? String(prog['Program Website']).trim() : '';
+
+                let extraStepsMarkup = '';
+                if (extraSteps && extraSteps !== 'None' && extraSteps !== '-' && extraSteps !== 'NaN') {
+                    extraStepsMarkup = `<div class="extra-step-alert">📋 <strong>Prerequisite Note:</strong> ${extraSteps}</div>`;
+                }
+
+                let websiteMarkup = '';
+                if (officialWebsite && officialWebsite !== '' && officialWebsite !== '-') {
+                    websiteMarkup = `<a href="${officialWebsite}" target="_blank" class="card-action-btn" style="margin-top: auto; display: inline-flex; align-items: center; justify-content: center;">Explore Official Program Website &rarr;</a>`;
+                }
+
+                matchesHtml += `
+                    <div class="narrative-card">
+                        <div>
+                            <h4>${prog['Program Name']}</h4>
+                            <div class="agency-badge">Administered by: ${prog['Administering Agency'] || 'Regional Authority'}</div>
+                        </div>
+                        
+                        <div class="narrative-comparison-row">
+                            <div>
+                                <span>Assistance Type</span>
+                                <strong>${prog['Assistance Type'] || 'Deferred Loan'}</strong>
+                            </div>
+                            <div>
+                                <span>Maximum Limit</span>
+                                <strong>${maxAmount}</strong>
+                            </div>
+                            <div>
+                                <span>Maximum Income (${householdSize === 4 ? '4+ Box' : householdSize + ' Person'})</span>
+                                <strong>${displayCap}</strong>
+                            </div>
+                        </div>
+                        
+                        <p>${prog['Program Description'] || 'No additional local tracking notes specified.'}</p>
+                        
+                        <div style="font-size: 0.85rem; color: #555555; border-top: 1px dashed #eaeaea; padding-top: 0.5rem; margin-top: 0.25rem;">
+                            📍 <strong>Geographic Eligibility:</strong> Counties: ${prog['Eligible Counties'] || 'All'} | Cities: ${prog['Eligible Cities'] || 'All'}
+                        </div>
+                        
+                        ${extraStepsMarkup}
+                        ${websiteMarkup}
+                    </div>
+                `;
+            });
+
+            if (matchCount === 0) {
+                container.style.display = 'block';
+                container.innerHTML = `<p style="opacity: 0.85; padding: 1rem 0; grid-column: 1 / -1; text-align: center;">No active program options match the current combination of income, city selection, or homeownership history parameters.</p>`;
+            } else {
+                container.style.display = 'grid';
+                container.innerHTML = matchesHtml;
+            }
+
+            const summaryTitleEl = document.getElementById('txtResultsSummaryTitle');
+            if (showAll) {
+                summaryTitleEl.textContent = "Complete Program Directory";
+                document.getElementById('txtTotalMatchesCount').textContent = `${matchCount} Total Programs Listed`;
+            } else {
+                summaryTitleEl.textContent = "Potential Matches";
+                document.getElementById('txtTotalMatchesCount').textContent = `${matchCount} Program ${matchCount === 1 ? 'Option' : 'Options'} Identified`;
+            }
+            
+            document.getElementById('resultsSection').style.display = 'block';
+            
+            if (!showAll && !skipScroll) {
+                document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+            }
+        };
+    });
+</script>

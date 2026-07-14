@@ -1,0 +1,631 @@
+---
+layout: base.njk
+title: Financing Strategy Matrix | Joe Sheldon
+permalink: /loancomp.html
+---
+
+<style>
+    .matrix-container { 
+        max-width: 1140px; 
+        margin: 0 auto; 
+        padding: 2rem 1rem; 
+        min-height: 75vh; 
+        box-sizing: border-box;
+    }
+    .strategy-deck { 
+        display: grid; 
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); 
+        gap: 1.5rem; 
+        margin-bottom: 2rem; 
+    }
+    .strategy-card { 
+        background: var(--dynamic-bg-highlight); 
+        border-top: 5px solid var(--premier-charcoal); 
+        border-radius: 12px; 
+        padding: 1.5rem; 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04); 
+        position: relative; 
+        display: flex; 
+        flex-direction: column; 
+        justify-content: space-between; 
+        box-sizing: border-box;
+    }
+    .card-header-row { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        border-bottom: 2px solid var(--light-gray, #e0e0e0); 
+        padding-bottom: 0.5rem; 
+        margin-bottom: 1rem; 
+    }
+    .card-header-row h3 { 
+        margin: 0; 
+        font-size: 1.1rem; 
+        font-weight: 900; 
+        text-transform: uppercase; 
+        letter-spacing: 0.5px; 
+        color: var(--premier-charcoal); 
+    }
+    .btn-delete-card { 
+        background: transparent; 
+        border: none; 
+        color: var(--card-accent-color); 
+        font-size: 0.85rem; 
+        font-weight: 800; 
+        text-transform: uppercase; 
+        cursor: pointer; 
+    }
+    .btn-delete-card:hover { 
+        text-decoration: underline; 
+    }
+    .form-grid-stack { 
+        display: flex; 
+        flex-direction: column; 
+        gap: 0.85rem; 
+    }
+    .form-row-two-col { 
+        display: grid; 
+        grid-template-columns: 1fr 1fr; 
+        gap: 0.75rem; 
+    }
+    .input-item-box { 
+        display: flex; 
+        flex-direction: column; 
+        gap: 0.25rem; 
+    }
+    .input-item-box label { 
+        font-size: 0.7rem; 
+        font-weight: 800; 
+        color: #555555; 
+        text-transform: uppercase; 
+        letter-spacing: 0.3px; 
+    }
+    .input-item-box input, .input-item-box select { 
+        padding: 0.6rem 0.75rem; 
+        border: 2px solid var(--light-gray, #e0e0e0); 
+        border-radius: 6px; 
+        font-size: 0.95rem; 
+        color: #222222; 
+        background: var(--white, #ffffff); 
+        width: 100%; 
+        box-sizing: border-box;
+    }
+    .input-item-box input:focus, .input-item-box select:focus {
+        border-color: var(--card-accent-color);
+        outline: none;
+    }
+    .down-payment-input-group { 
+        display: grid; 
+        grid-template-columns: 1fr 65px; 
+        gap: 0.25rem; 
+    }
+    .btn-estimate-trigger { 
+        background: transparent; 
+        border: none; 
+        color: var(--card-accent-color); 
+        font-size: 0.7rem; 
+        font-weight: 800; 
+        text-transform: uppercase; 
+        text-align: right; 
+        cursor: pointer; 
+        margin-top: 0.2rem;
+    }
+    .btn-estimate-trigger:hover { 
+        text-decoration: underline; 
+    }
+    .btn-duplicate-card { 
+        background: rgba(0,0,0,0.04); 
+        border: 1px solid var(--light-gray, #e0e0e0); 
+        color: var(--premier-charcoal); 
+        border-radius: 6px; 
+        padding: 0.6rem; 
+        font-size: 0.8rem; 
+        font-weight: 700; 
+        text-transform: uppercase; 
+        cursor: pointer; 
+        margin-top: 1.25rem; 
+        width: 100%;
+        transition: background 0.15s ease;
+    }
+    .btn-duplicate-card:hover { 
+        background: rgba(0,0,0,0.08); 
+    }
+    .deck-control-tray { 
+        display: flex; 
+        justify-content: center; 
+        gap: 1rem; 
+        margin: 2.5rem 0; 
+        flex-wrap: wrap;
+    }
+    .matrix-action-btn { 
+        padding: 0.85rem 2rem; 
+        font-size: 1rem; 
+        font-weight: bold; 
+        border-radius: 6px; 
+        cursor: pointer; 
+        border: none;
+    }
+    .btn-add-profile { 
+        background: var(--premier-charcoal); 
+        color: var(--white, #ffffff); 
+    }
+    .btn-recalculate-matrix { 
+        background: var(--card-accent-color); 
+        color: var(--white, #ffffff); 
+    }
+    .matrix-results-card { 
+        background: var(--white, #ffffff); 
+        border: 1px solid var(--light-gray, #e0e0e0); 
+        border-radius: 12px; 
+        padding: 2rem; 
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03); 
+        box-sizing: border-box;
+    }
+    .table-scroll-container { 
+        width: 100%; 
+        overflow-x: auto; 
+        margin-top: 1.5rem; 
+    }
+    .matrix-output-table { 
+        width: 100%; 
+        border-collapse: collapse; 
+        font-size: 0.9rem; 
+        min-width: 800px;
+    }
+    .matrix-output-table th { 
+        background: var(--premier-charcoal); 
+        color: var(--white, #ffffff); 
+        padding: 0.75rem; 
+        font-weight: 700; 
+        text-transform: uppercase; 
+        font-size: 0.75rem; 
+        letter-spacing: 0.5px;
+        text-align: left;
+    }
+    .matrix-output-table td { 
+        padding: 0.85rem 0.75rem; 
+        border-bottom: 1px solid var(--light-gray, #e0e0e0); 
+        color: var(--premier-charcoal); 
+    }
+    .cell-bold-headline { 
+        font-weight: 800; 
+        color: var(--premier-charcoal); 
+    }
+    .cell-cash-highlight { 
+        font-weight: 800; 
+        color: var(--premier-charcoal); 
+        background: rgba(0,0,0,0.02); 
+    }
+    .cell-payment-large { 
+        font-weight: 900; 
+        color: var(--card-accent-color); 
+        font-size: 1.05rem; 
+        background: var(--dynamic-bg-highlight); 
+    }
+    .loan-officer-referral-block { 
+        display: flex; 
+        gap: 1.5rem; 
+        background: var(--dynamic-bg-highlight); 
+        border-left: 5px solid var(--card-accent-color); 
+        border-radius: 0 8px 8px 0; 
+        padding: 1.5rem; 
+        margin-top: 2rem; 
+        align-items: center; 
+        box-sizing: border-box;
+    }
+    .officer-avatar-img { 
+        width: 80px; 
+        height: 80px; 
+        border-radius: 50%; 
+        object-fit: cover; 
+        border: 2px solid var(--white, #ffffff); 
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        flex-shrink: 0;
+    }
+    .officer-info h4 { 
+        margin: 0 0 0.25rem 0; 
+        font-size: 1.2rem; 
+        color: var(--premier-charcoal); 
+        font-weight: 800;
+    }
+    .officer-info p { 
+        margin: 0 0 0.75rem 0; 
+        font-size: 0.9rem; 
+        color: #555555; 
+    }
+    .officer-print-info { 
+        font-size: 0.85rem; 
+        line-height: 1.4; 
+        color: var(--premier-charcoal); 
+    }
+    .officer-apply-btn { 
+        display: inline-block; 
+        color: var(--card-accent-color); 
+        text-decoration: none; 
+        font-weight: 800; 
+        font-size: 0.9rem; 
+        margin-top: 0.5rem;
+    }
+    .officer-apply-btn:hover { 
+        text-decoration: underline; 
+    }
+    .compliance-disclaimer-text { 
+        margin-top: 1.5rem; 
+        font-size: 0.78rem; 
+        line-height: 1.5; 
+        color: #666666; 
+        text-align: justify; 
+        font-style: italic; 
+    }
+    .print-matrix-trigger { 
+        background: transparent; 
+        border: 1px solid var(--premier-charcoal); 
+        color: var(--premier-charcoal); 
+        padding: 0.5rem 1.25rem; 
+        font-size: 0.8rem; 
+        font-weight: 700; 
+        text-transform: uppercase; 
+        border-radius: 4px; 
+        cursor: pointer; 
+        margin-top: 1.5rem; 
+        display: block; 
+        width: 100%; 
+        transition: all 0.15s ease;
+    }
+    .print-matrix-trigger:hover { 
+        background: var(--premier-charcoal); 
+        color: var(--white, #ffffff); 
+    }
+    .print-only-header { display: none; }
+    
+    @media(max-width: 650px) {
+        .loan-officer-referral-block { flex-direction: column; text-align: center; }
+        .officer-apply-btn { display: block; margin-top: 1rem; }
+    }
+
+    @media print {
+        @page { size: letter; margin: 0.25in; }
+        body { background: #ffffff !important; color: #000000 !important; font-size: 8pt !important; line-height: 1.1 !important; padding: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        universal-header, universal-footer, .events-header, .strategy-deck, .deck-control-tray, .print-matrix-trigger, .officer-apply-btn, .build-freshness-wrapper { display: none !important; }
+        .print-only-header { display: block !important; width: 100% !important; margin-bottom: 10px !important; }
+        .matrix-results-card { border: none !important; box-shadow: none !important; padding: 0 !important; margin-top: 0 !important; }
+        .matrix-output-table th { background: #eaeaea !important; color: #000000 !important; border-bottom: 2px solid #000000 !important; font-weight: 900 !important; }
+        .matrix-output-table td { border-bottom: 1px solid #e0e0e0 !important; padding: 0.4rem !important; }
+        .cell-payment-large { background: #eaeaea !important; font-weight: 900 !important; }
+        .loan-officer-referral-block { border: 1.5px solid #000000 !important; border-left: 5px solid var(--card-accent-color) !important; background: #ffffff !important; padding: 0.5rem !important; margin-top: 1rem !important; gap: 1rem !important; }
+        .officer-avatar-img { width: 60px !important; height: 60px !important; border: 1px solid #000000 !important; }
+    }
+</style>
+
+<main class="matrix-container">
+    <div class="events-header" style="text-align: center; margin-bottom: 2.5rem;">
+        <h1 style="margin-top: 1rem; font-size: 2.6rem; font-weight: 900; color: var(--card-accent-color); letter-spacing: -0.5px;">Financing Strategy Matrix</h1>
+        <p class="intro">Configure and evaluate multiple customized mortgage scenarios side-by-side.</p>
+    </div>
+
+    <div class="strategy-deck" id="strategyDeckContainer"></div>
+
+    <div class="deck-control-tray">
+        <button class="matrix-action-btn btn-add-profile" onclick="addNewStrategyInputCard()">Add Strategy Option</button>
+        <button class="matrix-action-btn btn-recalculate-matrix" onclick="processStrategyComparisonMatrix()">Compare Strategies</button>
+    </div>
+
+    <div class="matrix-results-card" id="resultsCardWrapper" style="display: none;">
+        <div class="print-only-header">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid var(--card-accent-color); padding-bottom: 12px; margin-bottom: 25px;">
+                <div>
+                    <h1 style="margin:0; font-size: 2.2rem; font-weight: 900; color: var(--card-accent-color); letter-spacing: -0.5px;">Strategic Financing Matrix</h1>
+                    <p style="margin: 3px 0 0 0; font-size: 0.95rem; font-weight: 800; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">Custom Mortgage Comparison Profile</p>
+                </div>
+                <div style="text-align: right;">
+                    <h3 style="margin:0; font-size: 1.3rem; font-weight: 900; color: var(--premier-charcoal);">Joe Sheldon</h3>
+                    <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: #555;" class="url-line">myseattlesearch.com</p>
+                </div>
+            </div>
+        </div>
+        
+        <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--premier-charcoal); margin: 0; text-transform: none; letter-spacing: normal;">Side-by-Side Comparison Matrix</h2>
+        <div class="table-scroll-container">
+            <table class="matrix-output-table">
+                <thead>
+                    <tr>
+                        <th>Strategy Profile Name</th>
+                        <th>Purchase Price</th>
+                        <th>Loan Principal</th>
+                        <th>Down Payment</th>
+                        <th>Lender Fees &amp; Points</th>
+                        <th>Closing Costs</th>
+                        <th>Total Cash Needed</th>
+                        <th>Monthly Payment (P&amp;I)</th>
+                    </tr>
+                </thead>
+                <tbody id="matrixTableBodyOutput"></tbody>
+            </table>
+        </div>
+
+        <div class="loan-officer-referral-block">
+            <img src="/assets/images/carly.jpg" class="officer-avatar-img" alt="Carly Ozuna | Rocket Mortgage" onerror="this.src='https://placehold.co/100x100?text=Carly+Ozuna'">
+            <div class="officer-info">
+                <h4>Carly Ozuna</h4>
+                <p>Rocket Mortgage | Lending Partner</p>
+                <div class="officer-print-info" style="margin-bottom: 0.5rem;">
+                    <strong>Direct Lender Contact:</strong> 425-218-4630, carlyozuna@rocketmortgage.com<br>
+                    <strong>Pre-Approval Link:</strong> https://rkt.me/carlyozuna#rf_aid=4621
+                </div>
+                <a href="https://rkt.me/carlyozuna#rf_aid=4621" target="_blank" class="officer-apply-btn">Apply Securely with Carly &rarr;</a>
+            </div>
+        </div>
+
+        <div class="compliance-disclaimer-text">
+            Information Notice: All calculations, interest rates, down payments, and estimated closing costs shown on this table are for example purposes only. Loan rules and escrow fees can change over time. This comparison does not count as a formal commitment to lend or an official loan estimate. Final loan pricing and locked structures can only be provided by a licensed mortgage professional.
+        </div>
+
+        <button onclick="window.print()" class="print-matrix-trigger">Print Strategy Insights</button>
+    </div>
+</main>
+
+<script>
+    let uniqueCardIndex = 0;
+    const conformingLoanCapBoundary = 832750;
+
+    let coreProgramRateRegistry = {
+        'Conventional': 6.50,
+        'FHA': 6.125,
+        'VA': 6.125,
+        'Conventional-DPA': 7.00,
+        'FHA-DPA': 6.625
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetch('/data/hourly_rates.json')
+            .then(response => response.json())
+            .then(rows => {
+                if (rows && rows.length > 0) {
+                    const validRows = rows.filter(r => Object.values(r)[0] && String(Object.values(r)[0]).trim() !== '');
+                    validRows.sort((a, b) => new Date(Object.values(a)[0].split(' ')[0]) - new Date(Object.values(b)[0].split(' ')[0]));
+                    const latestRow = validRows[validRows.length - 1];
+                    const latestVals = Object.values(latestRow);
+                    
+                    const convRate = parseFloat(latestVals[1]);
+                    const fhaRate = parseFloat(latestVals[2]);
+                    const vaRate = parseFloat(latestVals[3]);
+
+                    if (!isNaN(convRate)) {
+                        coreProgramRateRegistry['Conventional'] = convRate;
+                        coreProgramRateRegistry['Conventional-DPA'] = convRate + 0.50;
+                    }
+                    if (!isNaN(fhaRate)) {
+                        coreProgramRateRegistry['FHA'] = fhaRate;
+                        coreProgramRateRegistry['FHA-DPA'] = fhaRate + 0.50;
+                    }
+                    if (!isNaN(vaRate)) coreProgramRateRegistry['VA'] = vaRate;
+                    
+                    addNewStrategyInputCard('Strategy A', 'Conventional', '', '', '%', coreProgramRateRegistry['Conventional'].toFixed(3), '', '');
+                    addNewStrategyInputCard('Strategy B', 'FHA', '', '', '%', coreProgramRateRegistry['FHA'].toFixed(3), '', '');
+                } else {
+                    throw new Error("No live rates found");
+                }
+            })
+            .catch(error => {
+                console.error("Error loading live rates, defaulting to baselines", error);
+                addNewStrategyInputCard('Strategy A', 'Conventional', '', '', '%', 6.50, '', '');
+                addNewStrategyInputCard('Strategy B', 'FHA', '', '', '%', 6.125, '', '');
+            });
+    });
+
+    function addNewStrategyInputCard(label = '', type = 'Conventional', price = '', downVal = '', downUnit = '%', rate = '', fees = '', closing = '') {
+        uniqueCardIndex++;
+        const id = uniqueCardIndex;
+        const deckContainer = document.getElementById('strategyDeckContainer');
+        const cardEl = document.createElement('div');
+        cardEl.className = 'strategy-card';
+        cardEl.id = `strategy_card_${id}`;
+        const cardLabel = label || `Strategy Profile ${id}`;
+        const matchedRate = rate || coreProgramRateRegistry[type] || 6.50;
+
+        cardEl.innerHTML = `
+            <div>
+                <div class="card-header-row">
+                    <h3><input type="text" class="input-profile-name" value="${cardLabel}" style="border:none; background:transparent; font-weight:900; font-size:1.05rem; color:var(--premier-charcoal); text-transform:uppercase; padding:0; width:80%;"></h3>
+                    <button class="btn-delete-card" onclick="deleteStrategyCardNode(${id})">Delete</button>
+                </div>
+                <div class="form-grid-stack">
+                    <div class="form-row-two-col">
+                        <div class="input-item-box">
+                            <label>Loan Program</label>
+                            <select class="input-loan-type" onchange="handleProgramTypeRateShift(${id}, this.value)">
+                                <option value="Conventional" ${type==='Conventional'?'selected':''}>Conventional</option>
+                                <option value="FHA" ${type==='FHA'?'selected':''}>Standard FHA</option>
+                                <option value="VA" ${type==='VA'?'selected':''}>VA Loan</option>
+                                <option value="Conventional-DPA" ${type==='Conventional-DPA'?'selected':''}>Conventional + WA DPA</option>
+                                <option value="FHA-DPA" ${type==='FHA-DPA'?'selected':''}>FHA + WA DPA</option>
+                            </select>
+                        </div>
+                        <div class="input-item-box">
+                            <label>Purchase Price ($)</label>
+                            <input type="number" class="input-purchase-price" id="price_${id}" value="${price}" oninput="evaluateCardUnderwritingConstraints(${id}, 'price')">
+                        </div>
+                    </div>
+                    <div class="form-row-two-col">
+                        <div class="input-item-box">
+                            <label>Interest Rate (%)</label>
+                            <input type="number" class="input-interest-rate" id="rate_${id}" value="${matchedRate}" step="0.125">
+                        </div>
+                        <div class="input-item-box">
+                            <label>Down Payment</label>
+                            <div class="down-payment-input-group">
+                                <input type="number" class="input-down-value" id="down_${id}" value="${downVal}" oninput="evaluateCardUnderwritingConstraints(${id}, 'down')">
+                                <select class="input-down-unit" id="unit_${id}" onchange="evaluateCardUnderwritingConstraints(${id}, 'unit')">
+                                    <option value="%" ${downUnit==='%'?'selected':''}>%</option>
+                                    <option value="$" ${downUnit==='$'?'selected':''}>$</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row-two-col">
+                        <div class="input-item-box">
+                            <label>Points &amp; Fees ($)</label>
+                            <input type="number" class="input-program-fees" id="fees_${id}" value="${fees}">
+                        </div>
+                        <div class="input-item-box">
+                            <label>Closing Costs ($)</label>
+                            <input type="number" class="input-closing-costs" id="closing_${id}" value="${closing}">
+                            <button type="button" class="btn-estimate-trigger" onclick="runAutoEstimateForCard(${id})">Estimate for me</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-duplicate-card" onclick="replicateStrategyCardNode(${id})">Duplicate Strategy</button>
+        `;
+        deckContainer.appendChild(cardEl);
+        evaluateCardUnderwritingConstraints(id, 'init');
+    }
+
+    function deleteStrategyCardNode(id) {
+        const node = document.getElementById(`strategy_card_${id}`);
+        if (node) node.remove();
+    }
+
+    function replicateStrategyCardNode(id) {
+        const card = document.getElementById(`strategy_card_${id}`);
+        if (!card) return;
+        addNewStrategyInputCard(
+            card.querySelector('.input-profile-name').value + ' Copy',
+            card.querySelector('.input-loan-type').value,
+            card.querySelector('.input-purchase-price').value,
+            card.querySelector('.input-down-value').value,
+            card.querySelector('.input-down-unit').value,
+            card.querySelector('.input-interest-rate').value,
+            card.querySelector('.input-program-fees').value,
+            card.querySelector('.input-closing-costs').value
+        );
+    }
+
+    function handleProgramTypeRateShift(id, val) {
+        const card = document.getElementById(`strategy_card_${id}`);
+        if (card) card.dataset.automated = "true";
+        const rateInput = document.getElementById(`rate_${id}`);
+        if (rateInput && coreProgramRateRegistry[val]) rateInput.value = coreProgramRateRegistry[val].toFixed(3);
+        evaluateCardUnderwritingConstraints(id, 'program');
+    }
+
+    function runAutoEstimateForCard(id) {
+        const price = parseFloat(document.getElementById(`price_${id}`).value) || 0;
+        const closingEl = document.getElementById(`closing_${id}`);
+        if (price > 0) {
+            const lenderFlatFees = 1250;
+            const escrowTitleClosingScale = (price * 0.004) + 1200;
+            const upfrontEscrowTaxes = price * 0.009;
+            let computedAnnualInsurance = 1200;
+            if (price > 500000) computedAnnualInsurance += (price - 500000) * (1800 / 1000000);
+            closingEl.value = Math.round(lenderFlatFees + escrowTitleClosingScale + upfrontEscrowTaxes + computedAnnualInsurance);
+        } else {
+            alert("Please enter a purchase price first to estimate closing costs.");
+        }
+    }
+
+    function evaluateCardUnderwritingConstraints(id, source) {
+        const card = document.getElementById(`strategy_card_${id}`);
+        if (!card) return;
+        const type = card.querySelector('.input-loan-type').value;
+        const price = parseFloat(document.getElementById(`price_${id}`).value) || 0;
+        const downValEl = document.getElementById('down_' + id);
+        const feesEl = document.getElementById('fees_' + id);
+        const unitEl = document.getElementById('unit_' + id);
+
+        if (source === 'down' || source === 'unit') card.dataset.automated = "false";
+        if (price === 0) return;
+
+        if (type.includes('DPA')) {
+            const isHighBalance = (price * 0.97 > conformingLoanCapBoundary);
+            if (card.dataset.automated !== "false") {
+                if (isHighBalance) {
+                    downValEl.value = Math.round(price * 0.01);
+                    unitEl.value = '$';
+                } else {
+                    downValEl.value = 0;
+                    unitEl.value = '$';
+                }
+                card.dataset.automated = "true";
+            }
+            if (isHighBalance) {
+                feesEl.value = Math.round((price * 0.95) * 0.02);
+            } else {
+                feesEl.value = Math.round(Math.min(price * 0.97, conformingLoanCapBoundary) * 0.01);
+            }
+        } else {
+            if (source === 'program') {
+                feesEl.value = '';
+                downValEl.value = (type === 'FHA') ? 3.5 : (type === 'VA' ? 0 : 5);
+                unitEl.value = '%';
+                card.dataset.automated = "false";
+            }
+        }
+    }
+
+    function calculateMortgageAmortization(principal, annualRate) {
+        if (principal <= 0) return 0;
+        const monthlyRate = (annualRate / 100) / 12;
+        const totalPaymentsCount = 360;
+        if (monthlyRate === 0) return principal / totalPaymentsCount;
+        return principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPaymentsCount)) / (Math.pow(1 + monthlyRate, totalPaymentsCount) - 1);
+    }
+
+    function processStrategyComparisonMatrix() {
+        const cards = document.querySelectorAll('.strategy-card');
+        const outputBody = document.getElementById('matrixTableBodyOutput');
+        if (cards.length === 0) return;
+        let outputBuffer = '';
+
+        cards.forEach(card => {
+            const id = card.id.replace('strategy_card_', '');
+            const profileName = card.querySelector('.input-profile-name').value || `Strategy ${id}`;
+            const programType = card.querySelector('.input-loan-type').value;
+            const price = parseFloat(document.getElementById(`price_${id}`).value) || 0;
+            const rate = parseFloat(document.getElementById(`rate_${id}`).value) || 0;
+            const downValue = parseFloat(document.getElementById(`down_${id}`).value) || 0;
+            const downUnit = document.getElementById(`unit_${id}`).value;
+            const programPoints = parseFloat(document.getElementById(`fees_${id}`).value) || 0;
+            const closingCosts = parseFloat(document.getElementById(`closing_${id}`).value) || 0;
+
+            let calculatedDownPaymentDollars = downValue;
+            if (downUnit === '%') calculatedDownPaymentDollars = price * (downValue / 100);
+
+            let principalFirstMortgage = price - calculatedDownPaymentDollars;
+            
+            if (programType.includes('DPA') && price > 0) {
+                if (price * 0.97 <= conformingLoanCapBoundary) {
+                    principalFirstMortgage = Math.min(price * 0.97, conformingLoanCapBoundary);
+                    calculatedDownPaymentDollars = 0;
+                } else {
+                    principalFirstMortgage = price * 0.95;
+                    calculatedDownPaymentDollars = price * 0.01;
+                }
+            }
+
+            const absoluteCashRequiredAtClosing = calculatedDownPaymentDollars + programPoints + closingCosts;
+            const monthlyPrincipalAndInterest = calculateMortgageAmortization(principalFirstMortgage, rate);
+
+            outputBuffer += `
+                <tr>
+                    <td class="cell-bold-headline">${profileName}<br><span style="font-size:0.75rem; color:#666; font-weight:700;">${programType} @ ${rate.toFixed(3)}%</span></td>
+                    <td>${formatCurrency(price)}</td>
+                    <td>${formatCurrency(principalFirstMortgage)}</td>
+                    <td>${formatCurrency(calculatedDownPaymentDollars)}</td>
+                    <td>${programPoints > 0 ? formatCurrency(programPoints) : '$0'}</td>
+                    <td>${formatCurrency(closingCosts)}</td>
+                    <td class="cell-cash-highlight">${formatCurrency(absoluteCashRequiredAtClosing)}</td>
+                    <td class="cell-payment-large">${formatCurrency(monthlyPrincipalAndInterest)}</td>
+                </tr>
+            `;
+        });
+
+        outputBody.innerHTML = outputBuffer;
+        document.getElementById('resultsCardWrapper').style.display = 'block';
+        document.getElementById('resultsCardWrapper').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function formatCurrency(num) {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+    }
+</script>

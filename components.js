@@ -1,4 +1,14 @@
-/* File: components.js */
+// Global Hamburger Menu Controller for Pre-Rendered Static Nunjucks templates
+document.addEventListener("DOMContentLoaded", function() {
+    const hamburger = document.querySelector('#hamburgerMenu');
+    const navMenu = document.querySelector('#navMenu');
+    if (hamburger && navMenu) {
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            navMenu.classList.toggle('active');
+        });
+    }
+});
 
 class UniversalHeader extends HTMLElement {
     connectedCallback() {
@@ -35,10 +45,12 @@ class UniversalHeader extends HTMLElement {
         const hamburger = this.querySelector('#hamburgerMenu');
         const navMenu = this.querySelector('#navMenu');
         
-        hamburger.addEventListener('click', () => {
-            hamburger.classList.toggle('active');
-            navMenu.classList.toggle('active');
-        });
+        if (hamburger && navMenu) {
+            hamburger.addEventListener('click', () => {
+                hamburger.classList.toggle('active');
+                navMenu.classList.toggle('active');
+            });
+        }
     }
 }
 
@@ -61,64 +73,31 @@ class UniversalFooter extends HTMLElement {
         `;
 
         const disclaimerBox = this.querySelector('#dynamic-disclaimers-box');
-        const disclaimersUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiu3qLYVO9khl6k5s_whzg_UZFzKu7-RHc5fa2tpe3aIlf4wm4IaqQeVd75enhpJvS_lxXgfQRfQ_/pub?gid=107250527&single=true&output=csv';
+        const disclaimersUrl = '/data/disclaimers.json';
 
         let currentPageName = window.location.pathname.toLowerCase().trim();
         if (currentPageName === "/" || currentPageName === "") {
             currentPageName = "index.html";
-        } else if (currentPageName.startsWith("/")) {
-            currentPageName = currentPageName.substring(1);
+        } else {
+            if (currentPageName.startsWith("/")) {
+                currentPageName = currentPageName.substring(1);
+            }
+            if (currentPageName.endsWith("/")) {
+                currentPageName = currentPageName.substring(0, currentPageName.length - 1);
+            }
+            if (!currentPageName.includes(".html")) {
+                const firstSegment = currentPageName.split('/')[0];
+                currentPageName = firstSegment + ".html";
+            }
         }
 
         try {
             const response = await fetch(disclaimersUrl);
-            if (!response.ok) throw new Error('Data endpoint unreachable');
-            const csvText = await response.text();
+            if (!response.ok) throw new Error('Disclaimers file unreachable');
+            const disclaimers = await response.json();
 
-            const parseCSVRows = (text) => {
-                const lines = [];
-                let row = [""];
-                let inQuotes = false;
-
-                for (let i = 0; i < text.length; i++) {
-                    let char = text[i];
-                    let nextChar = text[i+1];
-                    if (char === '"') {
-                        if (inQuotes && nextChar === '"') { row[row.length - 1] += '"'; i++; }
-                        else { inQuotes = !inQuotes; }
-                    } else if (char === ',' && !inQuotes) {
-                        row.push('');
-                    } else if ((char === '\r' || char === '\n') && !inQuotes) {
-                        if (char === '\r' && nextChar === '\n') { i++; }
-                        lines.push(row);
-                        row = [''];
-                    } else {
-                        row[row.length - 1] += char;
-                    }
-                }
-                if (row.length > 1 || row[0] !== '') lines.push(row);
-                return lines;
-            };
-
-            const allRows = parseCSVRows(csvText);
-            if (allRows.length < 2) { disclaimerBox.style.display = 'none'; return; }
-
-            let siteWideText = '';
-            let pageSpecificText = '';
-
-            for (let i = 1; i < allRows.length; i++) {
-                const row = allRows[i];
-                if (!row || row.length < 2) continue;
-
-                const targetKey = row[0].trim().toLowerCase();
-                const textValue = row[1].trim();
-
-                if (targetKey === 'site') {
-                    siteWideText = textValue;
-                } else if (targetKey === currentPageName) {
-                    pageSpecificText = textValue;
-                }
-            }
+            const siteWideText = disclaimers.site || '';
+            const pageSpecificText = disclaimers[currentPageName] || '';
 
             let outputMarkup = '';
             if (siteWideText) {

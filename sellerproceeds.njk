@@ -1,0 +1,1064 @@
+---
+layout: base.njk
+title: Sellers Estimated Net Proceeds | Joe Sheldon
+permalink: /sellerproceeds.html
+---
+
+<style>
+    .proceeds-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+        min-height: 75vh;
+        box-sizing: border-box;
+    }
+    .compare-header-box {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .action-buttons-wrapper {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-top: 0.5rem;
+    }
+    .control-card {
+        background: #f4f6f8;
+        border-top: 6px solid var(--premier-charcoal);
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+        margin-bottom: 2.5rem;
+        box-sizing: border-box;
+        width: 100%;
+    }
+    .control-card h3 {
+        margin: 0 0 1.5rem 0;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--premier-charcoal);
+        border-bottom: 2px solid #e0e0e0;
+        padding-bottom: 0.5rem;
+        text-align: center;
+    }
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+        width: 100%;
+    }
+    @media (min-width: 600px) {
+        .form-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 950px) {
+        .form-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    .input-element-box {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        text-align: left;
+        position: relative;
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    .input-element-box label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #555555;
+    }
+    .input-element-box input, .input-element-box select {
+        padding: 0.6rem 0.75rem;
+        border: 2px solid #ccc;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        color: #222;
+        background: #ffffff;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        display: block;
+    }
+    .input-element-box input:focus, .input-element-box select:focus {
+        border-color: var(--card-accent-color);
+        outline: none;
+    }
+    
+    .span-2 { grid-column: span 2; }
+    
+    .currency-prefix-container {
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .currency-prefix-container .prefix-symbol {
+        position: absolute;
+        left: 0.65rem;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #555555;
+        pointer-events: none;
+        user-select: none;
+    }
+    .currency-prefix-container input {
+        padding-left: 1.5rem !important;
+    }
+    
+    .amt-input-wide { width: 130px; flex-shrink: 0; }
+    .amt-input-medium { width: 100px; flex-shrink: 0; }
+    
+    .custom-add-row {
+        display: flex;
+        gap: 0.5rem;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .settlement-options-flex {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        width: 100%;
+    }
+    .settlement-option-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #333;
+        cursor: pointer;
+        user-select: none;
+    }
+    .checkbox-item input[type="checkbox"] {
+        width: auto;
+        margin: 0;
+        cursor: pointer;
+    }
+
+    .checkbox-group-wrapper {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        padding-top: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .autocomplete-suggestions {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #ffffff;
+        border: 1px solid #ccc;
+        border-top: none;
+        border-radius: 0 0 6px 6px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 999;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .autocomplete-suggestion {
+        padding: 0.6rem 0.75rem;
+        cursor: pointer;
+        font-size: 0.88rem;
+        color: #333;
+        border-bottom: 1px solid #f0f0f0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .autocomplete-suggestion:hover {
+        background: #f4f6f8;
+        color: #000;
+    }
+
+    .btn-calculate {
+        grid-column: 1 / -1;
+        padding: 1rem;
+        background: var(--card-accent-color);
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+        margin-top: 0.5rem;
+        width: 100%;
+        box-sizing: border-box;
+        display: block;
+        line-height: 1.2;
+    }
+    .btn-calculate:hover { background: #9c2424; }
+
+    .print-trigger-btn {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+        font-weight: 700;
+        border: 2px solid var(--card-accent-color);
+        border-radius: 6px;
+        background: #ffffff;
+        color: #333;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .print-trigger-btn:hover {
+        background: var(--card-accent-color);
+        color: #ffffff;
+    }
+
+    @media (max-width: 600px) {
+        .control-card { padding: 1.25rem; }
+        .span-2 { grid-column: span 1 !important; }
+        .custom-add-row { flex-direction: column; gap: 0.5rem; }
+        .custom-add-row .currency-prefix-container, .custom-add-row .amt-input-wide { width: 100% !important; }
+        .settlement-option-row { flex-direction: column; align-items: flex-start; gap: 0.5rem; background: #ffffff; padding: 0.75rem; border: 1px solid #ccc; border-radius: 6px; width: 100%; box-sizing: border-box; }
+        .settlement-option-row .currency-prefix-container, .settlement-option-row .amt-input-medium { width: 100% !important; }
+        .btn-calculate { padding: 1.1rem 1rem; }
+    }
+
+    .results-wrapper {
+        display: none;
+        animation: paneFadeIn 0.4s ease-in-out;
+    }
+    @keyframes paneFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .summary-qr-flex-container {
+        width: 100%;
+    }
+
+    .net-summary-box {
+        background-color: #ffffff;
+        border-left: 4px solid var(--card-accent-color);
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    .net-total-number {
+        font-size: 2.2rem;
+        font-weight: 900;
+        color: var(--card-accent-color);
+        margin: 0.15rem 0;
+        line-height: 1;
+    }
+
+    .table-scroll-container { 
+        width: 100%;
+        overflow-x: auto; 
+        margin-top: 1rem; 
+        background: #ffffff; 
+        border-radius: 12px; 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04); 
+        border: 1px solid #eaeaea;
+        -webkit-overflow-scrolling: touch;
+    }
+    .ledger-table { 
+        width: 100%;
+        border-collapse: collapse; 
+        text-align: left; 
+        min-width: 550px;
+    }
+    .ledger-table th { background: #f4f6f8; font-size: 0.75rem; font-weight: 900; text-transform: uppercase; color: #555; padding: 0.85rem; border-bottom: 2px solid #000; }
+    .ledger-table td { padding: 0.85rem; font-size: 0.9rem; font-weight: 700; color: #333; border-bottom: 1px solid #eef0f2; }
+    .ledger-table tr.section-row td { background: #fdfdfd; font-size: 0.95rem; font-weight: 800; color: var(--card-accent-color); border-bottom: 1px solid #eaeaea; padding: 0.6rem 1rem; }
+    .ledger-table tr.total-summary-row td { background: #f4f6f8; font-size: 1.05rem; font-weight: 900; border-top: 2px solid #000000; border-bottom: 2px double #000000; padding: 1rem 0.85rem; }
+    .ledger-table tr:hover td { background: #fafafa; }
+    
+    .label-sub { display: block; font-size: 0.75rem; color: #666; font-weight: 500; margin-top: 0.1rem; }
+    .val-cost { color: var(--card-accent-color); }
+    .val-credit { color: #137333; }
+
+    .partner-block {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        background: #fdfdfd;
+        border: 1px solid #eaeaea;
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-top: 2rem;
+        align-items: center;
+        text-align: left;
+    }
+    @media (min-width: 600px) {
+        .partner-block { grid-template-columns: 120px 1fr; gap: 1.5rem; }
+    }
+    .partner-logo-box {
+        width: 120px;
+        height: 65px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #ffffff;
+        border: 2px solid var(--premier-beige);
+        border-radius: 8px;
+        padding: 0.6rem;
+        box-sizing: border-box;
+        margin: 0 auto;
+    }
+    .partner-logo-box img { 
+        max-width: 100%; 
+        max-height: 100%; 
+        object-fit: contain; 
+        display: block; 
+    }
+    .partner-info h4 { margin: 0 0 0.25rem 0; font-size: 1.15rem; font-weight: 900; color: var(--premier-charcoal); }
+    .partner-info p { margin: 0; font-size: 0.88rem; color: #555; line-height: 1.4; }
+
+    .print-only-layout { display: none; }
+
+    /* ==========================================
+           HIGH-IMPACT ANALYSIS PRINT STYLESHEET
+           ========================================== */
+    @media print {
+        @page {
+            size: letter;
+            margin: 0.25in;
+        }
+        body {
+            background: #ffffff !important;
+            color: #000000 !important;
+            font-size: 7.5pt !important;
+            line-height: 1.1 !important;
+            padding: 0 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        universal-header, universal-footer, .compare-header-box,
+        .control-card, .print-trigger-btn, .build-freshness-wrapper {
+            display: none !important;
+        }
+        .print-only-layout {
+            display: flex !important;
+        }
+        .print-only-header {
+            display: block !important;
+            width: 100% !important;
+            margin-bottom: 6px !important;
+        }
+        .print-only-header h1 {
+            font-size: 16pt !important;
+        }
+        .results-wrapper {
+            display: block !important;
+        }
+        .summary-qr-flex-container {
+            display: flex !important;
+            gap: 0.5rem !important;
+            align-items: stretch !important;
+            margin-bottom: 0.3rem !important;
+            width: 100% !important;
+        }
+        .net-summary-box {
+            flex: 1 !important;
+            padding: 0.3rem !important;
+            border-radius: 4px !important;
+            border: 1.5px solid #000000 !important;
+            border-left: 5px solid var(--card-accent-color) !important;
+            box-shadow: none !important;
+            background: #ffffff !important;
+            margin-bottom: 0 !important;
+        }
+        .net-total-number {
+            font-size: 14pt !important;
+        }
+        .print-qr-container {
+            display: flex !important;
+            flex: 0 0 280px !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+            border: 1.5px solid #000000 !important;
+            padding: 0.3rem !important;
+            border-radius: 6px !important;
+            margin-top: 0 !important;
+            page-break-inside: avoid !important;
+            background: #ffffff !important;
+        }
+        .print-qr-container img {
+            width: 70px !important;
+            height: 70px !important;
+            border: 1px solid #000000 !important;
+            box-sizing: border-box !important;
+        }
+        .print-qr-container span {
+            font-size: 7pt !important;
+            line-height: 1.1 !important;
+        }
+        .table-scroll-container {
+            box-shadow: none !important;
+            border: none !important;
+            margin-top: 0.15rem !important;
+            overflow: visible !important;
+        }
+        .ledger-table th {
+            background: #f4f6f8 !important;
+            color: #000000 !important;
+            border-bottom: 2px solid #000000 !important;
+            font-weight: 900 !important;
+            font-size: 7.5pt !important;
+            padding: 0.25rem 4px !important;
+        }
+        .ledger-table td {
+            border-bottom: 1px solid #e0e0e0 !important;
+            padding: 0.2rem 4px !important;
+            font-size: 7.5pt !important;
+        }
+        .ledger-table tr.section-row td {
+            background: #eaeaea !important;
+            color: #000000 !important;
+            font-weight: 900 !important;
+            border-bottom: 1.5px solid #000000 !important;
+            font-size: 8pt !important;
+            padding: 0.2rem 4px !important;
+        }
+        .ledger-table tr.total-summary-row td {
+            padding: 0.3rem 4px !important;
+            font-size: 9pt !important;
+            border-top: 2px solid #000000 !important;
+            border-bottom: 2px double #000000 !important;
+        }
+        .partner-block {
+            display: grid !important;
+            grid-template-columns: 70px 1fr !important;
+            margin-top: 0.3rem !important;
+            border: 1.5px solid #000000 !important;
+            border-radius: 6px !important;
+            padding: 0.3rem !important;
+            gap: 0.5rem !important;
+            page-break-inside: avoid !important;
+        }
+        .partner-logo-box {
+            width: 70px !important;
+            height: 42px !important;
+            padding: 0.35rem !important;
+            border: 1px solid #000000 !important;
+        }
+        .partner-info h4 {
+            font-size: 9pt !important;
+        }
+        .partner-info p {
+            font-size: 7.5pt !important;
+        }
+        .compliance-disclaimer-text {
+            font-size: 6.5pt !important;
+            margin-top: 0.3rem !important;
+        }
+    }
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+<div class="proceeds-container">
+    <div class="compare-header-box">
+        <h1 style="font-size: 2.6rem; font-weight: 900; color: var(--card-accent-color); margin-bottom: 0.5rem;">Sellers Estimated Net Proceeds</h1>
+        <p class="intro" style="margin-bottom: 0.75rem;">See exactly what you will walk away with after paying off existing loans and standard transaction costs.</p>
+    </div>
+
+    <section class="control-card">
+        <h3>Property &amp; Transaction Details</h3>
+        <div class="form-grid">
+            
+            <div class="input-element-box span-2">
+                <label for="inSellerName">Seller Name</label>
+                <input type="text" id="inSellerName" placeholder="Leave blank or type name">
+            </div>
+
+            <div class="input-element-box span-2">
+                <label for="inSellerAddress">Property Address</label>
+                <input type="text" id="inSellerAddress" placeholder="Type address to search..." oninput="handleAddressAutocompleteSearch(this)" autocomplete="off">
+                <div id="addressSuggestions" class="autocomplete-suggestions" style="display: none;"></div>
+            </div>
+
+            <div class="input-element-box">
+                <label for="inPrice">Target Sale Price ($)</label>
+                <div class="currency-prefix-container">
+                    <span class="prefix-symbol">$</span>
+                    <input type="text" id="inPrice" placeholder="Enter price" oninput="formatPriceInput(this)">
+                </div>
+            </div>
+
+            <div class="input-element-box">
+                <label for="inCounty">Property County</label>
+                <select id="inCounty">
+                    <option value="King">King County</option>
+                    <option value="Snohomish">Snohomish County</option>
+                </select>
+            </div>
+
+            <div class="input-element-box">
+                <label for="inBalance">1st Mortgage Payoff ($)</label>
+                <div class="currency-prefix-container">
+                    <span class="prefix-symbol">$</span>
+                    <input type="text" id="inBalance" placeholder="0" oninput="formatGeneralCurrencyInput(this)">
+                </div>
+            </div>
+
+            <div class="input-element-box">
+                <label for="inBalance2">2nd Mortgage Payoff ($)</label>
+                <div class="currency-prefix-container">
+                    <span class="prefix-symbol">$</span>
+                    <input type="text" id="inBalance2" placeholder="0" oninput="formatGeneralCurrencyInput(this)">
+                </div>
+            </div>
+
+            <div class="input-element-box">
+                <label for="inClosingDate">Target Closing Date</label>
+                <input type="date" id="inClosingDate">
+            </div>
+
+            <div class="input-element-box">
+                <label for="inListingPackage">Listing Package</label>
+                <select id="inListingPackage">
+                    <option value="2.0">Base Listing Package (2.0%)</option>
+                    <option value="3.0">Full Premium Concierge (3.0%)</option>
+                </select>
+            </div>
+
+            <div class="input-element-box">
+                <label for="inBuyerComp">Buyer Agent Compensation (%)</label>
+                <input type="number" id="inBuyerComp" value="2.5" step="0.1">
+            </div>
+
+            <div class="input-element-box">
+                <label for="inTaxAmount">Annual Property Tax ($)</label>
+                <div class="currency-prefix-container">
+                    <span class="prefix-symbol">$</span>
+                    <input type="text" id="inTaxAmount" placeholder="Calculated at 0.9%" oninput="formatGeneralCurrencyInput(this); triggerTaxManualOverrideState();">
+                </div>
+            </div>
+
+            <div class="input-element-box span-2">
+                <label>Current Tax Payments</label>
+                <div class="checkbox-group-wrapper" style="padding-top: 0.6rem;">
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="chkFirstHalf"> First Half Paid
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="chkSecondHalf"> Second Half Paid
+                    </label>
+                </div>
+            </div>
+
+            <div class="input-element-box span-2">
+                <label>Additional Expenses 1</label>
+                <div class="custom-add-row">
+                    <input type="text" id="inOtherLabel1" placeholder="Label (e.g. Septic Pumping)" style="flex: 1;">
+                    <div class="currency-prefix-container amt-prefix-box amt-input-wide">
+                        <span class="prefix-symbol">$</span>
+                        <input type="text" id="inOtherAmt1" placeholder="Amount" class="amt-input-wide" oninput="formatGeneralCurrencyInput(this)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-element-box span-2">
+                <label>Additional Expenses 2</label>
+                <div class="custom-add-row">
+                    <input type="text" id="inOtherLabel2" placeholder="Label (e.g. Work Orders)" style="flex: 1;">
+                    <div class="currency-prefix-container amt-prefix-box amt-input-wide">
+                        <span class="prefix-symbol">$</span>
+                        <input type="text" id="inOtherAmt2" placeholder="Amount" class="amt-input-wide" oninput="formatGeneralCurrencyInput(this)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-element-box span-2">
+                <label>Additional Expenses Options</label>
+                <div class="settlement-options-flex">
+                    <div class="settlement-option-row">
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="chkPreInspection"> Pre-inspection
+                        </label>
+                        <div class="currency-prefix-container amt-prefix-box amt-input-medium">
+                            <span class="prefix-symbol">$</span>
+                            <input type="text" id="inPreInspectCost" value="550" class="amt-input-medium" oninput="formatGeneralCurrencyInput(this)">
+                        </div>
+                    </div>
+                    <div class="settlement-option-row">
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="chkHoaCert"> HOA Resale Certificate
+                        </label>
+                        <div class="currency-prefix-container amt-prefix-box amt-input-medium">
+                            <span class="prefix-symbol">$</span>
+                            <input type="text" id="inHoaCertCost" value="300" class="amt-input-medium" oninput="formatGeneralCurrencyInput(this)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-calculate" onclick="calculateNetProceeds()">Calculate Estimated Proceeds</button>
+
+            <div id="calcActionButtons" class="no-print-section" style="display: none; justify-content: center; gap: 0.75rem; flex-wrap: wrap; grid-column: 1 / -1; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed #ccc;">
+                <button onclick="triggerSecurePrintWorkflow()" class="print-trigger-btn" title="Print Statement">
+                    🖨️ Print Net Worksheet
+                </button>
+                <button id="btnCopyWorksheetLink" onclick="copyWorksheetDeepLinkToClipboard()" class="print-trigger-btn">
+                     🔗 Copy Worksheet Link
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <div class="results-wrapper" id="resultsWrapper">
+
+        <div id="printHeaderNode" class="print-only-header">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid var(--card-accent-color); padding-bottom: 8px; margin-bottom: 12px;">
+                <div>
+                    <h1 style="margin:0; font-size: 2.4rem; font-weight: 900; color: var(--card-accent-color); letter-spacing: -0.5px;">ESTIMATED NET PROCEEDS</h1>
+                    <p style="margin: 3px 0 0 0; font-size: 1rem; font-weight: 800; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">Sellers Financial Settlement Worksheet</p>
+                </div>
+                <div style="text-align: right;">
+                    <h3 style="margin:0; font-size: 1.3rem; font-weight: 900; color: var(--premier-charcoal);">Joe Sheldon</h3>
+                    <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: #555;">myseattlesearch.com</p>
+                </div>
+            </div>
+            <div style="margin-bottom: 10px; font-size: 10pt; line-height: 1.3; color: #000; text-align: left;">
+                <strong>Prepared For:</strong> <span id="printSellerName">Not Specified</span><br>
+                <strong>Property Address:</strong> <span id="printSellerAddress">Not Specified</span>
+            </div>
+        </div>
+
+        <div class="summary-qr-flex-container">
+            <div class="net-summary-box">
+                <h2 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: var(--premier-charcoal);">Estimated Net Cash to Seller</h2>
+                <div class="net-total-number" id="txtNetProceeds">$0</div>
+                <p style="max-width: 800px; margin: 0.15rem auto 0 auto; font-size: 0.88rem; color: #555;">Estimated cash remaining after paying off loans and closing costs.</p>
+            </div>
+
+            <div class="print-qr-container print-only-layout" style="align-items: center; border: 1.5px solid #000000; padding: 0.5rem; border-radius: 6px;">
+                <img id="printQrCodeImg" src="" alt="Dynamic Scenario QR Code" style="width: 70px; height: 70px; flex-shrink: 0; background: #fff; border: 1px solid #000; display: block;">
+                <div style="text-align: left;">
+                    <strong style="font-size: 8.5pt; color: #000; display: block; margin-bottom: 0.15rem;">Scan to Explore Scenarios</strong>
+                    <span style="font-size: 7.5pt; color: #333; line-height: 1.1; display: block;">Scan this code to return to this live worksheet. You can modify purchase price, limits, or recalculate options instantly.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-scroll-container">
+            <table class="ledger-table">
+                <thead>
+                    <tr>
+                        <th>Settlement Line Item</th>
+                        <th>Credit to Seller</th>
+                        <th>Cost to Seller</th>
+                    </tr>
+                </thead>
+                <tbody id="ledgerTableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="partner-block">
+            <div class="partner-logo-box">
+                <img src="assets/images/rocket-close-logo.png" alt="Rocket Close Logo" onerror="this.src='https://placehold.co/120x60?text=Rocket+Close'">
+            </div>
+            <div class="partner-info">
+                <h4>Rocket Close</h4>
+                <p>Preferred settlement partner. Title and escrow closing services are processed smoothly through Rocket Close.</p>
+            </div>
+        </div>
+
+        <div class="compliance-disclaimer-text">
+            Information Notice: Prorated allocations and transaction outlays listed are examples for general planning. Final settlement paperwork is verified by a licensed escrow officer before closing.
+        </div>
+    </div>
+</div>
+
+<script>
+    let isTaxManual = false;
+    let autocompleteDebounceTimer = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const today = new Date();
+         
+        const defaultClosing = new Date();
+        defaultClosing.setDate(today.getDate() + 30);
+        
+        const monthStr = String(defaultClosing.getMonth() + 1).padStart(2, '0');
+        const dayStr = String(defaultClosing.getDate()).padStart(2, '0');
+        document.getElementById('inClosingDate').value = `${defaultClosing.getFullYear()}-${monthStr}-${dayStr}`;
+
+        const currentYear = today.getFullYear();
+        const aprilDueLimit = new Date(currentYear, 3, 30);
+        const octoberDueLimit = new Date(currentYear, 9, 31);
+
+        if (today > aprilDueLimit) {
+            document.getElementById('chkFirstHalf').checked = true;
+        }
+        if (today > octoberDueLimit) {
+            document.getElementById('chkSecondHalf').checked = true;
+        }
+
+        document.addEventListener('click', (e) => {
+            const suggestionsBox = document.getElementById('addressSuggestions');
+            if (!document.getElementById('inSellerAddress').contains(e.target) && !suggestionsBox.contains(e.target)) {
+                suggestionsBox.style.display = 'none';
+            }
+        });
+
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('p') || params.has('n') || params.has('ad')) {
+            if (params.get('n')) document.getElementById('inSellerName').value = params.get('n');
+            if (params.get('ad')) document.getElementById('inSellerAddress').value = params.get('ad');
+            if (params.get('p')) {
+                const priceVal = parseInt(params.get('p'), 10);
+                if (!isNaN(priceVal)) document.getElementById('inPrice').value = priceVal.toLocaleString('en-US');
+            }
+            if (params.get('b1')) {
+                const val = parseInt(params.get('b1'), 10);
+                if (!isNaN(val)) document.getElementById('inBalance').value = val.toLocaleString('en-US');
+            }
+            if (params.get('b2')) {
+                const val = parseInt(params.get('b2'), 10);
+                if (!isNaN(val)) document.getElementById('inBalance2').value = val.toLocaleString('en-US');
+            }
+            if (params.get('t')) {
+                const val = parseInt(params.get('t'), 10);
+                if (!isNaN(val)) document.getElementById('inTaxAmount').value = val.toLocaleString('en-US');
+                isTaxManual = true;
+            }
+            if (params.get('lp')) document.getElementById('inListingPackage').value = params.get('lp');
+            if (params.get('bc')) document.getElementById('inBuyerComp').value = params.get('bc');
+            if (params.get('l1')) document.getElementById('inOtherLabel1').value = params.get('l1');
+            if (params.get('v1')) {
+                const val = parseInt(params.get('v1'), 10);
+                if (!isNaN(val)) document.getElementById('inOtherAmt1').value = val.toLocaleString('en-US');
+            }
+            if (params.get('l2')) document.getElementById('inOtherLabel2').value = params.get('l2');
+            if (params.get('v2')) {
+                const val = parseInt(params.get('v2'), 10);
+                if (!isNaN(val)) document.getElementById('inOtherAmt2').value = val.toLocaleString('en-US');
+            }
+            
+            if (params.get('pi') === '1') document.getElementById('chkPreInspection').checked = true;
+            if (params.get('piv')) {
+                const val = parseInt(params.get('piv'), 10);
+                if (!isNaN(val)) document.getElementById('inPreInspectCost').value = val.toLocaleString('en-US');
+            }
+            if (params.get('h') === '1') document.getElementById('chkHoaCert').checked = true;
+            if (params.get('hv')) {
+                const val = parseInt(params.get('hv'), 10);
+                if (!isNaN(val)) document.getElementById('inHoaCertCost').value = val.toLocaleString('en-US');
+            }
+
+            calculateNetProceeds();
+        }
+    });
+
+    function triggerTaxManualOverrideState() {
+        isTaxManual = true;
+    }
+
+    function handleAddressAutocompleteSearch(inputEl) {
+        clearTimeout(autocompleteDebounceTimer);
+        const suggestionsBox = document.getElementById('addressSuggestions');
+        const queryText = inputEl.value.trim();
+
+        if (queryText.length < 4) {
+            suggestionsBox.style.display = 'none';
+            return;
+        }
+
+        autocompleteDebounceTimer = setTimeout(async () => {
+            try {
+                const searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryText)}&countrycodes=us&limit=5`;
+                const res = await fetch(searchUrl, { headers: { 'Accept-Language': 'en' } });
+                 
+                if (!res.ok) return;
+                
+                const matches = await res.json();
+                if (matches.length === 0) {
+                    suggestionsBox.style.display = 'none';
+                    return;
+                }
+
+                suggestionsBox.innerHTML = matches.map(place => {
+                    return `<div class="autocomplete-suggestion" onclick="selectAutocompleteAddress('${place.display_name.replace(/'/g, "\\'")}')">${place.display_name}</div>`;
+                }).join('');
+                suggestionsBox.style.display = 'block';
+            } catch (err) {
+                console.error("Location lookup network threshold timeout:", err);
+            }
+        }, 400);
+    }
+
+    function selectAutocompleteAddress(selectedText) {
+        document.getElementById('inSellerAddress').value = selectedText;
+        document.getElementById('addressSuggestions').style.display = 'none';
+        
+        const cleanLower = selectedText.toLowerCase();
+        if (cleanLower.includes('snohomish')) {
+            document.getElementById('inCounty').value = 'Snohomish';
+        } else if (cleanLower.includes('king')) {
+            document.getElementById('inCounty').value = 'King';
+        }
+    }
+
+    function formatPriceInput(input) {
+        let value = input.value.replace(/[^0-9]/g, "");
+        if (value !== "") {
+            const numValue = parseInt(value, 10);
+            input.value = numValue.toLocaleString('en-US');
+            
+            if (!isTaxManual) {
+                document.getElementById('inTaxAmount').value = Math.round(numValue * 0.009).toLocaleString('en-US');
+            }
+        } else {
+            if (!isTaxManual) {
+                document.getElementById('inTaxAmount').value = "";
+            }
+        }
+    }
+
+    function formatGeneralCurrencyInput(input) {
+        let value = input.value.replace(/[^0-9]/g, "");
+        if (value !== "") {
+            input.value = parseInt(value, 10).toLocaleString('en-US');
+        }
+    }
+
+    function parseFormattedValue(id) {
+        const rawStr = document.getElementById(id).value || '0';
+        return parseFloat(rawStr.replace(/[^0-9.-]+/g, "")) || 0;
+    }
+
+    function formatCurrency(value) {
+        if (value < 0) {
+            return '-$' + Math.round(Math.abs(value)).toLocaleString('en-US');
+        }
+        return '$' + Math.round(value).toLocaleString('en-US');
+    }
+
+    function calculateWashingtonStateREET(price) {
+        let reetStateTotal = 0;
+        const tier1Cap = 525000;
+        const tier2Cap = 1525000;
+        const tier3Cap = 3025000;
+        if (price <= tier1Cap) {
+            reetStateTotal += price * 0.0110;
+        } else {
+            reetStateTotal += tier1Cap * 0.0110;
+            if (price <= tier2Cap) {
+                reetStateTotal += (price - tier1Cap) * 0.0128;
+            } else {
+                reetStateTotal += (tier2Cap - tier1Cap) * 0.0128;
+                if (price <= tier3Cap) {
+                    reetStateTotal += (price - tier2Cap) * 0.0275;
+                } else {
+                    reetStateTotal += (tier3Cap - tier2Cap) * 0.0275;
+                    reetStateTotal += (price - tier3Cap) * 0.0300;
+                }
+            }
+        }
+
+        const reetLocalTotal = price * 0.0050;
+        return reetStateTotal + reetLocalTotal;
+    }
+
+    function buildDeepLinkedScenarioUrl() {
+        return window.location.origin + window.location.pathname +
+            `?n=${encodeURIComponent(document.getElementById('inSellerName').value)}` +
+            `&ad=${encodeURIComponent(document.getElementById('inSellerAddress').value)}` +
+            `&p=${(document.getElementById('inPrice').value || '0').replace(/[^0-9]/g, "")}` +
+            `&b1=${(document.getElementById('inBalance').value || '0').replace(/[^0-9]/g, "")}` +
+            `&b2=${(document.getElementById('inBalance2').value || '0').replace(/[^0-9]/g, "")}` +
+            `&t=${(document.getElementById('inTaxAmount').value || '0').replace(/[^0-9]/g, "")}` +
+            `&lp=${document.getElementById('inListingPackage').value}` +
+            `&bc=${document.getElementById('inBuyerComp').value}` +
+            `&l1=${encodeURIComponent(document.getElementById('inOtherLabel1').value)}` +
+            `&v1=${(document.getElementById('inOtherAmt1').value || '0').replace(/[^0-9]/g, "")}` +
+            `&l2=${encodeURIComponent(document.getElementById('inOtherLabel2').value)}` +
+            `&v2=${(document.getElementById('inOtherAmt2').value || '0').replace(/[^0-9]/g, "")}` +
+            `&pi=${document.getElementById('chkPreInspection').checked ? '1' : '0'}` +
+            `&piv=${(document.getElementById('inPreInspectCost').value || '0').replace(/[^0-9]/g, "")}` +
+            `&h=${document.getElementById('chkHoaCert').checked ? '1' : '0'}` +
+            `&hv=${(document.getElementById('inHoaCertCost').value || '0').replace(/[^0-9]/g, "")}`;
+    }
+
+    function copyWorksheetDeepLinkToClipboard() {
+        const compiledLink = buildDeepLinkedScenarioUrl();
+        navigator.clipboard.writeText(compiledLink).then(() => {
+            const btn = document.getElementById('btnCopyWorksheetLink');
+            btn.textContent = "✓ Link Copied!";
+            setTimeout(() => {
+                btn.textContent = "🔗 Copy Worksheet Link";
+            }, 2000);
+        }).catch(err => {
+            console.error("Clipboard capture exception flag:", err);
+        });
+    }
+
+    function triggerSecurePrintWorkflow() {
+        const targetScenarioUrl = buildDeepLinkedScenarioUrl();
+        const qrImageNode = document.getElementById('printQrCodeImg');
+        
+        const originalTitle = document.title;
+        const sellerName = document.getElementById('inSellerName').value.trim() || "Client Profile";
+        const today = new Date();
+        const monthStr = String(today.getMonth() + 1).padStart(2, '0');
+        const dayStr = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${monthStr}-${dayStr}-${today.getFullYear()}`;
+        
+        document.title = `${sellerName} - Estimated Net Proceeds - ${dateStr}`;
+        
+        qrImageNode.onload = function() {
+            window.print();
+            setTimeout(() => {
+                document.title = originalTitle;
+            }, 1000);
+        };
+        
+        qrImageNode.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=0&data=${encodeURIComponent(targetScenarioUrl)}`;
+    }
+
+    function calculateNetProceeds() {
+        const salePrice = parseFormattedValue('inPrice');
+        const mortgagePayoff = parseFormattedValue('inBalance');
+        const mortgagePayoff2 = parseFormattedValue('inBalance2');
+        
+        const listingPct = parseFloat(document.getElementById('inListingPackage').value) || 2.0;
+        const buyerAgentPct = parseFloat(document.getElementById('inBuyerComp').value) || 2.5;
+        const closingDateValue = document.getElementById('inClosingDate').value;
+
+        if (salePrice <= 0) {
+            alert("Please enter a valid property sale price.");
+            return;
+        }
+
+        document.getElementById('calcActionButtons').style.display = 'flex';
+
+        document.getElementById('printSellerName').textContent = document.getElementById('inSellerName').value || "Client Profile";
+        document.getElementById('printSellerAddress').textContent = document.getElementById('inSellerAddress').value || "Not Specified";
+
+        const listingBrokerFee = salePrice * (listingPct / 100);
+        const buyerBrokerFee = salePrice * (buyerAgentPct / 100);
+        const realEstateExciseTax = calculateWashingtonStateREET(salePrice);
+
+        const escrowClosingCost = (salePrice * 0.0004) + 958.51;
+        const ownerTitlePolicyCost = (salePrice * 0.0012) + 1143.82;
+        const standardDocPrepFee = 100.00;
+        const localRecordingFilingFee = 303.50;
+        const calculatedTaxAmount = parseFormattedValue('inTaxAmount') || (salePrice * 0.009);
+        const closingDate = closingDateValue ? new Date(closingDateValue + 'T12:00:00') : new Date();
+        const closingYear = closingDate.getFullYear();
+        
+        const startOfYear = new Date(closingYear, 0, 1);
+        const millisecondsInDay = 24 * 60 * 60 * 1000;
+        const daysElapsed = Math.floor((closingDate - startOfYear) / millisecondsInDay) + 1;
+        const sellerResponsibleTax = (daysElapsed / 365) * calculatedTaxAmount;
+
+        const firstHalfPaid = document.getElementById('chkFirstHalf').checked;
+        const secondHalfPaid = document.getElementById('chkSecondHalf').checked;
+        
+        let totalTaxPaidBySeller = 0;
+        if (firstHalfPaid) totalTaxPaidBySeller += calculatedTaxAmount * 0.5;
+        if (secondHalfPaid) totalTaxPaidBySeller += calculatedTaxAmount * 0.5;
+
+        const taxProrationResult = sellerResponsibleTax - totalTaxPaidBySeller;
+        let totalSellerCosts = mortgagePayoff + mortgagePayoff2 + listingBrokerFee + buyerBrokerFee + realEstateExciseTax + escrowClosingCost + ownerTitlePolicyCost + standardDocPrepFee + localRecordingFilingFee;
+        if (taxProrationResult > 0) {
+            totalSellerCosts += taxProrationResult;
+        }
+
+        const otherLabel1 = document.getElementById('inOtherLabel1').value || 'Additional Expense 1';
+        const otherAmt1 = parseFormattedValue('inOtherAmt1');
+        if (otherAmt1 > 0) totalSellerCosts += otherAmt1;
+
+        const otherLabel2 = document.getElementById('inOtherLabel2').value || 'Additional Expense 2';
+        const otherAmt2 = parseFormattedValue('inOtherAmt2');
+        if (otherAmt2 > 0) totalSellerCosts += otherAmt2;
+
+        const preInspectChecked = document.getElementById('chkPreInspection').checked;
+        const preInspectCost = parseFormattedValue('inPreInspectCost');
+        if (preInspectChecked && preInspectCost > 0) totalSellerCosts += preInspectCost;
+
+        const hoaCertChecked = document.getElementById('chkHoaCert').checked;
+        const hoaCertCost = parseFormattedValue('inHoaCertCost');
+        if (hoaCertChecked && hoaCertCost > 0) totalSellerCosts += hoaCertCost;
+
+        const estimatedNetProceedsCheck = taxProrationResult < 0 ?
+            (salePrice + Math.abs(taxProrationResult)) - totalSellerCosts : salePrice - totalSellerCosts;
+
+        document.getElementById('txtNetProceeds').textContent = formatCurrency(estimatedNetProceedsCheck);
+        
+        const tbody = document.getElementById('ledgerTableBody');
+        let ledgerBuffer = `
+            <tr class="section-row"><td colspan="3">Gross Property Value</td></tr>
+            <tr><td>Contract Sale Price</td><td class="val-credit">${formatCurrency(salePrice)}</td><td>$0</td></tr>
+        `;
+        if (mortgagePayoff > 0 || mortgagePayoff2 > 0) {
+            ledgerBuffer += `<tr class="section-row"><td colspan="3">Outstanding Encumbrances</td></tr>`;
+            if (mortgagePayoff > 0) {
+                ledgerBuffer += `<tr><td>1st Mortgage Payoff Balance</td><td>$0</td><td class="val-cost">${formatCurrency(mortgagePayoff)}</td></tr>`;
+            }
+            if (mortgagePayoff2 > 0) {
+                ledgerBuffer += `<tr><td>2nd Mortgage Payoff Balance</td><td>$0</td><td class="val-cost">${formatCurrency(mortgagePayoff2)}</td></tr>`;
+            }
+        }
+
+        ledgerBuffer += `
+            <tr class="section-row"><td colspan="3">Real Estate Transaction Compensation</td></tr>
+            <tr><td>Listing Package Fee (${listingPct.toFixed(1)}%)</td><td>$0</td><td class="val-cost">${formatCurrency(listingBrokerFee)}</td></tr>
+            <tr><td>Buyer Agent Compensation Fee (${buyerAgentPct.toFixed(1)}%)</td><td>$0</td><td class="val-cost">${formatCurrency(buyerBrokerFee)}</td></tr>
+        
+            <tr class="section-row"><td colspan="3">Government Taxes</td></tr>
+            <tr><td>Washington State Graduated REET Tax</td><td>$0</td><td class="val-cost">${formatCurrency(realEstateExciseTax)}</td></tr>
+        `;
+        if (taxProrationResult !== 0) {
+            if (taxProrationResult < 0) {
+                ledgerBuffer += `<tr><td>Prorated Property Tax Credit<span class="label-sub">Reimbursement for pre-paid tax timelines</span></td><td class="val-credit">${formatCurrency(Math.abs(taxProrationResult))}</td><td>$0</td></tr>`;
+            } else {
+                ledgerBuffer += `<tr><td>Prorated Property Tax Debit<span class="label-sub">Tax allocation through closing date</span></td><td>$0</td><td class="val-cost">${formatCurrency(taxProrationResult)}</td></tr>`;
+            }
+        }
+
+        ledgerBuffer += `
+            <tr class="section-row"><td colspan="3">Rocket Close Settlement &amp; Recording</td></tr>
+            <tr><td>Escrow Settlement Closing Fee</td><td>$0</td><td class="val-cost">${formatCurrency(escrowClosingCost)}</td></tr>
+            <tr><td>Owner Title Insurance Policy Premium</td><td>$0</td><td class="val-cost">${formatCurrency(ownerTitlePolicyCost)}</td></tr>
+            <tr><td>Document Preparation Fee</td><td>$0</td><td class="val-cost">${formatCurrency(standardDocPrepFee)}</td></tr>
+            <tr><td>County Auditor Recording and Filing Fee</td><td>$0</td><td class="val-cost">${formatCurrency(localRecordingFilingFee)}</td></tr>
+        `;
+        if (preInspectChecked && preInspectCost > 0 || hoaCertChecked && hoaCertCost > 0 || otherAmt1 > 0 || otherAmt2 > 0) {
+            ledgerBuffer += `<tr class="section-row"><td colspan="3">Additional Settlement Details</td></tr>`;
+            if (preInspectChecked && preInspectCost > 0) {
+                ledgerBuffer += `<tr><td>Pre-inspection Expense</td><td>$0</td><td class="val-cost">${formatCurrency(preInspectCost)}</td></tr>`;
+            }
+            if (hoaCertChecked && hoaCertCost > 0) {
+                ledgerBuffer += `<tr><td>HOA Resale Certificate Expense</td><td>$0</td><td class="val-cost">${formatCurrency(hoaCertCost)}</td></tr>`;
+            }
+            if (otherAmt1 > 0) {
+                ledgerBuffer += `<tr><td>Additional Expense: ${otherLabel1}</td><td>$0</td><td class="val-cost">${formatCurrency(otherAmt1)}</td></tr>`;
+            }
+            if (otherAmt2 > 0) {
+                ledgerBuffer += `<tr><td>Additional Expense: ${otherLabel2}</td><td>$0</td><td class="val-cost">${formatCurrency(otherAmt2)}</td></tr>`;
+            }
+        }
+
+        ledgerBuffer += `
+            <tr class="total-summary-row">
+                <td>Estimated Net Proceeds Total</td>
+                <td class="val-credit">${formatCurrency(estimatedNetProceedsCheck)}</td>
+                <td>$0</td>
+            </tr>
+        `;
+        tbody.innerHTML = ledgerBuffer;
+        document.getElementById('resultsWrapper').style.display = 'block';
+        document.getElementById('resultsWrapper').scrollIntoView({ behavior: 'smooth' });
+    }
+</script>

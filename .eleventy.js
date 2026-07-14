@@ -1,5 +1,3 @@
-/* File: .eleventy.js */
-
 module.exports = function(eleventyConfig) {
   // 1. Pass through universal styling and web components
   eleventyConfig.addPassthroughCopy("style.css");
@@ -10,7 +8,7 @@ module.exports = function(eleventyConfig) {
   eleventyConfig.addPassthroughCopy("contact.vcf");
   eleventyConfig.addPassthroughCopy("CNAME");
 
-  // 3. CRITICAL: Pass through the data folder untouched. 
+  // 3. CRITICAL: Pass through the data folder untouched
   eleventyConfig.addPassthroughCopy("data");
 
   // 4. Pass through headless quiz dependencies
@@ -25,7 +23,7 @@ module.exports = function(eleventyConfig) {
   eleventyConfig.ignores.add("scripts/");
   eleventyConfig.ignores.add(".github/");
 
-  // --- NEW: GLOBAL BUILD TIMESTAMP SHORTCODE ---
+  // --- GLOBAL BUILD TIMESTAMP SHORTCODE ---
   eleventyConfig.addShortcode("buildTime", function() {
     const now = new Date();
     const formattingRules = {
@@ -38,15 +36,40 @@ module.exports = function(eleventyConfig) {
       hour12: true,
       timeZoneName: 'short'
     };
-    // Returns clean programmatic text output: "July 09, 2026 at 1:15 PM PDT"
+    // Returns clean programmatic text output matching local time metrics
     return new Intl.DateTimeFormat('en-US', formattingRules).format(now).replace(',', ' at');
   });
 
   // Universal Number & Currency Formatting Filter
-eleventyConfig.addFilter("localeString", function(value) {
+  eleventyConfig.addFilter("localeString", function(value) {
     if (!value) return "0";
     return Number(value).toLocaleString('en-US');
-});
+  });
+
+  // --- DYNAMIC DISCLAIMER RESOLVER FILTER ---
+  eleventyConfig.addFilter("getDisclaimer", function(pageUrl, disclaimers) {
+    if (!disclaimers) return "";
+    
+    let pageName = pageUrl || "";
+    if (pageName === "/" || pageName === "") {
+      pageName = "index.html";
+    } else {
+      // Clean up the URL string format
+      if (pageName.startsWith("/")) {
+        pageName = pageName.substring(1);
+      }
+      if (pageName.endsWith("/")) {
+        pageName = pageName.substring(0, pageName.length - 1);
+      }
+      // Map directory indexes (like /news/) to their parent category signature
+      if (!pageName.includes(".html")) {
+        const firstSegment = pageName.split('/')[0];
+        pageName = firstSegment + ".html";
+      }
+    }
+    
+    return disclaimers[pageName] || "";
+  });
 
   return {
     htmlTemplateEngine: false, 

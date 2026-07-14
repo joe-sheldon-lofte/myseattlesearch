@@ -1,0 +1,277 @@
+---
+layout: base.njk
+title: "Specialty Home Programs & Strategic Solutions | Joe Sheldon"
+permalink: /thirdpartyprograms.html
+---
+
+<style>
+    .tpp-container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
+    }
+
+    .tpp-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        padding: 2rem 0 1rem 0;
+    }
+    .tpp-header h1 {
+        font-size: 2.8rem;
+        font-weight: 800;
+        color: var(--card-accent-color);
+        margin: 0 0 0.75rem 0;
+        letter-spacing: -1px;
+    }
+    .tpp-header p {
+        font-size: 1.15rem;
+        color: #555555;
+        max-width: 700px;
+        margin: 0 auto;
+        line-height: 1.6;
+    }
+
+    /* Responsive Filter Engine Layout Tokens */
+    .tpp-filter-bar {
+        display: flex;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-bottom: 3rem;
+        flex-wrap: wrap;
+    }
+    .filter-chip {
+        background-color: #ffffff;
+        border: 1px solid #dddddd;
+        color: #444444;
+        padding: 0.6rem 1.5rem;
+        border-radius: 99px;
+        font-size: 0.92rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .filter-chip:hover {
+        border-color: var(--card-accent-color);
+        color: var(--card-accent-color);
+        background-color: var(--dynamic-bg-highlight);
+    }
+    .filter-chip.active {
+        background-color: var(--card-accent-color);
+        border-color: var(--card-accent-color);
+        color: #ffffff;
+    }
+
+    /* Multi-Column Responsive Grid Settings */
+    .tpp-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 2rem;
+        width: 100%;
+    }
+
+    .tpp-card {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 2rem;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.04);
+        border: 1px solid #eeeeee;
+        border-top: 6px solid var(--card-accent-color);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .tpp-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    }
+
+    .card-top-block h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #111111;
+        line-height: 1.25;
+    }
+    .category-badge {
+        display: inline-block;
+        background-color: var(--dynamic-bg-highlight);
+        color: var(--card-accent-color);
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        padding: 0.35rem 0.75rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+        letter-spacing: 0.5px;
+    }
+
+    .stress-callout-box {
+        background-color: #fdfdfd;
+        border-left: 3px solid var(--card-accent-color);
+        padding: 0.75rem 1rem;
+        margin: 1rem 0;
+        border-radius: 0 6px 6px 0;
+    }
+    .stress-callout-box p {
+        margin: 0;
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: #222222;
+        line-height: 1.4;
+    }
+
+    .program-hook-text {
+        font-size: 0.98rem;
+        line-height: 1.55;
+        color: #444444;
+        margin: 0 0 1.25rem 0;
+    }
+
+    .metadata-spec-list {
+        border-top: 1px dashed #e6e6e6;
+        margin-top: auto;
+        padding-top: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        margin-bottom: 1.5rem;
+    }
+    .spec-item {
+        font-size: 0.88rem;
+        line-height: 1.4;
+        color: #333333;
+    }
+    .spec-item strong {
+        color: #000000;
+        font-weight: 700;
+    }
+
+    .tpp-empty-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #666666;
+        font-size: 1.1rem;
+    }
+
+    .tpp-loading-frame {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 5rem 2rem;
+        font-size: 1.2rem;
+        color: #555555;
+        font-weight: 500;
+    }
+</style>
+
+<div class="tpp-container">
+    
+    <section class="tpp-header">
+        <h1>Specialty Home Programs</h1>
+        <p>Standard financing options don't fit every layout. Explore our direct integration pathways with premium third-party trust funds, contingency busters, and renovation solutions built to optimize your leverage.</p>
+    </section>
+
+    <div class="tpp-filter-bar">
+        <button type="button" class="filter-chip active" data-filter="all">Show All Programs</button>
+        <button type="button" class="filter-chip" data-filter="buyer">For Home Buyers</button>
+        <button type="button" class="filter-chip" data-filter="seller">For Home Sellers</button>
+    </div>
+
+    <div id="programs-mount-node" class="tpp-grid">
+        <div class="tpp-loading-frame">Syncing active program marketplace files...</div>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const mountNode = document.getElementById('programs-mount-node');
+        const chips = document.querySelectorAll('.filter-chip');
+        
+        const jsonEndpointUrl = '/data/thirdpartyprograms.json';
+        let masterProgramsDataset = [];
+
+        // Fetch local database archive natively with zero external dependencies
+        fetch(jsonEndpointUrl)
+            .then(res => {
+                if (!res.ok) throw new Error("Local dataset path failed");
+                return res.json();
+            })
+            .then(data => {
+                // Support both flat layout array streams and wrapper objects
+                const rawRows = Array.isArray(data) ? data : (data.programs || data.data || []);
+                
+                masterProgramsDataset = rawRows.filter(row => {
+                    return row['Display'] && row['Display'].trim().toLowerCase() === 'yes';
+                });
+                
+                renderProgramCards('all');
+            })
+            .catch(err => {
+                console.error("Specialty program retrieval track interrupted:", err);
+                mountNode.innerHTML = `<div class="tpp-empty-state">Unable to load program parameters right now. Please hit reply or check back shortly.</div>`;
+            });
+
+        // Card compilation framework routing script engine
+        function renderProgramCards(filterScope) {
+            let htmlOutput = '';
+            
+            const filteredRows = masterProgramsDataset.filter(program => {
+                if (filterScope === 'all') return true;
+                
+                const audience = program['Target Audience'] ? program['Target Audience'].trim().toLowerCase() : '';
+                return audience.includes(filterScope) || audience === 'both';
+            });
+
+            if (filteredRows.length === 0) {
+                mountNode.innerHTML = `<div class="tpp-empty-state">No specialty programs matching this filter configuration are registered at this time.</div>`;
+                return;
+            }
+
+            filteredRows.forEach(p => {
+                htmlOutput += `
+                    <div class="tpp-card">
+                        <div class="card-top-block">
+                            <span class="category-badge">${p['Category'] || 'Specialty Track'}</span>
+                            <h3>${p['Program Name'] || 'Alternative Solution'}</h3>
+                            
+                            <div class="stress-callout-box">
+                                <p>📦 ${p['Summary'] || 'Strategic Optimization'}</p>
+                            </div>
+                            
+                            <p class="program-hook-text">${p['Purpose'] || ''}</p>
+                        </div>
+                        
+                        <div class="card-bottom-block">
+                            <div class="metadata-spec-list">
+                                <div class="spec-item"><strong>Estimated Fees:</strong> ${p['Client Fees & Costs'] || 'Contact for custom estimation'}</div>
+                                <div class="spec-item"><strong>Primary Edge:</strong> ${p['Benefit'] || 'Enhanced negotiation power'}</div>
+                                <div class="spec-item"><strong>Criteria:</strong> ${p['Property Restrictions'] || 'Subject to local appraisal standards'}</div>
+                            </div>
+                            
+                            <a href="${p['Website URL'] || '#'}" target="_blank" class="btn btn-primary" style="text-align:center; display:block; text-decoration:none; font-weight:bold; font-size:0.9rem; background: var(--card-accent-color); color: #fff; border: none; border-radius: 6px; padding: 0.6rem 1rem;">
+                                Analyze Program Details &rarr;
+                            </a>
+                        </div>
+                    </div>
+                `;
+            });
+
+            mountNode.innerHTML = htmlOutput;
+        }
+
+        // Click handling event engine for filter controls
+        chips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                chips.forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                
+                const targetedFilterType = chip.getAttribute('data-filter');
+                renderProgramCards(targetedFilterType);
+            });
+        });
+    });
+</script>
