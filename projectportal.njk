@@ -1,0 +1,540 @@
+---
+layout: base.njk
+title: "Project Status Portal | Joe Sheldon"
+permalink: /projectportal/
+---
+
+<style>
+    /* CSS Reset for Portal to prevent overflow */
+    .portal-container * {
+        box-sizing: border-box;
+    }
+
+    /* Portal-Specific Layout & UI */
+    .portal-container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 1.5rem 1rem;
+        min-height: 60vh;
+        overflow-x: hidden; 
+    }
+    @media (min-width: 768px) {
+        .portal-container {
+            padding: 2rem 1.5rem;
+        }
+    }
+
+    /* Error & Loading States */
+    .system-message-block {
+        background-color: var(--dynamic-bg-highlight);
+        border-left: 4px solid var(--card-accent-color);
+        color: var(--premier-charcoal);
+        padding: 1.5rem;
+        border-radius: 4px 12px 12px 4px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        text-align: left;
+        margin: 2rem auto;
+        max-width: 800px;
+        display: none;
+    }
+    .system-message-block h2 {
+        margin-top: 0;
+        font-size: 1.5rem;
+        color: var(--card-accent-color);
+        margin-bottom: 0.5rem;
+    }
+    .system-message-block p {
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+
+    #loadingState {
+        text-align: center;
+        padding: 4rem 1rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: gray;
+        display: block;
+    }
+
+    #portalContent {
+        display: none; 
+        animation: fadeIn 0.5s ease-in-out;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Block A: Project Header */
+    .portal-overview-header {
+        background: var(--dynamic-bg-highlight);
+        padding: 2rem 1.25rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        border-top: 6px solid var(--premier-charcoal);
+        width: 100%;
+    }
+    @media (min-width: 768px) {
+        .portal-overview-header {
+            padding: 3rem 2.5rem;
+            margin-bottom: 3rem;
+        }
+    }
+
+    .portal-title {
+        font-size: 1.8rem;
+        font-weight: 900;
+        color: var(--card-accent-color);
+        margin: 0 0 1.5rem 0;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    @media (min-width: 768px) {
+        .portal-title {
+            font-size: 2.2rem;
+            margin: 0 0 2rem 0;
+        }
+    }
+
+    .header-metadata-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    @media (min-width: 768px) {
+        .header-metadata-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem 3rem;
+        }
+    }
+    .header-meta-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--dynamic-bg-highlight);
+        padding-bottom: 0.5rem;
+    }
+    .header-meta-key {
+        font-weight: 700;
+        color: gray;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .header-meta-val {
+        font-weight: 800;
+        color: black;
+        font-size: 0.95rem;
+        text-align: right;
+        max-width: 65%;
+        word-wrap: break-word;
+    }
+
+    /* Block C & D: Horizontal Task Cards */
+    .portal-section-header {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: var(--card-accent-color);
+        margin-bottom: 1.25rem;
+        border-bottom: 2px solid var(--dynamic-bg-highlight);
+        padding-bottom: 0.5rem;
+    }
+    @media (min-width: 768px) {
+        .portal-section-header {
+            font-size: 1.6rem;
+            margin-bottom: 1.5rem;
+        }
+    }
+
+    .task-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+    
+    .task-card {
+        background: white;
+        border: 1px solid var(--dynamic-bg-highlight);
+        border-left: 6px solid var(--premier-charcoal);
+        border-radius: 8px;
+        padding: 1.25rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        width: 100%;
+    }
+    @media (min-width: 768px) {
+        .task-card {
+            padding: 1.5rem 2rem;
+        }
+    }
+    .task-card:hover {
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+
+    .task-card-header {
+        margin-bottom: 1.25rem;
+        border-bottom: 1px solid var(--dynamic-bg-highlight);
+        padding-bottom: 1rem;
+    }
+    .task-card-header h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        color: black;
+        font-weight: 800;
+    }
+    @media (min-width: 768px) {
+        .task-card-header h3 {
+            font-size: 1.35rem;
+        }
+    }
+
+    /* Responsive Grid for Details */
+    .task-card-body {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    @media (min-width: 480px) {
+        .task-card-body {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    @media (min-width: 768px) {
+        .task-card-body {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.25rem;
+        }
+    }
+
+    .task-detail {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    .detail-label {
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: gray;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .detail-val {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: black;
+        line-height: 1.4;
+        word-break: break-word;
+    }
+
+    /* Footer Action & Notes Area */
+    .task-card-footer {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        border-top: 1px dashed var(--dynamic-bg-highlight);
+        margin-top: 1.25rem;
+        padding-top: 1.25rem;
+        width: 100%;
+    }
+    @media (min-width: 768px) {
+        .task-card-footer {
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+    }
+
+    .task-notes-wrapper {
+        flex: 1 1 100%; 
+        width: 100%;
+    }
+    .task-card-notes {
+        background: var(--dynamic-bg-highlight);
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid var(--card-accent-color);
+        width: 100%;
+        text-align: left;
+    }
+    @media (min-width: 768px) {
+        .task-card-notes {
+            padding: 1.25rem;
+        }
+    }
+    
+    .notes-content {
+        white-space: pre-wrap; 
+        font-size: 0.9rem;
+        color: black;
+        line-height: 1.5;
+        margin: 0;
+        word-wrap: break-word;
+    }
+    @media (min-width: 768px) {
+        .notes-content { font-size: 0.95rem; }
+    }
+
+    .task-card-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        flex-shrink: 0;
+        width: 100%;
+    }
+    @media (min-width: 768px) {
+        .task-card-actions {
+            width: auto;
+            align-items: flex-end;
+        }
+    }
+
+    .action-btn {
+        padding: 0.6rem 1.25rem;
+        background: white;
+        color: var(--premier-charcoal);
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.85rem;
+        border-radius: 6px;
+        border: 1px solid var(--dynamic-bg-highlight);
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        text-align: center;
+    }
+    @media (min-width: 768px) {
+        .action-btn {
+            padding: 0.5rem 1.25rem;
+            width: auto;
+        }
+    }
+    .action-btn:hover {
+        background: var(--premier-charcoal);
+        color: white;
+        border-color: var(--premier-charcoal);
+    }
+
+    /* Status Badges */
+    .status-badge {
+        display: inline-block;
+        padding: 0.35rem 0.85rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .status-complete { background: rgba(0, 200, 0, 0.1); color: green; }
+    .status-pending { background: rgba(255, 165, 0, 0.1); color: darkorange; }
+    .status-progress { background: rgba(0, 0, 255, 0.1); color: blue; }
+    .status-default { background: var(--dynamic-bg-highlight); color: gray; }
+
+</style>
+
+<div class="portal-container">
+
+    <div id="loadingState">
+        Retrieving secure project data...
+    </div>
+
+    <div id="errorState" class="system-message-block">
+        <h2 id="errorHeadline">Project Not Found</h2>
+        <p id="errorText">We could not locate an active project matching this secure URL. Please ensure you have copied the full link provided in your welcome email, or contact Joe Sheldon directly for assistance.</p>
+    </div>
+
+    <div id="portalContent">
+        
+        <div class="portal-overview-header">
+            <h1 class="portal-title">Project Overview</h1>
+            <div class="header-metadata-grid" id="metadataDashboard"></div>
+        </div>
+
+        <h2 class="portal-section-header">Project Task Breakdown</h2>
+        <div class="task-list" id="taskCardsContainer"></div>
+
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        
+        const loadingState = document.getElementById('loadingState');
+        const errorState = document.getElementById('errorState');
+        const portalContent = document.getElementById('portalContent');
+        const errorHeadline = document.getElementById('errorHeadline');
+        const errorText = document.getElementById('errorText');
+
+        // 1. URL Parameter Extraction
+        const urlParams = new URLSearchParams(window.location.search);
+        const projectId = urlParams.get('id');
+
+        if (!projectId) {
+            loadingState.style.display = 'none';
+            errorState.style.display = 'block';
+            return;
+        }
+
+        // Deployed Google Apps Script Web App Endpoint URL string
+        const webAppApiUrl = 'https://script.google.com/macros/s/AKfycbyYNKt7Xsiiko0Dlgk7UKAAoEcLXQREs0wICfqyanJRUPE2pi3cSc19GeYy8JZPZ10Z/exec';
+
+        try {
+            const response = await fetch(`${webAppApiUrl}?type=project&id=${encodeURIComponent(projectId)}`);
+            const resData = await response.json();
+
+            // Diagnostic Interceptor: Catches server rejections safely
+            if (!resData.success) {
+                if (errorHeadline) errorHeadline.textContent = "API Server Rejection";
+                if (errorText) errorText.innerHTML = `<strong>Reason:</strong> ${resData.error || 'Unknown server rejection payload.'}<br><br><em>Check if you authorized your account access permissions when publishing the Google script!</em>`;
+                loadingState.style.display = 'none';
+                errorState.style.display = 'block';
+                return;
+            }
+
+            if (!resData.payload || resData.payload.length < 11) {
+                if (errorHeadline) errorHeadline.textContent = "Data Schema Shortfall";
+                if (errorText) errorText.innerHTML = `<strong>Reason:</strong> Tab rows detected: ${resData.payload ? resData.payload.length : 0}.<br><br><em>Your code safety rules require a sheet layout with at least 11 filled rows (Overview Rows 1-8, Headers on 11, Data starting on 12). If this is a blank test tab, add a few rows of filler data!</em>`;
+                loadingState.style.display = 'none';
+                errorState.style.display = 'block';
+                return;
+            }
+
+            // Pass data cleanly into render pipelines
+            renderMetadata(resData.payload);
+            renderTaskCards(resData.payload);
+            
+            loadingState.style.display = 'none';
+            portalContent.style.display = 'block';
+
+        } catch (err) {
+            console.error("Secure API Data Fetch Interrupted:", err);
+            if (errorHeadline) errorHeadline.textContent = "Connection Dropped";
+            if (errorText) errorText.innerHTML = `<strong>Reason:</strong> Browser fetch failed or thrown cross-origin error block.<br><br><em>Error parameters: ${err.message}</em>`;
+            loadingState.style.display = 'none';
+            errorState.style.display = 'block';
+        }
+    });
+
+    // --- Safe-Casting UI Rendering Engine Functions ---
+
+    function renderMetadata(data) {
+        const metaContainer = document.getElementById('metadataDashboard');
+        let metaHtml = '';
+
+        for (let i = 0; i <= 7; i++) {
+            const row = data[i];
+            if (row) {
+                const key = String(row[0] !== undefined && row[0] !== null ? row[0] : '').trim();
+                const val = String(row[1] !== undefined && row[1] !== null ? row[1] : '').trim();
+                
+                if (key || val) {
+                    metaHtml += `
+                        <div class="header-meta-item">
+                            <span class="header-meta-key">${key}</span>
+                            <span class="header-meta-val">${val}</span>
+                        </div>
+                    `;
+                }
+            }
+        }
+        metaContainer.innerHTML = metaHtml;
+    }
+
+    function renderTaskCards(data) {
+        const container = document.getElementById('taskCardsContainer');
+        let cardsHtml = '';
+        const headers = data[10] || [];
+
+        for (let i = 11; i < data.length; i++) {
+            const row = data[i];
+            if (!row) continue;
+
+            const colA = String(row[0] !== undefined && row[0] !== null ? row[0] : '').trim(); 
+            const colB = String(row[1] !== undefined && row[1] !== null ? row[1] : '').trim(); 
+            const colC = String(row[2] !== undefined && row[2] !== null ? row[2] : '').trim(); 
+
+            if (!colA && !colB && !colC) continue;
+
+            let card = `
+                <div class="task-card">
+                    <div class="task-card-header">
+                        <h3>${colA || 'Unnamed Task'}</h3>
+                    </div>
+                    <div class="task-card-body">
+            `;
+
+            for (let c = 2; c <= 10; c++) {
+                let cellData = row[c] !== undefined && row[c] !== null ? row[c].toString().trim() : '';
+                
+                if (cellData) {
+                    let label = headers[c] ? headers[c].toString().trim() : `Detail`;
+                    card += `
+                        <div class="task-detail">
+                            <span class="detail-label">${label}</span>
+                            <span class="detail-val">${cellData}</span>
+                        </div>
+                    `;
+                }
+            }
+            
+            card += `</div>`; 
+
+            let actionsHtml = '';
+            
+            const fileLink = row[11] !== undefined && row[11] !== null ? row[11].toString().trim() : '';
+            if (fileLink && (fileLink.startsWith('http') || fileLink.startsWith('www'))) {
+                const cleanLink = fileLink.startsWith('http') ? fileLink : 'https://' + fileLink;
+                actionsHtml += `<a href="${cleanLink}" target="_blank" class="action-btn">📁 View File &rarr;</a>`;
+            }
+
+            const vendorLink = row[12] !== undefined && row[12] !== null ? row[12].toString().trim() : '';
+            if (vendorLink && (vendorLink.startsWith('http') || vendorLink.startsWith('www'))) {
+                const cleanLink2 = vendorLink.startsWith('http') ? vendorLink : 'https://' + vendorLink;
+                actionsHtml += `<a href="${cleanLink2}" target="_blank" class="action-btn">👷 Verify Vendor Info &rarr;</a>`;
+            }
+
+            if (actionsHtml !== '' || colB !== '') {
+                card += `<div class="task-card-footer">`;
+                
+                if (colB !== '') {
+                    card += `
+                        <div class="task-notes-wrapper">
+                            <span class="detail-label" style="display: block; margin-bottom: 0.35rem; color: black; text-align: left;">Task Details</span>
+                            <div class="task-card-notes">
+                                <div class="notes-content">${colB}</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    card += `<div class="task-notes-wrapper" style="display: none;"></div>`;
+                }
+
+                if (actionsHtml !== '') {
+                    let actionAlign = colB !== '' ? 'text-align: right;' : 'text-align: left;';
+                    card += `
+                        <div class="task-card-actions">
+                            <span class="detail-label" style="margin-bottom: 0.15rem; display: block; width: 100%; ${actionAlign}">Links & Actions</span>
+                            ${actionsHtml}
+                        </div>
+                    `;
+                }
+                
+                card += `</div>`; 
+            }
+
+            card += `</div>`; 
+            cardsHtml += card;
+        }
+
+        container.innerHTML = cardsHtml;
+    }
+</script>

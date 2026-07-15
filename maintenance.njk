@@ -1,0 +1,345 @@
+---
+layout: base.njk
+title: "Home Care Checklist & Maintenance | Joe Sheldon"
+permalink: /maintenance/
+---
+
+<style>
+    /* Lean page additions to prevent bloated CSS footprints */
+    .portal-container { max-width: 1000px; margin: 3rem auto; padding: 0 1.5rem; min-height: 70vh; }
+    
+    .portal-header-box { 
+        background: white; 
+        padding: 2.5rem; 
+        border-radius: 12px; 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
+        border-top: 6px solid var(--card-accent-color); 
+        border-bottom: 2px solid var(--dynamic-bg-highlight);
+        margin-bottom: 2rem; 
+        text-align: center; 
+    }
+    .portal-header-box h1 { font-size: 2.4rem; font-weight: 900; margin-bottom: 0.5rem; color: var(--premier-charcoal); letter-spacing: -0.5px; }
+    .property-subhead { font-size: 1.1rem; color: gray; font-weight: 500; }
+
+    .directory-banner {
+        background: var(--dynamic-bg-highlight);
+        border: 1px solid var(--dynamic-bg-highlight);
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-bottom: 3.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        text-align: left;
+    }
+    .directory-text { font-size: 0.95rem; color: black; font-weight: 500; margin: 0; line-height: 1.4; }
+    .directory-btn { 
+        padding: 0.5rem 1.25rem; 
+        background: var(--premier-charcoal); 
+        color: white !important; 
+        text-decoration: none; 
+        font-weight: 700; 
+        font-size: 0.85rem; 
+        border-radius: 6px; 
+        white-space: nowrap;
+        transition: background 0.2s ease;
+    }
+    .directory-btn:hover { background: var(--card-accent-color); }
+    
+    .track-section { margin-bottom: 3.5rem; }
+    .track-section h2 { font-size: 1.5rem; font-weight: 800; border-bottom: 2px solid var(--premier-beige); padding-bottom: 0.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; color: var(--premier-charcoal); }
+    
+    .task-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
+    .task-card { 
+        background: white; 
+        border-radius: 10px; 
+        padding: 1.75rem; 
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02); 
+        display: flex; 
+        flex-direction: column; 
+        justify-content: space-between; 
+        border-left: 6px solid var(--premier-charcoal); 
+        transition: transform 0.2s ease, box-shadow 0.2s ease; 
+        border-top: 1px solid var(--dynamic-bg-highlight);
+        border-right: 1px solid var(--dynamic-bg-highlight);
+        border-bottom: 1px solid var(--dynamic-bg-highlight);
+    }
+    .task-card:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.06); }
+    
+    /* Unified semantic state triggers overriding default weights */
+    .status-overdue { border-left-color: var(--card-accent-color) !important; }
+    .status-upcoming { border-left-color: orange !important; }
+    .status-healthy { border-left-color: var(--premier-charcoal) !important; }
+    
+    .tag-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
+    .badge { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 0.25rem 0.6rem; border-radius: 4px; color: white; }
+    
+    /* Category-specific color rules */
+    .cat-roof { background-color: gray; }
+    .cat-siding { background-color: brown; }
+    .cat-hvac { background-color: darkorange; }
+    .cat-plumbing { background-color: blue; }
+    .cat-electrical { background-color: orange; }
+    .cat-water { background-color: darkblue; }
+    .cat-other { background-color: slategray; }
+
+    /* Highly stylized marketing prominent typography */
+    .task-title { font-size: 1.4rem; font-weight: 900; color: var(--card-accent-color); margin-bottom: 0.65rem; line-height: 1.3; text-align: left; letter-spacing: -0.25px; }
+    .task-details { font-size: 0.95rem; color: black; line-height: 1.5; margin-bottom: 1.25rem; flex-grow: 1; text-align: left; }
+    
+    .card-resource-block {
+        margin-bottom: 1.25rem;
+        padding: 0.85rem;
+        background: var(--dynamic-bg-highlight);
+        border-radius: 6px;
+        font-size: 0.9rem;
+        color: black;
+        line-height: 1.4;
+        text-align: left;
+        border-left: 3px solid var(--premier-charcoal);
+    }
+    .video-link-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--card-accent-color);
+        text-decoration: none;
+        margin-bottom: 1.25rem;
+        align-self: flex-start;
+    }
+    .video-link-btn:hover { text-decoration: underline; }
+
+    /* Emphasized Target Metric Text Blocks */
+    .task-meta-footer { 
+        font-size: 1.05rem; 
+        font-weight: 800; 
+        border-top: 1px dashed var(--premier-beige); 
+        padding-top: 1rem; 
+        color: black; 
+        display: flex; 
+        flex-direction: column;
+        gap: 0.25rem;
+        text-align: left;
+    }
+    .meta-row-item { display: flex; justify-content: space-between; width: 100%; }
+    .meta-target-label { color: gray; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .meta-target-val { color: black; font-weight: 800; }
+    
+    .state-message { text-align: center; padding: 4rem 2rem; background: white; border-radius: 12px; font-weight: 600; color: black; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid var(--premier-beige); }
+    .debug-panel { background: var(--dynamic-bg-highlight); border: 2px dashed orange; border-radius: 8px; padding: 1.5rem; margin-top: 3rem; text-align: left; font-family: monospace; font-size: 0.9rem; color: black; }
+    .debug-panel h4 { color: darkorange; margin-top: 0; font-size: 1.1rem; text-transform: uppercase; margin-bottom: 0.5rem; }
+</style>
+
+<div class="portal-container" id="portalMount">
+    <div class="state-message">
+        <p>🔄 Loading your personalized home care checklist...</p>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const mount = document.getElementById('portalMount');
+        
+        // Deployed Google Apps Script Web App Endpoint URL string
+        const maintenanceApiUrl = 'https://script.google.com/macros/s/AKfycbx1plZwYv_afhSHj41TTBeBeoOiAwGmUtJI90TL7WWKPnLMfAlh7-QkvpfG8cAaGdtC/exec';
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const clientId = urlParams.get('id');
+        
+        if (!clientId) {
+            mount.innerHTML = `
+                <div class="state-message" style="border-top: 5px solid var(--card-accent-color);">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
+                    <h3>Private Link Required</h3>
+                    <p style="font-weight: 500; font-size: 0.95rem; margin-top: 0.5rem; color: gray;">This care checklist is personalized for each home. Please click the private link provided in your property update package.</p>
+                </div>`;
+            return;
+        }
+        
+        try {
+            const endpoint = `${maintenanceApiUrl}?id=${encodeURIComponent(clientId)}`;
+            const response = await fetch(endpoint);
+            const dataResult = await response.json();
+            
+            if (!dataResult.success) {
+                mount.innerHTML = `
+                    <div class="state-message" style="border-top: 5px solid var(--card-accent-color);">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+                        <h3>Schedule Not Found</h3>
+                        <p style="font-weight: 500; font-size: 0.95rem; margin-top: 0.5rem; color: gray;">Error parameter log: ${dataResult.error}</p>
+                    </div>`;
+                return;
+            }
+            
+            processAndRenderDashboard(dataResult);
+            
+        } catch (error) {
+            console.error("Critical serverless portal pipeline drop:", error);
+            mount.innerHTML = `
+                <div class="state-message">
+                    <p style="color: var(--card-accent-color); font-weight: bold;">Connection timed out. Please give the dashboard page a quick refresh.</p>
+                </div>`;
+        }
+    });
+
+    function processAndRenderDashboard(serverPayload) {
+        const mount = document.getElementById('portalMount');
+        const profile = serverPayload.profile;
+        const tasks = serverPayload.tasks;
+        const schemaAlert = serverPayload.schemaStatus;
+        const libraryKeys = serverPayload.libraryKeys || [];
+        
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        
+        const categoryClasses = {
+            'roof': 'cat-roof', 'siding': 'cat-siding', 'hvac': 'cat-hvac', 
+            'plumbing': 'cat-plumbing', 'electrical': 'cat-electrical', 'water': 'cat-water'
+        };
+
+        let overdueHtml = '';
+        let upcomingHtml = '';
+        let longTermHtml = '';
+        
+        let overdueCount = 0;
+        let upcomingCount = 0;
+        let longTermCount = 0;
+        let diagnosticMismatches = [];
+
+        tasks.forEach(task => {
+            const dueTarget = new Date(task.dueDate + "T00:00:00");
+            const millisecondGap = dueTarget.getTime() - today.getTime();
+            const daysRemaining = Math.ceil(millisecondGap / (1000 * 60 * 60 * 24));
+            
+            const taskCategory = String(task.category || 'Other').trim();
+            const cleanCatKey = taskCategory.toLowerCase();
+            const assignedCatClass = categoryClasses[cleanCatKey] || 'cat-other';
+            
+            const taskTitleText = String(task.taskTitle || 'Routine Care Task').trim();
+            const taskIDKey = String(task.taskId || '').trim();
+            
+            if (!task.debugMatch) {
+                diagnosticMismatches.push(taskIDKey);
+            }
+
+            let taskDetails = String(task.details || '').trim();
+            if (taskDetails === "") {
+                taskDetails = `<span style="color:red; font-weight:700;">⚠️ Connection Mismatch:</span> Could not locate description details matching Task ID number <code>"${taskIDKey}"</code> inside your MasterReference tab.`;
+            }
+
+            const taskFrequency = String(task.frequency || '12').trim();
+            const taskDueDate = String(task.dueDate || '').trim();
+            
+            let statusCardClass = 'status-healthy';
+            if (daysRemaining < 0) {
+                statusCardClass = 'status-overdue';
+                overdueCount++;
+            } else if (daysRemaining <= 45) {
+                statusCardClass = 'status-upcoming';
+                upcomingCount++;
+            } else {
+                longTermCount++;
+            }
+
+            let videoMarkup = '';
+            if (task.video && task.video.trim() !== "") {
+                videoMarkup = `<a href="${task.video.trim()}" target="_blank" class="video-link-btn">🎥 Watch Tutorial Video</a>`;
+            }
+
+            let vendorMarkup = '';
+            if (task.vendor && task.vendor.trim() !== "") {
+                vendorMarkup = `<div class="card-resource-block">${task.vendor}</div>`;
+            }
+
+            const cardTemplate = `
+                <div class="task-card ${statusCardClass}">
+                    <div style="display: flex; flex-direction: column;">
+                        <div class="tag-row">
+                            <span class="badge ${assignedCatClass}">${taskCategory}</span>
+                        </div>
+                        <h3 class="task-title">${taskTitleText}</h3>
+                        <p class="task-details">${taskDetails}</p>
+                        
+                        ${videoMarkup}
+                        ${vendorMarkup}
+                    </div>
+                    <div class="task-meta-footer">
+                        <div class="meta-row-item">
+                            <span class="meta-target-label">Next Due Date:</span>
+                            <span class="meta-target-val">${taskDueDate}</span>
+                        </div>
+                        <div class="meta-row-item">
+                            <span class="meta-target-label">Frequency:</span>
+                            <span class="meta-target-val">Every ${taskFrequency} Months</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (daysRemaining < 0) overdueHtml += cardTemplate;
+            else if (daysRemaining <= 45) upcomingHtml += cardTemplate;
+            else longTermHtml += cardTemplate;
+        });
+
+        let debugPanelHtml = '';
+        if (schemaAlert || diagnosticMismatches.length > 0) {
+            debugPanelHtml = `
+                <div class="debug-panel">
+                    <h4>🛠️ System Architecture Diagnostic Monitor</h4>
+                    ${schemaAlert ? `<p style="color:red; font-weight:bold;">⚠️ ${schemaAlert}</p>` : ''}
+                    ${diagnosticMismatches.length > 0 ? `
+                        <p><strong>🚨 Missing Relational Token ID Connections (${diagnosticMismatches.length}):</strong></p>
+                        <ul>
+                            ${diagnosticMismatches.map(m => `<li>Log Row Task ID number <code>"${m}"</code> does not match any index in Column A of your MasterReference tab.</li>`).join('')}
+                        </ul>
+                        <p><strong>📋 Valid Numeric Task IDs Loaded From MasterReference Tab (${libraryKeys.length}):</strong></p>
+                        <div style="max-height:150px; overflow-y:auto; background:white; padding:10px; border:1px solid var(--dynamic-bg-highlight); border-radius:4px; font-size:0.85rem;">
+                            ${libraryKeys.length > 0 ? libraryKeys.map(k => `&bull; <code>"${k}"</code><br>`).join('') : 'None loaded. Check column A header label text!'}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        mount.innerHTML = `
+            <div class="portal-header-box">
+                <h1>Home Care Checklist</h1>
+                <p class="property-subhead">Scheduled tasks for <strong>${profile.clientName}</strong> at <strong>${profile.propertyAddress}</strong></p>
+            </div>
+
+            <div class="directory-banner">
+                <p class="directory-text">
+                    <strong>Looking for a trusted contractor?</strong> Browse my personally vetted directory of local pros, or verify license metrics and safety credentials instantly.
+                </p>
+                <a href="/professionals/" class="directory-btn">Open Contractor Directory &rarr;</a>
+            </div>
+
+            ${overdueCount > 0 ? `
+                <section class="track-section">
+                    <h2 style="color: var(--card-accent-color);">🚨 Overdue Tasks (${overdueCount})</h2>
+                    <div class="task-grid">${overdueHtml}</div>
+                </section>
+            ` : ''}
+
+            <section class="track-section">
+                <h2>📅 Coming Up (Next 45 Days)</h2>
+                <div class="task-grid">
+                    ${upcomingHtml || `<p style="grid-column: 1/-1; opacity:0.7; font-style:italic; font-weight:500; padding:2rem 0; text-align:center;">🎉 Nothing coming up in the next 45 days!</p>`}
+                </div>
+            </section>
+
+            <section class="track-section">
+                <h2>🗓️ Routine & Long-Term Care</h2>
+                <div class="task-grid">
+                    ${longTermHtml || `<p style="grid-column: 1/-1; opacity:0.6; font-style:italic; font-weight:500; padding:1.5rem 0; text-align:center;">No long-term care tasks currently scheduled.</p>`}
+                </div>
+            </section>
+
+            ${debugPanelHtml}
+        `;
+    }
+</script>

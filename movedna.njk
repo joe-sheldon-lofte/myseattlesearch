@@ -1,0 +1,422 @@
+---
+layout: base.njk
+title: "MoveDNA Assessment | Joe Sheldon"
+permalink: /movedna/
+---
+
+<style>
+    .dna-content-section {
+        display: none !important;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+    }
+    .dna-content-section.active {
+        display: block !important;
+        opacity: 1;
+    }
+
+    /* WEBPAGE VISUAL CLEARANCE ELEMENT RULES */
+    .print-only {
+        display: none !important;
+    }
+
+    /* HARDCOPY PRINT ENGINE RULES */
+    @media print {
+        universal-header, 
+        universal-footer, 
+        .events-header, 
+        .dna-action-area, 
+        #quiz-workflow-wrapper,
+        .methodology-section, 
+        .dna-tabs, 
+        #seller-profiles,
+        .dna-badge {
+            display: none !important;
+        }
+
+        .print-only-buyer-header,
+        .print-only-seller-section,
+        .print-only {
+            display: block !important;
+        }
+
+        body {
+            background: #fff !important;
+            color: #000 !important;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            font-size: 10pt !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .container {
+            max-width: 100% !important;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        @page {
+            size: 8.5in 11in;
+            margin: 0.5in;
+        }
+
+        #buyer-profiles {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 15px !important;
+            opacity: 1 !important;
+            page-break-after: always !important;
+            break-after: page !important;
+        }
+
+        .dna-card {
+            border: 1px solid #ddd !important;
+            padding: 12px !important;
+            border-radius: 8px !important;
+            background: #fff !important;
+            page-break-inside: avoid !important;
+            margin-bottom: 0 !important;
+            box-shadow: none !important;
+        }
+
+        .dna-title {
+            color: var(--card-accent-color) !important;
+            font-size: 13pt !important;
+            margin: 0 0 2px 0 !important;
+        }
+
+        .dna-subtitle {
+            font-style: italic !important;
+            color: #555 !important;
+            margin: 0 0 6px 0 !important;
+            font-size: 9pt !important;
+        }
+
+        .dna-summary {
+            font-size: 8.5pt !important;
+            line-height: 1.35 !important;
+            margin-bottom: 8px !important;
+        }
+
+        .trait-block {
+            margin-bottom: 4px !important;
+        }
+
+        .trait-block h4 {
+            margin: 0 !important;
+            font-size: 8.5pt !important;
+            color: #222 !important;
+        }
+
+        .trait-block p {
+            margin: 0 !important;
+            font-size: 8pt !important;
+            color: #444 !important;
+            line-height: 1.3 !important;
+        }
+
+        .dna-playbook {
+            margin-top: 6px !important;
+            border-top: 1px dashed #ccc !important;
+            padding-top: 4px !important;
+        }
+
+        .dna-playbook h4 {
+            margin: 0 !important;
+            font-size: 8.5pt !important;
+            color: var(--card-accent-color) !important;
+        }
+
+        .dna-playbook p {
+            margin: 0 !important;
+            font-size: 8pt !important;
+            line-height: 1.3 !important;
+            color: #333 !important;
+        }
+
+        .print-pricing-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 20px !important;
+            margin-top: 15px !important;
+        }
+
+        .print-pricing-card {
+            border: 1px solid #ddd !important;
+            padding: 15px !important;
+            border-radius: 8px !important;
+            background: #fff !important;
+        }
+
+        .print-pricing-card.premium {
+            border: 2px solid var(--card-accent-color) !important;
+        }
+    }
+</style>
+
+<div class="container" style="max-width: 1000px; padding-bottom: 5rem;">
+    
+    <div class="print-only-buyer-header" style="display: none;">
+        <div style="text-align: center; margin-bottom: 1.5rem; border-bottom: 2px solid var(--card-accent-color); padding-bottom: 0.75rem;">
+            <h1 style="color: var(--card-accent-color); margin: 0; font-size: 22pt; letter-spacing: -0.5px;">Beyond the Bedrooms and Baths: Your MoveDNA™</h1>
+            <p style="font-size: 11pt; margin: 4px 0 0 0; color: #333; font-weight: 500;">Real estate isn't just a financial transaction - it’s a psychological blueprint.</p>
+        </div>
+    </div>
+
+    <div class="events-header">
+        <h1 style="margin-top: 1rem;">Beyond the Bedrooms and Baths: Discover Your MoveDNA™</h1>
+        <p class="intro">Real estate isn't just a financial transaction - it’s a psychological one. Take our 3-minute behavioral assessment to uncover your dominant real estate archetype.</p>
+    </div>
+
+    <div class="methodology-section" style="margin-bottom: 3rem;">
+        <h2 style="text-align: center; color: var(--card-accent-color); margin-bottom: 1.5rem;">The 3-Minute Strategy Blueprint</h2>
+        
+        <div class="methodology-grid">
+            <div class="method-step">
+                <div class="step-num">1</div>
+                <h4>Take the Assessment</h4>
+                <p>Respond to 16 intuitive statements on a 1-10 scale based on your natural instincts.</p>
+            </div>
+            <div class="method-step">
+                <div class="step-num">2</div>
+                <h4>Uncover Your Persona</h4>
+                <p>Our backend algorithm maps your answers to one of four distinct psychological profiles.</p>
+            </div>
+            <div class="method-step">
+                <div class="step-num">3</div>
+                <h4>Get Your Playbook</h4>
+                <p>Receive an instant breakdown of your strengths, blind spots, and a tailored negotiation blueprint.</p>
+            </div>
+        </div>
+
+        <div class="pro-tip-box" style="margin-top: 2rem;">
+            <strong>🧠 The Science Behind the Strategy</strong>
+            The MoveDNA™ Assessment is built on a proprietary psychographic matrix adapted specifically for high-stakes residential real estate. By evaluating your risk tolerance, speed of decision-making, emotional attachment, and analytical style, we map your tendencies across two critical spectrums: <em>Logic vs. Emotion</em> and <em>Speed vs. Consensus</em>. The result aligns our communication, marketing, and negotiation perfectly with your psychological comfort zone.
+        </div>
+    </div>
+
+    <div id="quiz-workflow-wrapper" style="margin-bottom: 3rem;">
+        <div id="quiz-choice-cards" class="dna-action-area">
+            <div class="dna-action-card">
+                <h3>Buying a Home?</h3>
+                <p>Discover how you naturally evaluate properties, negotiate terms, and make offers.</p>
+                <button type="button" class="btn btn-primary" onclick="launchQuizModule(1)" style="cursor: pointer;">Take the Buyer Test</button>
+            </div>
+            <div class="dna-action-card">
+                <h3>Selling a Home?</h3>
+                <p>Discover your ideal pricing strategy, staging tolerance, and timeline preferences.</p>
+                <button type="button" class="btn btn-secondary" onclick="launchQuizModule(2)" style="cursor: pointer;">Take the Seller Test</button>
+            </div>
+        </div>
+        
+        <div id="quiz-engine-viewport" style="display: none; margin: 1.5rem 0;">
+            <div id="quiz-engine-mount"></div>
+            <div style="max-width: 600px; margin: 1.5rem auto 0 auto; padding: 0 5px; text-align: center;">
+                <button type="button" class="btn btn-secondary" onclick="resetQuizWorkflowPanel()" style="padding: 0.5rem 1.2rem; font-size: 0.85rem; font-weight: bold; cursor: pointer;">← Back to Options</button>
+            </div>
+        </div>
+    </div>
+
+    <h2 style="text-align: center; margin: 4rem 0 2rem 0; font-size: 2rem;" class="dna-tabs-title">Explore the Archetypes</h2>
+
+    <div class="dna-tabs">
+        <button class="dna-tab-btn active" data-target="buyer-profiles">Buyer Profiles</button>
+        <button class="dna-tab-btn" data-target="seller-profiles">Seller Profiles</button>
+    </div>
+
+    <div id="buyer-profiles" class="dna-content-section active">
+        
+        <div id="analytical-architect" class="dna-card" style="padding-bottom: 1.5rem;">
+            <div class="dna-badge">Type A</div>
+            <h3 class="dna-title">The Analytical Architect</h3>
+            <p class="dna-subtitle" style="margin-bottom: 0;">The Data-Driven Pragmatist</p>
+            
+            <div class="print-only">
+                <p class="dna-summary">Driven by logic, market metrics, and long-term risk mitigation.</p>
+                <div class="dna-traits">
+                    <div class="trait-block"><h4>🎯 Core Motivation</h4><p>Minimizing financial risk and maximizing long-term stability through exhaustive factual validation.</p></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="passionate-visionary" class="dna-card" style="padding-bottom: 1.5rem;">
+            <div class="dna-badge">Type B</div>
+            <h3 class="dna-title">The Passionate Visionary</h3>
+            <p class="dna-subtitle" style="margin-bottom: 0;">The Lifestyle Dreamer</p>
+            
+            <div class="print-only">
+                <p class="dna-summary">Driven by emotional connection, architectural character, and aesthetic potential.</p>
+            </div>
+        </div>
+
+        <div id="power-player" class="dna-card" style="padding-bottom: 1.5rem;">
+            <div class="dna-badge">Type C</div>
+            <h3 class="dna-title">The Power Player</h3>
+            <p class="dna-subtitle" style="margin-bottom: 0;">The Decisive Closer</p>
+            
+            <div class="print-only">
+                <p class="dna-summary">Driven by ROI, market leverage, and transactional velocity.</p>
+            </div>
+        </div>
+
+        <div id="harmony-seeker" class="dna-card" style="padding-bottom: 1.5rem;">
+            <div class="dna-badge">Type D</div>
+            <h3 class="dna-title">The Harmony Seeker</h3>
+            <p class="dna-subtitle" style="margin-bottom: 0;">The Collaborative Relationship Builder</p>
+            
+            <div class="print-only">
+                <p class="dna-summary">Driven by peace, family alignment, and neighborhood community.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="seller-profiles" class="dna-content-section">
+        
+        <div id="analytical-optimizer" class="dna-card" style="padding-bottom: 1.5rem;">
+            <div class="dna-badge">Type A</div>
+            <h3 class="dna-title">The Analytical Optimizer</h3>
+            <p class="dna-subtitle" style="margin-bottom: 0;">The Market Mathematician</p>
+            
+            <div class="print-only">
+                <p class="dna-summary">Evaluates the sale of their property purely through the lens of historical comps, absorption rates, and predictive market models.</p>
+            </div>
+        </div>
+
+        <div id="sentimental-steward" class="dna-card" style="padding-bottom: 1.5rem;">
+            <div class="dna-badge">Type B</div>
+            <h3 class="dna-title">The Sentimental Steward</h3>
+            <p class="dna-subtitle" style="margin-bottom: 0;">The Legacy Guardian</p>
+            
+            <div class="print-only">
+                <p class="dna-summary">Deeply attached to the home’s history, memories, and personal craftsmanship.</p>
+            </div>
+        </div>
+
+        <div id="strategic-maximizer" class="dna-card" style="padding-bottom: 1.5rem;">
+            <div class="dna-badge">Type C</div>
+            <h3 class="dna-title">The Strategic Maximizer</h3>
+            <p class="dna-subtitle" style="margin-bottom: 0;">The ROI Champion</p>
+            
+            <div class="print-only">
+                <p class="dna-summary">Views their home strictly as a premium asset to be leveraged for maximum financial gain.</p>
+            </div>
+        </div>
+
+        <div id="hassle-free-homeowner" class="dna-card" style="padding-bottom: 1.5rem;">
+            <div class="dna-badge">Type D</div>
+            <h3 class="dna-title">The Hassle-Free Homeowner</h3>
+            <p class="dna-subtitle" style="margin-bottom: 0;">The Efficiency Expert</p>
+            
+            <div class="print-only">
+                <p class="dna-summary">Prioritizes convenience, speed, and minimal lifestyle disruption over fighting for the absolute last penny.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="print-only-seller-section" style="display: none;">
+        <div style="text-align: center; margin-bottom: 1.5rem; border-bottom: 2px solid var(--card-accent-color); padding-bottom: 0.75rem;">
+            <h1 style="color: var(--card-accent-color); margin: 0; font-size: 22pt; letter-spacing: -0.5px;">Premium Listing Packages & Execution</h1>
+            <p style="font-size: 11pt; margin: 4px 0 0 0; color: #333; font-weight: 500;">Aligning premium real estate marketing with data-driven infrastructure.</p>
+        </div>
+
+        <div class="print-pricing-grid">
+            <div class="print-pricing-card">
+                <h3 style="margin: 0; font-size: 14pt; color: #333; border-bottom: 1px solid #eee; padding-bottom: 4px;">Base Listing Package — 2%</h3>
+                <p style="font-size: 8.5pt; color: #666; font-style: italic; margin: 4px 0 10px 0;">A highly competitive, tech-forward sales model.</p>
+                <ul style="margin: 0; padding-left: 15px; font-size: 8.5pt; line-height: 1.45; color: #444;">
+                    <li>Professional HDR Photography & Interactive 3D Walkthrough</li>
+                    <li>Pay-at-Close Staging Integration with Preferred Vendors</li>
+                    <li>Top Tier Numerical Placement on Redfin.com Platforms</li>
+                    <li>Targeted Local Digital Campaign Spend & Automated Buyer Eblasts</li>
+                    <li>Physical Yard Signage, High-Visibility Directionals & MLS Keyboxes</li>
+                    <li>Complete Open House Management with Local Associate Staffing</li>
+                    <li>Up to $6,000 Purchase Incentive Credits via Rocket Mortgage Partnership</li>
+                </ul>
+            </div>
+
+            <div class="print-pricing-card premium">
+                <h3 style="margin: 0; font-size: 14pt; color: var(--card-accent-color); border-bottom: 1px solid var(--card-accent-color); padding-bottom: 4px;">Full Premium Concierge — 3%</h3>
+                <p style="font-size: 8.5pt; color: var(--card-accent-color); font-style: italic; margin: 4px 0 10px 0; font-weight: 500;">Complete listing preparation, upgraded media tracking, and full management.</p>
+                <ul style="margin: 0; padding-left: 15px; font-size: 8.5pt; line-height: 1.45; color: #222;">
+                    <li><strong>Everything included in the Base Tier, PLUS:</strong></li>
+                    <li>🌟 Complete Pre-Listing Vendor Coordination managed from end to end by Joe</li>
+                    <li>🌟 <strong>Live Project Tracking Portal:</strong> Real-time access to estimates, construction steps, and schedules</li>
+                    <li>🌟 Cinematic Video Walkthrough Production & Aerial Drone Coverage</li>
+                    <li>🌟 Elevated Digital Ad Syndication Budgets to maximize traffic metrics</li>
+                    <li>🌟 Notable Pay-At-Close Capital ($500 Setup Fee Waived) for structural updates</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="margin-top: 15px; background: var(--dynamic-bg-highlight); border-left: 3px solid #333; padding: 10px; border-radius: 4px;">
+            <strong style="font-size: 9pt; color: #222;">📊 Hyper-Local "Micro-Insights" Engine Integration</strong>
+            <p style="margin: 3px 0 0 0; font-size: 8.5pt; color: #444; line-height: 1.35;">Our frontend architecture processes live data feeds on regional public safety ratings, local school district classifications, automated Walk Scores, and weather matrices to proactively counter buyer hesitations before they make an offer.</p>
+        </div>
+
+        <div style="margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h4 style="margin: 0; color: #222; font-size: 11pt; font-weight: bold;">Joe Sheldon</h4>
+                <p style="margin: 2px 0; font-size: 8.5pt; color: #555;">Real Estate Advisor | Redfin Corporation</p>
+                <p style="margin: 0; font-size: 9pt; font-weight: bold; color: var(--card-accent-color);">Direct: 206-452-7845 &bull; joe.sheldon@redfin.com</p>
+            </div>
+            <div style="text-align: right; font-size: 8pt; color: #666; line-height: 1.3;">
+                <strong>Scan Front QR Code</strong><br>
+                To calculate your archetype playbook:<br>
+                <span style="font-family: monospace; color: #333;">myseattlesearch.com/movedna/</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const tabs = document.querySelectorAll('.dna-tab-btn');
+        const contents = document.querySelectorAll('.dna-content-section');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                tabs.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+
+                const targetId = this.getAttribute('data-target');
+                contents.forEach(section => {
+                    if (section.id === targetId) {
+                        section.classList.add('active');
+                    } else {
+                        section.classList.remove('active');
+                    }
+                });
+            });
+        });
+    });
+
+    function launchQuizModule(quizId) {
+        const choiceCards = document.getElementById('quiz-choice-cards');
+        const viewport = document.getElementById('quiz-engine-viewport');
+        const mount = document.getElementById('quiz-engine-mount');
+
+        choiceCards.style.display = 'none';
+        mount.innerHTML = '';
+
+        const newEngineTag = document.createElement('quiz-engine');
+        newEngineTag.setAttribute('quiz-id', quizId);
+        mount.appendChild(newEngineTag);
+
+        viewport.style.display = 'block';
+        viewport.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function resetQuizWorkflowPanel() {
+        const choiceCards = document.getElementById('quiz-choice-cards');
+        const viewport = document.getElementById('quiz-engine-viewport');
+        const mount = document.getElementById('quiz-engine-mount');
+
+        viewport.style.display = 'none';
+        mount.innerHTML = '';
+        choiceCards.style.display = '';
+    }
+</script>
