@@ -130,7 +130,7 @@ def harvest_regional_sports():
 
 def fetch_ospi_gis_schools(lea_codes):
     """
-    Queries the live Washington State OSPI GIS FeatureServer for active public high schools.
+    Queries the live Washington State OSPI GIS REST FeatureServer for active public high schools.
     """
     if not lea_codes:
         return []
@@ -198,10 +198,49 @@ def get_fallback_mascot(school_name):
             return mascot
     return "Athletics"
 
+def extract_district_and_ospi(entry):
+    """
+    Dynamic Key Scrubber: Scans entry dictionary keys to map school district names
+    and OSPI identifiers regardless of capitalization, spaces, or underscores.
+    """
+    district_name = None
+    ospi_number = None
+    county_name = "king" # Standard system default
+
+    # 1. Capture District Name
+    for k, v in entry.items():
+        if v is None:
+            continue
+        k_lower = k.lower()
+        # Look for any key containing "district" but exclude OSPI codes or ID tags
+        if "district" in k_lower and "ospi" not in k_lower and "code" not in k_lower and "id" not in k_lower:
+            district_name = str(v).strip()
+            break
+
+    # 2. Capture OSPI Code / LEA ID
+    for k, v in entry.items():
+        if v is None:
+            continue
+        k_lower = k.lower()
+        # Look for any key containing "ospi", "lea", or "district_id"
+        if "ospi" in k_lower or "lea" in k_lower or "district_id" in k_lower or "district id" in k_lower:
+            ospi_number = str(v).strip()
+            break
+
+    # 3. Capture County Name
+    for k, v in entry.items():
+        if v is None:
+            continue
+        if k.lower() == "county":
+            county_name = str(v).strip().lower()
+            break
+
+    return district_name, ospi_number, county_name
+
 def generate_sports_directory():
     """
-    Reads the geographic database of target cities, extracts State OSPI district numbers,
-    queries the GIS database, and outputs a dynamic high school sports portal catalog.
+    Reads the geographic database of target cities, extracts State OSPI district numbers
+    using permissive fuzzy matching, queries the state GIS service, and compiles the links.
     """
     print(" -> Compiling high school sports directory...")
     if not os.path.exists(CITY_DATA_FILE):
@@ -218,16 +257,24 @@ def generate_sports_directory():
     if not isinstance(cities_list, list):
         cities_list = list(cities_list.values())
 
+    if not cities_list:
+        print("⚠️ Warning: city_data.json is empty. Skipping sports directory gen.")
+        return
+
+    # Print a diagnostic snapshot of the keys to help trace local database anomalies
+    sample_entry = cities_list[0]
+    print(f"   [Diagnostic] First entry keys in city_data.json: {list(sample_entry.keys())}")
+    print(f"   [Diagnostic] First entry preview: {sample_entry}")
+
     districts_metadata = {}
     for entry in cities_list:
-        district_name = entry.get("School_District", entry.get("School District", "")).strip()
-        ospi_number = entry.get("School_District_OSPI", entry.get("OSPI", entry.get("OSPI_Number", "")))
-        county_raw = entry.get("County", "").strip().lower()
+        district_name, ospi_number, county_raw = extract_district_and_ospi(entry)
         
         if not district_name or not ospi_number:
             continue
 
-        lea_code = str(ospi_number).strip().zfill(5)
+        # OSPI LEA codes inside the state GIS database are 5-character zero-padded strings
+        lea_code = str(ospi_number).strip().split('.')[0].zfill(5)
         slug = district_name.lower().replace(" ", "-").replace(".", "").replace(",", "")
         
         if slug not in districts_metadata:
@@ -240,7 +287,13 @@ def generate_sports_directory():
             }
 
     unique_lea_codes = list(set([d["leaCode"] for d in districts_metadata.values()]))
-    features = fetch_ospi_gis_schools(unique_lea_codes)
+    
+    if not unique_lea_codes:
+        print("⚠️ Warning: No valid OSPI codes were extracted. Check your city_data.json schema.")
+        features = []
+    else:
+        print(f"   [Pipeline] Extracted {len(unique_lea_codes)} unique OSPI LEA Codes for verification.")
+        features = fetch_ospi_gis_schools(unique_lea_codes)
     
     matched_count = 0
     if features:
@@ -252,6 +305,7 @@ def generate_sports_directory():
             if not school_name:
                 continue
 
+            # Bypass alternative or adult learning programs
             ignore_keywords = ["Alternative", "Virtual", "Online", "Academy", "Center", "Opportunity", "Parent", "Transition", "School District"]
             if any(keyword in school_name for keyword in ignore_keywords):
                 continue
@@ -271,9 +325,9 @@ def generate_sports_directory():
                         })
                         matched_count += 1
 
-    # Safe compile-time fallback in case the state service has a connectivity failure
-    if matched_count == 0:
-        print("⚠️ No schools retrieved from OSPI. Deploying safe fallback generator...")
+    # Safe fallback in case the state service is offline
+    if matched_count == 0 and len(districts_metadata) > 0:
+        print("⚠️ No schools retrieved from OSPI. Deploying fallback database generator...")
         for slug, dist in districts_metadata.items():
             clean_name = dist["districtName"].replace("School District", "").replace("Public Schools", "").strip()
             fallback_school = f"{clean_name} High School"
