@@ -1,0 +1,35 @@
+# File: .github/workflows/property_tax_pipeline.yml
+name: Property Tax Data Pipeline
+
+on:
+  schedule:
+    - cron: '0 0 1 * *'  # Executes at midnight on the 1st of every month
+  workflow_dispatch:     # Allows you to manually trigger a refresh anytime in GitHub
+
+jobs:
+  refresh-tax-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code Repository
+        uses: actions/checkout@v4
+
+      - name: Configure Python Environment Node
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Tax Asset Compiler Script
+        run: python scripts/harvest_taxes.py
+
+      - name: Commit and Push Updated Tax Matrix Data
+        run: |
+          git config --global user.name "GitHub Actions Runner"
+          git config --global user.email "actions@github.com"
+          git add data/property_tax_rates.json
+          if git diff-index --quiet HEAD; then
+            echo "ℹ️ No adjustments found in municipal tax metrics. Skipping repository update."
+          else
+            git commit -m "🚀 Automated Cron Pass: Synchronized regional certified property tax levy matrix"
+            git push
+          fi
+          # End of automation synchronization sequence
