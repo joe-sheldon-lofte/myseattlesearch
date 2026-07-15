@@ -18,14 +18,14 @@ permalink: /propertytax/
             <div class="form-field-group">
                 <label for="county-select" class="form-field-label">1. Select County</label>
                 <select id="county-select" class="form-field-control" onchange="handleCountySwitch()">
-                    <option value="">-- Choose a County --</option>
+                    <option value="">Choose a County</option>
                 </select>
             </div>
 
             <div class="form-field-group">
                 <label for="city-select" class="form-field-label">2. Select Municipality / City Location</label>
                 <select id="city-select" class="form-field-control" disabled onchange="executeTaxCalculation()">
-                    <option value="">-- Choose a City --</option>
+                    <option value="">Choose a City</option>
                 </select>
             </div>
 
@@ -218,21 +218,19 @@ permalink: /propertytax/
     // Global template storage matrix containing county data indexes
     let countyTaxDataMatrix = null;
 
-    document.addEventListener("DOMContentLoaded", function() {
-        // Fetch static tax matrix asset directly from root pass-through folder
-        fetch('/data/property_tax_rates.json')
-            .then(response => {
-                if (!response.ok) throw new Error('Data pipeline missing file structure');
-                return response.json();
-            })
-            .then(data => {
-                countyTaxDataMatrix = data;
-                populateCountySelector();
-            })
-            .catch(error => {
-                console.error('❌ Calculator error initializing tax metrics map:', error);
-            });
-    });
+    // Secure Ingestion Pass: Immediate execution avoids DOMContentLoaded timing race conditions
+    fetch('/data/property_tax_rates.json')
+        .then(response => {
+            if (!response.ok) throw new Error('Data pipeline missing file structure');
+            return response.json();
+        })
+        .then(data => {
+            countyTaxDataMatrix = data;
+            populateCountySelector();
+        })
+        .catch(error => {
+            console.error('❌ Calculator error initializing tax metrics map:', error);
+        });
 
     function populateCountySelector() {
         const countyMenu = document.getElementById("county-select");
@@ -253,7 +251,7 @@ permalink: /propertytax/
         const resultsBoard = document.getElementById("results-display-board");
 
         // Clear and lock downstream form elements if empty choice made
-        cityMenu.innerHTML = '<option value="">-- Choose a City --</option>';
+        cityMenu.innerHTML = '<option value="">Choose a City</option>';
         cityMenu.disabled = true;
         valueInput.disabled = true;
         resultsBoard.classList.add("results-hidden");
