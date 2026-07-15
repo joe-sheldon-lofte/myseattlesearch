@@ -1,3 +1,4 @@
+<!-- File: _includes/base.njk -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,9 +17,9 @@
 
     {% include "footer.njk" %}
     
-    <div class="build-freshness-wrapper" style="text-align: center; padding: 1.5rem 1rem; font-size: 0.8rem; opacity: 0.7; border-top: 1px solid rgba(0,0,0,0.05); background-color: #fafafa;">
-        <p style="margin: 0; font-weight: 600; color: #333;">
-            System Active | Last Updated: <strong>{% buildTime %}</strong>
+    <div class="build-freshness-wrapper" style="text-align: center; padding: 1.5rem 1rem; font-size: 0.8rem; opacity: 0.7; border-top: 1px solid rgba(0,0,0,0.05); background-color: var(--dynamic-bg-highlight); margin-bottom: {% if not hideCTA %}70px{% else %}0{% endif %};">
+        <p style="margin: 0; font-weight: 600; color: var(--premier-charcoal);">
+            System Active | Last Updated: <strong>{% buildTime %}</strong> | Cloud Storage: <strong>{{ r2_storage.usedGB if r2_storage and r2_storage.usedGB else "0.00" }} / 10 GB</strong> Used
         </p>
     </div>
     
@@ -27,8 +28,7 @@
 <style>
     /* 1. Dynamic Notification Top Banner */
     #celebration-banner {
-        display: none;
-        /* Controlled by JS checking system clock */
+        display: none; /* Controlled by JS checking system clock */
         width: 100%;
         background-color: var(--premier-charcoal);
         color: var(--white);
@@ -52,8 +52,7 @@
 
     /* 2. Immersive Takeover Screen Overlay */
     #celebration-overlay {
-        display: none;
-        /* Controlled by JS memory logs */
+        display: none; /* Controlled by JS memory logs */
         position: fixed;
         top: 0; left: 0;
         width: 100vw; height: 100vh;
@@ -79,8 +78,7 @@
 
     @media (min-width: 768px) {
         .celebration-canvas {
-            background-image: var(--bg-desktop);
-            /* Desktop Override */
+            background-image: var(--bg-desktop); /* Desktop Override */
         }
     }
 
@@ -196,7 +194,6 @@
         // 1. Safely serialize Eleventy's parsed Google Sheets celebrations database
         const activeCampaigns = {{ celebrations | dump | safe if celebrations else "[]" }};
         if (!activeCampaigns || activeCampaigns.length === 0) return;
-
         // 2. Locate the active date window matching today's local system clock
         const today = new Date();
         const activeCampaign = activeCampaigns.find(event => {
@@ -218,7 +215,6 @@
         const linkUrl = activeCampaign['Resource Link'] || activeCampaign.linkUrl;
         const mobileImg = activeCampaign['Mobile Image'] || activeCampaign.mobileImage;
         const desktopImg = activeCampaign['Desktop Image'] || activeCampaign.desktopImage;
-
         // 4. Inject campaign text & background assets dynamically into the layout
         document.getElementById('celebration-heading').textContent = headline;
         document.getElementById('celebration-message').textContent = desc;
@@ -269,6 +265,124 @@
         }
     }
 </script>
+
+{% if not hideCTA %}
+<div class="persistent-cta-deck">
+    <div class="cta-inner-wrapper">
+        <a href="sms:+12066577493" class="cta-link-btn text-joe-btn">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+            Text Joe
+        </a>
+        <a href="https://calendar.app.google/BsuUnRUVcqFqXpDH8" target="_blank" rel="noopener" class="cta-link-btn book-joe-btn">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 5h5v5h-5z"/></svg>
+            Book
+        </a>
+    </div>
+</div>
+
+<style>
+    .persistent-cta-deck {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
+        border-top: 1px solid var(--premier-beige);
+        z-index: 99999;
+        padding: 0.85rem 1rem;
+        box-sizing: border-box;
+    }
+    
+    .cta-inner-wrapper {
+        max-width: 600px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        width: 100%;
+    }
+
+    .cta-link-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        padding: 0.8rem 1rem;
+        font-size: 0.92rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        text-decoration: none;
+        border-radius: 8px;
+        transition: transform 0.15s ease, opacity 0.15s ease;
+        text-align: center;
+        box-sizing: border-box;
+    }
+
+    .cta-link-btn:hover {
+        transform: translateY(-2px);
+        opacity: 0.95;
+    }
+
+    /* Text Joe Button Style */
+    .text-joe-btn {
+        background-color: var(--white);
+        border: 2px solid var(--premier-charcoal);
+        color: var(--premier-charcoal);
+    }
+
+    /* Booking Button Style */
+    .book-joe-btn {
+        background-color: var(--card-accent-color);
+        border: 2px solid var(--card-accent-color);
+        color: var(--white);
+    }
+
+    /* Pad the bottom of your mobile viewport so the bar never overlaps footer content */
+    body {
+        padding-bottom: 70px;
+    }
+
+    @media (min-width: 768px) {
+        .persistent-cta-deck {
+            width: 280px;
+            left: auto;
+            right: max(1.5rem, calc(50% - 570px + 1.5rem));
+            transform: none;
+            bottom: 1.5rem;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            padding: 0.6rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        }
+        .cta-inner-wrapper {
+            width: 100%;
+            gap: 0.5rem;
+        }
+        .cta-link-btn {
+            padding: 0.55rem 0.5rem;
+            font-size: 0.78rem;
+            border-radius: 8px;
+            border-width: 1px;
+        }
+        .text-joe-btn {
+            border-width: 1px;
+        }
+        .book-joe-btn {
+            border-width: 1px;
+        }
+        body {
+            padding-bottom: 0;
+        }
+    }
+</style>
+{% endif %}
 
 </body>
 </html>

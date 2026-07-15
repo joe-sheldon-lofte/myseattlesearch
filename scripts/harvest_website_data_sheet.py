@@ -60,7 +60,12 @@ def load_existing_r2_cache():
                 # Extract the unique file ID component right before the extension block
                 file_id_match = re.search(r'/([a-zA-Z0-9_-]+)\.webp$', asset_url)
                 if file_id_match:
-                    extracted_id = file_id_match.group(1)
+                    filename_stem = file_id_match.group(1)
+                    # 🌟 Check if filename follows the new "{slug}--{id}" pattern, fallback to old ID-only format if not
+                    if "--" in filename_stem:
+                        extracted_id = filename_stem.split("--")[-1]
+                    else:
+                        extracted_id = filename_stem
                     cache_index[extracted_id] = asset_url
         except Exception as cache_fault:
             print(f"⚠️ Warning: Skipping cache indexing parse on file {target_json_file}: {cache_fault}")
@@ -78,7 +83,7 @@ def convert_and_upload_to_r2(cell_value, sheet_name):
     """
     Checks if an individual cell contains a Google Drive link. Cross-references 
     the file ID against the repository cache index. Reuses historical URLs instantly,
-    or falls back to download, compress, and upload new media on demand.
+    or falls back to download, compress, parse original filename, and upload new media on demand.
     """
     if not isinstance(cell_value, str) or "drive.google.com" not in cell_value:
         return cell_value
@@ -117,7 +122,31 @@ def convert_and_upload_to_r2(cell_value, sheet_name):
         download_response = requests.get(download_url, timeout=30)
         download_response.raise_for_status()
         
-        # 2. Feed raw bytes into Pillow image processor
+        # 2. Extract original filename from response headers if available
+        content_disp = download_response.headers.get("Content-Disposition", "")
+        original_filename = None
+        if content_disp:
+            # Match UTF-8 encoded filename spec first (most robust)
+            utf8_match = re.search(r"filename\*=UTF-8''([^;\n]*)", content_disp, re.IGNORECASE)
+            if utf8_match:
+                original_filename = urllib.parse.unquote(utf8_match.group(1))
+            else:
+                # Fall back to standard quoted filename parameter
+                reg_match = re.search(r'filename="([^"\n]*)"', content_disp, re.IGNORECASE)
+                if not reg_match:
+                    # Fall back to unquoted filename
+                    reg_match = re.search(r'filename=([^;\n]*)', content_disp, re.IGNORECASE)
+                if reg_match:
+                    original_filename = reg_match.group(1).strip()
+
+        # Clean and slugify the base name without extension, fallback to "asset" if header parsing fails
+        if original_filename:
+            base_name, _ = os.path.splitext(original_filename)
+            slugified_name = generate_url_slug(base_name)
+        else:
+            slugified_name = "asset"
+
+        # 3. Feed raw bytes into Pillow image processor
         raw_image_bytes = io.BytesIO(download_response.content)
         processed_image = Image.open(raw_image_bytes)
         
@@ -126,12 +155,12 @@ def convert_and_upload_to_r2(cell_value, sheet_name):
         else:
             processed_image = processed_image.convert("RGB")
             
-        # 3. Compress image directly into an in-memory byte buffer
+        # 4. Compress image directly into an in-memory byte buffer
         webp_byte_stream = io.BytesIO()
         processed_image.save(webp_byte_stream, format="WEBP", quality=80)
         webp_byte_stream.seek(0)
         
-        # 4. Connect to Cloudflare R2 API
+        # 5. Connect to Cloudflare R2 API
         s3_client = boto3.client(
             "s3",
             endpoint_url=r2_endpoint,
@@ -140,9 +169,10 @@ def convert_and_upload_to_r2(cell_value, sheet_name):
             region_name="auto"
         )
         
-        object_key = f"{sheet_name.lower()}/{file_id}.webp"
+        # Organize into usage folders matching sheet name using double-hyphen filename conventions
+        object_key = f"{sheet_name.lower()}/{slugified_name}--{file_id}.webp"
         
-        # 5. Deliver optimized file directly to Cloudflare
+        # 6. Deliver optimized file directly to Cloudflare
         s3_client.put_object(
             Bucket=r2_bucket,
             Key=object_key,
@@ -157,6 +187,70 @@ def convert_and_upload_to_r2(cell_value, sheet_name):
     except Exception as process_fault:
         print(f"❌ Image processing error on asset {file_id}: {process_fault}")
         return cell_value
+
+def calculate_and_save_r2_storage():
+    """
+    Queries Cloudflare R2 bucket to sum all object sizes, calculates 
+    total usage in GB, and writes it to global _data/r2_storage.json.
+    """
+    r2_access_key = os.environ.get("R2_ACCESS_KEY_ID")
+    r2_secret_key = os.environ.get("R2_SECRET_ACCESS_KEY")
+    r2_endpoint = os.environ.get("R2_ENDPOINT_URL")
+    r2_bucket = os.environ.get("R2_BUCKET_NAME")
+    
+    output_dir = "_data"
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, "r2_storage.json")
+    
+    # Default metric configuration fallback
+    storage_data = {
+        "usedGB": "0.00",
+        "usedBytes": 0,
+        "lastChecked": datetime.datetime.now(datetime.timezone.utc).isoformat()
+    }
+    
+    if not all([r2_access_key, r2_secret_key, r2_endpoint, r2_bucket]):
+        print("⚠️ R2 environment parameters missing. Writing fallback R2 local storage config.")
+        if not os.path.exists(output_file):
+            with open(output_file, "w", encoding="utf-8") as f:
+                json.dump(storage_data, f, indent=2)
+        return
+        
+    print("🧮 Directing Cloudflare R2 list requests to calculate storage metric...")
+    try:
+        s3_client = boto3.client(
+            "s3",
+            endpoint_url=r2_endpoint,
+            aws_access_key_id=r2_access_key,
+            aws_secret_access_key=r2_secret_key,
+            region_name="auto"
+        )
+        
+        total_bytes = 0
+        paginator = s3_client.get_paginator('list_objects_v2')
+        pages = paginator.paginate(Bucket=r2_bucket)
+        
+        for page in pages:
+            if 'Contents' in page:
+                for obj in page['Contents']:
+                    total_bytes += obj.get('Size', 0)
+        
+        # Gigabytes Conversion: Bytes / 1024^3
+        total_gb = total_bytes / (1024 ** 3)
+        
+        storage_data["usedGB"] = f"{total_gb:.2f}"
+        storage_data["usedBytes"] = total_bytes
+        
+        with open(output_file, "w", encoding="utf-8") as f:
+            json.dump(storage_data, f, indent=2)
+            
+        print(f"📊 R2 Storage metrics successfully indexed: {storage_data['usedGB']} / 10 GB used.")
+        
+    except Exception as s3_fault:
+        print(f"❌ Storage query failure: {s3_fault}. Preserving safe defaults.")
+        if not os.path.exists(output_file):
+            with open(output_file, "w", encoding="utf-8") as f:
+                json.dump(storage_data, f, indent=2)
 
 def harvest_workbook_pipeline():
     SOURCE_URL = os.environ.get("GOOGLE_SHEET_LIVE_URL")
@@ -356,3 +450,4 @@ def harvest_workbook_pipeline():
 
 if __name__ == "__main__":
     harvest_workbook_pipeline()
+    calculate_and_save_r2_storage()
