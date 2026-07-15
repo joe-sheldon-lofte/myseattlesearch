@@ -1,7 +1,6 @@
 /* File: /quizzes/engines/matrix_4quadrant.js */
 
 export function initializeQuizTrack(instance) {
-    // Inject the calculation rendering method onto your element instance scope shell
     instance.renderQuestion = function() {
         if (this.currentStep >= this.quizData.questions.length) {
             processCalculationsAndSubmit(this);
@@ -14,26 +13,80 @@ export function initializeQuizTrack(instance) {
 
         this.innerHTML = `
             <style>
-                .m-btn { padding:0.8rem; border:1px solid #ddd; background:#fff; font-weight:bold; border-radius:6px; cursor:pointer; transition:0.2s; color:#222; }
-                .m-btn:hover { border-color: var(--redfin-red); background:#fff5f5; }
-                .m-btn.active { background:var(--redfin-red)!important; color:#fff!important; border-color:var(--redfin-red)!important; }
+                .m-grid {
+                    display: grid !important;
+                    grid-template-columns: repeat(10, 1fr) !important;
+                    gap: 6px !important;
+                    width: 100% !important;
+                    margin: 1.5rem 0 !important;
+                    box-sizing: border-box !important;
+                }
+                .m-btn { 
+                    padding: 0.6rem 0 !important; 
+                    border: 2px solid var(--premier-beige) !important; 
+                    background: white !important; 
+                    font-weight: bold !important; 
+                    border-radius: 6px !important; 
+                    cursor: pointer !important; 
+                    transition: 0.2s !important; 
+                    color: var(--premier-charcoal) !important;
+                    text-align: center !important;
+                    box-sizing: border-box !important;
+                }
+                .m-btn:hover { 
+                    border-color: var(--card-accent-color) !important; 
+                    background: var(--dynamic-bg-highlight) !important; 
+                }
+                .m-btn.active { 
+                    background: var(--card-accent-color) !important; 
+                    color: white !important; 
+                    border-color: var(--card-accent-color) !important; 
+                }
+                .scale-labels {
+                    display: flex !important;
+                    justify-content: space-between !important;
+                    width: 100% !important;
+                    margin-top: 0.5rem !important;
+                    font-size: 0.78rem !important;
+                    font-weight: 700 !important;
+                    text-transform: uppercase !important;
+                    letter-spacing: 0.5px !important;
+                    color: var(--premier-charcoal) !important;
+                    opacity: 0.6 !important;
+                }
                 .nav-btn { padding: 0.6rem 1.5rem; font-size: 0.9rem; font-weight: bold; border-radius: 6px; cursor: pointer; }
                 .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+                @media (max-width: 480px) {
+                    .m-btn {
+                        padding: 0.45rem 0 !important;
+                        font-size: 0.75rem !important;
+                    }
+                    .scale-labels {
+                        font-size: 0.7rem !important;
+                    }
+                }
             </style>
-            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:2.5rem; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); border-top:6px solid var(--redfin-red); min-height:380px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box;">
+            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:2.5rem; background: white; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); border-top:6px solid var(--card-accent-color); min-height:380px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box;">
                 <div>
-                    <div style="width:100%; background:#eee; height:6px; border-radius:3px; margin-bottom:2rem; overflow:hidden;"><div style="width:${pct}%; background:var(--redfin-red); height:100%;"></div></div>
-                    <div style="font-size:0.8rem; font-weight:800; color:var(--redfin-red); text-transform:uppercase; text-align:center; margin-bottom:0.5rem;">Statement ${this.currentStep + 1} of ${this.quizData.questions.length}</div>
-                    <h3 style="text-align:center; font-size:1.2rem; color:#222; margin-bottom:1.5rem;">"${qObj.text}"</h3>
-                    <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:10px;">
+                    <div style="width:100%; background: var(--premier-beige); height:6px; border-radius:3px; margin-bottom:2rem; overflow:hidden;"><div style="width:${pct}%; background: var(--card-accent-color); height:100%;"></div></div>
+                    <div style="font-size:0.8rem; font-weight:800; color: var(--card-accent-color); text-transform:uppercase; text-align:center; margin-bottom:0.5rem;">Statement ${this.currentStep + 1} of ${this.quizData.questions.length}</div>
+                    <h3 style="text-align:center; font-size:1.2rem; color: var(--premier-charcoal); margin-bottom:1.5rem;">"${qObj.text}"</h3>
+                    
+                    <div class="m-grid">
                         ${Array.from({length:10}, (_, i) => i + 1).map(num => `
                             <button type="button" class="m-btn ${this.currentSelection === num ? 'active' : ''}" data-val="${num}">${num}</button>
                         `).join('')}
                     </div>
+                    
+                    <div class="scale-labels">
+                        <span class="label-disagree">Completely Disagree</span>
+                        <span class="label-agree">Completely Agree</span>
+                    </div>
                 </div>
-                <div style="display:flex; justify-content:space-between; border-top:1px solid #f0f0f0; padding-top:1.25rem; margin-top:1rem;">
-                    <button type="button" id="q-back" class="btn btn-secondary nav-btn" ${this.currentStep === 0 ? 'disabled' : ''}>Back</button>
-                    <button type="button" id="q-next" class="btn btn-primary nav-btn" ${this.currentSelection === null ? 'disabled' : ''}>Next</button>
+                <div style="display:flex; justify-content:space-between; border-top:1px solid var(--premier-beige); padding-top:1.25rem; margin-top:1rem;">
+                    <button type="button" id="q-back" class="btn btn-secondary nav-btn" style="background-color: white; border-color: var(--premier-beige); color: var(--premier-charcoal);" ${this.currentStep === 0 ? 'disabled' : ''}>Back</button>
+                    <button type="button" id="q-next" class="btn btn-primary nav-btn" style="background-color: var(--card-accent-color); border-color: var(--card-accent-color); color: white;" ${this.currentSelection === null ? 'disabled' : ''}>Next</button>
                 </div>
             </div>`;
 
@@ -56,12 +109,11 @@ export function initializeQuizTrack(instance) {
         });
     };
 
-    // Kick off the first question evaluation loop render pass
     instance.renderQuestion();
 }
 
 async function processCalculationsAndSubmit(instance) {
-    instance.innerHTML = `<div style="text-align:center; padding:4rem;"><h3 style="color:var(--redfin-red);">Securing Playbook Access...</h3></div>`;
+    instance.innerHTML = `<div style="text-align:center; padding:4rem;"><h3 style="color: var(--card-accent-color);">Securing Playbook Access...</h3></div>`;
     const tallies = { typeA: 0, typeB: 0, typeC: 0, typeD: 0, typeE: 0, typeF: 0 };
     
     instance.quizData.questions.forEach((q, idx) => {

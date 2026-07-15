@@ -1,0 +1,69 @@
+---
+layout: base.njk
+title: "Your Strategy Roadmap | Joe Sheldon"
+permalink: /quizzes/results/
+---
+
+<div style="max-width:800px; margin:4rem auto; padding:0 1.5rem; min-height:60vh;">
+    <div style="text-align:center; background: var(--dynamic-bg-highlight); padding:3rem 2rem; border-radius:12px; border-top:6px solid var(--card-accent-color); margin-bottom:2.5rem;">
+        <div id="results-image-mount" style="margin-bottom:1.5rem;"></div>
+
+        <div style="font-size:0.85rem; font-weight:800; color: var(--card-accent-color); text-transform:uppercase; letter-spacing:1px; margin-bottom:0.5rem;">Results Locked In</div>
+        <h1 id="r-title" style="margin:0.5rem 0; font-size:2.2rem; font-weight:800; color: var(--card-accent-color);">Loading Winner...</h1>
+        <p id="r-subtitle" style="font-style:italic; color: var(--premier-charcoal); opacity: 0.8; font-size:1.15rem; margin:0 0 1.5rem 0;"></p>
+        <canvas id="badge-canvas" width="450" height="180" style="max-width:100%; background: white; box-shadow:0 4px 15px rgba(0,0,0,0.06); border-radius:6px; margin:0 auto; display:block;"></canvas>
+        <button id="dl-badge" class="btn btn-secondary" style="margin-top:1.25rem; font-weight:bold; background-color: var(--premier-charcoal); border-color: var(--premier-charcoal); color: white;">Download Verification Card</button>
+    </div>
+    <p id="r-details" style="font-size:1.15rem; line-height:1.65; color: var(--premier-charcoal); margin-bottom:2rem;"></p>
+    <div id="r-playbook" style="background: var(--dynamic-bg-highlight); border-left:4px solid var(--card-accent-color); padding:2rem; border-radius:4px; font-size:1rem; color: var(--premier-charcoal);"></div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const params = new URLSearchParams(window.location.search);
+        const qId = params.get('quizId');
+        const resKey = params.get('result');
+        const name = params.get('name') || '';
+
+        try {
+            const res = await fetch('/data/quizzes.json');
+            const db = await res.json();
+            const quiz = db[qId];
+            const match = quiz.routing.find(r => r.key === resKey);
+
+            // 🌟 Inject Dynamic Result Banner image if specified in parent row[cite: 7]
+            if (quiz.quizImage) {
+                document.getElementById('results-image-mount').innerHTML = `
+                    <img src="${quiz.quizImage}" alt="" style="max-width:280px; width:100%; height:auto; border-radius:8px; display:block; margin:0 auto;">
+                `;
+            }
+
+            document.getElementById('r-title').textContent = match.heading;
+            document.getElementById('r-subtitle').textContent = match.subheading;
+            document.getElementById('r-details').textContent = match.details;
+            document.getElementById('r-playbook').innerHTML = `<strong style="display:block;margin-bottom:0.5rem;color: var(--card-accent-color);">📘 Coach's Playbook Strategy:</strong>${match.additionalDetails}`;
+
+            // Resolve design token values dynamically from CSS Variables to paint the Canvas[cite: 8]
+            const styles = getComputedStyle(document.documentElement);
+            const brandAccent = styles.getPropertyValue('--card-accent-color').trim() || '#C13030';
+            const brandCharcoal = styles.getPropertyValue('--premier-charcoal').trim() || '#3D3935';
+
+            // Draw Downloadable Badge[cite: 8]
+            const canvas = document.getElementById('badge-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,450,180);
+            ctx.lineWidth = 5; ctx.strokeStyle = brandAccent; ctx.strokeRect(0,0,450,180);
+            ctx.fillStyle = brandAccent; ctx.font = 'bold uppercase 11px sans-serif'; ctx.fillText('QUIZ RESULTS', 25, 35);
+            ctx.fillStyle = brandCharcoal; ctx.font = '14px sans-serif'; ctx.fillText(name ? `I took Joe Sheldon's quiz and my profile is:` : "I completed the strategy assessment:", 25, 70);
+            ctx.fillStyle = brandAccent; ctx.font = 'italic bold 22px sans-serif'; ctx.fillText(match.heading, 25, 120);
+            ctx.fillStyle = '#777777'; ctx.font = '11px sans-serif'; ctx.fillText('Go to www.myseattlesearch.com to take yours!', 25, 155);
+
+            document.getElementById('dl-badge').addEventListener('click', () => {
+                const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = 'strategy-badge.png'; a.click();
+            });
+        } catch(e) { 
+            console.error(e);
+            document.getElementById('r-title').textContent = "Profile Complete!"; 
+        }
+    });
+</script>
