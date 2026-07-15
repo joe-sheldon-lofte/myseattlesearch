@@ -1,0 +1,44 @@
+---
+layout: sports-layout.njk
+renderData:
+  title: "{{ district.districtName }} High School Sports Calendars | Joe Sheldon"
+permalink: "/local-sports/{{ district.slug }}/"
+pagination:
+  data: sportsLinks
+  size: 1
+  alias: district
+  resolve: values
+---
+
+<header style="margin-bottom: 2.5rem;">
+    <a href="/local-sports/" style="font-size: 0.85rem; font-weight: 800; color: var(--card-accent-color); text-transform: uppercase; text-decoration: none; letter-spacing: 1px; display: inline-block; margin-bottom: 0.5rem;">&larr; Back to Main Sports Hub</a>
+    <h1 style="margin: 0; font-size: 2.4rem; font-weight: 900; letter-spacing: -0.5px; color: var(--premier-charcoal); line-height: 1.15;">{{ district.districtName }}</h1>
+    <p style="color: #555555; font-size: 1.1rem; margin-top: 0.75rem; line-height: 1.5;">
+        Select an individual local high school below to access real-time league schedules or view active varsity rosters and standings on MaxPreps.
+    </p>
+</header>
+
+<section>
+    <div class="district-grid">
+        {% for school in district.schools %}
+            <div class="school-info-card">
+                <div>
+                    <h3 class="school-title">{{ school.name }}</h3>
+                    <div class="school-mascot">Mascot: {{ school.mascot }}</div>
+                </div>
+                
+                <div class="button-group-stack">
+                    <a href="{{ school.leagueUrl }}" target="_blank" rel="noopener" class="school-action-btn btn-league">
+                        Live League Schedule &rarr;
+                    </a>
+                    <a href="{{ school.mensUrl }}" target="_blank" rel="noopener" class="school-action-btn btn-mens">
+                        Men's Football & Athletics
+                    </a>
+                    <a href="{{ school.womensUrl }}" target="_blank" rel="noopener" class="school-action-btn btn-womens">
+                        Women's Basketball & Athletics
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</section>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .sports-container {
+            max-width: 1140px;
+            margin: 4rem auto;
+            padding: 0 1.5rem;
+            box-sizing: border-box;
+        }
+        .sports-editorial-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2.5rem;
+        }
+        @media (min-width: 900px) {
+            .sports-editorial-layout {
+                grid-template-columns: 2fr 1fr;
+            }
+        }
+        
+        /* Interactive Live Scoreboard Row Styles */
+        .scoreboard-scroller {
+            display: flex;
+            gap: 1.25rem;
+            overflow-x: auto;
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            scroll-behavior: smooth;
+            scrollbar-width: thin;
+        }
+        .score-pill-card {
+            background: var(--white);
+            border: 1px solid var(--light-gray);
+            border-radius: 12px;
+            padding: 1.25rem;
+            min-width: 280px;
+            max-width: 280px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-sizing: border-box;
+            border-top: 4px solid var(--card-accent-color);
+        }
+        .score-pill-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #666666;
+            margin-bottom: 0.75rem;
+        }
+        .score-pill-live-badge {
+            background-color: #e53e3e;
+            color: var(--white);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 900;
+            animation: pulse-live 1.5s infinite;
+        }
+        @keyframes pulse-live {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        .team-score-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        .team-meta-block {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .team-logo-frame {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        }
+        .team-name-string {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--premier-charcoal);
+        }
+        .team-record-string {
+            font-size: 0.75rem;
+            color: #777777;
+            font-weight: 500;
+        }
+        .score-display-digit {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--premier-charcoal);
+        }
+        .gamecast-action-btn {
+            display: block;
+            text-align: center;
+            background-color: var(--dynamic-bg-highlight);
+            color: var(--premier-charcoal);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 0.5rem;
+            border-radius: 6px;
+            margin-top: 0.75rem;
+            transition: background-color 0.15s ease;
+        }
+        .gamecast-action-btn:hover {
+            background-color: var(--light-gray);
+        }
+
+        /* High School Cards Styles */
+        .district-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        @media (min-width: 600px) {
+            .district-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        .school-info-card {
+            background: var(--white);
+            border: 1px solid var(--light-gray);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .school-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--premier-charcoal);
+            margin: 0 0 0.25rem 0;
+        }
+        .school-mascot {
+            font-size: 0.85rem;
+            color: var(--card-accent-color);
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 1.5rem;
+        }
+        .button-group-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .school-action-btn {
+            display: block;
+            text-align: center;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 0.7rem;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        .btn-league {
+            background-color: var(--premier-charcoal);
+            color: var(--white);
+        }
+        .btn-mens {
+            background-color: var(--dynamic-bg-highlight);
+            color: var(--premier-charcoal);
+            border: 1px solid var(--light-gray);
+        }
+        .btn-womens {
+            background-color: var(--dynamic-bg-highlight);
+            color: var(--premier-charcoal);
+            border: 1px solid var(--light-gray);
+        }
+        .school-action-btn:hover {
+            opacity: 0.9;
+        }
+
+        /* Sidebar Elements */
+        .sports-sidebar-card {
+            background-color: var(--dynamic-bg-highlight);
+            border-radius: 12px;
+            padding: 2rem;
+            box-sizing: border-box;
+            border: 1px solid var(--light-gray);
+        }
+        .sidebar-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--premier-charcoal);
+            margin: 0 0 1rem 0;
+            border-bottom: 2px solid var(--light-gray);
+            padding-bottom: 0.5rem;
+        }
+        .sidebar-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .sidebar-link {
+            color: var(--premier-charcoal);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            display: block;
+            transition: color 0.15s ease;
+        }
+        .sidebar-link:hover {
+            color: var(--card-accent-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="sports-container">
+        
+        <div class="scoreboard-scroller">
+            {% if sportsScores.length > 0 %}
+                {% for game in sportsScores %}
+                    <div class="score-pill-card">
+                        <div>
+                            <div class="score-pill-meta">
+                                <span>{{ game.sport }}</span>
+                                {% if game.isLive %}
+                                    <span class="score-pill-live-badge">Live</span>
+                                {% else %}
+                                    <span>{{ game.status }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="team-score-row">
+                                <div class="team-meta-block">
+                                    {% if game.away.logo %}
+                                        <img src="{{ game.away.logo }}" class="team-logo-frame" alt="{{ game.away.name }}">
+                                    {% endif %}
+                                    <div>
+                                        <span class="team-name-string">{{ game.away.name }}</span>
+                                        {% if game.away.record %}
+                                            <span class="team-record-string">({{ game.away.record }})</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <span class="score-display-digit">{{ game.away.score }}</span>
+                            </div>
+
+                            <div class="team-score-row">
+                                <div class="team-meta-block">
+                                    {% if game.home.logo %}
+                                        <img src="{{ game.home.logo }}" class="team-logo-frame" alt="{{ game.home.name }}">
+                                    {% endif %}
+                                    <div>
+                                        <span class="team-name-string">{{ game.home.name }}</span>
+                                        {% if game.home.record %}
+                                            <span class="team-record-string">({{ game.home.record }})</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <span class="score-display-digit">{{ game.home.score }}</span>
+                            </div>
+                        </div>
+
+                        <a href="{{ game.gamecastUrl }}" target="_blank" rel="noopener" class="gamecast-action-btn">
+                            ESPN Gamecast &rarr;
+                        </a>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div style="text-align: center; width: 100%; padding: 1.5rem; background: var(--dynamic-bg-highlight); border-radius: 8px; color: #777777; font-size: 0.9rem;">
+                    No active professional or collegiate matchups are currently live or scheduled today.
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="sports-editorial-layout">
+            <main>
+                {{ content | safe }}
+            </main>
+            
+            <aside class="sports-sidebar-card">
+                <h3 class="sidebar-title">Select School District</h3>
+                <ul class="sidebar-list" style="margin-bottom: 2rem;">
+                    <li><a href="/local-sports/" class="sidebar-link">&rarr; View All Districts</a></li>
+                    {% for dist in sportsLinks %}
+                        <li><a href="/local-sports/{{ dist.slug }}/" class="sidebar-link">&rarr; {{ dist.districtName }}</a></li>
+                    {% endfor %}
+                </ul>
+
+                <h3 class="sidebar-title">Useful Regional Resources</h3>
+                <ul class="sidebar-list">
+                    <li><a href="https://www.wiaa.com/" target="_blank" rel="noopener" class="sidebar-link">Washington Interscholastic Activities Association (WIAA)</a></li>
+                    <li><a href="https://www.wescoathletics.com/" target="_blank" rel="noopener" class="sidebar-link">Wesco Athletics Hub</a></li>
+                    <li><a href="https://www.kingcoathletics.com/" target="_blank" rel="noopener" class="sidebar-link">KingCo Athletics Hub</a></li>
+                    <li><a href="https://www.metroleaguewa.org/" target="_blank" rel="noopener" class="sidebar-link">Metro League WA Hub</a></li>
+                    <li><a href="https://www.maxpreps.com/state/washington.htm" target="_blank" rel="noopener" class="sidebar-link">MaxPreps Washington Sports</a></li>
+                </ul>
+            </aside>
+        </div>
+
+    </div>
+</body>
+</html>
