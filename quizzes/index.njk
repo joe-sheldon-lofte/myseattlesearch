@@ -1,111 +1,56 @@
 ---
 layout: base.njk
-title: "Joe Sheldon | Redfin Senior Agent"
+title: "Quiz Catalog | Joe Sheldon"
 permalink: /quizzes/
 ---
-<style>
-    /* 1. Direct Handwriting Typography Overrides */
-    .video-card-outside-title {
-        font-family: 'Dancing Script', cursive !important;
-        font-size: 2rem !important; /* Elegant, slightly smaller cursive scale */
-        color: var(--card-accent-color) !important; /* Links safely to global accent tokens */
-        margin: 2.5rem 0 0.75rem 0 !important;
-        text-align: center !important;
-        font-weight: 700 !important;
-        display: block !important;
-        background: transparent !important; /* Guarantees no white card wraps the title */
-    }
 
-    /* 2. Narrow Symmetrical Card Wrapper */
-    .video-card-wrapper {
-        background-color: var(--white) !important;
-        padding: 0.5rem !important; /* Tightens white space border safely around the video frame */
-        border-radius: 12px !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important;
-        margin-bottom: 2rem !important;
-        width: 100% !important; /* Restores exact alignment with top cards */
-        box-sizing: border-box !important;
-        overflow: hidden !important;
-        display: block !important;
-    }
-
-    /* 3. Fluid Widescreen Player Constraint */
-    .video-player-frame {
-        width: 100% !important;
-        aspect-ratio: 16 / 9 !important; /* Locks widescreen proportions on smart screens */
-        border-radius: 8px !important;
-        overflow: hidden !important;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
-    }
-</style>
-
-<section class="profile-card">
-    <div class="image-wrapper">
-        <img src="/assets/images/joe.jpg" alt="Joe Sheldon - Seattle Real Estate Agent" class="headshot">
+<div style="max-width:900px; margin:4rem auto; padding:0 1.5rem; min-height:60vh;">
+    <div style="text-align:center; margin-bottom:3rem;">
+        <h1 style="font-size:2.5rem; font-weight:800; margin:0; color: var(--card-accent-color);">Quiz Hub</h1>
+        <p style="color: var(--premier-charcoal); opacity: 0.8; font-size:1.1rem; margin-top:0.5rem;">Pick a quiz and get started!</p>
     </div>
-    
-    <h1 class="name">Joe Sheldon</h1>
-    <p class="title">Redfin Senior Agent</p>
-    <p class="service-area">Serving North King & South Snohomish Counties, Washington</p>
-     
-    <div class="stats-container">
-        <div class="stat-box">
-            <span class="stat-number">{{ personalStats['Closed Sales'] }}</span>
-            <span class="stat-label">Transactions</span>
-        </div>
-        <div class="stat-box">
-            <span class="stat-number">${{ (personalStats['Total Sales Volume'] / 1000000) | round(0, "floor") }}M</span>
-            <span class="stat-label">Volume</span>
-        </div>
-        <div class="stat-box">
-            <span class="stat-number">{{ personalStats['Average Rating'] }}</span>
-            <span class="stat-label">Average Rating</span>
-        </div>
-    </div>
+    <div id="catalog-mount" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:2rem;"></div>
+</div>
 
-    <div class="contact-info">
-        <p><a href="tel:2064527845">(206) 452-7845</a></p>
-        <p><a href="mailto:joe.sheldon@redfin.com">joe.sheldon@redfin.com</a></p>
-    </div>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const mount = document.getElementById('catalog-mount');
+        try {
+            const res = await fetch('/data/quizzes.json');
+            const db = await res.json();
+            const today = new Date().setHours(0,0,0,0);
+            
+            const quizArray = Object.values(db);
+            quizArray.sort((a, b) => (b.rank || 0) - (a.rank || 0));
 
-    <div class="button-group">
-        <a href="/contact.vcf" class="btn btn-secondary">Save My Contact Info</a>
-        <a href="https://www.redfin.com/real-estate-agents/joe-sheldon?loyalty=true" class="btn btn-primary" target="_blank">View My Redfin Profile</a>
-        <a href="/sales/" class="btn btn-secondary">Listings & Sales</a>
-    </div>
-</section>
+            let html = '';
+            let validCount = 0;
 
-<section class="profile-card events-promo">
-    <h2>Free Home Buying Classes</h2>
-    <p style="margin-bottom: 1.5rem; text-align: center; font-size: 0.95rem;">Join us to learn everything you need to know about navigating the current real estate market.</p>
-    <a href="/events/" class="btn btn-primary">View Upcoming Classes & Register</a>
-</section>
+            for (const quiz of quizArray) {
+                if (quiz.showInCatalog !== "Yes") continue; 
+                if (quiz.startDate && today < new Date(quiz.startDate + "T00:00:00")) continue;
+                if (quiz.endDate && today > new Date(quiz.endDate + "T00:00:00")) continue;
 
-<!-- High-Performance "Won't You Be My Neighbor" Video Block -->
-<h2 class="video-card-outside-title">Won't you be my neighbor?</h2>
-<section class="video-card-wrapper">
-    <div class="video-player-frame">
-        <youtube-lite video-id="e3o5FIXoK84"></youtube-lite>
-    </div>
-</section>
+                validCount++;
+                
+                // Dynamic Card Image Header Template using CSS custom properties
+                const cardImageHtml = quiz.quizImage 
+                    ? `<img src="${quiz.quizImage}" alt="${quiz.webTitle}" style="width:100%; height:180px; object-fit:cover; border-radius:8px; margin-bottom:1.25rem; display:block;">` 
+                    : '';
 
-<section class="reviews">
-    <h2>Client Reviews</h2>
-    
-    {% for review in homepageReviews %}
-    <div class="review-card">
-        <div class="review-stars">★★★★★</div>
-        <p class="review-text">"{{ review['Full Review'] }}"</p>
-        <div class="review-author">— {{ review.Reviewer }}</div>
-    </div>
-    {% endfor %}
-</section>
-
-<section class="bio-section">
-    <h2>About Me</h2>
-    <p>I transplanted to Seattle in 2009, and the Pacific Northwest has become my new home. I am in love with its natural beauty and the abundance of year-round activities. Having grown up around the construction business, I developed a deep understanding of what makes a good home. My real estate passion comes from my desire to help you navigate the journey of purchasing one of the largest yet most personal items of your lifetime.
-    I joined Redfin in 2014 to pursue this passion relentlessly.
-    I like my customers to think of me as their coach throughout the entire process.
-    My team and I will give you expert guidance at every turn, and I'll be by your side through the ups and downs.
-    You can expect me to provide honest advice and tireless advocacy.</p>
-</section>
+                html += `
+                    <div style="background: white; border:1px solid var(--premier-beige); border-top:5px solid var(--card-accent-color); border-radius:12px; padding:2rem; display:flex; flex-direction:column; justify-content:space-between;">
+                        <div>
+                            ${cardImageHtml}
+                            <h3 style="margin:0 0 0.5rem 0; font-size:1.35rem; font-weight:700; color: var(--premier-charcoal);">${quiz.webTitle}</h3>
+                            <p style="color: var(--premier-charcoal); opacity: 0.8; font-size:0.95rem; line-height:1.5; margin-bottom:1.5rem;">${quiz.introText}</p>
+                        </div>
+                        <a href="/quizzes/viewport/?id=${quiz.id}" class="btn btn-primary" style="text-align:center; font-weight:bold; text-decoration:none; background-color: var(--card-accent-color); border-color: var(--card-accent-color); color: white;">Take the Test</a>
+                    </div>`;
+            }
+            mount.innerHTML = html || `<p style="text-align:center; width:100%; color: var(--premier-charcoal); opacity: 0.7;">No public campaigns active right now.</p>`;
+        } catch (e) { 
+            mount.innerHTML = '<p style="text-align:center; width:100%; color: var(--card-accent-color);">Error loading catalog.</p>'; 
+        }
+    });
+</script>
