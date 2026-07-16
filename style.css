@@ -20,6 +20,11 @@
     padding: 0;
 }
 
+html, body {
+    max-width: 100%;
+    overflow-x: hidden; /* Permanent horizontal shield against mobile left-shifting layouts */
+}
+
 body {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     background-color: var(--premier-beige);
@@ -218,6 +223,7 @@ universal-footer {
     max-width: 600px;
     padding: 2rem 1.5rem;
     flex: 1;
+    box-sizing: border-box;
 }
 
 .profile-card {
@@ -228,6 +234,8 @@ universal-footer {
     margin-bottom: 2rem; 
     overflow: hidden; 
     text-align: center;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 .events-promo {
@@ -279,7 +287,7 @@ universal-footer {
 .stats-container {
     display: flex;
     justify-content: center;
-    gap: 2.5rem;
+    gap: 1rem; /* Safely tightens standard margins on cell phone sizes */
     margin-bottom: 2rem;
     padding: 1.5rem 0;
     border-top: 1px solid var(--premier-beige);
@@ -367,6 +375,10 @@ universal-footer {
     background-color: #2b2825;
 }
 
+.reviews {
+    width: 100%;
+}
+
 .reviews h2 {
     text-align: center;
     margin-bottom: 1.5rem;
@@ -408,6 +420,7 @@ universal-footer {
     border-radius: 12px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     margin-bottom: 2rem;
+    width: 100%;
 }
 
 .bio-section h2 {
@@ -974,6 +987,9 @@ footer {
     .schedule-item {
         flex-direction: row;
     }
+    .stats-container {
+        gap: 2.5rem; /* Restores spacious layout bounds on desktop views */
+    }
 }
 
 /* Tablet / Standard Desktop View */
@@ -1495,27 +1511,64 @@ footer {
     position: absolute;
     left: 50%;
     top: 50%;
-    /* Perfect center locking offset formula. Translates the signature exactly 
-       to horizontal and vertical center relative to the white header nav bar */
     transform: translate(-50%, -50%);
     
     font-family: 'Dancing Script', cursive;
-    color: var(--card-accent-color); /* Connects to your system Redfin Red variable */
+    color: var(--card-accent-color); /* Connects to Redfin Red variable */
     font-weight: 700;
     
-    /* Elegant, balanced scale sits comfortably inside the white header container */
-    font-size: clamp(1.1rem, 1.8vw, 1.6rem);
+    /* Fluid typography scales signature cleanly from desktop view down to tight mobile screens */
+    font-size: clamp(0.95rem, 3.2vw, 1.5rem);
     
     white-space: nowrap;
-    z-index: 1002; /* Layers centered text over standard navbar bounds */
-    pointer-events: none; /* Let user clicks pass through container safely */
+    z-index: 1002;
+    pointer-events: none;
     user-select: none;
-    line-height: 1; /* Standardized height bounds prevent dynamic offsets */
+    line-height: 1;
 }
 
-/* Mobile responsive collapse safety triggers */
-@media (max-width: 768px) {
+/* Mobile responsive layout safety boundaries */
+@media (max-width: 360px) {
     .welcome-neighbor-sig {
-        display: none !important; /* Completely hide to prevent header overlap on phones */
+        display: none !important;
     }
+}
+
+/* ====================================================================
+   HIGH-PERFORMANCE YOUTUBE SHOWCASE STYLES
+   ==================================================================== */
+
+.video-card-outside-title {
+    font-family: 'Dancing Script', cursive !important;
+    font-size: 1.8rem !important; /* Smaller elegant handwritten sizing scale */
+    color: var(--card-accent-color) !important;
+    margin: 2.5rem 0 0.75rem 0 !important;
+    text-align: center !important;
+    font-weight: 700 !important;
+    width: 100% !important;
+    display: block !important;
+}
+
+.video-card-wrapper {
+    background-color: var(--white);
+    padding: 0.5rem; /* Clean, stripped internal border frame whitespace padding */
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+    width: 100%; /* Symmetrical container stretch */
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.video-player-frame {
+    width: 100%;
+    aspect-ratio: 16 / 9; /* Fluidly locks video player frame dimensions across viewports */
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+youtube-lite:hover .yt-lite-play-btn {
+    transform: scale(1.1);
+    background-color: var(--premier-charcoal) !important;
 }
