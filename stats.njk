@@ -2,13 +2,14 @@
 layout: base.njk
 title: "Local Community Insights | Joe Sheldon"
 permalink: /stats/
+containerClass: container-wide
 ---
 
 <style>
     .stats-hub-container {
-        max-width: 1140px;
+        width: 100%;
         margin: 0 auto;
-        padding: 0 1rem 5rem 1rem;
+        padding: 0 0 5rem 0; /* Cleans duplicate horizontal padding to eliminate squishing */
     }
 
     .events-header {
@@ -78,7 +79,7 @@ permalink: /stats/
         grid-template-columns: 1fr;
         gap: 2rem;
         background: var(--dynamic-bg-highlight);
-        padding: 2.5rem;
+        padding: 1.5rem 1rem; /* Compact mobile padding to stop narrow card breaks */
         border-radius: 12px;
         border: 1px solid var(--premier-beige);
     }
@@ -86,6 +87,7 @@ permalink: /stats/
     @media (min-width: 768px) {
         .county-dropdowns-wrapper {
             grid-template-columns: 1fr 1fr;
+            padding: 2.5rem; /* Cozy widescreen padding spacing layout */
         }
     }
 
@@ -126,17 +128,15 @@ permalink: /stats/
 
 <div class="stats-hub-container">
     
-    <!-- Page Header -->
     <div class="events-header">
         <h1>Local Community Insights</h1>
         <p class="intro">Real-time data, historical housing trends, and neighborhood metrics for the Pacific Northwest.</p>
     </div>
 
-    <!-- Directory Content (Statically Compiled at Build Time) -->
     <div id="directory-content">
         
-        <!-- Featured North Sound Section -->
         <h2 class="section-title">North Sound</h2>
+ 
         <div id="north-sound-pills" class="pill-container">
             {% set seen_pills = "" %}
             {% for city in city_data | sort(attribute="City") %}
@@ -149,7 +149,6 @@ permalink: /stats/
             {% endfor %}
         </div>
 
-        <!-- County Dropdown Section -->
         <h2 class="section-title" style="margin-top: 4rem;">Explore By County</h2>
         <div class="county-dropdowns-wrapper">
             
@@ -172,7 +171,7 @@ permalink: /stats/
             <div class="dropdown-group">
                 <label for="snohomish-county-select">Snohomish County</label>
                 <select id="snohomish-county-select" class="modern-select">
-                    <option value="">Select a community...</option>
+                   <option value="">Select a community...</option>
                     {% set seen_sno = "" %}
                     {% for city in city_data | sort(attribute="City") %}
                         {% if city.County and "snohomish" in city.County | lower %}

@@ -33,7 +33,7 @@
 <style>
     /* 1. Dynamic Notification Top Banner */
     #celebration-banner {
-        display: none; /* Controlled by JS checking system clock */
+        display: none; 
         width: 100%;
         background-color: var(--premier-charcoal);
         color: var(--white);
@@ -57,7 +57,7 @@
 
     /* 2. Immersive Takeover Screen Overlay */
     #celebration-overlay {
-        display: none; /* Controlled by JS memory logs */
+        display: none; 
         position: fixed;
         top: 0; left: 0;
         width: 100vw; height: 100vh;
@@ -78,12 +78,12 @@
         padding: 1.5rem;
         box-sizing: border-box;
         position: relative;
-        background-image: var(--bg-mobile); /* Mobile Default */
+        background-image: var(--bg-mobile); 
     }
 
     @media (min-width: 768px) {
         .celebration-canvas {
-            background-image: var(--bg-desktop); /* Desktop Override */
+            background-image: var(--bg-desktop); 
         }
     }
 
@@ -196,22 +196,18 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // 1. Safely serialize Eleventy's parsed Google Sheets celebrations database
         const activeCampaigns = {{ celebrations | dump | safe if celebrations else "[]" }};
         if (!activeCampaigns || activeCampaigns.length === 0) return;
-        // 2. Locate the active date window matching today's local system clock
         const today = new Date();
         const activeCampaign = activeCampaigns.find(event => {
             const startDate = new Date(event['Start Date'] || event.startDate);
             const endDate = new Date(event['End Date'] || event.endDate);
-            // Include today completely
             endDate.setHours(23, 59, 59, 999);
             return today >= startDate && today <= endDate;
         });
 
-        if (!activeCampaign) return; // No active campaigns scheduled for today
+        if (!activeCampaign) return; 
 
-        // 3. Map values to memory caches
         const id = activeCampaign['Celebration ID'] || activeCampaign.id;
         const name = activeCampaign['Celebration Name'] || activeCampaign.name;
         const headline = activeCampaign.Headline || activeCampaign.headline;
@@ -220,7 +216,6 @@
         const linkUrl = activeCampaign['Resource Link'] || activeCampaign.linkUrl;
         const mobileImg = activeCampaign['Mobile Image'] || activeCampaign.mobileImage;
         const desktopImg = activeCampaign['Desktop Image'] || activeCampaign.desktopImage;
-        // 4. Inject campaign text & background assets dynamically into the layout
         document.getElementById('celebration-heading').textContent = headline;
         document.getElementById('celebration-message').textContent = desc;
         document.getElementById('banner-text-anchor').innerHTML = `Currently Acknowledging: ${name}. <span>Click to read our community announcement &rarr;</span>`;
@@ -234,37 +229,31 @@
             linkButton.style.display = "none";
         }
 
-        // Apply Canva background assets via CSS custom variables
         const bgContainer = document.getElementById('canvas-bg-target');
         bgContainer.style.setProperty('--bg-mobile', `url('${mobileImg}')`);
         bgContainer.style.setProperty('--bg-desktop', `url('${desktopImg}')`);
 
-        // 5. Query browser memory logs to check if user has already seen this event
         const storageKey = `dismissed-celebration-${id}`;
-        window.activeCelebrationKey = storageKey; // Save global identifier
+        window.activeCelebrationKey = storageKey; 
 
         if (localStorage.getItem(storageKey) === 'true') {
-            // User dismissed this event earlier: keep overlay closed, show top banner
             document.getElementById('celebration-banner').style.display = 'block';
         } else {
-            // First time loading: launch full cover overlay
             openCelebrationOverlay();
         }
     });
 
-    // 6. View Controller Handlers
     function openCelebrationOverlay() {
         document.getElementById('celebration-overlay').style.display = 'block';
         document.getElementById('celebration-banner').style.display = 'none';
-        document.body.style.overflow = 'hidden'; // Stop background page scrolling
+        document.body.style.overflow = 'hidden'; 
     }
 
     function dismissCelebrationOverlay() {
         document.getElementById('celebration-overlay').style.display = 'none';
         document.getElementById('celebration-banner').style.display = 'block';
-        document.body.style.overflow = ''; // Restore standard scrolling
+        document.body.style.overflow = ''; 
         
-        // Log dismissal into browser memory cache
         if (window.activeCelebrationKey) {
             localStorage.setItem(window.activeCelebrationKey, 'true');
         }
@@ -332,21 +321,18 @@
         opacity: 0.95;
     }
 
-    /* Text Joe Button Style */
     .text-joe-btn {
         background-color: var(--white);
         border: 2px solid var(--premier-charcoal);
         color: var(--premier-charcoal);
     }
 
-    /* Booking Button Style */
     .book-joe-btn {
         background-color: var(--card-accent-color);
         border: 2px solid var(--card-accent-color);
         color: var(--white);
     }
 
-    /* Pad the bottom of your mobile viewport so the bar never overlaps footer content */
     body {
         padding-bottom: 70px;
     }
@@ -389,7 +375,6 @@
 </style>
 {% endif %}
 
-<!-- High-Performance YouTube Lite Web Component Engine -->
 <script>
     class YoutubeLite extends HTMLElement {
         connectedCallback() {
@@ -403,9 +388,7 @@
             this.style.overflow = 'hidden';
             this.style.cursor = 'pointer';
 
-            // Fetch a high-res static preview image directly from YouTube
             const thumbnailUrl = `https://i3.ytimg.com/vi/${videoId}/hqdefault.jpg`;
-
             this.innerHTML = `
                 <div class="yt-lite-wrapper" style="width: 100%; height: 100%; background: url('${thumbnailUrl}') center/cover no-repeat; position: relative; display: flex; align-items: center; justify-content: center;">
                     <div class="yt-lite-play-btn" style="width: 68px; height: 48px; background-color: var(--card-accent-color); border-radius: 14px; display: flex; align-items: center; justify-content: center; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 2;">

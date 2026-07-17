@@ -45,6 +45,42 @@ universal-footer {
 }
 
 /* =========================================
+   GLOBAL RESPONSIVE CONTAINERS 
+   ========================================= */
+
+/* Both standard containers and wide dashboard containers now expand to 1140px on widescreen 
+   and use a clean 1rem padding on mobile to eliminate double margins and compression. */
+.container,
+.container-wide {
+    width: 100%;
+    max-width: 1140px;
+    padding: 2rem 1rem;
+    flex: 1;
+    box-sizing: border-box;
+    margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+    .container,
+    .container-wide {
+        padding: 2rem 1.5rem; /* Generous breathing room on tablet and desktop monitors */
+    }
+}
+
+/* 🌟 HOMEPAGE PROTECTION LAYER 
+   This safely constrains your home profile elements to a readable 600px grid, 
+   perfectly centered down the middle of the viewport, regardless of container settings. */
+.profile-card, 
+.bio-section, 
+.video-card-wrapper,
+.reviews {
+    max-width: 600px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    width: 100% !important;
+}
+
+/* =========================================
    HAMBURGER NAVIGATION STYLES 
    ========================================= */
 
@@ -218,14 +254,6 @@ universal-footer {
    BASE PROFILE LAYOUT STYLES 
    ========================================= */
 
-.container {
-    width: 100%;
-    max-width: 600px;
-    padding: 2rem 1.5rem;
-    flex: 1;
-    box-sizing: border-box;
-}
-
 .profile-card {
     background-color: var(--white);
     padding: 3rem 2rem;
@@ -235,7 +263,12 @@ universal-footer {
     overflow: hidden; 
     text-align: center;
     box-sizing: border-box;
-    width: 100%;
+}
+
+@media (max-width: 480px) {
+    .profile-card {
+        padding: 2rem 1rem; /* Trim internal padding on mobile devices */
+    }
 }
 
 .events-promo {
@@ -287,7 +320,7 @@ universal-footer {
 .stats-container {
     display: flex;
     justify-content: center;
-    gap: 1rem; /* Safely tightens standard margins on cell phone sizes */
+    gap: 1rem; 
     margin-bottom: 2rem;
     padding: 1.5rem 0;
     border-top: 1px solid var(--premier-beige);
@@ -420,7 +453,12 @@ universal-footer {
     border-radius: 12px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     margin-bottom: 2rem;
-    width: 100%;
+}
+
+@media (max-width: 480px) {
+    .bio-section {
+        padding: 1.5rem 1rem;
+    }
 }
 
 .bio-section h2 {
@@ -988,18 +1026,12 @@ footer {
         flex-direction: row;
     }
     .stats-container {
-        gap: 2.5rem; /* Restores spacious layout bounds on desktop views */
+        gap: 2.5rem; 
     }
 }
 
 /* Tablet / Standard Desktop View */
 @media (min-width: 768px) {
-    .pro-page .container,
-    .events-page .container,
-    .searches-page .container {
-        max-width: 1000px; 
-    }
-    
     .button-group {
         max-width: 450px;
         margin: 0 auto;
@@ -1061,7 +1093,7 @@ footer {
 
 .pricing-card {
     background-color: var(--white);
-    padding: 2.5rem 2rem;
+    padding: 2rem 1rem; 
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.05);
     flex: 1;
@@ -1069,6 +1101,12 @@ footer {
     flex-direction: column;
     border-top: 5px solid var(--premier-charcoal);
     position: relative;
+}
+
+@media (min-width: 768px) {
+    .pricing-card {
+        padding: 2.5rem 2rem; 
+    }
 }
 
 .pricing-card.premium {
@@ -1410,7 +1448,7 @@ footer {
 
 .dna-card {
     background-color: var(--white);
-    padding: 3rem 2.5rem;
+    padding: 2rem 1.25rem; 
     border-radius: 12px;
     margin-bottom: 3rem;
     position: relative;
@@ -1421,6 +1459,12 @@ footer {
 
 .dna-card:nth-child(even) {
     border-left-color: var(--card-accent-color);
+}
+
+@media (min-width: 768px) {
+    .dna-card {
+        padding: 3rem 2.5rem; 
+    }
 }
 
 .dna-badge {
@@ -1514,10 +1558,9 @@ footer {
     transform: translate(-50%, -50%);
     
     font-family: 'Dancing Script', cursive;
-    color: var(--card-accent-color); /* Connects to Redfin Red variable */
+    color: var(--card-accent-color); 
     font-weight: 700;
     
-    /* Fluid typography scales signature cleanly from desktop view down to tight mobile screens */
     font-size: clamp(0.95rem, 3.2vw, 1.5rem);
     
     white-space: nowrap;
@@ -1527,7 +1570,6 @@ footer {
     line-height: 1;
 }
 
-/* Mobile responsive layout safety boundaries */
 @media (max-width: 360px) {
     .welcome-neighbor-sig {
         display: none !important;
@@ -1540,7 +1582,7 @@ footer {
 
 .video-card-outside-title {
     font-family: 'Dancing Script', cursive !important;
-    font-size: 1.8rem !important; /* Smaller elegant handwritten sizing scale */
+    font-size: 1.8rem !important; 
     color: var(--card-accent-color) !important;
     margin: 2.5rem 0 0.75rem 0 !important;
     text-align: center !important;
@@ -1551,18 +1593,18 @@ footer {
 
 .video-card-wrapper {
     background-color: var(--white);
-    padding: 0.5rem; /* Clean, stripped internal border frame whitespace padding */
+    padding: 0.5rem; 
     border-radius: 12px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     margin-bottom: 2rem;
-    width: 100%; /* Symmetrical container stretch */
+    width: 100%; 
     box-sizing: border-box;
     overflow: hidden;
 }
 
 .video-player-frame {
     width: 100%;
-    aspect-ratio: 16 / 9; /* Fluidly locks video player frame dimensions across viewports */
+    aspect-ratio: 16 / 9; 
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
