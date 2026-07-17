@@ -15,7 +15,7 @@ permalink: /statscompare/
         gap: 1.5rem;
         max-width: 700px;
         margin: 0 auto 1.5rem auto;
-        background: #ffffff;
+        background: var(--white);
         padding: 1.5rem;
         border-radius: 12px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
@@ -35,7 +35,7 @@ permalink: /statscompare/
         width: 100%;
         padding: 0.8rem 1rem;
         border: 2px solid var(--premier-beige);
-        background-color: #fff;
+        background-color: var(--white);
         border-radius: 8px;
         font-size: 1rem;
         font-weight: normal;
@@ -65,8 +65,8 @@ permalink: /statscompare/
 
     .print-trigger-btn {
         background-color: transparent;
-        border: 1px solid #b3b3b3;
-        color: #666666;
+        border: 1px solid var(--premier-beige, #b3b3b3);
+        color: var(--premier-charcoal);
         padding: 0.5rem 1.25rem;
         border-radius: 6px;
         font-size: 0.85rem;
@@ -88,7 +88,7 @@ permalink: /statscompare/
     .matrix-wrapper {
         width: 100%;
         overflow-x: auto;
-        background: #ffffff;
+        background: var(--white);
         border-radius: 12px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         margin-bottom: 4rem;
@@ -106,7 +106,7 @@ permalink: /statscompare/
     }
     .matrix-row.main-header {
         background-color: var(--premier-charcoal);
-        color: #ffffff;
+        color: var(--white);
         font-weight: 700;
         position: sticky;
         top: 0;
@@ -132,7 +132,7 @@ permalink: /statscompare/
     }
     .matrix-cell.city-val {
         font-weight: normal;
-        color: #222222;
+        color: var(--premier-charcoal);
     }
     .matrix-cell.city-val:nth-child(2) {
         border-right: 1px solid var(--premier-beige);
@@ -141,7 +141,7 @@ permalink: /statscompare/
         font-size: 1.1rem;
     }
     .matrix-row:not(.main-header):not(.section-header):hover {
-        background-color: var(--featured-highlight);
+        background-color: var(--dynamic-bg-highlight);
     }
 
     .print-only-header { display: none; }
@@ -189,6 +189,7 @@ permalink: /statscompare/
             color: #000000 !important;
             border-bottom: 3px solid #000000 !important;
         }
+        .print-only-header .matrix-row.main-header .matrix-cell,
         .matrix-row.main-header .matrix-cell {
             font-weight: 900 !important;
             color: #000000 !important;
@@ -215,12 +216,12 @@ permalink: /statscompare/
     }
 </style>
 
-<div class="container" style="max-width: 1000px; padding-bottom: 5rem;">
+<div class="community-comparison-wrapper">
     
     <div class="compare-header-box">
         <a href="/stats/" class="back-link" style="color: var(--premier-charcoal); font-weight: 700; text-decoration: underline;">&larr; Back to Market Insights</a>
         <h1 style="margin-top: 0.5rem; font-size: 2.6rem; font-weight: 900; color: var(--card-accent-color);">Compare Communities Side-by-Side</h1>
-        <p class="intro">Pick any two cities to see how their neighborhoods, schools, safety parameters, and housing markets stack up.</p>
+        <p class="intro" style="color: var(--premier-charcoal); opacity: 0.85;">Pick any two cities to see how their neighborhoods, schools, safety parameters, and housing markets stack up.</p>
     </div>
 
     <div class="compare-selectors-row">
@@ -248,7 +249,7 @@ permalink: /statscompare/
             </div>
             <div style="text-align: right;">
                 <h3 style="margin:0; font-size: 1.3rem; font-weight: 900; color: var(--premier-charcoal);">JOE SHELDON</h3>
-                <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: #555;">myseattlesearch.com</p>
+                <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: var(--premier-charcoal);">myseattlesearch.com</p>
             </div>
         </div>
     </div>
@@ -265,7 +266,6 @@ permalink: /statscompare/
             <tbody id="matrixTableBodyOutput"></tbody>
         </table>
     </div>
-
 </div>
 
 <script>

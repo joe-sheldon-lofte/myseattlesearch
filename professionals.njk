@@ -13,7 +13,6 @@ permalink: /professionals/
         font-size: 0.9rem;
         line-height: 1.5;
         margin: 0 auto 1.5rem auto;
-        max-width: 800px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.03);
         text-align: left;
     }
@@ -172,89 +171,85 @@ permalink: /professionals/
     }
 </style>
 
-<div class="pro-page">
-    <main class="container">
-        
-        <div class="events-header" style="text-align: center; margin-bottom: 1.5rem;">
-            <h1 style="margin-top: 1rem; font-size: 2.5rem;">My Preferred Professionals</h1>
-            <p class="intro">A curated list of trusted local experts I rely on to get the job done right.</p>
-        </div>
+<div class="pro-directory-wrapper">
+    <div class="events-header" style="text-align: center; margin-bottom: 1.5rem;">
+        <h1 style="margin-top: 1rem; font-size: 2.5rem; color: var(--premier-charcoal); font-weight: 900;">My Preferred Professionals</h1>
+        <p class="intro" style="color: var(--premier-charcoal); opacity: 0.85;">A curated list of trusted local experts I rely on to get the job done right.</p>
+    </div>
 
-        <div class="hfy-actions-container" style="text-align: center;">
-            <button onclick="window.print()" class="print-trigger-btn" title="Print This Directory">
-                🖨️ Print Professional Directory
-            </button>
-        </div>
+    <div class="hfy-actions-container" style="text-align: center;">
+        <button onclick="window.print()" class="print-trigger-btn" title="Print This Directory">
+            🖨️ Print Professional Directory
+        </button>
+    </div>
 
-        <div id="printHeaderNode" class="print-only-header">
-            <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid var(--card-accent-color); padding-bottom: 12px; margin-bottom: 25px;">
-                <div>
-                    <h1 style="margin:0; font-size: 2.4rem; font-weight: 900; color: var(--card-accent-color); letter-spacing: -0.5px;">PREFERRED VENDOR DIRECTORY</h1>
-                    <p style="margin: 3px 0 0 0; font-size: 1rem; font-weight: 800; color: black; text-transform: uppercase; letter-spacing: 0.5px;">Pre-Vetted Local Experts & Professional Resources</p>
-                </div>
-                <div style="text-align: right;">
-                    <h3 style="margin:0; font-size: 1.3rem; font-weight: 900; color: var(--premier-charcoal);">JOE SHELDON</h3>
-                    <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: var(--premier-charcoal);">myseattlesearch.com</p>
-                </div>
+    <div id="printHeaderNode" class="print-only-header">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid var(--card-accent-color); padding-bottom: 12px; margin-bottom: 25px;">
+            <div>
+                <h1 style="margin:0; font-size: 2.4rem; font-weight: 900; color: var(--card-accent-color); letter-spacing: -0.5px;">PREFERRED VENDOR DIRECTORY</h1>
+                <p style="margin: 3px 0 0 0; font-size: 1rem; font-weight: 800; color: black; text-transform: uppercase; letter-spacing: 0.5px;">Pre-Vetted Local Experts & Professional Resources</p>
+            </div>
+            <div style="text-align: right;">
+                <h3 style="margin:0; font-size: 1.3rem; font-weight: 900; color: var(--premier-charcoal);">JOE SHELDON</h3>
+                <p style="margin:3px 0 0 0; font-size: 0.9rem; font-weight: 700; color: var(--premier-charcoal);">myseattlesearch.com</p>
             </div>
         </div>
+    </div>
 
-        <div class="disclaimer-banner">
-            ⚠️ <strong>Consumer Notice:</strong> While I have had positive experiences working with the professionals listed below, it is your responsibility to verify that they hold the proper, active credentials, licenses, and insurance policies required for your specific job before hiring.
-        </div>
+    <div class="disclaimer-banner">
+        ⚠️ <strong>Consumer Notice:</strong> While I have had positive experiences working with the professionals listed below, it is your responsibility to verify that they hold the proper, active credentials, licenses, and insurance policies required for your specific job before hiring.
+    </div>
 
-        <div class="filter-nav-container">
-            <div class="filter-nav" id="filterNav">
-                <button class="filter-btn active" data-filter="all">All</button>
-                {% for category in professionals.categories %}
-                <button class="filter-btn" data-filter="{{ category }}">{{ category }}</button>
-                {% endfor %}
-            </div>
-        </div>
-
-        <div class="pro-grid" id="proGrid">
-            {% for vendor in professionals.vendors %}
-            <div class="pro-card" data-category="{{ vendor.category }}">
-                <div class="pro-card-content">
-                    <div class="pro-header">
-                        <div class="pro-category-tag">{{ vendor.category }}</div>
-                    </div>
-                    <h3 class="pro-name">{{ vendor.name }}</h3>
-                    
-                    {% if vendor.company %}
-                    <p class="pro-company">({{ vendor.company }})</p>
-                    {% endif %}
-                    
-                    {% if vendor.additionalInfo %}
-                    <p class="pro-area">{{ vendor.additionalInfo }}</p>
-                    {% endif %}
-                    
-                    <div class="pro-contact-wrapper">
-                        {% if vendor.phone %}
-                        <a href="tel:{{ vendor.phoneClean }}" class="pro-link phone">{{ vendor.phone }}</a>
-                        {% endif %}
-                        {% if vendor.email %}
-                        <a href="mailto:{{ vendor.email }}" class="pro-link email">{{ vendor.email }}</a>
-                        {% endif %}
-                        {% if vendor.website %}
-                        <a href="{{ vendor.website }}" target="_blank" class="pro-link website">Visit Website</a>
-                        {% endif %}
-                    </div>
-
-                    {% if vendor.legalReq %}
-                    <div class="pro-legal">
-                        <span style="line-height: 1.4;"><strong>Credentials:</strong> {{ vendor.legalReq }}</span>
-                        {% if vendor.legalLink %}
-                        <a href="{{ vendor.legalLink }}" target="_blank" class="legal-link">🛡️ Verify active credentials &rarr;</a>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
+    <div class="filter-nav-container">
+        <div class="filter-nav" id="filterNav">
+            <button class="filter-btn active" data-filter="all">All</button>
+            {% for category in professionals.categories %}
+            <button class="filter-btn" data-filter="{{ category }}">{{ category }}</button>
             {% endfor %}
         </div>
-        
-    </main>
+    </div>
+
+    <div class="pro-grid" id="proGrid">
+        {% for vendor in professionals.vendors %}
+        <div class="pro-card" data-category="{{ vendor.category }}" style="background-color: var(--white); border: 1px solid var(--premier-beige); box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+            <div class="pro-card-content">
+                <div class="pro-header">
+                    <div class="pro-category-tag" style="color: var(--card-accent-color); font-weight: 800; text-transform: uppercase; font-size: 0.85rem; margin-bottom: 0.5rem;">{{ vendor.category }}</div>
+                </div>
+                <h3 class="pro-name" style="font-size: 1.35rem; font-weight: 900; color: var(--premier-charcoal); margin: 0 0 0.35rem 0;">{{ vendor.name }}</h3>
+                
+                {% if vendor.company %}
+                <p class="pro-company" style="font-size: 0.95rem; color: var(--premier-charcoal); font-weight: 600; margin: 0 0 0.25rem 0;">({{ vendor.company }})</p>
+                {% endif %}
+                
+                {% if vendor.additionalInfo %}
+                <p class="pro-area" style="font-size: 0.9rem; color: var(--premier-charcoal); opacity: 0.8; margin: 0 0 0.5rem 0;">{{ vendor.additionalInfo }}</p>
+                {% endif %}
+                
+                <div class="pro-contact-wrapper">
+                    {% if vendor.phone %}
+                    <a href="tel:{{ vendor.phoneClean }}" class="pro-link phone" style="color: var(--premier-charcoal); font-weight: 700; text-decoration: none;">{{ vendor.phone }}</a>
+                    {% endif %}
+                    {% if vendor.email %}
+                    <a href="mailto:{{ vendor.email }}" class="pro-link email" style="color: var(--card-accent-color); font-weight: 700; text-decoration: none;">{{ vendor.email }}</a>
+                    {% endif %}
+                    {% if vendor.website %}
+                    <a href="{{ vendor.website }}" target="_blank" class="pro-link website" style="color: var(--premier-charcoal); text-decoration: underline; font-weight: 600;">Visit Website</a>
+                    {% endif %}
+                </div>
+
+                {% if vendor.legalReq %}
+                <div class="pro-legal">
+                    <span style="line-height: 1.4;"><strong>Credentials:</strong> {{ vendor.legalReq }}</span>
+                    {% if vendor.legalLink %}
+                    <a href="{{ vendor.legalLink }}" target="_blank" class="legal-link">🛡️ Verify active credentials &rarr;</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 </div>
 
 <script>
@@ -280,11 +275,9 @@ permalink: /professionals/
             btn.addEventListener('click', () => applyFilter(btn));
         });
 
-        // Track deep-linked category configurations from cross-page navigation parameters
         const urlParams = new URLSearchParams(window.location.search);
         const categoryParam = urlParams.get('category');
         if (categoryParam) {
-            // Find pill match using case-insensitive raw text value properties
             const targetBtn = Array.from(filterBtns).find(b => b.getAttribute('data-filter').toLowerCase().replace(/[^a-z0-9]+/g, '-') === categoryParam);
             if (targetBtn) applyFilter(targetBtn);
         }
