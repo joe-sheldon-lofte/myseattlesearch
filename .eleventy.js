@@ -191,6 +191,14 @@ module.exports = function(eleventyConfig) {
     return htmlOutput;
   });
 
+  // --- AUTOMATED VIRTUAL NOTEBOOK COLLECTION ---
+  // Dynamically populates collections.posts without requiring manual tags in data files
+  eleventyConfig.addCollection("posts", function(collectionApi) {
+    return collectionApi.getAll().filter(function(item) {
+      return item.data.layout === "post.njk" && item.data.type;
+    });
+  });
+
   return {
     htmlTemplateEngine: false, 
     templateFormats: ["njk", "md"], 
