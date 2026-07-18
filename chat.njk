@@ -12,7 +12,7 @@ permalink: /chat/
       <p>Whether you're looking over a local market loop, analyzing home sale variables, or mapping out your moving timeline, drop your questions right into the workspace below. I'm here to coach you through the numbers and clarify the path forward.</p>
     </div>
 
-    <!-- Tawk.to Static Embed Framework Container -->
+    <!-- Tawk.to Static Embed Framework Container Target -->
     <div id="tawk-embed-container" class="chat-widget-canvas">
       <div id="chat-loading-spinner" class="chat-loading-placeholder">
         <div class="spinner"></div>
@@ -27,11 +27,11 @@ permalink: /chat/
       <h3>Quick Tools & Resources</h3>
       <p>Want to model out your financial strategies while we talk? Open these real estate trackers in a separate browser tab:</p>
       <ul class="sidebar-links-list">
-        <li><a href="/calculators.html">Calculators Dashboard</a></li>
-        <li><a href="/sellerproceeds.html">Estimated Net Proceeds</a></li>
-        <li><a href="/rentvsbuy.html">Rent vs. Buy Modeler</a></li>
-        <li><a href="/loancompare.html">Loan Program Comparison</a></li>
-        <li><a href="/buynowvslater.html">Buy Now or Later Modeler</a></li>
+        <li><a href="/calculators.html" class="curved-pill-button">Calculators Dashboard</a></li>
+        <li><a href="/sellerproceeds.html" class="curved-pill-button">Estimated Net Proceeds</a></li>
+        <li><a href="/rentvsbuy.html" class="curved-pill-button">Rent vs. Buy Modeler</a></li>
+        <li><a href="/loancompare.html" class="curved-pill-button">Loan Program Comparison</a></li>
+        <li><a href="/buynowvslater.html" class="curved-pill-button">Buy Now or Later Modeler</a></li>
       </ul>
     </div>
 
@@ -148,19 +148,27 @@ permalink: /chat/
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
   }
 
-  .sidebar-links-list a {
-    display: inline-block;
-    color: var(--card-accent-color);
+  /* Curved Pill Button Refinement Layout Deck */
+  .sidebar-links-list .curved-pill-button {
+    display: block;
+    background-color: var(--dynamic-bg-highlight);
+    border: 1px solid var(--card-accent-color);
+    color: inherit;
     text-decoration: none;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 0.95rem;
+    padding: 10px 20px;
+    border-radius: 30px;
+    text-align: center;
+    transition: transform 0.1s ease;
   }
 
-  .sidebar-links-list a:hover {
-    text-decoration: underline;
+  .sidebar-links-list .curved-pill-button:hover {
+    transform: translateY(-1px);
+    opacity: 0.9;
   }
 
   /* Structural Responsive Scaling Rules */
@@ -180,15 +188,8 @@ permalink: /chat/
   var Tawk_API = Tawk_API || {};
   var Tawk_LoadStart = new Date();
 
-  // Core Override Contract: Anchor chat frame directly into our center canvas div layout instead of spawning a bubble in the corner
-  Tawk_API.container = 'tawk-embed-container';
-
-  // Force the embedded layout panel to maximize immediately on initial render
-  Tawk_API.onBeforeLoad = function() {
-    if (typeof Tawk_API.maximize === 'function') {
-      Tawk_API.maximize();
-    }
-  };
+  // Core Override Contract: Declare the target element ID to force inline rendering and suppress the floating corner popup bubble
+  Tawk_API.embedded = 'tawk-embed-container';
 
   // Executed dynamically the instant communication parameters initialize
   Tawk_API.onLoad = function() {
@@ -203,7 +204,7 @@ permalink: /chat/
     const postRoutePath = urlParams.get('reply_to');
 
     if (postRoutePath) {
-      // Build out fully qualified absolute hyperlinks to sync with your Redfin dashboard metrics
+      // Build out fully qualified absolute hyperlinks to sync with your agent dashboard metrics
       const completePostUrl = window.location.origin + postRoutePath;
 
       Tawk_API.setAttributes({
@@ -217,18 +218,13 @@ permalink: /chat/
     }
   };
 
-  // Execution injection routine targeting your specific widget routing path
+  // Execution injection routine targeting your clean embed layout configuration path
   (function() {
-    var s1 = document.createElement("script");
+    var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
     s1.async = true;
     s1.src = 'https://embed.tawk.to/6a5b0cb0efae261d44936bbd/1jtpqj4im';
     s1.charset = 'UTF-8';
     s1.setAttribute('crossorigin', '*');
-    
-    // Lock the script element directly inside your centered container card
-    var container = document.getElementById('tawk-embed-container');
-    if (container) {
-      container.appendChild(s1);
-    }
+    s0.parentNode.insertBefore(s1, s0);
   })();
 </script>
