@@ -1,0 +1,109 @@
+---
+layout: base.njk
+---
+
+<style>
+  /* Centered box design constraints referencing global switchboard tokens */
+  .notebook-standalone-shell {
+    max-width: 800px;
+    margin: 3rem auto;
+    padding: 0 1rem;
+    box-sizing: border-box;
+    text-align: left;
+  }
+  .standalone-card-box {
+    padding: 2.5rem;
+    border-radius: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .standalone-card-box.type-post {
+    border: 3px solid var(--card-accent-color);
+    background-color: var(--dynamic-bg-highlight);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    font-size: 1.15rem;
+    font-weight: 500;
+  }
+  .standalone-card-box.type-note, .standalone-card-box.type-article {
+    border: 1px solid rgba(0,0,0,0.1);
+    background-color: #ffffff;
+  }
+  .standalone-body p {
+    margin-bottom: 1.5rem;
+    line-height: 1.7;
+  }
+  .reference-links-deck {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 2rem 0 1rem 0;
+  }
+  .reference-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background-color: var(--card-accent-color);
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 700;
+    border-radius: 4px;
+    font-size: 0.95rem;
+  }
+</style>
+
+<div class="notebook-standalone-shell">
+  <article class="standalone-card-box type-{{ type.toLowerCase() }}">
+    <header style="margin-bottom: 2rem; border-bottom: 1px solid rgba(0,0,0,0.08); padding-bottom: 1.5rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-size: 0.85rem; color: rgba(0,0,0,0.6);">
+        <span>By {{ author }} • {{ date }}</span>
+        <span style="text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: var(--card-accent-color); font-size: 0.85rem;">{{ type }}</span>
+      </div>
+      <h1 style="font-size: 2.25rem; margin: 0 0 0.5rem 0; line-height: 1.2; font-weight: 900; color: var(--premier-charcoal);">{{ title }}</h1>
+      {% if headline and headline != title %}
+        <h2 style="font-size: 1.35rem; font-weight: 600; margin: 0 0 0.25rem 0; opacity: 0.85; color: var(--premier-charcoal);">{{ headline }}</h2>
+      {% endif %}
+      {% if subhead and subhead != title %}
+        <p style="font-size: 1.1rem; font-style: italic; margin: 0; opacity: 0.75; color: var(--premier-charcoal);">{{ subhead }}</p>
+      {% endif %}
+    </header>
+
+    <div class="standalone-body" style="color: var(--premier-charcoal);">
+      {{ content | safe }}
+    </div>
+
+    {# Inject outbound spreadsheet links #}
+    {% if url_1 or url_2 %}
+      <div class="reference-links-deck">
+        {% if url_1 %}
+          <a href="{{ url_1 }}" target="_blank" rel="noopener noreferrer" class="reference-btn">
+            🔗 {{ url_1_label if url_1_label else "Reference Source 1" }}
+          </a>
+        {% endif %}
+        {% if url_2 %}
+          <a href="{{ url_2 }}" target="_blank" rel="noopener noreferrer" class="reference-btn">
+            🔗 {{ url_2_label if url_2_label else "Reference Source 2" }}
+          </a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <footer style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 1.25rem; margin-top: 2rem;">
+      <div class="interactive-actions" style="display: flex; gap: 1rem;">
+        <button class="notebook-share-btn" data-url="https://myseattlesearch.com{{ page.url }}" data-title="{{ title }}" style="background: none; border: 1px solid rgba(0,0,0,0.15); padding: 0.5rem 1rem; border-radius: 4px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--premier-charcoal);">
+          🔄 Share / Repost
+        </button>
+        <a href="/chat/?reply_to={{ page.fileSlug }}" style="background: none; border: 1px solid rgba(0,0,0,0.15); padding: 0.5rem 1rem; border-radius: 4px; font-weight: 600; text-decoration: none; color: var(--premier-charcoal); display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+          💬 Reply via Live Chat
+        </a>
+      </div>
+      {% if tags %}
+        <div class="notebook-tags" style="display: flex; gap: 0.5rem;">
+          {% for tag in tags %}
+            <span style="background-color: rgba(0,0,0,0.05); font-size: 0.8rem; padding: 0.25rem 0.6rem; border-radius: 20px; font-weight: 500; color: var(--premier-charcoal);">#{{ tag }}</span>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </footer>
+  </article>
+</div>

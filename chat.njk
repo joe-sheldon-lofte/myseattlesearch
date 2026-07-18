@@ -1,0 +1,226 @@
+---
+layout: base.njk
+title: Live Real Estate Chat Hub
+permalink: /chat/index.html
+---
+
+<div class="chat-newspaper-wrapper">
+  <!-- Primary Main Column (2/3 Width) -->
+  <main class="chat-main-panel">
+    <div class="chat-header-card">
+      <h2>Let's Get in the Game Together</h2>
+      <p>Whether you're looking over a local market update, analyzing home sales data, or mapping out your timeline, drop your questions below. I'm here to coach you through the numbers.</p>
+    </div>
+
+    <!-- Tawk.to Widget Injection Container -->
+    <div id="tawk-embed-container" class="chat-widget-canvas">
+      <div class="chat-loading-placeholder">
+        <div class="spinner"></div>
+        <p>Connecting to the real estate chat desk...</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Sidebar Column (1/3 Width) -->
+  <aside class="chat-sidebar-panel">
+    <div class="sidebar-metrics-card">
+      <h3>Quick Tools & Resources</h3>
+      <p>Want to try a calculator while we talk? Take a look:</p>
+      <ul class="sidebar-links-list">
+        <li><a href="/sellerproceeds.html">Estimated Net Proceeds</a></li>
+        <li><a href="/rentvsbuy.html">Rent vs. Buy Modeler</a></li>
+        <li><a href="/loancompare.html">Loan Program Comparison</a></li>
+        <li><a href="/buynowvslater.html">Buy Now or Later Modeler</a></li>
+      </ul>
+    </div>
+
+    <div class="sidebar-privacy-card">
+      <h3>Privacy Guaranteed</h3>
+      <p>This page is isolated. Tracking parameters only execute inside this active panel and vanish when you close the tab.</p>
+    </div>
+  </aside>
+</div>
+
+<style>
+  /* Editorial Newspaper Grid Layout Codes */
+  .chat-newspaper-wrapper {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
+    max-width: 1140px;
+    margin: 40px auto;
+    padding: 0 20px;
+    box-sizing: border-box;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .chat-main-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .chat-header-card {
+    background-color: var(--dynamic-bg-highlight);
+    border-left: 4px solid var(--card-accent-color);
+    padding: 24px;
+    border-radius: 4px;
+  }
+
+  .chat-header-card h2 {
+    margin: 0 0 10px 0;
+    color: #1a202c;
+  }
+
+  .chat-header-card p {
+    margin: 0;
+    line-height: 1.6;
+    color: #4a5568;
+  }
+
+  /* Chat Widget Workspace Frame */
+  .chat-widget-canvas {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  }
+
+  .chat-loading-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #f7fafc;
+    color: #718096;
+    z-index: 1;
+    gap: 15px;
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e2e8f0;
+    border-top-color: var(--card-accent-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Sidebar Design Token Connections */
+  .chat-sidebar-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .sidebar-metrics-card, .sidebar-privacy-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 24px;
+    border-radius: 6px;
+  }
+
+  .sidebar-metrics-card h3, .sidebar-privacy-card h3 {
+    margin: 0 0 12px 0;
+    font-size: 1.15rem;
+    color: #1a202c;
+  }
+
+  .sidebar-metrics-card p, .sidebar-privacy-card p {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #4a5568;
+    margin: 0 0 16px 0;
+  }
+
+  .sidebar-links-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .sidebar-links-list a {
+    display: inline-block;
+    color: var(--card-accent-color);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+  }
+
+  .sidebar-links-list a:hover {
+    text-decoration: underline;
+  }
+
+  /* Responsive Scaling For Smaller Displays */
+  @media (max-width: 768px) {
+    .chat-newspaper-wrapper {
+      grid-template-columns: 1fr;
+      margin: 20px auto;
+    }
+    .chat-widget-canvas {
+      height: 500px;
+    }
+  }
+</style>
+
+<!-- Context Extraction and Dashboard Sync Engine -->
+<script type="text/javascript">
+  // Setup standard global hook for the Tawk API
+  var Tawk_API = Tawk_API || {};
+  var Tawk_LoadStart = new Date();
+
+  // Executed dynamically the instant the chat console finishes hydrating
+  Tawk_API.onLoad = function() {
+    // Hide our custom loading wheel animation cleanly
+    const placeholder = document.querySelector('.chat-loading-placeholder');
+    if (placeholder) {
+      placeholder.style.display = 'none';
+    }
+
+    // Process the URL tracking search properties
+    const urlParams = new URLSearchParams(window.location.search);
+    const postRoutePath = urlParams.get('reply_to');
+
+    if (postRoutePath) {
+      // Reconstruct the full absolute tracking link path dynamically
+      const completePostUrl = window.location.origin + postRoutePath;
+
+      // Pass the data cleanly into your backend agent console dashboard panel
+      Tawk_API.setAttributes({
+        'Source Post Path': postRoutePath,
+        'Direct Post Link': completePostUrl
+      }, function(error) {
+        if (error) {
+          console.error('Context transmission fault:', error);
+        }
+      });
+    }
+  };
+
+  // Dynamic injection script block to pull parameters into the container div
+  (function() {
+    var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
+    s1.async = true;
+    // PASTE YOUR PERSONAL TAWK.TO EMBED ADDRESS URL INSIDE THE QUOTES BELOW:
+    s1.src = 'https://embed.tawk.to/6a5b0cb0efae261d44936bbd/1jtpqj4im';
+    s1.charset = 'UTF-8';
+    s1.setAttribute('crossorigin', '*');
+    s0.parentNode.insertBefore(s1, s0);
+  })();
+</script>

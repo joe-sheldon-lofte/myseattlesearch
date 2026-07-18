@@ -1,0 +1,103 @@
+---
+layout: base.njk
+title: "The Notebook"
+headline: "Boots-on-the-Ground Real Estate Observations"
+subhead: "Direct field notes, market postings, and local briefings from your real estate coach."
+permalink: /notebook/
+pagination:
+  data: collections.posts
+  size: 25
+  alias: items
+  reverse: true
+---
+
+<style>
+  .notebook-master-wrapper {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    box-sizing: border-box;
+    text-align: left;
+  }
+</style>
+
+<div class="notebook-master-wrapper">
+  <div class="notebook-master-canvas" style="display: flex; flex-direction: column; gap: 2.5rem; width: 100%;">
+    {% for item in items %}
+      {% if item.data.type %}
+        {% set isPost = item.data.type.toLowerCase() == "post" %}
+        {% set isNote = item.data.type.toLowerCase() == "note" %}
+        {% set isArticle = item.data.type.toLowerCase() == "article" %}
+        
+        {% set absoluteUrl = "https://myseattlesearch.com" + item.url %}
+        
+        <article class="notebook-card type-{{ item.data.type.toLowerCase() }}" style="padding: 2rem; border-radius: 8px; width: 100%; box-sizing: border-box; {% if isPost %}border: 3px solid var(--card-accent-color); background-color: var(--dynamic-bg-highlight); box-shadow: 0 4px 12px rgba(0,0,0,0.05); font-size: 1.15rem; font-weight: 500;{% else %}border: 1px solid rgba(0,0,0,0.1); background-color: #ffffff;{% endif %}">
+          <header style="margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-size: 0.85rem; color: rgba(0,0,0,0.6);">
+              <span>By {{ item.data.author || "Joe Sheldon" }} • {{ item.data.date }}</span>
+              <span style="text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: var(--card-accent-color); font-size: 0.8rem;">{{ item.data.type }}</span>
+            </div>
+            <h2 style="margin: 0 0 0.5rem 0; font-size: {% if isPost %}1.75rem{% else %}1.5rem{% endif %}; line-height: 1.2; font-weight: 800; color: var(--premier-charcoal);">{{ item.data.title }}</h2>
+            {% if item.data.headline and item.data.headline != item.data.title %}
+              <h3 style="margin: 0 0 0.25rem 0; font-size: 1.15rem; font-weight: 600; opacity: 0.85; color: var(--premier-charcoal);">{{ item.data.headline }}</h3>
+            {% endif %}
+            {% if item.data.subhead and item.data.subhead != item.data.title %}
+              <p style="margin: 0; font-size: 1rem; font-style: italic; opacity: 0.75; color: var(--premier-charcoal);">{{ item.data.subhead }}</p>
+            {% endif %}
+          </header>
+          
+          <div class="notebook-body" style="line-height: 1.6; margin-bottom: 1.5rem; color: var(--premier-charcoal);">
+            {% if isArticle %}
+              {# Automated textual teaser extraction sequence for standard articles #}
+              {% set cleanContent = item.templateContent | striptags | trim %}
+              <p>{{ cleanContent | truncate(240) }}</p>
+              <div style="margin-top: 1rem;">
+                <a href="{{ item.url }}" style="display: inline-block; color: var(--card-accent-color); font-weight: 700; text-decoration: underline; text-underline-offset: 4px;">Read Full Article →</a>
+              </div>
+            {% else %}
+              {# Output posts and quick notes entirely inside the core feed loop #}
+              {{ item.templateContent | safe }}
+            {% endif %}
+          </div>
+          
+          <footer style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 1.25rem;">
+            <div class="interactive-actions" style="display: flex; gap: 1rem;">
+              <button class="notebook-share-btn" data-url="{{ absoluteUrl }}" data-title="{{ item.data.title }}" style="background: none; border: 1px solid rgba(0,0,0,0.15); padding: 0.5rem 1rem; border-radius: 4px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--premier-charcoal);">
+                🔄 Share / Repost
+              </button>
+              <a href="/chat/?reply_to={{ item.fileSlug }}" style="background: none; border: 1px solid rgba(0,0,0,0.15); padding: 0.5rem 1rem; border-radius: 4px; font-weight: 600; text-decoration: none; color: var(--premier-charcoal); display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+                💬 Reply via Live Chat
+              </a>
+            </div>
+            {% if item.data.tags %}
+              <div class="notebook-tags" style="display: flex; gap: 0.5rem;">
+                {% for tag in item.data.tags %}
+                  <span style="background-color: rgba(0,0,0,0.05); font-size: 0.8rem; padding: 0.25rem 0.6rem; border-radius: 20px; font-weight: 500; color: var(--premier-charcoal);">#{{ tag }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </footer>
+        </article>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  {# Chronological Pagination Nav System #}
+  {% if pagination.pages.length > 1 %}
+    <nav class="notebook-pagination" style="display: flex; justify-content: center; align-items: center; gap: 1.5rem; margin-top: 4rem; font-family: sans-serif;">
+      {% if pagination.href.previous %}
+        <a href="{{ pagination.href.previous }}" style="color: var(--card-accent-color); font-weight: 700; text-decoration: none; border: 1px solid var(--card-accent-color); padding: 0.5rem 1rem; border-radius: 4px;">← Previous Entries</a>
+      {% else %}
+        <span style="color: rgba(0,0,0,0.3); border: 1px solid rgba(0,0,0,0.1); padding: 0.5rem 1rem; border-radius: 4px;">← Previous Entries</span>
+      {% endif %}
+      
+      <span style="font-weight: 600; color: rgba(0,0,0,0.7);">Page {{ pagination.pageNumber + 1 }} of {{ pagination.pages.length }}</span>
+      
+      {% if pagination.href.next %}
+        <a href="{{ pagination.href.next }}" style="color: var(--card-accent-color); font-weight: 700; text-decoration: none; border: 1px solid var(--card-accent-color); padding: 0.5rem 1rem; border-radius: 4px;">Next Entries →</a>
+      {% else %}
+        <span style="color: rgba(0,0,0,0.3); border: 1px solid rgba(0,0,0,0.1); padding: 0.5rem 1rem; border-radius: 4px;">Next Entries →</span>
+      {% endif %}
+    </nav>
+  {% endif %}
+</div>

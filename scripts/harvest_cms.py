@@ -271,7 +271,7 @@ def main():
         
         front_matter_block = (
 f"""---
-layout: base.njk
+layout: post.njk
 title: "{clean_title}"
 headline: "{clean_headline}"
 subhead: "{clean_subhead}"

@@ -164,7 +164,6 @@ class LocalReviews extends HTMLElement {
 
             if (validReviews.length === 0) { gridContainer.innerHTML = ''; return; }
 
-            // Randomize array items (Fisher-Yates)
             for (let i = validReviews.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [validReviews[i], validReviews[j]] = [validReviews[j], validReviews[i]];
@@ -193,6 +192,57 @@ class LocalReviews extends HTMLElement {
             gridContainer.innerHTML = '';
         }
     }
+}
+
+/**
+ * MySeattleSearch Notebook Platform Interaction Layer
+ * Intercepts user share actions across static feeds and modular shortcodes,
+ * launching browser-native sharing boards or copying direct post permalinks.
+ */
+document.addEventListener("DOMContentLoaded", () => {
+  document.body.addEventListener("click", async (event) => {
+    const shareTarget = event.target.closest(".notebook-share-btn");
+    if (!shareTarget) return;
+
+    const targetUrl = shareTarget.getAttribute("data-url");
+    const targetTitle = shareTarget.getAttribute("data-title");
+    if (!targetUrl) return;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: targetTitle || "MySeattleSearch Update",
+          text: `Check out this hyper-local market update: ${targetTitle}`,
+          url: targetUrl
+        });
+      } catch (shareErr) {
+        if (shareErr.name !== "AbortError") {
+          executeClipboardFallback(shareTarget, targetUrl);
+        }
+      }
+    } else {
+      executeClipboardFallback(shareTarget, targetUrl);
+    }
+  });
+});
+
+function executeClipboardFallback(element, urlToCopy) {
+  navigator.clipboard.writeText(urlToCopy).then(() => {
+    const originalText = element.innerHTML;
+    element.innerHTML = `✅ Link Copied!`;
+    element.style.borderColor = "var(--card-accent-color)";
+    element.style.backgroundColor = "var(--dynamic-bg-highlight)";
+    element.disabled = true;
+
+    setTimeout(() => {
+      element.innerHTML = originalText;
+      element.style.borderColor = "rgba(0,0,0,0.15)";
+      element.style.backgroundColor = "transparent";
+      element.disabled = false;
+    }, 2500);
+  }).catch(err => {
+    console.error("❌ Failed to commit text route string to browser clipboard tier: ", err);
+  });
 }
 
 // Global Core Custom Elements Registries
