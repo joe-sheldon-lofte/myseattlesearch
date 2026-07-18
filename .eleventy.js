@@ -1,5 +1,3 @@
-const CleanCSS = require("clean-css");
-
 module.exports = function(eleventyConfig) {
   // 1. Pass through universal styling and web components
   eleventyConfig.addPassthroughCopy("style.css");
