@@ -195,55 +195,92 @@ class LocalReviews extends HTMLElement {
 }
 
 /**
- * MySeattleSearch Notebook Platform Interaction Layer
- * Intercepts user share actions across static feeds and modular shortcodes,
- * launching browser-native sharing boards or copying direct post permalinks.
+ * Editorial Menu Share Utility
+ * Spawns a clean, contextual social routing popover dropdown panel.
+ * Gracefully cleans up click states automatically upon outside focus loss.
  */
 document.addEventListener("DOMContentLoaded", () => {
-  document.body.addEventListener("click", async (event) => {
-    const shareTarget = event.target.closest(".notebook-share-btn");
-    if (!shareTarget) return;
+  // Global click capturing filter pass
+  document.body.addEventListener("click", (event) => {
+    const btn = event.target.closest(".notebook-share-btn");
+    
+    // Clear active menus if clicking away entirely
+    if (!btn) {
+      document.querySelectorAll(".editorial-share-popover").forEach(el => el.remove());
+      return;
+    }
 
-    const targetUrl = shareTarget.getAttribute("data-url");
-    const targetTitle = shareTarget.getAttribute("data-title");
-    if (!targetUrl) return;
+    event.stopPropagation();
+    const existingMenu = btn.parentNode.querySelector(".editorial-share-popover");
+    
+    // Close existing dropdown instances
+    if (existingMenu) {
+      existingMenu.remove();
+      return;
+    }
+    
+    document.querySelectorAll(".editorial-share-popover").forEach(el => el.remove());
 
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: targetTitle || "MySeattleSearch Update",
-          text: `Check out this hyper-local market update: ${targetTitle}`,
-          url: targetUrl
-        });
-      } catch (shareErr) {
-        if (shareErr.name !== "AbortError") {
-          executeClipboardFallback(shareTarget, targetUrl);
-        }
-      }
-    } else {
-      executeClipboardFallback(shareTarget, targetUrl);
+    const url = btn.getAttribute("data-url");
+    const title = btn.getAttribute("data-title") || "Notebook Update";
+    if (!url) return;
+
+    // Build flat, clean, hex-free markup overlay elements
+    const popover = document.createElement("div");
+    popover.className = "editorial-share-popover";
+    popover.style.cssText = `
+      position: absolute; bottom: 100%; right: 0; margin-bottom: 6px;
+      background-color: white; border: 1px solid var(--card-accent-color);
+      border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      display: flex; flex-direction: column; width: 140px; z-index: 999; overflow: hidden;
+    `;
+
+    const itemStyle = `
+      background: none; border: none; padding: 0.5rem 0.75rem; text-align: left;
+      font-size: 0.75rem; font-weight: 600; color: var(--premier-charcoal);
+      cursor: pointer; text-decoration: none; display: block; transition: background 0.15s;
+    `;
+
+    // Action A: Direct Copy Link Controller
+    const copyAction = document.createElement("button");
+    copyAction.style.cssText = itemStyle;
+    copyAction.innerHTML = "📋 Copy Link";
+    copyAction.addEventListener("click", () => {
+      navigator.clipboard.writeText(url).then(() => {
+        const prevText = copyAction.innerHTML;
+        copyAction.innerHTML = "✅ Copied!";
+        setTimeout(() => popover.remove(), 1200);
+      });
+    });
+
+    // Action B: Facebook community routing bridge
+    const fbAction = document.createElement("a");
+    fbAction.style.cssText = itemStyle;
+    fbAction.target = "_blank";
+    fbAction.rel = "noopener noreferrer";
+    fbAction.innerHTML = "👥 Facebook";
+    fbAction.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+    fbAction.addEventListener("click", () => setTimeout(() => popover.remove(), 500));
+
+    // Action C: Email to family utility line
+    const emailAction = document.createElement("a");
+    emailAction.style.cssText = itemStyle;
+    emailAction.innerHTML = "✉️ Email Link";
+    emailAction.href = `mailto:?subject=${encodeURIComponent(title)}&body=Check this local update out: ${encodeURIComponent(url)}`;
+    emailAction.addEventListener("click", () => setTimeout(() => popover.remove(), 500));
+
+    // Append child loops into node canvas
+    popover.appendChild(copyAction);
+    popover.appendChild(fbAction);
+    popover.appendChild(emailAction);
+    
+    // Lock position context layer relative to button element parent
+    if (btn.parentNode) {
+      btn.parentNode.style.position = "relative";
+      btn.parentNode.appendChild(popover);
     }
   });
 });
-
-function executeClipboardFallback(element, urlToCopy) {
-  navigator.clipboard.writeText(urlToCopy).then(() => {
-    const originalText = element.innerHTML;
-    element.innerHTML = `✅ Link Copied!`;
-    element.style.borderColor = "var(--card-accent-color)";
-    element.style.backgroundColor = "var(--dynamic-bg-highlight)";
-    element.disabled = true;
-
-    setTimeout(() => {
-      element.innerHTML = originalText;
-      element.style.borderColor = "rgba(0,0,0,0.15)";
-      element.style.backgroundColor = "transparent";
-      element.disabled = false;
-    }, 2500);
-  }).catch(err => {
-    console.error("❌ Failed to commit text route string to browser clipboard tier: ", err);
-  });
-}
 
 // Global Core Custom Elements Registries
 customElements.define('quiz-engine', QuizEngine);
