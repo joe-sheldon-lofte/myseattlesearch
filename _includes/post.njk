@@ -3,7 +3,6 @@ layout: base.njk
 ---
 
 <style>
-  /* Centered box design constraints referencing global switchboard tokens */
   .notebook-standalone-shell {
     max-width: 800px;
     margin: 3rem auto;
@@ -12,21 +11,30 @@ layout: base.njk
     text-align: left;
   }
   .standalone-card-box {
-    padding: 2.5rem;
     border-radius: 8px;
     width: 100%;
     box-sizing: border-box;
   }
+  /* Standalone profile overrides mirroring the main timeline matrix */
   .standalone-card-box.type-post {
+    padding: 1.5rem;
     border: 3px solid var(--card-accent-color);
     background-color: var(--dynamic-bg-highlight);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     font-size: 1.15rem;
-    font-weight: 500;
+    font-weight: 600;
+    line-height: 1.5;
   }
-  .standalone-card-box.type-note, .standalone-card-box.type-article {
+  .standalone-card-box.type-note {
+    padding: 2rem;
+    border: 1px solid rgba(0,0,0,0.15);
+    background-color: #ffffff;
+    font-size: 1.05rem;
+  }
+  .standalone-card-box.type-article {
+    padding: 2.5rem;
     border: 1px solid rgba(0,0,0,0.1);
     background-color: #ffffff;
+    font-size: 1rem;
   }
   .standalone-body p {
     margin-bottom: 1.5rem;
@@ -42,29 +50,34 @@ layout: base.njk
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.75rem 1.25rem;
+    padding: 0.6rem 1.2rem;
     background-color: var(--card-accent-color);
     color: #ffffff;
     text-decoration: none;
     font-weight: 700;
     border-radius: 4px;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
   }
 </style>
 
 <div class="notebook-standalone-shell">
+  {# Back track feed navigator #}
+  <div style="margin-bottom: 1.5rem;">
+    <a href="/notebook/" style="color: var(--card-accent-color); font-weight: 700; text-decoration: none; font-size: 0.95rem;">← Back to Notebook</a>
+  </div>
+
   <article class="standalone-card-box type-{{ type.toLowerCase() }}">
-    <header style="margin-bottom: 2rem; border-bottom: 1px solid rgba(0,0,0,0.08); padding-bottom: 1.5rem;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-size: 0.85rem; color: rgba(0,0,0,0.6);">
-        <span>By {{ author }} • {{ date }}</span>
-        <span style="text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: var(--card-accent-color); font-size: 0.85rem;">{{ type }}</span>
+    <header style="margin-bottom: 1.5rem; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 0.75rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: rgba(0,0,0,0.6);">
+        <span>By {{ author or "Joe Sheldon" }} • {{ date | postDate }}</span>
+        <span style="text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: var(--card-accent-color);">{{ type }}</span>
       </div>
-      <h1 style="font-size: 2.25rem; margin: 0 0 0.5rem 0; line-height: 1.2; font-weight: 900; color: var(--premier-charcoal);">{{ title }}</h1>
-      {% if headline and headline != title %}
-        <h2 style="font-size: 1.35rem; font-weight: 600; margin: 0 0 0.25rem 0; opacity: 0.85; color: var(--premier-charcoal);">{{ headline }}</h2>
+      {# Content Matrix Visibility Rule: Internal title killed. Output begins at Headline #}
+      {% if type.toLowerCase() != "post" and headline %}
+        <h1 style="margin: 0.75rem 0 0 0; font-size: {% if type.toLowerCase() == 'note' %}1.75rem{% else %}2.25rem{% endif %}; font-weight: 900; color: var(--premier-charcoal); line-height: 1.2;">{{ headline }}</h1>
       {% endif %}
-      {% if subhead and subhead != title %}
-        <p style="font-size: 1.1rem; font-style: italic; margin: 0; opacity: 0.75; color: var(--premier-charcoal);">{{ subhead }}</p>
+      {% if type.toLowerCase() == "article" and subhead %}
+        <p style="margin: 0.4rem 0 0 0; font-size: 1.15rem; font-style: italic; color: rgba(0,0,0,0.7);">{{ subhead }}</p>
       {% endif %}
     </header>
 
@@ -72,7 +85,7 @@ layout: base.njk
       {{ content | safe }}
     </div>
 
-    {# Inject outbound spreadsheet links #}
+    {# Spreadsheet anchor references pass-through copy #}
     {% if url_1 or url_2 %}
       <div class="reference-links-deck">
         {% if url_1 %}
@@ -88,19 +101,20 @@ layout: base.njk
       </div>
     {% endif %}
 
-    <footer style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 1.25rem; margin-top: 2rem;">
-      <div class="interactive-actions" style="display: flex; gap: 1rem;">
-        <button class="notebook-share-btn" data-url="https://myseattlesearch.com{{ page.url }}" data-title="{{ title }}" style="background: none; border: 1px solid rgba(0,0,0,0.15); padding: 0.5rem 1rem; border-radius: 4px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--premier-charcoal);">
+    {# Readable action layout panel #}
+    <footer style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 1rem; margin-top: 2rem;">
+      <div class="interactive-actions" style="display: flex; gap: 0.75rem; align-items: center;">
+        <button class="notebook-share-btn" data-url="https://myseattlesearch.com{{ page.url }}" data-title="{{ headline or 'Notebook Update' }}" style="background: #ffffff; border: 1px solid rgba(0,0,0,0.15); padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--premier-charcoal);">
           🔄 Share / Repost
         </button>
-        <a href="/chat/?reply_to={{ page.fileSlug }}" style="background: none; border: 1px solid rgba(0,0,0,0.15); padding: 0.5rem 1rem; border-radius: 4px; font-weight: 600; text-decoration: none; color: var(--premier-charcoal); display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+        <a href="/chat/?reply_to={{ page.fileSlug }}" style="background: #ffffff; border: 1px solid rgba(0,0,0,0.15); padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: 600; text-decoration: none; color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem;">
           💬 Reply via Live Chat
         </a>
       </div>
       {% if tags %}
-        <div class="notebook-tags" style="display: flex; gap: 0.5rem;">
+        <div class="notebook-tags" style="display: flex; gap: 0.4rem;">
           {% for tag in tags %}
-            <span style="background-color: rgba(0,0,0,0.05); font-size: 0.8rem; padding: 0.25rem 0.6rem; border-radius: 20px; font-weight: 500; color: var(--premier-charcoal);">#{{ tag }}</span>
+            <span style="background-color: rgba(0,0,0,0.05); font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 500; color: var(--premier-charcoal);">#{{ tag }}</span>
           {% endfor %}
         </div>
       {% endif %}
