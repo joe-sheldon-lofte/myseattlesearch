@@ -264,12 +264,17 @@ def main():
         
         markdown_filename = os.path.join(posts_dir, f"{slug}.md")
         
+        # FIX: Pre-escape quotes outside of the f-string block to fulfill Python 3.11 requirements
+        clean_title = record.get('Title', '').replace('"', '\\"')
+        clean_headline = record.get('Headline', '').replace('"', '\\"')
+        clean_subhead = record.get('Subhead', '').replace('"', '\\"')
+        
         front_matter_block = (
 f"""---
 layout: base.njk
-title: "{record.get('Title', '').replace('"', '\\"')}"
-headline: "{record.get('Headline', '').replace('"', '\\"')}"
-subhead: "{record.get('Subhead', '').replace('"', '\\"')}"
+title: "{clean_title}"
+headline: "{clean_headline}"
+subhead: "{clean_subhead}"
 date: {record.get('Publish Date', datetime.date.today().strftime('%Y-%m-%d'))}
 author: "{record.get('Author', 'Joe Sheldon')}"
 tags: [{formatted_tags_list}]
