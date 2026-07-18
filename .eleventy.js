@@ -80,8 +80,8 @@ module.exports = function(eleventyConfig) {
    * Eliminates client-side browser hydration and layout lag.
    */
   eleventyConfig.addShortcode("renderNotebook", function(collectionsAll, typeFilter = "", tagFilter = "", limit = 25) {
-    // Filter the global collection for items originating from the Notebook ingest pipeline
-    let filteredItems = collectionsAll.filter(item => item.data.layout === "post.njk" && item.data.type);
+    // Robust layout detection ensures compatibility with normalized template strings
+    let filteredItems = collectionsAll.filter(item => item.data.layout && item.data.layout.includes("post") && item.data.type);
 
     // Filter by individual post types if specified (supports comma-separated matching loops)
     if (typeFilter) {
@@ -192,11 +192,9 @@ module.exports = function(eleventyConfig) {
   });
 
   // --- AUTOMATED VIRTUAL NOTEBOOK COLLECTION ---
-  // Dynamically populates collections.posts without requiring manual tags in data files
+  // Targets the filesystem path directly to populate collections.posts flawlessly
   eleventyConfig.addCollection("posts", function(collectionApi) {
-    return collectionApi.getAll().filter(function(item) {
-      return item.data.layout === "post.njk" && item.data.type;
-    });
+    return collectionApi.getFilteredByGlob("src/posts/*.md");
   });
 
   return {
