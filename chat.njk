@@ -69,6 +69,7 @@ permalink: /chat/
 
   .chat-header-card h2 {
     margin: 0 0 10px 0;
+    color: inherit;
   }
 
   .chat-header-card p {
@@ -84,6 +85,7 @@ permalink: /chat/
     border: 1px solid var(--dynamic-bg-highlight);
     border-radius: 8px;
     overflow: hidden;
+    background-color: transparent;
   }
 
   /* Pre-Initialization Connection Screen */
@@ -123,6 +125,7 @@ permalink: /chat/
   }
 
   .sidebar-metrics-card, .sidebar-privacy-card {
+    background-color: transparent;
     border: 1px solid var(--dynamic-bg-highlight);
     padding: 24px;
     border-radius: 6px;
@@ -180,6 +183,13 @@ permalink: /chat/
   // Core Override Contract: Anchor chat frame directly into our center canvas div layout instead of spawning a bubble in the corner
   Tawk_API.container = 'tawk-embed-container';
 
+  // Force the embedded layout panel to maximize immediately on initial render
+  Tawk_API.onBeforeLoad = function() {
+    if (typeof Tawk_API.maximize === 'function') {
+      Tawk_API.maximize();
+    }
+  };
+
   // Executed dynamically the instant communication parameters initialize
   Tawk_API.onLoad = function() {
     // Wipe out the loading placeholder wheel animation cleanly
@@ -209,11 +219,16 @@ permalink: /chat/
 
   // Execution injection routine targeting your specific widget routing path
   (function() {
-    var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
+    var s1 = document.createElement("script");
     s1.async = true;
     s1.src = 'https://embed.tawk.to/6a5b0cb0efae261d44936bbd/1jtpqj4im';
     s1.charset = 'UTF-8';
     s1.setAttribute('crossorigin', '*');
-    s0.parentNode.insertBefore(s1, s0);
+    
+    // Lock the script element directly inside your centered container card
+    var container = document.getElementById('tawk-embed-container');
+    if (container) {
+      container.appendChild(s1);
+    }
   })();
 </script>
