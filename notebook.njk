@@ -1,8 +1,6 @@
 ---
 layout: base.njk
 title: "Joe's Notebook"
-headline: "Joe's Notebook"
-subhead: "A collection posts, notes, and articles written by Joe."
 permalink: /notebook/
 pagination:
   data: collections.posts
@@ -14,41 +12,47 @@ pagination:
 <style>
   .notebook-master-wrapper {
     max-width: 800px;
-    margin: 3rem auto;
+    margin: 2.5rem auto;
     padding: 0 1rem;
     box-sizing: border-box;
     text-align: left;
   }
   .notebook-masthead {
     text-align: center;
-    margin-bottom: 3.5rem;
+    margin-bottom: 2.5rem;
     border-bottom: 2px solid var(--dynamic-bg-highlight);
-    padding-bottom: 2rem;
+    padding-bottom: 1.5rem;
   }
   .notebook-masthead h1 {
-    font-size: 2.75rem;
+    font-size: 2.5rem;
     font-weight: 900;
     color: var(--premier-charcoal);
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.35rem 0;
     letter-spacing: -0.02em;
   }
   .notebook-masthead p {
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     color: rgba(0,0,0,0.6);
     margin: 0;
     font-weight: 500;
+  }
+  .notebook-body p {
+    margin: 0 0 1rem 0;
+  }
+  .notebook-body p:last-child {
+    margin-bottom: 0;
   }
 </style>
 
 <div class="notebook-master-wrapper">
   
-  {# Public Facing Header Deck #}
+  {# Public Platform Brand Header #}
   <header class="notebook-masthead">
     <h1>Joe's Notebook</h1>
     <p>A collection posts, notes, and articles written by Joe.</p>
   </header>
 
-  <div class="notebook-master-canvas" style="display: flex; flex-direction: column; gap: 2rem; width: 100%;">
+  <div class="notebook-master-canvas" style="display: flex; flex-direction: column; gap: 1.75rem; width: 100%;">
     {% for item in items %}
       {% if item.data.type %}
         {% set typeLower = item.data.type.toLowerCase() %}
@@ -58,79 +62,71 @@ pagination:
         
         {% set absoluteUrl = "https://myseattlesearch.com" + item.url %}
         {% set navLabel = "View Entry →" %}
+        {% set textStyle = "color: var(--premier-charcoal);" %}
         
-        {# Polymorphic Card Styling Framework #}
-        <article class="notebook-card type-{{ typeLower }}" style="border-radius: 8px; width: 100%; box-sizing: border-box; transition: transform 0.2s; {% if isPost %}padding: 1.5rem; border: 3px solid var(--card-accent-color); background-color: var(--dynamic-bg-highlight); font-size: 1.15rem; font-weight: 600; line-height: 1.5;{% elif isNote %}padding: 2rem; border: 1px solid rgba(0,0,0,0.15); background-color: #ffffff; font-size: 1.05rem;{% else %}padding: 2.5rem; border: 1px solid rgba(0,0,0,0.1); background-color: #ffffff; font-size: 1rem;{% endif %}">
+        {# Polymorphic Architecture Matrix: Bound exclusively to central variables and standard text color keys #}
+        <article class="notebook-card type-{{ typeLower }}" style="border-radius: 6px; width: 100%; box-sizing: border-box; position: relative; {% if isPost %}padding: 1.25rem; background-color: var(--card-accent-color); border: none;{% elif isNote %}padding: 1.5rem; border: 3px solid var(--card-accent-color); background-color: var(--dynamic-bg-highlight);{% else %}padding: 1.75rem; border: 1px solid var(--card-accent-color); background-color: white;{% endif %}">
           
-          <header style="margin-bottom: 1rem; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 0.75rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: rgba(0,0,0,0.6);">
-              <span>By {{ item.data.author or "Joe Sheldon" }} • {{ item.data.date | postDate }}</span>
-              <span style="text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: var(--card-accent-color);">{{ item.data.type }}</span>
-            </div>
+          {# Upper Section Switchboard #}
+          <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <span style="text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800; font-size: 0.8rem; color: {% if isPost %}white{% else %}var(--card-accent-color){% endif %};">{{ item.data.type }}</span>
             
-            {# Content Matrix Visibility Rule: Internal titles are killed. Data starts at Headline #}
-            {% if not isPost and item.data.headline %}
-              <h2 style="margin: 0.75rem 0 0 0; font-size: {% if isNote %}1.5rem{% else %}1.75rem{% endif %}; font-weight: 800; color: var(--premier-charcoal); line-height: 1.2;">{{ item.data.headline }}</h2>
-            {% endif %}
-            {% if isArticle and item.data.subhead %}
-              <p style="margin: 0.35rem 0 0 0; font-size: 1.05rem; font-style: italic; color: rgba(0,0,0,0.7);">{{ item.data.subhead }}</p>
-            {% endif %}
+            {% if isPost %}{% set navLabel = "View Post →" %}{% elif isNote %}{% set navLabel = "View Note →" %}{% else %}{% set navLabel = "View Article →" %}{% endif %}
+            <a href="{{ item.url }}" style="font-weight: 700; text-decoration: underline; text-underline-offset: 3px; font-size: 0.85rem; color: {% if isPost %}white{% else %}var(--card-accent-color){% endif %};">{{ navLabel }}</a>
           </header>
           
-          <div class="notebook-body" style="line-height: 1.6; margin-bottom: 1.5rem; color: var(--premier-charcoal);">
+          {# Content Visibility Filter: System titles are killed. Production begins at Headline pass #}
+          {% if not isPost and item.data.headline %}
+            <h2 style="margin: 0 0 0.4rem 0; font-size: {% if isNote %}1.35rem{% else %}1.5rem{% endif %}; font-weight: 800; color: var(--premier-charcoal); line-height: 1.2;">{{ item.data.headline }}</h2>
+          {% endif %}
+          {% if isArticle and item.data.subhead %}
+            <p style="margin: 0 0 0.75rem 0; font-size: 1rem; font-style: italic; color: rgba(0,0,0,0.6);">{{ item.data.subhead }}</p>
+          {% endif %}
+          
+          <div class="notebook-body" style="{% if isPost %}color: white; font-size: 1.15rem; font-weight: 600; line-height: 1.4;{% else %}color: var(--premier-charcoal); font-size: 1.05rem;{% endif %} margin-bottom: 1rem;">
             {% if isArticle %}
-              {# Automated 3-line content teaser extractor for deep articles #}
+              {# Dynamic 3-line string snippet generator for deep content #}
               {% set cleanContent = item.templateContent | striptags | trim %}
-              <p>{{ cleanContent | truncate(240) }}</p>
-              {% set navLabel = "Read Full Article →" %}
+              <p style="margin: 0;">{{ cleanContent | truncate(240) }}</p>
             {% else %}
-              {# Notes and Posts dump raw content straight to canvas #}
               {{ item.templateContent | safe }}
-              {% if isPost %}{% set navLabel = "View Post →" %}{% else %}{% set navLabel = "View Note →" %}{% endif %}
             {% endif %}
           </div>
           
-          {# Cleaned Action Deck: Dark charcoal overlay block has been completely removed #}
-          <footer style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 1rem; margin-top: 1rem;">
-            <div class="interactive-actions" style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
-              {# Direct Navigation Anchor Contract #}
-              <a href="{{ item.url }}" style="color: var(--card-accent-color); font-weight: 700; text-decoration: underline; text-underline-offset: 4px; font-size: 0.95rem; margin-right: 0.5rem;">{{ navLabel }}</a>
-              
-              <button class="notebook-share-btn" data-url="{{ absoluteUrl }}" data-title="{{ item.data.headline or 'Notebook Update' }}" style="background: #ffffff; border: 1px solid rgba(0,0,0,0.15); padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--premier-charcoal);">
+          {# Low-Profile Bottom Signature & Action Strip #}
+          <footer style="display: flex; justify-content: space-between; align-items: center; background-color: {% if isPost %}rgba(255,255,255,0.15){% else %}rgba(0,0,0,0.03){% endif %}; padding: 0.4rem 0.75rem; border-radius: 4px; font-size: 0.8rem;">
+            <div style="font-weight: 500; color: {% if isPost %}white{% else %}rgba(0,0,0,0.65){% endif %};">
+              By: {{ item.data.author or "Joe Sheldon" }} • {{ item.data.date | postDate }}
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <button class="notebook-share-btn" data-url="{{ absoluteUrl }}" data-title="{{ item.data.headline or 'Notebook Update' }}" style="background: white; border: 1px solid rgba(0,0,0,0.15); padding: 0.25rem 0.5rem; border-radius: 3px; font-weight: 600; cursor: pointer; font-size: 0.75rem; color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.25rem;">
                 🔄 Share
               </button>
-              <a href="/chat/?reply_to={{ item.fileSlug }}" style="background: #ffffff; border: 1px solid rgba(0,0,0,0.15); padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: 600; text-decoration: none; color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem;">
-                💬 Chat Reply
+              <a href="/chat/?reply_to={{ item.fileSlug }}" style="background: white; border: 1px solid rgba(0,0,0,0.15); padding: 0.25rem 0.5rem; border-radius: 3px; font-weight: 600; text-decoration: none; font-size: 0.75rem; color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.25rem;">
+                💬 Reply
               </a>
             </div>
-            {% if item.data.tags %}
-              <div class="notebook-tags" style="display: flex; gap: 0.4rem;">
-                {% for tag in item.data.tags %}
-                  <span style="background-color: rgba(0,0,0,0.05); font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 500; color: var(--premier-charcoal);">#{{ tag }}</span>
-                {% endfor %}
-              </div>
-            {% endif %}
           </footer>
         </article>
       {% endif %}
     {% endfor %}
   </div>
 
-  {# Forward/Backward Timeline Pagination Controls #}
+  {# Cleaned Navigation Refinement Anchors #}
   {% if pagination.pages.length > 1 %}
-    <nav class="notebook-pagination" style="display: flex; justify-content: center; align-items: center; gap: 1.5rem; margin-top: 4rem; font-family: sans-serif;">
+    <nav class="notebook-pagination" style="display: flex; justify-content: center; align-items: center; gap: 1.5rem; margin-top: 3.5rem; font-family: sans-serif;">
       {% if pagination.href.previous %}
-        <a href="{{ pagination.href.previous }}" style="color: var(--card-accent-color); font-weight: 700; text-decoration: none; border: 1px solid var(--card-accent-color); padding: 0.5rem 1rem; border-radius: 4px;"><- Newer</a>
+        <a href="{{ pagination.href.previous }}" style="color: var(--card-accent-color); font-weight: 700; text-decoration: none; border: 1px solid var(--card-accent-color); padding: 0.4rem 0.9rem; border-radius: 4px; font-size: 0.9rem;"><- Newer</a>
       {% else %}
-        <span style="color: rgba(0,0,0,0.3); border: 1px solid rgba(0,0,0,0.1); padding: 0.5rem 1rem; border-radius: 4px;"><- Newer</span>
+        <span style="color: rgba(0,0,0,0.3); border: 1px solid rgba(0,0,0,0.1); padding: 0.4rem 0.9rem; border-radius: 4px; font-size: 0.9rem;"><- Newer</span>
       {% endif %}
       
-      <span style="font-weight: 600; color: rgba(0,0,0,0.5); font-size: 0.9rem;">Page {{ pagination.pageNumber + 1 }} of {{ pagination.pages.length }}</span>
+      <span style="font-weight: 600; color: rgba(0,0,0,0.5); font-size: 0.85rem;">Page {{ pagination.pageNumber + 1 }} of {{ pagination.pages.length }}</span>
       
       {% if pagination.href.next %}
-        <a href="{{ pagination.href.next }}" style="color: var(--card-accent-color); font-weight: 700; text-decoration: none; border: 1px solid var(--card-accent-color); padding: 0.5rem 1rem; border-radius: 4px;">Older -></a>
+        <a href="{{ pagination.href.next }}" style="color: var(--card-accent-color); font-weight: 700; text-decoration: none; border: 1px solid var(--card-accent-color); padding: 0.4rem 0.9rem; border-radius: 4px; font-size: 0.9rem;">Older -></a>
       {% else %}
-        <span style="color: rgba(0,0,0,0.3); border: 1px solid rgba(0,0,0,0.1); padding: 0.5rem 1rem; border-radius: 4px;">Older -></span>
+        <span style="color: rgba(0,0,0,0.3); border: 1px solid rgba(0,0,0,0.1); padding: 0.4rem 0.9rem; border-radius: 4px; font-size: 0.9rem;">Older -></span>
       {% endif %}
     </nav>
   {% endif %}

@@ -5,119 +5,118 @@ layout: base.njk
 <style>
   .notebook-standalone-shell {
     max-width: 800px;
-    margin: 3rem auto;
+    margin: 2.5rem auto;
     padding: 0 1rem;
     box-sizing: border-box;
     text-align: left;
   }
   .standalone-card-box {
-    border-radius: 8px;
+    border-radius: 6px;
     width: 100%;
     box-sizing: border-box;
+    position: relative;
   }
-  /* Standalone profile overrides mirroring the main timeline matrix */
+  /* Standalone configuration mirrors identical visual profiles */
   .standalone-card-box.type-post {
+    padding: 1.25rem;
+    background-color: var(--card-accent-color);
+    border: none;
+  }
+  .standalone-card-box.type-note {
     padding: 1.5rem;
     border: 3px solid var(--card-accent-color);
     background-color: var(--dynamic-bg-highlight);
-    font-size: 1.15rem;
-    font-weight: 600;
-    line-height: 1.5;
-  }
-  .standalone-card-box.type-note {
-    padding: 2rem;
-    border: 1px solid rgba(0,0,0,0.15);
-    background-color: #ffffff;
-    font-size: 1.05rem;
   }
   .standalone-card-box.type-article {
-    padding: 2.5rem;
-    border: 1px solid rgba(0,0,0,0.1);
-    background-color: #ffffff;
-    font-size: 1rem;
+    padding: 1.75rem;
+    border: 1px solid var(--card-accent-color);
+    background-color: white;
   }
   .standalone-body p {
-    margin-bottom: 1.5rem;
-    line-height: 1.7;
+    margin-bottom: 1.25rem;
+    line-height: 1.6;
+  }
+  .standalone-body p:last-child {
+    margin-bottom: 0;
   }
   .reference-links-deck {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
-    margin: 2rem 0 1rem 0;
+    gap: 0.75rem;
+    margin: 1.5rem 0 0.5rem 0;
   }
   .reference-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.6rem 1.2rem;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
     background-color: var(--card-accent-color);
-    color: #ffffff;
+    color: white;
     text-decoration: none;
     font-weight: 700;
     border-radius: 4px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
   }
 </style>
 
 <div class="notebook-standalone-shell">
-  {# Back track feed navigator #}
-  <div style="margin-bottom: 1.5rem;">
-    <a href="/notebook/" style="color: var(--card-accent-color); font-weight: 700; text-decoration: none; font-size: 0.95rem;">← Back to Notebook</a>
+  {# Upper back trace navigation loop #}
+  <div style="margin-bottom: 1.25rem;">
+    <a href="/notebook/" style="color: var(--card-accent-color); font-weight: 700; text-decoration: none; font-size: 0.9rem;">← Back to Notebook</a>
   </div>
 
-  <article class="standalone-card-box type-{{ type.toLowerCase() }}">
-    <header style="margin-bottom: 1.5rem; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 0.75rem;">
-      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: rgba(0,0,0,0.6);">
-        <span>By {{ author or "Joe Sheldon" }} • {{ date | postDate }}</span>
-        <span style="text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: var(--card-accent-color);">{{ type }}</span>
-      </div>
-      {# Content Matrix Visibility Rule: Internal title killed. Output begins at Headline #}
-      {% if type.toLowerCase() != "post" and headline %}
-        <h1 style="margin: 0.75rem 0 0 0; font-size: {% if type.toLowerCase() == 'note' %}1.75rem{% else %}2.25rem{% endif %}; font-weight: 900; color: var(--premier-charcoal); line-height: 1.2;">{{ headline }}</h1>
-      {% endif %}
-      {% if type.toLowerCase() == "article" and subhead %}
-        <p style="margin: 0.4rem 0 0 0; font-size: 1.15rem; font-style: italic; color: rgba(0,0,0,0.7);">{{ subhead }}</p>
-      {% endif %}
+  {% set typeLower = type.toLowerCase() %}
+  {% set isPost = typeLower == "post" %}
+  {% set isNote = typeLower == "note" %}
+  {% set isArticle = typeLower == "article" %}
+
+  <article class="standalone-card-box type-{{ typeLower }}">
+    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+      <span style="text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800; font-size: 0.8rem; color: {% if isPost %}white{% else %}var(--card-accent-color){% endif %};">{{ type }}</span>
+      <span style="font-size: 0.8rem; font-weight: 700; color: {% if isPost %}white{% else %}rgba(0,0,0,0.4){% endif %}; font-style: italic;">Viewing Entry</span>
     </header>
 
-    <div class="standalone-body" style="color: var(--premier-charcoal);">
+    {# Internal title layer killed #}
+    {% if not isPost and headline %}
+      <h1 style="margin: 0 0 0.4rem 0; font-size: {% if isNote %}1.5rem{% else %}1.85rem{% endif %}; font-weight: 900; color: var(--premier-charcoal); line-height: 1.2;">{{ headline }}</h1>
+    {% endif %}
+    {% if isArticle and subhead %}
+      <p style="margin: 0 0 0.75rem 0; font-size: 1.05rem; font-style: italic; color: rgba(0,0,0,0.6);">{{ subhead }}</p>
+    {% endif %}
+
+    <div class="standalone-body" style="{% if isPost %}color: white; font-size: 1.15rem; font-weight: 600; line-height: 1.4;{% else %}color: var(--premier-charcoal); font-size: 1.05rem;{% endif %} margin-bottom: 1.25rem;">
       {{ content | safe }}
     </div>
 
-    {# Spreadsheet anchor references pass-through copy #}
+    {# Spreadsheet anchor references pass-through loop #}
     {% if url_1 or url_2 %}
       <div class="reference-links-deck">
         {% if url_1 %}
-          <a href="{{ url_1 }}" target="_blank" rel="noopener noreferrer" class="reference-btn">
-            🔗 {{ url_1_label if url_1_label else "Reference Source 1" }}
+          <a href="{{ url_1 }}" target="_blank" rel="noopener noreferrer" class="reference-btn" style="{% if isPost %}background-color: white; color: var(--card-accent-color); border: 1px solid rgba(0,0,0,0.1);{% endif %}">
+            🔗 {{ url_1_label if url_1_label else "Source Reference 1" }}
           </a>
         {% endif %}
         {% if url_2 %}
-          <a href="{{ url_2 }}" target="_blank" rel="noopener noreferrer" class="reference-btn">
-            🔗 {{ url_2_label if url_2_label else "Reference Source 2" }}
+          <a href="{{ url_2 }}" target="_blank" rel="noopener noreferrer" class="reference-btn" style="{% if isPost %}background-color: white; color: var(--card-accent-color); border: 1px solid rgba(0,0,0,0.1);{% endif %}">
+            🔗 {{ url_2_label if url_2_label else "Source Reference 2" }}
           </a>
         {% endif %}
       </div>
     {% endif %}
 
-    {# Readable action layout panel #}
-    <footer style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 1rem; margin-top: 2rem;">
-      <div class="interactive-actions" style="display: flex; gap: 0.75rem; align-items: center;">
-        <button class="notebook-share-btn" data-url="https://myseattlesearch.com{{ page.url }}" data-title="{{ headline or 'Notebook Update' }}" style="background: #ffffff; border: 1px solid rgba(0,0,0,0.15); padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--premier-charcoal);">
-          🔄 Share / Repost
+    {# Low-profile button bar matching main layout rules #}
+    <footer style="display: flex; justify-content: space-between; align-items: center; background-color: {% if isPost %}rgba(255,255,255,0.15){% else %}rgba(0,0,0,0.03){% endif %}; padding: 0.4rem 0.75rem; border-radius: 4px; font-size: 0.8rem; margin-top: 1.25rem;">
+      <div style="font-weight: 500; color: {% if isPost %}white{% else %}rgba(0,0,0,0.65){% endif %};">
+        By: {{ author or "Joe Sheldon" }} • {{ date | postDate }}
+      </div>
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <button class="notebook-share-btn" data-url="https://myseattlesearch.com{{ page.url }}" data-title="{{ headline or 'Notebook Update' }}" style="background: white; border: 1px solid rgba(0,0,0,0.15); padding: 0.25rem 0.5rem; border-radius: 3px; font-weight: 600; cursor: pointer; font-size: 0.75rem; color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.25rem;">
+          🔄 Share
         </button>
-        <a href="/chat/?reply_to={{ page.fileSlug }}" style="background: #ffffff; border: 1px solid rgba(0,0,0,0.15); padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: 600; text-decoration: none; color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem;">
-          💬 Reply via Live Chat
+        <a href="/chat/?reply_to={{ page.fileSlug }}" style="background: white; border: 1px solid rgba(0,0,0,0.15); padding: 0.25rem 0.5rem; border-radius: 3px; font-weight: 600; text-decoration: none; font-size: 0.75rem; color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.25rem;">
+          💬 Reply
         </a>
       </div>
-      {% if tags %}
-        <div class="notebook-tags" style="display: flex; gap: 0.4rem;">
-          {% for tag in tags %}
-            <span style="background-color: rgba(0,0,0,0.05); font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 500; color: var(--premier-charcoal);">#{{ tag }}</span>
-          {% endfor %}
-        </div>
-      {% endif %}
     </footer>
   </article>
 </div>

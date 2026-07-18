@@ -47,7 +47,6 @@ module.exports = function(eleventyConfig) {
   });
 
   // --- STATIC POST CALENDAR DATE COMPILER ---
-  // Fixes the wildly long machine-clock timestamp strings at build time
   eleventyConfig.addFilter("postDate", function(dateObj) {
     if (!dateObj) return "";
     const date = new Date(dateObj);
@@ -84,8 +83,8 @@ module.exports = function(eleventyConfig) {
 
   /**
    * Pure Build-Time Static Notebook Content Shortcode
-   * Mirrors the exact visibility rules, button designs, and typography profiles 
-   * of the master pagination timeline engine to ensure uniform layout alignment.
+   * Replicates the compact layout definitions, upper-right anchors,
+   * and background color profiles of the master pagination timeline engine.
    */
   eleventyConfig.addShortcode("renderNotebook", function(collectionsAll, typeFilter = "", tagFilter = "", limit = 25) {
     let filteredItems = collectionsAll.filter(item => item.data.layout && item.data.layout.includes("post") && item.data.type);
@@ -111,7 +110,7 @@ module.exports = function(eleventyConfig) {
       return `<p style="text-align: center; color: var(--card-accent-color); font-style: italic; margin: 2rem 0;">No matching notebook entries found.</p>`;
     }
 
-    let htmlOutput = `<div class="notebook-static-feed" style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 2rem; width: 100%;">`;
+    let htmlOutput = `<div class="notebook-static-feed" style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.75rem; width: 100%;">`;
 
     limitedItems.forEach(item => {
       const typeLower = item.data.type.toLowerCase();
@@ -129,38 +128,39 @@ module.exports = function(eleventyConfig) {
         day: "numeric"
       });
 
-      let cardStyle = `border-radius: 8px; width: 100%; box-sizing: border-box; text-align: left; transition: transform 0.2s;`;
+      let cardStyle = `border-radius: 6px; width: 100%; box-sizing: border-box; text-align: left; position: relative;`;
       let navLabel = "View Entry →";
+      let textStyle = `color: var(--premier-charcoal);`;
 
       if (isPost) {
-        cardStyle += ` padding: 1.5rem; border: 3px solid var(--card-accent-color); background-color: var(--dynamic-bg-highlight); font-size: 1.15rem; font-weight: 600; line-height: 1.5;`;
+        cardStyle += ` padding: 1.25rem; background-color: var(--card-accent-color); border: none;`;
+        textStyle = `color: white; font-size: 1.15rem; font-weight: 600; line-height: 1.4;`;
         navLabel = "View Post →";
       } else if (isNote) {
-        cardStyle += ` padding: 2rem; border: 1px solid rgba(0,0,0,0.15); background-color: #ffffff; font-size: 1.05rem;`;
+        cardStyle += ` padding: 1.5rem; border: 3px solid var(--card-accent-color); background-color: var(--dynamic-bg-highlight);`;
         navLabel = "View Note →";
       } else if (isArticle) {
-        cardStyle += ` padding: 2.5rem; border: 1px solid rgba(0,0,0,0.1); background-color: #ffffff; font-size: 1rem;`;
-        navLabel = "Read Full Article →";
+        cardStyle += ` padding: 1.75rem; border: 1px solid var(--card-accent-color); background-color: white;`;
+        navLabel = "View Article →";
       }
 
       htmlOutput += `
         <article class="notebook-card type-${typeLower}" style="${cardStyle}">
-          <header style="margin-bottom: 1rem; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 0.75rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: rgba(0,0,0,0.6);">
-              <span>By ${item.data.author || "Joe Sheldon"} • ${displayDate}</span>
-              <span style="text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: var(--card-accent-color);">${item.data.type}</span>
-            </div>
-            ${!isPost && item.data.headline ? `<h2 style="margin: 0.75rem 0 0 0; font-size: ${isNote ? '1.5rem' : '1.75rem'}; font-weight: 800; color: var(--premier-charcoal); line-height: 1.2;">${item.data.headline}</h2>` : ''}
-            ${isArticle && item.data.subhead ? `<p style="margin: 0.35rem 0 0 0; font-size: 1.05rem; font-style: italic; color: rgba(0,0,0,0.7);">${item.data.subhead}</p>` : ''}
+          <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <span style="text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800; font-size: 0.8rem; color: ${isPost ? 'white' : 'var(--card-accent-color)'};">${item.data.type}</span>
+            <a href="${item.url}" style="font-weight: 700; text-decoration: underline; text-underline-offset: 3px; font-size: 0.85rem; color: ${isPost ? 'white' : 'var(--card-accent-color)'};">${navLabel}</a>
           </header>
           
-          <div class="notebook-body" style="line-height: 1.6; margin-bottom: 1.5rem; color: var(--premier-charcoal);">
+          ${!isPost && item.data.headline ? `<h2 style="margin: 0 0 0.4rem 0; font-size: ${isNote ? '1.35rem' : '1.5rem'}; font-weight: 800; color: var(--premier-charcoal); line-height: 1.2;">${item.data.headline}</h2>` : ''}
+          ${isArticle && item.data.subhead ? `<p style="margin: 0 0 0.75rem 0; font-size: 1rem; font-style: italic; color: rgba(0,0,0,0.6);">${item.data.subhead}</p>` : ''}
+          
+          <div class="notebook-body" style="${textStyle} margin-bottom: 1rem;">
       `;
 
       if (isArticle) {
         const cleanContent = item.templateContent.replace(/<[^>]*>/g, '').trim();
-        const teaserText = cleanContent.split(' ').slice(0, 40).join(' ') + '...';
-        htmlOutput += `<p>${teaserText}</p>`;
+        const teaserText = cleanContent.split(' ').slice(0, 35).join(' ') + '...';
+        htmlOutput += `<p style="margin: 0;">${teaserText}</p>`;
       } else {
         htmlOutput += item.templateContent;
       }
@@ -168,21 +168,14 @@ module.exports = function(eleventyConfig) {
       htmlOutput += `
           </div>
           
-          <footer style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 1rem; margin-top: 1rem;">
-            <div class="interactive-actions" style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
-              <a href="${item.url}" style="color: var(--card-accent-color); font-weight: 700; text-decoration: underline; text-underline-offset: 4px; font-size: 0.95rem; margin-right: 0.5rem;">${navLabel}</a>
-              <button class="notebook-share-btn" data-url="${absoluteUrl}" data-title="${item.data.headline || 'Notebook Update'}" style="background: #ffffff; border: 1px solid rgba(0,0,0,0.15); padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--premier-charcoal);">
-                🔄 Share
-              </button>
-              <a href="${chatRedirectUrl}" style="background: #ffffff; border: 1px solid rgba(0,0,0,0.15); padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: 600; text-decoration: none; color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem;">
-                💬 Chat Reply
-              </a>
+          <footer style="display: flex; justify-content: space-between; align-items: center; background-color: ${isPost ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.03)'}; padding: 0.4rem 0.75rem; border-radius: 4px; font-size: 0.8rem;">
+            <div style="font-weight: 500; color: ${isPost ? 'white' : 'rgba(0,0,0,0.65)'};">
+              By: ${item.data.author || "Joe Sheldon"} • ${displayDate}
             </div>
-            ${item.data.tags ? `
-              <div class="notebook-tags" style="display: flex; gap: 0.4rem;">
-                ${item.data.tags.map(tag => `<span style="background-color: rgba(0,0,0,0.05); font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 500; color: var(--premier-charcoal);">#${tag}</span>`).join('')}
-              </div>
-            ` : ''}
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <button class="notebook-share-btn" data-url="${absoluteUrl}" data-title="${item.data.headline || 'Notebook Update'}" style="background: white; border: 1px solid rgba(0,0,0,0.15); padding: 0.25rem 0.5rem; border-radius: 3px; font-weight: 600; cursor: pointer; font-size: 0.75rem; color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.25rem;">🔄 Share</button>
+              <a href="${chatRedirectUrl}" style="background: white; border: 1px solid rgba(0,0,0,0.15); padding: 0.25rem 0.5rem; border-radius: 3px; font-weight: 600; text-decoration: none; font-size: 0.75rem; color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.25rem;">💬 Reply</a>
+            </div>
           </footer>
         </article>
       `;
