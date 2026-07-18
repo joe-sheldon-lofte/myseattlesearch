@@ -3,7 +3,7 @@ layout: base.njk
 title: "Edmonds Ferry Wait Times"
 headline: "Edmonds Ferry Wait Times"
 subhead: "Edmonds Ferry Wait Times"
-date: 7/17/2026
+date: 2026-07-17
 author: "Joe Sheldon"
 tags: ["edmonds", "ferry", "local"]
 type: "Note"
