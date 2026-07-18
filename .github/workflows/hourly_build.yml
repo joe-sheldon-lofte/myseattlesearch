@@ -24,11 +24,26 @@ jobs:
       run: |
         pip install pandas requests feedparser python-dateutil boto3 pillow google-auth google-api-python-client
 
+    - name: Extract Cloud Agent Credentials File
+      run: echo "${{ secrets.GA_GOOGLE_CREDENTIALS }}" > credentials.json
+
+    - name: Harvest Automated Cloud CMS Pipeline
+      run: python scripts/harvest_cms.py
+      env:
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        CMS_SHEET_ID: ${{ secrets.CMS_SHEET_ID }}
+
     - name: Harvest Hourly Dashboard Data
       run: python scripts/harvest_hourly.py
 
     - name: Harvest Hyper-Local Market News Feeds
       run: python scripts/harvest_news.py
+
+    - name: Clean Temporary Execution Keys
+      run: rm -f credentials.json
 
     - name: Commit and Push Updated Data & CMS Posts
       run: |
