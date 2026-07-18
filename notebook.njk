@@ -34,7 +34,7 @@ pagination:
         <article class="notebook-card type-{{ item.data.type.toLowerCase() }}" style="padding: 2rem; border-radius: 8px; width: 100%; box-sizing: border-box; {% if isPost %}border: 3px solid var(--card-accent-color); background-color: var(--dynamic-bg-highlight); box-shadow: 0 4px 12px rgba(0,0,0,0.05); font-size: 1.15rem; font-weight: 500;{% else %}border: 1px solid rgba(0,0,0,0.1); background-color: #ffffff;{% endif %}">
           <header style="margin-bottom: 1.25rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-size: 0.85rem; color: rgba(0,0,0,0.6);">
-              <span>By {{ item.data.author || "Joe Sheldon" }} • {{ item.data.date }}</span>
+              <span>By {{ item.data.author or "Joe Sheldon" }} • {{ item.data.date }}</span>
               <span style="text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: var(--card-accent-color); font-size: 0.8rem;">{{ item.data.type }}</span>
             </div>
             <h2 style="margin: 0 0 0.5rem 0; font-size: {% if isPost %}1.75rem{% else %}1.5rem{% endif %}; line-height: 1.2; font-weight: 800; color: var(--premier-charcoal);">{{ item.data.title }}</h2>
