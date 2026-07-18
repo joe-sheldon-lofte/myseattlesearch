@@ -264,7 +264,7 @@ def main():
         
         markdown_filename = os.path.join(posts_dir, f"{slug}.md")
         
-        # FIX: Pre-escape quotes outside of the f-string block to fulfill Python 3.11 requirements
+        # PRE-CLEAN VARIABLES: Extracted out of f-string layout boundaries to satisfy Python 3.11 specifications
         clean_title = record.get('Title', '').replace('"', '\\"')
         clean_headline = record.get('Headline', '').replace('"', '\\"')
         clean_subhead = record.get('Subhead', '').replace('"', '\\"')

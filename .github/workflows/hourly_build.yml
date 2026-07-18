@@ -25,7 +25,9 @@ jobs:
         pip install pandas requests feedparser python-dateutil boto3 pillow google-auth google-api-python-client
 
     - name: Extract Cloud Agent Credentials File
-      run: echo "${{ secrets.GA_GOOGLE_CREDENTIALS }}" > credentials.json
+      env:
+        GA_CREDENTIALS: ${{ secrets.GA_GOOGLE_CREDENTIALS }}
+      run: echo "$GA_CREDENTIALS" > credentials.json
 
     - name: Harvest Automated Cloud CMS Pipeline
       run: python scripts/harvest_cms.py
