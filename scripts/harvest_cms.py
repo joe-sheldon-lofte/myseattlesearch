@@ -10,22 +10,6 @@ from PIL import Image
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
-def load_git_cache_index():
-    """
-    Scans the local src/posts path to index existing markdown files.
-    Enables the smart bypass check to protect your API limits.
-    """
-    existing_slugs = set()
-    posts_dir = "src/posts"
-    if not os.path.exists(posts_dir):
-        return existing_slugs
-    
-    for file_name in os.listdir(posts_dir):
-        if file_name.endswith(".md"):
-            slug = os.path.splitext(file_name)[0]
-            existing_slugs.add(slug)
-    return existing_slugs
-
 def extract_google_id(url_string):
     """
     Safely extracts unique Google Drive or Doc file IDs from common URL architectures.
@@ -161,8 +145,9 @@ def main():
         print("⚠️ Warning: credentials.json missing from root execution path. Skipping CMS fetch loop.")
         return
         
+    # Open access scopes to allow data write-backs directly to your spreadsheet rows
     scopes = [
-        'https://www.googleapis.com/auth/spreadsheets.readonly',
+        'https://www.googleapis.com/auth/spreadsheets',
         'https://www.googleapis.com/auth/documents.readonly',
         'https://www.googleapis.com/auth/drive.readonly'
     ]
@@ -198,7 +183,8 @@ def main():
         print("❌ Error: CMS_SHEET_ID missing from environment configuration vault.")
         return
         
-    sheet_range = "Posts!A:W"
+    # Extended range to column X to prevent Image 5 URL from being truncated
+    sheet_range = "Posts!A:X"
     try:
         sheet_result = sheets_service.spreadsheets().values().get(
             spreadsheetId=spreadsheet_id, range=sheet_range
@@ -214,15 +200,20 @@ def main():
         
     headers = rows[0]
     data_records = []
-    for r in rows[1:]:
+    
+    # Store exact row positions alongside metadata objects
+    for idx, r in enumerate(rows[1:]):
         padded_row = r + [""] * (len(headers) - len(r))
-        data_records.append(dict(zip(headers, padded_row)))
+        record_dict = dict(zip(headers, padded_row))
+        record_dict["_row_num"] = idx + 2
+        data_records.append(record_dict)
         
-    git_cache = load_git_cache_index()
+    batch_sheet_updates = []
     
     for record in data_records:
         slug = record.get("Content ID", "").strip()
         active_status = record.get("Active", "").strip().lower()
+        row_num = record["_row_num"]
         
         if not slug:
             continue
@@ -234,18 +225,30 @@ def main():
                 print(f"🗑️ Kill-Switch Triggered: Deleted deactivated file asset: {slug}.md")
             continue
             
-        if slug in git_cache:
-            print(f"⚡ Cache Hit: Preserving static layout state for ID: {slug}")
-            continue
-            
-        print(f"📝 Cache Miss: Ingesting literal CMS row element node: [{slug}]...")
+        print(f"📝 Sync Pass: Processing content row: [{slug}]...")
         
         optimized_images = []
+        # Structural mapping coordinates for columns P, R, T, V, X
+        col_letter_map = {1: 'P', 2: 'R', 3: 'T', 4: 'V', 5: 'X'}
+        
         for i in range(1, 6):
-            img_url = record.get(f"Image {i} URL", "")
-            if img_url and s3_client:
+            img_url = record.get(f"Image {i} URL", "").strip()
+            
+            # Stateless Cache: Immediately skip if already processed into your CDN bucket
+            if img_url and "assets.myseattlesearch.com" in img_url:
+                optimized_images.append(img_url)
+            elif img_url and s3_client:
+                # Optimize image and upload to Cloudflare R2
                 r2_url = process_and_upload_image(drive_service, s3_client, r2_bucket, img_url, slug, i)
                 optimized_images.append(r2_url)
+                
+                # Queue cell updates back to Google Sheet if upload is successful
+                if r2_url.startswith("https://assets.myseattlesearch.com"):
+                    col_letter = col_letter_map[i]
+                    batch_sheet_updates.append({
+                        'range': f"Posts!{col_letter}{row_num}",
+                        'values': [[r2_url]]
+                    })
             else:
                 optimized_images.append(img_url)
 
@@ -264,7 +267,7 @@ def main():
         
         markdown_filename = os.path.join(posts_dir, f"{slug}.md")
         
-        # PRE-CLEAN VARIABLES: Extracted out of f-string layout boundaries to satisfy Python 3.11 specifications
+        # Clean structural properties to satisfy Python compiler specifications
         clean_title = record.get('Title', '').replace('"', '\\"')
         clean_headline = record.get('Headline', '').replace('"', '\\"')
         clean_subhead = record.get('Subhead', '').replace('"', '\\"')
@@ -295,6 +298,20 @@ image_5: "{optimized_images[4]}"
         with open(markdown_filename, "w", encoding="utf-8") as post_file:
             post_file.write(front_matter_block)
         print(f"   ✅ Static file generated successfully at: {markdown_filename}")
+        
+    # Execute batch update requests in a single transaction payload to respect quotas
+    if batch_sheet_updates:
+        print(f"   📝 Transmitting {len(batch_sheet_updates)} optimized CDN links back to Google Sheet ledger...")
+        body = {
+            'valueInputOption': 'USER_ENTERED',
+            'data': batch_sheet_updates
+        }
+        sheets_service.spreadsheets().values().batchUpdate(
+            spreadsheetId=spreadsheet_id, body=body
+        ).execute()
+        print("   ✅ Spreadsheet synchronization complete.")
+    else:
+        print("   ✨ All image assets are already optimized. Spreadsheet write-back loop bypassed.")
         
     print("🏁 CMS Ingestion Routine Successfully Completed.")
 
