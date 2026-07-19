@@ -49,10 +49,10 @@ pagination:
   {# Public Platform Brand Header #}
   <header class="notebook-masthead">
     <h1>Joe's Notebook</h1>
-    <p>A collection posts, notes, and articles written by Joe.</p>
+    <p>A collection of posts, notes, and articles written by Joe.</p>
   </header>
 
-  <div class="notebook-master-canvas" style="display: flex; flex-direction: column; gap: 1.75rem; width: 100%;">
+  <div class="notebook-master-canvas" style="display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">
     {% for item in items %}
       {% if item.data.type %}
         {% set typeLower = item.data.type.toLowerCase() %}
@@ -62,12 +62,11 @@ pagination:
         
         {% set absoluteUrl = "https://myseattlesearch.com" + item.url %}
         {% set navLabel = "View Entry →" %}
-        {% set textStyle = "color: var(--premier-charcoal);" %}
         
-        {# Polymorphic Architecture Matrix: Bound exclusively to central variables and standard text color keys #}
+        {# Polymorphic Architecture Matrix #}
         <article class="notebook-card type-{{ typeLower }}" style="border-radius: 6px; width: 100%; box-sizing: border-box; position: relative; {% if isPost %}padding: 1.25rem; background-color: var(--card-accent-color); border: none;{% elif isNote %}padding: 1.5rem; border: 3px solid var(--card-accent-color); background-color: var(--dynamic-bg-highlight);{% else %}padding: 1.75rem; border: 1px solid var(--card-accent-color); background-color: white;{% endif %}">
           
-          {# Upper Section Switchboard #}
+          {# Upper Section Alignment Controls #}
           <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
             <span style="text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800; font-size: 0.8rem; color: {% if isPost %}white{% else %}var(--card-accent-color){% endif %};">{{ item.data.type }}</span>
             
@@ -75,7 +74,7 @@ pagination:
             <a href="{{ item.url }}" style="font-weight: 700; text-decoration: underline; text-underline-offset: 3px; font-size: 0.85rem; color: {% if isPost %}white{% else %}var(--card-accent-color){% endif %};">{{ navLabel }}</a>
           </header>
           
-          {# Content Visibility Filter: System titles are killed. Production begins at Headline pass #}
+          {# Data Visibility Rules #}
           {% if not isPost and item.data.headline %}
             <h2 style="margin: 0 0 0.4rem 0; font-size: {% if isNote %}1.35rem{% else %}1.5rem{% endif %}; font-weight: 800; color: var(--premier-charcoal); line-height: 1.2;">{{ item.data.headline }}</h2>
           {% endif %}
@@ -83,9 +82,8 @@ pagination:
             <p style="margin: 0 0 0.75rem 0; font-size: 1rem; font-style: italic; color: rgba(0,0,0,0.6);">{{ item.data.subhead }}</p>
           {% endif %}
           
-          <div class="notebook-body" style="{% if isPost %}color: white; font-size: 1.15rem; font-weight: 600; line-height: 1.4;{% else %}color: var(--premier-charcoal); font-size: 1.05rem;{% endif %} margin-bottom: 1rem;">
+          <div class="notebook-body" style="{% if isPost %}color: white; font-size: 1.15rem; font-weight: 600; line-height: 1.45;{% else %}color: var(--premier-charcoal); font-size: 1.05rem;{% endif %} margin-bottom: 0.85rem;">
             {% if isArticle %}
-              {# Dynamic 3-line string snippet generator for deep content #}
               {% set cleanContent = item.templateContent | striptags | trim %}
               <p style="margin: 0;">{{ cleanContent | truncate(240) }}</p>
             {% else %}
@@ -93,12 +91,12 @@ pagination:
             {% endif %}
           </div>
           
-          {# Low-Profile Bottom Signature & Action Strip #}
-          <footer style="display: flex; justify-content: space-between; align-items: center; background-color: {% if isPost %}rgba(255,255,255,0.15){% else %}rgba(0,0,0,0.03){% endif %}; padding: 0.4rem 0.75rem; border-radius: 4px; font-size: 0.8rem;">
-            <div style="font-weight: 500; color: {% if isPost %}white{% else %}rgba(0,0,0,0.65){% endif %};">
+          {# Low-Profile Split Base Ribbon #}
+          <footer style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; background-color: {% if isPost %}rgba(255,255,255,0.15){% else %}rgba(0,0,0,0.03){% endif %}; padding: 0.4rem 0.75rem; border-radius: 4px; font-size: 0.8rem; gap: 0.5rem;">
+            <div style="flex: 1 1 260px; font-weight: 500; color: {% if isPost %}white{% else %}rgba(0,0,0,0.65){% endif %};">
               By: {{ item.data.author or "Joe Sheldon" }} • {{ item.data.date | postDate }}
             </div>
-            <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <div style="flex: 1 1 auto; display: flex; justify-content: flex-end; gap: 0.5rem; align-items: center;">
               <button class="notebook-share-btn" data-url="{{ absoluteUrl }}" data-title="{{ item.data.headline or 'Notebook Update' }}" style="background: white; border: 1px solid rgba(0,0,0,0.15); padding: 0.25rem 0.5rem; border-radius: 3px; font-weight: 600; cursor: pointer; font-size: 0.75rem; color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.25rem;">
                 🔄 Share
               </button>
@@ -112,7 +110,7 @@ pagination:
     {% endfor %}
   </div>
 
-  {# Cleaned Navigation Refinement Anchors #}
+  {# Stream Navigation Refinements #}
   {% if pagination.pages.length > 1 %}
     <nav class="notebook-pagination" style="display: flex; justify-content: center; align-items: center; gap: 1.5rem; margin-top: 3.5rem; font-family: sans-serif;">
       {% if pagination.href.previous %}
