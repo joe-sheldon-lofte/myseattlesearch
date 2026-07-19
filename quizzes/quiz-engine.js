@@ -155,15 +155,8 @@ class QuizEngine extends HTMLElement {
       }
     }
 
-    // Replace this placeholder link string with your live deployed Cloudflare Worker address url
-    const workerGatewayUrl = "YOUR_CLOUDFLARE_WORKER_LIVE_URL_HERE"; 
-    const targetSpreadsheetId = "1L_kxk9RuutO29uDwjI1VLdxK3eLeHhmXCoxjSGIGohc"; 
-
-    if (workerGatewayUrl.startsWith("YOUR_")) {
-      console.warn("⚠️ Gateway Notice: Running processing bypass loop. Redirecting straight to results canvas.");
-      this.executeUIRedirection(dominantBucket);
-      return;
-    }
+    // Your completely buttoned-up live Cloudflare edge endpoint address
+    const workerGatewayUrl = "https://myseattlesearch-quiz-gateway.joe-54b.workers.dev/"; 
 
     const timestamp = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
     const formattedRow = [
@@ -182,8 +175,7 @@ class QuizEngine extends HTMLElement {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          spreadsheetId: targetSpreadsheetId,
-          sheetName: "Submissions", 
+          quizId: this.quizConfig.id, // Only send the plain numerical quiz id to the cloud
           rowData: formattedRow
         })
       });
