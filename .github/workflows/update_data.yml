@@ -32,16 +32,6 @@ jobs:
       
     - name: Harvest Redfin Market Data
       run: python scripts/harvest_redfin.py
-      
-    - name: Harvest Website Master Ledger Sheet
-      run: python scripts/harvest_website_data_sheet.py
-      env:
-        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-        R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
-        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
-        SHEETS_API_URL_WEBSITE_DATA: ${{ secrets.SHEETS_API_URL_WEBSITE_DATA }}
-        GOOGLE_SHEET_LIVE_URL: ${{ secrets.GOOGLE_SHEET_LIVE_URL }}
 
     - name: Commit and Push Updated Data Files
       run: |
