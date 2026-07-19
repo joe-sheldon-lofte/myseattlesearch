@@ -24,9 +24,9 @@ def get_col_letter(col_idx):
     result = ""
     col_idx += 1
     while col_idx > 0:
-        col_idx, remainder = divmod(col_idx - 1, 26)
+        remainder = (col_idx - 1) % 26
         result = chr(65 + remainder) + result
-        col_idx = col_idx
+        col_idx = (col_idx - 1) // 26
     return result
 
 def clean_nan_tokens(node):
@@ -439,12 +439,17 @@ def main():
                     raw_tags = record.get("Tags", "")
                     tags_list = ", ".join([f'"{t.strip()}"' for t in raw_tags.split(",") if t.strip()])
                     
+                    # Compute safe un-nested string parameters to bypass backslash syntax caps
+                    clean_title = record.get('Title', '').replace('"', '\\"')
+                    clean_headline = record.get('Headline', '').replace('"', '\\"')
+                    clean_subhead = record.get('Subhead', '').replace('"', '\\"')
+                    
                     front_matter = (
 f"""---
 layout: post.njk
-title: "{record.get('Title', '').replace('"', '\\"')}"
-headline: "{record.get('Headline', '').replace('"', '\\"')}"
-subhead: "{record.get('Subhead', '').replace('"', '\\"')}"
+title: "{clean_title}"
+headline: "{clean_headline}"
+subhead: "{clean_subhead}"
 date: {record.get('Publish Date', datetime.date.today().strftime('%Y-%m-%d'))}
 author: "{record.get('Author', 'Joe Sheldon')}"
 tags: [{tags_list}]
