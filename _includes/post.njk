@@ -16,7 +16,6 @@ layout: base.njk
     box-sizing: border-box;
     position: relative;
   }
-  /* Standalone configuration mirrors identical visual profiles */
   .standalone-card-box.type-post {
     padding: 1.25rem;
     background-color: var(--card-accent-color);
@@ -60,7 +59,6 @@ layout: base.njk
 </style>
 
 <div class="notebook-standalone-shell">
-  {# Upper back trace navigation loop #}
   <div style="margin-bottom: 1.25rem;">
     <a href="/notebook/" style="color: var(--card-accent-color); font-weight: 700; text-decoration: none; font-size: 0.9rem;">← Back to Notebook</a>
   </div>
@@ -76,7 +74,6 @@ layout: base.njk
       <span style="font-size: 0.8rem; font-weight: 700; color: {% if isPost %}white{% else %}rgba(0,0,0,0.4){% endif %}; font-style: italic;">Viewing Entry</span>
     </header>
 
-    {# Internal title layer killed #}
     {% if not isPost and headline %}
       <h1 style="margin: 0 0 0.4rem 0; font-size: {% if isNote %}1.5rem{% else %}1.85rem{% endif %}; font-weight: 900; color: var(--premier-charcoal); line-height: 1.2;">{{ headline }}</h1>
     {% endif %}
@@ -84,11 +81,10 @@ layout: base.njk
       <p style="margin: 0 0 0.75rem 0; font-size: 1.05rem; font-style: italic; color: rgba(0,0,0,0.6);">{{ subhead }}</p>
     {% endif %}
 
-    <div class="standalone-body" style="{% if isPost %}color: white; font-size: 1.15rem; font-weight: 600; line-height: 1.4;{% else %}color: var(--premier-charcoal); font-size: 1.05rem;{% endif %} margin-bottom: 1.25rem;">
+    <div class="standalone-body" style="{% if isPost %}color: white; font-size: 1.15rem; font-weight: 600; line-height: 1.45;{% else %}color: var(--premier-charcoal); font-size: 1.05rem;{% endif %} margin-bottom: 1.25rem;">
       {{ content | safe }}
     </div>
 
-    {# Spreadsheet anchor references pass-through loop #}
     {% if url_1 or url_2 %}
       <div class="reference-links-deck">
         {% if url_1 %}
@@ -104,12 +100,11 @@ layout: base.njk
       </div>
     {% endif %}
 
-    {# Low-profile button bar matching main layout rules #}
-    <footer style="display: flex; justify-content: space-between; align-items: center; background-color: {% if isPost %}rgba(255,255,255,0.15){% else %}rgba(0,0,0,0.03){% endif %}; padding: 0.4rem 0.75rem; border-radius: 4px; font-size: 0.8rem; margin-top: 1.25rem;">
-      <div style="font-weight: 500; color: {% if isPost %}white{% else %}rgba(0,0,0,0.65){% endif %};">
+    <footer style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; background-color: {% if isPost %}rgba(255,255,255,0.15){% else %}rgba(0,0,0,0.03){% endif %}; padding: 0.4rem 0.75rem; border-radius: 4px; font-size: 0.8rem; margin-top: 1.25rem; gap: 0.5rem;">
+      <div style="flex: 1 1 260px; font-weight: 500; color: {% if isPost %}white{% else %}rgba(0,0,0,0.65){% endif %};">
         By: {{ author or "Joe Sheldon" }} • {{ date | postDate }}
       </div>
-      <div style="display: flex; gap: 0.5rem; align-items: center;">
+      <div style="flex: 1 1 auto; display: flex; justify-content: flex-end; gap: 0.5rem; align-items: center;">
         <button class="notebook-share-btn" data-url="https://myseattlesearch.com{{ page.url }}" data-title="{{ headline or 'Notebook Update' }}" style="background: white; border: 1px solid rgba(0,0,0,0.15); padding: 0.25rem 0.5rem; border-radius: 3px; font-weight: 600; cursor: pointer; font-size: 0.75rem; color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.25rem;">
           🔄 Share
         </button>
