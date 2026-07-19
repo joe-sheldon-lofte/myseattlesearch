@@ -439,7 +439,7 @@ def main():
                     raw_tags = record.get("Tags", "")
                     tags_list = ", ".join([f'"{t.strip()}"' for t in raw_tags.split(",") if t.strip()])
                     
-                    # Compute safe un-nested string parameters to bypass backslash syntax caps
+                    # Compute safe parameters outside the template expression string boundaries
                     clean_title = record.get('Title', '').replace('"', '\\"')
                     clean_headline = record.get('Headline', '').replace('"', '\\"')
                     clean_subhead = record.get('Subhead', '').replace('"', '\\"')
@@ -592,7 +592,8 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                             compiled_articles.append({
                                 "source": feed_name, "title": title, "link": link,
                                 "excerpt": excerpt if excerpt else "Click view details to read full update.",
-                                "published": pub_str, "paywall": paywall_val,
+                                "published": pub_str, 
+                                "paywall": is_paywall,  # Output a standard boolean toggle (True/False)
                                 "cities": cities_array, "categories": categories_array, "_iso": sort_str
                             })
                 except Exception as e:
