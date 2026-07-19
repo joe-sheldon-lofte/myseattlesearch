@@ -84,7 +84,7 @@ module.exports = function(eleventyConfig) {
   /**
    * Pure Build-Time Static Notebook Content Shortcode
    * Replicates the compact layout definitions, upper-right anchors,
-   * and background color profiles of the master pagination timeline engine.
+   * color profiles, and smart responsive footer layout splits.
    */
   eleventyConfig.addShortcode("renderNotebook", function(collectionsAll, typeFilter = "", tagFilter = "", limit = 25) {
     let filteredItems = collectionsAll.filter(item => item.data.layout && item.data.layout.includes("post") && item.data.type);
@@ -110,7 +110,7 @@ module.exports = function(eleventyConfig) {
       return `<p style="text-align: center; color: var(--card-accent-color); font-style: italic; margin: 2rem 0;">No matching notebook entries found.</p>`;
     }
 
-    let htmlOutput = `<div class="notebook-static-feed" style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.75rem; width: 100%;">`;
+    let htmlOutput = `<div class="notebook-static-feed" style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">`;
 
     limitedItems.forEach(item => {
       const typeLower = item.data.type.toLowerCase();
@@ -130,11 +130,11 @@ module.exports = function(eleventyConfig) {
 
       let cardStyle = `border-radius: 6px; width: 100%; box-sizing: border-box; text-align: left; position: relative;`;
       let navLabel = "View Entry →";
-      let textStyle = `color: var(--premier-charcoal);`;
+      let textStyle = `color: var(--premier-charcoal); margin: 0;`;
 
       if (isPost) {
         cardStyle += ` padding: 1.25rem; background-color: var(--card-accent-color); border: none;`;
-        textStyle = `color: white; font-size: 1.15rem; font-weight: 600; line-height: 1.4;`;
+        textStyle = `color: white; font-size: 1.15rem; font-weight: 600; line-height: 1.45; margin: 0;`;
         navLabel = "View Post →";
       } else if (isNote) {
         cardStyle += ` padding: 1.5rem; border: 3px solid var(--card-accent-color); background-color: var(--dynamic-bg-highlight);`;
@@ -154,7 +154,7 @@ module.exports = function(eleventyConfig) {
           ${!isPost && item.data.headline ? `<h2 style="margin: 0 0 0.4rem 0; font-size: ${isNote ? '1.35rem' : '1.5rem'}; font-weight: 800; color: var(--premier-charcoal); line-height: 1.2;">${item.data.headline}</h2>` : ''}
           ${isArticle && item.data.subhead ? `<p style="margin: 0 0 0.75rem 0; font-size: 1rem; font-style: italic; color: rgba(0,0,0,0.6);">${item.data.subhead}</p>` : ''}
           
-          <div class="notebook-body" style="${textStyle} margin-bottom: 1rem;">
+          <div class="notebook-body" style="${textStyle} margin-bottom: 0.85rem;">
       `;
 
       if (isArticle) {
@@ -168,11 +168,11 @@ module.exports = function(eleventyConfig) {
       htmlOutput += `
           </div>
           
-          <footer style="display: flex; justify-content: space-between; align-items: center; background-color: ${isPost ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.03)'}; padding: 0.4rem 0.75rem; border-radius: 4px; font-size: 0.8rem;">
-            <div style="font-weight: 500; color: ${isPost ? 'white' : 'rgba(0,0,0,0.65)'};">
+          <footer style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; background-color: ${isPost ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.03)'}; padding: 0.4rem 0.75rem; border-radius: 4px; font-size: 0.8rem; gap: 0.5rem;">
+            <div style="flex: 1 1 260px; font-weight: 500; color: ${isPost ? 'white' : 'rgba(0,0,0,0.65)'};">
               By: ${item.data.author || "Joe Sheldon"} • ${displayDate}
             </div>
-            <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <div style="flex: 1 1 auto; display: flex; justify-content: flex-end; gap: 0.5rem; align-items: center;">
               <button class="notebook-share-btn" data-url="${absoluteUrl}" data-title="${item.data.headline || 'Notebook Update'}" style="background: white; border: 1px solid rgba(0,0,0,0.15); padding: 0.25rem 0.5rem; border-radius: 3px; font-weight: 600; cursor: pointer; font-size: 0.75rem; color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.25rem;">🔄 Share</button>
               <a href="${chatRedirectUrl}" style="background: white; border: 1px solid rgba(0,0,0,0.15); padding: 0.25rem 0.5rem; border-radius: 3px; font-weight: 600; text-decoration: none; font-size: 0.75rem; color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.25rem;">💬 Reply</a>
             </div>
