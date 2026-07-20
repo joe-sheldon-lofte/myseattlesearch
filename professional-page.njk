@@ -1,0 +1,72 @@
+---
+layout: base.njk
+pagination:
+  data: professionals.vendors
+  size: 1
+  alias: vendor
+  addAllPages: true
+permalink: "/professionals/{{ vendor.slug }}/"
+eleventyComputed:
+  title: "{{ vendor.name }} - Preferred Professional | Joe Sheldon"
+  description: "Verified credentials, licensing, and contact details for {{ vendor.name }}{% if vendor.company %} ({{ vendor.company }}){% endif %}."
+---
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ProfessionalService",
+  "name": "{{ vendor.name }}",
+  "image": "https://myseattlesearch.com/assets/images/hero-living-room.jpg",
+  "telephone": "{{ vendor.phone }}",
+  "email": "{{ vendor.email }}",
+  "url": "{% if vendor.website %}{{ vendor.website }}{% else %}https://myseattlesearch.com/professionals/{{ vendor.slug }}/{% endif %}",
+  "category": "{{ vendor.category }}",
+  "description": "{% if vendor.additionalInfo %}{{ vendor.additionalInfo }}{% else %}{{ vendor.name }} - {{ vendor.category }}{% endif %}",
+  "address": {
+    "@type": "PostalAddress",
+    "addressRegion": "WA",
+    "addressCountry": "US"
+  }
+}
+</script>
+
+<div class="pro-detail-container" style="max-width: 800px; margin: 0 auto; padding: 1rem 0;">
+    
+    <nav class="no-print-section" style="margin-bottom: 2rem;">
+        <a href="/professionals/" style="color: var(--premier-charcoal); font-weight: 700; text-decoration: underline; font-size: 0.9rem;">&larr; Back to Preferred Professionals Directory</a>
+    </nav>
+
+    <article class="pro-card-detailed" style="background-color: var(--white); border-radius: 12px; padding: 2.5rem 2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 6px solid var(--card-accent-color); border-left: 1px solid var(--premier-beige); border-right: 1px solid var(--premier-beige); border-bottom: 1px solid var(--premier-beige);">
+        <div style="margin-bottom: 1.5rem;">
+            <span style="display: inline-block; background-color: var(--dynamic-bg-highlight); color: var(--card-accent-color); font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 0.35rem 0.75rem; border-radius: 4px; margin-bottom: 0.75rem;">{{ vendor.category }}</span>
+            <h1 style="font-size: 2.2rem; font-weight: 900; color: var(--premier-charcoal); margin: 0 0 0.35rem 0; letter-spacing: -0.5px;">{{ vendor.name }}</h1>
+            {% if vendor.company %}
+                <p style="font-size: 1.1rem; color: var(--premier-charcoal); font-weight: 600; opacity: 0.9; margin: 0 0 0.5rem 0;">({{ vendor.company }})</p>
+            {% endif %}
+            {% if vendor.additionalInfo %}
+                <p style="font-size: 0.95rem; color: var(--premier-charcoal); opacity: 0.8; font-style: italic; margin: 0.5rem 0 0 0;">{{ vendor.additionalInfo }}</p>
+            {% endif %}
+        </div>
+
+        <div class="pro-contact-action-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 2rem 0; padding: 1.5rem 0; border-top: 1px dashed var(--premier-beige); border-bottom: 1px dashed var(--premier-beige);">
+            {% if vendor.phone %}
+                <a href="tel:{{ vendor.phoneClean }}" class="btn" style="background-color: var(--white); border: 2px solid var(--premier-charcoal); color: var(--premier-charcoal); font-weight: 700; font-size: 0.95rem; text-decoration: none; padding: 0.85rem; text-align: center; border-radius: 8px; display: block;">📞 Call {{ vendor.phone }}</a>
+            {% endif %}
+            {% if vendor.email %}
+                <a href="mailto:{{ vendor.email }}" class="btn" style="background-color: var(--card-accent-color); border: 2px solid var(--card-accent-color); color: white; font-weight: 700; font-size: 0.95rem; text-decoration: none; padding: 0.85rem; text-align: center; border-radius: 8px; display: block;">✉️ Email Vendor</a>
+            {% endif %}
+            {% if vendor.website %}
+                <a href="{{ vendor.website }}" target="_blank" class="btn" style="background-color: var(--dynamic-bg-highlight); border: 2px solid var(--premier-beige); color: var(--premier-charcoal); font-weight: 700; font-size: 0.95rem; text-decoration: none; padding: 0.85rem; text-align: center; border-radius: 8px; display: block;">🌐 Visit Website &rarr;</a>
+            {% endif %}
+        </div>
+
+        {% if vendor.legalReq %}
+            <div class="pro-credentials-box" style="background-color: var(--dynamic-bg-highlight); border-left: 4px solid var(--premier-charcoal); padding: 1.25rem 1.5rem; border-radius: 0 8px 8px 0; margin-top: 1.5rem;">
+                <h3 style="font-size: 0.9rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--premier-charcoal); margin: 0 0 0.5rem 0;">Verified Credentials & Licensing</h3>
+                <p style="font-size: 0.92rem; line-height: 1.5; color: var(--premier-charcoal); margin: 0 0 0.75rem 0;">{{ vendor.legalReq }}</p>
+                {% if vendor.legalLink %}
+                    <a href="{{ vendor.legalLink }}" target="_blank" style="color: var(--card-accent-color); font-weight: 700; font-size: 0.85rem; text-decoration: underline;">🛡️ Verify active credentials on state portal &rarr;</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </article>
+</div>

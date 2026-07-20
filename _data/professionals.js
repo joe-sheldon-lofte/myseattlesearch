@@ -1,4 +1,3 @@
-/* File: _data/professionals.js */
 const fs = require('fs');
 const path = require('path');
 
@@ -39,6 +38,9 @@ module.exports = function() {
         company = match[2].trim();
       }
 
+      // Generate a URL-safe slug for individual professional landing pages
+      const slug = rawName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+
       let phone = row['Phone Number'] || '';
       phone = String(phone).trim();
       const phoneClean = phone.replace(/[^\d]/g, '');
@@ -58,6 +60,7 @@ module.exports = function() {
         category,
         name,
         company,
+        slug,
         phone,
         phoneClean,
         email,

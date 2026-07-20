@@ -39,18 +39,15 @@ module.exports = function() {
     if (!timeStr) return '';
     let cleanStr = String(timeStr).trim();
 
-    // 1. If AM or PM is already present, sanitize extra spaces and standardize casing
     if (/am|pm/i.test(cleanStr)) {
       return cleanStr.replace(/\s+/g, ' ').toUpperCase();
     }
 
-    // 2. Parse 24-hour time format (e.g. "18:30" or "18:30:00")
     const parts = cleanStr.split(':');
     if (parts.length >= 2) {
       let hour = parseInt(parts[0], 10);
       if (isNaN(hour)) return cleanStr;
 
-      // Extract the 2-digit minute component
       let minute = parts[1].substring(0, 2);
       const ampm = hour >= 12 ? 'PM' : 'AM';
       hour = hour % 12;
@@ -59,6 +56,25 @@ module.exports = function() {
     }
 
     return cleanStr;
+  }
+
+  // ISO-8601 24-Hour Formatter for Schema.org Validation
+  function toIsoDateTime(dateStr, timeStr) {
+    if (!dateStr) return '';
+    if (!timeStr) return `${dateStr}T00:00:00-07:00`;
+    let clean = String(timeStr).trim();
+    let isPM = /pm/i.test(clean);
+    let isAM = /am/i.test(clean);
+    let numbers = clean.replace(/[^0-9:]/g, '').split(':');
+    let hour = parseInt(numbers[0] || '0', 10);
+    let minute = numbers[1] ? numbers[1].substring(0, 2) : '00';
+    
+    if (isPM && hour < 12) hour += 12;
+    if (isAM && hour === 12) hour = 0;
+    
+    let hh = String(hour).padStart(2, '0');
+    let mm = String(minute).padStart(2, '0');
+    return `${dateStr}T${hh}:${mm}:00-07:00`;
   }
 
   // Resilient multi-key normalization directory mapping loop
@@ -117,6 +133,10 @@ module.exports = function() {
     event.displayDate = formatDisplayDate(event.date);
     event.displayStartTime = formatDisplayTime(event.startTime);
     event.displayEndTime = formatDisplayTime(event.endTime);
+
+    // Inject valid ISO-8601 timestamps for Schema.org
+    event.isoStartDate = toIsoDateTime(event.date, event.startTime);
+    event.isoEndDate = toIsoDateTime(event.date, event.endTime);
 
     allActive.push(event);
 
