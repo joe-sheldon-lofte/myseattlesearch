@@ -214,7 +214,6 @@ eleventyComputed:
             grid-template-columns: 1fr 1fr !important;
         }
     }
-    /* Native brightness modifier darkens *any* color variable beautifully on mouse hover */
     .interactive-sidebar-btn {
         transition: background-color 0.2s ease, filter 0.2s ease !important;
     }
@@ -275,7 +274,7 @@ eleventyComputed:
 
     {% if event.registration %}
     document.addEventListener('DOMContentLoaded', () => {
-        const targetApiEndpointWebUrl = 'https://script.google.com/macros/s/AKfycbz4KdyYPmarA0Gahw8CSReRvARmqFe02uh0CX4ROXzgDfSUxZnGiSNjoQFwXXiu9Ka6/exec';
+        const workerGatewayUrl = 'https://myseattlesearch-quiz-gateway.joe-54b.workers.dev/';
         const registrationFormElement = document.getElementById('eventAttendeeRegistrationForm');
 
         if (registrationFormElement) {
@@ -287,23 +286,30 @@ eleventyComputed:
                 submitButtonSink.textContent = "Registering....";
 
                 const clientNameInputText = document.getElementById('regName').value.trim();
+                const timestamp = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
 
-                const JSON_API_INGESTION_PAYLOAD = {
-                    eventId: "{{ event.id }}",
-                    eventName: "{{ event.title }}",
-                    eventDate: "{{ event.displayDate }}",
-                    name: clientNameInputText,
-                    emailAddress: document.getElementById('regEmail').value.trim(),
-                    phoneNumber: document.getElementById('regPhone').value.trim(),
-                    numberAttending: document.getElementById('regAttending').value
+                const rowData = [
+                    timestamp,
+                    "{{ event.id }}",
+                    "{{ event.title }}",
+                    "{{ event.displayDate }}",
+                    clientNameInputText,
+                    document.getElementById('regEmail').value.trim(),
+                    document.getElementById('regPhone').value.trim(),
+                    parseInt(document.getElementById('regAttending').value) || 1
+                ];
+
+                const payload = {
+                    sheetName: "Event_Registrations",
+                    rowData: rowData
                 };
 
                 try {
-                    await fetch(targetApiEndpointWebUrl, {
+                    await fetch(workerGatewayUrl, {
                         method: 'POST',
                         mode: 'no-cors',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(JSON_API_INGESTION_PAYLOAD)
+                        body: JSON.stringify(payload)
                     });
 
                     document.getElementById('successClientName').textContent = clientNameInputText.split(' ')[0];
