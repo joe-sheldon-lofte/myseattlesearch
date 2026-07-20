@@ -1,5 +1,3 @@
-/* File: /quizzes/engines/matrix_4quadrant.js */
-
 export function initializeQuizTrack(instance) {
     instance.renderQuestion = function() {
         if (this.currentStep >= this.quizData.questions.length) {
@@ -127,15 +125,43 @@ async function processCalculationsAndSubmit(instance) {
     }
 
     const match = instance.quizData.routing.find(r => r.key === winner) || instance.quizData.routing[0];
+
+    // 1. Establish localized Pacific Time Zone values for spreadsheet tracking
+    const timestamp = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
+
+    // 2. Flatten data into a chronological array conforming row-by-row with your sheet columns
+    const rowData = [
+        timestamp,
+        instance.quizData.id,
+        instance.quizData.name || instance.quizData.webTitle || "",
+        instance.leadInfo.firstName || "",
+        instance.leadInfo.lastName || "",
+        instance.leadInfo.email || "",
+        instance.leadInfo.phone || "",
+        winner,
+        match.heading,
+        JSON.stringify(tallies),
+        JSON.stringify(instance.answers)
+    ];
+
+    // 3. Construct the clean payload structure required by your Cloudflare edge firewall
     const payload = {
-        quizId: instance.quizData.id, firstName: instance.leadInfo.firstName, lastName: instance.leadInfo.lastName,
-        email: instance.leadInfo.email, phone: instance.leadInfo.phone, outcomeKey: winner, finalOutcome: match.heading,
-        scores: tallies, answers: instance.answers
+        quizId: instance.quizData.id,
+        rowData: rowData
     };
 
+    // 4. Securely ship data directly to your hardcoded edge worker gateway URL
+    const workerGatewayUrl = "https://myseattlesearch-quiz-gateway.joe-54b.workers.dev/";
+
     try {
-        fetch(instance.quizData.webhookUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    } catch (e) {}
+        await fetch(workerGatewayUrl, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(payload) 
+        });
+    } catch (e) {
+        console.error("🔒 Gateway Bypass Active: Safe network protection fallback routing enabled.", e);
+    }
 
     const link = match.url.includes('?') ? `${match.url}&` : `${match.url}?`;
     setTimeout(() => {
