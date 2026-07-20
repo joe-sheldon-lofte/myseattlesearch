@@ -1,4 +1,3 @@
-/* File: _data/events.js */
 const fs = require('fs');
 const path = require('path');
 
@@ -35,19 +34,31 @@ module.exports = function() {
     return dateStr;
   }
 
-  // 24h Time -> 12h Standard AM/PM
+  // Smart Time Formatter (Handles 24h or existing 12h AM/PM strings without duplicating)
   function formatDisplayTime(timeStr) {
     if (!timeStr) return '';
-    const parts = timeStr.split(':');
+    let cleanStr = String(timeStr).trim();
+
+    // 1. If AM or PM is already present, sanitize extra spaces and standardize casing
+    if (/am|pm/i.test(cleanStr)) {
+      return cleanStr.replace(/\s+/g, ' ').toUpperCase();
+    }
+
+    // 2. Parse 24-hour time format (e.g. "18:30" or "18:30:00")
+    const parts = cleanStr.split(':');
     if (parts.length >= 2) {
       let hour = parseInt(parts[0], 10);
-      const minute = parts[1];
+      if (isNaN(hour)) return cleanStr;
+
+      // Extract the 2-digit minute component
+      let minute = parts[1].substring(0, 2);
       const ampm = hour >= 12 ? 'PM' : 'AM';
       hour = hour % 12;
       hour = hour ? hour : 12;
       return `${hour}:${minute} ${ampm}`;
     }
-    return timeStr;
+
+    return cleanStr;
   }
 
   // Resilient multi-key normalization directory mapping loop
