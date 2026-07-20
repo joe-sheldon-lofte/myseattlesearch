@@ -5,12 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - Joe Sheldon | Redfin</title>
     
+    <!-- Core Site Stylesheet -->
     <link rel="stylesheet" href="/style.css">
     
     <!-- Google Fonts: Import Dancing Script for "Welcome, Neighbor" Signature -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet">
+
+    <!-- Dynamic Open Graph (OG) & Social Card Metadata -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="MySeattleSearch - Joe Sheldon | Redfin">
+    <meta property="og:title" content="{% if headline %}{{ headline }}{% elif title %}{{ title }} - Joe Sheldon{% else %}MySeattleSearch - Greater Seattle Real Estate{% endif %}">
+    <meta property="og:description" content="{% if subhead %}{{ subhead }}{% elif intro %}{{ intro }}{% elif description %}{{ description }}{% else %}Greater Seattle real estate insights, hyper-local market stats, and buyer & seller guides with Redfin Agent Joe Sheldon.{% endif %}">
+    <meta property="og:url" content="https://myseattlesearch.com{{ page.url }}">
+
+    {# --- 3-TIER SMART SOCIAL IMAGE RESOLVER --- #}
+    {% set socialImage = ogImage %}
+    {% if not socialImage and image_1 %}
+        {% set socialImage = image_1 %}
+    {% endif %}
+    {% if not socialImage and quizImage %}
+        {% set socialImage = quizImage %}
+    {% endif %}
+    {% if not socialImage %}
+        {% set socialImage = "https://myseattlesearch.com/assets/images/hero-living-room.jpg" %}
+    {% endif %}
+
+    {# Ensure relative paths are converted to absolute URLs for social crawlers #}
+    {% if socialImage and not socialImage.startsWith("http") %}
+        {% set socialImage = "https://myseattlesearch.com" + socialImage %}
+    {% endif %}
+
+    <meta property="og:image" content="{{ socialImage }}">
+    <meta property="og:image:alt" content="{% if title %}{{ title }}{% else %}MySeattleSearch Real Estate{% endif %}">
+
+    <!-- Twitter / X Card Metadata -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% if headline %}{{ headline }}{% elif title %}{{ title }} - Joe Sheldon{% else %}MySeattleSearch - Greater Seattle Real Estate{% endif %}">
+    <meta name="twitter:description" content="{% if subhead %}{{ subhead }}{% elif intro %}{{ intro }}{% elif description %}{{ description }}{% else %}Greater Seattle real estate insights, hyper-local market stats, and buyer & seller guides with Redfin Agent Joe Sheldon.{% endif %}">
+    <meta name="twitter:image" content="{{ socialImage }}">
 </head>
 <body>
     {% include "header.njk" %}
