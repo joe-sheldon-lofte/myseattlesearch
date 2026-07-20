@@ -112,17 +112,19 @@ async function processCalculationsAndSubmit(instance) {
         rowData: rowData
     };
 
-    // 4. Securely ship data directly to your hardcoded edge worker gateway URL
+    // 4. Hardcoded edge worker gateway URL
     const workerGatewayUrl = "https://myseattlesearch-quiz-gateway.joe-54b.workers.dev/";
 
+    // 5. Fire rapid background transmission bypassing live-site cross-origin locks
     try {
-        await fetch(workerGatewayUrl, { 
+        fetch(workerGatewayUrl, { 
             method: 'POST', 
+            mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify(payload) 
         });
     } catch (e) {
-        console.error("🔒 Gateway Bypass Active: Safe network protection fallback routing enabled.", e);
+        console.error("🔒 Gateway Bypass Active", e);
     }
 
     const link = match.url.includes('?') ? `${match.url}&` : `${match.url}?`;
