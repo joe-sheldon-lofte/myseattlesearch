@@ -38,8 +38,9 @@ module.exports = function() {
         company = match[2].trim();
       }
 
-      // Generate a URL-safe slug for individual professional landing pages
-      const slug = rawName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      // Standardized, descriptive URL slug combining business name + category
+      const comboString = `${rawName} ${category}`;
+      const slug = comboString.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
       let phone = row['Phone Number'] || '';
       phone = String(phone).trim();
