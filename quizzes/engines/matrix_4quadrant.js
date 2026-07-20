@@ -126,34 +126,45 @@ async function processCalculationsAndSubmit(instance) {
 
     const match = instance.quizData.routing.find(r => r.key === winner) || instance.quizData.routing[0];
 
-    // 1. Establish localized Pacific Time Zone values for spreadsheet tracking
     const timestamp = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
+    const baseUserTags = instance.quizData.userTags || "";
+    const combinedUserTags = baseUserTags ? `${baseUserTags}, ${winner}` : winner;
 
-    // 2. Flatten data into a chronological array conforming row-by-row with your sheet columns
+    // Strict 34-column layout contract mapping
     const rowData = [
-        timestamp,
-        instance.quizData.id,
-        instance.quizData.name || instance.quizData.webTitle || "",
-        instance.leadInfo.firstName || "",
-        instance.leadInfo.lastName || "",
-        instance.leadInfo.email || "",
-        instance.leadInfo.phone || "",
-        winner,
-        match.heading,
-        JSON.stringify(tallies),
-        JSON.stringify(instance.answers)
+        timestamp,                                         // Col A: Timestamp
+        instance.leadInfo.firstName || "",                 // Col B: First Name
+        instance.leadInfo.lastName || "",                  // Col C: Last Name
+        instance.leadInfo.email || "",                     // Col D: Email
+        instance.leadInfo.phone || "",                     // Col E: Phone
+        combinedUserTags,                                  // Col F: User Tags
+        match.heading || winner,                           // Col G: Final Outcome
+        "",                                                // Col H: Total Tally Score (blank for matrix)
+        tallies.typeA !== undefined && tallies.typeA > 0 ? tallies.typeA : "", // Col I: Score Type A
+        tallies.typeB !== undefined && tallies.typeB > 0 ? tallies.typeB : "", // Col J: Score Type B
+        tallies.typeC !== undefined && tallies.typeC > 0 ? tallies.typeC : "", // Col K: Score Type C
+        tallies.typeD !== undefined && tallies.typeD > 0 ? tallies.typeD : "", // Col L: Score Type D
+        tallies.typeE !== undefined && tallies.typeE > 0 ? tallies.typeE : "", // Col M: Score Type E
+        tallies.typeF !== undefined && tallies.typeF > 0 ? tallies.typeF : ""  // Col N: Score Type F
     ];
 
-    // 3. Construct the clean payload structure required by your Cloudflare edge firewall
+    // Unroll individual question numerical ratings into Cols O through AH (Q1 - Q20)
+    for (let q = 0; q < 20; q++) {
+        const val = instance.answers[q];
+        if (val !== undefined && val !== null) {
+            rowData.push(val);
+        } else {
+            rowData.push("");
+        }
+    }
+
     const payload = {
         quizId: instance.quizData.id,
         rowData: rowData
     };
 
-    // 4. Hardcoded edge worker gateway URL
     const workerGatewayUrl = "https://myseattlesearch-quiz-gateway.joe-54b.workers.dev/";
 
-    // 5. Fire rapid background transmission bypassing live-site cross-origin locks
     try {
         fetch(workerGatewayUrl, { 
             method: 'POST', 

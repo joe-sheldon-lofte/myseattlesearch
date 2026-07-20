@@ -83,39 +83,47 @@ async function processCalculationsAndSubmit(instance) {
         }
     }
 
-    const formattedHistoryAnswers = instance.quizData.questions.map((q, idx) => {
-        const choice = instance.answers[idx];
-        return `${choice.text} [${choice.points}]`;
-    });
-
-    // 1. Establish localized Pacific Time Zone values for spreadsheet tracking
     const timestamp = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
+    const baseUserTags = instance.quizData.userTags || "";
+    const combinedUserTags = baseUserTags ? `${baseUserTags}, ${matchedKey}` : matchedKey;
 
-    // 2. Flatten data into a chronological array conforming row-by-row with your sheet columns
+    // Strict 34-column layout contract mapping
     const rowData = [
-        timestamp,
-        instance.quizData.id,
-        instance.quizData.name || instance.quizData.webTitle || "",
-        instance.leadInfo.firstName || "",
-        instance.leadInfo.lastName || "",
-        instance.leadInfo.email || "",
-        instance.leadInfo.phone || "",
-        matchedKey,
-        match.heading,
-        grandTotal,
-        JSON.stringify(formattedHistoryAnswers)
+        timestamp,                                         // Col A: Timestamp
+        instance.leadInfo.firstName || "",                 // Col B: First Name
+        instance.leadInfo.lastName || "",                  // Col C: Last Name
+        instance.leadInfo.email || "",                     // Col D: Email
+        instance.leadInfo.phone || "",                     // Col E: Phone
+        combinedUserTags,                                  // Col F: User Tags
+        match.heading || matchedKey,                       // Col G: Final Outcome
+        grandTotal,                                        // Col H: Total Tally Score
+        "",                                                // Col I: Score Type A
+        "",                                                // Col J: Score Type B
+        "",                                                // Col K: Score Type C
+        "",                                                // Col L: Score Type D
+        "",                                                // Col M: Score Type E
+        ""                                                 // Col N: Score Type F
     ];
 
-    // 3. Construct the clean payload structure required by your Cloudflare edge firewall
+    // Unroll individual question selections into Cols O through AH (Q1 - Q20)
+    for (let q = 0; q < 20; q++) {
+        const ans = instance.answers[q];
+        if (ans && ans.text !== undefined) {
+            rowData.push(`${ans.text} [${ans.points}]`);
+        } else if (ans !== undefined && ans !== null) {
+            rowData.push(ans);
+        } else {
+            rowData.push("");
+        }
+    }
+
     const payload = {
         quizId: instance.quizData.id,
         rowData: rowData
     };
 
-    // 4. Hardcoded edge worker gateway URL
     const workerGatewayUrl = "https://myseattlesearch-quiz-gateway.joe-54b.workers.dev/";
 
-    // 5. Fire rapid background transmission bypassing live-site cross-origin locks
     try {
         fetch(workerGatewayUrl, { 
             method: 'POST', 
