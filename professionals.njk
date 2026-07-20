@@ -3,6 +3,30 @@ layout: base.njk
 title: "Preferred Professionals | Joe Sheldon"
 permalink: /professionals/
 ---
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "Joe Sheldon's Preferred Real Estate Professionals",
+  "description": "Pre-vetted local service providers recommended by Redfin Agent Joe Sheldon.",
+  "itemListElement": [
+    {% for vendor in professionals.vendors %}
+    {
+      "@type": "ListItem",
+      "position": {{ loop.index }},
+      "item": {
+        "@type": "ProfessionalService",
+        "name": "{{ vendor.name }}",
+        "telephone": "{{ vendor.phone }}",
+        "email": "{{ vendor.email }}",
+        "url": "https://myseattlesearch.com/professionals/{{ vendor.slug }}/"
+      }
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+
 <style>
     .disclaimer-banner {
         background-color: var(--dynamic-bg-highlight); 
@@ -78,6 +102,27 @@ permalink: /professionals/
         background-color: var(--dynamic-bg-highlight);
     }
 
+    .view-profile-btn {
+        display: block;
+        width: 100%;
+        text-align: center;
+        padding: 0.65rem 1rem;
+        background-color: var(--dynamic-bg-highlight);
+        border: 1px solid var(--premier-beige);
+        color: var(--premier-charcoal);
+        font-weight: 700;
+        font-size: 0.88rem;
+        text-decoration: none;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        box-sizing: border-box;
+    }
+    .view-profile-btn:hover {
+        background-color: var(--card-accent-color);
+        color: white;
+        border-color: var(--card-accent-color);
+    }
+
     .print-only-header { display: none; }
 
     /* ==========================================
@@ -100,7 +145,7 @@ permalink: /professionals/
 
         universal-header, universal-footer, .events-header, 
         .filter-nav-container, .print-trigger-btn, .legal-link,
-        .pro-link.website, .build-freshness-wrapper {
+        .pro-link.website, .build-freshness-wrapper, .view-profile-action-box {
             display: none !important;
         }
 
@@ -211,7 +256,7 @@ permalink: /professionals/
 
     <div class="pro-grid" id="proGrid">
         {% for vendor in professionals.vendors %}
-        <div class="pro-card" data-category="{{ vendor.category }}" style="background-color: var(--white); border: 1px solid var(--premier-beige); box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+        <div class="pro-card" data-category="{{ vendor.category }}" style="background-color: var(--white); border: 1px solid var(--premier-beige); box-shadow: 0 4px 12px rgba(0,0,0,0.04); display: flex; flex-direction: column; justify-content: space-between;">
             <div class="pro-card-content">
                 <div class="pro-header">
                     <div class="pro-category-tag" style="color: var(--card-accent-color); font-weight: 800; text-transform: uppercase; font-size: 0.85rem; margin-bottom: 0.5rem;">{{ vendor.category }}</div>
@@ -246,6 +291,10 @@ permalink: /professionals/
                     {% endif %}
                 </div>
                 {% endif %}
+            </div>
+
+            <div class="view-profile-action-box" style="margin-top: 1.25rem; padding-top: 0.85rem; border-top: 1px dashed var(--premier-beige);">
+                <a href="/professionals/{{ vendor.slug }}/" class="view-profile-btn">View Full Profile & Credentials &rarr;</a>
             </div>
         </div>
         {% endfor %}
