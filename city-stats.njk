@@ -6,6 +6,48 @@ pagination:
 permalink: "/communities/{{ city.City | slugify }}/stats/"
 layout: "base.njk"
 ---
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "City",
+  "@id": "https://myseattlesearch.com/communities/{{ city.City | slugify }}/stats/#city",
+  "name": "{{ city.City }}",
+  "url": "https://myseattlesearch.com/communities/{{ city.City | slugify }}/stats/",
+  "description": "Real-time housing market statistics, school district performance, climate metrics, and public safety data for {{ city.City }}, WA.",
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": {{ city.Latitude or 0 }},
+    "longitude": {{ city.Longitude or 0 }}
+  },
+  "containedInPlace": {
+    "@type": "AdministrativeArea",
+    "name": "{{ city.County }} County",
+    "addressRegion": "WA",
+    "addressCountry": "US"
+  }{% if city['Land Area Square Mileage'] %},
+  "area": {
+    "@type": "QuantitativeValue",
+    "value": {{ city['Land Area Square Mileage'] }},
+    "unitCode": "MTK"
+  }{% endif %}{% if city['School District'] %},
+  "subOrganization": {
+    "@type": "EducationalOrganization",
+    "name": "{{ city['School District'] }}"
+  }{% endif %},
+  "knowsAbout": [
+    "Real Estate Market Trends",
+    "Housing Inventory & Days on Market",
+    "Median Home Sale Prices",
+    "School District Ratings",
+    "Public Safety & Community Metrics"
+  ],
+  "author": {
+    "@type": "RealEstateAgent",
+    "@id": "https://myseattlesearch.com/#agent",
+    "name": "Joe Sheldon - Redfin Real Estate Agent"
+  }
+}
+</script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -479,9 +521,7 @@ layout: "base.njk"
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
-    const urlSnapshot = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=701119614&single=true&output=csv';
-    const urlHistorical = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4Q94pArPoza2zWVI7dZagdcDBhIzdX9wtmrDbgJ_4h1rRr_WFuaMTjTfrJVVGQwbNGGLiSK2zCGnh/pub?gid=1473136505&single=true&output=csv';
-    
+    const snapshotPath = '/data/hourly_market.json';
     const redfinPath = '/data/redfin_stats.json';
     const infosparksPath = '/data/infosparks_stats.json';
     const mobilityPath = '/data/walk_transit_bike_scores.json';
@@ -545,16 +585,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Date(now.getFullYear(), now.getMonth(), day).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     };
 
-    const fetchCSV = (url) => new Promise((resolve) => {
-        Papa.parse(url, { 
-            download: true, 
-            header: true, 
-            skipEmptyLines: true, 
-            complete: res => resolve(res.data),
-            error: err => { console.error("PapaParse Error:", err); resolve([]); }
-        });
-    });
-
     const fetchJSON = async (path) => {
         try { 
             const res = await fetch(path);
@@ -567,8 +597,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     Promise.all([
-        fetchCSV(urlSnapshot),
-        fetchCSV(urlHistorical),
+        fetchJSON(snapshotPath),
         fetchJSON(redfinPath),
         fetchJSON(infosparksPath),
         fetchJSON(mobilityPath),
@@ -579,17 +608,17 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchJSON(surveillancePath)
     ]).then(values => {
         dataStore.snapshot = values[0] || [];
-        dataStore.historical = values[1] || [];
-        let rf = values[2];
+        dataStore.historical = [];
+        let rf = values[1];
         dataStore.redfin = Array.isArray(rf) ? rf : (rf && rf.records ? rf.records : []);
-        let is = values[3];
+        let is = values[2];
         dataStore.infosparks = is && is.feeds ? is.feeds : (is || {});
-        dataStore.mobility = values[4] || {};
-        dataStore.schools = values[5] || {};
-        dataStore.crime = values[6] || {};
-        dataStore.climate = values[7] || {};
-        dataStore.emergency = values[8] || {};
-        dataStore.surveillance = values[9] || {};
+        dataStore.mobility = values[3] || {};
+        dataStore.schools = values[4] || {};
+        dataStore.crime = values[5] || {};
+        dataStore.climate = values[6] || {};
+        dataStore.emergency = values[7] || {};
+        dataStore.surveillance = values[8] || {};
         
         updateDashboard();
     }).catch(err => {
