@@ -1,3 +1,4 @@
+// File: .eleventy.js
 module.exports = function(eleventyConfig) {
   // 1. Pass through universal styling and web components
   eleventyConfig.addPassthroughCopy("style.css");
@@ -18,6 +19,17 @@ module.exports = function(eleventyConfig) {
   // 5. Explicitly ignore backend Python scripts and GitHub actions
   eleventyConfig.ignores.add("scripts/");
   eleventyConfig.ignores.add(".github/");
+
+  // --- NATIVE ZERO-DEPENDENCY CSS MINIFIER FILTER ---
+  eleventyConfig.addFilter("cssmin", function(code) {
+    if (!code) return "";
+    return code
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\s+/g, " ")
+      .replace(/\s*([\{\}\:\;\,])\s*/g, "$1")
+      .replace(/;\}/g, "}")
+      .trim();
+  });
 
   // --- GLOBAL BUILD TIMESTAMP SHORTCODE ---
   eleventyConfig.addShortcode("buildTime", function() {

@@ -10,9 +10,9 @@
     <meta name="build-time" content="{% buildTime %}">
     <link rel="canonical" href="https://myseattlesearch.com{{ page.url }}">
 
-    <!-- Inlined Core Site Stylesheet (Zero Network Render-Blocking Delay) -->
+    <!-- Inlined & Minified Core Site Stylesheet (Zero Network Render-Blocking Delay) -->
     <style>
-      {% include "../style.css" %}
+      {% set rawCss %}{% include "../style.css" %}{% endset %}{{ rawCss | cssmin | safe }}
     </style>
     
     <!-- Google Fonts: Asynchronous Non-Blocking Import for "Welcome, Neighbor" Signature -->
@@ -117,7 +117,7 @@
     
     <div class="build-freshness-wrapper">
         <p style="margin: 0; font-weight: 600; color: var(--premier-charcoal);">
-            System Active | Last Updated: <strong>{% buildTime %}</strong> | <strong>{{ r2_storage.usedGB if r2_storage and r2_storage.usedGB else "0.00" }}/10</strong>
+            Last Updated: <strong>{% buildTime %}</strong> | <strong>{{ r2_storage.usedGB if r2_storage and r2_storage.usedGB else "0.00" }}/10</strong>
         </p>
     </div>
 
