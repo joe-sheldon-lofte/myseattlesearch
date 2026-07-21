@@ -3,24 +3,13 @@ const path = require('path');
 
 module.exports = function() {
   const eventsPath = path.join(__dirname, '../data/events.json');
-  const hostsPath = path.join(__dirname, '../data/eventhosts.json');
-  
   let allEvents = [];
-  let rawHosts = [];
 
   if (fs.existsSync(eventsPath)) {
     try {
       allEvents = JSON.parse(fs.readFileSync(eventsPath, 'utf-8'));
     } catch (e) {
       console.error("❌ Data Error: Failed to parse events.json:", e);
-    }
-  }
-
-  if (fs.existsSync(hostsPath)) {
-    try {
-      rawHosts = JSON.parse(fs.readFileSync(hostsPath, 'utf-8'));
-    } catch (e) {
-      console.error("❌ Data Error: Failed to parse eventhosts.json:", e);
     }
   }
 
@@ -77,29 +66,6 @@ module.exports = function() {
     return `${dateStr}T${hh}:${mm}:00-07:00`;
   }
 
-  // Resilient multi-key normalization directory mapping loop
-  const hostsLookup = {};
-  const hostsListNormalized = [];
-
-  rawHosts.forEach(h => {
-    if (!h) return;
-    const rawId = h['Host ID'] !== undefined ? h['Host ID'] : h['id'];
-    if (rawId !== undefined && rawId !== null) {
-      const cleanId = String(rawId).trim().toLowerCase().replace('.0', '');
-      const normalizedHost = {
-        id: cleanId,
-        name: h['Host Name'] || h['name'] || '',
-        phone: h['Host Phone'] || h['phone'] || '',
-        email: h['Host Email'] || h['email'] || '',
-        website: h['Host Website'] || h['website'] || '',
-        description: h['Host Description'] || h['description'] || '',
-        photo: h['Host Photo Link'] || h['photo'] || ''
-      };
-      hostsLookup[cleanId] = normalizedHost;
-      hostsListNormalized.push(normalizedHost);
-    }
-  });
-
   const now = new Date();
   const laDateString = now.toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles' });
   const todayMidnight = new Date(laDateString);
@@ -107,38 +73,42 @@ module.exports = function() {
   const featured = [];
   const partner = [];
   const allActive = [];
+  const uniqueHostsMap = {};
 
   allEvents.forEach(event => {
     if (!event.id || event.status !== 'Active' || !event.display) return;
 
-    // Direct host relation stitching fallback
-    let eventHosts = event.hosts || [];
-    if (eventHosts.length === 0 && event.hostIds) {
-      const idParts = String(event.hostIds).split(',');
-      idParts.forEach(idStr => {
-        const cleanId = idStr.trim().toLowerCase().replace('.0', '');
-        if (hostsLookup[cleanId]) {
-          eventHosts.push(hostsLookup[cleanId]);
-        }
-      });
-    } else {
-      eventHosts = eventHosts.map(h => {
-        const hId = String(h.id || h['Host ID'] || '').trim().toLowerCase().replace('.0', '');
-        return hostsLookup[hId] || h;
-      });
-    }
-    event.hosts = eventHosts;
-
-    // Inject human-readable display parameters
+    // Format human-readable dates/times
     event.displayDate = formatDisplayDate(event.date);
     event.displayStartTime = formatDisplayTime(event.startTime);
     event.displayEndTime = formatDisplayTime(event.endTime);
 
-    // Inject valid ISO-8601 timestamps for Schema.org
+    // Format ISO dates for Schema.org JSON-LD
     event.isoStartDate = toIsoDateTime(event.date, event.startTime);
     event.isoEndDate = toIsoDateTime(event.date, event.endTime);
 
     allActive.push(event);
+
+    // Extract unique host profile objects from active events
+    if (Array.isArray(event.hosts)) {
+      event.hosts.forEach(host => {
+        if (host && host.name) {
+          const hostKey = String(host.id || host.name).trim().toLowerCase();
+          if (!uniqueHostsMap[hostKey]) {
+            uniqueHostsMap[hostKey] = {
+              id: host.id || '',
+              name: host.name || '',
+              position: host.position || '',
+              phone: host.phone || '',
+              email: host.email || '',
+              website: host.website || '',
+              description: host.description || '',
+              photo: host.photo || ''
+            };
+          }
+        }
+      });
+    }
 
     if (event.date) {
       const eventDateObj = new Date(event.date + 'T00:00:00');
@@ -161,6 +131,6 @@ module.exports = function() {
     featured,
     partner,
     allActive,
-    hostsList: hostsListNormalized
+    hostsList: Object.values(uniqueHostsMap)
   };
 };
