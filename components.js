@@ -1,15 +1,3 @@
-// Global Hamburger Menu Controller for Statically Included Header (header.njk)
-document.addEventListener("DOMContentLoaded", function() {
-    const hamburger = document.querySelector('#hamburgerMenu');
-    const navMenu = document.querySelector('#navMenu');
-    if (hamburger && navMenu) {
-        hamburger.addEventListener('click', () => {
-            hamburger.classList.toggle('active');
-            navMenu.classList.toggle('active');
-        });
-    }
-});
-
 class QuizEngine extends HTMLElement {
     constructor() {
         super();
@@ -196,8 +184,8 @@ class LocalReviews extends HTMLElement {
 
 /**
  * Platform Share Utility Bridge
- * Routes share requests to native system sheet configurations across mobile devices[span_2](start_span)[span_2](end_span).
- * Desktop environments automatically drop back to the clipboard engine[span_3](start_span)[span_3](end_span).
+ * Routes share requests to native system sheet configurations across mobile devices.
+ * Desktop environments automatically drop back to the clipboard engine.
  */
 document.addEventListener("DOMContentLoaded", () => {
   document.body.addEventListener("click", async (event) => {
