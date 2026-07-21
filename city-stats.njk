@@ -1,7 +1,7 @@
 ---
 layout: base.njk
 pagination:
-  data: cities
+  data: city_data
   size: 1
   alias: cityData
   addAllPages: true
@@ -100,7 +100,7 @@ eleventyComputed:
     .psai-dropdown.active, .custom-notice-block.active { display: block; }
     .suppressed-badge { background: var(--premier-beige) !important; font-size: 1.1rem !important; color: var(--premier-charcoal) !important; }
     .info-badge-inline { display: inline-block; padding: 0.35rem 0.7rem; font-size: 0.8rem; font-weight: 800; border-radius: 4px; margin-top: 0.5rem; }
-    .badge-green { background: #E6F4EA; color: #137333; }
+    .badge-green { background: var(--dynamic-bg-highlight); color: var(--premier-charcoal); border: 1px solid var(--card-accent-color); }
     .badge-neutral { background: var(--dynamic-bg-highlight); color: var(--premier-charcoal); }
     .climate-metrics-list, .surveillance-metrics-list { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin: 1rem 0; }
     .climate-mini-item, .surv-mini-item { background: var(--white); border: 1px solid var(--premier-beige); padding: 0.5rem; border-radius: 6px; }
@@ -121,7 +121,7 @@ eleventyComputed:
         outline: none;
         cursor: pointer;
         appearance: none;
-        background-image: url('data:image/svg+xml;utf8,<svg fill="%23C13030" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+        background-image: url('data:image/svg+xml;utf8,<svg fill="%23000000" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
         background-repeat: no-repeat;
         background-position-x: 92%;
         background-position-y: 50%;
@@ -146,7 +146,7 @@ eleventyComputed:
             <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid var(--card-accent-color); padding-bottom: 12px; margin-bottom: 20px;">
                 <div>
                     <h1 style="margin:0; font-size: 2.4rem; font-weight: 900; color: var(--card-accent-color); letter-spacing: -0.5px;">COMMUNITY REPORT PROFILE</h1>
-                    <p style="margin: 3px 0 0 0; font-size: 1rem; font-weight: 800; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">Bespoke Real Estate Data Feeds</p>
+                    <p style="margin: 3px 0 0 0; font-size: 1rem; font-weight: 800; color: var(--premier-charcoal); text-transform: uppercase; letter-spacing: 0.5px;">Bespoke Real Estate Data Feeds</p>
                 </div>
                 <div style="text-align: right;">
                     <h3 style="margin:0; font-size: 1.3rem; font-weight: 900; color: var(--premier-charcoal);">JOE SHELDON</h3>
@@ -170,7 +170,7 @@ eleventyComputed:
             <div class="compact-city-selector no-print-section" style="margin-top: 0.5rem;">
                 <select class="compact-select" onchange="if(this.value) window.location.href=this.value;">
                     <option value="">Switch Community...</option>
-                    {% for c in cities %}
+                    {% for c in city_data %}
                         <option value="/communities/{{ c.City | slugify }}/stats/" {% if c.City == cityData.City %}selected{% endif %}>
                             {{ c.City }}
                         </option>
@@ -1042,7 +1042,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const insImpact = f.homeowners_insurance_impact || '';
                 let tipMarkup = '';
                 if (insImpact === "Highly Favorable" || f.wsrb_protection_class <= 3) {
-                    tipMarkup = `<br><span class="label-sub" style="color:green; font-weight:700;">💰 Smart Buyer Tip: This city maintains an exceptional fire protection rating. This directly reduces your baseline annual homeowner's insurance premiums.</span>`;
+                    tipMarkup = `<br><span class="label-sub" style="color:var(--premier-charcoal); font-weight:700;">💰 Smart Buyer Tip: This city maintains an exceptional fire protection rating. This directly reduces your baseline annual homeowner's insurance premiums.</span>`;
                 }
                 fireBadgeEl.innerHTML = `
                     <span class="info-badge-inline badge-green">WSRB Protection Class: ${f.wsrb_protection_class}</span>
