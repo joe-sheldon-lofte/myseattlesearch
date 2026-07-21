@@ -3,6 +3,7 @@ layout: base.njk
 title: "Meet the Team | Real Estate Experts"
 permalink: /team/
 ---
+<!-- File: team.njk -->
 <div class="team-directory-container" style="width: 100%; max-width: 1140px; margin: 0 auto;">
     
     <header class="directory-header" style="text-align: center; margin-bottom: 3.5rem; border-bottom: 2px solid rgba(0,0,0,0.05); padding-bottom: 1.5rem;">
@@ -10,91 +11,85 @@ permalink: /team/
         <p style="font-size: 1.1rem; color: var(--premier-charcoal); opacity: 0.8; max-width: 650px; margin: 0 auto;">Dedicated professionals working seamlessly together to deliver an elite experience during your real estate journey.</p>
     </header>
 
-    <!-- CORE 4 TOP HIERARCHY GRID CANVAS (Splits Left vs Right Operations) -->
+    <!-- CORE 4 TOP HIERARCHY GRID CANVAS (Direct Children for Responsive Reordering) -->
     <section class="core-four-framework-block" style="margin-bottom: 4rem;">
         <div class="core-four-grid" style="display: grid; grid-template-columns: 1fr; gap: 2.5rem;">
             
-            <!-- LEFT COLUMN CANVAS: Real Estate Operations Pipeline -->
-            <div style="display: flex; flex-direction: column; gap: 2.5rem;">
-                <!-- 1. Senior Agent Card (Joe Sheldon) -->
-                {% if team.seniorAgent and team.seniorAgent.teamPage %}
-                    <article class="profile-card premium-shadow" style="background-color: var(--white); border-radius: 8px; overflow: hidden; border: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column; border-top: 5px solid var(--card-accent-color);">
-                        {% if team.seniorAgent.photo %}
-                            <img src="{{ team.seniorAgent.photo }}" alt="{{ team.seniorAgent.name }}" width="400" height="380" loading="lazy" decodes="async" style="width: 100%; max-height: 380px; object-fit: cover; display: block;">
-                        {% endif %}
-                        <div style="padding: 1.75rem; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
-                            <div style="text-align: left;">
-                                <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--card-accent-color); letter-spacing: 0.5px;">{{ team.seniorAgent.position }}</span>
-                                <h3 style="font-size: 1.5rem; font-weight: 800; color: var(--premier-charcoal); margin: 0.25rem 0;">{{ team.seniorAgent.name }}</h3>
-                                <p style="font-size: 0.92rem; line-height: 1.5; opacity: 0.85; margin: 0.5rem 0 0 0; text-align: justify;">Joe serves as your strategic real estate advisor, bringing decades of deep market insight and advocacy to your side.</p>
-                            </div>
-                            <div style="border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; align-items: center; text-align: center; width: 100%; box-sizing: border-box;">
-                                {% if team.seniorAgent.phone %}
-                                    <a href="tel:{{ team.seniorAgent.phone | replace('-', '') }}" style="font-size: 0.88rem; font-weight: 600; color: var(--premier-charcoal); text-decoration: none; display: inline-block; margin-bottom: 0.25rem;">📞 {{ team.seniorAgent.phone }}</a>
-                                {% endif %}
-                                <a href="/team/{{ team.seniorAgent.slug }}/" class="btn btn-primary interactive-btn" style="display: block; width: 100%; box-sizing: border-box; padding: 0.5rem 1.25rem; font-size: 0.85rem; text-decoration: none; font-weight: 700; text-align: center; border-radius: 4px; background-color: var(--premier-charcoal); color: var(--white);">View Profile</a>
-                            </div>
+            <!-- 1. Senior Agent Card (Joe Sheldon) -->
+            {% if team.seniorAgent and team.seniorAgent.teamPage %}
+                <article class="profile-card premium-shadow" style="background-color: var(--white); border-radius: 8px; overflow: hidden; border: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column; border-top: 5px solid var(--card-accent-color);">
+                    {% if team.seniorAgent.photo %}
+                        <img src="{{ team.seniorAgent.photo }}" alt="{{ team.seniorAgent.name }}" width="400" height="220" loading="lazy" decodes="async" style="width: 100%; height: 220px; object-fit: cover; object-position: top center; display: block;">
+                    {% endif %}
+                    <div style="padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
+                        <div style="text-align: left;">
+                            <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--card-accent-color); letter-spacing: 0.5px;">{{ team.seniorAgent.position }}</span>
+                            <h3 style="font-size: 1.4rem; font-weight: 800; color: var(--premier-charcoal); margin: 0.25rem 0;">{{ team.seniorAgent.name }}</h3>
+                            <p style="font-size: 0.92rem; line-height: 1.5; opacity: 0.85; margin: 0.5rem 0 0 0; text-align: justify;">Joe serves as your strategic real estate advisor, bringing decades of deep market insight and advocacy to your side.</p>
                         </div>
-                    </article>
-                {% endif %}
+                        <div style="border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; align-items: center; text-align: center; width: 100%; box-sizing: border-box;">
+                            {% if team.seniorAgent.phone %}
+                                <a href="tel:{{ team.seniorAgent.phone | replace('-', '') }}" style="font-size: 0.88rem; font-weight: 600; color: var(--premier-charcoal); text-decoration: none; display: inline-block; margin-bottom: 0.25rem;">📞 {{ team.seniorAgent.phone }}</a>
+                            {% endif %}
+                            <a href="/team/{{ team.seniorAgent.slug }}/" class="btn btn-primary interactive-btn" style="display: block; width: 100%; box-sizing: border-box; padding: 0.5rem 1.25rem; font-size: 0.85rem; text-decoration: none; font-weight: 700; text-align: center; border-radius: 4px; background-color: var(--premier-charcoal); color: var(--white);">View Profile</a>
+                        </div>
+                    </div>
+                </article>
+            {% endif %}
 
-                <!-- 2. Transaction Coordinator Card (Beth Davis) -->
-                {% if team.transactionCoordinator and team.transactionCoordinator.teamPage %}
-                    <article class="profile-card" style="background-color: var(--white); border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; padding: 1.25rem; display: flex; align-items: center; gap: 1.25rem; box-sizing: border-box; width: 100%;">
-                        {% if team.transactionCoordinator.photo %}
-                            <img src="{{ team.transactionCoordinator.photo }}" alt="{{ team.transactionCoordinator.name }}" width="75" height="75" loading="lazy" decodes="async" style="width: 75px; height: 75px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(0,0,0,0.08); flex-shrink: 0;">
-                        {% else %}
-                            <div style="width: 75px; height: 75px; border-radius: 50%; background-color: var(--dynamic-bg-highlight); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; color: var(--card-accent-color); font-weight: 800;">{{ team.transactionCoordinator.name[0] }}</div>
-                        {% endif %}
-                        <div style="display: flex; flex-direction: column; align-items: flex-start; text-align: left; flex-grow: 1; min-width: 0; gap: 0.25rem;">
-                            <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--card-accent-color); letter-spacing: 0.5px; display: block;">{{ team.transactionCoordinator.position }}</span>
-                            <h4 style="font-size: 1.2rem; font-weight: 800; color: var(--premier-charcoal); margin: 0 0 0.35rem 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">{{ team.transactionCoordinator.name }}</h4>
-                            <a href="/team/{{ team.transactionCoordinator.slug }}/" class="btn btn-primary interactive-btn" style="display: inline-block; padding: 0.45rem 1rem; font-size: 0.82rem; font-weight: 700; text-decoration: none; text-align: center; border-radius: 4px; background-color: var(--premier-charcoal); color: var(--white);">View Profile</a>
+            <!-- 2. Rocket Mortgage Executive Loan Officer Card (Carly Ozuna) -->
+            {% if team.loanOfficer and team.loanOfficer.teamPage %}
+                <article class="profile-card premium-shadow" style="background-color: var(--white); border-radius: 8px; overflow: hidden; border: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column; border-top: 5px solid var(--premier-charcoal);">
+                    {% if team.loanOfficer.photo %}
+                        <img src="{{ team.loanOfficer.photo }}" alt="{{ team.loanOfficer.name }}" width="400" height="220" loading="lazy" decodes="async" style="width: 100%; height: 220px; object-fit: cover; object-position: top center; display: block;">
+                    {% endif %}
+                    <div style="padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
+                        <div style="text-align: left;">
+                            <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--premier-charcoal); opacity: 0.7; letter-spacing: 0.5px;">{{ team.loanOfficer.position }}</span>
+                            <h3 style="font-size: 1.4rem; font-weight: 800; color: var(--premier-charcoal); margin: 0.25rem 0;">{{ team.loanOfficer.name }}</h3>
+                            <p style="font-size: 0.92rem; line-height: 1.5; opacity: 0.85; margin: 0.5rem 0 0 0; text-align: justify;">Carly directs mortgage portfolios, deploying tailored capital structuring parameters to fuel home purchase paths.</p>
                         </div>
-                    </article>
-                {% endif %}
-            </div>
+                        <div style="border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; align-items: center; text-align: center; width: 100%; box-sizing: border-box;">
+                            {% if team.loanOfficer.phone %}
+                                <a href="tel:{{ team.loanOfficer.phone | replace('-', '') }}" style="font-size: 0.88rem; font-weight: 600; color: var(--premier-charcoal); text-decoration: none; display: inline-block; margin-bottom: 0.25rem;">📞 {{ team.loanOfficer.phone }}</a>
+                            {% endif %}
+                            <a href="/team/{{ team.loanOfficer.slug }}/" class="btn btn-primary interactive-btn" style="display: block; width: 100%; box-sizing: border-box; padding: 0.5rem 1.25rem; font-size: 0.85rem; text-decoration: none; font-weight: 700; text-align: center; border-radius: 4px; background-color: var(--premier-charcoal); color: var(--white);">View Profile</a>
+                        </div>
+                    </div>
+                </article>
+            {% endif %}
 
-            <!-- RIGHT COLUMN CANVAS: Lending & Listing Integration -->
-            <div style="display: flex; flex-direction: column; gap: 2.5rem;">
-                <!-- 3. Rocket Mortgage Executive Loan Officer Card (Carly Ozuna) -->
-                {% if team.loanOfficer and team.loanOfficer.teamPage %}
-                    <article class="profile-card premium-shadow" style="background-color: var(--white); border-radius: 8px; overflow: hidden; border: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column; border-top: 5px solid var(--premier-charcoal);">
-                        {% if team.loanOfficer.photo %}
-                            <img src="{{ team.loanOfficer.photo }}" alt="{{ team.loanOfficer.name }}" width="400" height="380" loading="lazy" decodes="async" style="width: 100%; max-height: 380px; object-fit: cover; display: block;">
-                        {% endif %}
-                        <div style="padding: 1.75rem; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
-                            <div style="text-align: left;">
-                                <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--premier-charcoal); opacity: 0.7; letter-spacing: 0.5px;">{{ team.loanOfficer.position }}</span>
-                                <h3 style="font-size: 1.5rem; font-weight: 800; color: var(--premier-charcoal); margin: 0.25rem 0;">{{ team.loanOfficer.name }}</h3>
-                                <p style="font-size: 0.92rem; line-height: 1.5; opacity: 0.85; margin: 0.5rem 0 0 0; text-align: justify;">Carly directs mortgage portfolios, deploying tailored capital structuring parameters to fuel home purchase paths.</p>
-                            </div>
-                            <div style="border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; align-items: center; text-align: center; width: 100%; box-sizing: border-box;">
-                                {% if team.loanOfficer.phone %}
-                                    <a href="tel:{{ team.loanOfficer.phone | replace('-', '') }}" style="font-size: 0.88rem; font-weight: 600; color: var(--premier-charcoal); text-decoration: none; display: inline-block; margin-bottom: 0.25rem;">📞 {{ team.loanOfficer.phone }}</a>
-                                {% endif %}
-                                <a href="/team/{{ team.loanOfficer.slug }}/" class="btn btn-primary interactive-btn" style="display: block; width: 100%; box-sizing: border-box; padding: 0.5rem 1.25rem; font-size: 0.85rem; text-decoration: none; font-weight: 700; text-align: center; border-radius: 4px; background-color: var(--premier-charcoal); color: var(--white);">View Profile</a>
-                            </div>
-                        </div>
-                    </article>
-                {% endif %}
+            <!-- 3. Transaction Coordinator Card (Beth Davis) -->
+            {% if team.transactionCoordinator and team.transactionCoordinator.teamPage %}
+                <article class="profile-card" style="background-color: var(--white); border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; padding: 1.25rem; display: flex; align-items: center; gap: 1.25rem; box-sizing: border-box; width: 100%;">
+                    {% if team.transactionCoordinator.photo %}
+                        <img src="{{ team.transactionCoordinator.photo }}" alt="{{ team.transactionCoordinator.name }}" width="75" height="75" loading="lazy" decodes="async" style="width: 75px; height: 75px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(0,0,0,0.08); flex-shrink: 0;">
+                    {% else %}
+                        <div style="width: 75px; height: 75px; border-radius: 50%; background-color: var(--dynamic-bg-highlight); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; color: var(--card-accent-color); font-weight: 800;">{{ team.transactionCoordinator.name[0] }}</div>
+                    {% endif %}
+                    <div style="display: flex; flex-direction: column; align-items: flex-start; text-align: left; flex-grow: 1; min-width: 0; gap: 0.25rem;">
+                        <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--card-accent-color); letter-spacing: 0.5px; display: block;">{{ team.transactionCoordinator.position }}</span>
+                        <h4 style="font-size: 1.2rem; font-weight: 800; color: var(--premier-charcoal); margin: 0 0 0.35rem 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">{{ team.transactionCoordinator.name }}</h4>
+                        <a href="/team/{{ team.transactionCoordinator.slug }}/" class="btn btn-primary interactive-btn" style="display: inline-block; padding: 0.45rem 1rem; font-size: 0.82rem; font-weight: 700; text-decoration: none; text-align: center; border-radius: 4px; background-color: var(--premier-charcoal); color: var(--white);">View Profile</a>
+                    </div>
+                </article>
+            {% endif %}
 
-                <!-- 4. Listing Coordinator Card (Rogin Ifland) -->
-                {% if team.listingCoordinator and team.listingCoordinator.teamPage %}
-                    <article class="profile-card" style="background-color: var(--white); border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; padding: 1.25rem; display: flex; align-items: center; gap: 1.25rem; box-sizing: border-box; width: 100%;">
-                        {% if team.listingCoordinator.photo %}
-                            <img src="{{ team.listingCoordinator.photo }}" alt="{{ team.listingCoordinator.name }}" width="75" height="75" loading="lazy" decodes="async" style="width: 75px; height: 75px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(0,0,0,0.08); flex-shrink: 0;">
-                        {% else %}
-                            <div style="width: 75px; height: 75px; border-radius: 50%; background-color: var(--dynamic-bg-highlight); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; color: var(--card-accent-color); font-weight: 800;">{{ team.listingCoordinator.name[0] }}</div>
-                        {% endif %}
-                        <div style="display: flex; flex-direction: column; align-items: flex-start; text-align: left; flex-grow: 1; min-width: 0; gap: 0.25rem;">
-                            <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--card-accent-color); letter-spacing: 0.5px; display: block;">{{ team.listingCoordinator.position }}</span>
-                            <h4 style="font-size: 1.2rem; font-weight: 800; color: var(--premier-charcoal); margin: 0 0 0.35rem 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">{{ team.listingCoordinator.name }}</h4>
-                            <a href="/team/{{ team.listingCoordinator.slug }}/" class="btn btn-primary interactive-btn" style="display: inline-block; padding: 0.45rem 1rem; font-size: 0.82rem; font-weight: 700; text-decoration: none; text-align: center; border-radius: 4px; background-color: var(--premier-charcoal); color: var(--white);">View Profile</a>
-                        </div>
-                    </article>
-                {% endif %}
-            </div>
+            <!-- 4. Listing Coordinator Card -->
+            {% if team.listingCoordinator and team.listingCoordinator.teamPage %}
+                <article class="profile-card" style="background-color: var(--white); border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; padding: 1.25rem; display: flex; align-items: center; gap: 1.25rem; box-sizing: border-box; width: 100%;">
+                    {% if team.listingCoordinator.photo %}
+                        <img src="{{ team.listingCoordinator.photo }}" alt="{{ team.listingCoordinator.name }}" width="75" height="75" loading="lazy" decodes="async" style="width: 75px; height: 75px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(0,0,0,0.08); flex-shrink: 0;">
+                    {% else %}
+                        <div style="width: 75px; height: 75px; border-radius: 50%; background-color: var(--dynamic-bg-highlight); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; color: var(--card-accent-color); font-weight: 800;">{{ team.listingCoordinator.name[0] }}</div>
+                    {% endif %}
+                    <div style="display: flex; flex-direction: column; align-items: flex-start; text-align: left; flex-grow: 1; min-width: 0; gap: 0.25rem;">
+                        <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--card-accent-color); letter-spacing: 0.5px; display: block;">{{ team.listingCoordinator.position }}</span>
+                        <h4 style="font-size: 1.2rem; font-weight: 800; color: var(--premier-charcoal); margin: 0 0 0.35rem 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">{{ team.listingCoordinator.name }}</h4>
+                        <a href="/team/{{ team.listingCoordinator.slug }}/" class="btn btn-primary interactive-btn" style="display: inline-block; padding: 0.45rem 1rem; font-size: 0.82rem; font-weight: 700; text-decoration: none; text-align: center; border-radius: 4px; background-color: var(--premier-charcoal); color: var(--white);">View Profile</a>
+                    </div>
+                </article>
+            {% endif %}
 
         </div>
     </section>
@@ -123,7 +118,7 @@ permalink: /team/
                 {% endif %}
             {% endfor %}
 
-            <!-- Sales Manager Card (Identical Structure) -->
+            <!-- Sales Manager Card -->
             {% if team.salesManager and team.salesManager.teamPage %}
                 <article class="profile-card" style="background-color: var(--white); border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; padding: 1.25rem; display: flex; align-items: center; gap: 1.25rem; box-sizing: border-box;">
                     {% if team.salesManager.photo %}
