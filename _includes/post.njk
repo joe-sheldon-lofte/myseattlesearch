@@ -1,6 +1,34 @@
 ---
 layout: base.njk
 ---
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "{% if headline %}{{ headline | replace('\"', '\\\"') }}{% elif title %}{{ title | replace('\"', '\\\"') }}{% else %}Notebook Update{% endif %}",
+  "description": "{% if subhead %}{{ subhead | replace('\"', '\\\"') }}{% else %}{{ content | striptags | truncate(160) | replace('\"', '\\\"') }}{% endif %}",
+  "datePublished": "{{ date }}",
+  "dateModified": "{{ date }}",
+  "url": "https://myseattlesearch.com{{ page.url }}",
+  "mainEntityOfPage": "https://myseattlesearch.com{{ page.url }}",
+  "author": {
+    "@type": "Person",
+    "name": "{{ author or 'Joe Sheldon' }}",
+    "url": "https://myseattlesearch.com"
+  },
+  "publisher": {
+    "@type": "RealEstateAgent",
+    "name": "Joe Sheldon - Redfin Real Estate Agent",
+    "url": "https://myseattlesearch.com",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://myseattlesearch.com/assets/images/joe.jpg"
+    }
+  }{% if image_1 %},
+  "image": "{% if image_1.startsWith('http') %}{{ image_1 }}{% else %}https://myseattlesearch.com{{ image_1 }}{% endif %}"{% else %},
+  "image": "https://myseattlesearch.com/assets/images/hero-living-room.jpg"{% endif %}
+}
+</script>
 
 <style>
   .notebook-standalone-shell {
