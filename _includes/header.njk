@@ -31,14 +31,21 @@
     </nav>
 </header>
 
-<!-- Self-Contained Interactive Navigation Script -->
+<!-- Self-Contained Interactive Navigation Script with Failsafe Execution -->
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const hamburgerMenu = document.getElementById('hamburgerMenu');
-        const navMenu = document.getElementById('navMenu');
+    (function() {
+        function initNavigationMenu() {
+            const hamburgerMenu = document.getElementById('hamburgerMenu');
+            const navMenu = document.getElementById('navMenu');
 
-        if (hamburgerMenu && navMenu) {
-            hamburgerMenu.addEventListener('click', () => {
+            if (!hamburgerMenu || !navMenu) return;
+
+            // Guard against duplicate event bindings
+            if (hamburgerMenu.dataset.navBound === "true") return;
+            hamburgerMenu.dataset.navBound = "true";
+
+            hamburgerMenu.addEventListener('click', (e) => {
+                e.stopPropagation();
                 hamburgerMenu.classList.toggle('active');
                 navMenu.classList.toggle('active');
                 document.body.style.overflow = navMenu.classList.contains('active') ? 'hidden' : '';
@@ -52,5 +59,11 @@
                 });
             });
         }
-    });
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initNavigationMenu);
+        } else {
+            initNavigationMenu();
+        }
+    })();
 </script>
