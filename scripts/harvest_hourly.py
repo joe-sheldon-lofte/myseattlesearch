@@ -212,19 +212,20 @@ def main():
     batch_sheet_writebacks = {}
 
     # ====================================================================
-    # MODULE 1: COMMAND CENTER INGESTION (MARKET & INTEREST RATES)
+    # MODULE 1: COMMAND CENTER INGESTION (MARKET, RATES & HISTORICAL LOG)
     # ====================================================================
     cc_sheet_id = os.environ.get("COMMAND_CENTER_SHEET_ID")
     if cc_sheet_id:
-        print("📡 Pulling market data and interest rates from Command Center Workbook...")
+        print("📡 Pulling market data, interest rates, and historical logs from Command Center Workbook...")
         try:
-            cc_ranges = ["Market_Dashboard!A:Z", "Rates!A:Z"]
+            cc_ranges = ["Market_Dashboard!A:Z", "Rates!A:Z", "Historical_Log!A:Z"]
             cc_batch = sheets_service.spreadsheets().values().batchGet(
                 spreadsheetId=cc_sheet_id, ranges=cc_ranges
             ).execute().get('valueRanges', [])
             
             market_rows = cc_batch[0].get('values', []) if len(cc_batch) > 0 else []
             rates_rows = cc_batch[1].get('values', []) if len(cc_batch) > 1 else []
+            hist_rows = cc_batch[2].get('values', []) if len(cc_batch) > 2 else []
             
             if market_rows:
                 market_data = parse_sheet_values(market_rows)
@@ -234,6 +235,10 @@ def main():
                 rates_data = parse_sheet_values(rates_rows)
                 with open(os.path.join(data_dir, "hourly_rates.json"), "w", encoding="utf-8") as f:
                     json.dump(rates_data, f, indent=2, ensure_ascii=False)
+            if hist_rows:
+                hist_data = parse_sheet_values(hist_rows)
+                with open(os.path.join(data_dir, "hourly_market_historical.json"), "w", encoding="utf-8") as f:
+                    json.dump(hist_data, f, indent=2, ensure_ascii=False)
             print("   ✅ Command Center indices successfully synchronized.")
         except Exception as e:
             print(f"   ⚠️ Warning: Command Center download pass skipped: {e}")
@@ -439,7 +444,6 @@ def main():
                     raw_tags = record.get("Tags", "")
                     tags_list = ", ".join([f'"{t.strip()}"' for t in raw_tags.split(",") if t.strip()])
                     
-                    # Compute safe parameters outside the template expression string boundaries
                     clean_title = record.get('Title', '').replace('"', '\\"')
                     clean_headline = record.get('Headline', '').replace('"', '\\"')
                     clean_subhead = record.get('Subhead', '').replace('"', '\\"')
@@ -593,7 +597,7 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                                 "source": feed_name, "title": title, "link": link,
                                 "excerpt": excerpt if excerpt else "Click view details to read full update.",
                                 "published": pub_str, 
-                                "paywall": is_paywall,  # Output a standard boolean toggle (True/False)
+                                "paywall": is_paywall,
                                 "cities": cities_array, "categories": categories_array, "_iso": sort_str
                             })
                 except Exception as e:
