@@ -5,13 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - Joe Sheldon | Redfin</title>
     
+    <!-- Primary Search Engine Meta Description -->
+    <meta name="description" content="{% if subhead %}{{ subhead }}{% elif intro %}{{ intro }}{% elif description %}{{ description }}{% else %}Greater Seattle real estate insights, hyper-local market stats, and buyer & seller guides with Redfin Agent Joe Sheldon.{% endif %}">
+
     <!-- Core Site Stylesheet -->
     <link rel="stylesheet" href="/style.css">
     
-    <!-- Google Fonts: Import Dancing Script for "Welcome, Neighbor" Signature -->
+    <!-- Google Fonts: Asynchronous Non-Blocking Import for "Welcome, Neighbor" Signature -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript>
+        <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet">
+    </noscript>
 
     <!-- Dynamic Open Graph (OG) & Social Card Metadata -->
     <meta property="og:type" content="website">
@@ -104,7 +111,7 @@
 
     {% include "footer.njk" %}
     
-    <div class="build-freshness-wrapper" style="text-align: center; padding: 1.5rem 1rem; font-size: 0.8rem; opacity: 0.7; border-top: 1px solid rgba(0,0,0,0.05); background-color: var(--dynamic-bg-highlight); margin-bottom: {% if not hideCTA %}70px{% else %}0{% endif %};">
+    <div class="build-freshness-wrapper" style="text-align: center; padding: 1.5rem 1rem; font-size: 0.85rem; border-top: 1px solid var(--premier-beige); background-color: var(--dynamic-bg-highlight); margin-bottom: {% if not hideCTA %}70px{% else %}0{% endif %};">
         <p style="margin: 0; font-weight: 600; color: var(--premier-charcoal);">
             System Active | Last Updated: <strong>{% buildTime %}</strong> | <strong>{{ r2_storage.usedGB if r2_storage and r2_storage.usedGB else "0.00" }}/10</strong>
         </p>
@@ -407,7 +414,7 @@
     }
 
     .text-joe-btn {
-        background-color: white;
+        background-color: var(--white);
         border: 1px solid var(--premier-charcoal);
         color: var(--premier-charcoal);
     }
@@ -421,7 +428,7 @@
     .book-joe-btn {
         background-color: var(--card-accent-color);
         border: 1px solid var(--card-accent-color);
-        color: white;
+        color: var(--white);
     }
 
     body {
