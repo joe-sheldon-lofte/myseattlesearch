@@ -39,10 +39,11 @@ layout: base.njk
     text-align: left;
   }
   .standalone-card-box {
-    border-radius: 6px;
+    border-radius: 8px;
     width: 100%;
     box-sizing: border-box;
     position: relative;
+    overflow: hidden;
   }
   .standalone-card-box.type-post {
     padding: 1.25rem;
@@ -57,8 +58,77 @@ layout: base.njk
   .standalone-card-box.type-article {
     padding: 1.75rem;
     border: 1px solid var(--card-accent-color);
-    background-color: white;
+    background-color: var(--white);
   }
+  
+  /* Modern Touch-Enabled Carousel */
+  .post-carousel-container {
+    position: relative;
+    width: 100%;
+    margin: 1rem 0 1.25rem 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: var(--premier-charcoal);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  .post-carousel-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .post-carousel-track::-webkit-scrollbar {
+    display: none;
+  }
+  .post-carousel-slide {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  .post-carousel-slide img {
+    width: 100%;
+    height: auto;
+    max-height: 520px;
+    object-fit: contain;
+    display: block;
+  }
+  .carousel-badge-counter {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: rgba(0, 0, 0, 0.65);
+    color: var(--white);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    backdrop-filter: blur(4px);
+    z-index: 2;
+  }
+  .carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0;
+    background-color: rgba(0, 0, 0, 0.2);
+  }
+  .carousel-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.4);
+    transition: background-color 0.2s ease;
+  }
+  .carousel-dot.active {
+    background-color: var(--white);
+  }
+
   .standalone-body p {
     margin-bottom: 1.25rem;
     line-height: 1.6;
@@ -78,7 +148,7 @@ layout: base.njk
     gap: 0.4rem;
     padding: 0.5rem 1rem;
     background-color: var(--card-accent-color);
-    color: white;
+    color: var(--white);
     text-decoration: none;
     font-weight: 700;
     border-radius: 4px;
@@ -96,32 +166,68 @@ layout: base.njk
   {% set isNote = typeLower == "note" %}
   {% set isArticle = typeLower == "article" %}
 
+  {# Collect non-empty attached images from front-matter #}
+  {% set postImages = [] %}
+  {% if image_1 %}{% set postImages = (postImages.push(image_1), postImages) %}{% endif %}
+  {% if image_2 %}{% set postImages = (postImages.push(image_2), postImages) %}{% endif %}
+  {% if image_3 %}{% set postImages = (postImages.push(image_3), postImages) %}{% endif %}
+  {% if image_4 %}{% set postImages = (postImages.push(image_4), postImages) %}{% endif %}
+  {% if image_5 %}{% set postImages = (postImages.push(image_5), postImages) %}{% endif %}
+
   <article class="standalone-card-box type-{{ typeLower }}">
     <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-      <span style="text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800; font-size: 0.8rem; color: {% if isPost %}white{% else %}var(--card-accent-color){% endif %};">{{ type }}</span>
-      <span style="font-size: 0.8rem; font-weight: 700; color: {% if isPost %}white{% else %}rgba(0,0,0,0.4){% endif %}; font-style: italic;">Viewing Entry</span>
+      <span style="text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800; font-size: 0.8rem; color: {% if isPost %}var(--white){% else %}var(--card-accent-color){% endif %};">{{ type }}</span>
+      <span style="font-size: 0.8rem; font-weight: 700; color: {% if isPost %}var(--white){% else %}rgba(0,0,0,0.4){% endif %}; font-style: italic;">Viewing Entry</span>
     </header>
 
-    {% if not isPost and headline %}
-      <h1 style="margin: 0 0 0.4rem 0; font-size: {% if isNote %}1.5rem{% else %}1.85rem{% endif %}; font-weight: 900; color: var(--premier-charcoal); line-height: 1.2;">{{ headline }}</h1>
-    {% endif %}
-    {% if isArticle and subhead %}
-      <p style="margin: 0 0 0.75rem 0; font-size: 1.05rem; font-style: italic; color: rgba(0,0,0,0.6);">{{ subhead }}</p>
+    {# 1. Headline / Title #}
+    <h1 style="margin: 0 0 0.4rem 0; font-size: {% if isNote %}1.5rem{% else %}1.85rem{% endif %}; font-weight: 900; color: {% if isPost %}var(--white){% else %}var(--premier-charcoal){% endif %}; line-height: 1.2;">
+      {{ headline if headline else title }}
+    </h1>
+
+    {# 2. Subhead #}
+    {% if subhead %}
+      <p style="margin: 0 0 0.75rem 0; font-size: 1.05rem; font-style: italic; color: {% if isPost %}rgba(255,255,255,0.85){% else %}rgba(0,0,0,0.6){% endif %};">{{ subhead }}</p>
     {% endif %}
 
-    <div class="standalone-body" style="{% if isPost %}color: white; font-size: 1.15rem; font-weight: 600; line-height: 1.45;{% else %}color: var(--premier-charcoal); font-size: 1.05rem;{% endif %} margin-bottom: 1.25rem;">
+    {# 3. Image Carousel #}
+    {% if postImages.length > 0 %}
+      <div class="post-carousel-container" id="post-carousel">
+        {% if postImages.length > 1 %}
+          <div class="carousel-badge-counter" id="carousel-counter">1 / {{ postImages.length }}</div>
+        {% endif %}
+        <div class="post-carousel-track" id="carousel-track">
+          {% for img in postImages %}
+            <div class="post-carousel-slide">
+              <img src="{{ img }}" alt="{{ title }} - Image {{ loop.index }}" loading="lazy" />
+            </div>
+          {% endfor %}
+        </div>
+        {% if postImages.length > 1 %}
+          <div class="carousel-dots" id="carousel-dots">
+            {% for img in postImages %}
+              <div class="carousel-dot {% if loop.first %}active{% endif %}"></div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {# 4. Content #}
+    <div class="standalone-body" style="{% if isPost %}color: var(--white); font-size: 1.15rem; font-weight: 600; line-height: 1.45;{% else %}color: var(--premier-charcoal); font-size: 1.05rem;{% endif %} margin-bottom: 1.25rem;">
       {{ content | safe }}
     </div>
 
+    {# 5. External Reference Links #}
     {% if url_1 or url_2 %}
       <div class="reference-links-deck">
         {% if url_1 %}
-          <a href="{{ url_1 }}" target="_blank" rel="noopener noreferrer" class="reference-btn" style="{% if isPost %}background-color: white; color: var(--card-accent-color); border: 1px solid rgba(0,0,0,0.1);{% endif %}">
+          <a href="{{ url_1 }}" target="_blank" rel="noopener noreferrer" class="reference-btn" style="{% if isPost %}background-color: var(--white); color: var(--card-accent-color); border: 1px solid rgba(0,0,0,0.1);{% endif %}">
             🔗 {{ url_1_label if url_1_label else "Source Reference 1" }}
           </a>
         {% endif %}
         {% if url_2 %}
-          <a href="{{ url_2 }}" target="_blank" rel="noopener noreferrer" class="reference-btn" style="{% if isPost %}background-color: white; color: var(--card-accent-color); border: 1px solid rgba(0,0,0,0.1);{% endif %}">
+          <a href="{{ url_2 }}" target="_blank" rel="noopener noreferrer" class="reference-btn" style="{% if isPost %}background-color: var(--white); color: var(--card-accent-color); border: 1px solid rgba(0,0,0,0.1);{% endif %}">
             🔗 {{ url_2_label if url_2_label else "Source Reference 2" }}
           </a>
         {% endif %}
@@ -129,17 +235,45 @@ layout: base.njk
     {% endif %}
 
     <footer style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; background-color: {% if isPost %}rgba(255,255,255,0.15){% else %}rgba(0,0,0,0.03){% endif %}; padding: 0.4rem 0.75rem; border-radius: 4px; font-size: 0.8rem; margin-top: 1.25rem; gap: 0.5rem;">
-      <div style="flex: 1 1 260px; font-weight: 500; color: {% if isPost %}white{% else %}rgba(0,0,0,0.65){% endif %};">
+      <div style="flex: 1 1 260px; font-weight: 500; color: {% if isPost %}var(--white){% else %}rgba(0,0,0,0.65){% endif %};">
         By: {{ author or "Joe Sheldon" }} • {{ date | postDate }}
       </div>
       <div style="flex: 1 1 auto; display: flex; justify-content: flex-end; gap: 0.5rem; align-items: center;">
-        <button class="notebook-share-btn" data-url="https://myseattlesearch.com{{ page.url }}" data-title="{{ headline or 'Notebook Update' }}" style="background: white; border: 1px solid rgba(0,0,0,0.15); padding: 0.25rem 0.5rem; border-radius: 3px; font-weight: 600; cursor: pointer; font-size: 0.75rem; color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.25rem;">
+        <button class="notebook-share-btn" data-url="https://myseattlesearch.com{{ page.url }}" data-title="{{ headline or title or 'Notebook Update' }}" style="background: var(--white); border: 1px solid rgba(0,0,0,0.15); padding: 0.25rem 0.5rem; border-radius: 3px; font-weight: 600; cursor: pointer; font-size: 0.75rem; color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.25rem;">
           🔄 Share
         </button>
-        <a href="/chat/?reply_to={{ page.fileSlug }}" style="background: white; border: 1px solid rgba(0,0,0,0.15); padding: 0.25rem 0.5rem; border-radius: 3px; font-weight: 600; text-decoration: none; font-size: 0.75rem; color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.25rem;">
+        <a href="/chat/?reply_to={{ page.fileSlug }}" style="background: var(--white); border: 1px solid rgba(0,0,0,0.15); padding: 0.25rem 0.5rem; border-radius: 3px; font-weight: 600; text-decoration: none; font-size: 0.75rem; color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.25rem;">
           💬 Reply
         </a>
       </div>
     </footer>
   </article>
 </div>
+
+{% if postImages.length > 1 %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var track = document.getElementById('carousel-track');
+    var counter = document.getElementById('carousel-counter');
+    var dots = document.querySelectorAll('#carousel-dots .carousel-dot');
+    var total = {{ postImages.length }};
+    
+    if (track) {
+      track.addEventListener('scroll', function() {
+        var slideWidth = track.clientWidth;
+        if (slideWidth > 0) {
+          var index = Math.round(track.scrollLeft / slideWidth);
+          if (counter) counter.textContent = (index + 1) + ' / ' + total;
+          dots.forEach(function(dot, i) {
+            if (i === index) {
+              dot.classList.add('active');
+            } else {
+              dot.classList.remove('active');
+            }
+          });
+        }
+      });
+    }
+  });
+</script>
+{% endif %}
