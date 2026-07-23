@@ -1,8 +1,11 @@
+# File: scripts/harvest_hourly.py
+
 import os
 import io
 import json
 import math
 import re
+import time
 import datetime
 import ssl
 import urllib.request
@@ -17,6 +20,7 @@ from zoneinfo import ZoneInfo
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
+
 def get_col_letter(col_idx):
     """
     Translates a 0-indexed column integer into standard Google Sheets A-Z/AA-ZZ formatting coordinates.
@@ -28,6 +32,7 @@ def get_col_letter(col_idx):
         result = chr(65 + remainder) + result
         col_idx = (col_idx - 1) // 26
     return result
+
 
 def clean_nan_tokens(node):
     """
@@ -41,6 +46,7 @@ def clean_nan_tokens(node):
         return None
     return node
 
+
 def generate_url_slug(text_input):
     """
     Normalizes human names and titles into clean, URL-safe string tokens.
@@ -48,6 +54,7 @@ def generate_url_slug(text_input):
     processed = str(text_input).lower().strip()
     processed = re.sub(r'[^a-z0-9\s-]', '', processed)
     return re.sub(r'[\s-]+', '-', processed)
+
 
 def extract_google_id(url_string):
     """
@@ -62,6 +69,7 @@ def extract_google_id(url_string):
     if match:
         return match.group(1)
     return None
+
 
 def apply_markdown_style(content, style_type, url=None):
     """
@@ -81,6 +89,7 @@ def apply_markdown_style(content, style_type, url=None):
             core = f"[{core}]({url})"
         return f"{lead}{core}{trail}"
     return content
+
 
 def get_google_doc_as_markdown(docs_service, doc_url):
     """
@@ -123,6 +132,7 @@ def get_google_doc_as_markdown(docs_service, doc_url):
         print(f"   ⚠️ Warning: Doc parsing fault on ID {doc_id}: {e}")
         return ""
 
+
 def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, folder_name, filename_slug, index=1):
     """
     Downloads raw image files from Drive, compresses them to WebP, and pushes them to R2.
@@ -157,6 +167,7 @@ def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, fol
         print(f"   ❌ Image optimization fallback triggered on ID {file_id}: {e}")
         return image_url
 
+
 def parse_sheet_values(rows):
     if not rows:
         return []
@@ -167,6 +178,151 @@ def parse_sheet_values(rows):
         sanitized = [str(item).strip() if item is not None else "" for item in padded]
         records.append(dict(zip(headers, sanitized)))
     return records
+
+
+def publish_to_facebook(page_id, access_token, text, link=None, image_url=None):
+    """
+    Publishes text, link attachments, or WebP images to the Facebook Page feed.
+    """
+    if not page_id or not access_token:
+        print("   ⚠️ Facebook credentials missing. Skipping FB publish.")
+        return None
+
+    try:
+        if image_url:
+            url = f"https://graph.facebook.com/v19.0/{page_id}/photos"
+            payload = {
+                "url": image_url,
+                "caption": text,
+                "access_token": access_token,
+            }
+        else:
+            url = f"https://graph.facebook.com/v19.0/{page_id}/feed"
+            payload = {"message": text, "access_token": access_token}
+            if link:
+                payload["link"] = link
+
+        res = requests.post(url, data=payload, timeout=15)
+        res_data = res.json()
+
+        if res.status_code == 200 and "id" in res_data:
+            post_id = res_data["id"]
+            print(f"   ✅ Facebook post published successfully! Post ID: {post_id}")
+            return post_id
+        else:
+            print(f"   ❌ Facebook API Error: {res_data}")
+            return None
+    except Exception as e:
+        print(f"   ❌ Exception during Facebook publish: {e}")
+        return None
+
+
+def publish_to_threads(user_id, access_token, text, image_url=None):
+    """
+    Publishes via Meta Threads API two-stage container deployment pipeline.
+    """
+    if not user_id or not access_token:
+        print("   ⚠️ Threads credentials missing. Skipping Threads publish.")
+        return None
+
+    try:
+        container_url = f"https://graph.threads.net/v1.0/{user_id}/threads"
+        if image_url:
+            c_payload = {
+                "media_type": "IMAGE",
+                "image_url": image_url,
+                "text": text,
+                "access_token": access_token,
+            }
+        else:
+            c_payload = {
+                "media_type": "TEXT",
+                "text": text,
+                "access_token": access_token,
+            }
+
+        c_res = requests.post(container_url, data=c_payload, timeout=15)
+        c_data = c_res.json()
+        container_id = c_data.get("id")
+
+        if not container_id:
+            print(f"   ❌ Threads Container Creation Error: {c_data}")
+            return None
+
+        time.sleep(3)
+
+        pub_url = f"https://graph.threads.net/v1.0/{user_id}/threads_publish"
+        p_payload = {
+            "creation_id": container_id,
+            "access_token": access_token,
+        }
+        p_res = requests.post(pub_url, data=p_payload, timeout=15)
+        p_data = p_res.json()
+        post_id = p_data.get("id")
+
+        if p_res.status_code == 200 and post_id:
+            print(f"   ✅ Threads post published successfully! Thread ID: {post_id}")
+            return post_id
+        else:
+            print(f"   ❌ Threads Publish Error: {p_data}")
+            return None
+    except Exception as e:
+        print(f"   ❌ Exception during Threads publish: {e}")
+        return None
+
+
+def publish_to_linkedin(author_urn, access_token, text, link=None, title=None):
+    """
+    Publishes post or article payload to LinkedIn Posts API (v2).
+    """
+    if not author_urn or not access_token:
+        print("   ⚠️ LinkedIn credentials missing. Skipping LinkedIn publish.")
+        return None
+
+    try:
+        url = "https://api.linkedin.com/v2/posts"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "X-Restli-Protocol-Version": "2.0.0",
+            "Content-Type": "application/json",
+        }
+
+        payload = {
+            "author": author_urn,
+            "commentary": text,
+            "visibility": "PUBLIC",
+            "distribution": {
+                "feedDistribution": "MAIN_FEED",
+                "targetEntities": [],
+                "thirdPartyDistributionChannels": [],
+            },
+            "lifecycleState": "PUBLISHED",
+        }
+
+        if link:
+            payload["content"] = {
+                "article": {
+                    "source": link,
+                    "title": title or "MySeattleSearch Update",
+                }
+            }
+
+        res = requests.post(url, headers=headers, json=payload, timeout=15)
+        if res.status_code in (200, 201):
+            post_id = (
+                res.headers.get("x-restli-id")
+                or res.json().get("id")
+                or "published"
+            )
+            print(f"   ✅ LinkedIn post published successfully! Post URN: {post_id}")
+            return post_id
+        else:
+            print(f"   ❌ LinkedIn API Error ({res.status_code}): {res.text}")
+            return None
+    except Exception as e:
+        print(f"   ❌ Exception during LinkedIn publish: {e}")
+        return None
+
 
 def main():
     print("🧠 Starting the MySeattleSearch Master Omnibus Data Engine...")
@@ -210,6 +366,7 @@ def main():
         print("⚠️ Warning: R2 secrets missing. Image optimizations will default to original urls.")
 
     batch_sheet_writebacks = {}
+    cms_image_map = {}
 
     # ====================================================================
     # MODULE 1: COMMAND CENTER INGESTION (MARKET, RATES & HISTORICAL LOG)
@@ -436,6 +593,9 @@ def main():
                                 })
                         else:
                             optimized_images.append(img_url)
+
+                    if optimized_images and optimized_images[0]:
+                        cms_image_map[slug] = optimized_images[0]
                             
                     post_type = record.get("Type", "").strip()
                     content_field = record.get("Content", "").strip()
@@ -636,20 +796,128 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
             print(f"   ⚠️ Portfolio DOM sync pass bypassed: {e}")
 
     # ====================================================================
-    # MODULE 7: FLUSH BULK CELL WRITEBACKS TO REUSE CDN URL FOOTPRINTS
+    # MODULE 7: SOCIAL MEDIA AUTO-PUBLISHER (FB, THREADS, LINKEDIN)
+    # ====================================================================
+    if cms_sheet_id:
+        fb_page_id = os.environ.get("FB_PAGE_ID")
+        fb_token = os.environ.get("FB_PAGE_ACCESS_TOKEN")
+        threads_user_id = os.environ.get("THREADS_USER_ID")
+        threads_token = os.environ.get("THREADS_ACCESS_TOKEN")
+        li_author = os.environ.get("LINKEDIN_AUTHOR_URN")
+        li_token = os.environ.get("LINKEDIN_ACCESS_TOKEN")
+
+        if any([fb_token, threads_token, li_token]):
+            print("📢 Scanning for pending social media posts...")
+            try:
+                res = sheets_service.spreadsheets().values().get(
+                    spreadsheetId=cms_sheet_id, range="Posts!A:AD"
+                ).execute()
+                p_rows = res.get("values", [])
+
+                if p_rows and len(p_rows) >= 2:
+                    p_headers = [str(h).strip() for h in p_rows[0]]
+                    col_map_soc = {
+                        "active": p_headers.index("Active") if "Active" in p_headers else -1,
+                        "content_id": p_headers.index("Content ID") if "Content ID" in p_headers else -1,
+                        "title": p_headers.index("Title") if "Title" in p_headers else -1,
+                        "headline": p_headers.index("Headline") if "Headline" in p_headers else -1,
+                        "subhead": p_headers.index("Subhead") if "Subhead" in p_headers else -1,
+                        "url_1": p_headers.index("URL 1") if "URL 1" in p_headers else -1,
+                        "img_1": p_headers.index("Image 1 URL") if "Image 1 URL" in p_headers else -1,
+                        "fb_switch": p_headers.index("FB") if "FB" in p_headers else -1,
+                        "fb_id": p_headers.index("FB ID") if "FB ID" in p_headers else -1,
+                        "threads_switch": p_headers.index("Threads") if "Threads" in p_headers else -1,
+                        "threads_id": p_headers.index("Threads ID") if "Threads ID" in p_headers else -1,
+                        "li_switch": p_headers.index("LI") if "LI" in p_headers else -1,
+                        "li_id": p_headers.index("LI ID") if "LI ID" in p_headers else -1,
+                    }
+
+                    if cms_sheet_id not in batch_sheet_writebacks:
+                        batch_sheet_writebacks[cms_sheet_id] = []
+
+                    for idx, row in enumerate(p_rows[1:]):
+                        row_num = idx + 2
+                        padded = list(row) + [""] * (len(p_headers) - len(row))
+
+                        def get_v(c_idx):
+                            return padded[c_idx].strip() if c_idx != -1 else ""
+
+                        if get_v(col_map_soc["active"]).lower() != "yes":
+                            continue
+
+                        slug = get_v(col_map_soc["content_id"])
+                        title = get_v(col_map_soc["title"])
+                        headline = get_v(col_map_soc["headline"])
+                        subhead = get_v(col_map_soc["subhead"])
+                        url_1 = get_v(col_map_soc["url_1"])
+                        
+                        image_1 = cms_image_map.get(slug, get_v(col_map_soc["img_1"]))
+
+                        primary_text = headline or title
+                        if not primary_text:
+                            continue
+
+                        post_text = primary_text
+                        if subhead:
+                            post_text += f"\n\n{subhead}"
+                        if url_1 and "docs.google.com" not in url_1:
+                            post_text += f"\n\n{url_1}"
+
+                        # 1. Facebook Publishing Sequence
+                        if get_v(col_map_soc["fb_switch"]).lower() == "yes" and not get_v(col_map_soc["fb_id"]):
+                            print(f"   📢 [Row {row_num}] Publishing to Facebook: '{primary_text[:40]}...'")
+                            pub_id = publish_to_facebook(
+                                fb_page_id, fb_token, post_text, link=url_1, image_url=image_1
+                            )
+                            if pub_id and col_map_soc["fb_id"] != -1:
+                                batch_sheet_writebacks[cms_sheet_id].append({
+                                    'range': f"Posts!{get_col_letter(col_map_soc['fb_id'])}{row_num}",
+                                    'values': [[pub_id]]
+                                })
+
+                        # 2. Threads Publishing Sequence
+                        if get_v(col_map_soc["threads_switch"]).lower() == "yes" and not get_v(col_map_soc["threads_id"]):
+                            print(f"   📢 [Row {row_num}] Publishing to Threads: '{primary_text[:40]}...'")
+                            pub_id = publish_to_threads(
+                                threads_user_id, threads_token, post_text, image_url=image_1
+                            )
+                            if pub_id and col_map_soc["threads_id"] != -1:
+                                batch_sheet_writebacks[cms_sheet_id].append({
+                                    'range': f"Posts!{get_col_letter(col_map_soc['threads_id'])}{row_num}",
+                                    'values': [[pub_id]]
+                                })
+
+                        # 3. LinkedIn Publishing Sequence
+                        if get_v(col_map_soc["li_switch"]).lower() == "yes" and not get_v(col_map_soc["li_id"]):
+                            print(f"   📢 [Row {row_num}] Publishing to LinkedIn: '{primary_text[:40]}...'")
+                            pub_id = publish_to_linkedin(
+                                li_author, li_token, post_text, link=url_1, title=primary_text
+                            )
+                            if pub_id and col_map_soc["li_id"] != -1:
+                                batch_sheet_writebacks[cms_sheet_id].append({
+                                    'range': f"Posts!{get_col_letter(col_map_soc['li_id'])}{row_num}",
+                                    'values': [[pub_id]]
+                                })
+
+            except Exception as e:
+                print(f"   ❌ Social publisher module execution failure: {e}")
+
+    # ====================================================================
+    # MODULE 8: FLUSH BULK CELL WRITEBACKS TO REUSE CDN URL FOOTPRINTS
     # ====================================================================
     for s_id, updates in batch_sheet_writebacks.items():
         if updates:
-            print(f"📝 Executing unified cell data writeback pass to Workbook ID: {s_id}...")
+            print(f"📝 Executing unified cell data writeback pass ({len(updates)} cell updates) to Workbook ID: {s_id}...")
             try:
                 sheets_service.spreadsheets().values().batchUpdate(
                     spreadsheetId=s_id, body={'valueInputOption': 'USER_ENTERED', 'data': updates}
                 ).execute()
+                print(f"   ✅ Workbook `{s_id}` writebacks synchronized in single batch pass.")
             except Exception as write_err:
                 print(f"   ⚠️ Sheet cells writeback bypass warning: {write_err}")
 
     # ====================================================================
-    # MODULE 8: ACCURATE CLOUDFLARE R2 ACCOUNTING METRICS GENERATOR
+    # MODULE 9: ACCURATE CLOUDFLARE R2 ACCOUNTING METRICS GENERATOR
     # ====================================================================
     out_dir = "_data"
     os.makedirs(out_dir, exist_ok=True)
@@ -668,6 +936,7 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
     with open(out_f, "w", encoding="utf-8") as f: json.dump(r2_payload, f, indent=2)
 
     print("🏁 Real-Time Master Locomotive Processing Sequence Complete. Site data fresh.")
+
 
 if __name__ == "__main__":
     main()
