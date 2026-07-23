@@ -7,6 +7,7 @@ import math
 import re
 import time
 import datetime
+import warnings
 import ssl
 import urllib.request
 import urllib.parse
@@ -16,9 +17,20 @@ import boto3
 import pandas as pd
 from PIL import Image
 from dateutil import parser
+from dateutil.parser import UnknownTimezoneWarning
 from zoneinfo import ZoneInfo
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
+
+# Suppress dateutil PST/PDT unknown timezone warnings
+warnings.filterwarnings("ignore", category=UnknownTimezoneWarning)
+
+# Enable native Apple HEIC/HEIF decoding via Pillow-HEIF
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+except ImportError:
+    pass
 
 
 def get_col_letter(col_idx):
@@ -135,7 +147,7 @@ def get_google_doc_as_markdown(docs_service, doc_url):
 
 def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, folder_name, filename_slug, index=1):
     """
-    Downloads raw image files from Drive, compresses them to WebP, and pushes them to R2.
+    Downloads raw image files from Drive, decodes JPEG/PNG/HEIC formats, compresses them to WebP, and pushes to R2.
     """
     file_id = extract_google_id(image_url)
     if not file_id:
@@ -147,7 +159,14 @@ def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, fol
     
     try:
         request = drive_service.files().get_media(fileId=file_id)
-        file_stream = io.BytesIO(request.execute())
+        raw_bytes = request.execute()
+        
+        # Verify that Drive returned binary bytes rather than an HTML/JSON error page
+        if isinstance(raw_bytes, str) or raw_bytes.startswith(b"<!DOCTYPE") or raw_bytes.startswith(b"<html") or raw_bytes.startswith(b"{"):
+            print(f"   ⚠️ Non-image byte stream returned from Drive for ID {file_id}. Preserving original URL.")
+            return image_url
+
+        file_stream = io.BytesIO(raw_bytes)
         img = Image.open(file_stream)
         img = img.convert("RGBA") if img.mode in ("RGBA", "P") else img.convert("RGB")
         
@@ -182,11 +201,16 @@ def parse_sheet_values(rows):
 
 def publish_to_facebook(page_id, access_token, text, link=None, image_url=None):
     """
-    Publishes text, link attachments, or WebP images to the Facebook Page feed.
+    Publishes text, link attachments, or public WebP images to the Facebook Page feed.
     """
     if not page_id or not access_token:
         print("   ⚠️ Facebook credentials missing. Skipping FB publish.")
         return None
+
+    # Public CDN Filter: Only pass image_url if hosted on Cloudflare R2
+    if image_url and not image_url.startswith("https://assets.myseattlesearch.com"):
+        print("   ⚠️ FB Image URL is not a public R2 asset. Stripping image parameter to post clean text/link.")
+        image_url = None
 
     try:
         if image_url:
@@ -224,6 +248,11 @@ def publish_to_threads(user_id, access_token, text, image_url=None):
     if not user_id or not access_token:
         print("   ⚠️ Threads credentials missing. Skipping Threads publish.")
         return None
+
+    # Public CDN Filter: Only pass image_url if hosted on Cloudflare R2
+    if image_url and not image_url.startswith("https://assets.myseattlesearch.com"):
+        print("   ⚠️ Threads Image URL is not a public R2 asset. Stripping image parameter to post clean text.")
+        image_url = None
 
     try:
         container_url = f"https://graph.threads.net/v1.0/{user_id}/threads"
@@ -278,6 +307,11 @@ def publish_to_linkedin(author_urn, access_token, text, link=None, title=None):
     if not author_urn or not access_token:
         print("   ⚠️ LinkedIn credentials missing. Skipping LinkedIn publish.")
         return None
+
+    # LinkedIn URN Sanitizer: Automatically prepend urn:li:person: if missing
+    author_urn = author_urn.strip()
+    if not author_urn.startswith("urn:li:"):
+        author_urn = f"urn:li:person:{author_urn}"
 
     try:
         url = "https://api.linkedin.com/v2/posts"
