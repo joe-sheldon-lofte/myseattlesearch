@@ -207,6 +207,9 @@ def publish_to_facebook(page_id, access_token, text, link=None, image_url=None):
         print("   ⚠️ Facebook credentials missing. Skipping FB publish.")
         return None
 
+    page_id = page_id.strip()
+    access_token = access_token.strip()
+
     # Public CDN Filter: Only pass image_url if hosted on Cloudflare R2
     if image_url and not image_url.startswith("https://assets.myseattlesearch.com"):
         print("   ⚠️ FB Image URL is not a public R2 asset. Stripping image parameter to post clean text/link.")
@@ -248,6 +251,9 @@ def publish_to_threads(user_id, access_token, text, image_url=None):
     if not user_id or not access_token:
         print("   ⚠️ Threads credentials missing. Skipping Threads publish.")
         return None
+
+    user_id = user_id.strip()
+    access_token = access_token.strip()
 
     # Public CDN Filter: Only pass image_url if hosted on Cloudflare R2
     if image_url and not image_url.startswith("https://assets.myseattlesearch.com"):
@@ -308,10 +314,14 @@ def publish_to_linkedin(author_urn, access_token, text, link=None, title=None):
         print("   ⚠️ LinkedIn credentials missing. Skipping LinkedIn publish.")
         return None
 
-    # LinkedIn URN Sanitizer: Automatically prepend urn:li:person: if missing
     author_urn = author_urn.strip()
-    if not author_urn.startswith("urn:li:"):
-        author_urn = f"urn:li:person:{author_urn}"
+    access_token = access_token.strip()
+
+    # LinkedIn URN Sanitizer: Translate urn:li:person: or raw IDs into urn:li:member:
+    if author_urn.startswith("urn:li:person:"):
+        author_urn = author_urn.replace("urn:li:person:", "urn:li:member:")
+    elif not author_urn.startswith("urn:li:"):
+        author_urn = f"urn:li:member:{author_urn}"
 
     try:
         url = "https://api.linkedin.com/v2/posts"
@@ -593,7 +603,7 @@ def main():
             print(f"   ❌ Critical error compiling Website Data workbook: {e}")
 
     # ====================================================================
-    # MODULE 3: CMS HEADLESS GENERATOR & EXPORT PATTERNS
+    # MODULE 3: CMS HEADLESS GENERATOR (INCREMENTAL DELTA SYNC ENGINE)
     # ====================================================================
     cms_sheet_id = os.environ.get("CMS_SHEET_ID")
     if cms_sheet_id:
@@ -610,11 +620,16 @@ def main():
                     row_num = idx + 2
                     slug = record.get("Content ID", "").strip()
                     if not slug: continue
+                    
+                    target_md = os.path.join(posts_dir, f"{slug}.md")
+                    
+                    # 1. Inactive Purge Rule: Delete file if Active != "yes"
                     if record.get("Active", "").strip().lower() != "yes":
-                        target_md = os.path.join(posts_dir, f"{slug}.md")
-                        if os.path.exists(target_md): os.remove(target_md)
+                        if os.path.exists(target_md): 
+                            os.remove(target_md)
                         continue
                         
+                    # 2. Process R2 Image Optimizations
                     optimized_images = []
                     for i in range(1, 6):
                         img_url = record.get(f"Image {i} URL", "").strip()
@@ -633,7 +648,6 @@ def main():
                             
                     post_type = record.get("Type", "").strip()
                     content_field = record.get("Content", "").strip()
-                    body_text = get_google_doc_as_markdown(docs_service, content_field) if post_type.lower() == "article" and "docs.google.com" in content_field else content_field
                     
                     raw_tags = record.get("Tags", "")
                     tags_list = ", ".join([f'"{t.strip()}"' for t in raw_tags.split(",") if t.strip()])
@@ -662,10 +676,39 @@ image_3: "{optimized_images[2] if len(optimized_images) > 2 else ''}"
 image_4: "{optimized_images[3] if len(optimized_images) > 3 else ''}"
 image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
 ---
-{body_text}
-""")
-                    with open(os.path.join(posts_dir, f"{slug}.md"), "w", encoding="utf-8") as f:
-                        f.write(front_matter)
+"""
+                    )
+
+                    # 3. Delta Sync Engine: Evaluate existing file on disk to skip unnecessary Google API calls
+                    file_exists = os.path.exists(target_md)
+                    existing_content = ""
+                    if file_exists:
+                        try:
+                            with open(target_md, "r", encoding="utf-8") as ef:
+                                existing_content = ef.read()
+                        except Exception:
+                            existing_content = ""
+
+                    body_text = ""
+                    front_matter_match = existing_content.startswith(front_matter.strip())
+
+                    if post_type.lower() == "article" and "docs.google.com" in content_field:
+                        # If front-matter metadata matches, reuse existing body text from disk!
+                        if file_exists and front_matter_match:
+                            parts = existing_content.split("---\n", 2)
+                            body_text = parts[2] if len(parts) >= 3 else get_google_doc_as_markdown(docs_service, content_field)
+                        else:
+                            body_text = get_google_doc_as_markdown(docs_service, content_field)
+                    else:
+                        body_text = content_field
+
+                    full_md_payload = f"{front_matter}{body_text}"
+
+                    # 4. Zero-Write Optimization: Only write to disk if content actually changed
+                    if existing_content != full_md_payload:
+                        with open(target_md, "w", encoding="utf-8") as f:
+                            f.write(full_md_payload)
+
         except Exception as e:
             print(f"   ❌ Headless CMS module execution failure: {e}")
 
@@ -856,6 +899,7 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                         "title": p_headers.index("Title") if "Title" in p_headers else -1,
                         "headline": p_headers.index("Headline") if "Headline" in p_headers else -1,
                         "subhead": p_headers.index("Subhead") if "Subhead" in p_headers else -1,
+                        "content": p_headers.index("Content") if "Content" in p_headers else -1,
                         "url_1": p_headers.index("URL 1") if "URL 1" in p_headers else -1,
                         "img_1": p_headers.index("Image 1 URL") if "Image 1 URL" in p_headers else -1,
                         "fb_switch": p_headers.index("FB") if "FB" in p_headers else -1,
@@ -883,19 +927,30 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                         title = get_v(col_map_soc["title"])
                         headline = get_v(col_map_soc["headline"])
                         subhead = get_v(col_map_soc["subhead"])
+                        content_body = get_v(col_map_soc["content"])
                         url_1 = get_v(col_map_soc["url_1"])
                         
                         image_1 = cms_image_map.get(slug, get_v(col_map_soc["img_1"]))
 
                         primary_text = headline or title
-                        if not primary_text:
+                        if not primary_text and not content_body:
                             continue
 
-                        post_text = primary_text
-                        if subhead:
-                            post_text += f"\n\n{subhead}"
-                        if url_1 and "docs.google.com" not in url_1:
-                            post_text += f"\n\n{url_1}"
+                        # Construct complete social post payload body
+                        post_components = []
+                        if primary_text:
+                            post_components.append(primary_text)
+
+                        if content_body and "docs.google.com" not in content_body:
+                            if content_body != primary_text:
+                                post_components.append(content_body)
+                        elif subhead and subhead != primary_text:
+                            post_components.append(subhead)
+
+                        if url_1 and "docs.google.com" not in url_1 and url_1 not in primary_text and url_1 not in content_body:
+                            post_components.append(url_1)
+
+                        post_text = "\n\n".join(post_components)
 
                         # 1. Facebook Publishing Sequence
                         if get_v(col_map_soc["fb_switch"]).lower() == "yes" and not get_v(col_map_soc["fb_id"]):
