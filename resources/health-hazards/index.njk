@@ -1,7 +1,8 @@
 ---
 layout: base.njk
-title: King & Snohomish County Property Health & Hazard Radar | MySeattleSearch
+title: King & Snohomish County Property Health & Hazard Radar | Joe Sheldon
 metaDescription: Check any home in King or Snohomish County for environmental risks, soil conditions, airport flight paths, home age disclosures, and WA mandatory safety requirements.
+permalink: /resources/health-hazards/
 ---
 
 <script type="application/ld+json">
@@ -24,79 +25,309 @@ metaDescription: Check any home in King or Snohomish County for environmental ri
 }
 </script>
 
+<div class="resource-article-container">
+  <article class="editorial-narrative-flow">
+    
+    <!-- Narrative Editorial Header -->
+    <header class="narrative-header">
+      <div class="narrative-meta-tag">PNW Home Safety & Disclosure Guide</div>
+      <h1 class="narrative-title">King & Snohomish Property Health Radar</h1>
+      <p class="narrative-lede">
+        Every home in the Puget Sound region has a story. Select your city and property details below to instantly uncover local environmental factors, soil conditions, home-age disclosures, and Washington State safety rules in plain English.
+      </p>
+    </header>
+
+    <!-- Embedded Radar Lookup Widget -->
+    <section class="embedded-calculator-widget">
+      <property-hazard-radar class="widget-inner-card">
+        <header class="widget-header">
+          <h3>1-Minute Property Hazard Lookup</h3>
+          <p>Model local land factors, airport noise contours, home-age disclosures, and mandatory safety codes.</p>
+        </header>
+
+        <div class="widget-form-grid">
+          
+          <!-- City Select -->
+          <div class="widget-field">
+            <label for="radar-city-select">1. Select Municipality / City</label>
+            <select id="radar-city-select" class="widget-control">
+              {% if city_data %}
+                {% for city in city_data %}
+                  <option value="{{ city.City }}" {% if city.City == "Lynnwood" %}selected{% endif %}>
+                    {{ city.City }} ({{ city.County }} County)
+                  </option>
+                {% endfor %}
+              {% else %}
+                <option value="Lynnwood" selected>Lynnwood (Snohomish County)</option>
+                <option value="Seattle">Seattle (King County)</option>
+                <option value="Edmonds">Edmonds (Snohomish County)</option>
+                <option value="Mukilteo">Mukilteo (Snohomish County)</option>
+                <option value="Everett">Everett (Snohomish County)</option>
+                <option value="Bellevue">Bellevue (King County)</option>
+                <option value="Kirkland">Kirkland (King County)</option>
+                <option value="Shoreline">Shoreline (King County)</option>
+                <option value="Renton">Renton (King County)</option>
+              {% endif %}
+            </select>
+          </div>
+
+          <!-- Year Built -->
+          <div class="widget-field">
+            <label for="radar-year-built">2. Year Home Was Built</label>
+            <input type="number" id="radar-year-built" class="widget-control" value="1975" min="1880" max="2026">
+            <div class="presets-row">
+              <button type="button" class="btn-preset" data-year="1972">Pre-1978</button>
+              <button type="button" class="btn-preset" data-year="1985">1980s</button>
+              <button type="button" class="btn-preset" data-year="1998">1990s</button>
+              <button type="button" class="btn-preset" data-year="2015">2000+</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Property Feature Checkboxes -->
+        <div class="widget-field" style="margin-top: 1rem;">
+          <label>3. Property Features & Heating Systems</label>
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="chk-oil-tank">
+              Underground Fuel / Heating Oil Tank
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="chk-septic-well">
+              Septic System or Private Water Well
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="chk-basement-crawl" checked>
+              Has Basement or Crawl Space
+            </label>
+          </div>
+        </div>
+
+        <!-- Dynamic Results Output Board -->
+        <div style="margin-top: 2rem;">
+          <div class="results-header">
+            <h3 style="margin:0; font-size: 1.25rem;">Property Awareness Checklist</h3>
+            <span class="results-count-badge" id="results-count">Loading results...</span>
+          </div>
+
+          <div id="radar-results-container" class="hazard-results-grid">
+            <!-- Javascript renders cards here dynamically -->
+          </div>
+        </div>
+      </property-hazard-radar>
+    </section>
+
+    <!-- Deep-Dive Guides Directory Grid -->
+    <section class="narrative-section">
+      <h2>Browse Specific Hazard Guides</h2>
+      <p>Explore detailed guides covering local regulations, state grant programs, inspection steps, and official government resources:</p>
+
+      <div class="resources-grid">
+        
+        <!-- Environmental Directory Card -->
+        <div class="resource-card">
+          <div>
+            <span class="resource-icon">🌲</span>
+            <h3 class="resource-title">Environmental & Land Hazards</h3>
+            <p class="resource-description">
+              Macro location factors, airport flight paths, soil conditions, coastal bluffs, and shoreline advisories across King & Snohomish counties.
+            </p>
+            <ul class="directory-list">
+              <li>
+                <a href="/resources/health-hazards/heating-oil-tanks/">Underground Oil Tanks & PLIA Grants →</a>
+                <p>Decommissioning rules, soil testing, and WA PLIA grants up to $75,000.</p>
+              </li>
+              <li>
+                <a href="/resources/health-hazards/airport-noise-flight-paths/">Airport Flight Paths & Air Quality →</a>
+                <p>Paine Field, Sea-Tac, Boeing Field (KBFI), and regional airfields.</p>
+              </li>
+              <li>
+                <a href="/resources/health-hazards/smelter-plumes-soil/">Tacoma & Everett Smelter Soil Plumes →</a>
+                <p>Lead and arsenic soil testing in West Seattle, Everett, and South King.</p>
+              </li>
+              <li>
+                <a href="/resources/health-hazards/steep-slopes-landslides/">Bluffs, Landslides & Floodplains →</a>
+                <p>Puget Sound bluffs, river flood channels, and coal mine shafts.</p>
+              </li>
+              <li>
+                <a href="/resources/health-hazards/water-quality-beaches/">Beach Alerts & Toxic Lake Algae →</a>
+                <p>Saltwater biotoxins, beach advisories, and freshwater algae blooms.</p>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Home Health Directory Card -->
+        <div class="resource-card">
+          <div>
+            <span class="resource-icon">🏡</span>
+            <h3 class="resource-title">Home & Property Health Risks</h3>
+            <p class="resource-description">
+              Interior home safety risks, structural disclosures, water testing, and mandatory Washington State resale codes.
+            </p>
+            <ul class="directory-list">
+              <li>
+                <a href="/resources/health-hazards/radon-gas/">PNW Radon Testing & Mitigation →</a>
+                <p>Glacial till radon gas risks and sub-slab depressurization fixes.</p>
+              </li>
+              <li>
+                <a href="/resources/health-hazards/lead-and-asbestos/">Pre-1978 Lead & Pre-1980 Asbestos →</a>
+                <p>Federal lead disclosures, popcorn ceilings, and safe remodel tips.</p>
+              </li>
+              <li>
+                <a href="/resources/health-hazards/mold-moisture-attic-rain/">Mold, Moisture & Attic Rain →</a>
+                <p>Crawl space vapor barriers, bath fans, and winter attic condensation.</p>
+              </li>
+              <li>
+                <a href="/resources/health-hazards/wells-and-septic-systems/">Well Water & Septic RSS Inspections →</a>
+                <p>King & Snohomish County Septic Report of System Status (RSS) rules.</p>
+              </li>
+              <li>
+                <a href="/resources/health-hazards/wa-safety-code-requirements/">WA Mandatory Resale Safety Codes →</a>
+                <p>Smoke/CO detector laws and water heater seismic double-strapping.</p>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Narrative Footer -->
+    <footer class="narrative-footer">
+      <p>Have questions about an upcoming home inspection or need a trusted local vendor?</p>
+      <a href="tel:2066577493" class="official-resource-btn">
+        Call or Text Joe Sheldon: (206) 657-7493 &rarr;
+      </a>
+    </footer>
+
+  </article>
+</div>
+
 <style>
-.radar-hero {
-  background-color: var(--premier-charcoal);
-  color: var(--white);
-  padding: 3rem 1.5rem;
-  border-radius: 12px;
-  margin-bottom: 2.5rem;
-  text-align: center;
+.resource-article-container {
+  max-width: 1140px;
+  margin: 4rem auto;
+  box-sizing: border-box;
 }
 
-.radar-hero h1 {
-  color: var(--white);
-  font-size: 2.25rem;
-  margin-bottom: 0.75rem;
-  line-height: 1.2;
-}
-
-.radar-hero p {
-  color: var(--premier-beige);
-  font-size: 1.1rem;
-  max-width: 800px;
+.editorial-narrative-flow {
+  max-width: 900px;
   margin: 0 auto;
+}
+
+.narrative-header {
+  margin-bottom: 2.5rem;
+  border-bottom: 1px solid var(--premier-beige);
+  padding-bottom: 2rem;
+}
+
+.narrative-meta-tag {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--card-accent-color);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 0.75rem;
+}
+
+.narrative-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.75px;
+  color: var(--premier-charcoal);
+  line-height: 1.15;
+  margin: 0 0 1.25rem 0;
+}
+
+.narrative-lede {
+  font-size: 1.15rem;
   line-height: 1.6;
+  color: var(--premier-charcoal);
+  opacity: 0.9;
+  margin: 0;
 }
 
-.radar-card {
+.embedded-calculator-widget {
+  margin: 2.5rem 0 3.5rem 0;
+}
+
+.widget-inner-card {
   background-color: var(--white);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  margin-bottom: 3rem;
+  border: 1px solid var(--premier-beige);
+  border-radius: 14px;
+  padding: 2.25rem;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.02);
+  border-left: 5px solid var(--card-accent-color);
+  box-sizing: border-box;
 }
 
-.radar-form-grid {
+.widget-header {
+  margin-bottom: 1.75rem;
+}
+
+.widget-header h3 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--premier-charcoal);
+  margin: 0 0 0.35rem 0;
+}
+
+.widget-header p {
+  font-size: 0.95rem;
+  color: var(--premier-charcoal);
+  opacity: 0.8;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.widget-form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
   margin-bottom: 1.5rem;
 }
 
-.form-group {
+@media (min-width: 600px) {
+  .widget-form-grid {
+    grid-template-columns: 1.2fr 1fr;
+  }
+}
+
+.widget-field {
   display: flex;
   flex-direction: column;
+  gap: 0.4rem;
 }
 
-.form-group label {
+.widget-field label {
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--premier-charcoal);
-  margin-bottom: 0.5rem;
-  font-size: 0.95rem;
 }
 
-.form-control {
-  padding: 0.75rem 1rem;
-  border: 1px solid #ccc;
+.widget-control {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 0.95rem;
+  border: 1px solid var(--premier-beige);
   border-radius: 6px;
-  font-size: 1rem;
   background-color: var(--white);
   color: var(--premier-charcoal);
-  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+  font-family: inherit;
 }
 
-.form-control:focus {
+.widget-control:focus {
   outline: none;
   border-color: var(--card-accent-color);
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
 }
 
 .presets-row {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
   flex-wrap: wrap;
 }
 
@@ -104,12 +335,12 @@ metaDescription: Check any home in King or Snohomish County for environmental ri
   background-color: var(--premier-beige);
   color: var(--premier-charcoal);
   border: none;
-  padding: 0.35rem 0.75rem;
+  padding: 0.3rem 0.6rem;
   border-radius: 4px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.15s ease;
 }
 
 .btn-preset:hover {
@@ -118,34 +349,34 @@ metaDescription: Check any home in King or Snohomish County for environmental ri
 
 .checkbox-group {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1rem;
-  background-color: var(--premier-beige);
-  padding: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.85rem;
+  background-color: var(--dynamic-bg-highlight);
+  border: 1px solid var(--premier-beige);
+  padding: 1rem;
   border-radius: 8px;
-  margin-top: 1rem;
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  font-size: 0.95rem;
+  gap: 0.5rem;
+  font-size: 0.88rem;
   font-weight: 600;
   color: var(--premier-charcoal);
   cursor: pointer;
 }
 
 .checkbox-label input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   accent-color: var(--card-accent-color);
 }
 
 .results-header {
   border-bottom: 2px solid var(--premier-beige);
   padding-bottom: 0.75rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -153,16 +384,10 @@ metaDescription: Check any home in King or Snohomish County for environmental ri
   gap: 0.5rem;
 }
 
-.results-header h2 {
-  color: var(--premier-charcoal);
-  font-size: 1.5rem;
-  margin: 0;
-}
-
 .results-count-badge {
   background-color: var(--card-accent-color);
   color: var(--white);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 700;
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
@@ -171,72 +396,72 @@ metaDescription: Check any home in King or Snohomish County for environmental ri
 .hazard-results-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 .hazard-result-card {
   border-left: 4px solid var(--card-accent-color);
   background-color: var(--white);
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  border-right: 1px solid rgba(0, 0, 0, 0.06);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--premier-beige);
+  border-left-width: 4px;
+  border-left-color: var(--card-accent-color);
   border-radius: 8px;
-  padding: 1.5rem;
+  padding: 1.25rem;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .hazard-result-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
 }
 
 .card-category-tag {
   display: inline-block;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
 }
 
 .tag-environmental {
   background-color: var(--premier-beige);
   color: var(--premier-charcoal);
-  border: 1px solid var(--card-accent-color);
 }
 
 .tag-home {
   background-color: var(--dynamic-bg-highlight);
   color: var(--premier-charcoal);
-  border: 1px solid var(--card-accent-color);
+  border: 1px solid var(--premier-beige);
 }
 
 .hazard-title {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   color: var(--premier-charcoal);
-  margin-top: 0;
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.4rem 0;
+  font-weight: 800;
 }
 
 .hazard-summary {
-  color: #444;
-  font-size: 0.98rem;
-  line-height: 1.55;
-  margin-bottom: 1rem;
+  color: var(--premier-charcoal);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin-bottom: 0.85rem;
 }
 
 .official-links-box {
-  background-color: var(--premier-beige);
+  background-color: var(--dynamic-bg-highlight);
+  border: 1px solid var(--premier-beige);
   border-radius: 6px;
-  padding: 0.85rem 1rem;
-  margin-top: 1rem;
+  padding: 0.75rem 0.85rem;
+  margin-top: 0.85rem;
 }
 
 .official-links-box h4 {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.85rem;
+  margin: 0 0 0.4rem 0;
+  font-size: 0.8rem;
   color: var(--premier-charcoal);
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -248,12 +473,12 @@ metaDescription: Check any home in King or Snohomish County for environmental ri
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.35rem;
 }
 
 .official-links-list li a {
   color: var(--premier-charcoal);
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 600;
   text-decoration: underline;
   transition: color 0.2s ease;
@@ -263,45 +488,86 @@ metaDescription: Check any home in King or Snohomish County for environmental ri
   color: var(--card-accent-color);
 }
 
-.hub-directories-grid {
+/* Resources Cards Grid Matching resources.njk */
+.resources-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: 1fr;
   gap: 2rem;
-  margin-top: 3rem;
+  margin-top: 2rem;
 }
 
-.directory-block {
-  background-color: var(--white);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
-  padding: 2rem;
+@media (min-width: 768px) {
+  .resources-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-.directory-block h3 {
+.resource-card {
+  background: var(--white);
+  border: 1px solid var(--light-gray);
+  border-radius: 14px;
+  padding: 2.25rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+  border-top: 6px solid var(--card-accent-color);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.resource-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 25px rgba(0,0,0,0.06);
+}
+
+.resource-icon {
+  font-size: 2.2rem;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.resource-title {
+  font-size: 1.35rem;
   color: var(--premier-charcoal);
-  font-size: 1.4rem;
-  margin-top: 0;
-  border-bottom: 2px solid var(--premier-beige);
-  padding-bottom: 0.5rem;
+  margin: 0 0 0.5rem 0;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+
+.resource-description {
+  color: var(--premier-charcoal);
+  opacity: 0.85;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
 }
 
 .directory-list {
   list-style: none;
   padding: 0;
-  margin: 1rem 0 0 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 1rem;
+}
+
+.directory-list li {
+  border-bottom: 1px solid var(--premier-beige);
+  padding-bottom: 0.75rem;
+}
+
+.directory-list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .directory-list li a {
   color: var(--premier-charcoal);
   font-weight: 700;
   text-decoration: none;
-  font-size: 1.05rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  font-size: 0.98rem;
+  transition: color 0.15s ease;
 }
 
 .directory-list li a:hover {
@@ -310,172 +576,45 @@ metaDescription: Check any home in King or Snohomish County for environmental ri
 
 .directory-list p {
   margin: 0.2rem 0 0 0;
-  font-size: 0.9rem;
-  color: #666;
+  font-size: 0.85rem;
+  color: var(--premier-charcoal);
+  opacity: 0.75;
   line-height: 1.4;
 }
+
+.narrative-footer {
+  margin-top: 3.5rem;
+  background-color: var(--dynamic-bg-highlight);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  box-sizing: border-box;
+  border: 1px dashed var(--premier-beige);
+}
+
+.narrative-footer p {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--premier-charcoal);
+  margin: 0 0 1.25rem 0;
+}
+
+.official-resource-btn {
+  display: inline-block;
+  background-color: var(--premier-charcoal);
+  color: var(--white);
+  text-decoration: none;
+  padding: 0.8rem 1.5rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.official-resource-btn:hover {
+  background-color: var(--card-accent-color);
+}
 </style>
-
-<div class="container margin-top-lg">
-  
-  <!-- Hero Banner -->
-  <header class="radar-hero">
-    <h1>King & Snohomish Property Health Radar</h1>
-    <p>Every home in the Puget Sound region has a story. Select your city and home details below to instantly uncover local environmental factors, soil conditions, home-age disclosures, and Washington State safety rules.</p>
-  </header>
-
-  <!-- Interactive Filter Tool -->
-  <property-hazard-radar class="radar-card">
-    <div class="radar-form-grid">
-      
-      <!-- City Select -->
-      <div class="form-group">
-        <label for="radar-city-select">1. Select Municipality / City</label>
-        <select id="radar-city-select" class="form-control">
-          {% if city_data %}
-            {% for city in city_data %}
-              <option value="{{ city.City }}" {% if city.City == "Lynnwood" %}selected{% endif %}>
-                {{ city.City }} ({{ city.County }} County)
-              </option>
-            {% endfor %}
-          {% else %}
-            <option value="Lynnwood" selected>Lynnwood (Snohomish County)</option>
-            <option value="Seattle">Seattle (King County)</option>
-            <option value="Edmonds">Edmonds (Snohomish County)</option>
-            <option value="Mukilteo">Mukilteo (Snohomish County)</option>
-            <option value="Everett">Everett (Snohomish County)</option>
-            <option value="Bellevue">Bellevue (King County)</option>
-            <option value="Kirkland">Kirkland (King County)</option>
-            <option value="Shoreline">Shoreline (King County)</option>
-            <option value="Renton">Renton (King County)</option>
-          {% endif %}
-        </select>
-      </div>
-
-      <!-- Year Built -->
-      <div class="form-group">
-        <label for="radar-year-built">2. Year Home Was Built</label>
-        <input type="number" id="radar-year-built" class="form-control" value="1975" min="1880" max="2026">
-        <div class="presets-row">
-          <button type="button" class="btn-preset" data-year="1972">Pre-1978</button>
-          <button type="button" class="btn-preset" data-year="1985">1980s</button>
-          <button type="button" class="btn-preset" data-year="1998">1990s</button>
-          <button type="button" class="btn-preset" data-year="2015">2000+</button>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Property Feature Checkboxes -->
-    <label style="font-weight: 700; color: var(--premier-charcoal); font-size: 0.95rem;">3. Property Features & Heating Systems</label>
-    <div class="checkbox-group">
-      <label class="checkbox-label">
-        <input type="checkbox" id="chk-oil-tank">
-        Underground Fuel / Heating Oil Tank
-      </label>
-      <label class="checkbox-label">
-        <input type="checkbox" id="chk-septic-well">
-        Septic System or Private Water Well
-      </label>
-      <label class="checkbox-label">
-        <input type="checkbox" id="chk-basement-crawl" checked>
-        Has Basement or Crawl Space
-      </label>
-    </div>
-
-    <!-- Dynamic Output Area -->
-    <div style="margin-top: 2.5rem;">
-      <div class="results-header">
-        <h2>Property Awareness Checklist</h2>
-        <span class="results-count-badge" id="results-count">Loading results...</span>
-      </div>
-
-      <div id="radar-results-container" class="hazard-results-grid">
-        <!-- Javascript renders cards here dynamically -->
-      </div>
-    </div>
-  </property-hazard-radar>
-
-  <!-- Browse Full Resource Directories -->
-  <section class="hub-directories-grid">
-    
-    <div class="directory-block">
-      <h3>🌲 Environmental & Land Hazards</h3>
-      <p style="color: #666; font-size: 0.95rem; margin-bottom: 1rem;">Macro location factors, flight paths, soil conditions, and shoreline features across King & Snohomish counties.</p>
-      <ul class="directory-list">
-        <li>
-          <div>
-            <a href="/resources/environmental-hazards/heating-oil-tanks/">Underground Heating Oil Tanks & PLIA Grants →</a>
-            <p>Decommissioning rules, soil testing, and Washington PLIA grants up to $75,000.</p>
-          </div>
-        </li>
-        <li>
-          <div>
-            <a href="/resources/environmental-hazards/airport-noise-flight-paths/">Airport Flight Paths & Air Quality →</a>
-            <p>Paine Field, Sea-Tac, Boeing Field (KBFI), and regional airfield noise/emissions maps.</p>
-          </div>
-        </li>
-        <li>
-          <div>
-            <a href="/resources/environmental-hazards/smelter-plumes-soil/">Tacoma & Everett Smelter Soil Plumes →</a>
-            <p>Asarco lead and arsenic soil deposits in West Seattle, Everett, and South King County.</p>
-          </div>
-        </li>
-        <li>
-          <div>
-            <a href="/resources/environmental-hazards/steep-slopes-landslides/">Bluffs, Landslides & Floodplains →</a>
-            <p>Coastal Puget Sound bluffs, river valley high water zones, and coal mine hazards.</p>
-          </div>
-        </li>
-        <li>
-          <div>
-            <a href="/resources/environmental-hazards/water-quality-beaches/">Beach Alerts & Toxic Lake Algae →</a>
-            <p>Puget Sound marine biotoxin closures and freshwater lake algae bloom watch.</p>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="directory-block">
-      <h3>🏡 Home & Property Health Risks</h3>
-      <p style="color: #666; font-size: 0.95rem; margin-bottom: 1rem;">Micro interior home health risks, structural disclosures, water testing, and mandatory WA safety codes.</p>
-      <ul class="directory-list">
-        <li>
-          <div>
-            <a href="/resources/home-health-hazards/radon-gas/">PNW Radon Gas Testing & Mitigation →</a>
-            <p>Odorless soil gas in foothill glacial till and simple sub-slab depressurization fixes.</p>
-          </div>
-        </li>
-        <li>
-          <div>
-            <a href="/resources/home-health-hazards/lead-and-asbestos/">Pre-1978 Lead & Pre-1980 Asbestos →</a>
-            <p>Federal lead paint disclosure rules, popcorn ceilings, and safe remodel practices.</p>
-          </div>
-        </li>
-        <li>
-          <div>
-            <a href="/resources/home-health-hazards/mold-moisture-attic-rain/">Mold, Moisture & Attic Rain →</a>
-            <p>Crawl space vapor barriers, bath fan ventilation, and preventing attic condensation.</p>
-          </div>
-        </li>
-        <li>
-          <div>
-            <a href="/resources/home-health-hazards/wells-and-septic-systems/">Well Water & Septic RSS Inspections →</a>
-            <p>King & Snohomish County Septic Report of System Status (RSS) transfer rules.</p>
-          </div>
-        </li>
-        <li>
-          <div>
-            <a href="/resources/home-health-hazards/wa-safety-code-requirements/">WA State Mandatory Safety Codes →</a>
-            <p>Smoke/CO detector placement laws and water heater seismic strapping rules.</p>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-  </section>
-
-</div>
 
 <script>
 class PropertyHazardRadar extends HTMLElement {
@@ -573,7 +712,7 @@ class PropertyHazardRadar extends HTMLElement {
 
     if (hazards.length === 0) {
       this.container.innerHTML = `
-        <div style="text-align: center; padding: 2rem; color: #666;">
+        <div style="text-align: center; padding: 2rem; color: var(--premier-charcoal); opacity: 0.8;">
           <p>No specific high-priority geographic hazards identified for this exact criteria. Standard WA safety codes apply.</p>
         </div>
       `;
@@ -601,7 +740,7 @@ class PropertyHazardRadar extends HTMLElement {
           <span class="card-category-tag ${tagClass}">${categoryLabel}</span>
           <h3 class="hazard-title">${item.title}</h3>
           <p class="hazard-summary">${item.summary}</p>
-          <a href="${item.url}" style="font-weight: 700; color: var(--premier-charcoal); text-decoration: underline; font-size: 0.95rem;">
+          <a href="${item.url}" style="font-weight: 700; color: var(--premier-charcoal); text-decoration: underline; font-size: 0.9rem;">
             Read Full Guide & Local Rules →
           </a>
           ${sourcesListHtml}
