@@ -1,39 +1,84 @@
 # File: scripts/harvest_infosparks.py
-import pandas as pd
-import json
+
 import os
 import io
+import json
 import urllib.request
+import pandas as pd
 from datetime import datetime
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
 
-# ==========================================
-# CONFIGURATION
-# ==========================================
-INFOSPARKS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRJ4hZJC9sUesHsGz6ixvm6_nQUFD9FaOGxAr3Dy5g3teqtUuDzJrjT31Vl5mQn2jGi9L8qe90hZ_7P/pub?gid=0&single=true&output=csv"
-
-OUTPUT_FILE = "data/infosparks_stats.json"
+def parse_sheet_values(rows):
+    """
+    Parses raw Google Sheets 2D array into a list of dictionaries with header keys.
+    """
+    if not rows or len(rows) < 2:
+        return []
+    
+    headers = [str(h).strip() for h in rows[0]]
+    records = []
+    
+    for row in rows[1:]:
+        padded = list(row) + [""] * (len(headers) - len(row))
+        sanitized = {}
+        for header, item in zip(headers, padded):
+            val = str(item).strip() if item is not None else ""
+            sanitized[header] = val
+        records.append(sanitized)
+        
+    return records
 
 def harvest_infosparks():
-    print("Starting InfoSparks Live Feed Pipeline...")
-    try:
-        config_df = pd.read_csv(INFOSPARKS_CSV_URL)
+    print("📡 Starting Google Service Agent InfoSparks Live Feed Pipeline...")
+    
+    output_file = "data/infosparks_stats.json"
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    
+    creds_path = "credentials.json"
+    if not os.path.exists(creds_path):
+        print("❌ Error: credentials.json missing from root execution context.")
+        exit(1)
         
-        group_col = next((c for c in config_df.columns if "group" in c.lower()), None)
-        cities_col = next((c for c in config_df.columns if "city" in c.lower() or "cities" in c.lower()), None)
-        metric_col = next((c for c in config_df.columns if "metric" in c.lower()), None)
-        link_col = next((c for c in config_df.columns if "link" in c.lower() or "url" in c.lower() or "csv" in c.lower()), None)
-
+    sheet_id = os.environ.get("CITY_DATA_SHEET_ID")
+    if not sheet_id:
+        print("❌ Error: CITY_DATA_SHEET_ID environment variable is missing.")
+        exit(1)
+        
+    scopes = ['https://www.googleapis.com/auth/spreadsheets']
+    
+    try:
+        creds = Credentials.from_service_account_file(creds_path, scopes=scopes)
+        sheets_service = build('sheets', 'v4', credentials=creds)
+        
+        print(f"📡 Ingesting 'InfoSparks' configuration tab via API from ID: {sheet_id}...")
+        result = sheets_service.spreadsheets().values().get(
+            spreadsheetId=sheet_id,
+            range="InfoSparks!A:Z"
+        ).execute()
+        
+        rows = result.get('values', [])
+        config_records = parse_sheet_values(rows)
+        
         master_feeds = {}
 
-        for idx, row in config_df.iterrows():
-            group_val = str(row[group_col]).strip() if group_col and pd.notna(row[group_col]) else f"{idx}"
-            metric_val = str(row[metric_col]).strip() if metric_col and pd.notna(row[metric_col]) else "metric"
-            cities_val = str(row[cities_col]).strip() if cities_col and pd.notna(row[cities_col]) else ""
-            url = str(row[link_col]).strip() if link_col and pd.notna(row[link_col]) else ""
+        for idx, row in enumerate(config_records):
+            group_val = row.get("Group", f"{idx}").strip()
+            cities_val = row.get("Cities", "").strip()
+            metric_val = row.get("Metric", "metric").strip()
+            
+            # Accommodate variations in column naming ('CSV Link', 'Link', 'URL')
+            url = (
+                row.get("CSV Link") 
+                or row.get("Link") 
+                or row.get("URL") 
+                or ""
+            ).strip()
             
             if not url.startswith("http"):
                 continue
 
+            # Build standardized dictionary key
             clean_key = f"group_{group_val}_{metric_val}".lower()
             for char in [" ", "-", "/", "(", ")", ","]:
                 clean_key = clean_key.replace(char, "_")
@@ -41,11 +86,11 @@ def harvest_infosparks():
                 clean_key = clean_key.replace("__", "_")
             clean_key = clean_key.strip("_")
 
-            print(f"Fetching MLS Feed: {clean_key}...")
+            print(f"   📥 Downloading live InfoSparks feed: {clean_key}...")
             
             try:
                 req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-                with urllib.request.urlopen(req) as response:
+                with urllib.request.urlopen(req, timeout=10) as response:
                     raw_text = response.read().decode('utf-8')
                 
                 lines = raw_text.strip().split('\n')
@@ -59,31 +104,31 @@ def harvest_infosparks():
                 clean_csv_text = '\n'.join(lines[header_idx:])
                 df = pd.read_csv(io.StringIO(clean_csv_text))
                 df.columns = [c.strip() for c in df.columns]
+                df = df.fillna("")
                 
                 master_feeds[clean_key] = {
                     "meta": {
                         "group": group_val,
                         "metric": metric_val,
-                        "geographies": [c.strip() for c in cities_val.split(",")]
+                        "geographies": [c.strip() for c in cities_val.split(",") if c.strip()]
                     },
                     "data": df.to_dict(orient="records")
                 }
-            except Exception as e:
-                print(f"Error downloading feed from URL on row {idx}: {e}")
+            except Exception as feed_err:
+                print(f"   ⚠️ Warning: Failed downloading feed row {idx} ({clean_key}): {feed_err}")
 
         output_payload = {
             "last_compiled": datetime.utcnow().isoformat() + "Z",
             "feeds": master_feeds
         }
         
-        os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
-        with open(OUTPUT_FILE, "w") as f:
-            json.dump(output_payload, f, indent=4)
+        with open(output_file, "w", encoding="utf-8") as f:
+            json.dump(output_payload, f, indent=4, ensure_ascii=False)
             
-        print("✅ InfoSparks master file generation complete!")
+        print(f"✅ InfoSparks pipeline complete! ({len(master_feeds)} feeds compiled into {output_file})")
         
     except Exception as e:
-        print(f"❌ Critical error in InfoSparks pipeline: {e}")
+        print(f"❌ Critical failure in InfoSparks pipeline: {e}")
         exit(1)
 
 if __name__ == "__main__":
