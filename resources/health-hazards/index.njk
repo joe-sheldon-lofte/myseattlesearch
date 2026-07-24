@@ -1,0 +1,617 @@
+---
+layout: base.njk
+title: King & Snohomish County Property Health & Hazard Radar | MySeattleSearch
+metaDescription: Check any home in King or Snohomish County for environmental risks, soil conditions, airport flight paths, home age disclosures, and WA mandatory safety requirements.
+---
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "King & Snohomish County Property Health & Hazard Radar",
+  "description": "Interactive local guide and property hazard lookup tool for homebuyers and sellers across King and Snohomish counties.",
+  "url": "https://myseattlesearch.com/resources/health-hazards/",
+  "author": {
+    "@id": "https://myseattlesearch.com/#agent"
+  },
+  "publisher": {
+    "@id": "https://myseattlesearch.com/#agent"
+  },
+  "about": {
+    "@type": "Place",
+    "name": "King County and Snohomish County, Washington"
+  }
+}
+</script>
+
+<style>
+.radar-hero {
+  background-color: var(--premier-charcoal);
+  color: var(--white);
+  padding: 3rem 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 2.5rem;
+  text-align: center;
+}
+
+.radar-hero h1 {
+  color: var(--white);
+  font-size: 2.25rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.2;
+}
+
+.radar-hero p {
+  color: var(--premier-beige);
+  font-size: 1.1rem;
+  max-width: 800px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.radar-card {
+  background-color: var(--white);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  margin-bottom: 3rem;
+}
+
+.radar-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 700;
+  color: var(--premier-charcoal);
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.form-control {
+  padding: 0.75rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  background-color: var(--white);
+  color: var(--premier-charcoal);
+  transition: border-color 0.2s ease;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--card-accent-color);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.presets-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-preset {
+  background-color: var(--premier-beige);
+  color: var(--premier-charcoal);
+  border: none;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-preset:hover {
+  background-color: var(--dynamic-bg-highlight);
+}
+
+.checkbox-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  background-color: var(--premier-beige);
+  padding: 1.25rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--premier-charcoal);
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--card-accent-color);
+}
+
+.results-header {
+  border-bottom: 2px solid var(--premier-beige);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.results-header h2 {
+  color: var(--premier-charcoal);
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.results-count-badge {
+  background-color: var(--card-accent-color);
+  color: var(--white);
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+}
+
+.hazard-results-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.hazard-result-card {
+  border-left: 4px solid var(--card-accent-color);
+  background-color: var(--white);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  padding: 1.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hazard-result-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.card-category-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.tag-environmental {
+  background-color: var(--premier-beige);
+  color: var(--premier-charcoal);
+  border: 1px solid var(--card-accent-color);
+}
+
+.tag-home {
+  background-color: var(--dynamic-bg-highlight);
+  color: var(--premier-charcoal);
+  border: 1px solid var(--card-accent-color);
+}
+
+.hazard-title {
+  font-size: 1.25rem;
+  color: var(--premier-charcoal);
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.hazard-summary {
+  color: #444;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  margin-bottom: 1rem;
+}
+
+.official-links-box {
+  background-color: var(--premier-beige);
+  border-radius: 6px;
+  padding: 0.85rem 1rem;
+  margin-top: 1rem;
+}
+
+.official-links-box h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.85rem;
+  color: var(--premier-charcoal);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.official-links-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.official-links-list li a {
+  color: var(--premier-charcoal);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.official-links-list li a:hover {
+  color: var(--card-accent-color);
+}
+
+.hub-directories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.directory-block {
+  background-color: var(--white);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.directory-block h3 {
+  color: var(--premier-charcoal);
+  font-size: 1.4rem;
+  margin-top: 0;
+  border-bottom: 2px solid var(--premier-beige);
+  padding-bottom: 0.5rem;
+}
+
+.directory-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.directory-list li a {
+  color: var(--premier-charcoal);
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.directory-list li a:hover {
+  color: var(--card-accent-color);
+}
+
+.directory-list p {
+  margin: 0.2rem 0 0 0;
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.4;
+}
+</style>
+
+<div class="container margin-top-lg">
+  
+  <!-- Hero Banner -->
+  <header class="radar-hero">
+    <h1>King & Snohomish Property Health Radar</h1>
+    <p>Every home in the Puget Sound region has a story. Select your city and home details below to instantly uncover local environmental factors, soil conditions, home-age disclosures, and Washington State safety rules.</p>
+  </header>
+
+  <!-- Interactive Filter Tool -->
+  <property-hazard-radar class="radar-card">
+    <div class="radar-form-grid">
+      
+      <!-- City Select -->
+      <div class="form-group">
+        <label for="radar-city-select">1. Select Municipality / City</label>
+        <select id="radar-city-select" class="form-control">
+          {% if city_data %}
+            {% for city in city_data %}
+              <option value="{{ city.City }}" {% if city.City == "Lynnwood" %}selected{% endif %}>
+                {{ city.City }} ({{ city.County }} County)
+              </option>
+            {% endfor %}
+          {% else %}
+            <option value="Lynnwood" selected>Lynnwood (Snohomish County)</option>
+            <option value="Seattle">Seattle (King County)</option>
+            <option value="Edmonds">Edmonds (Snohomish County)</option>
+            <option value="Mukilteo">Mukilteo (Snohomish County)</option>
+            <option value="Everett">Everett (Snohomish County)</option>
+            <option value="Bellevue">Bellevue (King County)</option>
+            <option value="Kirkland">Kirkland (King County)</option>
+            <option value="Shoreline">Shoreline (King County)</option>
+            <option value="Renton">Renton (King County)</option>
+          {% endif %}
+        </select>
+      </div>
+
+      <!-- Year Built -->
+      <div class="form-group">
+        <label for="radar-year-built">2. Year Home Was Built</label>
+        <input type="number" id="radar-year-built" class="form-control" value="1975" min="1880" max="2026">
+        <div class="presets-row">
+          <button type="button" class="btn-preset" data-year="1972">Pre-1978</button>
+          <button type="button" class="btn-preset" data-year="1985">1980s</button>
+          <button type="button" class="btn-preset" data-year="1998">1990s</button>
+          <button type="button" class="btn-preset" data-year="2015">2000+</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Property Feature Checkboxes -->
+    <label style="font-weight: 700; color: var(--premier-charcoal); font-size: 0.95rem;">3. Property Features & Heating Systems</label>
+    <div class="checkbox-group">
+      <label class="checkbox-label">
+        <input type="checkbox" id="chk-oil-tank">
+        Underground Fuel / Heating Oil Tank
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="chk-septic-well">
+        Septic System or Private Water Well
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="chk-basement-crawl" checked>
+        Has Basement or Crawl Space
+      </label>
+    </div>
+
+    <!-- Dynamic Output Area -->
+    <div style="margin-top: 2.5rem;">
+      <div class="results-header">
+        <h2>Property Awareness Checklist</h2>
+        <span class="results-count-badge" id="results-count">Loading results...</span>
+      </div>
+
+      <div id="radar-results-container" class="hazard-results-grid">
+        <!-- Javascript renders cards here dynamically -->
+      </div>
+    </div>
+  </property-hazard-radar>
+
+  <!-- Browse Full Resource Directories -->
+  <section class="hub-directories-grid">
+    
+    <div class="directory-block">
+      <h3>🌲 Environmental & Land Hazards</h3>
+      <p style="color: #666; font-size: 0.95rem; margin-bottom: 1rem;">Macro location factors, flight paths, soil conditions, and shoreline features across King & Snohomish counties.</p>
+      <ul class="directory-list">
+        <li>
+          <div>
+            <a href="/resources/environmental-hazards/heating-oil-tanks/">Underground Heating Oil Tanks & PLIA Grants →</a>
+            <p>Decommissioning rules, soil testing, and Washington PLIA grants up to $75,000.</p>
+          </div>
+        </li>
+        <li>
+          <div>
+            <a href="/resources/environmental-hazards/airport-noise-flight-paths/">Airport Flight Paths & Air Quality →</a>
+            <p>Paine Field, Sea-Tac, Boeing Field (KBFI), and regional airfield noise/emissions maps.</p>
+          </div>
+        </li>
+        <li>
+          <div>
+            <a href="/resources/environmental-hazards/smelter-plumes-soil/">Tacoma & Everett Smelter Soil Plumes →</a>
+            <p>Asarco lead and arsenic soil deposits in West Seattle, Everett, and South King County.</p>
+          </div>
+        </li>
+        <li>
+          <div>
+            <a href="/resources/environmental-hazards/steep-slopes-landslides/">Bluffs, Landslides & Floodplains →</a>
+            <p>Coastal Puget Sound bluffs, river valley high water zones, and coal mine hazards.</p>
+          </div>
+        </li>
+        <li>
+          <div>
+            <a href="/resources/environmental-hazards/water-quality-beaches/">Beach Alerts & Toxic Lake Algae →</a>
+            <p>Puget Sound marine biotoxin closures and freshwater lake algae bloom watch.</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="directory-block">
+      <h3>🏡 Home & Property Health Risks</h3>
+      <p style="color: #666; font-size: 0.95rem; margin-bottom: 1rem;">Micro interior home health risks, structural disclosures, water testing, and mandatory WA safety codes.</p>
+      <ul class="directory-list">
+        <li>
+          <div>
+            <a href="/resources/home-health-hazards/radon-gas/">PNW Radon Gas Testing & Mitigation →</a>
+            <p>Odorless soil gas in foothill glacial till and simple sub-slab depressurization fixes.</p>
+          </div>
+        </li>
+        <li>
+          <div>
+            <a href="/resources/home-health-hazards/lead-and-asbestos/">Pre-1978 Lead & Pre-1980 Asbestos →</a>
+            <p>Federal lead paint disclosure rules, popcorn ceilings, and safe remodel practices.</p>
+          </div>
+        </li>
+        <li>
+          <div>
+            <a href="/resources/home-health-hazards/mold-moisture-attic-rain/">Mold, Moisture & Attic Rain →</a>
+            <p>Crawl space vapor barriers, bath fan ventilation, and preventing attic condensation.</p>
+          </div>
+        </li>
+        <li>
+          <div>
+            <a href="/resources/home-health-hazards/wells-and-septic-systems/">Well Water & Septic RSS Inspections →</a>
+            <p>King & Snohomish County Septic Report of System Status (RSS) transfer rules.</p>
+          </div>
+        </li>
+        <li>
+          <div>
+            <a href="/resources/home-health-hazards/wa-safety-code-requirements/">WA State Mandatory Safety Codes →</a>
+            <p>Smoke/CO detector placement laws and water heater seismic strapping rules.</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+  </section>
+
+</div>
+
+<script>
+class PropertyHazardRadar extends HTMLElement {
+  constructor() {
+    super();
+    this.cityData = [];
+    this.hazardsMaster = [];
+  }
+
+  async connectedCallback() {
+    this.citySelect = this.querySelector('#radar-city-select');
+    this.yearInput = this.querySelector('#radar-year-built');
+    this.chkOil = this.querySelector('#chk-oil-tank');
+    this.chkSeptic = this.querySelector('#chk-septic-well');
+    this.chkBasement = this.querySelector('#chk-basement-crawl');
+    this.container = this.querySelector('#radar-results-container');
+    this.countBadge = this.querySelector('#results-count');
+
+    // Preset year buttons
+    this.querySelectorAll('.btn-preset').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        this.yearInput.value = e.target.getAttribute('data-year');
+        this.evaluateHazards();
+      });
+    });
+
+    // Event listeners for form inputs
+    this.citySelect?.addEventListener('change', () => this.evaluateHazards());
+    this.yearInput?.addEventListener('input', () => this.evaluateHazards());
+    this.chkOil?.addEventListener('change', () => this.evaluateHazards());
+    this.chkSeptic?.addEventListener('change', () => this.evaluateHazards());
+    this.chkBasement?.addEventListener('change', () => this.evaluateHazards());
+
+    // Fetch live datasets
+    try {
+      const [resCities, resHazards] = await Promise.all([
+        fetch('/data/city_data.json'),
+        fetch('/data/hazards_master.json')
+      ]);
+
+      if (resCities.ok) this.cityData = await resCities.json();
+      if (resHazards.ok) this.hazardsMaster = await resHazards.json();
+
+      this.evaluateHazards();
+    } catch (err) {
+      console.warn('Property Hazard Radar: Error fetching master JSON data', err);
+    }
+  }
+
+  evaluateHazards() {
+    if (!this.hazardsMaster || this.hazardsMaster.length === 0) return;
+
+    const selectedCityName = this.citySelect?.value || 'Lynnwood';
+    const yearBuilt = parseInt(this.yearInput?.value, 10) || 1975;
+    const hasOil = this.chkOil?.checked || false;
+    const hasSeptic = this.chkSeptic?.checked || false;
+    const hasBasement = this.chkBasement?.checked || false;
+
+    // Find city record in city_data.json
+    const cityRecord = this.cityData.find(c => c.City === selectedCityName) || {};
+    
+    // Ingest Health Hazards column (handles 'Health Hazards' or 'health_hazards')
+    const rawCityHazards = cityRecord['Health Hazards'] || cityRecord['health_hazards'] || '';
+    const cityTags = rawCityHazards.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+
+    const activeHazards = [];
+
+    this.hazardsMaster.forEach(item => {
+      let isMatch = false;
+
+      if (item.trigger_type === 'always') {
+        isMatch = true;
+      } else if (item.trigger_type === 'city_tag' && cityTags.includes(item.trigger_key.toLowerCase())) {
+        isMatch = true;
+      } else if (item.trigger_type === 'year_built_before' && yearBuilt < item.trigger_key) {
+        isMatch = true;
+      } else if (item.trigger_type === 'feature') {
+        if (item.trigger_key === 'has_oil_tank' && hasOil) isMatch = true;
+        if (item.trigger_key === 'has_septic_well' && hasSeptic) isMatch = true;
+        if (item.trigger_key === 'has_basement_crawl' && hasBasement) isMatch = true;
+      }
+
+      if (isMatch) activeHazards.push(item);
+    });
+
+    this.renderResults(activeHazards, selectedCityName, yearBuilt);
+  }
+
+  renderResults(hazards, cityName, yearBuilt) {
+    if (!this.container) return;
+
+    if (this.countBadge) {
+      this.countBadge.textContent = `${hazards.length} Items Identified for ${cityName} (${yearBuilt})`;
+    }
+
+    if (hazards.length === 0) {
+      this.container.innerHTML = `
+        <div style="text-align: center; padding: 2rem; color: #666;">
+          <p>No specific high-priority geographic hazards identified for this exact criteria. Standard WA safety codes apply.</p>
+        </div>
+      `;
+      return;
+    }
+
+    this.container.innerHTML = hazards.map(item => {
+      const isEnv = item.category === 'environmental';
+      const categoryLabel = isEnv ? 'Land & Location Factor' : 'Home & Property Factor';
+      const tagClass = isEnv ? 'tag-environmental' : 'tag-home';
+
+      const sourcesListHtml = (item.official_sources && item.official_sources.length > 0) ? `
+        <div class="official-links-box">
+          <h4>🏛️ Official Government Resources & Research Portals</h4>
+          <ul class="official-links-list">
+            ${item.official_sources.map(src => `
+              <li><a href="${src.url}" target="_blank" rel="noopener">${src.name} ↗</a></li>
+            `).join('')}
+          </ul>
+        </div>
+      ` : '';
+
+      return `
+        <article class="hazard-result-card">
+          <span class="card-category-tag ${tagClass}">${categoryLabel}</span>
+          <h3 class="hazard-title">${item.title}</h3>
+          <p class="hazard-summary">${item.summary}</p>
+          <a href="${item.url}" style="font-weight: 700; color: var(--premier-charcoal); text-decoration: underline; font-size: 0.95rem;">
+            Read Full Guide & Local Rules →
+          </a>
+          ${sourcesListHtml}
+        </article>
+      `;
+    }).join('');
+  }
+}
+
+if (!customElements.get('property-hazard-radar')) {
+  customElements.define('property-hazard-radar', PropertyHazardRadar);
+}
+</script>
