@@ -22,16 +22,28 @@ jobs:
 
     - name: Install Script Dependencies
       run: |
-        pip install pandas requests openpyxl boto3 pillow
+        pip install pandas requests openpyxl boto3 pillow google-auth google-api-python-client
+
+    - name: Extract Cloud Agent Credentials File
+      env:
+        GA_CREDENTIALS: ${{ secrets.GA_GOOGLE_CREDENTIALS }}
+      run: echo "$GA_CREDENTIALS" > credentials.json
 
     - name: Harvest City Data Schema
       run: python scripts/harvest_city_data.py
-      
+      env:
+        CITY_DATA_SHEET_ID: ${{ secrets.CITY_DATA_SHEET_ID }}
+
     - name: Harvest InfoSparks Market Data
       run: python scripts/harvest_infosparks.py
-      
+      env:
+        CITY_DATA_SHEET_ID: ${{ secrets.CITY_DATA_SHEET_ID }}
+
     - name: Harvest Redfin Market Data
       run: python scripts/harvest_redfin.py
+
+    - name: Clean Temporary Execution Keys
+      run: rm -f credentials.json
 
     - name: Commit and Push Updated Data Files
       run: |
@@ -39,7 +51,5 @@ jobs:
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
         git add data/
         git diff-index --quiet HEAD || git commit -m "Automated daily update of macro market statistics"
-        
         git pull --rebase origin main
-        
         git push
