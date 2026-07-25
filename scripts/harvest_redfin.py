@@ -83,7 +83,6 @@ def fetch_s3_partitions(base_url_pattern, dataset_label):
                 partition_index += 1
             else:
                 if partition_index == 0:
-                    # Fallback check for unpartitioned .tsv.gz naming format
                     fallback_url = f"{base_url_pattern}.tsv.gz?t={timestamp}"
                     print(f"   ℹ️ {part_str} returned HTTP {res.status_code}. Trying fallback: {fallback_url}...")
                     fb_res = requests.get(fallback_url, headers=headers, timeout=60, stream=True)
@@ -127,7 +126,7 @@ def run_redfin_pipeline(target_cities):
             if 'city' in chunk.columns:
                 city_lower = chunk['city'].astype(str).str.lower()
                 for city in target_cities_lower:
-                    city_mask = city_mask | (city_lower == city) | (city_lower.str.startswith(f"{city},"))
+                    city_mask = city_mask | (city_lower.str.contains(city, na=False))
 
             prop_mask = pd.Series(False, index=chunk.index)
             if 'property_type' in chunk.columns:
