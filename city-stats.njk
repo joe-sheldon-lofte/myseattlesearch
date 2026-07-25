@@ -456,7 +456,7 @@ layout: "base.njk"
                                     <strong>What 'Per 1,000 Neighbors' Means:</strong> This gives us a fair way to compare a small town to a major city. For example, a property crime rate of 20.0 means that for every 1,000 people living in this city, about 20 property reports (like theft or vandalism) are filed each year.<br><br><strong>The Categories:</strong><br>• <em>Violent Crime:</em> Includes safety incidents involving people, such as assault or robbery.<br>• <em>Property Crime:</em> Includes incidents involving property, such as break-ins, car thefts, or vandalism.
                                 </div>
                             </div>
-                            <a href="#" id="spotCrimeLink" target="_blank" class="card-action-btn" style="margin-top: 0; width: 100%;">View additional local crime data on SpotCrime &rarr;</a>
+                            <a href="#" id="policeCrimeLink" target="_blank" class="card-action-btn" style="margin-top: 0; width: 100%;">View Police Crime Data and Maps &rarr;</a>
                         </div>
 
                         <div style="border-top: 2px solid var(--premier-beige); padding-top: 1rem; margin-bottom: 1.5rem;">
@@ -983,21 +983,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const noticeBadge = document.getElementById('crimeNoticeBadge');
         const statsContainer = document.getElementById('activeCrimeStatsContainer');
-        const ctaBtn = document.getElementById('spotCrimeLink');
+        const ctaBtn = document.getElementById('policeCrimeLink');
 
         let crimeLink = cityDirData.policeCrimePage;
-        let isSpotCrime = crimeLink ? crimeLink.toLowerCase().includes('spotcrime') : true;
-        let crimeSource = isSpotCrime ? 'SpotCrime' : (cityDirData.policeName || 'Department Website');
-
-        if (crimeData && crimeData.granular_crime_link) {
+        if (!crimeLink && crimeData && crimeData.granular_crime_link) {
             crimeLink = crimeData.granular_crime_link;
-            isSpotCrime = crimeLink.toLowerCase().includes('spotcrime');
-            crimeSource = isSpotCrime ? 'SpotCrime' : (crimeData.police_agency || 'Department Website');
         }
 
-        if (!crimeLink) {
-            crimeLink = `https://spotcrime.com/wa/${encodeURIComponent(targetCity.toLowerCase())}`;
-        }
+        const deptName = (crimeData && crimeData.police_agency) || cityDirData.policeName || 'Police Department';
 
         if (crimeData) {
             document.getElementById('safetyAgencyHeader').textContent = crimeData.police_agency || cityDirData.policeName || 'Local Law Enforcement';
@@ -1018,8 +1011,8 @@ document.addEventListener('DOMContentLoaded', () => {
             noticeBadge.classList.add('active');
         }
 
-        ctaBtn.href = crimeLink;
-        ctaBtn.innerHTML = `View additional local crime data on ${crimeSource} &rarr;`;
+        if (ctaBtn) { ctaBtn.href = crimeLink || '#'; }
+        if (ctaBtn) { ctaBtn.innerHTML = `View ${deptName} Crime Data and Maps &rarr;`; }
 
         const fireBadgeEl = document.getElementById('fireBadgeContainer');
         const hospitalContainer = document.getElementById('hospitalProximityContainer');
