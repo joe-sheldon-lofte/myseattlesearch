@@ -57,7 +57,7 @@ def load_target_cities():
 
 def fetch_s3_partitions(base_url_pattern, dataset_label):
     """
-    Scans and ingests sequential AWS S3 partition parts (tsv000.gz, tsv001.gz, etc.) with cache-busting headers.
+    Fetches sequential AWS S3 partition parts (tsv000.gz, tsv001.gz, etc.) or fallback .tsv.gz with cache-busting headers.
     """
     partition_index = 0
     all_chunks = []
@@ -82,10 +82,17 @@ def fetch_s3_partitions(base_url_pattern, dataset_label):
                 all_chunks.append(chunks)
                 partition_index += 1
             else:
-                if partition_index > 0:
-                    print(f"   ℹ️ Reached end of partition sequence at part {part_str} (HTTP {res.status_code}).")
+                if partition_index == 0:
+                    # Fallback check for unpartitioned .tsv.gz naming format
+                    fallback_url = f"{base_url_pattern}.tsv.gz?t={timestamp}"
+                    print(f"   ℹ️ {part_str} returned HTTP {res.status_code}. Trying fallback: {fallback_url}...")
+                    fb_res = requests.get(fallback_url, headers=headers, timeout=60, stream=True)
+                    if fb_res.status_code == 200:
+                        print(f"   ✅ Downloaded fallback .tsv.gz ({len(fb_res.content)} bytes). Parsing stream...")
+                        chunks = pd.read_csv(io.BytesIO(fb_res.content), compression="gzip", sep="\t", chunksize=50000, low_memory=False)
+                        all_chunks.append(chunks)
                 else:
-                    print(f"   ⚠️ Primary partition {part_str} returned HTTP {res.status_code}.")
+                    print(f"   ℹ️ Reached end of partition sequence at index {partition_index}.")
                 break
         except Exception as err:
             print(f"   ⚠️ Partition scan halted on {part_str}: {err}")
