@@ -239,7 +239,7 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
         <h1 style="font-size: 2.25rem; margin-top: 0; margin-bottom: 0.25rem; color: var(--premier-charcoal); font-weight: 800;">
             {{ listing.Address or listing.address }}
         </h1>
-        <p style="font-size: 1.15rem; opacity: 0.7; margin-top: 0; margin-bottom: 2.5rem; font-weight: 500;">
+        <p style="font-size: 1.15rem; opacity: 0.7; margin-top: 0; margin-bottom: 2.5rem; font-weight: 500; color: var(--premier-charcoal);">
             {{ listing.City or listing.city }}, WA {{ listing['Zip Code'] }}
         </p>
 
@@ -247,16 +247,16 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
         
         <div class="meta-metrics-strip">
             <div class="metric-bubble-item">
-                <strong>{{ listing.Bedrooms if listing.Bedrooms else (listing.beds if listing.beds else "0") }}</strong><br><span style="font-size: 0.8rem; opacity: 0.7;">Beds</span>
+                <strong>{{ listing.Bedrooms if listing.Bedrooms else (listing.beds if listing.beds else "0") }}</strong><br><span style="font-size: 0.8rem; opacity: 0.7; color: var(--premier-charcoal);">Beds</span>
             </div>
             <div class="metric-bubble-item">
-                <strong>{{ listing.Bathrooms if listing.Bathrooms else (listing.baths if listing.baths else "0") }}</strong><br><span style="font-size: 0.8rem; opacity: 0.7;">Baths</span>
+                <strong>{{ listing.Bathrooms if listing.Bathrooms else (listing.baths if listing.baths else "0") }}</strong><br><span style="font-size: 0.8rem; opacity: 0.7; color: var(--premier-charcoal);">Baths</span>
             </div>
             <div class="metric-bubble-item">
-                <strong>{{ listing['Square Footage'].toLocaleString() if listing['Square Footage'] else (listing.sqft.toLocaleString() if listing.sqft else "0") }}</strong><br><span style="font-size: 0.8rem; opacity: 0.7;">Sq. Ft.</span>
+                <strong>{{ (listing['Square Footage'] * 1).toLocaleString('en-US') if listing['Square Footage'] else (listing.sqft.toLocaleString() if listing.sqft else "0") }}</strong><br><span style="font-size: 0.8rem; opacity: 0.7; color: var(--premier-charcoal);">Sq. Ft.</span>
             </div>
             <div class="metric-bubble-item">
-                <strong>{{ listing['Year Built'] if listing['Year Built'] else "N/A" }}</strong><br><span style="font-size: 0.8rem; opacity: 0.7;">Year Built</span>
+                <strong>{{ listing['Year Built'] if listing['Year Built'] else "N/A" }}</strong><br><span style="font-size: 0.8rem; opacity: 0.7; color: var(--premier-charcoal);">Year Built</span>
             </div>
         </div>
 
@@ -272,13 +272,13 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
                 <tr>
                     <td>Original List Price</td>
                     <td style="font-weight: 600; color: var(--premier-charcoal);">
-                        ${{ listing['Original Price'].toLocaleString() if listing['Original Price'] else (listing['Listing Price'].toLocaleString() if listing['Listing Price'] else (listing.price if listing.price else "Pending")) }}
+                        ${{ (listing['Original Price'] * 1).toLocaleString('en-US') if listing['Original Price'] else ((listing['Listing Price'] * 1).toLocaleString('en-US') if listing['Listing Price'] else (listing.price if listing.price else "Pending")) }}
                     </td>
                 </tr>
                 <tr>
                     <td>Final Listing Price</td>
                     <td style="font-weight: 600; color: var(--premier-charcoal);">
-                        ${{ listing['Listing Price'].toLocaleString() if listing['Listing Price'] else (listing.price if listing.price else "Pending") }}
+                        ${{ (listing['Listing Price'] * 1).toLocaleString('en-US') if listing['Listing Price'] else (listing.price if listing.price else "Pending") }}
                     </td>
                 </tr>
                 <tr>
@@ -286,7 +286,7 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
                     <td>
                         <strong style="color: var(--card-accent-color); font-size: 1.15rem;">
                             {% if listing.Status == "Sold" or listing.status == "Sold" or listing['Selling Price'] %}
-                                ${{ listing['Selling Price'].toLocaleString() if listing['Selling Price'] else listing.price }}
+                                ${{ (listing['Selling Price'] * 1).toLocaleString('en-US') if listing['Selling Price'] else listing.price }}
                             {% else %}
                                 Active - Tour Today!
                             {% endif %}
@@ -302,7 +302,11 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
                 <tr>
                     <td>Closed Date</td>
                     <td style="font-weight: 600; color: var(--premier-charcoal);">
-                        {{ listing['Selling Date'] if listing['Selling Date'] else "Active Tracking" }}
+                        {% if (listing.Status == "Sold" or listing.status == "Sold") and listing['Selling Date'] %}
+                            {{ listing['Selling Date'] }}
+                        {% else %}
+                            -
+                        {% endif %}
                     </td>
                 </tr>
             </tbody>
@@ -312,7 +316,7 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
     <aside style="position: sticky; top: 2rem; align-self: start;">
         <div class="transaction-card-box">
             <h4 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--premier-charcoal); font-weight: 800;">Looking for More Info?</h4>
-            <p style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 1.75rem; line-height: 1.5; text-align: left;">
+            <p style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 1.75rem; line-height: 1.5; text-align: left; color: var(--premier-charcoal);">
                 This transaction record is synced with our local catalog framework. You can analyze ongoing micro-market shifts or check neighboring comps directly on Redfin.
             </p>
             
@@ -330,11 +334,11 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
         {% if (listing.Downloads | lower == 'yes' or listing.downloads | lower == 'yes') and listing.pdfDownloads and listing.pdfDownloads.length > 0 %}
         <div class="transaction-card-box" id="downloadsWidgetContainer">
             <h4 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--card-accent-color); font-weight: 800;">Downloads Available</h4>
-            <p style="font-size: 0.9rem; opacity: 0.85; margin-bottom: 1.25rem; line-height: 1.5; text-align: left;">
+            <p style="font-size: 0.9rem; opacity: 0.85; margin-bottom: 1.25rem; line-height: 1.5; text-align: left; color: var(--premier-charcoal);">
                 Access available documents and reports for {{ listing.Address or listing.address }}.
             </p>
 
-            <button type="button" id="triggerExpandBtn" class="btn btn-primary" style="display: block; width: 100%; box-sizing: border-box; text-align: center; font-size: 0.95rem; padding: 0.85rem 1rem; font-weight: 700; background: var(--premier-charcoal); border: none; color: var(--white); cursor: pointer; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+            <button type="button" id="triggerExpandBtn" class="btn btn-primary" style="display: block; width: 100%; box-sizing: border-box; text-align: center; font-size: 0.95rem; padding: 0.85rem 1rem; font-weight: 700; background: var(--premier-charcoal); border: none; color: var(--white); cursor: pointer; border-radius: 4px; letter-spacing: 0.5px;">
                 Get Downloads
             </button>
 
@@ -369,7 +373,7 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
                     <div class="dl-form-group">
                         <label for="dlOtherEmails">Additional Recipient Emails <span style="font-weight: 400; text-transform: none;">(Optional, comma-separated)</span></label>
                         <input type="text" id="dlOtherEmails" class="dl-form-control" placeholder="agent@realty.com, spouse@gmail.com">
-                        <span style="font-size: 0.75rem; opacity: 0.7; display: block; margin-top: 0.25rem;">Co-buyers, your agent, family, etc.</span>
+                        <span style="font-size: 0.75rem; opacity: 0.7; display: block; margin-top: 0.25rem; color: var(--premier-charcoal);">Co-buyers, your agent, family, etc.</span>
                     </div>
 
                     <button type="submit" id="btnSubmitDlForm" class="btn btn-primary" style="display: block; width: 100%; box-sizing: border-box; text-align: center; font-size: 0.95rem; padding: 0.85rem 1rem; font-weight: 700; background: var(--card-accent-color); border: none; color: var(--white); cursor: pointer; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1rem;">
