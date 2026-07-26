@@ -1,3 +1,4 @@
+<!-- File: city-stats.njk -->
 ---
 pagination:
   data: city_data
@@ -664,6 +665,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return isNaN(d.getTime()) ? '' : `${d.getMonth()+1}/${d.getDate()}`;
         }).filter(l => l !== '');
         
+        const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--card-accent-color').trim() || '#C13030';
+        const charcoalColor = getComputedStyle(document.documentElement).getPropertyValue('--premier-charcoal').trim() || '#3D3935';
+
         if (velocityChartInstance) velocityChartInstance.destroy();
         const ctxVel = document.getElementById('velocityChart').getContext('2d');
         velocityChartInstance = new Chart(ctxVel, {
@@ -671,8 +675,8 @@ document.addEventListener('DOMContentLoaded', () => {
             data: {
                 labels: labels,
                 datasets: [
-                    { label: 'New Listings', data: cityHistory.map(row => cleanNum(row['New Listings'])), borderColor: '#3D3935', tension: 0.3 },
-                    { label: 'Pending', data: cityHistory.map(row => cleanNum(row['Pending'])), borderColor: 'var(--card-accent-color)', tension: 0.3 }
+                    { label: 'New Listings', data: cityHistory.map(row => cleanNum(row['New Listings'])), borderColor: charcoalColor, backgroundColor: charcoalColor, tension: 0.3 },
+                    { label: 'Pending', data: cityHistory.map(row => cleanNum(row['Pending'])), borderColor: accentColor, backgroundColor: accentColor, tension: 0.3 }
                 ]
             },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
@@ -803,7 +807,7 @@ document.addEventListener('DOMContentLoaded', () => {
             type: 'line',
             data: {
                 labels: domTimeline.map(t => t.label),
-                datasets: [{ label: 'Avg DOM', data: domTimeline.map(t => t.val), borderColor: 'var(--card-accent-color)', tension: 0.2, fill: false }]
+                datasets: [{ label: 'Avg DOM', data: domTimeline.map(t => t.val), borderColor: getComputedStyle(document.documentElement).getPropertyValue('--card-accent-color').trim() || '#C13030', tension: 0.2, fill: false }]
             },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
