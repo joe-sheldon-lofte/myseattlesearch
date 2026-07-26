@@ -113,7 +113,7 @@ permalink: /sales/
         position: absolute;
         top: 1rem;
         left: 1rem;
-        background: rgba(0, 0, 0, 0.8);
+        background: var(--premier-charcoal);
         color: var(--white);
         padding: 0.35rem 0.75rem;
         border-radius: 4px;
@@ -142,6 +142,7 @@ permalink: /sales/
         font-size: 0.9rem;
         opacity: 0.8;
         margin-bottom: 1rem;
+        color: var(--premier-charcoal);
     }
 
     .ledger-container {
@@ -172,7 +173,7 @@ permalink: /sales/
     }
 
     .ledger-row:not(.header):hover {
-        background: #fdfdfd;
+        background: var(--dynamic-bg-highlight);
     }
 
     .ledger-action-link {
@@ -193,14 +194,14 @@ permalink: /sales/
         border-radius: 4px;
         font-size: 0.75rem;
         font-weight: 600;
-        background: #e2e8f0;
-        color: #475569;
+        background: var(--dynamic-bg-highlight);
+        color: var(--premier-charcoal);
         text-align: center;
         width: 75px;
     }
 
     .role-indicator-pill.seller-role {
-        background: #fff5f5;
+        background: var(--dynamic-bg-highlight);
         color: var(--card-accent-color);
         border: 1px solid var(--premier-beige);
     }
@@ -224,7 +225,7 @@ permalink: /sales/
     }
     
     .marker-active-pending {
-        background: #10b981; 
+        background: var(--card-accent-color); 
     }
 
     .pulsing-glow {
@@ -235,7 +236,7 @@ permalink: /sales/
         position: absolute;
         top: -4px; left: -4px; right: -4px; bottom: -4px;
         border-radius: 50%;
-        border: 2px solid #10b981;
+        border: 2px solid var(--card-accent-color);
         animation: markerPulse 1.8s infinite ease-out;
         opacity: 0;
     }
@@ -248,7 +249,7 @@ permalink: /sales/
 <div class="sales-dashboard">
     <div class="events-header" style="text-align: left; margin-bottom: 3rem; border-bottom: 2px solid var(--premier-beige); padding-bottom: 1rem;">
         <h1>Proven Local Success</h1>
-        <p class="intro" style="max-width: 750px; margin: 0;">A look at my track record helping home buyers and sellers achieve their goals across Western Washington. Take a look at my current active properties, homes under contract, and complete sales history.</p>
+        <p class="intro" style="max-width: 750px; margin: 0; color: var(--premier-charcoal);">A look at my track record helping home buyers and sellers achieve their goals across Western Washington. Take a look at my current active properties, homes under contract, and complete sales history.</p>
     </div>
 
     <div class="editorial-grid">
@@ -270,13 +271,13 @@ permalink: /sales/
                                 </div>
                                 <div class="card-body-content">
                                     <h3>{{ listing.Address or listing.address }}</h3>
-                                    <p style="margin: 0 0 0.5rem 0; opacity: 0.7; font-size: 0.95rem;">{{ listing.City or listing.city }}, WA</p>
+                                    <p style="margin: 0 0 0.5rem 0; opacity: 0.7; font-size: 0.95rem; color: var(--premier-charcoal);">{{ listing.City or listing.city }}, WA</p>
                                     <div class="property-metrics-row">
-                                        <strong>{{ listing.Bedrooms if listing.Bedrooms else listing.beds }}</strong> Beds • <strong>{{ listing.Bathrooms if listing.Bathrooms else listing.baths }}</strong> Baths • <strong>{{ listing['Square Footage'] if listing['Square Footage'] else listing.sqft }}</strong> SqFt
+                                        <strong>{{ listing.Bedrooms if listing.Bedrooms else listing.beds }}</strong> Beds • <strong>{{ listing.Bathrooms if listing.Bathrooms else listing.baths }}</strong> Baths • <strong>{{ (listing['Square Footage'] * 1).toLocaleString('en-US') if listing['Square Footage'] else (listing.sqft.toLocaleString() if listing.sqft else "0") }}</strong> SqFt
                                     </div>
                                     <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--premier-beige); padding-top: 1rem;">
                                         <strong style="color: var(--card-accent-color); font-size: 1.3rem;">
-                                            ${{ listing['Listing Price'].toLocaleString() if listing['Listing Price'] else (listing.price if listing.price else "Pending") }}
+                                            ${{ (listing['Listing Price'] * 1).toLocaleString('en-US') if listing['Listing Price'] else (listing.price if listing.price else "Pending") }}
                                         </strong>
                                         <a href="/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (listing['MLS Number'] or listing.mlsNumber) | slugify }}/" class="btn btn-secondary btn-small" style="margin: 0;">View Property Details</a>
                                     </div>
@@ -285,7 +286,7 @@ permalink: /sales/
                         {% endif %}
                     {% endfor %}
                     {% if active_count == 0 %}
-                        <p style="font-style: italic; opacity: 0.6; background: var(--dynamic-bg-highlight); padding: 1.5rem; border-radius: 8px; text-align: center; width: 100%;">No active showcase listings currently standard-registered. Reach out below to request incoming tracking data updates.</p>
+                        <p style="font-style: italic; opacity: 0.6; background: var(--dynamic-bg-highlight); padding: 1.5rem; border-radius: 8px; text-align: center; width: 100%; color: var(--premier-charcoal);">No active showcase listings currently standard-registered. Reach out below to request incoming tracking data updates.</p>
                     {% endif %}
                 </div>
             </section>
@@ -306,13 +307,13 @@ permalink: /sales/
                                 </div>
                                 <div class="card-body-content">
                                     <h3>{{ listing.Address or listing.address }}</h3>
-                                    <p style="margin: 0 0 0.5rem 0; opacity: 0.7; font-size: 0.95rem;">{{ listing.City or listing.city }}, WA</p>
+                                    <p style="margin: 0 0 0.5rem 0; opacity: 0.7; font-size: 0.95rem; color: var(--premier-charcoal);">{{ listing.City or listing.city }}, WA</p>
                                     <div class="property-metrics-row">
-                                        <strong>{{ listing.Bedrooms if listing.Bedrooms else listing.beds }}</strong> Beds • <strong>{{ listing.Bathrooms if listing.Bathrooms else listing.baths }}</strong> Baths • <strong>{{ listing['Square Footage'] if listing['Square Footage'] else listing.sqft }}</strong> SqFt
+                                        <strong>{{ listing.Bedrooms if listing.Bedrooms else listing.beds }}</strong> Beds • <strong>{{ listing.Bathrooms if listing.Bathrooms else listing.baths }}</strong> Baths • <strong>{{ (listing['Square Footage'] * 1).toLocaleString('en-US') if listing['Square Footage'] else (listing.sqft.toLocaleString() if listing.sqft else "0") }}</strong> SqFt
                                     </div>
                                     <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--premier-beige); padding-top: 1rem;">
                                         <strong style="color: var(--card-accent-color); font-size: 1.3rem;">
-                                            ${{ listing['Listing Price'].toLocaleString() if listing['Listing Price'] else (listing.price if listing.price else "Pending") }}
+                                            ${{ (listing['Listing Price'] * 1).toLocaleString('en-US') if listing['Listing Price'] else (listing.price if listing.price else "Pending") }}
                                         </strong>
                                         <a href="/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (listing['MLS Number'] or listing.mlsNumber) | slugify }}/" class="btn btn-secondary btn-small" style="margin: 0;">View Property Details</a>
                                     </div>
@@ -321,14 +322,14 @@ permalink: /sales/
                         {% endif %}
                     {% endfor %}
                     {% if pending_count == 0 %}
-                        <p style="font-style: italic; opacity: 0.6; background: var(--dynamic-bg-highlight); padding: 1.5rem; border-radius: 8px; text-align: center; width: 100%;">None at this time.</p>
+                        <p style="font-style: italic; opacity: 0.6; background: var(--dynamic-bg-highlight); padding: 1.5rem; border-radius: 8px; text-align: center; width: 100%; color: var(--premier-charcoal);">None at this time.</p>
                     {% endif %}
                 </div>
             </section>
 
             <section class="showcase-section">
                 <h2 style="border-bottom: none; margin-bottom: 0.5rem;">Past Sales History</h2>
-                <p style="opacity: 0.7; font-size: 0.95rem; margin-top: 0; margin-bottom: 1.5rem;">Browse our local sales history. Use the filters below to focus on specific service zones.</p>
+                <p style="opacity: 0.7; font-size: 0.95rem; margin-top: 0; margin-bottom: 1.5rem; color: var(--premier-charcoal);">Browse our local sales history. Use the filters below to focus on specific service zones.</p>
                 
                 <div class="filter-deck">
                     <button class="filter-pill active" onclick="applyMarketFilter('all')">All Areas</button>
@@ -353,9 +354,9 @@ permalink: /sales/
                                     <a href="/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (listing['MLS Number'] or listing.mlsNumber) | slugify }}/" style="color: inherit; text-decoration: none;">{{ listing.Address or listing.address }}</a>
                                     <a href="/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (listing['MLS Number'] or listing.mlsNumber) | slugify }}/" class="ledger-action-link">&rarr;</a>
                                 </div>
-                                <div style="color: #555;">{{ listing.City or listing.city }}</div>
+                                <div style="color: var(--premier-charcoal); opacity: 0.8;">{{ listing.City or listing.city }}</div>
                                 <div style="font-weight: 700; color: var(--premier-charcoal);">
-                                    ${{ listing['Selling Price'].toLocaleString() if listing['Selling Price'] else (listing.price if listing.price else "Pending") }}
+                                    ${{ (listing['Selling Price'] * 1).toLocaleString('en-US') if listing['Selling Price'] else (listing.price if listing.price else "Pending") }}
                                 </div>
                                 <div style="text-align: right; display: flex; justify-content: flex-end; align-items: center;">
                                     <span class="role-indicator-pill {% if listing.Representation == 'Seller' %}seller-role{% endif %}">
@@ -372,10 +373,10 @@ permalink: /sales/
         <aside>
             <div style="position: sticky; top: 2rem;">
                 <h2 style="font-size: 1.6rem; margin-bottom: 0.5rem; color: var(--premier-charcoal); font-weight: 800; margin-top: 0;">Map of Sales</h2>
-                <p style="opacity: 0.7; font-size: 0.95rem; margin-bottom: 1.5rem;">See all localized transactions tracked live across the region footprint.</p>
+                <p style="opacity: 0.7; font-size: 0.95rem; margin-bottom: 1.5rem; color: var(--premier-charcoal);">See all localized transactions tracked live across the region footprint.</p>
                 <div id="sales-spatial-map"></div>
-                <div style="margin-top: 1rem; display: flex; gap: 1rem; font-size: 0.8rem; font-weight: 600; justify-content: center;">
-                    <span style="display: flex; align-items: center; gap: 0.35rem;"><span style="display:inline-block; width:10px; height:10px; background:#10b981; border-radius:50%;"></span> Active / Pending</span>
+                <div style="margin-top: 1rem; display: flex; gap: 1rem; font-size: 0.8rem; font-weight: 600; justify-content: center; color: var(--premier-charcoal);">
+                    <span style="display: flex; align-items: center; gap: 0.35rem;"><span style="display:inline-block; width:10px; height:10px; background:var(--card-accent-color); border-radius:50%;"></span> Active / Pending</span>
                     <span style="display: flex; align-items: center; gap: 0.35rem;"><span style="display:inline-block; width:10px; height:10px; background:var(--card-accent-color); border-radius:50%;"></span> Closed Sales Archive</span>
                 </div>
             </div>
@@ -463,14 +464,14 @@ permalink: /sales/
             });
 
             const priceDisplay = property.Status === 'Sold' ? 
-                '$' + Number(property['Selling Price']).toLocaleString() : 
-                '$' + Number(property['Listing Price']).toLocaleString();
+                '$' + Number(property['Selling Price']).toLocaleString('en-US') : 
+                '$' + Number(property['Listing Price']).toLocaleString('en-US');
 
             const popupHtml = `
                 <div style="font-family: system-ui, sans-serif; font-size: 13px; padding: 2px; width: 180px;">
                     <strong style="font-size: 14px; color: var(--premier-charcoal); display: block; margin-bottom: 2px;">${property.Address}</strong>
-                    <span style="color: #666; display: block; margin-bottom: 6px;">${property.City}, WA</span>
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 6px;">
+                    <span style="color: var(--premier-charcoal); opacity: 0.8; display: block; margin-bottom: 6px;">${property.City}, WA</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--premier-beige); padding-top: 6px;">
                         <span style="font-weight: 700; color: var(--card-accent-color);">${priceDisplay}</span>
                         <a href="${property.url}" style="color: var(--card-accent-color); font-weight: bold; text-decoration: none;">View details &rarr;</a>
                     </div>
