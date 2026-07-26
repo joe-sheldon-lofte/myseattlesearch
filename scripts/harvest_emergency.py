@@ -1,20 +1,12 @@
-#!/usr/bin/env python3
-"""
-Real Estate Platform - Emergency Services Pipeline
-Calculates proximity to the nearest regional trauma center/ER using 
-Haversine coordinate math and appends federal CMS quality star ratings.
-"""
+# File: scripts/harvest_emergency.py
 
 import os
 import json
-import io
 import math
-import pandas as pd
 
-CSV_PATH = "data/InfoSparks Links - Sheet2.csv"
-OUTPUT_JSON_PATH = "data/public_safety_emergency.json"
+CITY_DATA_PATH = os.path.join("data", "city_data.json")
+OUTPUT_JSON_PATH = os.path.join("data", "public_safety_emergency.json")
 
-# High-fidelity regional hospital coordinate registry with official federal CMS Star Ratings
 REGIONAL_HOSPITALS = [
     {"name": "EvergreenHealth Medical Center (Kirkland)", "lat": 47.7121, "lon": -122.1818, "stars": "⭐⭐⭐⭐⭐ (5/5 Stars)"},
     {"name": "Overlake Medical Center (Bellevue)", "lat": 47.6192, "lon": -122.1819, "stars": "⭐⭐⭐⭐⭐ (5/5 Stars)"},
@@ -30,73 +22,52 @@ REGIONAL_HOSPITALS = [
 ]
 
 def calculate_haversine_distance(lat1, lon1, lat2, lon2):
-    """Computes the straight-line distance in miles between two coordinate spheres."""
-    # Radius of the Earth in miles
     earth_radius_miles = 3958.8
-    
     d_lat = math.radians(lat2 - lat1)
     d_lon = math.radians(lon2 - lon1)
     
     a = (math.sin(d_lat / 2) ** 2 + 
          math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(d_lon / 2) ** 2)
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    
     return round(earth_radius_miles * c, 1)
 
-def clean_and_load_csv(file_path):
-    """Self-healing CSV string builder that handles newline injection errors."""
-    with open(file_path, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-    
-    reconstructed_lines = []
-    header_count = len(lines[0].split(","))
-    buffer_line = ""
-    
-    for line in lines:
-        cleaned_line = line.strip()
-        if not cleaned_line:
-            continue
-        if buffer_line:
-            buffer_line = buffer_line + " " + cleaned_line
-        else:
-            buffer_line = cleaned_line
-            
-        if len(buffer_line.split(",")) >= header_count or any(x in buffer_line for x in ["WA0", "Unknown"]):
-            reconstructed_lines.append(buffer_line)
-            buffer_line = ""
-            
-    if buffer_line:
-        reconstructed_lines.append(buffer_line)
-        
-    return pd.read_csv(io.StringIO("\n".join(reconstructed_lines)))
-
 def main():
-    print(f"🚀 Initializing Spatial Emergency Infrastructure Harvester...")
+    print("🚀 Initializing Spatial Emergency Infrastructure Harvester...")
     
-    if not os.path.exists(CSV_PATH):
-        print(f"❌ Error: Required master spreadsheet missing at {CSV_PATH}")
+    if not os.path.exists(CITY_DATA_PATH):
+        print(f"❌ Error: Required master city data file missing at {CITY_DATA_PATH}")
         return
         
-    df = clean_and_load_csv(CSV_PATH)
+    with open(CITY_DATA_PATH, "r", encoding="utf-8") as f:
+        city_records = json.load(f)
+
     emergency_registry = {}
 
-    for _, row in df.iterrows():
-        city_name = str(row['City']).strip()
-        city_lat = float(row['Latitude'])
-        city_lon = float(row['Longitude'])
-        fire_dept = str(row['Fire Department Name']).strip()
-        wsrb_val = str(row['FD WSRB Rating']).strip()
+    for row in city_records:
+        city_name = str(row.get('City', '')).strip()
+        if not city_name:
+            continue
 
-        # 1. Fire Department Rating Pass-Through Assessment
-        if wsrb_val.lower() == 'unknown' or pd.isna(row['FD WSRB Rating']):
+        try:
+            city_lat = float(row.get('Latitude', 0))
+            city_lon = float(row.get('Longitude', 0))
+        except (ValueError, TypeError):
+            continue
+
+        fire_dept = str(row.get('Fire Department Name', '')).strip()
+        wsrb_raw = str(row.get('FD WSRB Rating', '')).strip()
+
+        if not wsrb_raw or wsrb_raw.lower() in ['unknown', 'none', 'nan', '']:
             insurance_outlook = "Data Review Pending"
             wsrb_output = None
         else:
-            # WSRB standard class scale: Lower numbers represent superior protection coverage
-            wsrb_output = int(float(wsrb_val))
-            insurance_outlook = "Highly Favorable" if wsrb_output <= 3 else "Standard Premium"
+            try:
+                wsrb_output = int(float(wsrb_raw))
+                insurance_outlook = "Highly Favorable" if wsrb_output <= 3 else "Standard Premium"
+            except (ValueError, TypeError):
+                insurance_outlook = "Data Review Pending"
+                wsrb_output = None
 
-        # 2. Nearest Emergency Room Proximity Loop
         closest_hospital = None
         min_distance = float('inf')
         
@@ -121,7 +92,6 @@ def main():
             }
         }
 
-    # Save the independent dataset to file array storage
     os.makedirs(os.path.dirname(OUTPUT_JSON_PATH), exist_ok=True)
     with open(OUTPUT_JSON_PATH, 'w', encoding="utf-8") as f:
         json.dump(emergency_registry, f, indent=2, ensure_ascii=False)

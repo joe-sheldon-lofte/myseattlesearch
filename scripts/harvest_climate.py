@@ -1,20 +1,12 @@
-#!/usr/bin/env python3
-"""
-Real Estate Platform - Climate Comfort Pipeline
-Maps municipal coordinates to regional NOAA microclimate nodes to generate 
-hyper-local climate profiles and Comfort Index ratings.
-"""
+# File: scripts/harvest_climate.py
 
 import os
 import json
-import io
 import math
-import pandas as pd
 
-CSV_PATH = "data/InfoSparks Links - Sheet2.csv"
-OUTPUT_JSON_PATH = "data/climate_comfort.json"
+CITY_DATA_PATH = os.path.join("data", "city_data.json")
+OUTPUT_JSON_PATH = os.path.join("data", "climate_comfort.json")
 
-# Microclimate Node Registry based on NOAA 1991-2020 Historical Baselines
 CLIMATE_NODES = [
     {
         "node_id": "sound_inland_basin",
@@ -74,7 +66,6 @@ CLIMATE_NODES = [
 ]
 
 def calculate_haversine_distance(lat1, lon1, lat2, lon2):
-    """Computes the straight-line distance in miles between two coordinate spheres."""
     earth_radius_miles = 3958.8
     d_lat = math.radians(lat2 - lat1)
     d_lon = math.radians(lon2 - lon1)
@@ -84,49 +75,29 @@ def calculate_haversine_distance(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return round(earth_radius_miles * c, 1)
 
-def clean_and_load_csv(file_path):
-    """Self-healing CSV string builder that handles newline injection errors."""
-    with open(file_path, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-    
-    reconstructed_lines = []
-    header_count = len(lines[0].split(","))
-    buffer_line = ""
-    
-    for line in lines:
-        cleaned_line = line.strip()
-        if not cleaned_line:
-            continue
-        if buffer_line:
-            buffer_line = buffer_line + " " + cleaned_line
-        else:
-            buffer_line = cleaned_line
-            
-        if len(buffer_line.split(",")) >= header_count or any(x in buffer_line for x in ["WA0", "Unknown"]):
-            reconstructed_lines.append(buffer_line)
-            buffer_line = ""
-            
-    if buffer_line:
-        reconstructed_lines.append(buffer_line)
-        
-    return pd.read_csv(io.StringIO("\n".join(reconstructed_lines)))
-
 def main():
     print("🚀 Initializing Puget Sound Microclimate Node Engine...")
     
-    if not os.path.exists(CSV_PATH):
-        print(f"❌ Error: Required master spreadsheet missing at {CSV_PATH}")
+    if not os.path.exists(CITY_DATA_PATH):
+        print(f"❌ Error: Required master city data file missing at {CITY_DATA_PATH}")
         return
         
-    df = clean_and_load_csv(CSV_PATH)
+    with open(CITY_DATA_PATH, "r", encoding="utf-8") as f:
+        city_records = json.load(f)
+
     climate_registry = {}
 
-    for _, row in df.iterrows():
-        city_name = str(row['City']).strip()
-        city_lat = float(row['Latitude'])
-        city_lon = float(row['Longitude'])
+    for row in city_records:
+        city_name = str(row.get('City', '')).strip()
+        if not city_name:
+            continue
+            
+        try:
+            city_lat = float(row.get('Latitude', 0))
+            city_lon = float(row.get('Longitude', 0))
+        except (ValueError, TypeError):
+            continue
 
-        # Spatial query loop to map the city to its closest microclimate anchor
         closest_node = None
         min_distance = float('inf')
         

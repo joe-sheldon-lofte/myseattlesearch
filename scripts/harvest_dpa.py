@@ -1,39 +1,62 @@
+# File: scripts/harvest_dpa.py
+
 import os
 import json
-import io
-import urllib.request
-import pandas as pd
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
 
-# Down Payment Assistance Configuration
-DPA_TAB_GID = "345179894"
-DPA_CSV_URL = f"https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiu3qLYVO9khl6k5s_whzg_UZFzKu7-RHc5fa2tpe3aIlf4wm4IaqQeVd75enhpJvS_lxXgfQRfQ_/pub?gid={DPA_TAB_GID}&single=true&output=csv"
 DPA_OUTPUT_PATH = "data/dpa_programs.json"
 
+def parse_sheet_values(rows):
+    if not rows or len(rows) < 2:
+        return []
+    headers = [str(h).strip() for h in rows[0]]
+    records = []
+    for row in rows[1:]:
+        padded = list(row) + [""] * (len(headers) - len(row))
+        sanitized = {}
+        for header, item in zip(headers, padded):
+            val = str(item).strip() if item is not None else ""
+            sanitized[header] = val
+        records.append(sanitized)
+    return records
+
 def run_dpa_pipeline():
-    print("Starting independent Down Payment Assistance data harvesting...")
-    if "CHANGE_ME" in DPA_TAB_GID:
-        print("Pipeline note: GID placeholder active. Please update DPA_TAB_GID with your Google Sheet tab value.")
+    print("📡 Starting Google Service Agent Down Payment Assistance Pipeline...")
+    
+    creds_path = "credentials.json"
+    if not os.path.exists(creds_path):
+        print("❌ Error: credentials.json missing from root execution context.")
         return
+
+    sheet_id = os.environ.get("WEBSITE_DATA_SHEET_ID") or os.environ.get("CITY_DATA_SHEET_ID")
+    if not sheet_id:
+        print("❌ Error: WEBSITE_DATA_SHEET_ID environment variable is missing.")
+        return
+
+    scopes = ['https://www.googleapis.com/auth/spreadsheets']
+
     try:
-        req = urllib.request.Request(DPA_CSV_URL, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req) as response:
-            raw_data = response.read().decode('utf-8')
-            
-        # keep_default_na=False prevents Pandas from converting blank cells or text like N/A into float NaN objects
-        df_dpa = pd.read_csv(io.StringIO(raw_data), keep_default_na=False)
-        
-        # Clean white spaces from column headers naturally
-        df_dpa.columns = [c.strip() for c in df_dpa.columns]
-        data_dict = df_dpa.to_dict(orient="records")
-        
-        # Write clean read-only JSON pool into data folder
-        with open(DPA_OUTPUT_PATH, "w") as f:
-            json.dump(data_dict, f, indent=2)
-            
-        print(f"Success! Compiled {len(data_dict)} assistance programs into {DPA_OUTPUT_PATH}")
+        creds = Credentials.from_service_account_file(creds_path, scopes=scopes)
+        sheets_service = build('sheets', 'v4', credentials=creds)
+
+        print(f"📡 Ingesting 'DPA' tab via API from Sheet ID: {sheet_id}...")
+        result = sheets_service.spreadsheets().values().get(
+            spreadsheetId=sheet_id,
+            range="DPA!A:Z"
+        ).execute()
+
+        rows = result.get('values', [])
+        records = parse_sheet_values(rows)
+
+        os.makedirs(os.path.dirname(DPA_OUTPUT_PATH), exist_ok=True)
+        with open(DPA_OUTPUT_PATH, "w", encoding="utf-8") as f:
+            json.dump(records, f, indent=2, ensure_ascii=False)
+
+        print(f"✅ Success! Compiled {len(records)} assistance programs into {DPA_OUTPUT_PATH}")
+
     except Exception as e:
-        print(f"Failure compiling DPA spreadsheet: {e}")
+        print(f"❌ Failure compiling DPA spreadsheet via API: {e}")
 
 if __name__ == "__main__":
-    os.makedirs("data", exist_ok=True)
     run_dpa_pipeline()

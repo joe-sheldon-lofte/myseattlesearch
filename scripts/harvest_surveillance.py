@@ -1,9 +1,4 @@
-#!/usr/bin/env python3
-"""
-Real Estate Platform - Dynamic Surveillance Index Engine (Resilient Edition)
-Features: Self-healing CSV row reconstruction, live EFF kiosk database synchronization,
-          and a multi-server Overpass mirror pool with adaptive backoff retry loops.
-"""
+# File: scripts/harvest_surveillance.py
 
 import os
 import json
@@ -12,17 +7,14 @@ import time
 import requests
 import pandas as pd
 
-# CONFIGURATION ARCHITECTURE
-CSV_PATH = "data/InfoSparks Links - Sheet2.csv"
-OUTPUT_JSON_PATH = "data/surveillance_stats.json"
+CITY_DATA_PATH = os.path.join("data", "city_data.json")
+OUTPUT_JSON_PATH = os.path.join("data", "surveillance_stats.json")
 
-# Dynamic Severity Multipliers
 W_ALPR = 3.0
 W_INSTITUTIONAL = 2.0
 W_CCTV = 1.5
 W_TRAFFIC = 1.0
 
-# Resilient Infrastructure Pools
 OVERPASS_MIRRORS = [
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
@@ -30,36 +22,7 @@ OVERPASS_MIRRORS = [
 ]
 EFF_DATA_URL = "https://kiosk.atlasofsurveillance.org/download.csv?location=&sort=state_desc"
 
-def clean_and_load_csv(file_path):
-    """Reads raw CSV text and repairs broken row-wraps before handing to pandas."""
-    with open(file_path, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-    
-    reconstructed_lines = []
-    header_count = len(lines[0].split(","))
-    buffer_line = ""
-    
-    for line in lines:
-        cleaned_line = line.strip()
-        if not cleaned_line:
-            continue
-        if buffer_line:
-            buffer_line = buffer_line + " " + cleaned_line
-        else:
-            buffer_line = cleaned_line
-            
-        # If the merged components match our target database columns, flush to memory
-        if len(buffer_line.split(",")) >= header_count or any(x in buffer_line for x in ["WA0", "Unknown"]):
-            reconstructed_lines.append(buffer_line)
-            buffer_line = ""
-            
-    if buffer_line:
-        reconstructed_lines.append(buffer_line)
-        
-    return pd.read_csv(io.StringIO("\n".join(reconstructed_lines)))
-
 def fetch_live_eff_counts():
-    """Streams the verified complete data layer from the active EFF Kiosk service."""
     print("📡 Syncing live master database from Atlas of Surveillance Kiosk...")
     headers = {"User-Agent": "PugetSoundPrivacyRealEstateIndexer/1.0"}
     try:
@@ -73,7 +36,6 @@ def fetch_live_eff_counts():
         return pd.DataFrame()
 
 def query_osm_hardware(city_name):
-    """Queries the Overpass infrastructure mirror pool using adaptive exponential backoff."""
     query = f"""
     [out:json][timeout:60];
     area["name"="{city_name}"]["boundary"="administrative"]->.searchArea;
@@ -87,7 +49,6 @@ def query_osm_hardware(city_name):
     """
     headers = {"User-Agent": "PugetSoundPrivacyRealEstateIndexer/1.0"}
     
-    # Cycles through all alternate mirror instances up to two full rotations if blocked
     for attempt in range(len(OVERPASS_MIRRORS) * 2):
         endpoint = OVERPASS_MIRRORS[attempt % len(OVERPASS_MIRRORS)]
         try:
@@ -124,31 +85,34 @@ def query_osm_hardware(city_name):
 def main():
     print("🚀 Initializing Dynamic Surveillance Index Engine...")
     
-    if not os.path.exists(CSV_PATH):
-        print(f"❌ Error: Required master spreadsheet missing at {CSV_PATH}")
+    if not os.path.exists(CITY_DATA_PATH):
+        print(f"❌ Error: Required master city data file missing at {CITY_DATA_PATH}")
         return
         
-    df = clean_and_load_csv(CSV_PATH)
+    with open(CITY_DATA_PATH, "r", encoding="utf-8") as f:
+        city_records = json.load(f)
+
     eff_master_df = fetch_live_eff_counts()
     
     raw_density_scores = {}
     surveillance_registry = {}
 
-    for _, row in df.iterrows():
-        city_name = str(row['City']).strip()
-        police_agency = str(row['Police Department Name']).strip()
+    for row in city_records:
+        city_name = str(row.get('City', '')).strip()
+        if not city_name:
+            continue
+            
+        police_agency = str(row.get('Police Department Name', '')).strip()
         
-        # Updated to target the exact column header label
         try:
             land_area_val = row.get('Land Area Square Mileage')
-            if pd.isna(land_area_val) or str(land_area_val).lower() == 'unknown':
+            if not land_area_val or str(land_area_val).lower() in ['unknown', 'none', 'nan', '']:
                 land_area = 0.0
             else:
                 land_area = float(land_area_val)
         except (ValueError, TypeError):
             land_area = 0.0
 
-        # 1. Dynamic EFF Matching via Two-Way Containment Check
         inst_tech_count = 0
         if not eff_master_df.empty and 'Agency' in eff_master_df.columns:
             wa_eff = eff_master_df[eff_master_df['State'].astype(str).str.upper() == 'WA']
@@ -165,14 +129,11 @@ def main():
             if 'Technology' in matched_tech.columns:
                 inst_tech_count = int(matched_tech['Technology'].nunique())
 
-        # 2. Resilient OpenStreetMap Physical Scan
         print(f"🛰️ Scanning public spaces inside municipal limits for: {city_name}...")
         osm_counts = query_osm_hardware(city_name)
         
-        # Base network politeness pause
         time.sleep(2.5)
 
-        # 3. Calculate Weighted Sum
         weighted_sum = (
             (osm_counts["alpr"] * W_ALPR) +
             (inst_tech_count * W_INSTITUTIONAL) +
@@ -180,7 +141,6 @@ def main():
             (osm_counts["traffic"] * W_TRAFFIC)
         )
 
-        # 4. Defensive Normalization Core
         if land_area <= 0.0:
             raw_density_scores[city_name] = None
         else:
@@ -198,7 +158,6 @@ def main():
             }
         }
 
-    # 5. Peer Percentile Rankings Generation Pass
     valid_indexes = [v for v in raw_density_scores.values() if v is not None]
     valid_indexes.sort()
 
