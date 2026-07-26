@@ -54,7 +54,7 @@ def clean_nan_tokens(node):
         return {k: clean_nan_tokens(v) for k, v in node.items()}
     elif isinstance(node, list):
         return [clean_nan_tokens(element) for element in node]
-    elif isinstance(node, float) and math.isnan(node):
+    elif isinstance(node, float) and (math.isnan(node) or math.isinf(node)):
         return None
     return node
 
@@ -161,7 +161,6 @@ def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, fol
         request = drive_service.files().get_media(fileId=file_id)
         raw_bytes = request.execute()
         
-        # Verify that Drive returned binary bytes rather than an HTML/JSON error page
         if isinstance(raw_bytes, str) or raw_bytes.startswith(b"<!DOCTYPE") or raw_bytes.startswith(b"<html") or raw_bytes.startswith(b"{"):
             print(f"   ⚠️ Non-image byte stream returned from Drive for ID {file_id}. Preserving original URL.")
             return image_url
@@ -187,6 +186,48 @@ def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, fol
         return image_url
 
 
+def process_and_upload_pdf(drive_service, s3_client, r2_bucket, pdf_url, mls_number, index=1):
+    """
+    Downloads raw PDF document from Drive, uploads directly to R2 /downloads/{mls}/ folder, and returns CDN URL + Title.
+    """
+    file_id = extract_google_id(pdf_url)
+    if not file_id:
+        # If already an assets.myseattlesearch.com URL or external link, extract title from URL
+        filename = pdf_url.split('/')[-1].split('?')[0]
+        title = filename.replace('.pdf', '').replace('.PDF', '').replace('_', ' ').replace('-', ' ').title()
+        return pdf_url, title or f"Document {index}"
+
+    custom_domain = "https://assets.myseattlesearch.com"
+    
+    try:
+        # Fetch file metadata to retain human-readable filename
+        file_meta = drive_service.files().get(fileId=file_id, fields="name").execute()
+        original_name = file_meta.get("name", f"Document_{index}.pdf")
+        clean_name = re.sub(r'[^a-zA-Z0-9._-]', '_', original_name)
+        if not clean_name.lower().endswith('.pdf'):
+            clean_name += '.pdf'
+
+        object_key = f"downloads/{str(mls_number).strip()}/{clean_name}"
+        permanent_url = f"{custom_domain}/{object_key}"
+
+        request = drive_service.files().get_media(fileId=file_id)
+        raw_bytes = request.execute()
+
+        s3_client.put_object(
+            Bucket=r2_bucket,
+            Key=object_key,
+            Body=raw_bytes,
+            ContentType="application/pdf"
+        )
+        print(f"   📄 PDF uploaded safely to R2 bucket path: {permanent_url}")
+        
+        display_title = original_name.replace('.pdf', '').replace('.PDF', '').replace('_', ' ').replace('-', ' ').title()
+        return permanent_url, display_title
+    except Exception as e:
+        print(f"   ❌ PDF optimization fallback triggered on ID {file_id}: {e}")
+        return pdf_url, f"Document {index}"
+
+
 def parse_sheet_values(rows):
     if not rows:
         return []
@@ -200,9 +241,6 @@ def parse_sheet_values(rows):
 
 
 def publish_to_facebook(page_id, access_token, text, link=None, image_url=None):
-    """
-    Publishes text, link attachments, or public WebP images to the Facebook Page feed.
-    """
     if not page_id or not access_token:
         print("   ⚠️ Facebook credentials missing. Skipping FB publish.")
         return None
@@ -210,7 +248,6 @@ def publish_to_facebook(page_id, access_token, text, link=None, image_url=None):
     page_id = page_id.strip()
     access_token = access_token.strip()
 
-    # Public CDN Filter: Only pass image_url if hosted on Cloudflare R2
     if image_url and not image_url.startswith("https://assets.myseattlesearch.com"):
         print("   ⚠️ FB Image URL is not a public R2 asset. Stripping image parameter to post clean text/link.")
         image_url = None
@@ -245,9 +282,6 @@ def publish_to_facebook(page_id, access_token, text, link=None, image_url=None):
 
 
 def publish_to_threads(user_id, access_token, text, image_url=None):
-    """
-    Publishes via Meta Threads API two-stage container deployment pipeline.
-    """
     if not user_id or not access_token:
         print("   ⚠️ Threads credentials missing. Skipping Threads publish.")
         return None
@@ -255,7 +289,6 @@ def publish_to_threads(user_id, access_token, text, image_url=None):
     user_id = user_id.strip()
     access_token = access_token.strip()
 
-    # Public CDN Filter: Only pass image_url if hosted on Cloudflare R2
     if image_url and not image_url.startswith("https://assets.myseattlesearch.com"):
         print("   ⚠️ Threads Image URL is not a public R2 asset. Stripping image parameter to post clean text.")
         image_url = None
@@ -307,9 +340,6 @@ def publish_to_threads(user_id, access_token, text, image_url=None):
 
 
 def publish_to_linkedin(author_urn, access_token, text, link=None, title=None):
-    """
-    Publishes post or article payload to LinkedIn Posts API (v2).
-    """
     if not author_urn or not access_token:
         print("   ⚠️ LinkedIn credentials missing. Skipping LinkedIn publish.")
         return None
@@ -317,7 +347,6 @@ def publish_to_linkedin(author_urn, access_token, text, link=None, title=None):
     author_urn = author_urn.strip()
     access_token = access_token.strip()
 
-    # LinkedIn URN Sanitizer: Translate urn:li:person: or raw IDs into urn:li:member:
     if author_urn.startswith("urn:li:person:"):
         author_urn = author_urn.replace("urn:li:person:", "urn:li:member:")
     elif not author_urn.startswith("urn:li:"):
@@ -407,7 +436,7 @@ def main():
             region_name="auto"
         )
     else:
-        print("⚠️ Warning: R2 secrets missing. Image optimizations will default to original urls.")
+        print("⚠️ Warning: R2 secrets missing. Asset optimizations will default to original urls.")
 
     batch_sheet_writebacks = {}
     cms_image_map = {}
@@ -451,9 +480,9 @@ def main():
     team_lookup = {}
     if web_sheet_id:
         print("📡 Ingesting multi-tab dataset from the Website Data Workbook...")
-        target_tabs = ["Stats", "Team", "Disclaimers", "Events", "Celebrations", "DPA", "Professionals", "Reviews", "ThirdPartyPrograms", "News"]
+        target_tabs = ["Stats", "Team", "Disclaimers", "Events", "Celebrations", "DPA", "Professionals", "Reviews", "ThirdPartyPrograms", "News", "Sales"]
         try:
-            web_ranges = [f"{tab}!A:Z" for tab in target_tabs]
+            web_ranges = [f"{tab}!A:AZ" for tab in target_tabs]
             web_batch = sheets_service.spreadsheets().values().batchGet(
                 spreadsheetId=web_sheet_id, ranges=web_ranges
             ).execute().get('valueRanges', [])
@@ -461,7 +490,7 @@ def main():
             tabs_data = dict(zip(target_tabs, web_batch))
             batch_sheet_writebacks[web_sheet_id] = []
 
-            # A. Process Team roster profiles first
+            # A. Process Team roster profiles
             team_rows = tabs_data["Team"].get('values', [])
             if team_rows:
                 headers = [h.strip() for h in team_rows[0]]
@@ -509,7 +538,7 @@ def main():
                 with open(os.path.join(data_dir, "disclaimers.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(disc_map), f, indent=2, ensure_ascii=False)
 
-            # D. Process Events tab mapping
+            # D. Process Events tab
             event_rows = tabs_data["Events"].get('values', [])
             if event_rows:
                 headers = [h.strip() for h in event_rows[0]]
@@ -557,53 +586,101 @@ def main():
                 with open(os.path.join(data_dir, "events.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(compiled_events), f, indent=2, ensure_ascii=False)
 
-            # E. Process Celebrations / Client Success tab
+            # E. Process Celebrations
             cel_rows = tabs_data["Celebrations"].get('values', [])
             if cel_rows:
                 records = parse_sheet_values(cel_rows)
                 with open(os.path.join(data_dir, "celebrations.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
-            # F. Process DPA Programs tab
+            # F. Process DPA Programs
             dpa_rows = tabs_data["DPA"].get('values', [])
             if dpa_rows:
                 records = parse_sheet_values(dpa_rows)
                 with open(os.path.join(data_dir, "dpa_programs.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
-            # G. Process Preferred Professionals tab
+            # G. Process Professionals
             prof_rows = tabs_data["Professionals"].get('values', [])
             if prof_rows:
                 records = parse_sheet_values(prof_rows)
                 with open(os.path.join(data_dir, "professionals.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
-            # H. Process Reviews Roster
+            # H. Process Reviews
             rev_rows = tabs_data["Reviews"].get('values', [])
             if rev_rows:
                 records = parse_sheet_values(rev_rows)
                 with open(os.path.join(data_dir, "reviews.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
-            # I. Process Third Party Alternative Programs
+            # I. Process ThirdPartyPrograms
             tpp_rows = tabs_data["ThirdPartyPrograms"].get('values', [])
             if tpp_rows:
                 records = parse_sheet_values(tpp_rows)
                 with open(os.path.join(data_dir, "thirdpartyprograms.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
-            # J. Process News Sources Sheet
+            # J. Process News
             news_rows = tabs_data["News"].get('values', [])
             if news_rows:
                 records = parse_sheet_values(news_rows)
                 with open(os.path.join(data_dir, "news.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
+            # K. Process Sales Tab (Including R2 PDF Downloads Automation)
+            sales_rows = tabs_data["Sales"].get('values', [])
+            if sales_rows:
+                headers = [h.strip() for h in sales_rows[0]]
+                compiled_sales = []
+                
+                # Dynamic column mapping for PDF download links (AC through AG)
+                pdf_cols = [headers.index(f"PDF {i} Link") for i in range(1, 6) if f"PDF {i} Link" in headers]
+                dl_switch_col = headers.index("Download") if "Download" in headers else -1
+
+                for idx, r in enumerate(sales_rows[1:]):
+                    padded = list(r) + [""] * (len(headers) - len(r))
+                    row_dict = dict(zip(headers, padded))
+                    row_num = idx + 2
+                    
+                    mls_id = row_dict.get("MLS Number", "").strip() or row_dict.get("MLS", "").strip()
+                    dl_active = row_dict.get("Download", "No").strip().lower() == "yes"
+                    
+                    pdf_downloads = []
+                    if dl_active and mls_id:
+                        for p_idx, c_idx in enumerate(pdf_cols, 1):
+                            pdf_url = padded[c_idx].strip()
+                            if not pdf_url:
+                                continue
+                                
+                            # If raw Drive URL, upload to R2 and cache permanent URL back to sheet
+                            if "drive.google.com" in pdf_url and s3_client:
+                                r2_url, doc_title = process_and_upload_pdf(drive_service, s3_client, r2_bucket, pdf_url, mls_id, p_idx)
+                                if "assets.myseattlesearch.com" in r2_url:
+                                    row_dict[headers[c_idx]] = r2_url
+                                    batch_sheet_writebacks[web_sheet_id].append({
+                                        'range': f"Sales!{get_col_letter(c_idx)}{row_num}", 'values': [[r2_url]]
+                                    })
+                                    pdf_downloads.append({"title": doc_title, "url": r2_url})
+                                else:
+                                    pdf_downloads.append({"title": doc_title, "url": pdf_url})
+                            elif pdf_url:
+                                # Extract title from R2 filename
+                                filename = pdf_url.split('/')[-1].split('?')[0]
+                                doc_title = filename.replace('.pdf', '').replace('.PDF', '').replace('_', ' ').replace('-', ' ').title()
+                                pdf_downloads.append({"title": doc_title or f"Document {p_idx}", "url": pdf_url})
+
+                    row_dict["pdfDownloads"] = pdf_downloads
+                    compiled_sales.append(row_dict)
+
+                with open(os.path.join(data_dir, "sales.json"), "w", encoding="utf-8") as f:
+                    json.dump(clean_nan_tokens(compiled_sales), f, indent=2, ensure_ascii=False)
+
         except Exception as e:
             print(f"   ❌ Critical error compiling Website Data workbook: {e}")
 
     # ====================================================================
-    # MODULE 3: CMS HEADLESS GENERATOR (INCREMENTAL DELTA SYNC ENGINE)
+    # MODULE 3: CMS HEADLESS GENERATOR
     # ====================================================================
     cms_sheet_id = os.environ.get("CMS_SHEET_ID")
     if cms_sheet_id:
@@ -623,13 +700,11 @@ def main():
                     
                     target_md = os.path.join(posts_dir, f"{slug}.md")
                     
-                    # 1. Inactive Purge Rule: Delete file if Active != "yes"
                     if record.get("Active", "").strip().lower() != "yes":
                         if os.path.exists(target_md): 
                             os.remove(target_md)
                         continue
                         
-                    # 2. Process R2 Image Optimizations
                     optimized_images = []
                     for i in range(1, 6):
                         img_url = record.get(f"Image {i} URL", "").strip()
@@ -679,7 +754,6 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
 """
                     )
 
-                    # 3. Delta Sync Engine: Evaluate existing file on disk to skip unnecessary Google API calls
                     file_exists = os.path.exists(target_md)
                     existing_content = ""
                     if file_exists:
@@ -693,7 +767,6 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                     front_matter_match = existing_content.startswith(front_matter.strip())
 
                     if post_type.lower() == "article" and "docs.google.com" in content_field:
-                        # If front-matter metadata matches, reuse existing body text from disk!
                         if file_exists and front_matter_match:
                             parts = existing_content.split("---\n", 2)
                             body_text = parts[2] if len(parts) >= 3 else get_google_doc_as_markdown(docs_service, content_field)
@@ -704,7 +777,6 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
 
                     full_md_payload = f"{front_matter}{body_text}"
 
-                    # 4. Zero-Write Optimization: Only write to disk if content actually changed
                     if existing_content != full_md_payload:
                         with open(target_md, "w", encoding="utf-8") as f:
                             f.write(full_md_payload)
@@ -780,7 +852,7 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
             print(f"   ❌ Assessment processing fault: {e}")
 
     # ====================================================================
-    # MODULE 5: ISOLATED 5-SEC TIMEOUT LOCAL RSS REAL ESTATE WIRE
+    # MODULE 5: LOCAL RSS REAL ESTATE WIRE
     # ====================================================================
     news_config = os.path.join(data_dir, "news.json")
     if os.path.exists(news_config):
@@ -873,7 +945,7 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
             print(f"   ⚠️ Portfolio DOM sync pass bypassed: {e}")
 
     # ====================================================================
-    # MODULE 7: SOCIAL MEDIA AUTO-PUBLISHER (FB, THREADS, LINKEDIN)
+    # MODULE 7: SOCIAL MEDIA AUTO-PUBLISHER
     # ====================================================================
     if cms_sheet_id:
         fb_page_id = os.environ.get("FB_PAGE_ID")
@@ -936,7 +1008,6 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                         if not primary_text and not content_body:
                             continue
 
-                        # Construct complete social post payload body
                         post_components = []
                         if primary_text:
                             post_components.append(primary_text)
@@ -992,7 +1063,7 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                 print(f"   ❌ Social publisher module execution failure: {e}")
 
     # ====================================================================
-    # MODULE 8: FLUSH BULK CELL WRITEBACKS TO REUSE CDN URL FOOTPRINTS
+    # MODULE 8: FLUSH BULK CELL WRITEBACKS
     # ====================================================================
     for s_id, updates in batch_sheet_writebacks.items():
         if updates:
@@ -1006,7 +1077,7 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                 print(f"   ⚠️ Sheet cells writeback bypass warning: {write_err}")
 
     # ====================================================================
-    # MODULE 9: ACCURATE CLOUDFLARE R2 ACCOUNTING METRICS GENERATOR
+    # MODULE 9: CLOUDFLARE R2 ACCOUNTING METRICS GENERATOR
     # ====================================================================
     out_dir = "_data"
     os.makedirs(out_dir, exist_ok=True)

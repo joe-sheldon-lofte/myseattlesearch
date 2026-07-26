@@ -103,8 +103,7 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
         border-radius: 8px;
         padding: 2rem;
         box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-        position: sticky;
-        top: 2rem;
+        margin-bottom: 2rem;
     }
 
     .pricing-timeline-matrix {
@@ -160,6 +159,63 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
         width: 100%;
         height: 100%;
         object-fit: cover;
+    }
+
+    /* Gated Download Form Styling */
+    .dl-form-group {
+        margin-bottom: 1rem;
+        text-align: left;
+    }
+
+    .dl-form-group label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--premier-charcoal);
+        text-transform: uppercase;
+        margin-bottom: 0.35rem;
+        letter-spacing: 0.5px;
+    }
+
+    .dl-form-control {
+        width: 100%;
+        padding: 0.65rem 0.85rem;
+        font-size: 0.9rem;
+        border: 1px solid var(--premier-beige);
+        border-radius: 4px;
+        box-sizing: border-box;
+        color: var(--premier-charcoal);
+        background: var(--white);
+    }
+
+    .dl-form-control:focus {
+        outline: none;
+        border-color: var(--card-accent-color);
+    }
+
+    .doc-download-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+        padding: 0.85rem 1rem;
+        margin-bottom: 0.75rem;
+        background: var(--dynamic-bg-highlight);
+        color: var(--premier-charcoal);
+        border: 1px solid var(--premier-beige);
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        text-decoration: none;
+        box-sizing: border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+
+    .doc-download-btn:hover {
+        background: var(--card-accent-color);
+        color: var(--white);
+        border-color: var(--card-accent-color);
     }
 </style>
 
@@ -254,7 +310,7 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
         </table>
     </main>
 
-    <aside>
+    <aside style="position: sticky; top: 2rem; align-self: start;">
         <div class="transaction-card-box">
             <h4 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--premier-charcoal); font-weight: 800;">Looking for More Info?</h4>
             <p style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 1.75rem; line-height: 1.5; text-align: left;">
@@ -271,6 +327,73 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
                 Listing courtesy of: {{ listing['Listing Office Name'] if listing['Listing Office Name'] else "NWMLS Matrix Ingestion" }}
             </p>
         </div>
+
+        {% if (listing.Download | lower == 'yes' or listing.download | lower == 'yes') and listing.pdfDownloads and listing.pdfDownloads.length > 0 %}
+        <div class="transaction-card-box" id="downloadsWidgetContainer">
+            <h4 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--card-accent-color); font-weight: 800;">Downloads Available</h4>
+            <p style="font-size: 0.9rem; opacity: 0.85; margin-bottom: 1.25rem; line-height: 1.5; text-align: left;">
+                Access official seller disclosures, floor plans, and listing reports for {{ listing.Address or listing.address }}.
+            </p>
+
+            <button type="button" id="triggerExpandBtn" class="btn btn-primary" style="display: block; width: 100%; box-sizing: border-box; text-align: center; font-size: 0.95rem; padding: 0.85rem 1rem; font-weight: 700; background: var(--premier-charcoal); border: none; color: var(--white); cursor: pointer; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+                Get Downloads
+            </button>
+
+            <!-- Expanded Registration Form -->
+            <div id="gatedFormWrapper" style="display: none; margin-top: 1.25rem;">
+                <form id="listingDownloadRegistrationForm">
+                    <div class="dl-form-group">
+                        <label for="dlName">Full Name *</label>
+                        <input type="text" id="dlName" required class="dl-form-control" placeholder="Jane Doe">
+                    </div>
+
+                    <div class="dl-form-group">
+                        <label for="dlEmail">Email Address *</label>
+                        <input type="email" id="dlEmail" required class="dl-form-control" placeholder="jane@example.com">
+                    </div>
+
+                    <div class="dl-form-group">
+                        <label for="dlRole">Are you an agent or a buyer? *</label>
+                        <select id="dlRole" required class="dl-form-control">
+                            <option value="">Select your role...</option>
+                            <option value="Buyer">Buyer</option>
+                            <option value="Real Estate Agent">Real Estate Agent</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="dl-form-group">
+                        <label for="dlPhone">Phone Number <span style="font-weight: 400; text-transform: none;">(Optional)</span></label>
+                        <input type="tel" id="dlPhone" class="dl-form-control" placeholder="(206) 555-0199">
+                    </div>
+
+                    <div class="dl-form-group">
+                        <label for="dlOtherEmails">Additional Recipient Emails <span style="font-weight: 400; text-transform: none;">(Optional, comma-separated)</span></label>
+                        <input type="text" id="dlOtherEmails" class="dl-form-control" placeholder="agent@realty.com, spouse@gmail.com">
+                        <span style="font-size: 0.75rem; opacity: 0.7; display: block; margin-top: 0.25rem;">Co-buyers, your agent, family, etc.</span>
+                    </div>
+
+                    <button type="submit" id="btnSubmitDlForm" class="btn btn-primary" style="display: block; width: 100%; box-sizing: border-box; text-align: center; font-size: 0.95rem; padding: 0.85rem 1rem; font-weight: 700; background: var(--card-accent-color); border: none; color: var(--white); cursor: pointer; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1rem;">
+                        Submit & Unlock Files
+                    </button>
+                </form>
+            </div>
+
+            <!-- Unlocked Instant Download Links Panel -->
+            <div id="unlockedDownloadsPanel" style="display: none; margin-top: 1rem;">
+                <div style="background: #E6F4EA; border-left: 4px solid #137333; padding: 0.85rem; border-radius: 4px; margin-bottom: 1.25rem;">
+                    <strong style="color: #137333; font-size: 0.9rem; display: block; margin-bottom: 0.25rem;">✅ Documents Unlocked!</strong>
+                    <span style="font-size: 0.85rem; color: #222222;">Click below to download your files. A copy has also been sent to your email.</span>
+                </div>
+
+                {% for doc in listing.pdfDownloads %}
+                <a href="{{ doc.url }}" target="_blank" download class="doc-download-btn">
+                    📄 Download {{ doc.title }} &rarr;
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </aside>
 </div>
 
@@ -301,3 +424,66 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
     </div>
 </section>
 {% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const triggerExpandBtn = document.getElementById('triggerExpandBtn');
+    const gatedFormWrapper = document.getElementById('gatedFormWrapper');
+    const dlForm = document.getElementById('listingDownloadRegistrationForm');
+    const unlockedPanel = document.getElementById('unlockedDownloadsPanel');
+
+    if (triggerExpandBtn && gatedFormWrapper) {
+        triggerExpandBtn.addEventListener('click', () => {
+            triggerExpandBtn.style.display = 'none';
+            gatedFormWrapper.style.display = 'block';
+        });
+    }
+
+    if (dlForm) {
+        dlForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('btnSubmitDlForm');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Unlocking Files...';
+
+            const workerGatewayUrl = 'https://myseattlesearch-quiz-gateway.joe-54b.workers.dev/';
+            const timestamp = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
+
+            const rowData = [
+                document.getElementById('dlName').value.trim(),
+                document.getElementById('dlEmail').value.trim(),
+                document.getElementById('dlPhone').value.trim(),
+                document.getElementById('dlOtherEmails').value.trim(),
+                "{{ listing['MLS Number'] or listing.mlsNumber }}",
+                document.getElementById('dlRole').value,
+                timestamp,
+                "" // Status (Stamped "SENT" by Apps Script)
+            ];
+
+            const payload = {
+                sheetName: "Download_Reg",
+                rowData: rowData
+            };
+
+            try {
+                await fetch(workerGatewayUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                gatedFormWrapper.style.display = 'none';
+                unlockedPanel.style.display = 'block';
+
+            } catch (err) {
+                console.error("API Transmission Exception:", err);
+                alert("Connection temporarily interrupted. Revealing your downloads now...");
+                gatedFormWrapper.style.display = 'none';
+                unlockedPanel.style.display = 'block';
+            }
+        });
+    }
+});
+</script>
