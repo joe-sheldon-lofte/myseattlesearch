@@ -83,6 +83,18 @@ def extract_google_id(url_string):
     return None
 
 
+def is_google_drive_link(url_string):
+    """
+    Returns True if the URL points to Google Drive and needs R2 conversion.
+    """
+    if not isinstance(url_string, str) or not url_string.strip():
+        return False
+    u = url_string.lower().strip()
+    if "assets.myseattlesearch.com" in u:
+        return False
+    return "drive.google.com" in u or "docs.google.com" in u or "drive.usercontent.google.com" in u or extract_google_id(url_string) is not None
+
+
 def apply_markdown_style(content, style_type, url=None):
     """
     Applies markdown text styling blocks while preserving structural white-space layouts.
@@ -148,6 +160,7 @@ def get_google_doc_as_markdown(docs_service, doc_url):
 def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, folder_name, filename_slug, index=1):
     """
     Downloads raw image files from Drive, decodes JPEG/PNG/HEIC formats, compresses them to WebP, and pushes to R2.
+    If already an assets.myseattlesearch.com URL, skips upload completely.
     """
     file_id = extract_google_id(image_url)
     if not file_id:
@@ -189,10 +202,10 @@ def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, fol
 def process_and_upload_pdf(drive_service, s3_client, r2_bucket, pdf_url, mls_number, index=1):
     """
     Downloads raw PDF document from Drive, uploads directly to R2 /downloads/{mls}/ folder, and returns CDN URL + Title.
+    If already an assets.myseattlesearch.com URL, skips upload completely.
     """
     file_id = extract_google_id(pdf_url)
     if not file_id:
-        # If already an assets.myseattlesearch.com URL or external link, extract title from URL
         filename = pdf_url.split('/')[-1].split('?')[0]
         title = filename.replace('.pdf', '').replace('.PDF', '').replace('_', ' ').replace('-', ' ').title()
         return pdf_url, title or f"Document {index}"
@@ -200,7 +213,6 @@ def process_and_upload_pdf(drive_service, s3_client, r2_bucket, pdf_url, mls_num
     custom_domain = "https://assets.myseattlesearch.com"
     
     try:
-        # Fetch file metadata to retain human-readable filename
         file_meta = drive_service.files().get(fileId=file_id, fields="name").execute()
         original_name = file_meta.get("name", f"Document_{index}.pdf")
         clean_name = re.sub(r'[^a-zA-Z0-9._-]', '_', original_name)
@@ -442,7 +454,7 @@ def main():
     cms_image_map = {}
 
     # ====================================================================
-    # MODULE 1: COMMAND CENTER INGESTION (MARKET, RATES & HISTORICAL LOG)
+    # MODULE 1: COMMAND CENTER INGESTION
     # ====================================================================
     cc_sheet_id = os.environ.get("COMMAND_CENTER_SHEET_ID")
     if cc_sheet_id:
@@ -504,7 +516,7 @@ def main():
                     if not member_name: continue
                     slug = generate_url_slug(member_name)
                     photo_url = row_dict.get("Photo", "").strip()
-                    if photo_url and "drive.google.com" in photo_url and s3_client:
+                    if photo_url and is_google_drive_link(photo_url) and s3_client:
                         r2_url = process_and_upload_image(drive_service, s3_client, r2_bucket, photo_url, "Team", slug)
                         if "assets.myseattlesearch.com" in r2_url:
                             row_dict["Photo"] = r2_url
@@ -555,7 +567,7 @@ def main():
                     event_images = []
                     for c_idx in img_cols:
                         img_url = padded[c_idx].strip()
-                        if img_url and "drive.google.com" in img_url and s3_client:
+                        if img_url and is_google_drive_link(img_url) and s3_client:
                             r2_url = process_and_upload_image(drive_service, s3_client, r2_bucket, img_url, "Events", f"{evt_id}-{c_idx}")
                             if "assets.myseattlesearch.com" in r2_url:
                                 event_images.append(r2_url)
@@ -628,34 +640,55 @@ def main():
                 with open(os.path.join(data_dir, "news.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
-            # K. Process Sales Tab (Including R2 PDF Downloads Automation)
+            # K. Process Sales Tab (Exact Column Header Mapping: Downloads & PDF URL 1..5)
             sales_rows = tabs_data["Sales"].get('values', [])
             if sales_rows:
                 headers = [h.strip() for h in sales_rows[0]]
                 compiled_sales = []
                 
-                # Dynamic column mapping for PDF download links (AC through AG)
-                pdf_cols = [headers.index(f"PDF {i} Link") for i in range(1, 6) if f"PDF {i} Link" in headers]
-                dl_switch_col = headers.index("Download") if "Download" in headers else -1
+                # Image Columns: Image URL 1, Image URL 2, Image URL 3, Image URL 4, Image URL 5
+                img_cols = []
+                for i in range(1, 6):
+                    col_name = f"Image URL {i}"
+                    if col_name in headers:
+                        img_cols.append((i, headers.index(col_name)))
+                        
+                # PDF Columns: PDF URL 1, PDF URL 2, PDF URL 3, PDF URL 4, PDF URL 5
+                pdf_cols = []
+                for i in range(1, 6):
+                    col_name = f"PDF URL {i}"
+                    if col_name in headers:
+                        pdf_cols.append((i, headers.index(col_name)))
 
                 for idx, r in enumerate(sales_rows[1:]):
                     padded = list(r) + [""] * (len(headers) - len(r))
                     row_dict = dict(zip(headers, padded))
                     row_num = idx + 2
                     
-                    mls_id = row_dict.get("MLS Number", "").strip() or row_dict.get("MLS", "").strip()
-                    dl_active = row_dict.get("Download", "No").strip().lower() == "yes"
+                    mls_id = row_dict.get("MLS Number", "").strip() or generate_url_slug(row_dict.get("Address", "listing"))
                     
+                    # 1. Process Images
+                    for i_num, c_idx in img_cols:
+                        img_url = padded[c_idx].strip()
+                        if img_url and is_google_drive_link(img_url) and s3_client:
+                            r2_url = process_and_upload_image(drive_service, s3_client, r2_bucket, img_url, "Sales", f"{mls_id}", i_num)
+                            if "assets.myseattlesearch.com" in r2_url:
+                                row_dict[headers[c_idx]] = r2_url
+                                batch_sheet_writebacks[web_sheet_id].append({
+                                    'range': f"Sales!{get_col_letter(c_idx)}{row_num}", 'values': [[r2_url]]
+                                })
+
+                    # 2. Process PDFs (Triggered when Downloads == "Yes")
+                    dl_active = str(row_dict.get("Downloads", "No")).strip().lower() == "yes"
                     pdf_downloads = []
                     if dl_active and mls_id:
-                        for p_idx, c_idx in enumerate(pdf_cols, 1):
+                        for p_num, c_idx in pdf_cols:
                             pdf_url = padded[c_idx].strip()
                             if not pdf_url:
                                 continue
                                 
-                            # If raw Drive URL, upload to R2 and cache permanent URL back to sheet
-                            if "drive.google.com" in pdf_url and s3_client:
-                                r2_url, doc_title = process_and_upload_pdf(drive_service, s3_client, r2_bucket, pdf_url, mls_id, p_idx)
+                            if is_google_drive_link(pdf_url) and s3_client:
+                                r2_url, doc_title = process_and_upload_pdf(drive_service, s3_client, r2_bucket, pdf_url, mls_id, p_num)
                                 if "assets.myseattlesearch.com" in r2_url:
                                     row_dict[headers[c_idx]] = r2_url
                                     batch_sheet_writebacks[web_sheet_id].append({
@@ -665,10 +698,9 @@ def main():
                                 else:
                                     pdf_downloads.append({"title": doc_title, "url": pdf_url})
                             elif pdf_url:
-                                # Extract title from R2 filename
                                 filename = pdf_url.split('/')[-1].split('?')[0]
                                 doc_title = filename.replace('.pdf', '').replace('.PDF', '').replace('_', ' ').replace('-', ' ').title()
-                                pdf_downloads.append({"title": doc_title or f"Document {p_idx}", "url": pdf_url})
+                                pdf_downloads.append({"title": doc_title or f"Document {p_num}", "url": pdf_url})
 
                     row_dict["pdfDownloads"] = pdf_downloads
                     compiled_sales.append(row_dict)
@@ -708,7 +740,7 @@ def main():
                     optimized_images = []
                     for i in range(1, 6):
                         img_url = record.get(f"Image {i} URL", "").strip()
-                        if img_url and "drive.google.com" in img_url and s3_client:
+                        if img_url and is_google_drive_link(img_url) and s3_client:
                             r2_url = process_and_upload_image(drive_service, s3_client, r2_bucket, img_url, "CMS", slug, i)
                             optimized_images.append(r2_url)
                             if "assets.myseattlesearch.com" in r2_url:
@@ -807,7 +839,7 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                     
                     quiz_slug = generate_url_slug(row_dict.get("Quiz Name", "quiz"))
                     cover_img = row_dict.get("Quiz Image", "").strip()
-                    if cover_img and "drive.google.com" in cover_img and s3_client:
+                    if cover_img and is_google_drive_link(cover_img) and s3_client:
                         r2_url = process_and_upload_image(drive_service, s3_client, r2_bucket, cover_img, "Quizzes", quiz_slug, "cover")
                         if "assets.myseattlesearch.com" in r2_url:
                             row_dict["Quiz Image"] = r2_url
@@ -824,7 +856,7 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                     for j in range(1, 11):
                         r_url = row_dict.get(f"R{j} URL", "").strip()
                         r_key = row_dict.get(f"R{j} Key", "").strip()
-                        if r_url and "drive.google.com" in r_url and s3_client:
+                        if r_url and is_google_drive_link(r_url) and s3_client:
                             r2_url = process_and_upload_image(drive_service, s3_client, r2_bucket, r_url, "Quizzes", f"{quiz_slug}-res-{j}")
                             if "assets.myseattlesearch.com" in r2_url:
                                 r_url = r2_url
@@ -1023,7 +1055,6 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
 
                         post_text = "\n\n".join(post_components)
 
-                        # 1. Facebook Publishing Sequence
                         if get_v(col_map_soc["fb_switch"]).lower() == "yes" and not get_v(col_map_soc["fb_id"]):
                             print(f"   📢 [Row {row_num}] Publishing to Facebook: '{primary_text[:40]}...'")
                             pub_id = publish_to_facebook(
@@ -1035,7 +1066,6 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                                     'values': [[pub_id]]
                                 })
 
-                        # 2. Threads Publishing Sequence
                         if get_v(col_map_soc["threads_switch"]).lower() == "yes" and not get_v(col_map_soc["threads_id"]):
                             print(f"   📢 [Row {row_num}] Publishing to Threads: '{primary_text[:40]}...'")
                             pub_id = publish_to_threads(
@@ -1047,7 +1077,6 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                                     'values': [[pub_id]]
                                 })
 
-                        # 3. LinkedIn Publishing Sequence
                         if get_v(col_map_soc["li_switch"]).lower() == "yes" and not get_v(col_map_soc["li_id"]):
                             print(f"   📢 [Row {row_num}] Publishing to LinkedIn: '{primary_text[:40]}...'")
                             pub_id = publish_to_linkedin(

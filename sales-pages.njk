@@ -32,7 +32,7 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
         top: 1.25rem;
         left: 1.25rem;
         z-index: 10;
-        background-color: rgba(0,0,0,0.85);
+        background-color: var(--premier-charcoal);
         color: var(--white);
         font-size: 0.7rem;
         font-weight: 700;
@@ -50,7 +50,7 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
     .listing-fallback-banner {
         width: 100%;
         height: 100%;
-        background: linear-gradient(135deg, var(--premier-charcoal) 0%, #2c3e50 100%);
+        background: var(--premier-charcoal);
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -125,7 +125,6 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
         font-weight: 700;
     }
 
-    /* Additional Image Gallery Framework */
     .property-gallery-grid-block {
         max-width: 1140px;
         margin: 0 auto;
@@ -208,7 +207,7 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
         font-size: 0.9rem;
         font-weight: 700;
         text-decoration: none;
-        box-sizing: border-radius: 6px;
+        box-sizing: border-box;
         transition: all 0.2s ease;
     }
 
@@ -272,13 +271,13 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
             <tbody>
                 <tr>
                     <td>Original List Price</td>
-                    <td style="font-weight: 600; color: #444;">
+                    <td style="font-weight: 600; color: var(--premier-charcoal);">
                         ${{ listing['Original Price'].toLocaleString() if listing['Original Price'] else (listing['Listing Price'].toLocaleString() if listing['Listing Price'] else (listing.price if listing.price else "Pending")) }}
                     </td>
                 </tr>
                 <tr>
                     <td>Final Listing Price</td>
-                    <td style="font-weight: 600; color: #444;">
+                    <td style="font-weight: 600; color: var(--premier-charcoal);">
                         ${{ listing['Listing Price'].toLocaleString() if listing['Listing Price'] else (listing.price if listing.price else "Pending") }}
                     </td>
                 </tr>
@@ -296,13 +295,13 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
                 </tr>
                 <tr>
                     <td>Days on Market</td>
-                    <td style="font-weight: 600; color: #444;">
+                    <td style="font-weight: 600; color: var(--premier-charcoal);">
                         {{ listing.DOM if listing.DOM else "-" }} Days
                     </td>
                 </tr>
                 <tr>
                     <td>Closed Date</td>
-                    <td style="font-weight: 600; color: #444;">
+                    <td style="font-weight: 600; color: var(--premier-charcoal);">
                         {{ listing['Selling Date'] if listing['Selling Date'] else "Active Tracking" }}
                     </td>
                 </tr>
@@ -323,12 +322,12 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
 
             <hr style="border: none; border-top: 1px solid var(--premier-beige); margin: 2rem 0 1.5rem 0;">
             
-            <p style="font-size: 0.75rem; color: #64748b; line-height: 1.5; text-align: left; margin: 0; font-style: italic;">
+            <p style="font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; line-height: 1.5; text-align: left; margin: 0; font-style: italic;">
                 Listing courtesy of: {{ listing['Listing Office Name'] if listing['Listing Office Name'] else "NWMLS Matrix Ingestion" }}
             </p>
         </div>
 
-        {% if (listing.Download | lower == 'yes' or listing.download | lower == 'yes') and listing.pdfDownloads and listing.pdfDownloads.length > 0 %}
+        {% if (listing.Downloads | lower == 'yes' or listing.downloads | lower == 'yes') and listing.pdfDownloads and listing.pdfDownloads.length > 0 %}
         <div class="transaction-card-box" id="downloadsWidgetContainer">
             <h4 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--card-accent-color); font-weight: 800;">Downloads Available</h4>
             <p style="font-size: 0.9rem; opacity: 0.85; margin-bottom: 1.25rem; line-height: 1.5; text-align: left;">
@@ -381,9 +380,9 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
 
             <!-- Unlocked Instant Download Links Panel -->
             <div id="unlockedDownloadsPanel" style="display: none; margin-top: 1rem;">
-                <div style="background: #E6F4EA; border-left: 4px solid #137333; padding: 0.85rem; border-radius: 4px; margin-bottom: 1.25rem;">
-                    <strong style="color: #137333; font-size: 0.9rem; display: block; margin-bottom: 0.25rem;">✅ Documents Unlocked!</strong>
-                    <span style="font-size: 0.85rem; color: #222222;">Click below to download your files. A copy has also been sent to your email.</span>
+                <div style="background: var(--dynamic-bg-highlight); border-left: 4px solid var(--card-accent-color); padding: 0.85rem; border-radius: 4px; margin-bottom: 1.25rem;">
+                    <strong style="color: var(--card-accent-color); font-size: 0.9rem; display: block; margin-bottom: 0.25rem;">✅ Documents Unlocked!</strong>
+                    <span style="font-size: 0.85rem; color: var(--premier-charcoal);">Click below to download your files. A copy has also been sent to your email.</span>
                 </div>
 
                 {% for doc in listing.pdfDownloads %}
@@ -450,13 +449,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const workerGatewayUrl = 'https://myseattlesearch-quiz-gateway.joe-54b.workers.dev/';
             const timestamp = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
 
+            const nameVal = document.getElementById('dlName').value.trim();
+            const roleVal = document.getElementById('dlRole').value;
+            const combinedName = roleVal ? `${nameVal} (${roleVal})` : nameVal;
+
             const rowData = [
-                document.getElementById('dlName').value.trim(),
+                combinedName,
                 document.getElementById('dlEmail').value.trim(),
                 document.getElementById('dlPhone').value.trim(),
                 document.getElementById('dlOtherEmails').value.trim(),
                 "{{ listing['MLS Number'] or listing.mlsNumber }}",
-                document.getElementById('dlRole').value,
                 timestamp,
                 "" // Status (Stamped "SENT" by Apps Script)
             ];
