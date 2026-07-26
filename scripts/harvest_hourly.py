@@ -161,6 +161,7 @@ def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, fol
     """
     Downloads raw image files from Drive, decodes JPEG/PNG/HEIC formats, compresses them to WebP, and pushes to R2.
     If already an assets.myseattlesearch.com URL, skips upload completely.
+    Automatically deletes the source Google Drive file upon successful upload.
     """
     file_id = extract_google_id(image_url)
     if not file_id:
@@ -193,6 +194,14 @@ def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, fol
             ContentType="image/webp"
         )
         print(f"   🚀 WebP uploaded safely to R2 bucket path: {permanent_url}")
+
+        # Auto-delete source file from Google Drive to keep Drive storage spotless
+        try:
+            drive_service.files().delete(fileId=file_id).execute()
+            print(f"   🗑️ Successfully purged source Drive image file (ID: {file_id})")
+        except Exception as del_err:
+            print(f"   ⚠️ Drive deletion notice for file ID {file_id}: {del_err}")
+
         return permanent_url
     except Exception as e:
         print(f"   ❌ Image optimization fallback triggered on ID {file_id}: {e}")
@@ -203,6 +212,7 @@ def process_and_upload_pdf(drive_service, s3_client, r2_bucket, pdf_url, mls_num
     """
     Downloads raw PDF document from Drive, uploads directly to R2 /downloads/{mls}/ folder, and returns CDN URL + Title.
     If already an assets.myseattlesearch.com URL, skips upload completely.
+    Automatically deletes the source Google Drive file upon successful upload.
     """
     file_id = extract_google_id(pdf_url)
     if not file_id:
@@ -232,7 +242,14 @@ def process_and_upload_pdf(drive_service, s3_client, r2_bucket, pdf_url, mls_num
             ContentType="application/pdf"
         )
         print(f"   📄 PDF uploaded safely to R2 bucket path: {permanent_url}")
-        
+
+        # Auto-delete source PDF from Google Drive to keep Drive storage spotless
+        try:
+            drive_service.files().delete(fileId=file_id).execute()
+            print(f"   🗑️ Successfully purged source Drive PDF file (ID: {file_id})")
+        except Exception as del_err:
+            print(f"   ⚠️ Drive deletion notice for PDF ID {file_id}: {del_err}")
+
         display_title = original_name.replace('.pdf', '').replace('.PDF', '').replace('_', ' ').replace('-', ' ').title()
         return permanent_url, display_title
     except Exception as e:
@@ -424,7 +441,7 @@ def main():
     scopes = [
         'https://www.googleapis.com/auth/spreadsheets',
         'https://www.googleapis.com/auth/documents.readonly',
-        'https://www.googleapis.com/auth/drive.readonly'
+        'https://www.googleapis.com/auth/drive'
     ]
     
     try:
