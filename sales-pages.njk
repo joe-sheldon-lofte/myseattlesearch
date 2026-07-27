@@ -517,8 +517,10 @@ permalink: "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (list
                     <td><strong>Final Sold Price</strong></td>
                     <td>
                         <strong style="color: var(--card-accent-color); font-size: 1.15rem;">
-                            {% if listing.Status == "Sold" or listing.status == "Sold" or listing['Selling Price'] %}
+                            {% if listing.Status == "Sold" or listing.status == "Sold" %}
                                 ${{ (listing['Selling Price'] * 1).toLocaleString('en-US') if listing['Selling Price'] else listing.price }}
+                            {% elif listing.Status == "Pending" or listing.status == "Pending" %}
+                                Pending
                             {% else %}
                                 Active - Tour Today!
                             {% endif %}
