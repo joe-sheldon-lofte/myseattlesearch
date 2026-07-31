@@ -22,12 +22,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
-      - name: Install Dependencies
+      - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; else pip install gspread google-auth requests pandas; fi
+          pip install gspread google-auth requests pandas
 
       - name: Run Daily Harvester Script
         env:
