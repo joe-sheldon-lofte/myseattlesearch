@@ -2,6 +2,7 @@
 layout: base.njk
 title: Underground Heating Oil Tanks & PLIA $75k Grants | MySeattleSearch
 metaDescription: Complete King and Snohomish County guide to underground heating oil tanks, tank sweeps, decommissioning vs removal, Form 17 disclosures, and WA PLIA $75,000 grants.
+permalink: /resources/health-hazards/heating-oil-tanks/
 ---
 
 <script type="application/ld+json">
@@ -25,27 +26,46 @@ metaDescription: Complete King and Snohomish County guide to underground heating
 </script>
 
 <style>
-.guide-hero {
-  background-color: var(--premier-charcoal);
-  color: var(--white);
-  padding: 3rem 1.5rem;
-  border-radius: 12px;
-  margin-bottom: 2.5rem;
+.resource-article-container {
+  max-width: 1140px;
+  margin: 3rem auto;
+  padding: 0 1rem;
+  box-sizing: border-box;
 }
 
-.guide-hero h1 {
-  color: var(--white);
-  font-size: 2.25rem;
-  margin-bottom: 0.75rem;
+.editorial-narrative-flow {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.narrative-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--premier-beige);
+}
+
+.narrative-meta-tag {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--card-accent-color);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 0.5rem;
+}
+
+.narrative-title {
+  font-size: 2.3rem;
+  font-weight: 900;
+  color: var(--card-accent-color);
   line-height: 1.2;
+  margin: 0 0 1rem 0;
 }
 
-.guide-hero p {
-  color: var(--premier-beige);
-  font-size: 1.1rem;
-  max-width: 820px;
-  margin: 0;
+.narrative-lede {
+  font-size: 1.15rem;
   line-height: 1.6;
+  color: var(--premier-charcoal);
+  margin: 0;
 }
 
 .coach-callout {
@@ -69,51 +89,40 @@ metaDescription: Complete King and Snohomish County guide to underground heating
   margin: 0.5rem 0 0 0;
   color: var(--premier-charcoal);
   line-height: 1.6;
+  font-size: 1rem;
 }
 
-.content-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 2.5rem;
-}
-
-@media (max-width: 900px) {
-  .content-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.article-body h2 {
+.narrative-section h2 {
   color: var(--premier-charcoal);
   font-size: 1.6rem;
-  border-bottom: 2px solid var(--premier-beige);
-  padding-bottom: 0.5rem;
+  font-weight: 800;
   margin-top: 2.5rem;
+  margin-bottom: 1rem;
 }
 
-.article-body p, .article-body li {
+.narrative-section p, .narrative-section li {
   color: var(--premier-charcoal);
   font-size: 1.05rem;
   line-height: 1.7;
 }
 
-.article-body ul {
+.narrative-section ul {
   padding-left: 1.5rem;
   margin: 1rem 0;
 }
 
-.article-body li {
+.narrative-section li {
   margin-bottom: 0.5rem;
 }
 
 .comparison-table {
   width: 100%;
   border-collapse: collapse;
-  margin: 1.5rem 0;
+  margin: 2rem 0;
   background-color: var(--white);
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--premier-beige);
 }
 
 .comparison-table th {
@@ -122,6 +131,7 @@ metaDescription: Complete King and Snohomish County guide to underground heating
   padding: 1rem;
   text-align: left;
   font-size: 0.95rem;
+  font-weight: 800;
 }
 
 .comparison-table td {
@@ -135,48 +145,54 @@ metaDescription: Complete King and Snohomish County guide to underground heating
   border-bottom: none;
 }
 
-.evaluator-card {
+/* Full-Width Inline Modeler Tool */
+.inline-tool-card {
   background-color: var(--white);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--premier-beige);
   border-radius: 12px;
-  padding: 1.75rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-  position: sticky;
-  top: 2rem;
+  padding: 2rem;
+  margin: 3rem 0;
+  border-top: 5px solid var(--card-accent-color);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
 }
 
-.evaluator-card h3 {
+.inline-tool-card h3 {
   margin-top: 0;
   color: var(--premier-charcoal);
-  font-size: 1.25rem;
-  border-bottom: 2px solid var(--premier-beige);
-  padding-bottom: 0.5rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
 }
 
-.evaluator-field {
-  margin-bottom: 1.25rem;
+.evaluator-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.25rem;
 }
 
 .evaluator-field label {
   display: block;
   font-weight: 700;
   color: var(--premier-charcoal);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   margin-bottom: 0.4rem;
 }
 
 .evaluator-select {
   width: 100%;
-  padding: 0.65rem;
-  border: 1px solid rgba(0, 0, 0, 0.15);
+  padding: 0.75rem;
+  border: 1px solid var(--premier-beige);
   border-radius: 6px;
   background-color: var(--white);
   color: var(--premier-charcoal);
   font-size: 0.95rem;
+  box-sizing: border-box;
 }
 
 .evaluator-output {
-  background-color: var(--premier-beige);
+  background-color: var(--dynamic-bg-highlight);
+  border: 1px solid var(--premier-beige);
   border-radius: 8px;
   padding: 1.25rem;
   margin-top: 1.5rem;
@@ -186,26 +202,98 @@ metaDescription: Complete King and Snohomish County guide to underground heating
   margin: 0 0 0.5rem 0;
   color: var(--premier-charcoal);
   font-size: 1rem;
+  font-weight: 800;
 }
 
 .evaluator-output p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   color: var(--premier-charcoal);
   line-height: 1.5;
 }
 
+/* Preferred Vendors Block */
+.vendor-feature-card {
+  background-color: var(--white);
+  border: 1px solid var(--premier-beige);
+  border-radius: 12px;
+  padding: 1.75rem;
+  margin: 2.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+}
+
+.vendor-feature-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.vendor-tag {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--card-accent-color);
+  letter-spacing: 0.5px;
+}
+
+.vendor-name {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--premier-charcoal);
+  margin: 0.2rem 0;
+}
+
+.vendor-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.btn-vendor-primary {
+  background-color: var(--premier-charcoal);
+  color: var(--white);
+  text-decoration: none;
+  padding: 0.6rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  transition: background-color 0.15s ease;
+}
+
+.btn-vendor-primary:hover {
+  background-color: var(--card-accent-color);
+}
+
+.btn-vendor-secondary {
+  background-color: var(--dynamic-bg-highlight);
+  border: 1px solid var(--premier-beige);
+  color: var(--premier-charcoal);
+  text-decoration: none;
+  padding: 0.6rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
 .official-sources-section {
-  background-color: var(--premier-beige);
+  background-color: var(--dynamic-bg-highlight);
   border-radius: 12px;
   padding: 2rem;
   margin-top: 3.5rem;
+  border: 1px solid var(--premier-beige);
 }
 
 .official-sources-section h3 {
   margin-top: 0;
   color: var(--premier-charcoal);
-  font-size: 1.35rem;
+  font-size: 1.25rem;
+  font-weight: 800;
 }
 
 .sources-grid {
@@ -219,14 +307,14 @@ metaDescription: Complete King and Snohomish County guide to underground heating
   background-color: var(--white);
   border-radius: 8px;
   padding: 1.25rem;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--premier-beige);
 }
 
 .source-item a {
   font-weight: 700;
   color: var(--premier-charcoal);
   text-decoration: underline;
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
 .source-item a:hover {
@@ -235,37 +323,87 @@ metaDescription: Complete King and Snohomish County guide to underground heating
 
 .source-item p {
   margin: 0.4rem 0 0 0;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   color: var(--premier-charcoal);
   opacity: 0.85;
 }
+
+/* Low-Pressure SMS CTA Box */
+.low-pressure-cta {
+  margin-top: 3.5rem;
+  background-color: var(--premier-beige);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  border: 1px solid var(--premier-beige);
+}
+
+.low-pressure-cta h3 {
+  margin: 0 0 0.5rem 0;
+  color: var(--premier-charcoal);
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.low-pressure-cta p {
+  font-size: 0.98rem;
+  color: var(--premier-charcoal);
+  margin: 0 0 1.5rem 0;
+  line-height: 1.5;
+}
+
+.btn-sms-action {
+  display: inline-block;
+  background-color: var(--card-accent-color);
+  color: var(--white);
+  text-decoration: none;
+  padding: 0.85rem 1.75rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  border-radius: 6px;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.btn-sms-action:hover {
+  transform: translateY(-2px);
+  background-color: var(--premier-charcoal);
+}
 </style>
 
-<div class="container margin-top-lg">
-  
-  <!-- Hero Section -->
-  <header class="guide-hero">
-    <h1>Underground Heating Oil Tanks & PLIA $75k Cleanup Grants</h1>
-    <p>Navigating buried oil tanks in King and Snohomish counties: how to conduct a tank sweep, understand decommissioning records, protect your transaction, and access Washington State grant funding.</p>
-  </header>
-
-  <div class="content-grid">
+<div class="resource-article-container">
+  <article class="editorial-narrative-flow">
     
-    <!-- Main Guide Article -->
-    <article class="article-body">
-      
-      <!-- Real Estate Coach Callout -->
-      <div class="coach-callout">
-        <h3>💡 Real Estate Coach's Take</h3>
-        <p>Finding out a property has an underground heating oil tank can sound intimidating, but it shouldn't derail your home purchase or sale. In our local Puget Sound market, buried tanks are extremely common in homes built before 1985. With a simple tank sweep, clear paperwork, and Washington's PLIA grant program, managing an oil tank is straightforward once you know the playbook.</p>
-      </div>
+    <!-- Narrative Header -->
+    <header class="narrative-header">
+      <div class="narrative-meta-tag">PNW Home Safety & Environmental Guide</div>
+      <h1 class="narrative-title">Underground Heating Oil Tanks & PLIA $75,000 Cleanup Grants</h1>
+      <p class="narrative-lede">
+        Navigating buried oil tanks in King and Snohomish counties: how to conduct a tank sweep, understand decommissioning records, protect your contract disclosures, and access Washington State grant funding.
+      </p>
+    </header>
 
+    <!-- Real Estate Coach Callout -->
+    <div class="coach-callout">
+      <h3>💡 Real Estate Coach's Take</h3>
+      <p>
+        Finding out a home has an underground heating oil tank can sound intimidating, but it shouldn't derail your transaction. Buried fuel tanks are extremely common across King and Snohomish counties in homes built before 1985. With a simple tank sweep, clean decommissioning records, and Washington's PLIA grant program, managing a tank is straightforward once you know the playbook.
+      </p>
+    </div>
+
+    <!-- Educational Body Section -->
+    <section class="narrative-section">
       <h2>Underground Fuel Tanks 101: Why They Exist in the PNW</h2>
-      <p>Before natural gas pipelines expanded across Seattle, Edmonds, Shoreline, and Lynnwood in the mid-to-late 20th century, heating oil was the standard residential heating fuel across Washington State. Most single-family homes buried a 300 to 1,000-gallon steel fuel tank directly in the yard.</p>
-      <p>Over time, as homes converted to natural gas or modern heat pumps, many of these tanks were disconnected and left underground. Because bare steel rusts when exposed to moist Pacific Northwest soil, an unmonitored buried tank can eventually corrode and leak petroleum into topsoil or groundwater.</p>
+      <p>
+        Before natural gas pipelines expanded across Seattle, Edmonds, Shoreline, and Lynnwood in the mid-to-late 20th century, heating oil was the standard residential heating fuel across Washington State. Most single-family homes buried a 300 to 1,000-gallon steel fuel tank directly in the yard.
+      </p>
+      <p>
+        Over time, as homes converted to natural gas or modern heat pumps, many of these tanks were disconnected and left underground. Because bare steel rusts when exposed to moist Pacific Northwest soil, an unmonitored buried tank can eventually corrode and leak petroleum into topsoil or groundwater.
+      </p>
 
       <h2>Decommissioning vs. Full Removal: What's the Difference?</h2>
-      <p>When dealing with an underground heating oil tank in King or Snohomish County, sellers and buyers generally encounter two paths:</p>
+      <p>
+        When dealing with an underground heating oil tank in King or Snohomish County, sellers and buyers generally encounter two paths:
+      </p>
 
       <table class="comparison-table">
         <thead>
@@ -298,103 +436,120 @@ metaDescription: Complete King and Snohomish County guide to underground heating
           </tr>
         </tbody>
       </table>
+    </section>
 
+    <!-- Inline Interactive Modeler -->
+    <aside class="inline-tool-card">
+      <oil-tank-evaluator>
+        <h3>🛢️ Oil Tank Action Step Modeler</h3>
+        <p style="font-size: 0.9rem; color: var(--premier-charcoal); opacity: 0.85; margin-bottom: 1rem;">Select your property specifics to generate instant local action steps:</p>
+
+        <div class="evaluator-form-grid">
+          <div class="evaluator-field">
+            <label for="eval-heating">Current Heating System</label>
+            <select id="eval-heating" class="evaluator-select">
+              <option value="active-oil">Active Oil Heat</option>
+              <option value="converted" selected>Converted to Gas / Heat Pump</option>
+              <option value="unknown">Unknown / Old Home</option>
+            </select>
+          </div>
+
+          <div class="evaluator-field">
+            <label for="eval-location">Tank Location</label>
+            <select id="eval-location" class="evaluator-select">
+              <option value="underground" selected>Buried Underground in Yard</option>
+              <option value="basement">Above-Ground (Basement/Garage)</option>
+              <option value="unknown">Unknown / Possible Buried Tank</option>
+            </select>
+          </div>
+
+          <div class="evaluator-field">
+            <label for="eval-status">Decommissioning Paperwork</label>
+            <select id="eval-status" class="evaluator-select">
+              <option value="has-cert">Have Fire Dept Certificate</option>
+              <option value="no-cert" selected>Decommissioned, No Paperwork</option>
+              <option value="not-decomm">Not Decommissioned / Active</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="evaluator-output-box" class="evaluator-output">
+          <h4 id="eval-output-title">Action Steps</h4>
+          <p id="eval-output-text">Select criteria above to evaluate next steps.</p>
+        </div>
+      </oil-tank-evaluator>
+    </aside>
+
+    <!-- Detailed Grant & Action Plans -->
+    <section class="narrative-section">
       <h2>Washington State PLIA $75,000 Grant Program (HOLG)</h2>
-      <p>One of Washington State's best-kept secrets for homeowners is the <strong>Heating Oil Loan & Grant (HOLG) Program</strong>, administered by the <strong>Pollution Liability Insurance Agency (PLIA)</strong>.</p>
+      <p>
+        One of Washington State's best financial safety nets for homeowners is the <strong>Heating Oil Loan & Grant (HOLG) Program</strong>, administered by the <strong>Pollution Liability Insurance Agency (PLIA)</strong>:
+      </p>
       <ul>
         <li><strong>Grant Funding Up to $75,000:</strong> Income-qualified homeowners who register their heating oil tank with PLIA can receive up to $75,000 in grant funds to cover tank removal and soil remediation costs.</li>
         <li><strong>No Out-of-Pocket Crisis:</strong> If an old tank leak is discovered during a soil test, PLIA grants can directly reimburse certified environmental contractors to clean up the soil.</li>
         <li><strong>How to Qualify:</strong> The program covers residential properties with active or abandoned heating oil tanks used for space heating. Registration must be filed before major cleanup begins.</li>
       </ul>
 
-      <h2>Buyer Action Plan: Protecting Yourself During Inspections</h2>
-      <p>If you are buying a home built before 1985 in King or Snohomish County, follow these steps during your purchase contingency window:</p>
+      <h2>Buyer & Seller Action Plans</h2>
+      <p><strong>For Homebuyers:</strong></p>
       <ul>
-        <li><strong>Request a Tank Sweep ($150–$200):</strong> Hire an inspector to scan the yard with metal detectors or ground-penetrating radar to confirm whether an undisclosed buried tank exists.</li>
-        <li><strong>Verify Decommissioning Certificates:</strong> If the seller states the tank was decommissioned, insist on seeing the official <em>Fire Department Decommissioning Certificate</em> and soil sample lab reports.</li>
-        <li><strong>Check Form 17 Seller Disclosures:</strong> Washington State Form 17 specifically asks sellers if an underground storage tank exists on the property and whether it meets state environmental standards.</li>
+        <li><strong>Order a Tank Sweep ($150–$200):</strong> During your inspection window, hire a specialist to scan the yard with ground-penetrating radar to confirm whether an undisclosed buried tank exists.</li>
+        <li><strong>Verify Decommissioning Certificates:</strong> Insist on seeing official Fire Department Decommissioning Certificates and soil sample lab reports before waiving contingencies.</li>
       </ul>
 
-      <h2>Seller Action Plan: Preventing Closing Delays</h2>
-      <p>If you are preparing to list a home with a buried tank, taking proactive steps avoids last-minute buyer renegotiations or mortgage underwriting hurdles:</p>
+      <p><strong>For Sellers:</strong></p>
       <ul>
-        <li><strong>Locate Historic Paperwork Early:</strong> Dig up your fire department decommissioning permit, soil test results, or contractor receipts before going live on the MLS.</li>
-        <li><strong>Address Abandoned Active Tanks:</strong> If your home was converted to electric heat pumps or gas years ago but the oil tank was simply forgotten, consider decommissioning it prior to listing.</li>
-        <li><strong>Disclose Accurately:</strong> Complete Section 7 (Environmental) on your Form 17 accurately to build trust with buyers and prevent post-closing liability.</li>
+        <li><strong>Locate Historic Paperwork Early:</strong> Dig up your fire department decommissioning permits and contractor receipts before listing on the MLS.</li>
+        <li><strong>Disclose Accurately:</strong> Complete Section 7 (Environmental) on Form 17 accurately to protect yourself from post-closing buyer liability.</li>
       </ul>
+    </section>
 
-    </article>
-
-    <!-- Sidebar Interactive Evaluator -->
-    <aside>
-      <oil-tank-evaluator class="evaluator-card">
-        <h3>🛢️ Oil Tank Readiness Check</h3>
-        <p style="font-size: 0.88rem; color: var(--premier-charcoal); opacity: 0.85; margin-bottom: 1.25rem;">Select your property details to generate instant local action steps:</p>
-
-        <div class="evaluator-field">
-          <label for="eval-heating">Current Heating System</label>
-          <select id="eval-heating" class="evaluator-select">
-            <option value="active-oil">Active Oil Heat</option>
-            <option value="converted" selected>Converted to Gas / Heat Pump</option>
-            <option value="unknown">Unknown / Old Home</option>
-          </select>
+    <!-- Preferred Local Specialist -->
+    <div class="vendor-feature-card">
+      <div class="vendor-feature-header">
+        <div>
+          <span class="vendor-tag">Vetted Local Specialist</span>
+          <h3 class="vendor-name">Tanks by Dallas</h3>
+          <p style="margin: 0; font-size: 0.9rem; color: var(--premier-charcoal); opacity: 0.85;">Oil tank decommissioning, tank sweeps, locating, and removal services.</p>
         </div>
-
-        <div class="evaluator-field">
-          <label for="eval-location">Tank Location</label>
-          <select id="eval-location" class="evaluator-select">
-            <option value="underground" selected>Buried Underground in Yard</option>
-            <option value="basement">Above-Ground (Basement/Garage)</option>
-            <option value="unknown">Unknown / Possible Buried Tank</option>
-          </select>
-        </div>
-
-        <div class="evaluator-field">
-          <label for="eval-status">Decommissioning Paperwork</label>
-          <select id="eval-status" class="evaluator-select">
-            <option value="has-cert">Have Fire Dept Certificate</option>
-            <option value="no-cert" selected>Decommissioned, No Paperwork</option>
-            <option value="not-decomm">Not Decommissioned / Active</option>
-          </select>
-        </div>
-
-        <div id="evaluator-output-box" class="evaluator-output">
-          <h4 id="eval-output-title">Action Steps</h4>
-          <p id="eval-output-text">Select your criteria above to evaluate next steps.</p>
-        </div>
-      </oil-tank-evaluator>
-    </aside>
-
-  </div>
-
-  <!-- Official Public Resources & Research Portals -->
-  <section class="official-sources-section">
-    <h3>🏛️ Official Public Resources & Research Portals</h3>
-    <div class="sources-grid">
-      
-      <div class="source-item">
-        <a href="https://plia.wa.gov/heating-oil-loan-and-grant-program/" target="_blank" rel="noopener">WA PLIA Heating Oil Loan & Grant Program (HOLG) ↗</a>
-        <p>Official portal for Washington State's $75,000 cleanup grant and loan program for residential heating oil tanks.</p>
       </div>
-
-      <div class="source-item">
-        <a href="https://ecology.wa.gov/Spills-Cleanup/Contamination-cleanup/Underground-storage-tanks" target="_blank" rel="noopener">WA Dept of Ecology Underground Storage Tanks ↗</a>
-        <p>Washington State environmental rules, reporting guidelines, and soil cleanup standards for petroleum storage.</p>
+      <div class="vendor-actions">
+        <a href="tel:2063650291" class="btn-vendor-primary">📞 Call (206) 365-0291</a>
+        <a href="/professionals/tanks-by-dallas-oil-tank-services/" class="btn-vendor-secondary">View Verified Credentials &rarr;</a>
       </div>
-
-      <div class="source-item">
-        <a href="https://kingcounty.gov/en/dept/dph/health-safety/environmental-health/healthy-water-air-soil/lead-toxics-program" target="_blank" rel="noopener">King County Environmental Health Services ↗</a>
-        <p>Public health guidelines for soil quality, petroleum disclosures, and residential environmental safety.</p>
-      </div>
-
-      <div class="source-item">
-        <a href="https://www.snohd.org/" target="_blank" rel="noopener">Snohomish County Health District Portals ↗</a>
-        <p>Snohomish County residential environmental health guidelines, land safety, and reporting portals.</p>
-      </div>
-
     </div>
-  </section>
 
+    <!-- Official Government Links Grid -->
+    <section class="official-sources-section">
+      <h3>🏛️ Official Public Resources & Research Portals</h3>
+      <div class="sources-grid">
+        <div class="source-item">
+          <a href="https://plia.wa.gov/heating-oil-loan-and-grant-program/" target="_blank" rel="noopener">WA PLIA Heating Oil Grant Program (HOLG) ↗</a>
+          <p>Official portal for Washington State's $75,000 cleanup grant and loan program.</p>
+        </div>
+        <div class="source-item">
+          <a href="https://ecology.wa.gov/Spills-Cleanup/Contamination-cleanup/Underground-storage-tanks" target="_blank" rel="noopener">WA Dept of Ecology Storage Tanks ↗</a>
+          <p>Washington State environmental rules and soil cleanup standards for petroleum storage.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Low-Pressure Text CTA Box -->
+    <div class="low-pressure-cta">
+      <h3>Have Questions About an Oil Tank or Inspection?</h3>
+      <p>
+        Texting is the easiest, lowest-pressure way to get quick answers about Form 17 disclosures, local tank sweep vendors, or PLIA grant registration.
+      </p>
+
+      <a href="sms:+12066577493?body=Hi%20Joe,%20I%20have%20a%20question%20about%20a%20heating%20oil%20tank." class="btn-sms-action">
+        💬 Text Joe Sheldon: (206) 657-7493
+      </a>
+      <p style="margin-top: 0.85rem; font-size: 0.8rem; opacity: 0.75;">Prefer to call? Phone line is open at (206) 657-7493.</p>
+    </div>
+
+  </article>
 </div>
 
 <script>
