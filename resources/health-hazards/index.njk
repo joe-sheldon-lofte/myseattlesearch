@@ -305,9 +305,9 @@ permalink: /resources/health-hazards/
 }
 
 .low-pressure-cta p {
-  font-size: 0.98rem;
+  font-size: 0.95rem;
   color: var(--premier-charcoal);
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 1.25rem 0;
   line-height: 1.5;
 }
 
@@ -316,7 +316,7 @@ permalink: /resources/health-hazards/
   background-color: var(--card-accent-color);
   color: var(--white);
   text-decoration: none;
-  padding: 0.85rem 1.75rem;
+  padding: 0.8rem 1.75rem;
   font-size: 0.95rem;
   font-weight: 800;
   border-radius: 6px;
@@ -337,7 +337,7 @@ permalink: /resources/health-hazards/
       <div class="narrative-meta-tag">PNW Home Safety & Disclosure Guide</div>
       <h1 class="narrative-title">King & Snohomish Property Health Radar</h1>
       <p class="narrative-lede">
-        Every home in the Puget Sound region has a story. Select your city and property details below to instantly uncover local environmental factors, soil conditions, home-age disclosures, and Washington State safety rules in plain English.
+        Select your city and property details below to uncover local environmental factors, soil conditions, home-age disclosures, and Washington State safety rules.
       </p>
     </header>
 
@@ -345,7 +345,7 @@ permalink: /resources/health-hazards/
     <section class="embedded-calculator-widget">
       <property-hazard-radar class="widget-inner-card">
         <header class="widget-header">
-          <h3>1-Minute Property Hazard Lookup</h3>
+          <h3>Property Hazard Lookup</h3>
           <p>Model local land factors, airport flight paths, home-age disclosures, and mandatory safety codes.</p>
         </header>
 
@@ -353,15 +353,61 @@ permalink: /resources/health-hazards/
           <div class="widget-field">
             <label for="radar-city-select">1. Select Municipality / City</label>
             <select id="radar-city-select" class="widget-control">
-              <option value="Lynnwood" selected>Lynnwood (Snohomish County)</option>
-              <option value="Seattle">Seattle (King County)</option>
-              <option value="Edmonds">Edmonds (Snohomish County)</option>
-              <option value="Mukilteo">Mukilteo (Snohomish County)</option>
-              <option value="Everett">Everett (Snohomish County)</option>
-              <option value="Bellevue">Bellevue (King County)</option>
-              <option value="Kirkland">Kirkland (King County)</option>
-              <option value="Shoreline">Shoreline (King County)</option>
-              <option value="Renton">Renton (King County)</option>
+              {% if city_data %}
+                <optgroup label="King County">
+                  {% for city in city_data %}
+                    {% if city.County == "King" or city.County == "King County" %}
+                      <option value="{{ city.City }}">{{ city.City }}</option>
+                    {% endif %}
+                  {% endfor %}
+                </optgroup>
+                <optgroup label="Snohomish County">
+                  {% for city in city_data %}
+                    {% if city.County == "Snohomish" or city.County == "Snohomish County" %}
+                      <option value="{{ city.City }}" {% if city.City == "Lynnwood" %}selected{% endif %}>{{ city.City }}</option>
+                    {% endif %}
+                  {% endfor %}
+                </optgroup>
+              {% else %}
+                <optgroup label="King County">
+                  <option value="Seattle">Seattle</option>
+                  <option value="Bellevue">Bellevue</option>
+                  <option value="Kirkland">Kirkland</option>
+                  <option value="Redmond">Redmond</option>
+                  <option value="Renton">Renton</option>
+                  <option value="Shoreline">Shoreline</option>
+                  <option value="Lake Forest Park">Lake Forest Park</option>
+                  <option value="Kenmore">Kenmore</option>
+                  <option value="Woodinville">Woodinville</option>
+                  <option value="Bothell">Bothell</option>
+                  <option value="Issaquah">Issaquah</option>
+                  <option value="Sammamish">Sammamish</option>
+                  <option value="Mercer Island">Mercer Island</option>
+                  <option value="Auburn">Auburn</option>
+                  <option value="Kent">Kent</option>
+                  <option value="Federal Way">Federal Way</option>
+                  <option value="Burien">Burien</option>
+                  <option value="Tukwila">Tukwila</option>
+                  <option value="SeaTac">SeaTac</option>
+                  <option value="Maple Valley">Maple Valley</option>
+                  <option value="Snoqualmie">Snoqualmie</option>
+                </optgroup>
+                <optgroup label="Snohomish County">
+                  <option value="Lynnwood" selected>Lynnwood</option>
+                  <option value="Edmonds">Edmonds</option>
+                  <option value="Mountlake Terrace">Mountlake Terrace</option>
+                  <option value="Mukilteo">Mukilteo</option>
+                  <option value="Everett">Everett</option>
+                  <option value="Brier">Brier</option>
+                  <option value="Snohomish">Snohomish</option>
+                  <option value="Monroe">Monroe</option>
+                  <option value="Lake Stevens">Lake Stevens</option>
+                  <option value="Marysville">Marysville</option>
+                  <option value="Arlington">Arlington</option>
+                  <option value="Stanwood">Stanwood</option>
+                  <option value="Sultan">Sultan</option>
+                </optgroup>
+              {% endif %}
             </select>
           </div>
 
@@ -476,15 +522,15 @@ permalink: /resources/health-hazards/
 
     <!-- Low-Pressure Text CTA Box -->
     <div class="low-pressure-cta">
-      <h3>Need Help Evaluating Property Disclosures?</h3>
-      <p>
+      <h3>Need help evaluating property disclosures?</h3>
+      <p style="margin-bottom: 1.25rem;">
         Texting is the easiest, lowest-pressure way to ask questions about home inspection disclosures, Form 17 environmental terms, or trusted local vendor recommendations.
       </p>
 
-      <a href="sms:+12066577493?body=Hi%20Joe,%20I%20have%20a%20question%20about%20a%20property%20hazard%20or%20disclosure." class="btn-sms-action">
-        💬 Text Joe Sheldon: (206) 657-7493
+      <a href="sms:+12066577493" class="btn-sms-action">
+        💬 Text Joe
       </a>
-      <p style="margin-top: 0.85rem; font-size: 0.8rem; opacity: 0.75;">Prefer to call? Phone line is open at (206) 657-7493.</p>
+      <p style="margin-top: 0.85rem; font-size: 0.85rem; opacity: 0.85;">Or call Joe at (206) 657-7493</p>
     </div>
 
   </article>
