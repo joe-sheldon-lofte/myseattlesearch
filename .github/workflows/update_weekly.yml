@@ -28,14 +28,26 @@ jobs:
           python -m pip install --upgrade pip
           pip install gspread google-auth requests pandas beautifulsoup4 socrata openpyxl lxml
 
+      - name: Extract Cloud Agent Credentials File
+        env:
+          GA_CREDENTIALS: ${{ secrets.GA_GOOGLE_CREDENTIALS }}
+        run: |
+          if [ -n "$GA_CREDENTIALS" ]; then
+            echo "$GA_CREDENTIALS" > credentials.json
+          fi
+
       - name: Execute Master Weekly Harvester
         env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          GA_GOOGLE_CREDENTIALS: ${{ secrets.GA_GOOGLE_CREDENTIALS }}
           CITY_DATA_SHEET_ID: ${{ secrets.CITY_DATA_SHEET_ID }}
           WEBSITE_DATA_SHEET_ID: ${{ secrets.WEBSITE_DATA_SHEET_ID }}
           WALK_SCORE_API_KEY: ${{ secrets.WALK_SCORE_API_KEY }}
           GREATSCHOOLS_API_KEY: ${{ secrets.GREATSCHOOLS_API_KEY }}
         run: python scripts/harvest_weekly.py
+
+      - name: Clean Temporary Execution Keys
+        if: always()
+        run: rm -f credentials.json
 
       - name: Commit and Push Updated Data
         run: |

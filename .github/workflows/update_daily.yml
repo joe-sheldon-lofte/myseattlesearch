@@ -28,12 +28,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install gspread google-auth requests pandas
 
+      - name: Extract Cloud Agent Credentials File
+        env:
+          GA_CREDENTIALS: ${{ secrets.GA_GOOGLE_CREDENTIALS }}
+        run: |
+          if [ -n "$GA_CREDENTIALS" ]; then
+            echo "$GA_CREDENTIALS" > credentials.json
+          fi
+
       - name: Run Daily Harvester Script
         env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          GA_GOOGLE_CREDENTIALS: ${{ secrets.GA_GOOGLE_CREDENTIALS }}
           CITY_DATA_SHEET_ID: ${{ secrets.CITY_DATA_SHEET_ID }}
           WEBSITE_DATA_SHEET_ID: ${{ secrets.WEBSITE_DATA_SHEET_ID }}
         run: python scripts/harvest_daily.py
+
+      - name: Clean Temporary Execution Keys
+        if: always()
+        run: rm -f credentials.json
 
       - name: Commit and Push Updated Daily Data
         run: |

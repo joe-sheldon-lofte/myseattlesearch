@@ -13,15 +13,26 @@ SCOPES = [
 ]
 
 def get_gspread_client():
-    creds_json = os.environ.get("GOOGLE_CREDENTIALS")
-    if creds_json:
-        creds_dict = json.loads(creds_json)
-        creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
-    elif os.path.exists("credentials.json"):
+    # 1. Try reading JSON string directly from environment variable
+    creds_json = (
+        os.environ.get("GA_GOOGLE_CREDENTIALS") or 
+        os.environ.get("GOOGLE_CREDENTIALS") or 
+        os.environ.get("GA_CREDENTIALS")
+    )
+    if creds_json and creds_json.strip():
+        try:
+            creds_dict = json.loads(creds_json)
+            creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+            return gspread.authorize(creds)
+        except Exception as e:
+            print(f"⚠️ Could not parse JSON from environment variable: {e}")
+
+    # 2. Fallback to local credentials.json file on disk
+    if os.path.exists("credentials.json"):
         creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
-    else:
-        raise FileNotFoundError("Google service account credentials not found.")
-    return gspread.authorize(creds)
+        return gspread.authorize(creds)
+
+    raise FileNotFoundError("Google service account credentials not found. Ensure GA_GOOGLE_CREDENTIALS secret is configured.")
 
 def safe_run(task_name, func):
     print(f"🚀 Starting daily task: {task_name}...")
@@ -38,11 +49,17 @@ def harvest_city_data():
     client = get_gspread_client()
     sheet_id = os.environ.get("CITY_DATA_SHEET_ID")
     if not sheet_id:
-        print("ℹ️ CITY_DATA_SHEET_ID not set. Checking local setup...")
+        print("ℹ️ CITY_DATA_SHEET_ID environment variable not set. Skipping.")
         return
 
     doc = client.open_by_key(sheet_id)
-    worksheet = doc.worksheet("City Data")
+    
+    # Try tab named 'CityData' or 'City Data'
+    try:
+        worksheet = doc.worksheet("CityData")
+    except gspread.exceptions.WorksheetNotFound:
+        worksheet = doc.worksheet("City Data")
+        
     records = worksheet.get_all_records()
 
     os.makedirs("data", exist_ok=True)
@@ -58,7 +75,7 @@ def harvest_website_stats():
     client = get_gspread_client()
     sheet_id = os.environ.get("WEBSITE_DATA_SHEET_ID")
     if not sheet_id:
-        print("ℹ️ WEBSITE_DATA_SHEET_ID not set. Skipping stats sync.")
+        print("ℹ️ WEBSITE_DATA_SHEET_ID environment variable not set. Skipping stats sync.")
         return
 
     doc = client.open_by_key(sheet_id)
