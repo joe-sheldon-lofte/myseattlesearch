@@ -199,7 +199,7 @@ module.exports = function(eleventyConfig) {
 
   // --- AUTOMATED VIRTUAL NOTEBOOK COLLECTION ---
   eleventyConfig.addCollection("posts", function(collectionApi) {
-    return collectionApi.getFilteredByGlob("src/posts/*.md");
+    return collectionApi.getFilteredByGlob("posts/*.md");
   });
 
   return {

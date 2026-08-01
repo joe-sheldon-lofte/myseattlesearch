@@ -429,7 +429,7 @@ def publish_to_linkedin(author_urn, access_token, text, link=None, title=None):
 def main():
     print("🧠 Starting the MySeattleSearch Master Omnibus Data Engine...")
     data_dir = "data"
-    posts_dir = "src/posts"
+    posts_dir = "posts"
     os.makedirs(data_dir, exist_ok=True)
     os.makedirs(posts_dir, exist_ok=True)
     
