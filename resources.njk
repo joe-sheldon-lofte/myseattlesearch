@@ -1,7 +1,7 @@
 ---
 layout: base.njk
 title: "Buyer & Seller Resources | Joe Sheldon"
-metaDescription: "Explore real estate buyer and seller resources, down payment assistance, strategic buying programs, sewer capacity charge guides, and property health hazard radar."
+metaDescription: "Explore real estate buyer and seller resources, down payment assistance, strategic buying programs, sewer capacity charge guides, energy rebates, tax appeal tools, and title guides."
 permalink: /resources/
 ---
 
@@ -11,6 +11,7 @@ permalink: /resources/
         margin: 4rem auto; 
         min-height: 65vh; 
         box-sizing: border-box;
+        padding: 0 1rem;
     }
     .resources-grid { 
         display: grid; 
@@ -23,11 +24,16 @@ permalink: /resources/
             grid-template-columns: repeat(2, 1fr);
         }
     }
+    @media (min-width: 1100px) {
+        .resources-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
     .resource-card { 
         background: var(--white); 
-        border: 1px solid var(--light-gray); 
+        border: 1px solid var(--premier-beige); 
         border-radius: 14px; 
-        padding: 2.5rem; 
+        padding: 2.25rem; 
         box-shadow: 0 4px 15px rgba(0,0,0,0.02); 
         border-top: 6px solid var(--card-accent-color); 
         display: flex; 
@@ -46,16 +52,17 @@ permalink: /resources/
         display: block; 
     }
     .resource-title { 
-        font-size: 1.4rem; 
+        font-size: 1.35rem; 
         color: var(--premier-charcoal); 
         margin: 0 0 0.75rem 0; 
         font-weight: 800; 
         letter-spacing: -0.3px; 
+        line-height: 1.25;
     }
     .resource-description { 
         color: var(--premier-charcoal);
         opacity: 0.85;
-        font-size: 0.98rem; 
+        font-size: 0.95rem; 
         line-height: 1.6; 
         margin-bottom: 2rem; 
         flex-grow: 1; 
@@ -66,46 +73,100 @@ permalink: /resources/
     
     <div style="text-align: center; max-width: 750px; margin: 0 auto;">
         <div style="font-size: 0.85rem; font-weight: 800; color: var(--card-accent-color); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.5rem;">Purchasing Playbook</div>
-        <h1 style="margin: 0; font-size: 2.6rem; font-weight: 900; letter-spacing: -0.5px; color: var(--premier-charcoal);">Additional Real Estate Resources</h1>
-        <p style="color: var(--premier-charcoal); opacity: 0.8; font-size: 1.15rem; margin-top: 0.75rem; line-height: 1.6;">Let's find your competitive edge. Explore alternative financing frameworks, down payment assistance grants, structural purchasing options, and property environmental risk guides engineered to help you win.</p>
+        <h1 style="margin: 0; font-size: 2.6rem; font-weight: 900; letter-spacing: -0.5px; color: var(--card-accent-color);">Additional Real Estate Resources</h1>
+        <p style="color: var(--premier-charcoal); opacity: 0.85; font-size: 1.15rem; margin-top: 0.75rem; line-height: 1.6;">Let's find your competitive edge. Explore alternative financing frameworks, down payment assistance grants, structural purchasing options, tax appeal guides, and property environmental risk tools engineered to help you win.</p>
     </div>
 
     <div class="resources-grid">
         
-        <div class="resource-card">
-            <div>
-                <span class="resource-icon">☣️</span>
-                <h3 class="resource-title">Property Health & Hazard Radar</h3>
-                <p class="resource-description">Uncover local environmental factors, soil conditions, airport flight paths, home-age disclosures, and Washington State safety rules across King and Snohomish counties. Model local factors for any home using our dynamic lookup tool and deep-dive guide suite.</p>
-            </div>
-            <a href="/resources/health-hazards/" class="btn btn-primary" style="text-align: center; font-weight: bold; text-decoration: none; display: block; box-sizing: border-box;">Open Hazard Radar</a>
-        </div>
-
+        <!-- 1. Down Payment Assistance Finder (Original) -->
         <div class="resource-card">
             <div>
                 <span class="resource-icon">🎁</span>
                 <h3 class="resource-title">Down Payment Assistance Finder</h3>
                 <p class="resource-description">You don't necessarily need a massive 20% down payment saved out of pocket to purchase a great home in the Pacific Northwest. Explore hidden state grants, regional assistance programs, and specialized housing finance commission funds designed to bridge your capital gap.</p>
             </div>
-            <a href="/resources/downpayment/" class="btn btn-primary" style="text-align: center; font-weight: bold; text-decoration: none; display: block; box-sizing: border-box;">Explore Assistance Programs</a>
+            <a href="/resources/downpayment/" class="btn btn-primary" style="text-align: center; font-weight: bold; text-decoration: none; display: block; box-sizing: border-box; background-color: var(--card-accent-color); color: var(--white); padding: 0.75rem 1rem; border-radius: 6px;">Explore Assistance Programs</a>
         </div>
 
+        <!-- 2. How to Appeal Your Property Tax Assessed Value (New) -->
         <div class="resource-card">
             <div>
-                <span class="resource-icon">⚡</span>
-                <h3 class="resource-title">Third-Party Strategic Programs</h3>
-                <p class="resource-description">Compete directly with institutional cash investors. Discover modern buying strategies like cash-backed offers, "buy-before-you-sell" bridge platforms, and innovative structural alternatives designed to completely eliminate your home-sale contingency constraints.</p>
+                <span class="resource-icon">⚖️</span>
+                <h3 class="resource-title">How to Appeal Your Property Tax Assessed Value</h3>
+                <p class="resource-description">Learn how to contest an inflated county tax assessment in King or Snohomish County. Follow a step-by-step playbook, review important filing deadlines, and print a custom evidence checklist and worksheet to prepare your petition.</p>
             </div>
-            <a href="/resources/thirdpartyprograms/" class="btn btn-primary" style="text-align: center; font-weight: bold; text-decoration: none; display: block; box-sizing: border-box;">View Strategic Programs</a>
+            <a href="/resources/appeal-property-tax-assessment/" class="btn btn-primary" style="text-align: center; font-weight: bold; text-decoration: none; display: block; box-sizing: border-box; background-color: var(--card-accent-color); color: var(--white); padding: 0.75rem 1rem; border-radius: 6px;">Open Tax Appeal Guide</a>
         </div>
 
+        <!-- 3. King County Sewer Capacity Charge Guide (Original) -->
         <div class="resource-card">
             <div>
                 <span class="resource-icon">💩</span>
                 <h3 class="resource-title">King County Sewer Capacity Charge Guide</h3>
                 <p class="resource-description">Got an unexpected bill from King County for your sewer? Don't panic. This is a clean, jargon-free breakdown of the regional 15-year capacity fee. Learn why it shows up on certain Snohomish County properties, how it's billed quarterly, and run the numbers on our dynamic payoff calculator to see if paying it off early makes sense for your goals.</p>
             </div>
-            <a href="/resources/sewer-capacity/" class="btn btn-primary" style="text-align: center; font-weight: bold; text-decoration: none; display: block; box-sizing: border-box;">Open Sewer Guide</a>
+            <a href="/resources/sewer-capacity/" class="btn btn-primary" style="text-align: center; font-weight: bold; text-decoration: none; display: block; box-sizing: border-box; background-color: var(--card-accent-color); color: var(--white); padding: 0.75rem 1rem; border-radius: 6px;">Open Sewer Guide</a>
+        </div>
+
+        <!-- 4. Property Health & Hazard Radar (Original) -->
+        <div class="resource-card">
+            <div>
+                <span class="resource-icon">☣️</span>
+                <h3 class="resource-title">Property Health & Hazard Radar</h3>
+                <p class="resource-description">Uncover local environmental factors, soil conditions, airport flight paths, home-age disclosures, and Washington State safety rules across King and Snohomish counties. Model local factors for any home using our dynamic lookup tool and deep-dive guide suite.</p>
+            </div>
+            <a href="/resources/health-hazards/" class="btn btn-primary" style="text-align: center; font-weight: bold; text-decoration: none; display: block; box-sizing: border-box; background-color: var(--card-accent-color); color: var(--white); padding: 0.75rem 1rem; border-radius: 6px;">Open Hazard Radar</a>
+        </div>
+
+        <!-- 5. Rocket Credit Upgrade & Credit Prep Guide (New) -->
+        <div class="resource-card">
+            <div>
+                <span class="resource-icon">📈</span>
+                <h3 class="resource-title">Rocket Credit Upgrade & Credit Prep Guide</h3>
+                <p class="resource-description">Discover how optimizing your credit score can unlock lower interest rate tiers and reduce monthly PMI premiums. Explore credit simulation strategies and connect with Senior Loan Officer Carly Ozuna for custom loan structuring.</p>
+            </div>
+            <a href="/resources/rocket-credit-upgrade/" class="btn btn-primary" style="text-align: center; font-weight: bold; text-decoration: none; display: block; box-sizing: border-box; background-color: var(--card-accent-color); color: var(--white); padding: 0.75rem 1rem; border-radius: 6px;">View Credit Upgrade Guide</a>
+        </div>
+
+        <!-- 6. Rocket Money Financial App Guide (New) -->
+        <div class="resource-card">
+            <div>
+                <span class="resource-icon">📱</span>
+                <h3 class="resource-title">Rocket Money Financial App Guide</h3>
+                <p class="resource-description">Take control of your monthly cash flow before applying for a mortgage. Learn how to track spending, cancel unwanted subscriptions, and automate down payment savings with the official budgeting app from Rocket Companies.</p>
+            </div>
+            <a href="/resources/rocket-money-guide/" class="btn btn-primary" style="text-align: center; font-weight: bold; text-decoration: none; display: block; box-sizing: border-box; background-color: var(--card-accent-color); color: var(--white); padding: 0.75rem 1rem; border-radius: 6px;">Open Rocket Money Guide</a>
+        </div>
+
+        <!-- 7. Third-Party Strategic Programs (Original) -->
+        <div class="resource-card">
+            <div>
+                <span class="resource-icon">⚡</span>
+                <h3 class="resource-title">Third-Party Strategic Programs</h3>
+                <p class="resource-description">Compete directly with institutional cash investors. Discover modern buying strategies like cash-backed offers, "buy-before-you-sell" bridge platforms, and innovative structural alternatives designed to completely eliminate your home-sale contingency constraints.</p>
+            </div>
+            <a href="/resources/thirdpartyprograms/" class="btn btn-primary" style="text-align: center; font-weight: bold; text-decoration: none; display: block; box-sizing: border-box; background-color: var(--card-accent-color); color: var(--white); padding: 0.75rem 1rem; border-radius: 6px;">View Strategic Programs</a>
+        </div>
+
+        <!-- 8. Washington State & Utility Energy Rebates (New) -->
+        <div class="resource-card">
+            <div>
+                <span class="resource-icon">💡</span>
+                <h3 class="resource-title">Washington State & Utility Energy Rebates</h3>
+                <p class="resource-description">Explore 2026 home energy rebates and incentives from PSE, Snohomish PUD, and Seattle City Light. Save money on heat pumps, hybrid water heaters, insulation upgrades, and smart appliance installations.</p>
+            </div>
+            <a href="/resources/utility-rebates-and-incentives/" class="btn btn-primary" style="text-align: center; font-weight: bold; text-decoration: none; display: block; box-sizing: border-box; background-color: var(--card-accent-color); color: var(--white); padding: 0.75rem 1rem; border-radius: 6px;">Explore Energy Rebates</a>
+        </div>
+
+        <!-- 9. Washington State Title, Deeds & Ownership Guide (New) -->
+        <div class="resource-card">
+            <div>
+                <span class="resource-icon">📜</span>
+                <h3 class="resource-title">Washington State Title, Deeds & Ownership Guide</h3>
+                <p class="resource-description">Demystify Washington State real estate legalities. Learn about Statutory Warranty Deeds vs. Special Warranty Deeds, Schedule B title report exceptions, marital vesting rules, and trust ownership quirks.</p>
+            </div>
+            <a href="/resources/wa-title-and-ownership-guide/" class="btn btn-primary" style="text-align: center; font-weight: bold; text-decoration: none; display: block; box-sizing: border-box; background-color: var(--card-accent-color); color: var(--white); padding: 0.75rem 1rem; border-radius: 6px;">Read Title & Deeds Guide</a>
         </div>
 
     </div>
