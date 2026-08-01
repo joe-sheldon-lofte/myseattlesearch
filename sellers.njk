@@ -4,14 +4,20 @@ title: "Sell Your Home | Joe Sheldon"
 permalink: /sellers/
 containerClass: container-wide
 ---
+
+<!-- File: sellers.njk -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
 <style>
     /* Mobile Fix for Stats Container */
     .stats-mobile-fix {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 1rem;
-        margin-bottom: 3rem;
+        margin-bottom: 3.5rem;
         text-align: center;
+        width: 100%;
     }
     @media (max-width: 600px) {
         .stats-mobile-fix {
@@ -34,6 +40,7 @@ containerClass: container-wide
         justify-content: center;
         margin: 2.5rem 0;
         flex-wrap: wrap;
+        width: 100%;
     }
 
     /* Responsive Images */
@@ -46,8 +53,16 @@ containerClass: container-wide
         object-fit: cover;
     }
     .hero-image { max-height: 400px; }
-    .sign-image { max-height: 300px; width: auto; max-width: 100%;
-        display: block; margin-left: auto; margin-right: auto; }
+    
+    /* Responsive Full-Width Listing Sign Banner */
+    .sign-image { 
+        width: 100%; 
+        max-height: 400px; 
+        object-fit: cover; 
+        border-radius: 12px; 
+        display: block; 
+        margin-bottom: 2.5rem; 
+    }
 
     /* Rocket LO Mini Profile */
     .lo-profile {
@@ -70,16 +85,17 @@ containerClass: container-wide
     .lo-info strong { color: var(--premier-charcoal); font-size: 1rem; }
     .lo-info a { color: var(--card-accent-color); font-weight: bold; text-decoration: none; }
 
-    /* Refined Architectural Layout: Centered Seller Incentive Container Box */
+    /* Refined Architectural Layout: Standardized 100% Width Incentive Box */
     .universal-incentives-box {
         background-color: var(--dynamic-bg-highlight);
         border: 2px dashed var(--card-accent-color);
         border-radius: 12px;
         padding: 2.5rem 2rem;
-        margin: 2rem auto 3rem auto;
+        margin: 2.5rem 0 3.5rem 0;
         text-align: center;
-        max-width: 900px;
+        width: 100%;
         box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+        box-sizing: border-box;
     }
     @media (max-width: 480px) {
         .universal-incentives-box {
@@ -95,7 +111,7 @@ containerClass: container-wide
     .universal-incentives-box p.box-intro {
         font-size: 0.95rem;
         opacity: 0.85;
-        max-width: 750px;
+        max-width: 850px;
         margin: 0 auto 1.5rem auto;
         line-height: 1.5;
         color: var(--premier-charcoal);
@@ -105,6 +121,7 @@ containerClass: container-wide
         grid-template-columns: 1fr;
         gap: 1.5rem;
         margin-top: 1.5rem;
+        width: 100%;
     }
     @media (min-width: 768px) {
         .scenarios-grid {
@@ -143,9 +160,17 @@ containerClass: container-wide
         margin: 0;
         color: var(--premier-charcoal);
     }
+
+    /* Override Global 600px Reviews Restriction specifically for Seller Dashboard */
+    .sellers-dashboard-wrapper .reviews {
+        max-width: 100% !important;
+        width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
 </style>
 
-<div class="sellers-dashboard-wrapper" style="padding-bottom: 5rem;">
+<div class="sellers-dashboard-wrapper" style="padding-bottom: 5rem; width: 100%;">
     
     <div class="events-header">
         <h1 style="margin-top: 1rem;">Maximize Your Equity.<br>Minimize Your Stress.</h1>
@@ -170,9 +195,9 @@ containerClass: container-wide
     </div>
 
     <!-- SELLER DECISION TOOLKIT -->
-    <div class="seller-tools-container" style="margin-bottom: 3.5rem;">
+    <div class="seller-tools-container">
         <h2 style="text-align: center; margin-bottom: 0.5rem; color: var(--premier-charcoal);">Interactive Seller Decision Toolkit</h2>
-        <p style="text-align: center; max-width: 700px; margin: 0 auto 2rem auto; opacity: 0.85; font-size: 1rem; color: var(--premier-charcoal);">
+        <p style="text-align: center; max-width: 800px; margin: 0 auto 2rem auto; opacity: 0.85; font-size: 1rem; color: var(--premier-charcoal);">
             Data-backed planning tools to estimate your net proceeds, model market timing, and explore pre-listing equity options.
         </p>
         
@@ -182,32 +207,46 @@ containerClass: container-wide
                 <h3>Net Proceeds Worksheet</h3>
                 <p class="tool-desc">Calculate your actual cash in hand after Washington REET taxes, title, escrow, and listing fees.</p>
                 <ul class="tool-highlights">
-                    <li>⚡ <strong>Real-Time Data:</strong> Uses actual WA State tiered REET tax formulas and local market costs.</li>
+                    <li>⚡ <strong>Real-Time Rates:</strong> Uses actual WA State tiered REET tax formulas and local market costs.</li>
                     <li>🖨️ <strong>Print & QR Sync:</strong> Print a clean PDF summary stamped with a custom QR code to reload your scenario anywhere.</li>
                     <li>🔄 <strong>Save & Edit Later:</strong> Save your calculation to a unique link and adjust your numbers anytime without starting over.</li>
                 </ul>
-                <a href="/sellerproceeds/" class="btn btn-primary btn-small" style="margin-top: 1rem;">Launch Net Proceeds Calculator &rarr;</a>
+                <a href="/sellerproceeds/" class="btn btn-primary btn-small" style="margin-top: auto;">Launch Net Proceeds Calculator &rarr;</a>
             </div>
 
             <div class="seller-tool-card">
                 <h3>Buy Now vs. Wait Modeler</h3>
                 <p class="tool-desc">Evaluate your total equity outlook under shifting interest rates and seasonal market timing.</p>
+                <ul class="tool-highlights">
+                    <li>📈 <strong>Interest Rate Impact:</strong> Compare 30-year wealth trajectories under current vs. projected mortgage rates.</li>
+                    <li>🏡 <strong>Equity Accumulation:</strong> Model how waiting 6–12 months alters your net equity position as market values shift.</li>
+                    <li>⏱️ <strong>Seasonal Timing:</strong> Analyze historical Puget Sound listing trends to identify peak buyer activity windows.</li>
+                </ul>
                 <a href="/buynowvslater/" class="btn btn-secondary btn-small" style="margin-top: auto;">Model Timing Scenarios &rarr;</a>
             </div>
 
             <div class="seller-tool-card">
                 <h3>Bridge & Cash Offer Options</h3>
                 <p class="tool-desc">Unlock trade-in programs, guaranteed cash offers, and buy-before-you-sell solutions to move seamlessly.</p>
+                <ul class="tool-highlights">
+                    <li>🔑 <strong>Buy Before You Sell:</strong> Move into your next home before listing your current property to eliminate double moves.</li>
+                    <li>💵 <strong>Guaranteed Cash Offers:</strong> Explore non-contingent cash buyer programs for maximum certainty and speed.</li>
+                    <li>🔄 <strong>Trade-In & Equity Access:</strong> Utilize your home equity upfront to back your next offer without contingent delays.</li>
+                </ul>
                 <a href="/thirdpartyprograms/" class="btn btn-secondary btn-small" style="margin-top: auto;">Explore Buy-First Programs &rarr;</a>
             </div>
         </div>
     </div>
 
-    <div class="pro-tip-box" style="margin-bottom: 2.5rem; text-align: center; background-color: var(--white); border-left: none; border-top: 4px solid var(--premier-charcoal); border-radius: 12px;">
-        <strong style="font-size: 1.1rem;">📍 Local Expertise Across the Puget Sound</strong>
-        <p>Serving everywhere from Olympia to Blaine to Port Angeles, with hyper-local expertise across <strong>Kirkland, Shoreline, Lake Forest Park, Mountlake Terrace, Edmonds, Lynnwood, Mukilteo, Kenmore, and Brier.</strong></p>
-        
-        <img src="https://assets.myseattlesearch.com/repomove/service-area-map.webp" alt="Joe Sheldon Real Estate Service Area Map" class="section-image" style="margin-top: 1.5rem; max-width: 400px; display: block; margin-left: auto; margin-right: auto;">
+    <!-- LOCAL EXPERTISE & LIVE SPATIAL MAP SECTION -->
+    <div class="pro-tip-box" style="margin-bottom: 3.5rem; text-align: center; background-color: var(--white); border-left: none; border-top: 4px solid var(--premier-charcoal); border-radius: 12px; width: 100%; box-sizing: border-box; padding: 2rem;">
+        <strong style="font-size: 1.2rem; color: var(--premier-charcoal);">📍 Local Expertise Across the Puget Sound</strong>
+        <p style="margin-top: 0.5rem; font-size: 1rem; line-height: 1.6; color: var(--premier-charcoal);">
+            Serving everywhere from Olympia to Blaine to Port Angeles, with hyper-local expertise across <strong>Kirkland, Shoreline, Lake Forest Park, Mountlake Terrace, Edmonds, Lynnwood, Mukilteo, Kenmore, and Brier.</strong> Explore my track record on the interactive map below:
+        </p>
+
+        <!-- LIVE INTERACTIVE LEAFLET MAP -->
+        <div id="sales-spatial-map"></div>
     </div>
 
     <!-- PUGET SOUND REAL-TIME MARKET STATS QUICK-HUB -->
@@ -231,7 +270,7 @@ containerClass: container-wide
 
     <h2 style="text-align: center; margin-bottom: 2rem; color: var(--card-accent-color);">Listing Packages Built for You</h2>
 
-    <img src="https://assets.myseattlesearch.com/repomove/redfin-sign.webp" alt="Redfin Listing Sign" class="section-image sign-image">
+    <img src="https://assets.myseattlesearch.com/repomove/redfin-sign.webp" alt="Redfin Listing Sign" class="sign-image">
 
     <div class="pricing-grid">
         <div class="pricing-card">
@@ -366,9 +405,9 @@ containerClass: container-wide
     </div>
 
     <!-- SELLER FREQUENTLY ASKED QUESTIONS (ACCORDION) -->
-    <div class="faq-section" style="margin: 4rem 0;">
+    <div class="faq-section">
         <h2 style="text-align: center; margin-bottom: 0.5rem; color: var(--premier-charcoal);">Home Seller Frequently Asked Questions</h2>
-        <p style="text-align: center; max-width: 700px; margin: 0 auto 2rem auto; opacity: 0.85; font-size: 1rem; color: var(--premier-charcoal);">
+        <p style="text-align: center; max-width: 800px; margin: 0 auto 2rem auto; opacity: 0.85; font-size: 1rem; color: var(--premier-charcoal);">
             Essential answers on Washington State seller taxes, pre-listing prep funding, and Redfin listing fees.
         </p>
 
@@ -437,3 +476,76 @@ containerClass: container-wide
     </div>
 
 </div>
+
+<!-- INTERACTIVE LEAFLET SPATIAL MAP ENGINE SCRIPT -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const mapContainer = document.getElementById('sales-spatial-map');
+        if (!mapContainer || typeof L === 'undefined') return;
+
+        const leafletMapInstance = L.map('sales-spatial-map', {
+            center: [47.75, -122.28],
+            zoom: 10,
+            scrollWheelZoom: false
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(leafletMapInstance);
+
+        const compiledPropertiesPayload = [
+            {% for listing in sales %}
+            {
+                "MLS Number": "{{ listing['MLS Number'] or listing.mlsNumber }}",
+                "Status": "{{ listing.Status or listing.status }}",
+                "Representation": "{{ listing.Representation }}",
+                "Address": "{{ listing.Address or listing.address }}",
+                "City": "{{ listing.City or listing.city }}",
+                "Listing Price": {{ listing['Listing Price'] if listing['Listing Price'] else (listing.price if listing.price else 0) }},
+                "Selling Price": {{ listing['Selling Price'] if listing['Selling Price'] else (listing.price if listing.price else 0) }},
+                "Latitude": {{ listing.Latitude if listing.Latitude else "null" }},
+                "Longitude": {{ listing.Longitude if listing.Longitude else "null" }},
+                "url": "/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (listing['MLS Number'] or listing.mlsNumber) | slugify }}/"
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+        compiledPropertiesPayload.forEach(function(property) {
+            if (!property.Latitude || !property.Longitude) return;
+            
+            const latNum = parseFloat(property.Latitude);
+            const lngNum = parseFloat(property.Longitude);
+            if (isNaN(latNum) || isNaN(lngNum)) return;
+
+            let classConfig = "map-marker-dot marker-sold";
+            if (property.Status === "Active" || property.Status === "Pending") {
+                classConfig = "map-marker-dot marker-active-pending pulsing-glow";
+            }
+
+            const cleanMarkerElementIcon = L.divIcon({
+                className: classConfig,
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            });
+
+            const priceDisplay = property.Status === 'Sold' ? 
+                '$' + Number(property['Selling Price']).toLocaleString('en-US') : 
+                '$' + Number(property['Listing Price']).toLocaleString('en-US');
+
+            const popupHtml = `
+                <div style="font-family: system-ui, sans-serif; font-size: 13px; padding: 2px; width: 180px;">
+                    <strong style="font-size: 14px; color: var(--premier-charcoal); display: block; margin-bottom: 2px;">${property.Address}</strong>
+                    <span style="color: var(--premier-charcoal); opacity: 0.8; display: block; margin-bottom: 6px;">${property.City}, WA</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--premier-beige); padding-top: 6px;">
+                        <span style="font-weight: 700; color: var(--card-accent-color);">${priceDisplay}</span>
+                        <a href="${property.url}" style="color: var(--card-accent-color); font-weight: bold; text-decoration: none;">View details &rarr;</a>
+                    </div>
+                </div>
+            `;
+
+            L.marker([latNum, lngNum], { icon: cleanMarkerElementIcon })
+             .bindPopup(popupHtml)
+             .addTo(leafletMapInstance);
+        });
+    });
+</script>
