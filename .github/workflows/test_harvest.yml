@@ -1,0 +1,71 @@
+name: Test Harvest Pipeline
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-harvest:
+    runs-on: ubuntu-latest
+
+    env:
+      CITY_DATA_SHEET_ID: ${{ secrets.CITY_DATA_SHEET_ID }}
+      CMS_SHEET_ID: ${{ secrets.CMS_SHEET_ID }}
+      COMMAND_CENTER_SHEET_ID: ${{ secrets.COMMAND_CENTER_SHEET_ID }}
+      FBI_API_KEY: ${{ secrets.FBI_API_KEY }}
+      FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+      FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+      GA_GOOGLE_CREDENTIALS: ${{ secrets.GA_GOOGLE_CREDENTIALS }}
+      GOOGLE_SHEET_LIVE_URL: ${{ secrets.GOOGLE_SHEET_LIVE_URL }}
+      LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+      LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
+      QUIZZES_SHEET_ID: ${{ secrets.QUIZZES_SHEET_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+      R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      SHEETS_API_URL_QUIZZES: ${{ secrets.SHEETS_API_URL_QUIZZES }}
+      SHEETS_API_URL_WEBSITE_DATA: ${{ secrets.SHEETS_API_URL_WEBSITE_DATA }}
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+      WALK_SCORE_API_KEY: ${{ secrets.WALK_SCORE_API_KEY }}
+      WEBSITE_DATA_SHEET_ID: ${{ secrets.WEBSITE_DATA_SHEET_ID }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas openpyxl google-api-python-client google-auth requests
+
+      - name: Authenticate Google Service Account
+        run: |
+          if [ -n "$GA_GOOGLE_CREDENTIALS" ]; then
+            echo "$GA_GOOGLE_CREDENTIALS" > credentials.json
+            echo "Service account credentials written from GA_GOOGLE_CREDENTIALS."
+          else
+            echo "GA_GOOGLE_CREDENTIALS not found in environment secrets."
+          fi
+
+      - name: Run Test Harvester Script
+        run: |
+          python scripts/test_harvest.py
+
+      - name: Clean Credentials
+        if: always()
+        run: |
+          rm -f credentials.json
+
+      - name: Commit & Push Test Artifacts
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git diff --staged --quiet || git commit -m "test: update sandbox harvest test artifacts [skip ci]"
+          git push
