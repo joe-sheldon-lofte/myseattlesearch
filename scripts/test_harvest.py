@@ -10,6 +10,26 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 
+# King and Snohomish School District Filter
+KING_SNO_DISTRICTS = [
+    "seattle", "edmonds", "everett", "shoreline", "mukilteo", "northshore",
+    "bellevue", "renton", "highline", "kent", "issaquah", "lake washington",
+    "snoqualmie valley", "riverview", "snohomish", "lake stevens", "marysville",
+    "arlington", "stanwood-camano", "monroe", "sultan", "granite falls",
+    "mercer island", "tahoma", "auburn"
+]
+
+# Primary King & Snohomish Flood Gauge USGS Station IDs
+KING_SNO_RIVER_GAUGES = [
+    "12119000",  # Cedar River at Renton
+    "12113000",  # Green River at Auburn
+    "12149000",  # Snoqualmie River near Carnation
+    "12155300",  # Snohomish River at Snohomish
+    "12134500",  # Skykomish River near Gold Bar
+    "12125200",  # Sammamish River at Bothell
+    "12167000"   # Stillaguamish River at Arlington
+]
+
 def load_city_data():
     """Load master city taxonomy and coordinates."""
     if not os.path.exists(CITY_DATA_PATH):
@@ -34,6 +54,12 @@ def http_get_json(url, timeout=20):
             return json.loads(resp.read().decode("utf-8"))
     return None
 
+def clean_city_name(name):
+    """Normalize city names for cross-dataset matching."""
+    if not name:
+        return ""
+    return name.lower().replace("city of ", "").replace("town of ", "").strip()
+
 # ==============================================================================
 # 1. WEATHER HARVESTER (Open-Meteo Chunked Batches)
 # ==============================================================================
@@ -42,14 +68,24 @@ def harvest_weather(cities):
     if not cities:
         return
     
-    valid_cities = [c for c in cities if "latitude" in c and "longitude" in c]
+    valid_cities = []
+    for c in cities:
+        try:
+            if "latitude" in c and "longitude" in c:
+                c_copy = dict(c)
+                c_copy["lat_float"] = float(c["latitude"])
+                c_copy["lon_float"] = float(c["longitude"])
+                valid_cities.append(c_copy)
+        except (ValueError, TypeError):
+            continue
+
     chunk_size = 10
     output = {}
     
     for i in range(0, len(valid_cities), chunk_size):
         chunk = valid_cities[i:i + chunk_size]
-        lats = [str(c["latitude"]) for c in chunk]
-        lons = [str(c["longitude"]) for c in chunk]
+        lats = [str(c["lat_float"]) for c in chunk]
+        lons = [str(c["lon_float"]) for c in chunk]
         
         params = {
             "latitude": ",".join(lats),
@@ -84,17 +120,16 @@ def harvest_weather(cities):
         save_json("city_weather.json", output)
 
 # ==============================================================================
-# 2. AMENITIES HARVESTER (Single Spatial Puget Sound Overpass Query)
+# 2. AMENITIES HARVESTER (Single Spatial Overpass Query with Float Casting)
 # ==============================================================================
 def harvest_amenities(cities):
     print("Harvesting Municipal Amenities via Puget Sound Overpass Query...")
     if not cities:
         return
 
-    # Bounding box covering Puget Sound region (South King to North Snohomish)
     bbox = "47.0,-122.6,48.2,-121.8"
     overpass_query = f"""
-    [out:json][timeout:40];
+    [out:json][timeout:45];
     (
       node["leisure"="dog_park"]({bbox});
       node["amenity"="cafe"]({bbox});
@@ -110,20 +145,20 @@ def harvest_amenities(cities):
     req = urllib.request.Request(url, data=data, headers={"User-Agent": "MySeattleSearch/1.0"})
     
     try:
-        with urllib.request.urlopen(req, timeout=45) as response:
+        with urllib.request.urlopen(req, timeout=50) as response:
             res = json.loads(response.read().decode("utf-8"))
             nodes = res.get("elements", [])
             print(f"Retrieved {len(nodes)} regional amenity nodes.")
             
             output = {}
-            radius_deg = 0.03  # ~3km spatial buffer around city center
+            radius_deg = 0.035  # ~2.5 mile spatial buffer around city centroid
             
             for city in cities:
                 slug = city.get("slug")
-                clat = city.get("latitude")
-                clon = city.get("longitude")
-                
-                if not clat or not clon:
+                try:
+                    clat = float(city.get("latitude"))
+                    clon = float(city.get("longitude"))
+                except (ValueError, TypeError):
                     continue
                     
                 counts = {
@@ -135,22 +170,25 @@ def harvest_amenities(cities):
                 }
                 
                 for node in nodes:
-                    nlat = node.get("lat")
-                    nlon = node.get("lon")
-                    if nlat and nlon:
-                        if abs(nlat - clat) <= radius_deg and abs(nlon - clon) <= radius_deg:
-                            tags = node.get("tags", {})
-                            if tags.get("leisure") == "dog_park":
-                                counts["dog_parks"] += 1
-                            elif tags.get("amenity") == "cafe":
-                                counts["coffee_shops"] += 1
-                            elif tags.get("leisure") == "park":
-                                counts["parks"] += 1
-                            elif tags.get("natural") == "beach":
-                                counts["beaches"] += 1
-                            elif tags.get("shop") == "pet":
-                                counts["pet_stores"] += 1
-                                
+                    try:
+                        nlat = float(node.get("lat"))
+                        nlon = float(node.get("lon"))
+                    except (ValueError, TypeError):
+                        continue
+                        
+                    if abs(nlat - clat) <= radius_deg and abs(nlon - clon) <= radius_deg:
+                        tags = node.get("tags", {})
+                        if tags.get("leisure") == "dog_park":
+                            counts["dog_parks"] += 1
+                        elif tags.get("amenity") == "cafe":
+                            counts["coffee_shops"] += 1
+                        elif tags.get("leisure") == "park":
+                            counts["parks"] += 1
+                        elif tags.get("natural") == "beach":
+                            counts["beaches"] += 1
+                        elif tags.get("shop") == "pet":
+                            counts["pet_stores"] += 1
+                            
                 output[slug] = {
                     "name": city["name"],
                     "amenities": counts,
@@ -161,15 +199,15 @@ def harvest_amenities(cities):
         print(f"Amenities Harvest Error: {e}")
 
 # ==============================================================================
-# 3. ENVIRONMENT HARVESTER (Puget Sound Regional USGS Gauges)
+# 3. ENVIRONMENT HARVESTER (Targeted King & Snohomish River Gauges)
 # ==============================================================================
 def harvest_environment(cities):
-    print("Harvesting Puget Sound Environmental & Water Gauge Metrics via USGS...")
-    # Puget Sound bounding box filter
-    bbox_url = "https://waterservices.usgs.gov/nwis/iv/?format=json&bBox=-122.6,47.0,-121.8,48.2&parameterCd=00060,00065&siteStatus=active"
+    print("Harvesting Targeted King & Snohomish River Flood Gauges via USGS...")
+    stations_param = ",".join(KING_SNO_RIVER_GAUGES)
+    usgs_url = f"https://waterservices.usgs.gov/nwis/iv/?format=json&sites={stations_param}&parameterCd=00060,00065&siteStatus=active"
     
     try:
-        res = http_get_json(bbox_url, timeout=20)
+        res = http_get_json(usgs_url, timeout=20)
         if res:
             time_series = res.get("value", {}).get("timeSeries", [])
             gauge_data = []
@@ -180,7 +218,6 @@ def harvest_environment(cities):
                 current_val = values[-1].get("value") if values else None
                 unit = ts.get("variable", {}).get("unit", {}).get("unitCode")
                 
-                # Exclude uncalibrated sensor values (-999999)
                 if current_val and current_val != "-999999":
                     gauge_data.append({
                         "site_name": site_name,
@@ -189,7 +226,7 @@ def harvest_environment(cities):
                     })
                     
             output = {
-                "regional_water_gauges": gauge_data[:30],
+                "regional_water_gauges": gauge_data,
                 "last_updated": datetime.utcnow().isoformat() + "Z"
             }
             save_json("city_environment.json", output)
@@ -197,15 +234,15 @@ def harvest_environment(cities):
         print(f"Environment Harvest Error: {e}")
 
 # ==============================================================================
-# 4. SCHOOLS HARVESTER (OSPI Socrata Endpoint Fallback)
+# 4. SCHOOLS HARVESTER (Filtered strictly to King & Snohomish Districts)
 # ==============================================================================
 def harvest_schools(cities):
-    print("Harvesting OSPI School Data via WA Open Data...")
-    endpoints = ["wvqy-yp3m", "q4ba-s3jc", "dij7-mbxg", "f7j6-nk2h"]
+    print("Harvesting OSPI School Data (King & Snohomish Districts)...")
+    endpoints = ["wvqy-yp3m", "q4ba-s3jc", "dij7-mbxg"]
     records = None
     
     for ep in endpoints:
-        url = f"https://data.wa.gov/resource/{ep}.json?$limit=250"
+        url = f"https://data.wa.gov/resource/{ep}.json?$limit=1000"
         try:
             records = http_get_json(url, timeout=15)
             if records and isinstance(records, list):
@@ -217,13 +254,17 @@ def harvest_schools(cities):
     if records:
         school_summary = {}
         for rec in records:
-            district = rec.get("district_name") or rec.get("districtname") or rec.get("organizationname") or "Regional District"
-            if district not in school_summary:
-                school_summary[district] = {
-                    "district_name": district,
-                    "records_count": 0
-                }
-            school_summary[district]["records_count"] += 1
+            district = rec.get("district_name") or rec.get("districtname") or rec.get("organizationname") or ""
+            d_lower = district.lower()
+            
+            # Filter strictly for King and Snohomish County school districts
+            if any(target in d_lower for target in KING_SNO_DISTRICTS):
+                if district not in school_summary:
+                    school_summary[district] = {
+                        "district_name": district,
+                        "records_count": 0
+                    }
+                school_summary[district]["records_count"] += 1
             
         output = {
             "districts": school_summary,
@@ -293,22 +334,27 @@ def simplify_geometry(geometry, epsilon=0.0008):
     return geometry
 
 def harvest_boundaries(cities):
-    print("Harvesting & Simplifing WA City Boundaries via WSDOT GIS REST...")
+    print("Harvesting & Simplifying WA City Boundaries via WSDOT GIS REST...")
     wsdot_url = "https://data.wsdot.wa.gov/arcgis/rest/services/Shared/PoliAdminBndryData/MapServer/1/query?where=1%3D1&outFields=CityName&outSR=4326&f=geojson"
     
     try:
         geojson = http_get_json(wsdot_url, timeout=30)
         if geojson and "features" in geojson:
-            target_slugs = {c["name"].lower(): c["slug"] for c in cities if "name" in c}
+            # Map normalized city names to slugs
+            target_slugs = {clean_city_name(c["name"]): c["slug"] for c in cities if "name" in c}
             simplified_features = []
             
             for feature in geojson["features"]:
-                city_name = feature.get("properties", {}).get("CityName", "")
-                if city_name.lower() in target_slugs:
-                    feature["properties"]["slug"] = target_slugs[city_name.lower()]
+                raw_city_name = feature.get("properties", {}).get("CityName", "")
+                cleaned_name = clean_city_name(raw_city_name)
+                
+                if cleaned_name in target_slugs:
+                    feature["properties"]["slug"] = target_slugs[cleaned_name]
+                    feature["properties"]["name"] = raw_city_name
                     feature["geometry"] = simplify_geometry(feature["geometry"])
                     simplified_features.append(feature)
                     
+            print(f"Matched and simplified {len(simplified_features)} city boundaries.")
             output = {
                 "type": "FeatureCollection",
                 "features": simplified_features,
@@ -322,7 +368,7 @@ def harvest_boundaries(cities):
 # MAIN EXECUTION ROUTINE
 # ==============================================================================
 if __name__ == "__main__":
-    print("Starting Hardened Test Harvest Pipeline...")
+    print("Starting Fully Hardened Test Harvest Pipeline...")
     cities = load_city_data()
     
     harvest_weather(cities)
