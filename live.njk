@@ -1,0 +1,409 @@
+---
+layout: base.njk
+title: Live Real Estate Broadcasts & Market Q&A
+permalink: /live/
+description: Watch live real estate market updates, Snohomish & King County Q&A broadcasts, and past stream recordings with Redfin Senior Agent Joe Sheldon.
+---
+
+<div class="live-hub-container">
+  <!-- Hero Header Block (No Pill Badge) -->
+  <header class="resource-hero-header">
+    <h1 class="hero-title">Puget Sound Real Estate & Live Market Q&A</h1>
+    <p class="hero-description">
+      Watch live market strategy sessions, ask questions in real time using the chat below, and explore past broadcast archives.
+    </p>
+  </header>
+
+  <!-- 1. Primary Live Video Broadcast Stage -->
+  <section class="live-stage-block">
+    <div class="live-stage-card">
+      <div class="live-status-header">
+        <span class="live-beacon-dot"></span>
+        <span class="live-status-text">Live Stage</span>
+      </div>
+      <div class="video-aspect-frame">
+        <iframe 
+          src="https://streannstudio.ai/embed/channel/2dd8897c-bf4e-43ff-aa27-d6ed744c45a4/live" 
+          title="Joe Sheldon Live Broadcast Stream" 
+          allow="autoplay; fullscreen; picture-in-picture" 
+          allowfullscreen>
+        </iframe>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Tawk.to Embedded Live Stream Chat (Placed Below Video) -->
+  <section class="live-chat-block">
+    <div class="chat-stage-card">
+      <div class="chat-header-bar">
+        <h3>💬 Live Stream Q&A</h3>
+        <p>Ask questions or join the stream conversation in real time</p>
+      </div>
+      
+      <div id="tawk-live-embed-container" class="live-chat-widget-canvas">
+        <div id="live-chat-loading-spinner" class="live-chat-loading-placeholder">
+          <div class="live-spinner"></div>
+          <p>Connecting to live stream chat...</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Scheduled Live Video Events Section -->
+  <section class="live-section-block">
+    <div class="section-heading-box">
+      <h2>📅 Scheduled Live Streams</h2>
+      <p>Upcoming market breakdowns, homebuyer workshops, and investor Q&A broadcasts</p>
+    </div>
+
+    {% set liveEvents = [] %}
+    {% if events %}
+      {% for event in events %}
+        {% set cat = event.Category or event.category or "" %}
+        {% if "Live" in cat or "live" in cat %}
+          {% set liveEvents = (liveEvents.push(event), liveEvents) %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    {% if liveEvents.length > 0 %}
+      <div class="schedule-list">
+        {% for event in liveEvents %}
+          <div class="schedule-item">
+            <div class="schedule-info">
+              <span class="schedule-date">{{ event.Date or event.date }}</span>
+              <strong style="font-size: 1.1rem; color: var(--premier-charcoal);">{{ event.Title or event.name }}</strong>
+              <span class="schedule-location">{{ event.Description or event.description }}</span>
+            </div>
+            <a href="sms:+12066577493" class="btn btn-small btn-primary" style="margin-left: auto;">Set Reminder</a>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="live-empty-card">
+        <p>No upcoming live streams are currently scheduled. Have a specific topic you'd like covered? <a href="sms:+12066577493">Text Joe your topic request!</a></p>
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- 4. Stream Recording Archives Grid -->
+  <section class="live-section-block">
+    <div class="section-heading-box">
+      <h2>📹 Past Broadcast Recordings</h2>
+      <p>Catch up on previous market breakdowns, rate updates, and strategy sessions</p>
+    </div>
+
+    {% if live_archive and live_archive.length > 0 %}
+      <div class="live-archive-grid">
+        {% for item in live_archive %}
+          <article class="live-archive-card">
+            <div class="archive-media-box">
+              {% if item.youtube_id %}
+                <youtube-lite video-id="{{ item.youtube_id }}" label="{{ item.Title or item.title }}"></youtube-lite>
+              {% elif item.Thumbnail_URL or item.thumbnail %}
+                <img src="{{ item.Thumbnail_URL or item.thumbnail }}" alt="{{ item.Title or item.title }}" loading="lazy">
+              {% else %}
+                <div class="archive-placeholder-media">🎥 Recorded Stream</div>
+              {% endif %}
+            </div>
+            <div class="archive-card-body">
+              <span class="archive-date-tag">{{ item.Date or item.date }}</span>
+              <h3 class="archive-card-title">{{ item.Title or item.title }}</h3>
+              <p class="archive-card-desc">{{ item.Description or item.description }}</p>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="live-empty-card">
+        <p>Stream recordings are currently being archived. Check back shortly for recent broadcast uploads!</p>
+      </div>
+    {% endif %}
+  </section>
+</div>
+
+<style>
+  /* ====================================================================
+     SINGLE-COLUMN LIVE HUB LAYOUT RULES
+     ==================================================================== */
+
+  .live-hub-container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 1rem 0 3rem 0;
+    box-sizing: border-box;
+  }
+
+  .live-stage-block {
+    margin-bottom: 2rem;
+    width: 100%;
+  }
+
+  .live-stage-card, 
+  .chat-stage-card {
+    background-color: var(--white);
+    border: 1px solid var(--premier-beige);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .live-status-header {
+    background-color: var(--premier-charcoal);
+    color: var(--white);
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .live-status-text {
+    color: var(--white);
+  }
+
+  .video-aspect-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background-color: var(--premier-charcoal);
+  }
+
+  .video-aspect-frame iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  /* Single Column Chat Block Below Video */
+  .live-chat-block {
+    margin-bottom: 2.5rem;
+    width: 100%;
+  }
+
+  .chat-header-bar {
+    background-color: var(--dynamic-bg-highlight);
+    border-bottom: 1px solid var(--premier-beige);
+    padding: 0.85rem 1rem;
+  }
+
+  .chat-header-bar h3 {
+    margin: 0 0 0.2rem 0;
+    font-size: 1.05rem;
+    color: var(--premier-charcoal);
+  }
+
+  .chat-header-bar p {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--premier-charcoal);
+    opacity: 0.85;
+  }
+
+  .live-chat-widget-canvas {
+    position: relative;
+    width: 100%;
+    height: 500px;
+    background-color: transparent;
+    z-index: 1;
+    isolation: isolate;
+  }
+
+  .live-chat-loading-placeholder {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--dynamic-bg-highlight);
+    z-index: 1;
+    gap: 12px;
+    font-size: 0.9rem;
+    color: var(--premier-charcoal);
+  }
+
+  .live-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--premier-beige);
+    border-top-color: var(--card-accent-color);
+    border-radius: 50%;
+    animation: spinLive 1s linear infinite;
+  }
+
+  @keyframes spinLive {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Sections & Archive Grid */
+  .live-section-block {
+    margin-top: 3rem;
+    width: 100%;
+  }
+
+  .section-heading-box {
+    margin-bottom: 1.25rem;
+  }
+
+  .section-heading-box h2 {
+    font-size: 1.5rem;
+    color: var(--premier-charcoal);
+    margin: 0 0 0.35rem 0;
+  }
+
+  .section-heading-box p {
+    font-size: 0.95rem;
+    color: var(--premier-charcoal);
+    opacity: 0.85;
+    margin: 0;
+  }
+
+  .live-empty-card {
+    background-color: var(--white);
+    border: 1px solid var(--premier-beige);
+    border-left: 4px solid var(--premier-charcoal);
+    padding: 1.5rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: var(--premier-charcoal);
+  }
+
+  .live-empty-card a {
+    color: var(--card-accent-color);
+    font-weight: 700;
+  }
+
+  .live-archive-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .live-archive-card {
+    background-color: var(--white);
+    border: 1px solid var(--premier-beige);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    display: flex;
+    flex-direction: column;
+    border-top: 4px solid var(--card-accent-color);
+  }
+
+  .archive-media-box {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background-color: var(--premier-charcoal);
+    overflow: hidden;
+  }
+
+  .archive-media-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .archive-placeholder-media {
+    width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    font-weight: 700;
+  }
+
+  .archive-card-body {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+  }
+
+  .archive-date-tag {
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--card-accent-color);
+    margin-bottom: 0.35rem;
+  }
+
+  .archive-card-title {
+    font-size: 1.1rem;
+    color: var(--premier-charcoal);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.3;
+  }
+
+  .archive-card-desc {
+    font-size: 0.88rem;
+    color: var(--premier-charcoal);
+    opacity: 0.85;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  @media (max-width: 600px) {
+    .live-chat-widget-canvas {
+      height: 420px;
+    }
+  }
+</style>
+
+<!-- Tawk.to Embedded Live Stream Chat Script -->
+<script type="text/javascript">
+  var Tawk_API = Tawk_API || {};
+  var Tawk_LoadStart = new Date();
+
+  // Force inline rendering directly within live chat panel target
+  Tawk_API.embedded = 'tawk-live-embed-container';
+
+  Tawk_API.onLoad = function() {
+    var spinner = document.getElementById('live-chat-loading-spinner');
+    if (spinner) {
+      spinner.style.display = 'none';
+    }
+  };
+
+  window.addEventListener('DOMContentLoaded', function() {
+    var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
+    s1.async = true;
+    s1.src = 'https://embed.tawk.to/6a5b0cb0efae261d44936bbd/1jtpqj4im';
+    s1.charset = 'UTF-8';
+    s1.setAttribute('crossorigin', '*');
+    s0.parentNode.insertBefore(s1, s0);
+  });
+</script>
+
+<!-- Structured Data: Schema.org BroadcastEvent & VideoObject -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BroadcastEvent",
+      "name": "Joe Sheldon Live Puget Sound Real Estate Stream",
+      "description": "Live real estate market updates, interest rate breakdowns, and buyer & seller strategy Q&A.",
+      "isLiveBroadcast": true,
+      "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
+      "eventStatus": "https://schema.org/EventScheduled",
+      "location": {
+        "@type": "VirtualLocation",
+        "url": "https://myseattlesearch.com/live/"
+      },
+      "organizer": {
+        "@id": "https://myseattlesearch.com/#agent"
+      }
+    }
+  ]
+}
+</script>

@@ -45,6 +45,136 @@ universal-footer {
     display: block;
 }
 
+/* ====================================================================
+   REAL-TIME EDGE LIVE STREAM NOTIFICATION BANNER (<live-banner>)
+   ==================================================================== */
+
+live-banner {
+    display: none;
+    width: 100%;
+    background-color: var(--premier-charcoal);
+    border-bottom: 2px solid var(--card-accent-color);
+    position: relative;
+    z-index: 999999;
+}
+
+.live-banner-bar {
+    max-width: 800px; /* Constrained to match central content reading grid */
+    margin: 0 auto;
+    padding: 0.65rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Centered tight layout */
+    gap: 1.25rem;
+    box-sizing: border-box;
+    flex-wrap: wrap;
+}
+
+.live-banner-info {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    color: var(--white);
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.live-beacon-dot {
+    width: 10px;
+    height: 10px;
+    background-color: var(--card-accent-color);
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 0 0 rgba(193, 48, 48, 0.7);
+    animation: livePulseBeacon 1.6s infinite;
+    flex-shrink: 0;
+}
+
+@keyframes livePulseBeacon {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(193, 48, 48, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 8px rgba(193, 48, 48, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(193, 48, 48, 0);
+    }
+}
+
+.live-badge-label {
+    background-color: var(--card-accent-color);
+    color: var(--white);
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 0.15rem 0.45rem;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.live-stream-title {
+    color: var(--white);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 320px;
+}
+
+.live-banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.live-join-btn {
+    background-color: var(--card-accent-color);
+    color: var(--white);
+    text-decoration: none;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+    display: inline-block;
+}
+
+.live-join-btn:hover {
+    transform: translateY(-1px);
+    opacity: 0.95;
+}
+
+.live-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--premier-beige);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0 0.3rem;
+    line-height: 1;
+    transition: color 0.15s ease;
+}
+
+.live-close-btn:hover {
+    color: var(--white);
+}
+
+@media (max-width: 600px) {
+    .live-stream-title {
+        display: none;
+    }
+    .live-banner-bar {
+        padding: 0.5rem 0.75rem;
+        justify-content: space-between;
+    }
+}
+
 /* =========================================
    GLOBAL RESPONSIVE CONTAINERS 
    ========================================= */

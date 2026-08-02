@@ -1,5 +1,3 @@
-# File: scripts/harvest_hourly.py
-
 import os
 import io
 import json
@@ -81,6 +79,17 @@ def extract_google_id(url_string):
     if match:
         return match.group(1)
     return None
+
+
+def extract_youtube_id(url_string):
+    """
+    Extracts standard 11-character YouTube Video IDs from watch URLs, short links, or embed paths.
+    """
+    if not isinstance(url_string, str) or not url_string.strip():
+        return None
+    pattern = r'(?:v=|\/embed\/|\/v\/|\/vi\/|youtu\.be\/|\/shorts\/)([a-zA-Z0-9_-]{11})'
+    match = re.search(pattern, url_string.strip())
+    return match.group(1) if match else None
 
 
 def is_google_drive_link(url_string):
@@ -509,7 +518,7 @@ def main():
     team_lookup = {}
     if web_sheet_id:
         print("📡 Ingesting multi-tab dataset from the Website Data Workbook...")
-        target_tabs = ["Stats", "Team", "Disclaimers", "Events", "Celebrations", "DPA", "Professionals", "Reviews", "ThirdPartyPrograms", "News", "Sales"]
+        target_tabs = ["Stats", "Team", "Disclaimers", "Events", "Celebrations", "DPA", "Professionals", "Reviews", "ThirdPartyPrograms", "News", "Sales", "Live_Archive"]
         try:
             web_ranges = [f"{tab}!A:AZ" for tab in target_tabs]
             web_batch = sheets_service.spreadsheets().values().batchGet(
@@ -520,7 +529,7 @@ def main():
             batch_sheet_writebacks[web_sheet_id] = []
 
             # A. Process Team roster profiles
-            team_rows = tabs_data["Team"].get('values', [])
+            team_rows = tabs_data.get("Team", {}).get('values', [])
             if team_rows:
                 headers = [h.strip() for h in team_rows[0]]
                 photo_col_idx = headers.index("Photo") if "Photo" in headers else -1
@@ -554,21 +563,21 @@ def main():
                     json.dump(clean_nan_tokens(compiled_team), f, indent=2, ensure_ascii=False)
 
             # B. Process Personal Stats Row
-            stats_rows = tabs_data["Stats"].get('values', [])
+            stats_rows = tabs_data.get("Stats", {}).get('values', [])
             if stats_rows:
                 records = parse_sheet_values(stats_rows)
                 with open(os.path.join(data_dir, "stats.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records[0] if records else {}), f, indent=2, ensure_ascii=False)
 
             # C. Process Page Disclaimers
-            disc_rows = tabs_data["Disclaimers"].get('values', [])
+            disc_rows = tabs_data.get("Disclaimers", {}).get('values', [])
             if disc_rows:
                 disc_map = {r[0].strip(): r[1].strip() for r in disc_rows[1:] if len(r) >= 2 and r[0].strip()}
                 with open(os.path.join(data_dir, "disclaimers.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(disc_map), f, indent=2, ensure_ascii=False)
 
             # D. Process Events tab
-            event_rows = tabs_data["Events"].get('values', [])
+            event_rows = tabs_data.get("Events", {}).get('values', [])
             if event_rows:
                 headers = [h.strip() for h in event_rows[0]]
                 img_cols = [headers.index(f"Image {i} Link") for i in range(1, 4) if f"Image {i} Link" in headers]
@@ -616,49 +625,49 @@ def main():
                     json.dump(clean_nan_tokens(compiled_events), f, indent=2, ensure_ascii=False)
 
             # E. Process Celebrations
-            cel_rows = tabs_data["Celebrations"].get('values', [])
+            cel_rows = tabs_data.get("Celebrations", {}).get('values', [])
             if cel_rows:
                 records = parse_sheet_values(cel_rows)
                 with open(os.path.join(data_dir, "celebrations.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
             # F. Process DPA Programs
-            dpa_rows = tabs_data["DPA"].get('values', [])
+            dpa_rows = tabs_data.get("DPA", {}).get('values', [])
             if dpa_rows:
                 records = parse_sheet_values(dpa_rows)
                 with open(os.path.join(data_dir, "dpa_programs.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
             # G. Process Professionals
-            prof_rows = tabs_data["Professionals"].get('values', [])
+            prof_rows = tabs_data.get("Professionals", {}).get('values', [])
             if prof_rows:
                 records = parse_sheet_values(prof_rows)
                 with open(os.path.join(data_dir, "professionals.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
             # H. Process Reviews
-            rev_rows = tabs_data["Reviews"].get('values', [])
+            rev_rows = tabs_data.get("Reviews", {}).get('values', [])
             if rev_rows:
                 records = parse_sheet_values(rev_rows)
                 with open(os.path.join(data_dir, "reviews.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
             # I. Process ThirdPartyPrograms
-            tpp_rows = tabs_data["ThirdPartyPrograms"].get('values', [])
+            tpp_rows = tabs_data.get("ThirdPartyPrograms", {}).get('values', [])
             if tpp_rows:
                 records = parse_sheet_values(tpp_rows)
                 with open(os.path.join(data_dir, "thirdpartyprograms.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
             # J. Process News
-            news_rows = tabs_data["News"].get('values', [])
+            news_rows = tabs_data.get("News", {}).get('values', [])
             if news_rows:
                 records = parse_sheet_values(news_rows)
                 with open(os.path.join(data_dir, "news.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
             # K. Process Sales Tab (Exact Column Header Mapping: Downloads & PDF URL 1..5)
-            sales_rows = tabs_data["Sales"].get('values', [])
+            sales_rows = tabs_data.get("Sales", {}).get('values', [])
             if sales_rows:
                 headers = [h.strip() for h in sales_rows[0]]
                 compiled_sales = []
@@ -723,7 +732,51 @@ def main():
                     compiled_sales.append(row_dict)
 
                 with open(os.path.join(data_dir, "sales.json"), "w", encoding="utf-8") as f:
-                    json.dump(clean_nan_tokens(compiled_sales), f, indent=2, ensure_ascii=False)
+                    json.dump(clean_nan_tokens(compiled_sales), f, indent=4, ensure_ascii=False)
+
+            # L. Process Live_Archive Tab
+            archive_rows = tabs_data.get("Live_Archive", {}).get('values', [])
+            if archive_rows:
+                headers = [h.strip() for h in archive_rows[0]]
+                compiled_archive = []
+                thumb_col_idx = headers.index("Thumbnail_URL") if "Thumbnail_URL" in headers else -1
+
+                for idx, r in enumerate(archive_rows[1:]):
+                    padded = list(r) + [""] * (len(headers) - len(r))
+                    row_dict = dict(zip(headers, padded))
+                    row_num = idx + 2
+                    
+                    title = row_dict.get("Title", "").strip()
+                    if not title:
+                        continue
+                    
+                    slug = generate_url_slug(title)
+                    video_url = row_dict.get("Video_URL", "").strip()
+                    youtube_id = extract_youtube_id(video_url)
+                    
+                    thumb_url = row_dict.get("Thumbnail_URL", "").strip()
+                    if thumb_url and is_google_drive_link(thumb_url) and s3_client:
+                        r2_url = process_and_upload_image(drive_service, s3_client, r2_bucket, thumb_url, "Live", slug)
+                        if "assets.myseattlesearch.com" in r2_url:
+                            row_dict["Thumbnail_URL"] = r2_url
+                            if thumb_col_idx != -1:
+                                batch_sheet_writebacks[web_sheet_id].append({
+                                    'range': f"Live_Archive!{get_col_letter(thumb_col_idx)}{row_num}",
+                                    'values': [[r2_url]]
+                                })
+                            thumb_url = r2_url
+                    
+                    compiled_archive.append({
+                        "Title": title,
+                        "Date": row_dict.get("Date", "").strip(),
+                        "Description": row_dict.get("Description", "").strip(),
+                        "Video_URL": video_url,
+                        "youtube_id": youtube_id,
+                        "Thumbnail_URL": thumb_url
+                    })
+
+                with open(os.path.join(data_dir, "live_archive.json"), "w", encoding="utf-8") as f:
+                    json.dump(clean_nan_tokens(compiled_archive), f, indent=2, ensure_ascii=False)
 
         except Exception as e:
             print(f"   ❌ Critical error compiling Website Data workbook: {e}")

@@ -2,7 +2,7 @@
 
 /* ==========================================================================
    MYSEATTLESEARCH - NATIVE WEB COMPONENTS BUNDLE
-   Includes: <youtube-lite>, <quiz-engine>, <local-reviews>
+   Includes: <youtube-lite>, <quiz-engine>, <local-reviews>, <live-banner>
    ========================================================================== */
 
 /**
@@ -24,7 +24,7 @@ class YouTubeLite extends HTMLElement {
         this.style.display = 'block';
         this.style.width = '100%';
         this.style.aspectRatio = '16 / 9';
-        this.style.backgroundColor = 'var(--premier-charcoal, #1a1a1a)';
+        this.style.backgroundColor = 'var(--premier-charcoal)';
         this.style.backgroundImage = `url('${posterUrl}')`;
         this.style.backgroundSize = 'cover';
         this.style.backgroundPosition = 'center';
@@ -34,8 +34,8 @@ class YouTubeLite extends HTMLElement {
 
         // Play button overlay
         this.innerHTML = `
-            <button aria-label="${label}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 68px; height: 48px; background-color: var(--card-accent-color, #c82020); border: none; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 2;">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="#ffffff" style="margin-left: 3px;"><path d="M8 5v14l11-7z"/></svg>
+            <button aria-label="${label}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 68px; height: 48px; background-color: var(--card-accent-color); border: none; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 2;">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--white)" style="margin-left: 3px;"><path d="M8 5v14l11-7z"/></svg>
             </button>
             <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.15); z-index: 1;"></div>
         `;
@@ -94,7 +94,7 @@ class QuizEngine extends HTMLElement {
 
             if (!this.checkDateAvailability()) {
                 this.innerHTML = `
-                    <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:3rem 2.5rem; background: white; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); text-align:center; border-top:6px solid var(--premier-beige);">
+                    <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:3rem 2.5rem; background: var(--white); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); text-align:center; border-top:6px solid var(--premier-beige);">
                         <div style="font-size:3rem; margin-bottom:1rem;">📅</div>
                         <h3 style="color: var(--premier-charcoal); margin:0 0 0.75rem 0;">Assessment Unavailable</h3>
                         <p style="color: var(--premier-charcoal); opacity: 0.8; font-size:0.95rem; line-height:1.5; margin:0;">This strategy module is not available right now.</p>
@@ -135,7 +135,7 @@ class QuizEngine extends HTMLElement {
         const isPHReq = reqFields.includes('phone') ? 'required' : '';
 
         this.innerHTML = `
-            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:2.5rem; background: white; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); border-top: 6px solid var(--card-accent-color);">
+            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:2.5rem; background: var(--white); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); border-top: 6px solid var(--card-accent-color);">
                 <h2 style="text-align:center; color: var(--card-accent-color); margin-top:0; font-size:1.6rem; line-height:1.3;">${this.quizData.webTitle}</h2>
                 <p style="text-align:center; color: var(--premier-charcoal); opacity: 0.8; line-height:1.6; margin-bottom:2rem; font-size:0.98rem;">${this.quizData.introText}</p>
                 
@@ -158,7 +158,7 @@ class QuizEngine extends HTMLElement {
                         <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color: var(--premier-charcoal);">Phone Number ${isPHReq ? '*' : ''}</label>
                         <input type="tel" id="quiz-phone" ${isPHReq} style="width:100%; padding:0.75rem; border:1px solid var(--premier-beige); border-radius:6px; box-sizing:border-box; font-size:0.95rem;">
                     </div>
-                    <button type="submit" class="btn btn-primary" style="margin-top:1rem; padding:0.9rem; font-size:1rem; font-weight:bold; letter-spacing:0.5px; background-color: var(--card-accent-color); border-color: var(--card-accent-color); color: white;">Start the Quiz</button>
+                    <button type="submit" class="btn btn-primary" style="margin-top:1rem; padding:0.9rem; font-size:1rem; font-weight:bold; letter-spacing:0.5px; background-color: var(--card-accent-color); border-color: var(--card-accent-color); color: var(--white);">Start the Quiz</button>
                 </form>
             </div>
         `;
@@ -235,7 +235,7 @@ class LocalReviews extends HTMLElement {
                     : '';
 
                 return `
-                    <div class="review-component-card" style="background: white; padding: 1.75rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; flex-direction: column; border-top: 5px solid var(--card-accent-color);">
+                    <div class="review-component-card" style="background: var(--white); padding: 1.75rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; flex-direction: column; border-top: 5px solid var(--card-accent-color);">
                         <div style="color: var(--card-accent-color); font-size: 1rem; font-weight: 800; margin-bottom: 0.75rem; letter-spacing: 0.5px;">5.0 <span style="font-size: 1.1rem; letter-spacing: 1px;">${stars}</span></div>
                         ${snippetMarkup}
                         <p style="margin: 0 0 1.25rem 0; font-size: 0.95rem; color: var(--premier-charcoal); font-weight: 500; line-height: 1.6;">${rev.fullText}</p>
@@ -247,6 +247,61 @@ class LocalReviews extends HTMLElement {
         } catch (error) {
             console.error('Contextual reviews execution error:', error);
             gridContainer.innerHTML = '';
+        }
+    }
+}
+
+/**
+ * 4. REAL-TIME EDGE LIVE STREAM NOTIFICATION BANNER (<live-banner>)
+ */
+class LiveBanner extends HTMLElement {
+    async connectedCallback() {
+        const workerUrl = this.getAttribute('worker-url');
+        if (!workerUrl) return;
+
+        // Skip execution if user dismissed the banner during this browser session
+        if (sessionStorage.getItem('dismissed_live_banner') === 'true') {
+            return;
+        }
+
+        try {
+            const response = await fetch(workerUrl, { cache: 'no-store' });
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            if (data && data.is_live) {
+                this.render(data);
+            }
+        } catch (err) {
+            console.error("Live banner execution error:", err);
+        }
+    }
+
+    render(data) {
+        const title = data.title || "Live Stream Broadcast";
+        const targetUrl = data.stream_url || "/live/";
+
+        this.style.display = "block";
+        this.innerHTML = `
+            <div class="live-banner-bar">
+                <div class="live-banner-info">
+                    <span class="live-beacon-dot"></span>
+                    <span class="live-badge-label">LIVE NOW</span>
+                    <span class="live-stream-title">${title}</span>
+                </div>
+                <div class="live-banner-actions">
+                    <a href="${targetUrl}" class="live-join-btn">Watch Stream &rarr;</a>
+                    <button class="live-close-btn" aria-label="Dismiss live alert">✕</button>
+                </div>
+            </div>
+        `;
+
+        const closeBtn = this.querySelector('.live-close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                sessionStorage.setItem('dismissed_live_banner', 'true');
+                this.style.display = "none";
+            });
         }
     }
 }
@@ -307,4 +362,7 @@ if (!customElements.get('quiz-engine')) {
 }
 if (!customElements.get('local-reviews')) {
     customElements.define('local-reviews', LocalReviews);
+}
+if (!customElements.get('live-banner')) {
+    customElements.define('live-banner', LiveBanner);
 }
