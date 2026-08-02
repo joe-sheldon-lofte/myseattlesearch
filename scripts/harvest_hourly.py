@@ -518,7 +518,7 @@ def main():
     team_lookup = {}
     if web_sheet_id:
         print("📡 Ingesting multi-tab dataset from the Website Data Workbook...")
-        target_tabs = ["Stats", "Team", "Disclaimers", "Events", "Celebrations", "DPA", "Professionals", "Reviews", "ThirdPartyPrograms", "News", "Sales", "Live_Archive"]
+        target_tabs = ["Stats", "Team", "Disclaimers", "Events", "Celebrations", "DPA", "Professionals", "Reviews", "ThirdPartyPrograms", "News", "Sales", "Live_Archive", "Uploads"]
         try:
             web_ranges = [f"{tab}!A:AZ" for tab in target_tabs]
             web_batch = sheets_service.spreadsheets().values().batchGet(
@@ -777,6 +777,144 @@ def main():
 
                 with open(os.path.join(data_dir, "live_archive.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(compiled_archive), f, indent=2, ensure_ascii=False)
+
+            # M. Process Uploads Tab (Direct R2 Asset Ingestion)
+            uploads_rows = tabs_data.get("Uploads", {}).get('values', [])
+            if uploads_rows and s3_client:
+                headers = [h.strip() for h in uploads_rows[0]]
+                link_col_idx = headers.index("Link") if "Link" in headers else -1
+                done_col_idx = headers.index("Done") if "Done" in headers else -1
+
+                if link_col_idx != -1 and done_col_idx != -1:
+                    for idx, r in enumerate(uploads_rows[1:]):
+                        padded = list(r) + [""] * (len(headers) - len(r))
+                        row_dict = dict(zip(headers, padded))
+                        row_num = idx + 2
+
+                        done_status = row_dict.get("Done", "").strip().lower()
+                        source_link = row_dict.get("Link", "").strip()
+
+                        if done_status == "yes" or not source_link:
+                            continue
+
+                        upload_id = row_dict.get("Upload ID", "").strip()
+                        name = row_dict.get("Name", "").strip()
+                        specified_type = row_dict.get("Type", "").strip().lower()
+                        custom_dir = row_dict.get("Directory", "").strip()
+
+                        clean_dir = re.sub(r'[^a-zA-Z0-9/_-]', '', custom_dir).strip('/') if custom_dir else "uploads"
+                        if not clean_dir:
+                            clean_dir = "uploads"
+
+                        file_slug = generate_url_slug(name) if name else (generate_url_slug(upload_id) if upload_id else f"asset-{row_num}")
+
+                        raw_bytes = None
+                        file_id = extract_google_id(source_link)
+                        if file_id and drive_service:
+                            try:
+                                request = drive_service.files().get_media(fileId=file_id)
+                                raw_bytes = request.execute()
+                            except Exception as ge:
+                                print(f"   ⚠️ Could not fetch Drive file ID {file_id}: {ge}")
+                        elif source_link.startswith("http://") or source_link.startswith("https://"):
+                            try:
+                                res = requests.get(source_link, timeout=15)
+                                if res.status_code == 200:
+                                    raw_bytes = res.content
+                            except Exception as re_err:
+                                print(f"   ⚠️ Could not fetch URL {source_link}: {re_err}")
+
+                        if not raw_bytes or isinstance(raw_bytes, str):
+                            continue
+
+                        is_img = False
+                        img_obj = None
+                        if specified_type not in ["pdf", "doc", "docx"]:
+                            try:
+                                stream = io.BytesIO(raw_bytes)
+                                img_obj = Image.open(stream)
+                                img_obj.verify()
+                                stream.seek(0)
+                                img_obj = Image.open(stream)
+                                is_img = True
+                            except Exception:
+                                is_img = False
+
+                        if specified_type == "image":
+                            is_img = True
+
+                        custom_domain = "https://assets.myseattlesearch.com"
+
+                        if is_img and img_obj:
+                            try:
+                                img_obj = img_obj.convert("RGBA") if img_obj.mode in ("RGBA", "P") else img_obj.convert("RGB")
+                                webp_buffer = io.BytesIO()
+                                img_obj.save(webp_buffer, format="WEBP", quality=80)
+                                webp_buffer.seek(0)
+
+                                object_key = f"{clean_dir}/{file_slug}.webp"
+                                permanent_url = f"{custom_domain}/{object_key}"
+
+                                s3_client.put_object(
+                                    Bucket=r2_bucket,
+                                    Key=object_key,
+                                    Body=webp_buffer,
+                                    ContentType="image/webp"
+                                )
+                                print(f"   🚀 Asset image uploaded safely to R2: {permanent_url}")
+
+                                batch_sheet_writebacks[web_sheet_id].append({
+                                    'range': f"Uploads!{get_col_letter(link_col_idx)}{row_num}",
+                                    'values': [[permanent_url]]
+                                })
+                                batch_sheet_writebacks[web_sheet_id].append({
+                                    'range': f"Uploads!{get_col_letter(done_col_idx)}{row_num}",
+                                    'values': [["Yes"]]
+                                })
+
+                                if file_id and drive_service:
+                                    try:
+                                        drive_service.files().delete(fileId=file_id).execute()
+                                        print(f"   🗑️ Purged Drive source file ID {file_id}")
+                                    except Exception: pass
+                            except Exception as ie:
+                                print(f"   ❌ Image asset ingestion failed for row {row_num}: {ie}")
+                        else:
+                            try:
+                                ext = specified_type if specified_type else "pdf"
+                                if "pdf" in source_link.lower() or specified_type == "pdf":
+                                    ext = "pdf"
+                                    content_type = "application/pdf"
+                                else:
+                                    content_type = "application/octet-stream"
+
+                                object_key = f"{clean_dir}/{file_slug}.{ext}"
+                                permanent_url = f"{custom_domain}/{object_key}"
+
+                                s3_client.put_object(
+                                    Bucket=r2_bucket,
+                                    Key=object_key,
+                                    Body=raw_bytes,
+                                    ContentType=content_type
+                                )
+                                print(f"   📄 Asset document uploaded safely to R2: {permanent_url}")
+
+                                batch_sheet_writebacks[web_sheet_id].append({
+                                    'range': f"Uploads!{get_col_letter(link_col_idx)}{row_num}",
+                                    'values': [[permanent_url]]
+                                })
+                                batch_sheet_writebacks[web_sheet_id].append({
+                                    'range': f"Uploads!{get_col_letter(done_col_idx)}{row_num}",
+                                    'values': [["Yes"]]
+                                })
+
+                                if file_id and drive_service:
+                                    try:
+                                        drive_service.files().delete(fileId=file_id).execute()
+                                        print(f"   🗑️ Purged Drive source file ID {file_id}")
+                                    except Exception: pass
+                            except Exception as fe:
+                                print(f"   ❌ Document asset ingestion failed for row {row_num}: {fe}")
 
         except Exception as e:
             print(f"   ❌ Critical error compiling Website Data workbook: {e}")
