@@ -5,6 +5,7 @@ import math
 import re
 import time
 import datetime
+from datetime import timedelta
 import warnings
 import ssl
 import urllib.request
@@ -33,6 +34,32 @@ except ImportError:
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
+CITY_BOUNDARIES_PATH = os.path.join(DATA_DIR, "city_boundaries.json")
+CRIME_STATS_PATH = os.path.join(DATA_DIR, "crime_stats.json")
+DEMOGRAPHICS_PATH = os.path.join(DATA_DIR, "city_demographics.json")
+CITY_FEEDS_PATH = os.path.join(DATA_DIR, "city_feeds.json")
+TRANSIT_DATA_PATH = os.path.join(DATA_DIR, "transit_data.json")
+TRANSIT_LIVE_PATH = os.path.join(DATA_DIR, "transit_radar_live.json")
+TRANSIT_HISTORY_PATH = os.path.join(DATA_DIR, "transit_radar_history.json")
+INTERCITY_SUMMARY_PATH = os.path.join(DATA_DIR, "intercity_summary.json")
+
+FALLBACK_POPULATION = {
+    "algona": 3335, "auburn": 88950, "beaux-arts-village": 315, "bellevue": 155000,
+    "black-diamond": 7195, "bothell": 50670, "burien": 53000, "carnation": 2250,
+    "clyde-hill": 3100, "covington": 22000, "des-moines": 33400, "duvall": 8780,
+    "enumclaw": 13350, "federal-way": 102500, "hunts-point": 3100, "issaquah": 41500,
+    "kenmore": 24350, "kent": 140400, "kirkland": 96710, "lake-forest-park": 13680,
+    "maple-valley": 29320, "medina": 3380, "mercer-island": 25830, "milton": 8755,
+    "newcastle": 13750, "normandy-park": 6855, "north-bend": 8260, "pacific": 7270,
+    "redmond": 80040, "renton": 108800, "sammamish": 68410, "seatac": 32710,
+    "seattle": 797700, "shoreline": 61910, "skykomish": 165, "snoqualmie": 14520,
+    "tukwila": 22930, "woodinville": 13900, "yarrow-point": 1135, "arlington": 22980,
+    "brier": 6600, "darrington": 1515, "edmonds": 43420, "everett": 114800,
+    "gold-bar": 2310, "granite-falls": 4775, "index": 160, "lake-stevens": 41540,
+    "lynnwood": 41500, "marysville": 74390, "mill-creek": 21630, "monroe": 20830,
+    "mountlake-terrace": 24260, "mukilteo": 21590, "snohomish": 10350, "stanwood": 8865,
+    "sultan": 7160, "woodway": 1345
+}
 
 KING_SNO_RIVER_GAUGES = [
     "12119000",  # Cedar River at Renton
@@ -76,7 +103,142 @@ def http_get_json_simple(url, timeout=25):
         print(f"HTTP GET Error [{url[:80]}...]: {e}")
     return None
 
+def haversine_distance(lat1, lon1, lat2, lon2):
+    R = 3958.8
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+# Spatial Point-in-Polygon Engine
+def get_geometry_bbox(geometry):
+    g_type = geometry.get("type")
+    coords = geometry.get("coordinates", [])
+    all_pts = []
+    
+    if g_type == "Polygon":
+        for ring in coords:
+            all_pts.extend(ring)
+    elif g_type == "MultiPolygon":
+        for poly in coords:
+            for ring in poly:
+                all_pts.extend(ring)
+                
+    if not all_pts:
+        return None
+        
+    min_lon = min(pt[0] for pt in all_pts)
+    max_lon = max(pt[0] for pt in all_pts)
+    min_lat = min(pt[1] for pt in all_pts)
+    max_lat = max(pt[1] for pt in all_pts)
+    return (min_lat, min_lon, max_lat, max_lon)
+
+def point_in_ring(lat, lon, ring):
+    inside = False
+    n = len(ring)
+    j = n - 1
+    for i in range(n):
+        xi, yi = ring[i][0], ring[i][1]
+        xj, yj = ring[j][0], ring[j][1]
+        intersect = ((yi > lat) != (yj > lat)) and (lon < (xj - xi) * (lat - yi) / (yj - yi + 1e-12) + xi)
+        if intersect:
+            inside = not inside
+        j = i
+    return inside
+
+def point_in_geometry(lat, lon, geometry):
+    g_type = geometry.get("type")
+    coords = geometry.get("coordinates", [])
+    
+    if g_type == "Polygon":
+        if not coords:
+            return False
+        if point_in_ring(lat, lon, coords[0]):
+            for hole in coords[1:]:
+                if point_in_ring(lat, lon, hole):
+                    return False
+            return True
+    elif g_type == "MultiPolygon":
+        for poly in coords:
+            if not poly:
+                continue
+            if point_in_ring(lat, lon, poly[0]):
+                in_hole = False
+                for hole in poly[1:]:
+                    if point_in_ring(lat, lon, hole):
+                        in_hole = True
+                        break
+                if not in_hole:
+                    return True
+    return False
+
+def load_city_boundaries():
+    if not os.path.exists(CITY_BOUNDARIES_PATH):
+        return []
+        
+    with open(CITY_BOUNDARIES_PATH, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        
+    features = data.get("features", [])
+    indexed = []
+    
+    for feat in features:
+        props = feat.get("properties", {})
+        slug = props.get("slug") or slugify(props.get("CityName") or props.get("name") or "")
+        name = props.get("name") or props.get("CityName") or ""
+        geom = feat.get("geometry", {})
+        bbox = get_geometry_bbox(geom)
+        
+        if slug and bbox:
+            indexed.append({
+                "slug": slug,
+                "name": name,
+                "bbox": bbox,
+                "geometry": geom
+            })
+            
+    return indexed
+
+def match_city_for_point(lat, lon, city_boundaries):
+    for city in city_boundaries:
+        bbox = city["bbox"]
+        if bbox[0] <= lat <= bbox[2] and bbox[1] <= lon <= bbox[3]:
+            if point_in_geometry(lat, lon, city["geometry"]):
+                return city["slug"]
+    return None
+
+def load_official_population_map():
+    pop_map = dict(FALLBACK_POPULATION)
+
+    if os.path.exists(CRIME_STATS_PATH):
+        try:
+            with open(CRIME_STATS_PATH, "r", encoding="utf-8") as f:
+                crime_data = json.load(f)
+                for city_name, details in crime_data.items():
+                    if isinstance(details, dict) and "reported_population" in details:
+                        slug = slugify(city_name)
+                        pop_map[slug] = int(details["reported_population"])
+            return pop_map
+        except Exception:
+            pass
+
+    if os.path.exists(DEMOGRAPHICS_PATH):
+        try:
+            with open(DEMOGRAPHICS_PATH, "r", encoding="utf-8") as f:
+                demo_data = json.load(f)
+                for slug, details in demo_data.items():
+                    if isinstance(details, dict) and "population" in details:
+                        pop_map[slug] = int(details["population"])
+            return pop_map
+        except Exception:
+            pass
+
+    return pop_map
+
 def load_city_data():
+    pop_map = load_official_population_map()
+
     if not os.path.exists(CITY_DATA_PATH):
         return []
         
@@ -108,14 +270,63 @@ def load_city_data():
         except (ValueError, TypeError):
             lat_float, lon_float = None, None
 
+        population = pop_map.get(slug, 25000)
+
         normalized.append({
             "slug": slug,
             "name": str(raw_name).strip(),
             "latitude": lat_float,
-            "longitude": lon_float
+            "longitude": lon_float,
+            "population": population
         })
 
     return normalized
+
+def load_sheets_admin_config_local():
+    """Reads local data/city_feeds.json and data/transit_data.json backups."""
+    config = {"feeds": {}, "transit_rules": {}}
+
+    if os.path.exists(CITY_FEEDS_PATH):
+        try:
+            with open(CITY_FEEDS_PATH, "r", encoding="utf-8") as f:
+                feeds_list = json.load(f)
+                for row_dict in feeds_list:
+                    feed_id = row_dict.get("Feed ID", "").strip()
+                    if feed_id:
+                        config["feeds"][feed_id] = {
+                            "name": row_dict.get("Feed Name", "").strip(),
+                            "active": str(row_dict.get("Active", "Yes")).strip().lower() == "yes",
+                            "city": row_dict.get("City", "").strip()
+                        }
+        except Exception as e:
+            print(f"Local City Feeds Read Notice: {e}")
+
+    if os.path.exists(TRANSIT_DATA_PATH):
+        try:
+            with open(TRANSIT_DATA_PATH, "r", encoding="utf-8") as f:
+                transit_list = json.load(f)
+                for row_dict in transit_list:
+                    route_id = row_dict.get("Route ID", "").strip() or row_dict.get("Feed ID", "").strip()
+                    try:
+                        seats = int(str(row_dict.get("Default Seats", "40")).strip() or 40)
+                    except ValueError:
+                        seats = 40
+                    if route_id:
+                        config["transit_rules"][route_id] = {
+                            "agency": row_dict.get("Agency", "").strip(),
+                            "mode": row_dict.get("Transit Mode", "").strip(),
+                            "name": row_dict.get("Route Name", "").strip(),
+                            "seats": seats,
+                            "include_in_score": str(row_dict.get("Active Transit Score", "Yes")).strip().lower() == "yes",
+                            "active": str(row_dict.get("Active", "Yes")).strip().lower() == "yes",
+                            "api_endpoint_url": row_dict.get("API Endpoint URL", "").strip(),
+                            "target_scope": row_dict.get("Target Scope", "").strip(),
+                            "target": row_dict.get("Target", "").strip()
+                        }
+        except Exception as e:
+            print(f"Local Transit Data Read Notice: {e}")
+
+    return config
 
 def harvest_weather(cities):
     print("⛅ Ingesting Weather Forecasts via Open-Meteo...")
@@ -166,17 +377,18 @@ def harvest_weather(cities):
             json.dump(output, f, indent=2, ensure_ascii=False)
         print(f"   ✅ Weather updated across {len(output)} cities.")
 
-def harvest_environment():
-    print("🌊 Ingesting River Flood Gauges via USGS...")
+def harvest_environment(cities):
+    print("🌊 Ingesting River Flood Gauges (USGS) & EPA AirNow Air Quality...")
+    
+    # 1. USGS River Flood Gauges
     stations_param = ",".join(KING_SNO_RIVER_GAUGES)
     usgs_url = f"https://waterservices.usgs.gov/nwis/iv/?format=json&sites={stations_param}&parameterCd=00060,00065&siteStatus=active"
+    gauge_data = []
     
     try:
         res = http_get_json_simple(usgs_url, timeout=20)
         if res:
             time_series = res.get("value", {}).get("timeSeries", [])
-            gauge_data = []
-            
             for ts in time_series:
                 site_name = ts.get("sourceInfo", {}).get("siteName")
                 values = ts.get("values", [{}])[0].get("value", [{}])
@@ -189,17 +401,359 @@ def harvest_environment():
                         "reading": current_val,
                         "unit": unit
                     })
-                    
-            output = {
-                "regional_water_gauges": gauge_data,
-                "last_updated": datetime.datetime.now(datetime.timezone.utc).isoformat()
-            }
-            target_path = os.path.join(DATA_DIR, "city_environment.json")
-            with open(target_path, "w", encoding="utf-8") as f:
-                json.dump(output, f, indent=2, ensure_ascii=False)
-            print(f"   ✅ River flood gauges updated ({len(gauge_data)} active stations).")
     except Exception as e:
-        print(f"Environment Harvest Error: {e}")
+        print(f"Environment Gauge Harvest Notice: {e}")
+
+    # 2. EPA AirNow Air Quality
+    airnow_key = os.environ.get("AIRNOW_API_KEY", "").strip().strip("'").strip('"')
+    city_aqi_map = {}
+
+    if airnow_key and cities:
+        regional_stations = [
+            {"name": "Seattle Hub", "lat": 47.6062, "lon": -122.3321},
+            {"name": "Bellevue / Eastside Hub", "lat": 47.6101, "lon": -122.2015},
+            {"name": "Everett / North Sound Hub", "lat": 47.9790, "lon": -122.2021},
+            {"name": "Tacoma / South Sound Hub", "lat": 47.2529, "lon": -122.4443}
+        ]
+
+        station_data = []
+        for st in regional_stations:
+            url = f"https://www.airnowapi.org/aq/observation/latLong/current/?format=application/json&latitude={st['lat']}&longitude={st['lon']}&distance=25&API_KEY={airnow_key}"
+            obs = http_get_json_simple(url, timeout=15)
+            if obs and isinstance(obs, list) and len(obs) > 0:
+                primary_param = obs[0]
+                station_data.append({
+                    "reporting_area": primary_param.get("ReportingArea", st["name"]),
+                    "aqi": primary_param.get("AQI", 30),
+                    "category": primary_param.get("Category", {}).get("Name", "Good"),
+                    "parameter": primary_param.get("ParameterName", "PM2.5"),
+                    "observed_time": f"{primary_param.get('DateObserved', '')} {primary_param.get('HourObserved', '')}:00",
+                    "lat": st["lat"],
+                    "lon": st["lon"]
+                })
+
+        if station_data:
+            for c in cities:
+                clat, clon = c.get("latitude"), c.get("longitude")
+                if clat is None or clon is None:
+                    continue
+                nearest = min(station_data, key=lambda st: haversine_distance(clat, clon, st["lat"], st["lon"]))
+                city_aqi_map[c["slug"]] = {
+                    "name": c["name"],
+                    "aqi": nearest["aqi"],
+                    "category": nearest["category"],
+                    "parameter": nearest["parameter"],
+                    "reporting_area": nearest["reporting_area"],
+                    "observed_time": nearest["observed_time"]
+                }
+
+    output = {
+        "regional_water_gauges": gauge_data,
+        "city_air_quality": city_aqi_map,
+        "last_updated": datetime.datetime.now(datetime.timezone.utc).isoformat()
+    }
+    
+    target_path = os.path.join(DATA_DIR, "city_environment.json")
+    with open(target_path, "w", encoding="utf-8") as f:
+        json.dump(output, f, indent=2, ensure_ascii=False)
+    print(f"   ✅ River gauges ({len(gauge_data)}) & EPA AirNow AQI ({len(city_aqi_map)} cities) updated.")
+
+def harvest_transit_radar(cities, city_boundaries, sheets_config):
+    print("🚆 Harvesting OneBusAway GTFS-RT Transit Positions & Schedule Deviation...")
+    oba_key = os.environ.get("ONEBUSAWAY_API_KEY", "").strip().strip("'").strip('"') or "TEST"
+    
+    all_agencies = {
+        "1": "King County Metro", "29": "Sound Transit", "23": "Community Transit",
+        "13": "Everett Transit", "10": "Seattle Center Monorail",
+        "96": "King County Water Taxi", "95": "Kitsap Fast Ferries"
+    }
+    
+    transit_rules = sheets_config.get("transit_rules", {})
+    city_map = {
+        c["slug"]: {
+            "name": c["name"],
+            "population": c["population"],
+            "ground_vehicles": [],
+            "ground_seats": 0,
+            "on_time_ground_vehicles": 0,
+            "delayed_ground_vehicles": 0,
+            "early_ground_vehicles": 0,
+            "maritime_vessels": [],
+            "maritime_seats": 0
+        } for c in cities
+    }
+    total_vehicles = 0
+
+    for agency_id, agency_name in all_agencies.items():
+        oba_url = f"https://api.pugetsound.onebusaway.org/api/where/vehicles-for-agency/{agency_id}.json?key={oba_key}"
+        res = http_get_json_simple(oba_url, timeout=20)
+        
+        if not res or not isinstance(res, dict) or res.get("code") != 200:
+            continue
+            
+        data = res.get("data", {})
+        v_list = data.get("list", []) if isinstance(data, dict) else []
+
+        for v in v_list:
+            loc = v.get("location") or {}
+            vlat, vlon = loc.get("lat"), loc.get("lon")
+            if vlat is None or vlon is None:
+                continue
+                
+            try:
+                vlat, vlon = float(vlat), float(vlon)
+            except (ValueError, TypeError):
+                continue
+                
+            trip_status = v.get("tripStatus") or {}
+            route_id = str(trip_status.get("activeTrip", {}).get("routeId") or "").strip()
+            
+            dev_sec = trip_status.get("scheduleDeviation")
+            if dev_sec is not None:
+                try:
+                    dev_sec = int(dev_sec)
+                except (ValueError, TypeError):
+                    dev_sec = 0
+            else:
+                dev_sec = 0
+            
+            include_in_score = True
+            if "40_100479" in route_id:
+                rule = transit_rules.get("40_100479") or transit_rules.get("link-1line") or {}
+                seat_capacity = rule.get("seats", 592)
+                include_in_score = rule.get("include_in_score", True)
+            elif "40_100511" in route_id:
+                rule = transit_rules.get("40_100511") or transit_rules.get("link-2line") or {}
+                seat_capacity = rule.get("seats", 296)
+                include_in_score = rule.get("include_in_score", True)
+            elif "40_100224" in route_id or "40_100225" in route_id:
+                rule = transit_rules.get("40_100224") or transit_rules.get("sounder-north") or {}
+                seat_capacity = rule.get("seats", 560)
+                include_in_score = rule.get("include_in_score", True)
+            elif agency_id == "10":
+                rule = transit_rules.get("10_MONORAIL") or transit_rules.get("monorail") or {}
+                seat_capacity = rule.get("seats", 250)
+                include_in_score = rule.get("include_in_score", True)
+            elif agency_id == "23":
+                rule = transit_rules.get("23_SWIFT") or transit_rules.get("swift-brt") or {}
+                seat_capacity = rule.get("seats", 60)
+                include_in_score = rule.get("include_in_score", True)
+            elif agency_id == "29":
+                rule = transit_rules.get("40_ST_BUS") or transit_rules.get("st-express") or {}
+                seat_capacity = rule.get("seats", 55)
+                include_in_score = rule.get("include_in_score", True)
+            elif agency_id == "96":
+                rule = transit_rules.get("96_WATERTAXI") or transit_rules.get("kc-watertaxi") or {}
+                seat_capacity = rule.get("seats", 278)
+                include_in_score = rule.get("include_in_score", False)
+            elif agency_id == "95":
+                rule = transit_rules.get("95_FASTFERRY") or transit_rules.get("kitsap-fastferry") or {}
+                seat_capacity = rule.get("seats", 250)
+                include_in_score = rule.get("include_in_score", False)
+            else:
+                seat_capacity = 40
+                include_in_score = True
+
+            matched_slug = match_city_for_point(vlat, vlon, city_boundaries)
+            if matched_slug and matched_slug in city_map:
+                v_obj = {
+                    "vehicle_id": v.get("vehicleId"),
+                    "agency": agency_name,
+                    "route_id": route_id,
+                    "latitude": vlat,
+                    "longitude": vlon,
+                    "seats": seat_capacity,
+                    "schedule_deviation_sec": dev_sec
+                }
+                
+                if include_in_score:
+                    city_map[matched_slug]["ground_vehicles"].append(v_obj)
+                    city_map[matched_slug]["ground_seats"] += seat_capacity
+                    
+                    if -60 <= dev_sec <= 300:
+                        city_map[matched_slug]["on_time_ground_vehicles"] += 1
+                    elif dev_sec > 300:
+                        city_map[matched_slug]["delayed_ground_vehicles"] += 1
+                    else:
+                        city_map[matched_slug]["early_ground_vehicles"] += 1
+                else:
+                    city_map[matched_slug]["maritime_vessels"].append(v_obj)
+                    city_map[matched_slug]["maritime_seats"] += seat_capacity
+                    
+                total_vehicles += 1
+
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    live_output = {}
+    
+    for slug, details in city_map.items():
+        pop = details["population"]
+        pop_units = max(1.0, pop / 1000.0)
+        ground_seats = details["ground_seats"]
+        ground_vehicle_count = len(details["ground_vehicles"])
+        on_time_count = details["on_time_ground_vehicles"]
+        
+        raw_seats_per_1k = round(ground_seats / pop_units, 2)
+        normalized_transit_score = min(100, round((raw_seats_per_1k / 50.0) * 100))
+        active_on_time_score = round((on_time_count / ground_vehicle_count) * 100) if ground_vehicle_count > 0 else 100
+        
+        live_output[slug] = {
+            "name": details["name"],
+            "active_vehicles": ground_vehicle_count,
+            "active_in_bounds_seats": ground_seats,
+            "population_official": pop,
+            "raw_seats_per_1k": raw_seats_per_1k,
+            "active_transit_score": normalized_transit_score,
+            "on_time_performance": {
+                "active_on_time_score": active_on_time_score,
+                "tracked_vehicles": ground_vehicle_count,
+                "on_time_vehicles": on_time_count,
+                "delayed_vehicles": details["delayed_ground_vehicles"],
+                "early_vehicles": details["early_ground_vehicles"]
+            },
+            "maritime_capacity": {
+                "active_vessels": len(details["maritime_vessels"]),
+                "active_seats": details["maritime_seats"]
+            },
+            "last_updated": now_utc.isoformat()
+        }
+
+    target_live = os.path.join(DATA_DIR, "transit_radar_live.json")
+    with open(target_live, "w", encoding="utf-8") as f:
+        json.dump(live_output, f, indent=2, ensure_ascii=False)
+    print(f"   ✅ Tracked {total_vehicles} active vehicles. transit_radar_live.json fresh.")
+
+    # 168-Hour Rolling Historical Archive Engine
+    print("📈 Processing 168-Hour Rolling Historical Archive (transit_radar_history.json)...")
+    slot_dt = now_utc.replace(minute=0, second=0, microsecond=0)
+    slot_iso = slot_dt.isoformat()
+    day_of_week = slot_dt.strftime("%A")
+    hour_of_day = slot_dt.hour
+
+    history_data = {}
+    if os.path.exists(TRANSIT_HISTORY_PATH):
+        try:
+            with open(TRANSIT_HISTORY_PATH, "r", encoding="utf-8") as f:
+                history_data = json.load(f)
+        except Exception as e:
+            print(f"History Load Notice: {e}. Re-initializing history data.")
+            history_data = {}
+
+    for slug, live_entry in live_output.items():
+        if slug not in history_data or not isinstance(history_data[slug], list):
+            history_data[slug] = []
+
+        city_hist = history_data[slug]
+
+        if len(city_hist) > 0:
+            last_entry = city_hist[-1]
+            last_ts_str = last_entry.get("timestamp", "")
+            if last_ts_str:
+                try:
+                    last_dt = datetime.datetime.fromisoformat(last_ts_str.replace("Z", "+00:00"))
+                    curr_gap_dt = last_dt + timedelta(hours=1)
+                    
+                    while curr_gap_dt < slot_dt:
+                        gap_iso = curr_gap_dt.isoformat()
+                        city_hist.append({
+                            "timestamp": gap_iso,
+                            "day_of_week": curr_gap_dt.strftime("%A"),
+                            "hour_of_day": curr_gap_dt.hour,
+                            "active_transit_score": None,
+                            "active_on_time_score": None,
+                            "active_vehicles": 0,
+                            "active_seats": 0,
+                            "data_available": False
+                        })
+                        curr_gap_dt += timedelta(hours=1)
+                except Exception as e:
+                    print(f"Gap calculation notice for {slug}: {e}")
+
+        current_record = {
+            "timestamp": slot_iso,
+            "day_of_week": day_of_week,
+            "hour_of_day": hour_of_day,
+            "active_transit_score": live_entry["active_transit_score"],
+            "active_on_time_score": live_entry["on_time_performance"]["active_on_time_score"],
+            "active_vehicles": live_entry["active_vehicles"],
+            "active_seats": live_entry["active_in_bounds_seats"],
+            "data_available": True
+        }
+
+        if len(city_hist) > 0 and city_hist[-1].get("timestamp") == slot_iso:
+            city_hist[-1] = current_record
+        else:
+            city_hist.append(current_record)
+
+        history_data[slug] = city_hist[-168:]
+
+    with open(TRANSIT_HISTORY_PATH, "w", encoding="utf-8") as f:
+        json.dump(history_data, f, indent=2, ensure_ascii=False)
+    print("   ✅ 168-Hour Rolling Archive synchronized.")
+
+def harvest_intercity_summary():
+    print("✈️ Ingesting FAA NAS Status API & Intercity Regional Summary...")
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    
+    intercity = {
+        "airports": {
+            "seatac_sea": {
+                "name": "Seattle-Tacoma International Airport (SEA)",
+                "faa_code": "SEA",
+                "status": "Normal Operations",
+                "delay_type": "None",
+                "avg_delay_minutes": 0,
+                "weather": "VFR Fair",
+                "flightaware_url": "https://www.flightaware.com/live/airport/KSEA"
+            },
+            "paine_field_pae": {
+                "name": "Paine Field Passenger Terminal (PAE)",
+                "faa_code": "PAE",
+                "status": "Normal Operations",
+                "delay_type": "None",
+                "avg_delay_minutes": 0,
+                "weather": "VFR Fair",
+                "flightaware_url": "https://www.flightaware.com/live/airport/KPAE"
+            }
+        },
+        "amtrak": {
+            "agency": "Amtrak Cascades",
+            "corridor": "Vancouver BC - Seattle - Portland - Eugene",
+            "status": "Normal Operations",
+            "amtrak_map_url": "https://www.amtrak.com/track-your-train.html"
+        },
+        "last_updated": now_utc.isoformat()
+    }
+
+    faa_url = "https://nasstatus.faa.gov/api/airport-status"
+    faa_data = http_get_json_simple(faa_url, timeout=15)
+    
+    if faa_data and isinstance(faa_data, list):
+        for apt in faa_data:
+            code = str(apt.get("arpt", "")).upper()
+            if code in ["SEA", "PAE"]:
+                key = "seatac_sea" if code == "SEA" else "paine_field_pae"
+                
+                status_str = "Normal Operations"
+                delay_type = "None"
+                
+                if apt.get("delay") == "true" or apt.get("delay") is True:
+                    status_str = "Minor Delays"
+                    if "GROUND_DELAY" in str(apt).upper():
+                        status_str = "Ground Delay Program"
+                        delay_type = "FAA Ground Delay"
+                    elif "STOP" in str(apt).upper():
+                        status_str = "Ground Stop"
+                        delay_type = "Ground Stop"
+
+                weather_str = apt.get("weather", {}).get("weather", {}).get("temp", "VFR Fair") if isinstance(apt.get("weather"), dict) else "VFR Fair"
+
+                intercity["airports"][key]["status"] = status_str
+                intercity["airports"][key]["delay_type"] = delay_type
+                intercity["airports"][key]["weather"] = str(weather_str)
+
+    with open(INTERCITY_SUMMARY_PATH, "w", encoding="utf-8") as f:
+        json.dump(intercity, f, indent=2, ensure_ascii=False)
+    print("   ✅ Intercity Regional Summary (intercity_summary.json) fresh.")
 
 def get_col_letter(col_idx):
     result = ""
@@ -531,18 +1085,36 @@ def main():
     os.makedirs(posts_dir, exist_ok=True)
     
     # --------------------------------------------------------------------
-    # MODULE 0: MUNICIPAL WEATHER & RIVER FLOOD GAUGES
+    # MODULE 0: WEATHER, EPA AIRNOW AQI & RIVER FLOOD GAUGES
     # --------------------------------------------------------------------
     cities = load_city_data()
+    city_boundaries = load_city_boundaries()
+    sheets_config = load_sheets_admin_config_local()
+
     if cities:
         try:
             harvest_weather(cities)
         except Exception as e:
             print(f"   ❌ Weather harvest error: {e}")
+            
     try:
-        harvest_environment()
+        harvest_environment(cities)
     except Exception as e:
-        print(f"   ❌ River flood gauge harvest error: {e}")
+        print(f"   ❌ Environment (River Gauges & AQI) harvest error: {e}")
+
+    # --------------------------------------------------------------------
+    # MODULE 0B: TRANSIT RADAR, 168H HISTORY & INTERCITY SUMMARY
+    # --------------------------------------------------------------------
+    if cities and city_boundaries:
+        try:
+            harvest_transit_radar(cities, city_boundaries, sheets_config)
+        except Exception as e:
+            print(f"   ❌ Transit Radar harvest error: {e}")
+            
+    try:
+        harvest_intercity_summary()
+    except Exception as e:
+        print(f"   ❌ Intercity summary harvest error: {e}")
 
     creds_path = "credentials.json"
     if not os.path.exists(creds_path):

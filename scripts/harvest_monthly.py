@@ -1,3 +1,5 @@
+# File: scripts/harvest_monthly.py
+
 import os
 import json
 import math
@@ -6,12 +8,10 @@ import urllib.parse
 import traceback
 from datetime import datetime
 
-# Path references
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 
-# King and Snohomish School District Fallback Names
 KING_SNO_DISTRICTS = [
     "seattle", "edmonds", "everett", "shoreline", "mukilteo", "northshore",
     "bellevue", "renton", "highline", "kent", "issaquah", "lake washington",
@@ -20,7 +20,6 @@ KING_SNO_DISTRICTS = [
     "mercer island", "tahoma", "auburn"
 ]
 
-# Regional ACS 5-Year Municipal Baseline Estimates (Fallback matrix for Census API rate limits)
 REGIONAL_DEMOGRAPHICS_BASELINE = {
     "snohomish_county_avg": {"income": 100042, "age": 38.5, "owner_pct": 66.8, "renter_pct": 33.2, "remote_pct": 18.4},
     "king_county_avg": {"income": 116259, "age": 37.2, "owner_pct": 57.1, "renter_pct": 42.9, "remote_pct": 24.1},
@@ -56,8 +55,6 @@ REGIONAL_DEMOGRAPHICS_BASELINE = {
 }
 
 def safe_task(task_name, func, *args, **kwargs):
-    """Executes a monthly harvest task inside a safe boundary so API rate-limits 
-    or unexpected structure changes won't crash the pipeline."""
     print(f"🚀 [Monthly Pipeline] Starting: {task_name}...")
     try:
         func(*args, **kwargs)
@@ -68,7 +65,6 @@ def safe_task(task_name, func, *args, **kwargs):
         print(f"⚠️ Skipping {task_name}. Existing JSON dataset preserved.\n")
 
 def slugify(text):
-    """Generate a clean URL slug from any city name string."""
     if not text:
         return ""
     text = str(text).lower().strip()
@@ -84,13 +80,11 @@ def slugify(text):
     return res.strip('-')
 
 def clean_city_name(name):
-    """Normalize municipal names for cross-dataset matching."""
     if not name or not isinstance(name, str):
         return ""
     return name.lower().replace("city of ", "").replace("town of ", "").strip()
 
 def http_get_raw(url, extra_headers=None, timeout=30):
-    """Robust HTTP GET text helper returning raw string output and HTTP status code."""
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RealEstateDataBot/1.0",
         "Accept": "application/json, text/plain, */*"
@@ -110,7 +104,6 @@ def http_get_raw(url, extra_headers=None, timeout=30):
         return 0, ""
 
 def http_get_json(url, extra_headers=None, timeout=30):
-    """Utility helper for HTTP GET requests returning decoded JSON objects."""
     status, raw_text = http_get_raw(url, extra_headers=extra_headers, timeout=timeout)
     if status == 200 and raw_text and not raw_text.strip().startswith("<"):
         try:
@@ -120,7 +113,6 @@ def http_get_json(url, extra_headers=None, timeout=30):
     return None
 
 def save_json(filename, data):
-    """Save formatted JSON output to data directory."""
     os.makedirs(DATA_DIR, exist_ok=True)
     target_path = os.path.join(DATA_DIR, filename)
     with open(target_path, "w", encoding="utf-8") as f:
@@ -128,7 +120,6 @@ def save_json(filename, data):
     print(f"Successfully generated: {target_path}")
 
 def load_city_data():
-    """Load city_data.json and normalize capitalized keys into a standardized list of dicts."""
     if not os.path.exists(CITY_DATA_PATH):
         print(f"Error: {CITY_DATA_PATH} not found.")
         return []
@@ -194,7 +185,7 @@ def harvest_demographics(cities):
 
     census_by_place = {}
     if raw_key:
-        for vintage in ["2022", "2021"]:
+        for vintage in ["2024", "2023", "2022", "2021"]:
             url = f"https://api.census.gov/data/{vintage}/acs/acs5?get=NAME,B19013_001E,B01002_001E,B25003_002E,B25003_003E&for=place:*&in=state:53&key={raw_key}"
             res = http_get_json(url, timeout=20)
             if res and isinstance(res, list) and len(res) >= 2:
@@ -203,6 +194,7 @@ def harvest_demographics(cities):
                     row_dict = dict(zip(headers, row))
                     place_fips = str(row_dict.get("place", "")).zfill(5)
                     census_by_place[place_fips] = row_dict
+                print(f"   ✅ Successfully fetched ACS {vintage} data for {len(census_by_place)} WA places.")
                 break
 
     output = {}
@@ -283,7 +275,7 @@ def harvest_amenities(cities):
             break
 
     if not nodes:
-        print("Amenities Harvest Error: Unable to retrieve Overpass nodes across mirrors.")
+        print("Amenities Harvest Notice: Unable to retrieve Overpass nodes across mirrors. Preserving baseline.")
         return
 
     output = {}
@@ -475,7 +467,7 @@ def harvest_boundaries(cities):
             }
             save_json("city_boundaries.json", output)
     except Exception as e:
-        print(f"Boundaries Harvest Error: {e}")
+        print(f"Boundaries Harvest Notice: {e}")
 
 # --- SUB-TASK 5: HISTORICAL LOG CALIBRATION ---
 def calibrate_historical_logs():
@@ -485,7 +477,6 @@ def calibrate_historical_logs():
     if os.path.exists(hist_path):
         print(f"✅ Historical market benchmark file verified at {hist_path}.")
 
-# --- MASTER EXECUTION ROUTINE ---
 def main():
     print("==================================================")
     print("     MYSEATTLESEARCH MONTHLY MASTER HARVESTER     ")
