@@ -30,11 +30,178 @@ try:
 except ImportError:
     pass
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
+
+KING_SNO_RIVER_GAUGES = [
+    "12119000",  # Cedar River at Renton
+    "12113000",  # Green River at Auburn
+    "12149000",  # Snoqualmie River near Carnation
+    "12155300",  # Snohomish River at Snohomish
+    "12134500",  # Skykomish River near Gold Bar
+    "12125200",  # Sammamish River at Bothell
+    "12167000"   # Stillaguamish River at Arlington
+]
+
+def slugify(text):
+    if not text:
+        return ""
+    text = str(text).lower().strip()
+    out = []
+    for ch in text:
+        if ch.isalnum():
+            out.append(ch)
+        elif ch in [' ', '-', '_']:
+            out.append('-')
+    res = "".join(out)
+    while '--' in res:
+        res = res.replace('--', '-')
+    return res.strip('-')
+
+def clean_city_name(name):
+    if not name or not isinstance(name, str):
+        return ""
+    return name.lower().replace("city of ", "").replace("town of ", "").strip()
+
+def http_get_json_simple(url, timeout=25):
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RealEstateDataBot/1.0"}
+    req = urllib.request.Request(url, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            if resp.status == 200:
+                raw_bytes = resp.read()
+                return json.loads(raw_bytes.decode("utf-8"))
+    except Exception as e:
+        print(f"HTTP GET Error [{url[:80]}...]: {e}")
+    return None
+
+def load_city_data():
+    if not os.path.exists(CITY_DATA_PATH):
+        return []
+        
+    with open(CITY_DATA_PATH, "r", encoding="utf-8") as f:
+        raw_data = json.load(f)
+        
+    raw_list = []
+    if isinstance(raw_data, dict):
+        for key, details in raw_data.items():
+            if isinstance(details, dict):
+                item = dict(details)
+                item["_raw_key"] = key
+                raw_list.append(item)
+    elif isinstance(raw_data, list):
+        raw_list = raw_data
+
+    normalized = []
+    for item in raw_list:
+        raw_name = item.get("City") or item.get("name") or item.get("cityName") or item.get("_raw_key") or ""
+        if not raw_name:
+            continue
+            
+        slug = slugify(raw_name)
+        lat = item.get("Latitude") or item.get("latitude") or item.get("lat")
+        lon = item.get("Longitude") or item.get("longitude") or item.get("lng") or item.get("lon")
+        try:
+            lat_float = float(lat)
+            lon_float = float(lon)
+        except (ValueError, TypeError):
+            lat_float, lon_float = None, None
+
+        normalized.append({
+            "slug": slug,
+            "name": str(raw_name).strip(),
+            "latitude": lat_float,
+            "longitude": lon_float
+        })
+
+    return normalized
+
+def harvest_weather(cities):
+    print("⛅ Ingesting Weather Forecasts via Open-Meteo...")
+    valid_cities = [c for c in cities if c["latitude"] is not None and c["longitude"] is not None]
+    if not valid_cities:
+        return
+
+    chunk_size = 10
+    output = {}
+    
+    for i in range(0, len(valid_cities), chunk_size):
+        chunk = valid_cities[i:i + chunk_size]
+        lats = [str(c["latitude"]) for c in chunk]
+        lons = [str(c["longitude"]) for c in chunk]
+        
+        params = {
+            "latitude": ",".join(lats),
+            "longitude": ",".join(lons),
+            "current": "temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m",
+            "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max",
+            "temperature_unit": "fahrenheit",
+            "wind_speed_unit": "mph",
+            "precipitation_unit": "inch",
+            "timezone": "America/Los_Angeles"
+        }
+        
+        url = f"https://api.open-meteo.com/v1/forecast?{urllib.parse.urlencode(params)}"
+        try:
+            results = http_get_json_simple(url, timeout=15)
+            if results:
+                if isinstance(results, dict):
+                    results = [results]
+                for idx, city in enumerate(chunk):
+                    if idx < len(results):
+                        res = results[idx]
+                        output[city["slug"]] = {
+                            "name": city["name"],
+                            "last_updated": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                            "current": res.get("current", {}),
+                            "forecast": res.get("daily", {})
+                        }
+        except Exception as e:
+            print(f"Weather Batch Error (Chunk {i}): {e}")
+            
+    if output:
+        target_path = os.path.join(DATA_DIR, "city_weather.json")
+        with open(target_path, "w", encoding="utf-8") as f:
+            json.dump(output, f, indent=2, ensure_ascii=False)
+        print(f"   ✅ Weather updated across {len(output)} cities.")
+
+def harvest_environment():
+    print("🌊 Ingesting River Flood Gauges via USGS...")
+    stations_param = ",".join(KING_SNO_RIVER_GAUGES)
+    usgs_url = f"https://waterservices.usgs.gov/nwis/iv/?format=json&sites={stations_param}&parameterCd=00060,00065&siteStatus=active"
+    
+    try:
+        res = http_get_json_simple(usgs_url, timeout=20)
+        if res:
+            time_series = res.get("value", {}).get("timeSeries", [])
+            gauge_data = []
+            
+            for ts in time_series:
+                site_name = ts.get("sourceInfo", {}).get("siteName")
+                values = ts.get("values", [{}])[0].get("value", [{}])
+                current_val = values[-1].get("value") if values else None
+                unit = ts.get("variable", {}).get("unit", {}).get("unitCode")
+                
+                if current_val and current_val != "-999999":
+                    gauge_data.append({
+                        "site_name": site_name,
+                        "reading": current_val,
+                        "unit": unit
+                    })
+                    
+            output = {
+                "regional_water_gauges": gauge_data,
+                "last_updated": datetime.datetime.now(datetime.timezone.utc).isoformat()
+            }
+            target_path = os.path.join(DATA_DIR, "city_environment.json")
+            with open(target_path, "w", encoding="utf-8") as f:
+                json.dump(output, f, indent=2, ensure_ascii=False)
+            print(f"   ✅ River flood gauges updated ({len(gauge_data)} active stations).")
+    except Exception as e:
+        print(f"Environment Harvest Error: {e}")
 
 def get_col_letter(col_idx):
-    """
-    Translates a 0-indexed column integer into standard Google Sheets A-Z/AA-ZZ formatting coordinates.
-    """
     result = ""
     col_idx += 1
     while col_idx > 0:
@@ -43,11 +210,7 @@ def get_col_letter(col_idx):
         col_idx = (col_idx - 1) // 26
     return result
 
-
 def clean_nan_tokens(node):
-    """
-    Recursively purges standalone float NaN tokens into clean standard JSON null parameters.
-    """
     if isinstance(node, dict):
         return {k: clean_nan_tokens(v) for k, v in node.items()}
     elif isinstance(node, list):
@@ -56,20 +219,12 @@ def clean_nan_tokens(node):
         return None
     return node
 
-
 def generate_url_slug(text_input):
-    """
-    Normalizes human names and titles into clean, URL-safe string tokens.
-    """
     processed = str(text_input).lower().strip()
     processed = re.sub(r'[^a-z0-9\s-]', '', processed)
     return re.sub(r'[\s-]+', '-', processed)
 
-
 def extract_google_id(url_string):
-    """
-    Safely extracts unique file IDs from standard Google Drive and Doc file URL paths.
-    """
     if not isinstance(url_string, str):
         return None
     match = re.search(r'/d/([a-zA-Z0-9_-]+)', url_string)
@@ -80,22 +235,14 @@ def extract_google_id(url_string):
         return match.group(1)
     return None
 
-
 def extract_youtube_id(url_string):
-    """
-    Extracts standard 11-character YouTube Video IDs from watch URLs, short links, or embed paths.
-    """
     if not isinstance(url_string, str) or not url_string.strip():
         return None
     pattern = r'(?:v=|\/embed\/|\/v\/|\/vi\/|youtu\.be\/|\/shorts\/)([a-zA-Z0-9_-]{11})'
     match = re.search(pattern, url_string.strip())
     return match.group(1) if match else None
 
-
 def is_google_drive_link(url_string):
-    """
-    Returns True if the URL points to Google Drive and needs R2 conversion.
-    """
     if not isinstance(url_string, str) or not url_string.strip():
         return False
     u = url_string.lower().strip()
@@ -103,11 +250,7 @@ def is_google_drive_link(url_string):
         return False
     return "drive.google.com" in u or "docs.google.com" in u or "drive.usercontent.google.com" in u or extract_google_id(url_string) is not None
 
-
 def apply_markdown_style(content, style_type, url=None):
-    """
-    Applies markdown text styling blocks while preserving structural white-space layouts.
-    """
     if not content or content.isspace():
         return content
     match = re.match(r'^(\s*)(.*?)(\s*)$', content, re.DOTALL)
@@ -123,11 +266,7 @@ def apply_markdown_style(content, style_type, url=None):
         return f"{lead}{core}{trail}"
     return content
 
-
 def get_google_doc_as_markdown(docs_service, doc_url):
-    """
-    Converts rich Google Doc body copy structures into clean structural Markdown strings.
-    """
     doc_id = extract_google_id(doc_url)
     if not doc_id:
         return ""
@@ -165,13 +304,7 @@ def get_google_doc_as_markdown(docs_service, doc_url):
         print(f"   ⚠️ Warning: Doc parsing fault on ID {doc_id}: {e}")
         return ""
 
-
 def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, folder_name, filename_slug, index=1):
-    """
-    Downloads raw image files from Drive, decodes JPEG/PNG/HEIC formats, compresses them to WebP, and pushes to R2.
-    If already an assets.myseattlesearch.com URL, skips upload completely.
-    Automatically deletes the source Google Drive file upon successful upload.
-    """
     file_id = extract_google_id(image_url)
     if not file_id:
         return image_url
@@ -204,7 +337,6 @@ def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, fol
         )
         print(f"   🚀 WebP uploaded safely to R2 bucket path: {permanent_url}")
 
-        # Auto-delete source file from Google Drive to keep Drive storage spotless
         try:
             drive_service.files().delete(fileId=file_id).execute()
             print(f"   🗑️ Successfully purged source Drive image file (ID: {file_id})")
@@ -216,13 +348,7 @@ def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, fol
         print(f"   ❌ Image optimization fallback triggered on ID {file_id}: {e}")
         return image_url
 
-
 def process_and_upload_pdf(drive_service, s3_client, r2_bucket, pdf_url, mls_number, index=1):
-    """
-    Downloads raw PDF document from Drive, uploads directly to R2 /downloads/{mls}/ folder, and returns CDN URL + Title.
-    If already an assets.myseattlesearch.com URL, skips upload completely.
-    Automatically deletes the source Google Drive file upon successful upload.
-    """
     file_id = extract_google_id(pdf_url)
     if not file_id:
         filename = pdf_url.split('/')[-1].split('?')[0]
@@ -252,7 +378,6 @@ def process_and_upload_pdf(drive_service, s3_client, r2_bucket, pdf_url, mls_num
         )
         print(f"   📄 PDF uploaded safely to R2 bucket path: {permanent_url}")
 
-        # Auto-delete source PDF from Google Drive to keep Drive storage spotless
         try:
             drive_service.files().delete(fileId=file_id).execute()
             print(f"   🗑️ Successfully purged source Drive PDF file (ID: {file_id})")
@@ -265,7 +390,6 @@ def process_and_upload_pdf(drive_service, s3_client, r2_bucket, pdf_url, mls_num
         print(f"   ❌ PDF optimization fallback triggered on ID {file_id}: {e}")
         return pdf_url, f"Document {index}"
 
-
 def parse_sheet_values(rows):
     if not rows:
         return []
@@ -277,7 +401,6 @@ def parse_sheet_values(rows):
         records.append(dict(zip(headers, sanitized)))
     return records
 
-
 def publish_to_facebook(page_id, access_token, text, link=None, image_url=None):
     if not page_id or not access_token:
         print("   ⚠️ Facebook credentials missing. Skipping FB publish.")
@@ -287,17 +410,12 @@ def publish_to_facebook(page_id, access_token, text, link=None, image_url=None):
     access_token = access_token.strip()
 
     if image_url and not image_url.startswith("https://assets.myseattlesearch.com"):
-        print("   ⚠️ FB Image URL is not a public R2 asset. Stripping image parameter to post clean text/link.")
         image_url = None
 
     try:
         if image_url:
             url = f"https://graph.facebook.com/v19.0/{page_id}/photos"
-            payload = {
-                "url": image_url,
-                "caption": text,
-                "access_token": access_token,
-            }
+            payload = {"url": image_url, "caption": text, "access_token": access_token}
         else:
             url = f"https://graph.facebook.com/v19.0/{page_id}/feed"
             payload = {"message": text, "access_token": access_token}
@@ -308,16 +426,14 @@ def publish_to_facebook(page_id, access_token, text, link=None, image_url=None):
         res_data = res.json()
 
         if res.status_code == 200 and "id" in res_data:
-            post_id = res_data["id"]
-            print(f"   ✅ Facebook post published successfully! Post ID: {post_id}")
-            return post_id
+            print(f"   ✅ Facebook post published successfully! Post ID: {res_data['id']}")
+            return res_data["id"]
         else:
             print(f"   ❌ Facebook API Error: {res_data}")
             return None
     except Exception as e:
         print(f"   ❌ Exception during Facebook publish: {e}")
         return None
-
 
 def publish_to_threads(user_id, access_token, text, image_url=None):
     if not user_id or not access_token:
@@ -328,24 +444,14 @@ def publish_to_threads(user_id, access_token, text, image_url=None):
     access_token = access_token.strip()
 
     if image_url and not image_url.startswith("https://assets.myseattlesearch.com"):
-        print("   ⚠️ Threads Image URL is not a public R2 asset. Stripping image parameter to post clean text.")
         image_url = None
 
     try:
         container_url = f"https://graph.threads.net/v1.0/{user_id}/threads"
         if image_url:
-            c_payload = {
-                "media_type": "IMAGE",
-                "image_url": image_url,
-                "text": text,
-                "access_token": access_token,
-            }
+            c_payload = {"media_type": "IMAGE", "image_url": image_url, "text": text, "access_token": access_token}
         else:
-            c_payload = {
-                "media_type": "TEXT",
-                "text": text,
-                "access_token": access_token,
-            }
+            c_payload = {"media_type": "TEXT", "text": text, "access_token": access_token}
 
         c_res = requests.post(container_url, data=c_payload, timeout=15)
         c_data = c_res.json()
@@ -358,10 +464,7 @@ def publish_to_threads(user_id, access_token, text, image_url=None):
         time.sleep(3)
 
         pub_url = f"https://graph.threads.net/v1.0/{user_id}/threads_publish"
-        p_payload = {
-            "creation_id": container_id,
-            "access_token": access_token,
-        }
+        p_payload = {"creation_id": container_id, "access_token": access_token}
         p_res = requests.post(pub_url, data=p_payload, timeout=15)
         p_data = p_res.json()
         post_id = p_data.get("id")
@@ -375,7 +478,6 @@ def publish_to_threads(user_id, access_token, text, image_url=None):
     except Exception as e:
         print(f"   ❌ Exception during Threads publish: {e}")
         return None
-
 
 def publish_to_linkedin(author_urn, access_token, text, link=None, title=None):
     if not author_urn or not access_token:
@@ -402,29 +504,16 @@ def publish_to_linkedin(author_urn, access_token, text, link=None, title=None):
             "author": author_urn,
             "commentary": text,
             "visibility": "PUBLIC",
-            "distribution": {
-                "feedDistribution": "MAIN_FEED",
-                "targetEntities": [],
-                "thirdPartyDistributionChannels": [],
-            },
+            "distribution": {"feedDistribution": "MAIN_FEED", "targetEntities": [], "thirdPartyDistributionChannels": []},
             "lifecycleState": "PUBLISHED",
         }
 
         if link:
-            payload["content"] = {
-                "article": {
-                    "source": link,
-                    "title": title or "MySeattleSearch Update",
-                }
-            }
+            payload["content"] = {"article": {"source": link, "title": title or "MySeattleSearch Update"}}
 
         res = requests.post(url, headers=headers, json=payload, timeout=15)
         if res.status_code in (200, 201):
-            post_id = (
-                res.headers.get("x-restli-id")
-                or res.json().get("id")
-                or "published"
-            )
+            post_id = res.headers.get("x-restli-id") or res.json().get("id") or "published"
             print(f"   ✅ LinkedIn post published successfully! Post URN: {post_id}")
             return post_id
         else:
@@ -434,7 +523,6 @@ def publish_to_linkedin(author_urn, access_token, text, link=None, title=None):
         print(f"   ❌ Exception during LinkedIn publish: {e}")
         return None
 
-
 def main():
     print("🧠 Starting the MySeattleSearch Master Omnibus Data Engine...")
     data_dir = "data"
@@ -442,6 +530,20 @@ def main():
     os.makedirs(data_dir, exist_ok=True)
     os.makedirs(posts_dir, exist_ok=True)
     
+    # --------------------------------------------------------------------
+    # MODULE 0: MUNICIPAL WEATHER & RIVER FLOOD GAUGES
+    # --------------------------------------------------------------------
+    cities = load_city_data()
+    if cities:
+        try:
+            harvest_weather(cities)
+        except Exception as e:
+            print(f"   ❌ Weather harvest error: {e}")
+    try:
+        harvest_environment()
+    except Exception as e:
+        print(f"   ❌ River flood gauge harvest error: {e}")
+
     creds_path = "credentials.json"
     if not os.path.exists(creds_path):
         print("❌ Core Error: credentials.json identity file is missing from root path.")
@@ -473,8 +575,6 @@ def main():
             aws_access_key_id=r2_access_key, aws_secret_access_key=r2_secret_key,
             region_name="auto"
         )
-    else:
-        print("⚠️ Warning: R2 secrets missing. Asset optimizations will default to original urls.")
 
     batch_sheet_writebacks = {}
     cms_image_map = {}
@@ -666,20 +766,18 @@ def main():
                 with open(os.path.join(data_dir, "news.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
-            # K. Process Sales Tab (Exact Column Header Mapping: Downloads & PDF URL 1..5)
+            # K. Process Sales Tab
             sales_rows = tabs_data.get("Sales", {}).get('values', [])
             if sales_rows:
                 headers = [h.strip() for h in sales_rows[0]]
                 compiled_sales = []
                 
-                # Image Columns: Image URL 1, Image URL 2, Image URL 3, Image URL 4, Image URL 5
                 img_cols = []
                 for i in range(1, 6):
                     col_name = f"Image URL {i}"
                     if col_name in headers:
                         img_cols.append((i, headers.index(col_name)))
                         
-                # PDF Columns: PDF URL 1, PDF URL 2, PDF URL 3, PDF URL 4, PDF URL 5
                 pdf_cols = []
                 for i in range(1, 6):
                     col_name = f"PDF URL {i}"
@@ -693,7 +791,6 @@ def main():
                     
                     mls_id = row_dict.get("MLS Number", "").strip() or generate_url_slug(row_dict.get("Address", "listing"))
                     
-                    # 1. Process Images
                     for i_num, c_idx in img_cols:
                         img_url = padded[c_idx].strip()
                         if img_url and is_google_drive_link(img_url) and s3_client:
@@ -704,7 +801,6 @@ def main():
                                     'range': f"Sales!{get_col_letter(c_idx)}{row_num}", 'values': [[r2_url]]
                                 })
 
-                    # 2. Process PDFs (Triggered when Downloads == "Yes")
                     dl_active = str(row_dict.get("Downloads", "No")).strip().lower() == "yes"
                     pdf_downloads = []
                     if dl_active and mls_id:
@@ -778,7 +874,7 @@ def main():
                 with open(os.path.join(data_dir, "live_archive.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(compiled_archive), f, indent=2, ensure_ascii=False)
 
-            # M. Process Uploads Tab (Direct R2 Asset Ingestion)
+            # M. Process Uploads Tab
             uploads_rows = tabs_data.get("Uploads", {}).get('values', [])
             if uploads_rows and s3_client:
                 headers = [h.strip() for h in uploads_rows[0]]
@@ -1333,7 +1429,6 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
     with open(out_f, "w", encoding="utf-8") as f: json.dump(r2_payload, f, indent=2)
 
     print("🏁 Real-Time Master Locomotive Processing Sequence Complete. Site data fresh.")
-
 
 if __name__ == "__main__":
     main()
