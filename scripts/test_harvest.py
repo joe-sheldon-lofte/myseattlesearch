@@ -1,3 +1,5 @@
+# File: scripts/test_harvest.py
+
 import os
 import json
 import math
@@ -10,15 +12,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 
-# King and Snohomish School District Name Filter Fallback
-KING_SNO_DISTRICTS = [
-    "seattle", "edmonds", "everett", "shoreline", "mukilteo", "northshore",
-    "bellevue", "renton", "highline", "kent", "issaquah", "lake washington",
-    "snoqualmie valley", "riverview", "snohomish", "lake stevens", "marysville",
-    "arlington", "stanwood-camano", "monroe", "sultan", "granite falls",
-    "mercer island", "tahoma", "auburn"
-]
-
 # Primary King & Snohomish Flood Gauge USGS Station IDs
 KING_SNO_RIVER_GAUGES = [
     "12119000",  # Cedar River at Renton
@@ -30,10 +23,41 @@ KING_SNO_RIVER_GAUGES = [
     "12167000"   # Stillaguamish River at Arlington
 ]
 
+# King and Snohomish School District Fallback Names
+KING_SNO_DISTRICTS = [
+    "seattle", "edmonds", "everett", "shoreline", "mukilteo", "northshore",
+    "bellevue", "renton", "highline", "kent", "issaquah", "lake washington",
+    "snoqualmie valley", "riverview", "snohomish", "lake stevens", "marysville",
+    "arlington", "stanwood-camano", "monroe", "sultan", "granite falls",
+    "mercer island", "tahoma", "auburn"
+]
+
+def http_get_json(url, timeout=20):
+    """Utility helper for HTTP GET requests returning JSON."""
+    req = urllib.request.Request(url, headers={"User-Agent": "MySeattleSearch/1.0 (RealEstateDataBot)"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            if resp.status == 200:
+                return json.loads(resp.read().decode("utf-8"))
+    except Exception as e:
+        print(f"HTTP GET Error [{url}]: {e}")
+    return None
+
+def save_json(filename, data):
+    """Save formatted JSON output to data directory."""
+    os.makedirs(DATA_DIR, exist_ok=True)
+    target_path = os.path.join(DATA_DIR, filename)
+    with open(target_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    print(f"Successfully generated: {target_path}")
+
+# ==============================================================================
+# SCHEMA RESOLVER HELPERS
+# ==============================================================================
 def load_city_data():
-    """Load master city taxonomy and handle both list and dict structures."""
+    """Load master city taxonomy and handle list vs dict structures."""
     if not os.path.exists(CITY_DATA_PATH):
-        print(f"Error: {CITY_DATA_PATH} not found at {CITY_DATA_PATH}")
+        print(f"Error: {CITY_DATA_PATH} not found.")
         return []
         
     with open(CITY_DATA_PATH, "r", encoding="utf-8") as f:
@@ -51,32 +75,134 @@ def load_city_data():
         cities_list = raw_data
 
     print(f"Successfully loaded {len(cities_list)} city records from city_data.json.")
+    if cities_list and isinstance(cities_list[0], dict):
+        print(f"Detected city schema keys: {list(cities_list[0].keys())[:10]}")
     return cities_list
 
-def save_json(filename, data):
-    """Save formatted JSON output to data directory."""
-    os.makedirs(DATA_DIR, exist_ok=True)
-    target_path = os.path.join(DATA_DIR, filename)
-    with open(target_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-    print(f"Successfully generated: {target_path}")
+def get_field(city_dict, possible_keys, default=None):
+    """Extract field value from dictionary trying multiple key variations."""
+    if not isinstance(city_dict, dict):
+        return default
+    for key in possible_keys:
+        if key in city_dict and city_dict[key] not in (None, ""):
+            return city_dict[key]
+        # Case insensitive match
+        for actual_key in city_dict.keys():
+            if actual_key.lower() == key.lower() and city_dict[actual_key] not in (None, ""):
+                return city_dict[actual_key]
+    return default
 
-def http_get_json(url, timeout=20):
-    """Utility helper for HTTP GET requests returning JSON."""
-    req = urllib.request.Request(url, headers={"User-Agent": "MySeattleSearch/1.0 (RealEstateDataBot)"})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        if resp.status == 200:
-            return json.loads(resp.read().decode("utf-8"))
+def get_city_name(city):
+    return get_field(city, ["name", "cityName", "city_name", "slug"], "Unknown City")
+
+def get_city_coords(city):
+    lat = get_field(city, ["latitude", "lat", "lat_coord"])
+    lon = get_field(city, ["longitude", "lng", "lon", "long_coord"])
+    try:
+        if lat is not None and lon is not None:
+            return float(lat), float(lon)
+    except (ValueError, TypeError):
+        pass
+    return None, None
+
+def get_city_fips(city):
+    raw_id = get_field(city, ["federal_id", "federalId", "federalID", "federal_fips", "fips", "census_place"])
+    if raw_id:
+        cleaned = str(raw_id).strip().zfill(5)
+        return cleaned
+    return None
+
+def get_city_ospi_id(city):
+    raw_id = get_field(city, ["ospi_id", "ospiId", "district_id", "school_district_id", "ospi_district_id"])
+    if raw_id:
+        return str(raw_id).strip()
     return None
 
 def clean_city_name(name):
-    """Normalize city names for cross-dataset matching."""
     if not name or not isinstance(name, str):
         return ""
     return name.lower().replace("city of ", "").replace("town of ", "").strip()
 
 # ==============================================================================
-# 1. WEATHER HARVESTER (Open-Meteo Chunked Batches)
+# 1. DEMOGRAPHICS HARVESTER (US Census ACS 5-Year Municipal API)
+# ==============================================================================
+def harvest_demographics(cities):
+    print("Harvesting City-Level Demographics via US Census Bureau ACS 5-Year API...")
+    census_key = os.environ.get("CENSUS_API_KEY", "")
+    
+    # Target Census Variables: Name, Median Income, Median Age, Owner Occ, Renter Occ, WFH, Workers Total, Agg Commute Mins
+    variables = "NAME,B19013_001E,B01002_001E,B25003_002E,B25003_003E,B08301_021E,B08301_001E,B08136_001E"
+    base_url = f"https://api.census.gov/data/2022/acs/acs5?get={variables}&for=place:*&in=state:53"
+    if census_key:
+        base_url += f"&key={census_key}"
+
+    res = http_get_json(base_url, timeout=25)
+    if not res or not isinstance(res, list) or len(res) < 2:
+        print("Census API Harvest Warning: No data returned from Census endpoint.")
+        return
+
+    # Header index mapping
+    headers = res[0]
+    data_rows = res[1:]
+    
+    # Map place FIPS code -> row dictionary
+    census_by_place = {}
+    for row in data_rows:
+        row_dict = dict(zip(headers, row))
+        place_fips = row_dict.get("place", "").zfill(5)
+        census_by_place[place_fips] = row_dict
+
+    output = {}
+    for city in cities:
+        slug = city.get("slug")
+        name = get_city_name(city)
+        fips = get_city_fips(city)
+        
+        if not slug:
+            continue
+
+        c_data = census_by_place.get(fips) if fips else None
+        
+        # Safe numeric converters
+        def safe_float(val, default=0.0):
+            try:
+                v = float(val)
+                return v if v >= 0 else default
+            except (ValueError, TypeError):
+                return default
+
+        if c_data:
+            income = safe_float(c_data.get("B19013_001E"))
+            age = safe_float(c_data.get("B01002_001E"))
+            owners = safe_float(c_data.get("B25003_002E"))
+            renters = safe_float(c_data.get("B25003_003E"))
+            wfh = safe_float(c_data.get("B08301_021E"))
+            workers = safe_float(c_data.get("B08301_001E"))
+            commute_mins_total = safe_float(c_data.get("B08136_001E"))
+
+            total_units = owners + renters
+            owner_pct = round((owners / total_units * 100), 1) if total_units > 0 else 0.0
+            renter_pct = round((renters / total_units * 100), 1) if total_units > 0 else 0.0
+            remote_pct = round((wfh / workers * 100), 1) if workers > 0 else 0.0
+            avg_commute = round((commute_mins_total / workers), 1) if workers > 0 else 0.0
+
+            output[slug] = {
+                "name": name,
+                "fips_place": fips,
+                "median_household_income": int(income),
+                "median_age": age,
+                "owner_occupied_pct": owner_pct,
+                "renter_occupied_pct": renter_pct,
+                "remote_worker_pct": remote_pct,
+                "avg_commute_minutes": avg_commute,
+                "last_updated": datetime.utcnow().isoformat() + "Z"
+            }
+            
+    print(f"Successfully matched city demographics for {len(output)} cities.")
+    save_json("city_demographics.json", output)
+
+# ==============================================================================
+# 2. WEATHER HARVESTER (Open-Meteo Chunked Batches)
 # ==============================================================================
 def harvest_weather(cities):
     print("Harvesting Weather Data via Open-Meteo...")
@@ -85,14 +211,12 @@ def harvest_weather(cities):
     
     valid_cities = []
     for c in cities:
-        try:
-            if "latitude" in c and "longitude" in c:
-                c_copy = dict(c)
-                c_copy["lat_float"] = float(c["latitude"])
-                c_copy["lon_float"] = float(c["longitude"])
-                valid_cities.append(c_copy)
-        except (ValueError, TypeError):
-            continue
+        lat, lon = get_city_coords(c)
+        if lat is not None and lon is not None:
+            c_copy = dict(c)
+            c_copy["lat_float"] = lat
+            c_copy["lon_float"] = lon
+            valid_cities.append(c_copy)
 
     chunk_size = 10
     output = {}
@@ -123,7 +247,7 @@ def harvest_weather(cities):
                     if idx < len(results):
                         res = results[idx]
                         output[city["slug"]] = {
-                            "name": city.get("name", city["slug"]),
+                            "name": get_city_name(city),
                             "last_updated": datetime.utcnow().isoformat() + "Z",
                             "current": res.get("current", {}),
                             "forecast": res.get("daily", {})
@@ -135,7 +259,7 @@ def harvest_weather(cities):
         save_json("city_weather.json", output)
 
 # ==============================================================================
-# 2. AMENITIES HARVESTER (Puget Sound Overpass Query)
+# 3. AMENITIES HARVESTER (Puget Sound Overpass Query)
 # ==============================================================================
 def harvest_amenities(cities):
     print("Harvesting Municipal Amenities via Puget Sound Overpass Query...")
@@ -170,10 +294,8 @@ def harvest_amenities(cities):
             
             for city in cities:
                 slug = city.get("slug")
-                try:
-                    clat = float(city.get("latitude"))
-                    clon = float(city.get("longitude"))
-                except (ValueError, TypeError, AttributeError):
+                clat, clon = get_city_coords(city)
+                if clat is None or clon is None or not slug:
                     continue
                     
                 counts = {
@@ -205,7 +327,7 @@ def harvest_amenities(cities):
                             counts["pet_stores"] += 1
                             
                 output[slug] = {
-                    "name": city.get("name", slug),
+                    "name": get_city_name(city),
                     "amenities": counts,
                     "last_updated": datetime.utcnow().isoformat() + "Z"
                 }
@@ -214,7 +336,7 @@ def harvest_amenities(cities):
         print(f"Amenities Harvest Error: {e}")
 
 # ==============================================================================
-# 3. ENVIRONMENT HARVESTER (King & Snohomish River Flood Gauges)
+# 4. ENVIRONMENT HARVESTER (King & Snohomish Flood Gauges)
 # ==============================================================================
 def harvest_environment(cities):
     print("Harvesting Targeted King & Snohomish River Flood Gauges via USGS...")
@@ -249,17 +371,16 @@ def harvest_environment(cities):
         print(f"Environment Harvest Error: {e}")
 
 # ==============================================================================
-# 4. SCHOOLS HARVESTER (OSPI Numbers & District Filter)
+# 5. SCHOOLS HARVESTER (OSPI Numbers & District Filter)
 # ==============================================================================
 def harvest_schools(cities):
     print("Harvesting OSPI School Data via WA Open Data...")
     
-    # Collect OSPI district numbers/IDs defined inside city_data.json
     target_ospi_ids = set()
     for c in cities:
-        ospi_id = c.get("ospi_id") or c.get("school_district_id") or c.get("district_id")
+        ospi_id = get_city_ospi_id(c)
         if ospi_id:
-            target_ospi_ids.add(str(ospi_id).strip())
+            target_ospi_ids.add(ospi_id)
             
     print(f"Targeting {len(target_ospi_ids)} explicit OSPI District IDs from city taxonomy.")
 
@@ -282,7 +403,6 @@ def harvest_schools(cities):
             district_name = rec.get("district_name") or rec.get("districtname") or rec.get("organizationname") or ""
             district_code = str(rec.get("district_code") or rec.get("districtcode") or rec.get("county_district_number") or "").strip()
             
-            # Match by OSPI District Code first, then by King/Snohomish name list
             is_match = False
             if district_code and district_code in target_ospi_ids:
                 is_match = True
@@ -307,10 +427,9 @@ def harvest_schools(cities):
         print("Schools Harvest Error: All OSPI endpoints unreachable.")
 
 # ==============================================================================
-# 5. GEOMETRY SIMPLIFICATION & WSDOT BOUNDARY IMPORT
+# 6. GEOMETRY SIMPLIFICATION & WSDOT BOUNDARY IMPORT
 # ==============================================================================
 def perpendicular_distance(point, line_start, line_end):
-    """Calculate perpendicular distance from a point to a line segment."""
     if line_start == line_end:
         return math.hypot(point[0] - line_start[0], point[1] - line_start[1])
     
@@ -331,7 +450,6 @@ def perpendicular_distance(point, line_start, line_end):
     return math.hypot(point[0] - ix, point[1] - iy)
 
 def rdp_simplify(points, epsilon=0.0008):
-    """Pure-Python Ramer-Douglas-Peucker boundary reduction algorithm."""
     if len(points) < 4:
         return points
         
@@ -353,7 +471,6 @@ def rdp_simplify(points, epsilon=0.0008):
         return [points[0], points[end]]
 
 def simplify_geometry(geometry, epsilon=0.0008):
-    """Applies RDP simplification across Polygons and MultiPolygons."""
     g_type = geometry.get("type")
     coords = geometry.get("coordinates", [])
     
@@ -374,9 +491,10 @@ def harvest_boundaries(cities):
         if geojson and "features" in geojson:
             target_slugs = {}
             for c in cities:
-                city_name = c.get("name") or c.get("slug")
-                if city_name:
-                    target_slugs[clean_city_name(city_name)] = c.get("slug")
+                city_name = get_city_name(c)
+                slug = c.get("slug")
+                if city_name and slug:
+                    target_slugs[clean_city_name(city_name)] = slug
                     
             simplified_features = []
             
@@ -407,6 +525,7 @@ if __name__ == "__main__":
     print("Starting Sandbox Test Harvest Pipeline...")
     cities = load_city_data()
     
+    harvest_demographics(cities)
     harvest_weather(cities)
     harvest_amenities(cities)
     harvest_environment(cities)
