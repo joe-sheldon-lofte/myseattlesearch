@@ -205,6 +205,26 @@ def match_city_for_point(lat, lon, city_boundaries):
                 return city["slug"]
     return None
 
+def match_city_for_alert(lat, lon, city_boundaries, cities):
+    """Match point to city polygon or fallback to nearest city centroid within 3 miles for highway alerts."""
+    matched = match_city_for_point(lat, lon, city_boundaries)
+    if matched:
+        return matched
+
+    # Fallback proximity check for freeway work zones on municipal border edges
+    closest_city = None
+    min_dist = 3.0  # Max 3 mile proximity buffer
+    for c in cities:
+        clat, clon = c.get("latitude"), c.get("longitude")
+        if clat is None or clon is None:
+            continue
+        dist = haversine_distance(lat, lon, clat, clon)
+        if dist < min_dist:
+            min_dist = dist
+            closest_city = c["slug"]
+
+    return closest_city
+
 def load_official_population_map():
     """Load live reported population figures from crime_stats.json, city_demographics.json, or fallback."""
     pop_map = dict(FALLBACK_POPULATION)
@@ -291,7 +311,7 @@ def load_city_data():
 # GOOGLE SHEETS ADMIN CONFIGURATION INGESTION
 # ==============================================================================
 def load_sheets_admin_config():
-    """Load CityFeeds and TransitData configurations from Google Sheets using robust tab ranges."""
+    """Load CityFeeds and TransitData configurations from Google Sheets using robust A1 ranges."""
     web_sheet_id = os.environ.get("WEBSITE_DATA_SHEET_ID")
     creds_path = os.path.join(BASE_DIR, "credentials.json")
     
@@ -305,9 +325,9 @@ def load_sheets_admin_config():
         creds = Credentials.from_service_account_file(creds_path, scopes=['https://www.googleapis.com/auth/spreadsheets.readonly'])
         service = build('sheets', 'v4', credentials=creds)
         
-        # Request full tabs without explicit column bounds to prevent HTTP 400 errors
+        # Explicit single-quoted A1 notation prevents HTTP 400 range parsing errors
         batch = service.spreadsheets().values().batchGet(
-            spreadsheetId=web_sheet_id, ranges=["CityFeeds", "TransitData"]
+            spreadsheetId=web_sheet_id, ranges=["'CityFeeds'!A1:Z5000", "'TransitData'!A1:Z200"]
         ).execute().get('valueRanges', [])
 
         # 1. Parse CityFeeds camera overrides
@@ -565,15 +585,19 @@ def harvest_transit_radar(cities, city_boundaries, sheets_config):
         pop_units = max(1.0, pop / 1000.0)
         ground_seats = details["ground_seats"]
         
-        # Calculate Active Land Transit Score per 1,000 residents
-        active_score = round(ground_seats / pop_units, 2)
+        # Raw density metric (Seats per 1,000 residents)
+        raw_seats_per_1k = round(ground_seats / pop_units, 2)
+        
+        # Standardized 0-100 Score Normalization (Benchmarked at 50 seats/1k residents)
+        normalized_score = min(100, round((raw_seats_per_1k / 50.0) * 100))
         
         output[slug] = {
             "name": details["name"],
             "active_vehicles": len(details["ground_vehicles"]),
             "active_in_bounds_seats": ground_seats,
             "population_official": pop,
-            "active_transit_score": active_score,
+            "raw_seats_per_1k": raw_seats_per_1k,
+            "active_transit_score": normalized_score,
             "maritime_capacity": {
                 "active_vessels": len(details["maritime_vessels"]),
                 "active_seats": details["maritime_seats"]
@@ -681,9 +705,9 @@ def harvest_construction(cities, city_boundaries):
                 continue
 
             # Case-insensitive WSDOT location payload keys (StartRoadWayLocation vs StartRoadwayLocation)
-            loc_obj = a.get("StartRoadWayLocation") or a.get("StartRoadwayLocation") or {}
-            alat = loc_obj.get("Latitude") or a.get("Latitude")
-            alon = loc_obj.get("Longitude") or a.get("Longitude")
+            loc_obj = a.get("StartRoadWayLocation") or a.get("StartRoadwayLocation") or a.get("EndRoadWayLocation") or a.get("EndRoadwayLocation") or {}
+            alat = loc_obj.get("Latitude") if isinstance(loc_obj, dict) else a.get("Latitude")
+            alon = loc_obj.get("Longitude") if isinstance(loc_obj, dict) else a.get("Longitude")
             
             if alat is None or alon is None:
                 continue
@@ -703,7 +727,7 @@ def harvest_construction(cities, city_boundaries):
                 "description": a.get("ExtendedDescription", "")
             }
 
-            matched_slug = match_city_for_point(alat, alon, city_boundaries)
+            matched_slug = match_city_for_alert(alat, alon, city_boundaries, cities)
             if matched_slug and matched_slug in city_map:
                 city_map[matched_slug]["alerts"].append(alert_obj)
                 city_map[matched_slug]["alert_count"] += 1
