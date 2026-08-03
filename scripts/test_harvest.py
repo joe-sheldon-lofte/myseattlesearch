@@ -14,24 +14,26 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 CITY_BOUNDARIES_PATH = os.path.join(DATA_DIR, "city_boundaries.json")
 ENVIRONMENT_DATA_PATH = os.path.join(DATA_DIR, "city_environment.json")
+CRIME_STATS_PATH = os.path.join(DATA_DIR, "crime_stats.json")
+DEMOGRAPHICS_PATH = os.path.join(DATA_DIR, "city_demographics.json")
 
-# Complete Municipal Population Baseline Estimates for all 58 King & Snohomish Cities
-CITY_POPULATION_ESTIMATES = {
-    "algona": 3300, "auburn": 87000, "beaux-arts-village": 300, "bellevue": 151000,
-    "black-diamond": 5800, "bothell": 48000, "burien": 51000, "carnation": 2200,
-    "clyde-hill": 3100, "covington": 21000, "des-moines": 32000, "duvall": 8200,
-    "enumclaw": 12500, "federal-way": 101000, "hunts-point": 400, "issaquah": 40000,
-    "kenmore": 23500, "kent": 136000, "kirkland": 93000, "lake-forest-park": 13500,
-    "maple-valley": 28000, "medina": 3000, "mercer-island": 25500, "milton": 8500,
-    "newcastle": 13000, "normandy-park": 6700, "north-bend": 8000, "pacific": 7200,
-    "redmond": 76000, "renton": 106000, "sammamish": 67000, "seatac": 31000,
-    "seattle": 750000, "shoreline": 58000, "skykomish": 200, "snoqualmie": 14000,
-    "tukwila": 21500, "woodinville": 13500, "yarrow-point": 1000, "arlington": 20000,
-    "brier": 6800, "darrington": 1400, "edmonds": 42000, "everett": 112000,
-    "gold-bar": 2400, "granite-falls": 4400, "index": 200, "lake-stevens": 39000,
-    "lynnwood": 40000, "marysville": 71000, "mill-creek": 21000, "monroe": 20000,
-    "mountlake-terrace": 21500, "mukilteo": 21500, "snohomish": 10500, "stanwood": 8000,
-    "sultan": 5200, "woodway": 1300
+# Fallback Municipal Population Baseline (Used ONLY if dynamic local JSON files are missing)
+FALLBACK_POPULATION = {
+    "algona": 3335, "auburn": 88950, "beaux-arts-village": 315, "bellevue": 155000,
+    "black-diamond": 7195, "bothell": 50670, "burien": 53000, "carnation": 2250,
+    "clyde-hill": 3100, "covington": 22000, "des-moines": 33400, "duvall": 8780,
+    "enumclaw": 13350, "federal-way": 102500, "hunts-point": 3100, "issaquah": 41500,
+    "kenmore": 24350, "kent": 140400, "kirkland": 96710, "lake-forest-park": 13680,
+    "maple-valley": 29320, "medina": 3380, "mercer-island": 25830, "milton": 8755,
+    "newcastle": 13750, "normandy-park": 6855, "north-bend": 8260, "pacific": 7270,
+    "redmond": 80040, "renton": 108800, "sammamish": 68410, "seatac": 32710,
+    "seattle": 797700, "shoreline": 61910, "skykomish": 165, "snoqualmie": 14520,
+    "tukwila": 22930, "woodinville": 13900, "yarrow-point": 1135, "arlington": 22980,
+    "brier": 6600, "darrington": 1515, "edmonds": 43420, "everett": 114800,
+    "gold-bar": 2310, "granite-falls": 4775, "index": 160, "lake-stevens": 41540,
+    "lynnwood": 41500, "marysville": 74390, "mill-creek": 21630, "monroe": 20830,
+    "mountlake-terrace": 24260, "mukilteo": 21590, "snohomish": 10350, "stanwood": 8865,
+    "sultan": 7160, "woodway": 1345
 }
 
 def slugify(text):
@@ -49,12 +51,6 @@ def slugify(text):
     while '--' in res:
         res = res.replace('--', '-')
     return res.strip('-')
-
-def clean_city_name(name):
-    """Normalize municipal names for cross-dataset matching."""
-    if not name or not isinstance(name, str):
-        return ""
-    return name.lower().replace("city of ", "").replace("town of ", "").strip()
 
 def http_get_raw(url, extra_headers=None, timeout=30):
     """Robust HTTP GET text helper returning raw string output and HTTP status code."""
@@ -209,8 +205,43 @@ def match_city_for_point(lat, lon, city_boundaries):
                 return city["slug"]
     return None
 
+def load_official_population_map():
+    """Load live reported population figures from crime_stats.json, city_demographics.json, or fallback."""
+    pop_map = dict(FALLBACK_POPULATION)
+
+    # 1. Try reading official reported population from crime_stats.json
+    if os.path.exists(CRIME_STATS_PATH):
+        try:
+            with open(CRIME_STATS_PATH, "r", encoding="utf-8") as f:
+                crime_data = json.load(f)
+                for city_name, details in crime_data.items():
+                    if isinstance(details, dict) and "reported_population" in details:
+                        slug = slugify(city_name)
+                        pop_map[slug] = int(details["reported_population"])
+            print(f"Loaded official WA OFM population baseline for {len(crime_data)} cities from crime_stats.json.")
+            return pop_map
+        except Exception as e:
+            print(f"Crime Stats Population Read Warning: {e}")
+
+    # 2. Try reading Census ACS population from city_demographics.json
+    if os.path.exists(DEMOGRAPHICS_PATH):
+        try:
+            with open(DEMOGRAPHICS_PATH, "r", encoding="utf-8") as f:
+                demo_data = json.load(f)
+                for slug, details in demo_data.items():
+                    if isinstance(details, dict) and "population" in details:
+                        pop_map[slug] = int(details["population"])
+            print(f"Loaded official Census ACS population baseline from city_demographics.json.")
+            return pop_map
+        except Exception as e:
+            print(f"Demographics Population Read Warning: {e}")
+
+    return pop_map
+
 def load_city_data():
-    """Load city_data.json and normalize city records."""
+    """Load city_data.json and normalize city records with official population figures."""
+    pop_map = load_official_population_map()
+
     if not os.path.exists(CITY_DATA_PATH):
         print(f"Error: {CITY_DATA_PATH} not found.")
         return []
@@ -243,21 +274,24 @@ def load_city_data():
         except (ValueError, TypeError):
             lat_float, lon_float = None, None
 
+        population = pop_map.get(slug, 25000)
+
         normalized.append({
             "slug": slug,
             "name": str(raw_name).strip(),
             "latitude": lat_float,
-            "longitude": lon_float
+            "longitude": lon_float,
+            "population": population
         })
 
-    print(f"Pre-processed {len(normalized)} city records from city_data.json.")
+    print(f"Pre-processed {len(normalized)} city records with official population data.")
     return normalized
 
 # ==============================================================================
 # GOOGLE SHEETS ADMIN CONFIGURATION INGESTION
 # ==============================================================================
 def load_sheets_admin_config():
-    """Load CityFeeds and TransitData configurations from Google Sheets."""
+    """Load CityFeeds and TransitData configurations from Google Sheets using robust tab ranges."""
     web_sheet_id = os.environ.get("WEBSITE_DATA_SHEET_ID")
     creds_path = os.path.join(BASE_DIR, "credentials.json")
     
@@ -271,8 +305,9 @@ def load_sheets_admin_config():
         creds = Credentials.from_service_account_file(creds_path, scopes=['https://www.googleapis.com/auth/spreadsheets.readonly'])
         service = build('sheets', 'v4', credentials=creds)
         
+        # Request full tabs without explicit column bounds to prevent HTTP 400 errors
         batch = service.spreadsheets().values().batchGet(
-            spreadsheetId=web_sheet_id, ranges=["CityFeeds!A:N", "TransitData!A:K"]
+            spreadsheetId=web_sheet_id, ranges=["CityFeeds", "TransitData"]
         ).execute().get('valueRanges', [])
 
         # 1. Parse CityFeeds camera overrides
@@ -308,11 +343,12 @@ def load_sheets_admin_config():
                         "mode": row_dict.get("Transit Mode", "").strip(),
                         "name": row_dict.get("Route Name", "").strip(),
                         "seats": seats,
+                        "include_in_score": row_dict.get("Active Transit Score", "Yes").strip().lower() == "yes",
                         "active": row_dict.get("Active", "Yes").strip().lower() == "yes"
                     }
         print(f"Successfully loaded Google Sheets Admin Config: {len(config['feeds'])} Camera Feeds, {len(config['transit_rules'])} Transit Routes.")
     except Exception as e:
-        print(f"Sheets Config Load Error: {e}")
+        print(f"Sheets Config Load Notice: {e}. Falling back to default API configurations.")
         
     return config
 
@@ -422,18 +458,27 @@ def harvest_transit_radar(cities, city_boundaries, sheets_config):
     print("🚆 Harvesting OneBusAway GTFS-RT Transit Positions...")
     oba_key = os.environ.get("ONEBUSAWAY_API_KEY", "").strip().strip("'").strip('"') or "TEST"
     
-    # Regional Agency Map: 1=Metro, 29=Sound Transit, 23=Community Transit, 13=Everett, 10=Monorail, 96=Water Taxi, 95=Kitsap Fast Ferry
-    agencies = {
+    # Regional Agency Map
+    all_agencies = {
         "1": "King County Metro", "29": "Sound Transit", "23": "Community Transit",
         "13": "Everett Transit", "10": "Seattle Center Monorail",
         "96": "King County Water Taxi", "95": "Kitsap Fast Ferries"
     }
     
     transit_rules = sheets_config.get("transit_rules", {})
-    city_map = {c["slug"]: {"name": c["name"], "vehicles": [], "total_seats": 0} for c in cities}
+    city_map = {
+        c["slug"]: {
+            "name": c["name"],
+            "population": c["population"],
+            "ground_vehicles": [],
+            "ground_seats": 0,
+            "maritime_vessels": [],
+            "maritime_seats": 0
+        } for c in cities
+    }
     total_vehicles = 0
 
-    for agency_id, agency_name in agencies.items():
+    for agency_id, agency_name in all_agencies.items():
         oba_url = f"https://api.pugetsound.onebusaway.org/api/where/vehicles-for-agency/{agency_id}.json?key={oba_key}"
         res = http_get_json(oba_url, timeout=20)
         
@@ -456,52 +501,83 @@ def harvest_transit_radar(cities, city_boundaries, sheets_config):
                 
             route_id = str(v.get("tripStatus", {}).get("activeTrip", {}).get("routeId") or "").strip()
             
-            # Match Route-ID Capacity from Sheet Rules or Agency Defaults
+            # Lookup Rule Config or Fallbacks
+            include_in_score = True
             if "40_100479" in route_id:
-                seat_capacity = transit_rules.get("link-1line", {}).get("seats", 592)
+                rule = transit_rules.get("40_100479") or transit_rules.get("link-1line") or {}
+                seat_capacity = rule.get("seats", 592)
+                include_in_score = rule.get("include_in_score", True)
             elif "40_100511" in route_id:
-                seat_capacity = transit_rules.get("link-2line", {}).get("seats", 296)
+                rule = transit_rules.get("40_100511") or transit_rules.get("link-2line") or {}
+                seat_capacity = rule.get("seats", 296)
+                include_in_score = rule.get("include_in_score", True)
             elif "40_100224" in route_id or "40_100225" in route_id:
-                seat_capacity = transit_rules.get("sounder-north", {}).get("seats", 560)
+                rule = transit_rules.get("40_100224") or transit_rules.get("sounder-north") or {}
+                seat_capacity = rule.get("seats", 560)
+                include_in_score = rule.get("include_in_score", True)
             elif agency_id == "10":
-                seat_capacity = transit_rules.get("monorail", {}).get("seats", 250)
+                rule = transit_rules.get("10_MONORAIL") or transit_rules.get("monorail") or {}
+                seat_capacity = rule.get("seats", 250)
+                include_in_score = rule.get("include_in_score", True)
             elif agency_id == "23":
-                seat_capacity = transit_rules.get("swift-brt", {}).get("seats", 60)
+                rule = transit_rules.get("23_SWIFT") or transit_rules.get("swift-brt") or {}
+                seat_capacity = rule.get("seats", 60)
+                include_in_score = rule.get("include_in_score", True)
             elif agency_id == "29":
-                seat_capacity = transit_rules.get("st-express", {}).get("seats", 55)
+                rule = transit_rules.get("40_ST_BUS") or transit_rules.get("st-express") or {}
+                seat_capacity = rule.get("seats", 55)
+                include_in_score = rule.get("include_in_score", True)
             elif agency_id == "96":
-                seat_capacity = transit_rules.get("kc-watertaxi", {}).get("seats", 278)
+                rule = transit_rules.get("96_WATERTAXI") or transit_rules.get("kc-watertaxi") or {}
+                seat_capacity = rule.get("seats", 278)
+                include_in_score = rule.get("include_in_score", False)
             elif agency_id == "95":
-                seat_capacity = transit_rules.get("kitsap-fastferry", {}).get("seats", 250)
+                rule = transit_rules.get("95_FASTFERRY") or transit_rules.get("kitsap-fastferry") or {}
+                seat_capacity = rule.get("seats", 250)
+                include_in_score = rule.get("include_in_score", False)
             else:
                 seat_capacity = 40  # Standard Bus Default
+                include_in_score = True
 
             matched_slug = match_city_for_point(vlat, vlon, city_boundaries)
             if matched_slug and matched_slug in city_map:
-                city_map[matched_slug]["vehicles"].append({
+                v_obj = {
                     "vehicle_id": v.get("vehicleId"),
                     "agency": agency_name,
                     "route_id": route_id,
                     "latitude": vlat,
                     "longitude": vlon,
                     "seats": seat_capacity
-                })
-                city_map[matched_slug]["total_seats"] += seat_capacity
+                }
+                
+                if include_in_score:
+                    city_map[matched_slug]["ground_vehicles"].append(v_obj)
+                    city_map[matched_slug]["ground_seats"] += seat_capacity
+                else:
+                    city_map[matched_slug]["maritime_vessels"].append(v_obj)
+                    city_map[matched_slug]["maritime_seats"] += seat_capacity
+                    
                 total_vehicles += 1
 
     output = {}
     for slug, details in city_map.items():
-        pop = CITY_POPULATION_ESTIMATES.get(slug, 25000)
+        pop = details["population"]
         pop_units = max(1.0, pop / 1000.0)
-        total_seats = details["total_seats"]
-        active_score = round(total_seats / pop_units, 2)
+        ground_seats = details["ground_seats"]
+        
+        # Calculate Active Land Transit Score per 1,000 residents
+        active_score = round(ground_seats / pop_units, 2)
         
         output[slug] = {
             "name": details["name"],
-            "active_vehicles": len(details["vehicles"]),
-            "active_in_bounds_seats": total_seats,
-            "population_est": pop,
+            "active_vehicles": len(details["ground_vehicles"]),
+            "active_in_bounds_seats": ground_seats,
+            "population_official": pop,
             "active_transit_score": active_score,
+            "maritime_capacity": {
+                "active_vessels": len(details["maritime_vessels"]),
+                "active_seats": details["maritime_seats"]
+            },
             "last_updated": datetime.utcnow().isoformat() + "Z"
         }
 
@@ -543,7 +619,7 @@ def harvest_air_quality(cities):
             })
 
     if not station_data:
-        print("AirNow Notice: Station feeds unreachable. Using regional baseline.")
+        print("AirNow Notice: Station feeds unreachable. Preserving baseline environment data.")
         return
 
     # Map nearest PSCAA station to all 58 cities via Spatial Haversine Distance
@@ -595,15 +671,25 @@ def harvest_construction(cities, city_boundaries):
     total_alerts = 0
 
     if alerts and isinstance(alerts, list):
-        print(f"Retrieved {len(alerts)} active state highway alerts.")
+        print(f"Retrieved {len(alerts)} active state highway alerts from WSDOT.")
         for a in alerts:
             event_type = str(a.get("EventCategory") or "").lower()
-            if "construction" not in event_type and "maintenance" not in event_type and "work" not in event_type:
+            headline = str(a.get("HeadlineDescription") or "").lower()
+            
+            # WSDOT includes construction, maintenance, and work zone alerts under various terms
+            if not any(k in event_type or k in headline for k in ["construction", "maintenance", "work", "closure", "paving", "repair"]):
                 continue
-                
+
+            # Case-insensitive WSDOT location payload keys (StartRoadWayLocation vs StartRoadwayLocation)
+            loc_obj = a.get("StartRoadWayLocation") or a.get("StartRoadwayLocation") or {}
+            alat = loc_obj.get("Latitude") or a.get("Latitude")
+            alon = loc_obj.get("Longitude") or a.get("Longitude")
+            
+            if alat is None or alon is None:
+                continue
+
             try:
-                alat = float(a.get("StartRoadwayLocation", {}).get("Latitude"))
-                alon = float(a.get("StartRoadwayLocation", {}).get("Longitude"))
+                alat, alon = float(alat), float(alon)
             except (ValueError, TypeError):
                 continue
 
