@@ -211,7 +211,7 @@ def match_city_for_alert(lat, lon, city_boundaries, cities):
     if matched:
         return matched
 
-    # Fallback proximity check for freeway work zones on municipal border edges
+    # Proximity check for freeway work zones situated along municipal border edges
     closest_city = None
     min_dist = 3.0  # Max 3 mile proximity buffer
     for c in cities:
@@ -311,7 +311,7 @@ def load_city_data():
 # GOOGLE SHEETS ADMIN CONFIGURATION INGESTION
 # ==============================================================================
 def load_sheets_admin_config():
-    """Load CityFeeds and TransitData configurations from Google Sheets using robust A1 ranges."""
+    """Load CityFeeds and TransitData configurations from Google Sheets using dynamic tab discovery."""
     web_sheet_id = os.environ.get("WEBSITE_DATA_SHEET_ID")
     creds_path = os.path.join(BASE_DIR, "credentials.json")
     
@@ -325,47 +325,67 @@ def load_sheets_admin_config():
         creds = Credentials.from_service_account_file(creds_path, scopes=['https://www.googleapis.com/auth/spreadsheets.readonly'])
         service = build('sheets', 'v4', credentials=creds)
         
-        # Explicit single-quoted A1 notation prevents HTTP 400 range parsing errors
+        # 1. Dynamically inspect available tab titles to resolve exact title strings and handle trailing whitespace or casing
+        sheet_meta = service.spreadsheets().get(spreadsheetId=web_sheet_id).execute()
+        sheet_titles = [s.get('properties', {}).get('title', '') for s in sheet_meta.get('sheets', [])]
+        
+        city_feeds_title = next((t for t in sheet_titles if t.strip().lower() == "cityfeeds"), None)
+        transit_data_title = next((t for t in sheet_titles if t.strip().lower() == "transitdata"), None)
+
+        ranges_to_fetch = []
+        if city_feeds_title:
+            ranges_to_fetch.append(f"'{city_feeds_title}'!A1:Z5000")
+        if transit_data_title:
+            ranges_to_fetch.append(f"'{transit_data_title}'!A1:Z200")
+
+        if not ranges_to_fetch:
+            print("Sheets Config Notice: Target tabs (CityFeeds, TransitData) not found in workbook metadata.")
+            return config
+
         batch = service.spreadsheets().values().batchGet(
-            spreadsheetId=web_sheet_id, ranges=["'CityFeeds'!A1:Z5000", "'TransitData'!A1:Z200"]
+            spreadsheetId=web_sheet_id, ranges=ranges_to_fetch
         ).execute().get('valueRanges', [])
 
-        # 1. Parse CityFeeds camera overrides
-        feed_rows = batch[0].get('values', []) if len(batch) > 0 else []
-        if feed_rows and len(feed_rows) > 1:
-            headers = [str(h).strip() for h in feed_rows[0]]
-            for r in feed_rows[1:]:
-                padded = list(r) + [""] * (len(headers) - len(r))
-                row_dict = dict(zip(headers, padded))
-                feed_id = row_dict.get("Feed ID", "").strip()
-                if feed_id:
-                    config["feeds"][feed_id] = {
-                        "name": row_dict.get("Feed Name", "").strip(),
-                        "active": row_dict.get("Active", "Yes").strip().lower() == "yes",
-                        "city": row_dict.get("City", "").strip()
-                    }
+        # 2. Parse CityFeeds camera overrides
+        if city_feeds_title and len(batch) > 0:
+            feed_rows = batch[0].get('values', [])
+            if feed_rows and len(feed_rows) > 1:
+                headers = [str(h).strip() for h in feed_rows[0]]
+                for r in feed_rows[1:]:
+                    padded = list(r) + [""] * (len(headers) - len(r))
+                    row_dict = dict(zip(headers, padded))
+                    feed_id = row_dict.get("Feed ID", "").strip()
+                    if feed_id:
+                        config["feeds"][feed_id] = {
+                            "name": row_dict.get("Feed Name", "").strip(),
+                            "active": row_dict.get("Active", "Yes").strip().lower() == "yes",
+                            "city": row_dict.get("City", "").strip()
+                        }
 
-        # 2. Parse TransitData route/terminal rules
-        transit_rows = batch[1].get('values', []) if len(batch) > 1 else []
-        if transit_rows and len(transit_rows) > 1:
-            headers = [str(h).strip() for h in transit_rows[0]]
-            for r in transit_rows[1:]:
-                padded = list(r) + [""] * (len(headers) - len(r))
-                row_dict = dict(zip(headers, padded))
-                route_id = row_dict.get("Route ID", "").strip() or row_dict.get("Feed ID", "").strip()
-                try:
-                    seats = int(row_dict.get("Default Seats", "40").strip() or 40)
-                except ValueError:
-                    seats = 40
-                if route_id:
-                    config["transit_rules"][route_id] = {
-                        "agency": row_dict.get("Agency", "").strip(),
-                        "mode": row_dict.get("Transit Mode", "").strip(),
-                        "name": row_dict.get("Route Name", "").strip(),
-                        "seats": seats,
-                        "include_in_score": row_dict.get("Active Transit Score", "Yes").strip().lower() == "yes",
-                        "active": row_dict.get("Active", "Yes").strip().lower() == "yes"
-                    }
+        # 3. Parse TransitData route/terminal rules
+        transit_batch_idx = 1 if (city_feeds_title and len(batch) > 1) else 0
+        if transit_data_title and len(batch) > transit_batch_idx:
+            transit_rows = batch[transit_batch_idx].get('values', [])
+            if transit_rows and len(transit_rows) > 1:
+                headers = [str(h).strip() for h in transit_rows[0]]
+                for r in transit_rows[1:]:
+                    padded = list(r) + [""] * (len(headers) - len(r))
+                    row_dict = dict(zip(headers, padded))
+                    route_id = row_dict.get("Route ID", "").strip() or row_dict.get("Feed ID", "").strip()
+                    try:
+                        seats = int(row_dict.get("Default Seats", "40").strip() or 40)
+                    except ValueError:
+                        seats = 40
+                    if route_id:
+                        config["transit_rules"][route_id] = {
+                            "agency": row_dict.get("Agency", "").strip(),
+                            "mode": row_dict.get("Transit Mode", "").strip(),
+                            "name": row_dict.get("Route Name", "").strip(),
+                            "seats": seats,
+                            "include_in_score": row_dict.get("Active Transit Score", "Yes").strip().lower() == "yes",
+                            "active": row_dict.get("Active", "Yes").strip().lower() == "yes"
+                        }
+
         print(f"Successfully loaded Google Sheets Admin Config: {len(config['feeds'])} Camera Feeds, {len(config['transit_rules'])} Transit Routes.")
     except Exception as e:
         print(f"Sheets Config Load Notice: {e}. Falling back to default API configurations.")
@@ -704,7 +724,7 @@ def harvest_construction(cities, city_boundaries):
             if not any(k in event_type or k in headline for k in ["construction", "maintenance", "work", "closure", "paving", "repair"]):
                 continue
 
-            # Case-insensitive WSDOT location payload keys (StartRoadWayLocation vs StartRoadwayLocation)
+            # Case-insensitive WSDOT location payload keys
             loc_obj = a.get("StartRoadWayLocation") or a.get("StartRoadwayLocation") or a.get("EndRoadWayLocation") or a.get("EndRoadwayLocation") or {}
             alat = loc_obj.get("Latitude") if isinstance(loc_obj, dict) else a.get("Latitude")
             alon = loc_obj.get("Longitude") if isinstance(loc_obj, dict) else a.get("Longitude")
