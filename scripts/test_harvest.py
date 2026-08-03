@@ -16,8 +16,11 @@ CITY_BOUNDARIES_PATH = os.path.join(DATA_DIR, "city_boundaries.json")
 ENVIRONMENT_DATA_PATH = os.path.join(DATA_DIR, "city_environment.json")
 CRIME_STATS_PATH = os.path.join(DATA_DIR, "crime_stats.json")
 DEMOGRAPHICS_PATH = os.path.join(DATA_DIR, "city_demographics.json")
+CITY_FEEDS_PATH = os.path.join(DATA_DIR, "city_feeds.json")
+TRANSIT_DATA_PATH = os.path.join(DATA_DIR, "transit_data.json")
 TRANSIT_LIVE_PATH = os.path.join(DATA_DIR, "transit_radar_live.json")
 TRANSIT_HISTORY_PATH = os.path.join(DATA_DIR, "transit_radar_history.json")
+INTERCITY_SUMMARY_PATH = os.path.join(DATA_DIR, "intercity_summary.json")
 
 # Fallback Municipal Population Baseline (Used ONLY if dynamic local JSON files are missing)
 FALLBACK_POPULATION = {
@@ -310,72 +313,117 @@ def load_city_data():
     return normalized
 
 # ==============================================================================
-# GOOGLE SHEETS ADMIN CONFIGURATION INGESTION
+# GOOGLE SHEETS INGESTION ENGINE -> LOCAL STATIC JSON BACKUPS
 # ==============================================================================
 def load_sheets_admin_config():
-    """Load CityFeeds and TransitData configurations from Google Sheets using CITY_DATA_SHEET_ID."""
+    """Inspiration & Backup Ingestion: Export Google Sheet tabs to data/city_feeds.json & data/transit_data.json."""
     city_sheet_id = os.environ.get("CITY_DATA_SHEET_ID") or os.environ.get("WEBSITE_DATA_SHEET_ID")
     creds_path = os.path.join(BASE_DIR, "credentials.json")
     
     config = {"feeds": {}, "transit_rules": {}}
     
-    if not city_sheet_id or not os.path.exists(creds_path):
-        print("Sheets Auth Notice: credentials.json or CITY_DATA_SHEET_ID not found. Using local API defaults.")
-        return config
+    # 1. Attempt Google Sheets Live Ingestion
+    if city_sheet_id and os.path.exists(creds_path):
+        try:
+            creds = Credentials.from_service_account_file(creds_path, scopes=['https://www.googleapis.com/auth/spreadsheets.readonly'])
+            service = build('sheets', 'v4', credentials=creds)
+            
+            sheet_meta = service.spreadsheets().get(spreadsheetId=city_sheet_id).execute()
+            sheet_titles = [s.get('properties', {}).get('title', '') for s in sheet_meta.get('sheets', [])]
+            
+            city_feeds_title = next((t for t in sheet_titles if "cityfeed" in t.lower().replace(" ", "").replace("_", "")), None)
+            transit_data_title = next((t for t in sheet_titles if "transitdata" in t.lower().replace(" ", "").replace("_", "")), None)
 
-    try:
-        creds = Credentials.from_service_account_file(creds_path, scopes=['https://www.googleapis.com/auth/spreadsheets.readonly'])
-        service = build('sheets', 'v4', credentials=creds)
-        
-        # 1. Dynamically inspect available tab titles in CITY_DATA_SHEET_ID
-        sheet_meta = service.spreadsheets().get(spreadsheetId=city_sheet_id).execute()
-        sheet_titles = [s.get('properties', {}).get('title', '') for s in sheet_meta.get('sheets', [])]
-        
-        city_feeds_title = next((t for t in sheet_titles if "cityfeed" in t.lower().replace(" ", "").replace("_", "")), None)
-        transit_data_title = next((t for t in sheet_titles if "transitdata" in t.lower().replace(" ", "").replace("_", "")), None)
+            ranges_to_fetch = []
+            if city_feeds_title:
+                ranges_to_fetch.append(f"'{city_feeds_title}'!A1:Z5000")
+            if transit_data_title:
+                ranges_to_fetch.append(f"'{transit_data_title}'!A1:Z200")
 
-        ranges_to_fetch = []
-        if city_feeds_title:
-            ranges_to_fetch.append(f"'{city_feeds_title}'!A1:Z5000")
-        if transit_data_title:
-            ranges_to_fetch.append(f"'{transit_data_title}'!A1:Z200")
+            if ranges_to_fetch:
+                batch = service.spreadsheets().values().batchGet(
+                    spreadsheetId=city_sheet_id, ranges=ranges_to_fetch
+                ).execute().get('valueRanges', [])
 
-        if not ranges_to_fetch:
-            print(f"Sheets Config Notice: Target tabs not found in workbook metadata. Available sheets: {sheet_titles}")
-            return config
+                raw_feeds_export = []
+                raw_transit_export = []
 
-        batch = service.spreadsheets().values().batchGet(
-            spreadsheetId=city_sheet_id, ranges=ranges_to_fetch
-        ).execute().get('valueRanges', [])
+                # Parse CityFeeds
+                if city_feeds_title and len(batch) > 0:
+                    feed_rows = batch[0].get('values', [])
+                    if feed_rows and len(feed_rows) > 1:
+                        headers = [str(h).strip() for h in feed_rows[0]]
+                        for r in feed_rows[1:]:
+                            padded = list(r) + [""] * (len(headers) - len(r))
+                            row_dict = dict(zip(headers, padded))
+                            raw_feeds_export.append(row_dict)
+                            feed_id = row_dict.get("Feed ID", "").strip()
+                            if feed_id:
+                                config["feeds"][feed_id] = {
+                                    "name": row_dict.get("Feed Name", "").strip(),
+                                    "active": row_dict.get("Active", "Yes").strip().lower() == "yes",
+                                    "city": row_dict.get("City", "").strip()
+                                }
+                        save_json("city_feeds.json", raw_feeds_export)
 
-        # 2. Parse CityFeeds camera overrides
-        if city_feeds_title and len(batch) > 0:
-            feed_rows = batch[0].get('values', [])
-            if feed_rows and len(feed_rows) > 1:
-                headers = [str(h).strip() for h in feed_rows[0]]
-                for r in feed_rows[1:]:
-                    padded = list(r) + [""] * (len(headers) - len(r))
-                    row_dict = dict(zip(headers, padded))
+                # Parse TransitData
+                transit_batch_idx = 1 if (city_feeds_title and len(batch) > 1) else 0
+                if transit_data_title and len(batch) > transit_batch_idx:
+                    transit_rows = batch[transit_batch_idx].get('values', [])
+                    if transit_rows and len(transit_rows) > 1:
+                        headers = [str(h).strip() for h in transit_rows[0]]
+                        for r in transit_rows[1:]:
+                            padded = list(r) + [""] * (len(headers) - len(r))
+                            row_dict = dict(zip(headers, padded))
+                            raw_transit_export.append(row_dict)
+                            route_id = row_dict.get("Route ID", "").strip() or row_dict.get("Feed ID", "").strip()
+                            try:
+                                seats = int(row_dict.get("Default Seats", "40").strip() or 40)
+                            except ValueError:
+                                seats = 40
+                            if route_id:
+                                config["transit_rules"][route_id] = {
+                                    "agency": row_dict.get("Agency", "").strip(),
+                                    "mode": row_dict.get("Transit Mode", "").strip(),
+                                    "name": row_dict.get("Route Name", "").strip(),
+                                    "seats": seats,
+                                    "include_in_score": row_dict.get("Active Transit Score", "Yes").strip().lower() == "yes",
+                                    "active": row_dict.get("Active", "Yes").strip().lower() == "yes",
+                                    "api_endpoint_url": row_dict.get("API Endpoint URL", "").strip(),
+                                    "target_scope": row_dict.get("Target Scope", "").strip(),
+                                    "target": row_dict.get("Target", "").strip()
+                                }
+                        save_json("transit_data.json", raw_transit_export)
+
+                print(f"Successfully synchronized Google Sheets to local JSON files: {len(config['feeds'])} Feeds, {len(config['transit_rules'])} Transit Rules.")
+                return config
+        except Exception as e:
+            print(f"Google Sheets Sync Notice: {e}. Falling back to local data/ static backups.")
+
+    # 2. Local Static Backup Fallback (Zero Outbound API Calls)
+    if os.path.exists(CITY_FEEDS_PATH):
+        try:
+            with open(CITY_FEEDS_PATH, "r", encoding="utf-8") as f:
+                feeds_list = json.load(f)
+                for row_dict in feeds_list:
                     feed_id = row_dict.get("Feed ID", "").strip()
                     if feed_id:
                         config["feeds"][feed_id] = {
                             "name": row_dict.get("Feed Name", "").strip(),
-                            "active": row_dict.get("Active", "Yes").strip().lower() == "yes",
+                            "active": str(row_dict.get("Active", "Yes")).strip().lower() == "yes",
                             "city": row_dict.get("City", "").strip()
                         }
+        except Exception as e:
+            print(f"Local City Feeds Read Notice: {e}")
 
-        # 3. Parse TransitData route/terminal rules
-        transit_batch_idx = 1 if (city_feeds_title and len(batch) > 1) else 0
-        if transit_data_title and len(batch) > transit_batch_idx:
-            transit_rows = batch[transit_batch_idx].get('values', [])
-            if transit_rows and len(transit_rows) > 1:
-                headers = [str(h).strip() for h in transit_rows[0]]
-                for r in transit_rows[1:]:
-                    padded = list(r) + [""] * (len(headers) - len(r))
-                    row_dict = dict(zip(headers, padded))
+    if os.path.exists(TRANSIT_DATA_PATH):
+        try:
+            with open(TRANSIT_DATA_PATH, "r", encoding="utf-8") as f:
+                transit_list = json.load(f)
+                for row_dict in transit_list:
                     route_id = row_dict.get("Route ID", "").strip() or row_dict.get("Feed ID", "").strip()
                     try:
-                        seats = int(row_dict.get("Default Seats", "40").strip() or 40)
+                        seats = int(str(row_dict.get("Default Seats", "40")).strip() or 40)
                     except ValueError:
                         seats = 40
                     if route_id:
@@ -384,14 +432,15 @@ def load_sheets_admin_config():
                             "mode": row_dict.get("Transit Mode", "").strip(),
                             "name": row_dict.get("Route Name", "").strip(),
                             "seats": seats,
-                            "include_in_score": row_dict.get("Active Transit Score", "Yes").strip().lower() == "yes",
-                            "active": row_dict.get("Active", "Yes").strip().lower() == "yes"
+                            "include_in_score": str(row_dict.get("Active Transit Score", "Yes")).strip().lower() == "yes",
+                            "active": str(row_dict.get("Active", "Yes")).strip().lower() == "yes",
+                            "api_endpoint_url": row_dict.get("API Endpoint URL", "").strip(),
+                            "target_scope": row_dict.get("Target Scope", "").strip(),
+                            "target": row_dict.get("Target", "").strip()
                         }
+        except Exception as e:
+            print(f"Local Transit Data Read Notice: {e}")
 
-        print(f"Successfully loaded Google Sheets Admin Config from CITY_DATA_SHEET_ID: {len(config['feeds'])} Camera Feeds, {len(config['transit_rules'])} Transit Routes.")
-    except Exception as e:
-        print(f"Sheets Config Load Notice: {e}. Falling back to default API configurations.")
-        
     return config
 
 # ==============================================================================
@@ -494,10 +543,10 @@ def harvest_traffic_cams(cities, city_boundaries, sheets_config):
     save_json("city_traffic_cams.json", output)
 
 # ==============================================================================
-# MODULE 2: MULTI-MODAL TRANSIT RADAR, ACTIVE ON-TIME & ROLLING 168H HISTORY ENGINE
+# MODULE 2: TRANSIT RADAR, ACTIVE ON-TIME & ROLLING 168H HISTORY ENGINE
 # ==============================================================================
 def harvest_transit_radar(cities, city_boundaries, sheets_config):
-    print("Festive Harvesting OneBusAway GTFS-RT Transit Positions & Schedule Deviation...")
+    print("🚆 Harvesting OneBusAway GTFS-RT Transit Positions & Schedule Deviation...")
     oba_key = os.environ.get("ONEBUSAWAY_API_KEY", "").strip().strip("'").strip('"') or "TEST"
     
     # Regional Agency Map
@@ -624,7 +673,6 @@ def harvest_transit_radar(cities, city_boundaries, sheets_config):
                     
                 total_vehicles += 1
 
-    # Compile Live Radar
     now_utc = datetime.utcnow()
     live_output = {}
     
@@ -672,8 +720,6 @@ def harvest_transit_radar(cities, city_boundaries, sheets_config):
     # 168-HOUR ROLLING HISTORICAL ARCHIVE ENGINE WITH EXPLICIT NULL GAP PADDING
     # ==============================================================================
     print("📈 Processing 168-Hour Rolling Historical Archive (transit_radar_history.json)...")
-    
-    # Calculate top-of-hour slot timestamp
     slot_dt = now_utc.replace(minute=0, second=0, microsecond=0)
     slot_iso = slot_dt.isoformat() + "Z"
     day_of_week = slot_dt.strftime("%A")
@@ -703,7 +749,6 @@ def harvest_transit_radar(cities, city_boundaries, sheets_config):
                     last_dt = datetime.fromisoformat(last_ts_str.replace("Z", "+00:00")).replace(tzinfo=None)
                     curr_gap_dt = last_dt + timedelta(hours=1)
                     
-                    # Pad missing hourly slots with explicit null entries
                     while curr_gap_dt < slot_dt:
                         gap_iso = curr_gap_dt.isoformat() + "Z"
                         city_hist.append({
@@ -744,7 +789,77 @@ def harvest_transit_radar(cities, city_boundaries, sheets_config):
     save_json("transit_radar_history.json", history_data)
 
 # ==============================================================================
-# MODULE 3: EPA AIRNOW 58-CITY NEAREST-NEIGHBOR AQI ENGINE
+# MODULE 3: INTERCITY MOBILITY SUMMARY (FAA AIRPORTS + AMTRAK CORRIDOR)
+# ==============================================================================
+def harvest_intercity_summary():
+    print("✈️ Ingesting FAA NAS Status API & Intercity Regional Summary...")
+    now_utc = datetime.utcnow()
+    
+    intercity = {
+        "airports": {
+            "seatac_sea": {
+                "name": "Seattle-Tacoma International Airport (SEA)",
+                "faa_code": "SEA",
+                "status": "Normal Operations",
+                "delay_type": "None",
+                "avg_delay_minutes": 0,
+                "weather": "VFR Fair",
+                "flightaware_url": "https://www.flightaware.com/live/airport/KSEA"
+            },
+            "paine_field_pae": {
+                "name": "Paine Field Passenger Terminal (PAE)",
+                "faa_code": "PAE",
+                "status": "Normal Operations",
+                "delay_type": "None",
+                "avg_delay_minutes": 0,
+                "weather": "VFR Fair",
+                "flightaware_url": "https://www.flightaware.com/live/airport/KPAE"
+            }
+        },
+        "amtrak": {
+            "agency": "Amtrak Cascades",
+            "corridor": "Vancouver BC - Seattle - Portland - Eugene",
+            "status": "Normal Operations",
+            "amtrak_map_url": "https://www.amtrak.com/track-your-train.html"
+        },
+        "last_updated": now_utc.isoformat() + "Z"
+    }
+
+    # Fetch FAA Airport Status API
+    faa_url = "https://nasstatus.faa.gov/api/airport-status"
+    faa_data = http_get_json(faa_url, timeout=15)
+    
+    if faa_data and isinstance(faa_data, list):
+        for apt in faa_data:
+            code = str(apt.get("arpt", "")).upper()
+            if code in ["SEA", "PAE"]:
+                key = "seatac_sea" if code == "SEA" else "paine_field_pae"
+                
+                status_str = "Normal Operations"
+                delay_min = 0
+                delay_type = "None"
+                
+                if apt.get("delay") == "true" or apt.get("delay") is True:
+                    status_str = "Minor Delays"
+                    reason = apt.get("reason", "")
+                    if "GROUND_DELAY" in str(apt).upper():
+                        status_str = "Ground Delay Program"
+                        delay_type = "FAA Ground Delay"
+                    elif "STOP" in str(apt).upper():
+                        status_str = "Ground Stop"
+                        delay_type = "Ground Stop"
+
+                weather_str = apt.get("weather", {}).get("weather", {}).get("temp", "VFR Fair") if isinstance(apt.get("weather"), dict) else "VFR Fair"
+
+                intercity["airports"][key]["status"] = status_str
+                intercity["airports"][key]["delay_type"] = delay_type
+                intercity["airports"][key]["weather"] = str(weather_str)
+
+    print("Successfully compiled Intercity Regional Mobility Index (intercity_summary.json).")
+    save_json("intercity_summary.json", intercity)
+
+# ==============================================================================
+# MODULE 4: EPA AIRNOW 58-CITY NEAREST-NEIGHBOR AQI ENGINE
 # ==============================================================================
 def harvest_air_quality(cities):
     print("🍃 Harvesting EPA AirNow Live Air Quality Observations...")
@@ -813,7 +928,7 @@ def harvest_air_quality(cities):
     save_json("city_environment.json", env_data)
 
 # ==============================================================================
-# MODULE 4: WSDOT ACTIVE HIGHWAY CONSTRUCTION & WORK ZONES
+# MODULE 5: WSDOT ACTIVE HIGHWAY CONSTRUCTION & WORK ZONES
 # ==============================================================================
 def harvest_construction(cities, city_boundaries):
     print("🚧 Harvesting WSDOT Active Construction & Work Zone Feeds...")
@@ -899,7 +1014,8 @@ if __name__ == "__main__":
     
     harvest_traffic_cams(cities, city_boundaries, sheets_config)
     harvest_transit_radar(cities, city_boundaries, sheets_config)
+    harvest_intercity_summary()
     harvest_air_quality(cities)
     harvest_construction(cities, city_boundaries)
     
-    print("\n🎉 Phase 2 Sandbox Pipeline execution complete! All artifacts fresh.")
+    print("\n🎉 Phase 2 Sandbox Pipeline execution complete! All 7 static artifacts fresh.")
