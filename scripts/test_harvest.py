@@ -52,11 +52,15 @@ def clean_city_name(name):
         return ""
     return name.lower().replace("city of ", "").replace("town of ", "").strip()
 
-def http_get_json(url, timeout=25):
-    """Robust HTTP GET JSON request helper with custom browser User-Agent."""
+def http_get_json(url, extra_headers=None, timeout=30):
+    """Robust HTTP GET JSON request helper with custom User-Agent and headers."""
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RealEstateDataBot/1.0"
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*"
     }
+    if extra_headers:
+        headers.update(extra_headers)
+        
     req = urllib.request.Request(url, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -142,8 +146,6 @@ def load_city_data():
         })
 
     print(f"Pre-processed {len(normalized)} normalized city records from city_data.json.")
-    if normalized:
-        print(f"Sample Normalized City [0]: {normalized[0]}")
     return normalized
 
 # ==============================================================================
@@ -151,17 +153,21 @@ def load_city_data():
 # ==============================================================================
 def harvest_demographics(cities):
     print("Harvesting City-Level Demographics via US Census Bureau ACS 5-Year API...")
-    census_key = os.environ.get("CENSUS_API_KEY", "")
-    
+    census_key = os.environ.get("CENSUS_API_KEY", "").strip()
+    if census_key:
+        print("Using authenticated CENSUS_API_KEY for Census queries.")
+    else:
+        print("Warning: CENSUS_API_KEY missing from environment. Querying unauthenticated fallback.")
+
     # Target Census ACS Variables: Name, Median Income, Median Age, Owner Occ, Renter Occ, WFH, Total Workers
     variables = "NAME,B19013_001E,B01002_001E,B25003_002E,B25003_003E,B08301_021E,B08301_001E"
     base_url = f"https://api.census.gov/data/2022/acs/acs5?get={variables}&for=place:*&in=state:53"
     if census_key:
         base_url += f"&key={census_key}"
 
-    res = http_get_json(base_url, timeout=25)
+    res = http_get_json(base_url, timeout=30)
     if not res or not isinstance(res, list) or len(res) < 2:
-        print("Census API Harvest Warning: No data returned from Census endpoint.")
+        print("Census API Harvest Warning: Unable to parse response from Census endpoint.")
         return
 
     headers = res[0]
@@ -292,61 +298,82 @@ def harvest_amenities(cities):
     out body;
     """
     
-    url = "https://overpass-api.de/api/interpreter"
-    data = urllib.parse.urlencode({"data": overpass_query}).encode("utf-8")
-    req = urllib.request.Request(url, data=data, headers={"User-Agent": "Mozilla/5.0 RealEstateDataBot/1.0"})
+    overpass_endpoints = [
+        "https://overpass-api.de/api/interpreter",
+        "https://lz4.overpass-api.de/api/interpreter",
+        "https://z.overpass-api.de/api/interpreter"
+    ]
     
-    try:
-        with urllib.request.urlopen(req, timeout=50) as response:
-            res = json.loads(response.read().decode("utf-8"))
-            nodes = res.get("elements", [])
-            print(f"Retrieved {len(nodes)} regional amenity nodes.")
-            
-            output = {}
-            radius_deg = 0.035  # ~2.5 mile spatial buffer around city centroid
-            
-            for city in valid_cities:
-                slug = city["slug"]
-                clat = city["latitude"]
-                clon = city["longitude"]
+    nodes = []
+    data = urllib.parse.urlencode({"data": overpass_query}).encode("utf-8")
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MySeattleSearchBot/1.0",
+        "Accept": "application/json, text/javascript, */*",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
+
+    for ep in overpass_endpoints:
+        req = urllib.request.Request(ep, data=data, headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=50) as response:
+                if response.status == 200:
+                    res = json.loads(response.read().decode("utf-8"))
+                    nodes = res.get("elements", [])
+                    print(f"Retrieved {len(nodes)} regional amenity nodes from {ep}.")
+                    break
+        except Exception as e:
+            print(f"Overpass Mirror Warning [{ep}]: {e}")
+            continue
+
+    if not nodes:
+        print("Amenities Harvest Error: Unable to retrieve Overpass nodes across all mirrors.")
+        return
+
+    output = {}
+    radius_deg = 0.035  # ~2.5 mile spatial buffer around city centroid
+    
+    for city in valid_cities:
+        slug = city["slug"]
+        clat = city["latitude"]
+        clon = city["longitude"]
+        
+        counts = {
+            "dog_parks": 0,
+            "coffee_shops": 0,
+            "parks": 0,
+            "beaches": 0,
+            "pet_stores": 0
+        }
+        
+        for node in nodes:
+            try:
+                nlat = float(node.get("lat"))
+                nlon = float(node.get("lon"))
+            except (ValueError, TypeError):
+                continue
                 
-                counts = {
-                    "dog_parks": 0,
-                    "coffee_shops": 0,
-                    "parks": 0,
-                    "beaches": 0,
-                    "pet_stores": 0
-                }
-                
-                for node in nodes:
-                    try:
-                        nlat = float(node.get("lat"))
-                        nlon = float(node.get("lon"))
-                    except (ValueError, TypeError):
-                        continue
-                        
-                    if abs(nlat - clat) <= radius_deg and abs(nlon - clon) <= radius_deg:
-                        tags = node.get("tags", {})
-                        if tags.get("leisure") == "dog_park":
-                            counts["dog_parks"] += 1
-                        elif tags.get("amenity") == "cafe":
-                            counts["coffee_shops"] += 1
-                        elif tags.get("leisure") == "park":
-                            counts["parks"] += 1
-                        elif tags.get("natural") == "beach":
-                            counts["beaches"] += 1
-                        elif tags.get("shop") == "pet":
-                            counts["pet_stores"] += 1
-                            
-                output[slug] = {
-                    "name": city["name"],
-                    "amenities": counts,
-                    "last_updated": datetime.utcnow().isoformat() + "Z"
-                }
-            print(f"Successfully calculated amenities across {len(output)} cities.")
-            save_json("city_amenities.json", output)
-    except Exception as e:
-        print(f"Amenities Harvest Error: {e}")
+            if abs(nlat - clat) <= radius_deg and abs(nlon - clon) <= radius_deg:
+                tags = node.get("tags", {})
+                if tags.get("leisure") == "dog_park":
+                    counts["dog_parks"] += 1
+                elif tags.get("amenity") == "cafe":
+                    counts["coffee_shops"] += 1
+                elif tags.get("leisure") == "park":
+                    counts["parks"] += 1
+                elif tags.get("natural") == "beach":
+                    counts["beaches"] += 1
+                elif tags.get("shop") == "pet":
+                    counts["pet_stores"] += 1
+                    
+        output[slug] = {
+            "name": city["name"],
+            "amenities": counts,
+            "last_updated": datetime.utcnow().isoformat() + "Z"
+        }
+        
+    print(f"Successfully calculated amenities across {len(output)} cities.")
+    save_json("city_amenities.json", output)
 
 # ==============================================================================
 # 4. ENVIRONMENT HARVESTER (King & Snohomish Flood Gauges)
@@ -390,21 +417,25 @@ def harvest_schools(cities):
     print("Harvesting OSPI School Data via WA Open Data...")
     
     target_ospi_ids = set()
+    target_district_names = set()
     for c in cities:
-        if c["ospi_id"]:
+        if c.get("ospi_id"):
             target_ospi_ids.add(c["ospi_id"])
+        if c.get("school_district"):
+            target_district_names.add(c["school_district"].lower())
             
-    print(f"Targeting {len(target_ospi_ids)} explicit OSPI District IDs from city taxonomy.")
+    print(f"Targeting {len(target_ospi_ids)} explicit OSPI District IDs and {len(target_district_names)} district names.")
 
     endpoints = ["wvqy-yp3m", "q4ba-s3jc", "dij7-mbxg"]
     records = None
     
     for ep in endpoints:
-        url = f"https://data.wa.gov/resource/{ep}.json?$limit=2000"
+        # Increase Socrata query limit to 10,000 records to cover regional districts
+        url = f"https://data.wa.gov/resource/{ep}.json?$limit=10000"
         try:
-            records = http_get_json(url, timeout=15)
+            records = http_get_json(url, timeout=25)
             if records and isinstance(records, list):
-                print(f"Connected to OSPI dataset endpoint: {ep}")
+                print(f"Connected to OSPI dataset endpoint: {ep} (Retrieved {len(records)} records)")
                 break
         except Exception:
             continue
@@ -415,10 +446,12 @@ def harvest_schools(cities):
             district_name = rec.get("district_name") or rec.get("districtname") or rec.get("organizationname") or ""
             district_code = str(rec.get("district_code") or rec.get("districtcode") or rec.get("county_district_number") or "").strip()
             
+            d_lower = district_name.lower()
             is_match = False
+            
             if district_code and district_code in target_ospi_ids:
                 is_match = True
-            elif district_name and any(target in district_name.lower() for target in KING_SNO_DISTRICTS):
+            elif d_lower and (d_lower in target_district_names or any(target in d_lower for target in KING_SNO_DISTRICTS)):
                 is_match = True
                 
             if is_match and district_name:
@@ -534,7 +567,7 @@ def harvest_boundaries(cities):
 # MAIN EXECUTION ROUTINE
 # ==============================================================================
 if __name__ == "__main__":
-    print("Starting Normalized Sandbox Test Harvest Pipeline...")
+    print("Starting Sandbox Test Harvest Pipeline...")
     cities = load_city_data()
     
     harvest_demographics(cities)
