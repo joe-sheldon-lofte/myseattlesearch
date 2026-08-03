@@ -4,7 +4,7 @@ import math
 import urllib.request
 import urllib.parse
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
@@ -16,6 +16,8 @@ CITY_BOUNDARIES_PATH = os.path.join(DATA_DIR, "city_boundaries.json")
 ENVIRONMENT_DATA_PATH = os.path.join(DATA_DIR, "city_environment.json")
 CRIME_STATS_PATH = os.path.join(DATA_DIR, "crime_stats.json")
 DEMOGRAPHICS_PATH = os.path.join(DATA_DIR, "city_demographics.json")
+TRANSIT_LIVE_PATH = os.path.join(DATA_DIR, "transit_radar_live.json")
+TRANSIT_HISTORY_PATH = os.path.join(DATA_DIR, "transit_radar_history.json")
 
 # Fallback Municipal Population Baseline (Used ONLY if dynamic local JSON files are missing)
 FALLBACK_POPULATION = {
@@ -312,7 +314,6 @@ def load_city_data():
 # ==============================================================================
 def load_sheets_admin_config():
     """Load CityFeeds and TransitData configurations from Google Sheets using CITY_DATA_SHEET_ID."""
-    # Target CITY_DATA_SHEET_ID workbook (where CityFeeds and TransitData reside)
     city_sheet_id = os.environ.get("CITY_DATA_SHEET_ID") or os.environ.get("WEBSITE_DATA_SHEET_ID")
     creds_path = os.path.join(BASE_DIR, "credentials.json")
     
@@ -493,10 +494,10 @@ def harvest_traffic_cams(cities, city_boundaries, sheets_config):
     save_json("city_traffic_cams.json", output)
 
 # ==============================================================================
-# MODULE 2: MULTI-MODAL TRANSIT RADAR & ACTIVE SEAT SCORE ENGINE
+# MODULE 2: MULTI-MODAL TRANSIT RADAR, ACTIVE ON-TIME & ROLLING 168H HISTORY ENGINE
 # ==============================================================================
 def harvest_transit_radar(cities, city_boundaries, sheets_config):
-    print("🚆 Harvesting OneBusAway GTFS-RT Transit Positions...")
+    print("Festive Harvesting OneBusAway GTFS-RT Transit Positions & Schedule Deviation...")
     oba_key = os.environ.get("ONEBUSAWAY_API_KEY", "").strip().strip("'").strip('"') or "TEST"
     
     # Regional Agency Map
@@ -513,6 +514,9 @@ def harvest_transit_radar(cities, city_boundaries, sheets_config):
             "population": c["population"],
             "ground_vehicles": [],
             "ground_seats": 0,
+            "on_time_ground_vehicles": 0,
+            "delayed_ground_vehicles": 0,
+            "early_ground_vehicles": 0,
             "maritime_vessels": [],
             "maritime_seats": 0
         } for c in cities
@@ -540,7 +544,18 @@ def harvest_transit_radar(cities, city_boundaries, sheets_config):
             except (ValueError, TypeError):
                 continue
                 
-            route_id = str(v.get("tripStatus", {}).get("activeTrip", {}).get("routeId") or "").strip()
+            trip_status = v.get("tripStatus") or {}
+            route_id = str(trip_status.get("activeTrip", {}).get("routeId") or "").strip()
+            
+            # Extract Schedule Deviation in seconds (-60s to +300s APTA On-time window)
+            dev_sec = trip_status.get("scheduleDeviation")
+            if dev_sec is not None:
+                try:
+                    dev_sec = int(dev_sec)
+                except (ValueError, TypeError):
+                    dev_sec = 0
+            else:
+                dev_sec = 0
             
             # Lookup Rule Config or Fallbacks
             include_in_score = True
@@ -588,46 +603,145 @@ def harvest_transit_radar(cities, city_boundaries, sheets_config):
                     "route_id": route_id,
                     "latitude": vlat,
                     "longitude": vlon,
-                    "seats": seat_capacity
+                    "seats": seat_capacity,
+                    "schedule_deviation_sec": dev_sec
                 }
                 
                 if include_in_score:
                     city_map[matched_slug]["ground_vehicles"].append(v_obj)
                     city_map[matched_slug]["ground_seats"] += seat_capacity
+                    
+                    # APTA On-Time classification
+                    if -60 <= dev_sec <= 300:
+                        city_map[matched_slug]["on_time_ground_vehicles"] += 1
+                    elif dev_sec > 300:
+                        city_map[matched_slug]["delayed_ground_vehicles"] += 1
+                    else:
+                        city_map[matched_slug]["early_ground_vehicles"] += 1
                 else:
                     city_map[matched_slug]["maritime_vessels"].append(v_obj)
                     city_map[matched_slug]["maritime_seats"] += seat_capacity
                     
                 total_vehicles += 1
 
-    output = {}
+    # Compile Live Radar
+    now_utc = datetime.utcnow()
+    live_output = {}
+    
     for slug, details in city_map.items():
         pop = details["population"]
         pop_units = max(1.0, pop / 1000.0)
         ground_seats = details["ground_seats"]
+        ground_vehicle_count = len(details["ground_vehicles"])
+        on_time_count = details["on_time_ground_vehicles"]
         
         # Raw density metric (Seats per 1,000 residents)
         raw_seats_per_1k = round(ground_seats / pop_units, 2)
         
         # Standardized 0-100 Score Normalization (Benchmarked at 50 seats/1k residents)
-        normalized_score = min(100, round((raw_seats_per_1k / 50.0) * 100))
+        normalized_transit_score = min(100, round((raw_seats_per_1k / 50.0) * 100))
         
-        output[slug] = {
+        # Live Active On-Time Performance Score %
+        active_on_time_score = round((on_time_count / ground_vehicle_count) * 100) if ground_vehicle_count > 0 else 100
+        
+        live_output[slug] = {
             "name": details["name"],
-            "active_vehicles": len(details["ground_vehicles"]),
+            "active_vehicles": ground_vehicle_count,
             "active_in_bounds_seats": ground_seats,
             "population_official": pop,
             "raw_seats_per_1k": raw_seats_per_1k,
-            "active_transit_score": normalized_score,
+            "active_transit_score": normalized_transit_score,
+            "on_time_performance": {
+                "active_on_time_score": active_on_time_score,
+                "tracked_vehicles": ground_vehicle_count,
+                "on_time_vehicles": on_time_count,
+                "delayed_vehicles": details["delayed_ground_vehicles"],
+                "early_vehicles": details["early_ground_vehicles"]
+            },
             "maritime_capacity": {
                 "active_vessels": len(details["maritime_vessels"]),
                 "active_seats": details["maritime_seats"]
             },
-            "last_updated": datetime.utcnow().isoformat() + "Z"
+            "last_updated": now_utc.isoformat() + "Z"
         }
 
     print(f"Successfully tracked {total_vehicles} in-bounds active transit vehicles across cities.")
-    save_json("transit_radar_live.json", output)
+    save_json("transit_radar_live.json", live_output)
+
+    # ==============================================================================
+    # 168-HOUR ROLLING HISTORICAL ARCHIVE ENGINE WITH EXPLICIT NULL GAP PADDING
+    # ==============================================================================
+    print("📈 Processing 168-Hour Rolling Historical Archive (transit_radar_history.json)...")
+    
+    # Calculate top-of-hour slot timestamp
+    slot_dt = now_utc.replace(minute=0, second=0, microsecond=0)
+    slot_iso = slot_dt.isoformat() + "Z"
+    day_of_week = slot_dt.strftime("%A")
+    hour_of_day = slot_dt.hour
+
+    history_data = {}
+    if os.path.exists(TRANSIT_HISTORY_PATH):
+        try:
+            with open(TRANSIT_HISTORY_PATH, "r", encoding="utf-8") as f:
+                history_data = json.load(f)
+        except Exception as e:
+            print(f"History Load Warning: {e}. Re-initializing history data.")
+            history_data = {}
+
+    for slug, live_entry in live_output.items():
+        if slug not in history_data or not isinstance(history_data[slug], list):
+            history_data[slug] = []
+
+        city_hist = history_data[slug]
+
+        # Gap Resolution Logic: Check if hours were skipped since last run
+        if len(city_hist) > 0:
+            last_entry = city_hist[-1]
+            last_ts_str = last_entry.get("timestamp", "")
+            if last_ts_str:
+                try:
+                    last_dt = datetime.fromisoformat(last_ts_str.replace("Z", "+00:00")).replace(tzinfo=None)
+                    curr_gap_dt = last_dt + timedelta(hours=1)
+                    
+                    # Pad missing hourly slots with explicit null entries
+                    while curr_gap_dt < slot_dt:
+                        gap_iso = curr_gap_dt.isoformat() + "Z"
+                        city_hist.append({
+                            "timestamp": gap_iso,
+                            "day_of_week": curr_gap_dt.strftime("%A"),
+                            "hour_of_day": curr_gap_dt.hour,
+                            "active_transit_score": None,
+                            "active_on_time_score": None,
+                            "active_vehicles": 0,
+                            "active_seats": 0,
+                            "data_available": False
+                        })
+                        curr_gap_dt += timedelta(hours=1)
+                except Exception as e:
+                    print(f"Gap calculation notice for {slug}: {e}")
+
+        # Current Slot Record Creation
+        current_record = {
+            "timestamp": slot_iso,
+            "day_of_week": day_of_week,
+            "hour_of_day": hour_of_day,
+            "active_transit_score": live_entry["active_transit_score"],
+            "active_on_time_score": live_entry["on_time_performance"]["active_on_time_score"],
+            "active_vehicles": live_entry["active_vehicles"],
+            "active_seats": live_entry["active_in_bounds_seats"],
+            "data_available": True
+        }
+
+        # Deduplication Rule: Overwrite if running twice within the same top-of-hour slot
+        if len(city_hist) > 0 and city_hist[-1].get("timestamp") == slot_iso:
+            city_hist[-1] = current_record
+        else:
+            city_hist.append(current_record)
+
+        # Enforce strict 168-entry rolling buffer (7 days x 24 hours)
+        history_data[slug] = city_hist[-168:]
+
+    save_json("transit_radar_history.json", history_data)
 
 # ==============================================================================
 # MODULE 3: EPA AIRNOW 58-CITY NEAREST-NEIGHBOR AQI ENGINE
