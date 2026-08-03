@@ -311,26 +311,27 @@ def load_city_data():
 # GOOGLE SHEETS ADMIN CONFIGURATION INGESTION
 # ==============================================================================
 def load_sheets_admin_config():
-    """Load CityFeeds and TransitData configurations from Google Sheets using dynamic tab discovery."""
-    web_sheet_id = os.environ.get("WEBSITE_DATA_SHEET_ID")
+    """Load CityFeeds and TransitData configurations from Google Sheets using CITY_DATA_SHEET_ID."""
+    # Target CITY_DATA_SHEET_ID workbook (where CityFeeds and TransitData reside)
+    city_sheet_id = os.environ.get("CITY_DATA_SHEET_ID") or os.environ.get("WEBSITE_DATA_SHEET_ID")
     creds_path = os.path.join(BASE_DIR, "credentials.json")
     
     config = {"feeds": {}, "transit_rules": {}}
     
-    if not web_sheet_id or not os.path.exists(creds_path):
-        print("Sheets Auth Notice: credentials.json or WEBSITE_DATA_SHEET_ID not found. Using local API defaults.")
+    if not city_sheet_id or not os.path.exists(creds_path):
+        print("Sheets Auth Notice: credentials.json or CITY_DATA_SHEET_ID not found. Using local API defaults.")
         return config
 
     try:
         creds = Credentials.from_service_account_file(creds_path, scopes=['https://www.googleapis.com/auth/spreadsheets.readonly'])
         service = build('sheets', 'v4', credentials=creds)
         
-        # 1. Dynamically inspect available tab titles to resolve exact title strings and handle trailing whitespace or casing
-        sheet_meta = service.spreadsheets().get(spreadsheetId=web_sheet_id).execute()
+        # 1. Dynamically inspect available tab titles in CITY_DATA_SHEET_ID
+        sheet_meta = service.spreadsheets().get(spreadsheetId=city_sheet_id).execute()
         sheet_titles = [s.get('properties', {}).get('title', '') for s in sheet_meta.get('sheets', [])]
         
-        city_feeds_title = next((t for t in sheet_titles if t.strip().lower() == "cityfeeds"), None)
-        transit_data_title = next((t for t in sheet_titles if t.strip().lower() == "transitdata"), None)
+        city_feeds_title = next((t for t in sheet_titles if "cityfeed" in t.lower().replace(" ", "").replace("_", "")), None)
+        transit_data_title = next((t for t in sheet_titles if "transitdata" in t.lower().replace(" ", "").replace("_", "")), None)
 
         ranges_to_fetch = []
         if city_feeds_title:
@@ -339,11 +340,11 @@ def load_sheets_admin_config():
             ranges_to_fetch.append(f"'{transit_data_title}'!A1:Z200")
 
         if not ranges_to_fetch:
-            print("Sheets Config Notice: Target tabs (CityFeeds, TransitData) not found in workbook metadata.")
+            print(f"Sheets Config Notice: Target tabs not found in workbook metadata. Available sheets: {sheet_titles}")
             return config
 
         batch = service.spreadsheets().values().batchGet(
-            spreadsheetId=web_sheet_id, ranges=ranges_to_fetch
+            spreadsheetId=city_sheet_id, ranges=ranges_to_fetch
         ).execute().get('valueRanges', [])
 
         # 2. Parse CityFeeds camera overrides
@@ -386,7 +387,7 @@ def load_sheets_admin_config():
                             "active": row_dict.get("Active", "Yes").strip().lower() == "yes"
                         }
 
-        print(f"Successfully loaded Google Sheets Admin Config: {len(config['feeds'])} Camera Feeds, {len(config['transit_rules'])} Transit Routes.")
+        print(f"Successfully loaded Google Sheets Admin Config from CITY_DATA_SHEET_ID: {len(config['feeds'])} Camera Feeds, {len(config['transit_rules'])} Transit Routes.")
     except Exception as e:
         print(f"Sheets Config Load Notice: {e}. Falling back to default API configurations.")
         
@@ -708,7 +709,8 @@ def harvest_construction(cities, city_boundaries):
         print("WSDOT_ACCESS_CODE missing. Skipping Construction harvest.")
         return
 
-    wsdot_alerts_url = f"https://wsdot.wa.gov/Traffic/api/HighwayAlerts/HighwayAlertsREST.svc/GetHighwayAlertsAsJson?AccessCode={wsdot_code}"
+    # Use WSDOT's exact REST API method: GetAlertsAsJson (NOT GetHighwayAlertsAsJson)
+    wsdot_alerts_url = f"https://wsdot.wa.gov/Traffic/api/HighwayAlerts/HighwayAlertsREST.svc/GetAlertsAsJson?AccessCode={wsdot_code}"
     alerts = http_get_json(wsdot_alerts_url, timeout=25)
     
     city_map = {c["slug"]: {"name": c["name"], "alert_count": 0, "alerts": []} for c in cities}
@@ -719,9 +721,11 @@ def harvest_construction(cities, city_boundaries):
         for a in alerts:
             event_type = str(a.get("EventCategory") or "").lower()
             headline = str(a.get("HeadlineDescription") or "").lower()
+            ext_desc = str(a.get("ExtendedDescription") or "").lower()
             
-            # WSDOT includes construction, maintenance, and work zone alerts under various terms
-            if not any(k in event_type or k in headline for k in ["construction", "maintenance", "work", "closure", "paving", "repair"]):
+            # Match construction, maintenance, lane closures, and work zone terms
+            combined_text = f"{event_type} {headline} {ext_desc}"
+            if not any(k in combined_text for k in ["construction", "maintenance", "work", "closure", "paving", "repair", "delay", "lane"]):
                 continue
 
             # Case-insensitive WSDOT location payload keys
@@ -752,6 +756,8 @@ def harvest_construction(cities, city_boundaries):
                 city_map[matched_slug]["alerts"].append(alert_obj)
                 city_map[matched_slug]["alert_count"] += 1
                 total_alerts += 1
+    else:
+        print("WSDOT Alert Ingestion Notice: Endpoint returned non-list or empty response.")
 
     output = {}
     for slug, details in city_map.items():
