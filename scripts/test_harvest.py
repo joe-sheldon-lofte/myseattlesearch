@@ -53,9 +53,9 @@ def clean_city_name(name):
     return name.lower().replace("city of ", "").replace("town of ", "").strip()
 
 def http_get_json(url, extra_headers=None, timeout=30):
-    """Robust HTTP GET JSON request helper with custom User-Agent and headers."""
+    """Robust HTTP GET JSON request helper with custom User-Agent and exception safety."""
     headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RealEstateDataBot/1.0",
         "Accept": "application/json, text/plain, */*"
     }
     if extra_headers:
@@ -68,7 +68,7 @@ def http_get_json(url, extra_headers=None, timeout=30):
                 raw_bytes = resp.read()
                 return json.loads(raw_bytes.decode("utf-8"))
     except Exception as e:
-        print(f"HTTP GET Error [{url}]: {e}")
+        print(f"HTTP GET Error [{url[:80]}...]: {e}")
     return None
 
 def save_json(filename, data):
@@ -149,25 +149,40 @@ def load_city_data():
     return normalized
 
 # ==============================================================================
-# 1. DEMOGRAPHICS HARVESTER (US Census ACS 5-Year Municipal API)
+# 1. DEMOGRAPHICS HARVESTER (US Census ACS 5-Year Data Profile API)
 # ==============================================================================
 def harvest_demographics(cities):
-    print("Harvesting City-Level Demographics via US Census Bureau ACS 5-Year API...")
+    print("Harvesting City-Level Demographics via US Census Bureau ACS 5-Year Profile API...")
     census_key = os.environ.get("CENSUS_API_KEY", "").strip()
     if census_key:
         print("Using authenticated CENSUS_API_KEY for Census queries.")
     else:
-        print("Warning: CENSUS_API_KEY missing from environment. Querying unauthenticated fallback.")
+        print("Warning: CENSUS_API_KEY missing from environment.")
 
-    # Target Census ACS Variables: Name, Median Income, Median Age, Owner Occ, Renter Occ, WFH, Total Workers
-    variables = "NAME,B19013_001E,B01002_001E,B25003_002E,B25003_003E,B08301_021E,B08301_001E"
-    base_url = f"https://api.census.gov/data/2022/acs/acs5?get={variables}&for=place:*&in=state:53"
+    # Target ACS 5-Year Profile Variables (guaranteed for all municipal places regardless of population size):
+    # DP03_0062E = Median Household Income
+    # DP05_0018E = Median Age
+    # DP04_0046PE = Owner-Occupied %
+    # DP04_0047PE = Renter-Occupied %
+    # DP03_0024PE = Worked from Home %
+    profile_vars = "NAME,DP03_0062E,DP05_0018E,DP04_0046PE,DP04_0047PE,DP03_0024PE"
+    url = f"https://api.census.gov/data/2022/acs/acs5/profile?get={profile_vars}&for=place:*&in=state:53"
     if census_key:
-        base_url += f"&key={census_key}"
+        url += f"&key={census_key}"
 
-    res = http_get_json(base_url, timeout=30)
+    res = http_get_json(url, timeout=30)
+    
+    # Detailed Tables Fallback if Profile API is unavailable
     if not res or not isinstance(res, list) or len(res) < 2:
-        print("Census API Harvest Warning: Unable to parse response from Census endpoint.")
+        print("Census Profile API fallback to Detailed Tables (acs5)...")
+        detail_vars = "NAME,B19013_001E,B01002_001E,B25003_002E,B25003_003E"
+        url = f"https://api.census.gov/data/2022/acs/acs5?get={detail_vars}&for=place:*&in=state:53"
+        if census_key:
+            url += f"&key={census_key}"
+        res = http_get_json(url, timeout=30)
+
+    if not res or not isinstance(res, list) or len(res) < 2:
+        print("Census API Harvest Warning: Unable to parse response from Census endpoints.")
         return
 
     headers = res[0]
@@ -198,17 +213,20 @@ def harvest_demographics(cities):
                 return default
 
         if c_data:
-            income = safe_float(c_data.get("B19013_001E"))
-            age = safe_float(c_data.get("B01002_001E"))
-            owners = safe_float(c_data.get("B25003_002E"))
-            renters = safe_float(c_data.get("B25003_003E"))
-            wfh = safe_float(c_data.get("B08301_021E"))
-            workers = safe_float(c_data.get("B08301_001E"))
+            # Map Profile or Detailed Table fields
+            income = safe_float(c_data.get("DP03_0062E") or c_data.get("B19013_001E"))
+            age = safe_float(c_data.get("DP05_0018E") or c_data.get("B01002_001E"))
+            owner_pct = safe_float(c_data.get("DP04_0046PE"))
+            renter_pct = safe_float(c_data.get("DP04_0047PE"))
+            remote_pct = safe_float(c_data.get("DP03_0024PE"))
 
-            total_units = owners + renters
-            owner_pct = round((owners / total_units * 100), 1) if total_units > 0 else 0.0
-            renter_pct = round((renters / total_units * 100), 1) if total_units > 0 else 0.0
-            remote_pct = round((wfh / workers * 100), 1) if workers > 0 else 0.0
+            # Calculate percentages manually if detailed tables fallback was used
+            if owner_pct == 0.0 and renter_pct == 0.0:
+                owners = safe_float(c_data.get("B25003_002E"))
+                renters = safe_float(c_data.get("B25003_003E"))
+                total_units = owners + renters
+                owner_pct = round((owners / total_units * 100), 1) if total_units > 0 else 0.0
+                renter_pct = round((renters / total_units * 100), 1) if total_units > 0 else 0.0
 
             output[slug] = {
                 "name": name,
@@ -277,54 +295,33 @@ def harvest_weather(cities):
         save_json("city_weather.json", output)
 
 # ==============================================================================
-# 3. AMENITIES HARVESTER (Puget Sound Overpass Spatial Query)
+# 3. AMENITIES HARVESTER (Puget Sound Overpass Spatial GET Query)
 # ==============================================================================
 def harvest_amenities(cities):
-    print("Harvesting Municipal Amenities via Puget Sound Overpass Query...")
+    print("Harvesting Municipal Amenities via Puget Sound Overpass GET Query...")
     valid_cities = [c for c in cities if c["latitude"] is not None and c["longitude"] is not None]
     if not valid_cities:
         return
 
     bbox = "47.0,-122.6,48.2,-121.8"
-    overpass_query = f"""
-    [out:json][timeout:45];
-    (
-      node["leisure"="dog_park"]({bbox});
-      node["amenity"="cafe"]({bbox});
-      node["leisure"="park"]({bbox});
-      node["natural"="beach"]({bbox});
-      node["shop"="pet"]({bbox});
-    );
-    out body;
-    """
+    overpass_query = f"""[out:json][timeout:45];(node["leisure"="dog_park"]({bbox});node["amenity"="cafe"]({bbox});node["leisure"="park"]({bbox});node["natural"="beach"]({bbox});node["shop"="pet"]({bbox}););out body;"""
     
     overpass_endpoints = [
         "https://overpass-api.de/api/interpreter",
         "https://lz4.overpass-api.de/api/interpreter",
-        "https://z.overpass-api.de/api/interpreter"
+        "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
     ]
     
     nodes = []
-    data = urllib.parse.urlencode({"data": overpass_query}).encode("utf-8")
-    
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MySeattleSearchBot/1.0",
-        "Accept": "application/json, text/javascript, */*",
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
-    }
+    encoded_query = urllib.parse.quote(overpass_query)
 
     for ep in overpass_endpoints:
-        req = urllib.request.Request(ep, data=data, headers=headers)
-        try:
-            with urllib.request.urlopen(req, timeout=50) as response:
-                if response.status == 200:
-                    res = json.loads(response.read().decode("utf-8"))
-                    nodes = res.get("elements", [])
-                    print(f"Retrieved {len(nodes)} regional amenity nodes from {ep}.")
-                    break
-        except Exception as e:
-            print(f"Overpass Mirror Warning [{ep}]: {e}")
-            continue
+        url = f"{ep}?data={encoded_query}"
+        res = http_get_json(url, timeout=45)
+        if res and isinstance(res, dict) and "elements" in res:
+            nodes = res["elements"]
+            print(f"Retrieved {len(nodes)} regional amenity nodes from {ep}.")
+            break
 
     if not nodes:
         print("Amenities Harvest Error: Unable to retrieve Overpass nodes across all mirrors.")
@@ -430,7 +427,6 @@ def harvest_schools(cities):
     records = None
     
     for ep in endpoints:
-        # Increase Socrata query limit to 10,000 records to cover regional districts
         url = f"https://data.wa.gov/resource/{ep}.json?$limit=10000"
         try:
             records = http_get_json(url, timeout=25)
