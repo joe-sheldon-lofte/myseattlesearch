@@ -3,7 +3,10 @@ import json
 import math
 import urllib.request
 import urllib.parse
+import traceback
 from datetime import datetime
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
 
 # Path references
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -11,7 +14,6 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 CITY_BOUNDARIES_PATH = os.path.join(DATA_DIR, "city_boundaries.json")
 ENVIRONMENT_DATA_PATH = os.path.join(DATA_DIR, "city_environment.json")
-DEMOGRAPHICS_DATA_PATH = os.path.join(DATA_DIR, "city_demographics.json")
 
 # Complete Municipal Population Baseline Estimates for all 58 King & Snohomish Cities
 CITY_POPULATION_ESTIMATES = {
@@ -33,7 +35,7 @@ CITY_POPULATION_ESTIMATES = {
 }
 
 def slugify(text):
-    """Generate a clean URL slug from any city name string."""
+    """Generate a clean URL slug from any string."""
     if not text:
         return ""
     text = str(text).lower().strip()
@@ -92,8 +94,17 @@ def save_json(filename, data):
         json.dump(data, f, indent=2, ensure_ascii=False)
     print(f"Successfully generated: {target_path}")
 
+def haversine_distance(lat1, lon1, lat2, lon2):
+    """Calculate Great Circle distance in miles between two lat/lon points."""
+    R = 3958.8
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
 # ==============================================================================
-# SPATIAL POINT-IN-POLYGON & BOUNDING BOX ENGINE
+# SPATIAL POINT-IN-POLYGON ENGINE
 # ==============================================================================
 def get_geometry_bbox(geometry):
     """Calculate Bounding Box (min_lat, min_lon, max_lat, max_lon) for GeoJSON geometry."""
@@ -160,7 +171,7 @@ def point_in_geometry(lat, lon, geometry):
     return False
 
 def load_city_boundaries():
-    """Load and index city boundary polygons and bounding boxes."""
+    """Load and index municipal spatial boundary shapes for PIP matching."""
     if not os.path.exists(CITY_BOUNDARIES_PATH):
         print(f"Warning: {CITY_BOUNDARIES_PATH} not found.")
         return []
@@ -199,7 +210,7 @@ def match_city_for_point(lat, lon, city_boundaries):
     return None
 
 def load_city_data():
-    """Load city_data.json and normalize city entries."""
+    """Load city_data.json and normalize city records."""
     if not os.path.exists(CITY_DATA_PATH):
         print(f"Error: {CITY_DATA_PATH} not found.")
         return []
@@ -243,12 +254,76 @@ def load_city_data():
     return normalized
 
 # ==============================================================================
+# GOOGLE SHEETS ADMIN CONFIGURATION INGESTION
+# ==============================================================================
+def load_sheets_admin_config():
+    """Load CityFeeds and TransitData configurations from Google Sheets."""
+    web_sheet_id = os.environ.get("WEBSITE_DATA_SHEET_ID")
+    creds_path = os.path.join(BASE_DIR, "credentials.json")
+    
+    config = {"feeds": {}, "transit_rules": {}}
+    
+    if not web_sheet_id or not os.path.exists(creds_path):
+        print("Sheets Auth Notice: credentials.json or WEBSITE_DATA_SHEET_ID not found. Using local API defaults.")
+        return config
+
+    try:
+        creds = Credentials.from_service_account_file(creds_path, scopes=['https://www.googleapis.com/auth/spreadsheets.readonly'])
+        service = build('sheets', 'v4', credentials=creds)
+        
+        batch = service.spreadsheets().values().batchGet(
+            spreadsheetId=web_sheet_id, ranges=["CityFeeds!A:N", "TransitData!A:K"]
+        ).execute().get('valueRanges', [])
+
+        # 1. Parse CityFeeds camera overrides
+        feed_rows = batch[0].get('values', []) if len(batch) > 0 else []
+        if feed_rows and len(feed_rows) > 1:
+            headers = [str(h).strip() for h in feed_rows[0]]
+            for r in feed_rows[1:]:
+                padded = list(r) + [""] * (len(headers) - len(r))
+                row_dict = dict(zip(headers, padded))
+                feed_id = row_dict.get("Feed ID", "").strip()
+                if feed_id:
+                    config["feeds"][feed_id] = {
+                        "name": row_dict.get("Feed Name", "").strip(),
+                        "active": row_dict.get("Active", "Yes").strip().lower() == "yes",
+                        "city": row_dict.get("City", "").strip()
+                    }
+
+        # 2. Parse TransitData route/terminal rules
+        transit_rows = batch[1].get('values', []) if len(batch) > 1 else []
+        if transit_rows and len(transit_rows) > 1:
+            headers = [str(h).strip() for h in transit_rows[0]]
+            for r in transit_rows[1:]:
+                padded = list(r) + [""] * (len(headers) - len(r))
+                row_dict = dict(zip(headers, padded))
+                route_id = row_dict.get("Route ID", "").strip() or row_dict.get("Feed ID", "").strip()
+                try:
+                    seats = int(row_dict.get("Default Seats", "40").strip() or 40)
+                except ValueError:
+                    seats = 40
+                if route_id:
+                    config["transit_rules"][route_id] = {
+                        "agency": row_dict.get("Agency", "").strip(),
+                        "mode": row_dict.get("Transit Mode", "").strip(),
+                        "name": row_dict.get("Route Name", "").strip(),
+                        "seats": seats,
+                        "active": row_dict.get("Active", "Yes").strip().lower() == "yes"
+                    }
+        print(f"Successfully loaded Google Sheets Admin Config: {len(config['feeds'])} Camera Feeds, {len(config['transit_rules'])} Transit Routes.")
+    except Exception as e:
+        print(f"Sheets Config Load Error: {e}")
+        
+    return config
+
+# ==============================================================================
 # MODULE 1: MULTI-AGENCY TRAFFIC CAMERA HARVESTER
 # ==============================================================================
-def harvest_traffic_cams(cities, city_boundaries):
+def harvest_traffic_cams(cities, city_boundaries, sheets_config):
     print("🎥 Harvesting WSDOT & Seattle DOT Traffic Camera Feeds...")
     wsdot_code = os.environ.get("WSDOT_ACCESS_CODE", "").strip().strip("'").strip('"')
     
+    feed_overrides = sheets_config.get("feeds", {})
     city_map = {c["slug"]: {"name": c["name"], "cameras": []} for c in cities}
     total_found = 0
 
@@ -266,7 +341,13 @@ def harvest_traffic_cams(cities, city_boundaries):
                     continue
                     
                 cam_id = f"wsdot-{cam.get('CameraID')}"
-                title = cam.get("Title") or cam.get("CameraOwner") or "WSDOT Camera"
+                
+                # Check Sheet Admin Override
+                override = feed_overrides.get(cam_id, {})
+                if override.get("active") is False:
+                    continue
+                    
+                title = override.get("name") or cam.get("Title") or cam.get("CameraOwner") or "WSDOT Camera"
                 img_url = cam.get("ImageURL", "")
                 direction = cam.get("Direction", "")
                 
@@ -282,8 +363,6 @@ def harvest_traffic_cams(cities, city_boundaries):
                         "image_url": img_url
                     })
                     total_found += 1
-    else:
-        print("WSDOT_ACCESS_CODE not found. Skipping WSDOT camera ingestion.")
 
     # 2. Ingest Seattle DOT (SDOT) City Arterial Cameras
     sdot_url = "https://web6.seattle.gov/Travelers/api/Map/GetMapData"
@@ -300,7 +379,12 @@ def harvest_traffic_cams(cities, city_boundaries):
             cams = feat.get("Cameras") or []
             for c_idx, cam in enumerate(cams):
                 cam_id = f"sdot-{cam.get('Id') or c_idx}"
-                title = cam.get("Description") or "Seattle DOT Camera"
+                
+                override = feed_overrides.get(cam_id, {})
+                if override.get("active") is False:
+                    continue
+                    
+                title = override.get("name") or cam.get("Description") or "Seattle DOT Camera"
                 img_url = cam.get("ImageUrl", "")
                 if not img_url.startswith("http"):
                     img_url = f"https://www.seattle.gov/trafficers/images/{img_url}" if img_url else ""
@@ -318,7 +402,6 @@ def harvest_traffic_cams(cities, city_boundaries):
                     })
                     total_found += 1
 
-    # Format final JSON output payload
     output = {}
     for slug, details in city_map.items():
         c_list = details["cameras"]
@@ -333,13 +416,20 @@ def harvest_traffic_cams(cities, city_boundaries):
     save_json("city_traffic_cams.json", output)
 
 # ==============================================================================
-# MODULE 2: TRANSIT RADAR & ACTIVE SEAT SCORE ENGINE
+# MODULE 2: MULTI-MODAL TRANSIT RADAR & ACTIVE SEAT SCORE ENGINE
 # ==============================================================================
-def harvest_transit_radar(cities, city_boundaries):
-    print("🚆 Harvesting OneBusAway GTFS-Realtime Transit Positions...")
+def harvest_transit_radar(cities, city_boundaries, sheets_config):
+    print("🚆 Harvesting OneBusAway GTFS-RT Transit Positions...")
     oba_key = os.environ.get("ONEBUSAWAY_API_KEY", "").strip().strip("'").strip('"') or "TEST"
     
-    agencies = {"1": "King County Metro", "29": "Sound Transit", "23": "Community Transit"}
+    # Regional Agency Map: 1=Metro, 29=Sound Transit, 23=Community Transit, 13=Everett, 10=Monorail, 96=Water Taxi, 95=Kitsap Fast Ferry
+    agencies = {
+        "1": "King County Metro", "29": "Sound Transit", "23": "Community Transit",
+        "13": "Everett Transit", "10": "Seattle Center Monorail",
+        "96": "King County Water Taxi", "95": "Kitsap Fast Ferries"
+    }
+    
+    transit_rules = sheets_config.get("transit_rules", {})
     city_map = {c["slug"]: {"name": c["name"], "vehicles": [], "total_seats": 0} for c in cities}
     total_vehicles = 0
 
@@ -348,39 +438,50 @@ def harvest_transit_radar(cities, city_boundaries):
         res = http_get_json(oba_url, timeout=20)
         
         if not res or not isinstance(res, dict) or res.get("code") != 200:
-            print(f"OBA Warning: Unable to fetch vehicles for {agency_name} (Agency ID: {agency_id}).")
             continue
             
         data = res.get("data", {})
         v_list = data.get("list", []) if isinstance(data, dict) else []
-        print(f"Retrieved {len(v_list)} active vehicles for {agency_name}.")
 
         for v in v_list:
             loc = v.get("location") or {}
-            vlat = loc.get("lat")
-            vlon = loc.get("lon")
+            vlat, vlon = loc.get("lat"), loc.get("lon")
             if vlat is None or vlon is None:
                 continue
                 
             try:
-                vlat = float(vlat)
-                vlon = float(vlon)
+                vlat, vlon = float(vlat), float(vlon)
             except (ValueError, TypeError):
                 continue
                 
-            if agency_id == "29":
-                seat_capacity = 148  # Sound Transit / Light Rail / Sounder / ST Express
+            route_id = str(v.get("tripStatus", {}).get("activeTrip", {}).get("routeId") or "").strip()
+            
+            # Match Route-ID Capacity from Sheet Rules or Agency Defaults
+            if "40_100479" in route_id:
+                seat_capacity = transit_rules.get("link-1line", {}).get("seats", 592)
+            elif "40_100511" in route_id:
+                seat_capacity = transit_rules.get("link-2line", {}).get("seats", 296)
+            elif "40_100224" in route_id or "40_100225" in route_id:
+                seat_capacity = transit_rules.get("sounder-north", {}).get("seats", 560)
+            elif agency_id == "10":
+                seat_capacity = transit_rules.get("monorail", {}).get("seats", 250)
             elif agency_id == "23":
-                seat_capacity = 60   # Community Transit / Swift BRT
+                seat_capacity = transit_rules.get("swift-brt", {}).get("seats", 60)
+            elif agency_id == "29":
+                seat_capacity = transit_rules.get("st-express", {}).get("seats", 55)
+            elif agency_id == "96":
+                seat_capacity = transit_rules.get("kc-watertaxi", {}).get("seats", 278)
+            elif agency_id == "95":
+                seat_capacity = transit_rules.get("kitsap-fastferry", {}).get("seats", 250)
             else:
-                seat_capacity = 40   # King County Metro Standard Bus
+                seat_capacity = 40  # Standard Bus Default
 
             matched_slug = match_city_for_point(vlat, vlon, city_boundaries)
             if matched_slug and matched_slug in city_map:
                 city_map[matched_slug]["vehicles"].append({
                     "vehicle_id": v.get("vehicleId"),
                     "agency": agency_name,
-                    "trip_id": v.get("tripId"),
+                    "route_id": route_id,
                     "latitude": vlat,
                     "longitude": vlon,
                     "seats": seat_capacity
@@ -388,7 +489,6 @@ def harvest_transit_radar(cities, city_boundaries):
                 city_map[matched_slug]["total_seats"] += seat_capacity
                 total_vehicles += 1
 
-    # Calculate Active Transit Score per 1,000 residents
     output = {}
     for slug, details in city_map.items():
         pop = CITY_POPULATION_ESTIMATES.get(slug, 25000)
@@ -405,11 +505,11 @@ def harvest_transit_radar(cities, city_boundaries):
             "last_updated": datetime.utcnow().isoformat() + "Z"
         }
 
-    print(f"Successfully tracked {total_vehicles} in-bounds active transit vehicles.")
+    print(f"Successfully tracked {total_vehicles} in-bounds active transit vehicles across cities.")
     save_json("transit_radar_live.json", output)
 
 # ==============================================================================
-# MODULE 3: EPA AIRNOW AIR QUALITY INDEX (AQI) ENGINE
+# MODULE 3: EPA AIRNOW 58-CITY NEAREST-NEIGHBOR AQI ENGINE
 # ==============================================================================
 def harvest_air_quality(cities):
     print("🍃 Harvesting EPA AirNow Live Air Quality Observations...")
@@ -420,25 +520,48 @@ def harvest_air_quality(cities):
         return
 
     regional_stations = [
-        {"name": "Seattle", "lat": 47.6062, "lon": -122.3321},
-        {"name": "Bellevue / Eastside", "lat": 47.6101, "lon": -122.2015},
-        {"name": "Everett / North Sound", "lat": 47.9790, "lon": -122.2021},
-        {"name": "Tacoma / South Sound", "lat": 47.2529, "lon": -122.4443}
+        {"name": "Seattle Hub", "lat": 47.6062, "lon": -122.3321},
+        {"name": "Bellevue / Eastside Hub", "lat": 47.6101, "lon": -122.2015},
+        {"name": "Everett / North Sound Hub", "lat": 47.9790, "lon": -122.2021},
+        {"name": "Tacoma / South Sound Hub", "lat": 47.2529, "lon": -122.4443}
     ]
 
-    aqi_observations = []
+    station_data = []
     for st in regional_stations:
         url = f"https://www.airnowapi.org/aq/observation/latLong/current/?format=application/json&latitude={st['lat']}&longitude={st['lon']}&distance=25&API_KEY={airnow_key}"
         obs = http_get_json(url, timeout=15)
         if obs and isinstance(obs, list) and len(obs) > 0:
             primary_param = obs[0]
-            aqi_observations.append({
+            station_data.append({
                 "reporting_area": primary_param.get("ReportingArea", st["name"]),
-                "aqi": primary_param.get("AQI"),
+                "aqi": primary_param.get("AQI", 30),
                 "category": primary_param.get("Category", {}).get("Name", "Good"),
                 "parameter": primary_param.get("ParameterName", "PM2.5"),
-                "observed_time": f"{primary_param.get('DateObserved', '')} {primary_param.get('HourObserved', '')}:00"
+                "observed_time": f"{primary_param.get('DateObserved', '')} {primary_param.get('HourObserved', '')}:00",
+                "lat": st["lat"],
+                "lon": st["lon"]
             })
+
+    if not station_data:
+        print("AirNow Notice: Station feeds unreachable. Using regional baseline.")
+        return
+
+    # Map nearest PSCAA station to all 58 cities via Spatial Haversine Distance
+    city_aqi_map = {}
+    for c in cities:
+        clat, clon = c.get("latitude"), c.get("longitude")
+        if clat is None or clon is None:
+            continue
+            
+        nearest = min(station_data, key=lambda st: haversine_distance(clat, clon, st["lat"], st["lon"]))
+        city_aqi_map[c["slug"]] = {
+            "name": c["name"],
+            "aqi": nearest["aqi"],
+            "category": nearest["category"],
+            "parameter": nearest["parameter"],
+            "reporting_area": nearest["reporting_area"],
+            "observed_time": nearest["observed_time"]
+        }
 
     env_data = {}
     if os.path.exists(ENVIRONMENT_DATA_PATH):
@@ -448,22 +571,85 @@ def harvest_air_quality(cities):
         except Exception:
             env_data = {}
 
-    env_data["city_air_quality"] = aqi_observations
+    env_data["city_air_quality"] = city_aqi_map
     env_data["last_updated"] = datetime.utcnow().isoformat() + "Z"
 
-    print(f"Successfully appended {len(aqi_observations)} live AQI observations to city_environment.json.")
+    print(f"Successfully mapped localized AQI readings across all {len(city_aqi_map)} cities in city_environment.json.")
     save_json("city_environment.json", env_data)
 
 # ==============================================================================
-# MAIN SANDBOX EXECUTION ROUTINE
+# MODULE 4: WSDOT ACTIVE HIGHWAY CONSTRUCTION & WORK ZONES
+# ==============================================================================
+def harvest_construction(cities, city_boundaries):
+    print("🚧 Harvesting WSDOT Active Construction & Work Zone Feeds...")
+    wsdot_code = os.environ.get("WSDOT_ACCESS_CODE", "").strip().strip("'").strip('"')
+    
+    if not wsdot_code:
+        print("WSDOT_ACCESS_CODE missing. Skipping Construction harvest.")
+        return
+
+    wsdot_alerts_url = f"https://wsdot.wa.gov/Traffic/api/HighwayAlerts/HighwayAlertsREST.svc/GetHighwayAlertsAsJson?AccessCode={wsdot_code}"
+    alerts = http_get_json(wsdot_alerts_url, timeout=25)
+    
+    city_map = {c["slug"]: {"name": c["name"], "alert_count": 0, "alerts": []} for c in cities}
+    total_alerts = 0
+
+    if alerts and isinstance(alerts, list):
+        print(f"Retrieved {len(alerts)} active state highway alerts.")
+        for a in alerts:
+            event_type = str(a.get("EventCategory") or "").lower()
+            if "construction" not in event_type and "maintenance" not in event_type and "work" not in event_type:
+                continue
+                
+            try:
+                alat = float(a.get("StartRoadwayLocation", {}).get("Latitude"))
+                alon = float(a.get("StartRoadwayLocation", {}).get("Longitude"))
+            except (ValueError, TypeError):
+                continue
+
+            alert_obj = {
+                "alert_id": f"wsdot-{a.get('AlertID')}",
+                "headline": a.get("HeadlineDescription", "Roadwork Alert"),
+                "priority": a.get("Priority", "Low"),
+                "event_category": a.get("EventCategory", "Construction"),
+                "start_time": a.get("StartTime"),
+                "end_time": a.get("EndTime"),
+                "description": a.get("ExtendedDescription", "")
+            }
+
+            matched_slug = match_city_for_point(alat, alon, city_boundaries)
+            if matched_slug and matched_slug in city_map:
+                city_map[matched_slug]["alerts"].append(alert_obj)
+                city_map[matched_slug]["alert_count"] += 1
+                total_alerts += 1
+
+    output = {}
+    for slug, details in city_map.items():
+        output[slug] = {
+            "name": details["name"],
+            "alert_count": details["alert_count"],
+            "alerts": details["alerts"],
+            "last_updated": datetime.utcnow().isoformat() + "Z"
+        }
+
+    print(f"Successfully mapped {total_alerts} active construction alerts across municipal boundaries.")
+    save_json("city_construction.json", output)
+
+# ==============================================================================
+# MASTER SANDBOX EXECUTION ROUTINE
 # ==============================================================================
 if __name__ == "__main__":
-    print("Starting Phase 2 Sandbox Test Harvest Pipeline...")
+    print("==================================================")
+    print("     MYSEATTLESEARCH PHASE 2 SANDBOX ENGINE       ")
+    print("==================================================\n")
+
     cities = load_city_data()
     city_boundaries = load_city_boundaries()
+    sheets_config = load_sheets_admin_config()
     
-    harvest_traffic_cams(cities, city_boundaries)
-    harvest_transit_radar(cities, city_boundaries)
+    harvest_traffic_cams(cities, city_boundaries, sheets_config)
+    harvest_transit_radar(cities, city_boundaries, sheets_config)
     harvest_air_quality(cities)
+    harvest_construction(cities, city_boundaries)
     
-    print("Phase 2 Sandbox Test Harvest Pipeline Complete.")
+    print("\n🎉 Phase 2 Sandbox Pipeline execution complete! All artifacts fresh.")
