@@ -68,20 +68,20 @@ def http_get_raw(url, extra_headers=None, timeout=30):
             return resp.status, raw_bytes.decode("utf-8")
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", errors="ignore") if hasattr(e, "read") else ""
-        print(f"HTTP GET Failed [{e.code}] for {url[:90]}... Response body: {body[:200]}")
+        print(f"HTTP GET [{e.code}] on {url[:80]}... Body: {body[:150]}")
         return e.code, body
     except Exception as e:
-        print(f"HTTP GET Exception [{url[:90]}...]: {e}")
+        print(f"HTTP GET Exception [{url[:80]}...]: {e}")
         return 0, ""
 
 def http_get_json(url, extra_headers=None, timeout=30):
     """Utility helper for HTTP GET requests returning decoded JSON objects."""
     status, raw_text = http_get_raw(url, extra_headers=extra_headers, timeout=timeout)
-    if status == 200 and raw_text:
+    if status == 200 and raw_text and not raw_text.strip().startswith("<"):
         try:
             return json.loads(raw_text)
         except Exception as e:
-            print(f"JSON Parsing Error on {url[:90]}... Output snippet: {raw_text[:200]}")
+            print(f"JSON Parsing Error on {url[:80]}...")
     return None
 
 def save_json(filename, data):
@@ -162,43 +162,40 @@ def load_city_data():
     return normalized
 
 # ==============================================================================
-# 1. DEMOGRAPHICS HARVESTER (2-Pass Census ACS 5-Year API)
+# 1. DEMOGRAPHICS HARVESTER (2-Pass Census ACS 5-Year API with Keyless Retry)
 # ==============================================================================
 def harvest_demographics(cities):
     print("Harvesting City-Level Demographics via US Census Bureau ACS 5-Year API...")
     census_key = os.environ.get("CENSUS_API_KEY", "").strip()
-    if census_key:
-        print("Using authenticated CENSUS_API_KEY for Census queries.")
-    else:
-        print("Warning: CENSUS_API_KEY missing from environment.")
+
+    def fetch_census_pass(vars_str):
+        base_url = f"https://api.census.gov/data/2022/acs/acs5?get={vars_str}&for=place:*&in=state:53"
+        
+        # Try with API key first if available
+        if census_key:
+            res = http_get_json(f"{base_url}&key={census_key}", timeout=25)
+            if res:
+                return res
+            print("Census Query with API Key failed. Retrying in keyless mode...")
+            
+        # Keyless Fallback
+        return http_get_json(base_url, timeout=25)
 
     # Pass A: Baseline Income, Age, Owner & Renter Occupancy
-    pass_a_vars = "NAME,B19013_001E,B01002_001E,B25003_002E,B25003_003E"
-    url_a = f"https://api.census.gov/data/2022/acs/acs5?get={pass_a_vars}&for=place:*&in=state:53"
-    if census_key:
-        url_a += f"&key={census_key}"
-
-    res_a = http_get_json(url_a, timeout=30)
+    res_a = fetch_census_pass("NAME,B19013_001E,B01002_001E,B25003_002E,B25003_003E")
     if not res_a or not isinstance(res_a, list) or len(res_a) < 2:
-        print("Census API Pass A Warning: Failed to parse Baseline Demographics.")
+        print("Census API Pass A Error: Unable to fetch baseline demographics.")
         return
 
     headers_a = res_a[0]
-    data_a_rows = res_a[1:]
-    
     census_by_place = {}
-    for row in data_a_rows:
+    for row in res_a[1:]:
         row_dict = dict(zip(headers_a, row))
         place_fips = str(row_dict.get("place", "")).zfill(5)
         census_by_place[place_fips] = row_dict
 
     # Pass B: Work from Home & Total Workers
-    pass_b_vars = "NAME,B08301_001E,B08301_021E"
-    url_b = f"https://api.census.gov/data/2022/acs/acs5?get={pass_b_vars}&for=place:*&in=state:53"
-    if census_key:
-        url_b += f"&key={census_key}"
-
-    res_b = http_get_json(url_b, timeout=30)
+    res_b = fetch_census_pass("NAME,B08301_001E,B08301_021E")
     if res_b and isinstance(res_b, list) and len(res_b) >= 2:
         headers_b = res_b[0]
         for row in res_b[1:]:
@@ -314,7 +311,6 @@ def harvest_amenities(cities):
         return
 
     bbox = "47.0,-122.6,48.2,-121.8"
-    # Overpass QL Query including Golf Courses, Breweries/Pubs, and Wineries/Wine Shops
     overpass_query = f"""[out:json][timeout:60];(nwr["leisure"="dog_park"]({bbox});nwr["amenity"="cafe"]({bbox});nwr["leisure"="park"]({bbox});nwr["natural"="beach"]({bbox});nwr["shop"="pet"]({bbox});nwr["leisure"="golf_course"]({bbox});nwr["craft"="brewery"]({bbox});nwr["amenity"="pub"]({bbox});nwr["craft"="winery"]({bbox});nwr["shop"="wine"]({bbox}););out center;"""
     
     overpass_endpoints = [
@@ -358,7 +354,6 @@ def harvest_amenities(cities):
         }
         
         for node in nodes:
-            # Extract coordinates from node or area center
             nlat = node.get("lat") or node.get("center", {}).get("lat")
             nlon = node.get("lon") or node.get("center", {}).get("lon")
             try:
