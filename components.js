@@ -300,10 +300,9 @@ class LiveBanner extends HTMLElement {
     }
 }
 
-/**
- * 5. AUTHOR CMS PUBLISHER WEB SUITE (<cms-publisher>)
- * Maps author identity via Team ID and AuthKey.
- */
+/* ==========================================================================
+   5. AUTHOR CMS PUBLISHER WEB SUITE (<cms-publisher>)
+   ========================================================================== */
 class CMSPublisher extends HTMLElement {
     constructor() {
         super();
@@ -322,11 +321,11 @@ class CMSPublisher extends HTMLElement {
         this.innerHTML = `<div style="text-align:center; padding: 3rem; color: var(--premier-charcoal);">Authenticating author session...</div>`;
 
         try {
-            // Load team roster data to match author details via Team ID
+            // 1. Load public team roster to match author profile
             const teamRes = await fetch('/data/team.json');
             const teamData = await teamRes.json();
 
-            // Fetch author publishing session via API Gateway
+            // 2. Validate AuthKey & fetch recent posts via Cloudflare Worker API
             const pubRes = await fetch(`https://api.myseattlesearch.com/publisher?AUTHKEY=${encodeURIComponent(this.authKey)}`);
             if (!pubRes.ok) {
                 this.innerHTML = `<div style="text-align:center; padding: 2rem; color: var(--card-accent-color); font-weight: bold;">Authentication Failed: Invalid AuthKey.</div>`;
@@ -350,7 +349,7 @@ class CMSPublisher extends HTMLElement {
             this.renderPublisherSuite();
         } catch (err) {
             console.error("Publisher Suite Hydration Error:", err);
-            this.innerHTML = `<div style="text-align:center; padding: 2rem; color: var(--card-accent-color);">Unable to load publishing suite interface. Please refresh.</div>`;
+            this.innerHTML = `<div style="text-align:center; padding: 2rem; color: var(--card-accent-color); font-weight: bold;">Unable to connect to publishing endpoint. Check browser console for details.</div>`;
         }
     }
 
@@ -521,7 +520,7 @@ class CMSPublisher extends HTMLElement {
             formData.append('url_1', this.querySelector('#url-1').value);
             formData.append('url_2_label', this.querySelector('#url-2-label').value);
             formData.append('url_2', this.querySelector('#url-2').value);
-            formData.append('author', this.author.teamId); // Pass numeric Team ID as Author identifier
+            formData.append('author', this.author.teamId);
 
             if (this.editingSlug) {
                 formData.append('editingSlug', this.editingSlug);
@@ -613,9 +612,6 @@ if (!customElements.get('local-reviews')) {
 }
 if (!customElements.get('live-banner')) {
     customElements.define('live-banner', LiveBanner);
-}
-if (!customElements.get('cms-publisher')) {
-    customElements.define('cms-publisher', CMSPublisher);
 }
 if (!customElements.get('cms-publisher')) {
     customElements.define('cms-publisher', CMSPublisher);
