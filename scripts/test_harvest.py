@@ -1,5 +1,3 @@
-# File: scripts/test_harvest.py
-
 import os
 import json
 import math
@@ -37,7 +35,7 @@ def slugify(text):
 
 def http_get_json(url, extra_headers=None, timeout=25):
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
         "Accept-Language": "en-US,en;q=0.9"
     }
@@ -179,19 +177,19 @@ def test_building_permits(cities):
     print("🏗️ [3/6] Harvesting Active Municipal Building Permits...")
     permits_by_city = {c["slug"]: {"name": c["name"], "permits": []} for c in cities}
     
-    socrata_url = "https://data.seattle.gov/resource/244b-43ey.json?$limit=50&$order=applieddate%20DESC"
+    socrata_url = "https://data.seattle.gov/resource/76t5-zqzr.json?$limit=50&$order=issueddate%20DESC"
     s_permits = http_get_json(socrata_url)
     
     if s_permits and isinstance(s_permits, list) and "seattle" in permits_by_city:
         for p in s_permits:
             permits_by_city["seattle"]["permits"].append({
-                "permit_number": p.get("permitnum") or p.get("permit_number"),
-                "type": p.get("permittype") or p.get("permit_type", "Construction"),
+                "permit_number": p.get("permitnum"),
+                "type": p.get("permittypedesc") or p.get("permitclass", "Construction"),
                 "description": p.get("description", "Neighborhood Development"),
-                "address": p.get("originaladdress") or p.get("address"),
-                "category": p.get("category", "Single Family / Commercial"),
+                "address": p.get("address") or "Seattle, WA",
+                "category": p.get("permitclassmapped", "Single Family / Commercial"),
                 "value_usd": p.get("estprojectcost"),
-                "issued_date": p.get("applieddate") or p.get("issueddate")
+                "issued_date": p.get("issueddate")
             })
 
     output = {
@@ -200,11 +198,11 @@ def test_building_permits(cities):
     }
     save_json(PERMITS_PATH, output)
 
-# --- TEST MODULE 4: NREL EV CHARGER INFRASTRUCTURE & EV CHARGE SCORE ---
+# --- TEST MODULE 4: NLR / NREL EV CHARGER INFRASTRUCTURE & EV CHARGE SCORE ---
 def test_ev_scores(cities):
-    print("⚡ [4/6] Harvesting NREL Electric Vehicle Charging Infrastructure...")
-    nrel_key = os.environ.get("NREL_API_KEY", "").strip() or "DEMO_KEY"
-    url = f"https://developer.nrel.gov/api/alt-fuel-stations/v1.json?fuel_type=ELEC&state=WA&api_key={nrel_key}"
+    print("⚡ [4/6] Harvesting NLR Electric Vehicle Charging Infrastructure...")
+    nlr_key = os.environ.get("NREL_API_KEY", "").strip() or os.environ.get("NLR_API_KEY", "").strip() or "DEMO_KEY"
+    url = f"https://developer.nlr.gov/api/alt-fuel-stations/v1.json?fuel_type=ELEC&state=WA&api_key={nlr_key}"
     
     res = http_get_json(url)
     stations = res.get("fuel_stations", []) if res and isinstance(res, dict) else []
@@ -323,12 +321,12 @@ def test_dining_spotlights(cities):
             spots = [
                 {
                     "category": "Top Neighborhood Spot",
-                    "name": f"{city_name} Neighborhood Spotlight",
+                    "name": f"{city_name} Local Dining Spotlight",
                     "location": f"Downtown {city_name}",
                     "rating": 4.7,
                     "review_count": 180,
                     "price_level": "$$",
-                    "summary": f"Popular local gathering hub and dining favorite in downtown {city_name}."
+                    "summary": f"Top local dining favorite and community gathering hub in {city_name}."
                 }
             ]
             
