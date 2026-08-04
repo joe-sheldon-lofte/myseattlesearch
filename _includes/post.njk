@@ -49,7 +49,6 @@ layout: base.njk
     color: var(--premier-charcoal);
   }
   
-  /* Instagram-Style Square Frame Interactive Carousel */
   .post-carousel-container {
     position: relative;
     width: 100%;
@@ -113,12 +112,8 @@ layout: base.njk
     background: rgba(0, 0, 0, 0.85);
     transform: translateY(-50%) scale(1.08);
   }
-  .carousel-prev {
-    left: 0.75rem;
-  }
-  .carousel-next {
-    right: 0.75rem;
-  }
+  .carousel-prev { left: 0.75rem; }
+  .carousel-next { right: 0.75rem; }
   .carousel-badge-counter {
     position: absolute;
     top: 0.75rem;
@@ -168,12 +163,9 @@ layout: base.njk
     line-height: 1.6;
     margin-bottom: 1.25rem;
   }
-  .standalone-body p {
-    margin-bottom: 1.25rem;
-  }
-  .standalone-body p:last-child {
-    margin-bottom: 0;
-  }
+  .standalone-body p { margin-bottom: 1.25rem; }
+  .standalone-body p:last-child { margin-bottom: 0; }
+  
   .reference-links-deck {
     display: flex;
     flex-wrap: wrap;
@@ -193,8 +185,38 @@ layout: base.njk
     font-size: 0.85rem;
     transition: opacity 0.2s ease;
   }
-  .reference-btn:hover {
-    opacity: 0.9;
+  .reference-btn:hover { opacity: 0.9; }
+
+  /* Author Bio Card Footer Component */
+  .author-bio-footer-card {
+    margin-top: 2rem;
+    padding: 1.75rem;
+    background: var(--white);
+    border-radius: 8px;
+    border: 1px solid var(--premier-beige);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: row;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+  @media (max-width: 640px) {
+    .author-bio-footer-card {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+  }
+  .author-bio-avatar {
+    width: 150px;
+    height: 150px;
+    min-width: 150px;
+    min-height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center;
+    border: 3px solid var(--card-accent-color);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
   }
 </style>
 
@@ -208,7 +230,6 @@ layout: base.njk
   {% set isNote = typeLower == "note" %}
   {% set isArticle = typeLower == "article" %}
 
-  {# Extract attached images #}
   {% set postImages = [] %}
   {% if image_1 %}{% set _ = postImages.push(image_1) %}{% endif %}
   {% if image_2 %}{% set _ = postImages.push(image_2) %}{% endif %}
@@ -222,19 +243,16 @@ layout: base.njk
       <span style="font-size: 0.8rem; font-weight: 700; color: rgba(0,0,0,0.4); font-style: italic;">Viewing Entry</span>
     </header>
 
-    {# 1. Headline (rendered if present; internal title is never displayed) #}
     {% if headline %}
       <h1 style="margin: 0 0 0.4rem 0; font-size: 1.75rem; font-weight: 900; color: var(--premier-charcoal); line-height: 1.25;">
         {{ headline }}
       </h1>
     {% endif %}
 
-    {# 2. Subhead (rendered for note & article if present) #}
     {% if subhead and not isPost %}
       <p style="margin: 0 0 0.75rem 0; font-size: 1.05rem; font-style: italic; color: rgba(0,0,0,0.65);">{{ subhead }}</p>
     {% endif %}
 
-    {# 3. Image Carousel #}
     {% if postImages.length > 0 %}
       <div class="post-carousel-container">
         {% if postImages.length > 1 %}
@@ -259,12 +277,10 @@ layout: base.njk
       </div>
     {% endif %}
 
-    {# 4. Body Content #}
     <div class="standalone-body">
       {{ content | safe }}
     </div>
 
-    {# 5. External Reference Links #}
     {% if url_1 or url_2 %}
       <div class="reference-links-deck">
         {% if url_1 %}
@@ -294,6 +310,36 @@ layout: base.njk
       </div>
     </footer>
   </article>
+
+  {# Author Bio Section for Posts, Notes, and Articles #}
+  {% set currentAuthor = author or "Joe Sheldon" %}
+  {% set authorData = null %}
+  {% for member in team %}
+    {% if member.name.lower() == currentAuthor.lower() or member.id == currentAuthor %}
+      {% set authorData = member %}
+    {% endif %}
+  {% endfor %}
+
+  {% if authorData %}
+    <section class="author-bio-footer-card">
+      <img src="{{ authorData.photo or 'https://assets.myseattlesearch.com/repomove/joe.webp' }}" alt="{{ authorData.name }}" class="author-bio-avatar" />
+      <div style="flex: 1;">
+        <h3 style="margin: 0 0 0.25rem 0; font-size: 1.25rem; font-weight: 800; color: var(--premier-charcoal);">{{ authorData.name }}</h3>
+        <p style="margin: 0 0 0.75rem 0; font-size: 0.85rem; font-weight: 700; color: var(--card-accent-color); text-transform: uppercase; letter-spacing: 0.5px;">{{ authorData.position }}</p>
+        <p style="margin: 0 0 1rem 0; font-size: 0.95rem; line-height: 1.5; color: var(--premier-charcoal); opacity: 0.85;">{{ authorData.description }}</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+          <a href="tel:2066577493" class="reference-btn" style="background-color: var(--card-accent-color);">
+            📞 Call/Text (206) 657-7493
+          </a>
+          {% if authorData.email %}
+            <a href="mailto:{{ authorData.email }}" class="reference-btn" style="background-color: var(--premier-charcoal);">
+              ✉️ Email {{ authorData.name.split(' ')[0] }}
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  {% endif %}
 </div>
 
 <script>

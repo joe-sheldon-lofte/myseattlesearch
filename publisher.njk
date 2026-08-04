@@ -1,0 +1,56 @@
+---
+layout: base.njk
+permalink: /publisher/
+---
+
+<style>
+  .stealth-404-container {
+    max-width: 600px;
+    margin: 5rem auto;
+    padding: 3rem 2rem;
+    text-align: center;
+    color: var(--premier-charcoal);
+  }
+  .stealth-404-heading {
+    font-size: 4rem;
+    font-weight: 900;
+    margin: 0 0 1rem 0;
+    color: var(--card-accent-color);
+  }
+  .stealth-404-sub {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+  }
+</style>
+
+<div id="publisher-root">
+  <div class="stealth-404-container" id="stealth-404-view">
+    <div class="stealth-404-heading">404</div>
+    <div class="stealth-404-sub">Page Not Found</div>
+    <p style="opacity: 0.7; font-size: 0.95rem;">The page you are looking for does not exist or has been moved.</p>
+    <a href="/" style="display: inline-block; margin-top: 1.5rem; padding: 0.75rem 1.5rem; background-color: var(--card-accent-color); color: var(--white); text-decoration: none; font-weight: 700; border-radius: 6px;">Return to Home</a>
+  </div>
+
+  <div id="authenticated-publisher-view" style="display: none; max-width: 900px; margin: 2rem auto; padding: 0 1rem;">
+    <cms-publisher></cms-publisher>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    var urlParams = new URLSearchParams(window.location.search);
+    var authKey = urlParams.get("AUTHKEY") || urlParams.get("AuthKey") || urlParams.get("auth_key");
+
+    var stealth404 = document.getElementById("stealth-404-view");
+    var authPublisher = document.getElementById("authenticated-publisher-view");
+
+    if (authKey && authKey.trim() !== "") {
+      stealth404.style.display = "none";
+      authPublisher.style.display = "block";
+    } else {
+      stealth404.style.display = "block";
+      authPublisher.style.display = "none";
+    }
+  });
+</script>
