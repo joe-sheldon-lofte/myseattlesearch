@@ -15,7 +15,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 CITY_BOUNDARIES_PATH = os.path.join(DATA_DIR, "city_boundaries.json")
-CITY_FEEDS_PATH = os.path.join(DATA_DIR, "city_feeds.json")
+TRAFFIC_CAMS_PATH = os.path.join(DATA_DIR, "traffic_cams.json")
 TRANSIT_DATA_PATH = os.path.join(DATA_DIR, "transit_data.json")
 
 SCOPES = [
@@ -291,7 +291,7 @@ def harvest_website_stats():
     except gspread.exceptions.WorksheetNotFound:
         print("ℹ️ 'Stats' worksheet not found in Website Data workbook. Skipping.")
 
-# --- HARVEST TASK 3: SHEETS ADMIN CONFIG BACKUP (CityFeeds & TransitData) ---
+# --- HARVEST TASK 3: SHEETS ADMIN CONFIG BACKUP (Traffic Cams & TransitData) ---
 def harvest_sheets_admin_config():
     _, creds = get_gspread_client()
     sheet_id = os.environ.get("CITY_DATA_SHEET_ID")
@@ -304,12 +304,12 @@ def harvest_sheets_admin_config():
         sheet_meta = service.spreadsheets().get(spreadsheetId=sheet_id).execute()
         sheet_titles = [s.get('properties', {}).get('title', '') for s in sheet_meta.get('sheets', [])]
         
-        city_feeds_title = next((t for t in sheet_titles if "cityfeed" in t.lower().replace(" ", "").replace("_", "")), None)
+        traffic_cams_title = next((t for t in sheet_titles if "trafficcam" in t.lower().replace(" ", "").replace("_", "")), None)
         transit_data_title = next((t for t in sheet_titles if "transitdata" in t.lower().replace(" ", "").replace("_", "")), None)
 
         ranges_to_fetch = []
-        if city_feeds_title:
-            ranges_to_fetch.append(f"'{city_feeds_title}'!A1:Z5000")
+        if traffic_cams_title:
+            ranges_to_fetch.append(f"'{traffic_cams_title}'!A1:Z5000")
         if transit_data_title:
             ranges_to_fetch.append(f"'{transit_data_title}'!A1:Z200")
 
@@ -318,8 +318,8 @@ def harvest_sheets_admin_config():
                 spreadsheetId=sheet_id, ranges=ranges_to_fetch
             ).execute().get('valueRanges', [])
 
-            # Export CityFeeds
-            if city_feeds_title and len(batch) > 0:
+            # Export Traffic Cams Config
+            if traffic_cams_title and len(batch) > 0:
                 feed_rows = batch[0].get('values', [])
                 if feed_rows and len(feed_rows) > 1:
                     headers = [str(h).strip() for h in feed_rows[0]]
@@ -327,12 +327,12 @@ def harvest_sheets_admin_config():
                     for r in feed_rows[1:]:
                         padded = list(r) + [""] * (len(headers) - len(r))
                         raw_feeds_export.append(dict(zip(headers, padded)))
-                    with open(CITY_FEEDS_PATH, "w", encoding="utf-8") as f:
+                    with open(TRAFFIC_CAMS_PATH, "w", encoding="utf-8") as f:
                         json.dump(raw_feeds_export, f, indent=2, ensure_ascii=False)
-                    print(f"💾 Exported {len(raw_feeds_export)} feeds to {CITY_FEEDS_PATH}")
+                    print(f"💾 Exported {len(raw_feeds_export)} traffic cam overrides to {TRAFFIC_CAMS_PATH}")
 
             # Export TransitData
-            transit_batch_idx = 1 if (city_feeds_title and len(batch) > 1) else 0
+            transit_batch_idx = 1 if (traffic_cams_title and len(batch) > 1) else 0
             if transit_data_title and len(batch) > transit_batch_idx:
                 transit_rows = batch[transit_batch_idx].get('values', [])
                 if transit_rows and len(transit_rows) > 1:
@@ -354,9 +354,9 @@ def harvest_traffic_cams():
     city_boundaries = load_city_boundaries()
     
     feed_overrides = {}
-    if os.path.exists(CITY_FEEDS_PATH):
+    if os.path.exists(TRAFFIC_CAMS_PATH):
         try:
-            with open(CITY_FEEDS_PATH, "r", encoding="utf-8") as f:
+            with open(TRAFFIC_CAMS_PATH, "r", encoding="utf-8") as f:
                 feeds_list = json.load(f)
                 for row_dict in feeds_list:
                     feed_id = row_dict.get("Feed ID", "").strip()
@@ -532,7 +532,7 @@ def main():
     
     safe_run("City Data Master Sheet Sync (data/city_data.json)", harvest_city_data)
     safe_run("Website Data Stats Sync (data/stats.json)", harvest_website_stats)
-    safe_run("Sheets Admin Config Backup (data/city_feeds.json & transit_data.json)", harvest_sheets_admin_config)
+    safe_run("Sheets Admin Config Backup (data/traffic_cams.json & transit_data.json)", harvest_sheets_admin_config)
     safe_run("Traffic Cameras Mapping (data/city_traffic_cams.json)", harvest_traffic_cams)
     safe_run("WSDOT Construction & Work Zones (data/city_construction.json)", harvest_construction)
     
