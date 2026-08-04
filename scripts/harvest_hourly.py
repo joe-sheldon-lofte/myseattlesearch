@@ -1672,14 +1672,25 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                             existing_content = ""
 
                     body_text = ""
-                    front_matter_match = existing_content.startswith(front_matter.strip())
 
-                    if post_type.lower() == "article" and "docs.google.com" in content_field:
-                        if file_exists and front_matter_match:
+                    # Ingestion contract: docs.google.com vs myseattlesearch.com
+                    if "docs.google.com" in content_field:
+                        body_text = get_google_doc_as_markdown(docs_service, content_field)
+                        # Queue cell writeback to replace Google Doc link with published post URL
+                        published_post_url = f"https://myseattlesearch.com/posts/{slug}/"
+                        col_content_idx = headers.index("Content") if "Content" in headers else -1
+                        if col_content_idx != -1:
+                            batch_sheet_writebacks[cms_sheet_id].append({
+                                'range': f"Posts!{get_col_letter(col_content_idx)}{row_num}",
+                                'values': [[published_post_url]]
+                            })
+                    elif "myseattlesearch.com" in content_field or file_exists:
+                        # Preserved post created via website /publisher or previously ingested
+                        if file_exists and existing_content and ("---\n" in existing_content):
                             parts = existing_content.split("---\n", 2)
-                            body_text = parts[2] if len(parts) >= 3 else get_google_doc_as_markdown(docs_service, content_field)
+                            body_text = parts[2] if len(parts) >= 3 else content_field
                         else:
-                            body_text = get_google_doc_as_markdown(docs_service, content_field)
+                            body_text = content_field
                     else:
                         body_text = content_field
 

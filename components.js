@@ -302,6 +302,7 @@ class LiveBanner extends HTMLElement {
 
 /**
  * 5. AUTHOR CMS PUBLISHER WEB SUITE (<cms-publisher>)
+ * Maps author identity via Team ID and AuthKey.
  */
 class CMSPublisher extends HTMLElement {
     constructor() {
@@ -310,37 +311,35 @@ class CMSPublisher extends HTMLElement {
         this.author = null;
         this.authorPosts = [];
         this.editingSlug = null;
-        this.selectedFiles = [];
     }
 
     async connectedCallback() {
         const urlParams = new URLSearchParams(window.location.search);
         this.authKey = urlParams.get("AUTHKEY") || urlParams.get("AuthKey") || urlParams.get("auth_key") || "";
 
-        if (!this.authKey) {
-            return;
-        }
+        if (!this.authKey) return;
 
-        this.innerHTML = `<div style="text-align:center; padding: 3rem; color: var(--premier-charcoal);">Authenticating author keys...</div>`;
+        this.innerHTML = `<div style="text-align:center; padding: 3rem; color: var(--premier-charcoal);">Authenticating author session...</div>`;
 
         try {
-            // Load team roster data to match author
+            // Load team roster data to match author details via Team ID
             const teamRes = await fetch('/data/team.json');
             const teamData = await teamRes.json();
 
-            // Fetch publisher author session via API worker gateway
+            // Fetch author publishing session via API Gateway
             const pubRes = await fetch(`https://api.myseattlesearch.com/publisher?AUTHKEY=${encodeURIComponent(this.authKey)}`);
             if (!pubRes.ok) {
-                this.innerHTML = `<div style="text-align:center; padding: 2rem; color: var(--card-accent-color); font-weight: bold;">Authentication Failed: Invalid Author Key.</div>`;
+                this.innerHTML = `<div style="text-align:center; padding: 2rem; color: var(--card-accent-color); font-weight: bold;">Authentication Failed: Invalid AuthKey.</div>`;
                 return;
             }
 
             const sessionData = await pubRes.json();
-            const matchedTeam = teamData.find(m => String(m.id) === String(sessionData.teamId)) || teamData[0];
+            const teamIdStr = String(sessionData.teamId || "").replace(".0", "");
+            const matchedTeam = teamData.find(m => String(m.id).replace(".0", "") === teamIdStr) || teamData[0];
 
             this.author = {
-                teamId: sessionData.teamId,
-                name: sessionData.name || matchedTeam.name,
+                teamId: teamIdStr || matchedTeam.id,
+                name: matchedTeam.name || sessionData.name,
                 position: matchedTeam.position,
                 photo: matchedTeam.photo,
                 description: matchedTeam.description,
@@ -351,7 +350,7 @@ class CMSPublisher extends HTMLElement {
             this.renderPublisherSuite();
         } catch (err) {
             console.error("Publisher Suite Hydration Error:", err);
-            this.innerHTML = `<div style="text-align:center; padding: 2rem; color: var(--card-accent-color);">Unable to load publishing interface. Please refresh.</div>`;
+            this.innerHTML = `<div style="text-align:center; padding: 2rem; color: var(--card-accent-color);">Unable to load publishing suite interface. Please refresh.</div>`;
         }
     }
 
@@ -361,7 +360,7 @@ class CMSPublisher extends HTMLElement {
                 <div style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
                     <img src="${this.author.photo || 'https://assets.myseattlesearch.com/repomove/joe.webp'}" alt="${this.author.name}" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--card-accent-color);" />
                     <div style="flex: 1;">
-                        <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--card-accent-color);">Authenticated Author Session</span>
+                        <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--card-accent-color);">Authenticated Author Session (Team ID: ${this.author.teamId})</span>
                         <h2 style="margin: 0.2rem 0; font-size: 1.6rem; color: var(--premier-charcoal);">${this.author.name}</h2>
                         <p style="margin: 0 0 0.5rem 0; font-weight: 700; color: rgba(0,0,0,0.6); font-size: 0.9rem;">${this.author.position}</p>
                         <p style="margin: 0; font-size: 0.9rem; line-height: 1.4; opacity: 0.85;">${this.author.description}</p>
@@ -522,7 +521,8 @@ class CMSPublisher extends HTMLElement {
             formData.append('url_1', this.querySelector('#url-1').value);
             formData.append('url_2_label', this.querySelector('#url-2-label').value);
             formData.append('url_2', this.querySelector('#url-2').value);
-            formData.append('author', this.author.name);
+            formData.append('author', this.author.teamId); // Pass numeric Team ID as Author identifier
+
             if (this.editingSlug) {
                 formData.append('editingSlug', this.editingSlug);
             }
@@ -548,7 +548,7 @@ class CMSPublisher extends HTMLElement {
                 }
             } catch (err) {
                 console.error('Publish submission failed:', err);
-                alert('Connection error submitting entry to worker gateway.');
+                alert('Connection error submitting entry to gateway.');
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Publish Entry';
             }
@@ -613,6 +613,9 @@ if (!customElements.get('local-reviews')) {
 }
 if (!customElements.get('live-banner')) {
     customElements.define('live-banner', LiveBanner);
+}
+if (!customElements.get('cms-publisher')) {
+    customElements.define('cms-publisher', CMSPublisher);
 }
 if (!customElements.get('cms-publisher')) {
     customElements.define('cms-publisher', CMSPublisher);
