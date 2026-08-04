@@ -49,6 +49,7 @@ layout: base.njk
     color: var(--premier-charcoal);
   }
   
+  /* Instagram-Style Square Frame Interactive Carousel */
   .post-carousel-container {
     position: relative;
     width: 100%;
@@ -112,8 +113,12 @@ layout: base.njk
     background: rgba(0, 0, 0, 0.85);
     transform: translateY(-50%) scale(1.08);
   }
-  .carousel-prev { left: 0.75rem; }
-  .carousel-next { right: 0.75rem; }
+  .carousel-prev {
+    left: 0.75rem;
+  }
+  .carousel-next {
+    right: 0.75rem;
+  }
   .carousel-badge-counter {
     position: absolute;
     top: 0.75rem;
@@ -163,9 +168,12 @@ layout: base.njk
     line-height: 1.6;
     margin-bottom: 1.25rem;
   }
-  .standalone-body p { margin-bottom: 1.25rem; }
-  .standalone-body p:last-child { margin-bottom: 0; }
-  
+  .standalone-body p {
+    margin-bottom: 1.25rem;
+  }
+  .standalone-body p:last-child {
+    margin-bottom: 0;
+  }
   .reference-links-deck {
     display: flex;
     flex-wrap: wrap;
@@ -185,7 +193,9 @@ layout: base.njk
     font-size: 0.85rem;
     transition: opacity 0.2s ease;
   }
-  .reference-btn:hover { opacity: 0.9; }
+  .reference-btn:hover {
+    opacity: 0.9;
+  }
 
   /* Author Bio Card Footer Component */
   .author-bio-footer-card {
@@ -230,6 +240,7 @@ layout: base.njk
   {% set isNote = typeLower == "note" %}
   {% set isArticle = typeLower == "article" %}
 
+  {# Extract attached images #}
   {% set postImages = [] %}
   {% if image_1 %}{% set _ = postImages.push(image_1) %}{% endif %}
   {% if image_2 %}{% set _ = postImages.push(image_2) %}{% endif %}
@@ -243,16 +254,19 @@ layout: base.njk
       <span style="font-size: 0.8rem; font-weight: 700; color: rgba(0,0,0,0.4); font-style: italic;">Viewing Entry</span>
     </header>
 
+    {# 1. Headline (rendered if present; internal title is never displayed) #}
     {% if headline %}
       <h1 style="margin: 0 0 0.4rem 0; font-size: 1.75rem; font-weight: 900; color: var(--premier-charcoal); line-height: 1.25;">
         {{ headline }}
       </h1>
     {% endif %}
 
+    {# 2. Subhead (rendered for note & article if present) #}
     {% if subhead and not isPost %}
       <p style="margin: 0 0 0.75rem 0; font-size: 1.05rem; font-style: italic; color: rgba(0,0,0,0.65);">{{ subhead }}</p>
     {% endif %}
 
+    {# 3. Image Carousel #}
     {% if postImages.length > 0 %}
       <div class="post-carousel-container">
         {% if postImages.length > 1 %}
@@ -277,10 +291,12 @@ layout: base.njk
       </div>
     {% endif %}
 
+    {# 4. Body Content #}
     <div class="standalone-body">
       {{ content | safe }}
     </div>
 
+    {# 5. External Reference Links #}
     {% if url_1 or url_2 %}
       <div class="reference-links-deck">
         {% if url_1 %}
@@ -311,7 +327,7 @@ layout: base.njk
     </footer>
   </article>
 
-  {# Author Bio Section for Posts, Notes, and Articles #}
+  {# 6. Author Bio Section for Posts, Notes, and Articles #}
   {% set currentAuthor = author or "Joe Sheldon" %}
   {% set authorData = null %}
   {% for member in team %}
