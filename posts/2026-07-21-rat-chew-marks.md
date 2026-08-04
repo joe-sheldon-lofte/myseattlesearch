@@ -4,7 +4,7 @@ title: "Rat Chew Marks"
 headline: ""
 subhead: ""
 date: 2026-07-21
-author: "Joe Sheldon"
+author: "1"
 tags: []
 type: "post"
 url_1_label: ""
