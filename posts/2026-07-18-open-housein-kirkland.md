@@ -4,7 +4,7 @@ title: "Open Housein Kirkland"
 headline: ""
 subhead: ""
 date: 2026-07-18
-author: "Joe Sheldon"
+author: "1"
 tags: []
 type: "note"
 url_1_label: ""
