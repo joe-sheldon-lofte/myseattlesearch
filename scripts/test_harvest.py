@@ -10,7 +10,9 @@ from datetime import datetime
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
+
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
+CRIME_STATS_PATH = os.path.join(DATA_DIR, "crime_stats.json")
 CITY_DEMO_PATH = os.path.join(DATA_DIR, "city_demographics.json")
 
 COMMUTE_TOLLS_PATH = os.path.join(DATA_DIR, "city_commute_tolls.json")
@@ -35,10 +37,12 @@ def slugify(text):
     return res.strip('-')
 
 def http_get_json(url, extra_headers=None, timeout=25):
+    parsed_url = urllib.parse.urlparse(url)
     headers = {
         "User-Agent": "MySeattleSearchBot/1.0 (https://myseattlesearch.com; contact@myseattlesearch.com)",
         "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "en-US,en;q=0.9"
+        "Accept-Language": "en-US,en;q=0.9",
+        "Host": parsed_url.netloc
     }
     if extra_headers:
         headers.update(extra_headers)
@@ -50,7 +54,7 @@ def http_get_json(url, extra_headers=None, timeout=25):
                 raw_bytes = resp.read()
                 return json.loads(raw_bytes.decode("utf-8"))
     except Exception as e:
-        print(f"   ⚠️ HTTP GET Notice [{url[:60]}...]: {e}")
+        print(f"   ⚠️ HTTP GET Notice [{url[:65]}...]: {e}")
     return None
 
 def save_json(filepath, data):
@@ -60,22 +64,42 @@ def save_json(filepath, data):
     print(f"   ✅ Saved: {filepath}")
 
 def load_cities():
-    demographics = {}
+    # 1. Ingest dynamic population baseline from crime_stats.json
+    crime_pop_map = {}
+    if os.path.exists(CRIME_STATS_PATH):
+        try:
+            with open(CRIME_STATS_PATH, "r", encoding="utf-8") as f:
+                raw_crime = json.load(f)
+                for city_key, city_info in raw_crime.items():
+                    if isinstance(city_info, dict) and "reported_population" in city_info:
+                        c_pop = city_info.get("reported_population")
+                        if c_pop:
+                            crime_pop_map[slugify(city_key)] = int(c_pop)
+        except Exception as e:
+            print(f"   ⚠️ Warning loading crime_stats.json population: {e}")
+
+    # 2. Secondary fallback from city_demographics.json
+    demo_pop_map = {}
     if os.path.exists(CITY_DEMO_PATH):
         try:
             with open(CITY_DEMO_PATH, "r", encoding="utf-8") as f:
-                demographics = json.load(f)
-        except Exception:
-            pass
+                raw_demo = json.load(f)
+                for c_slug, c_data in raw_demo.items():
+                    if isinstance(c_data, dict):
+                        d_pop = c_data.get("population") or c_data.get("total_population")
+                        if d_pop:
+                            demo_pop_map[slugify(c_slug)] = int(str(d_pop).replace(",", "").strip())
+        except Exception as e:
+            print(f"   ⚠️ Warning loading city_demographics.json population: {e}")
 
     if not os.path.exists(CITY_DATA_PATH):
         return []
         
     with open(CITY_DATA_PATH, "r", encoding="utf-8") as f:
-        raw = json.load(f)
+        raw_cities = json.load(f)
         
     cities = []
-    items = raw if isinstance(raw, list) else list(raw.values())
+    items = raw_cities if isinstance(raw_cities, list) else list(raw_cities.values())
     for item in items:
         name = item.get("City") or item.get("name") or ""
         if not name:
@@ -83,20 +107,20 @@ def load_cities():
             
         slug = slugify(name)
         
-        # Pull population from city_demographics.json first, then fallbacks
-        demo_entry = demographics.get(slug, {})
-        pop = demo_entry.get("population") or demo_entry.get("total_population")
+        # Priority 1: crime_stats.json -> Priority 2: city_demographics.json -> Priority 3: city_data attributes
+        pop = crime_pop_map.get(slug) or demo_pop_map.get(slug)
         
         if not pop:
-            for k in ["population", "Population", "2020 Population", "Est Population", "pop"]:
+            for k in ["population", "Population", "reported_population", "2020 Population", "Est Population"]:
                 if item.get(k):
-                    pop = item.get(k)
-                    break
-                    
-        try:
-            pop = int(str(pop).replace(",", "").strip())
-        except (ValueError, TypeError):
-            pop = 25000
+                    try:
+                        pop = int(str(item.get(k)).replace(",", "").strip())
+                        break
+                    except (ValueError, TypeError):
+                        pass
+                        
+        if not pop or pop <= 0:
+            pop = 25000  # Default fallback if city is absent across datasets
 
         cities.append({
             "slug": slug,
@@ -105,9 +129,10 @@ def load_cities():
             "longitude": item.get("longitude") or item.get("Longitude"),
             "population": pop
         })
+        
     return cities
 
-# --- TEST MODULE 1: WSDOT COMMUTE DRIVE TIMES & EXPRESS TOLLS ---
+# --- TEST MODULE 1: WSDOT COMMUTE DRIVE TIMES & LIVE EXPRESS TOLLS ---
 def test_commute_and_tolls():
     print("🚗 [1/5] Harvesting WSDOT Travel Times & Express Toll Rates...")
     wsdot_code = os.environ.get("WSDOT_ACCESS_CODE", "").strip().strip("'").strip('"')
@@ -123,12 +148,18 @@ def test_commute_and_tolls():
             for t in raw_tolls:
                 facility_name = t.get("LocationName") or t.get("FacilityName") or t.get("TripName") or "Express Toll Lane"
                 cents = t.get("CurrentTollCents") or t.get("TripTollCents") or t.get("TollRateInCents") or t.get("MinimumTollCents") or 0
+                dollars = round(cents / 100.0, 2)
+                
+                sign_msg = t.get("TollSignMessage") or t.get("Message") or ""
+                if cents == 0 and not sign_msg:
+                    sign_msg = "$0.00 (Off-Peak / Free HOV Pass)"
+
                 tolls_data.append({
                     "facility": facility_name,
                     "travel_direction": t.get("TravelDirection", ""),
                     "current_toll_cents": cents,
-                    "current_toll_dollars": round(cents / 100.0, 2),
-                    "sign_message": t.get("TollSignMessage") or t.get("Message") or ("$0.00 (Off-Peak / Free Pass)" if cents == 0 else "")
+                    "current_toll_dollars": dollars,
+                    "sign_message": sign_msg
                 })
 
         # Fetch Live Travel Times
@@ -171,11 +202,10 @@ def test_noaa_tides():
         {"id": "9447659", "name": "Everett Harbor", "cities": ["everett", "mukilteo", "marysville"]}
     ]
     
-    today_str = datetime.utcnow().strftime("%Y%m%d")
     tide_output = {}
 
     for st in stations:
-        url = f"https://api.tidesandcurrents.noaa.gov/api/v1/datagetter?begin_date={today_str}&range=24&station={st['id']}&product=predictions&datum=MLLW&time_zone=lst_ldt&units=english&interval=hilo&format=json"
+        url = f"https://api.tidesandcurrents.noaa.gov/api/v1/datagetter?date=today&station={st['id']}&product=predictions&datum=MLLW&time_zone=lst_ldt&units=english&interval=hilo&format=json"
         res = http_get_json(url)
         predictions = res.get("predictions", []) if res and isinstance(res, dict) else []
         
@@ -202,15 +232,15 @@ def test_building_permits(cities):
     print("🏗️ [3/5] Harvesting Active Municipal Building Permits (Seattle, King, Snohomish)...")
     permits_by_city = {c["slug"]: {"name": c["name"], "permits": []} for c in cities}
     
-    # 1. Seattle Socrata Permits with full street address parsing
+    # 1. Seattle Socrata Active Permits
     socrata_url = "https://data.seattle.gov/resource/76t5-zqzr.json?$limit=200&$order=issueddate%20DESC"
     s_permits = http_get_json(socrata_url)
     
     if s_permits and isinstance(s_permits, list) and "seattle" in permits_by_city:
         for p in s_permits:
-            addr = p.get("originaladdress") or p.get("address") or p.get("site_address") or "Seattle, WA"
-            lat = p.get("latitude") or p.get("latitude_location")
-            lon = p.get("longitude") or p.get("longitude_location")
+            addr = p.get("originaladdress") or p.get("address") or "Seattle, WA"
+            lat = p.get("latitude")
+            lon = p.get("longitude")
             
             permits_by_city["seattle"]["permits"].append({
                 "permit_number": p.get("permitnum"),
@@ -274,7 +304,7 @@ def test_ev_scores(cities):
         
     save_json(EV_SCORES_PATH, output)
 
-# --- TEST MODULE 5: PROPERTY TAX STABILITY & GROWTH INDEX (0-100) ---
+# --- TEST MODULE 5: PROPERTY TAX STABILITY & GROWTH INDEX ---
 def test_tax_trends(cities):
     print("🏛️ [5/5] Calculating Municipal Property Tax Stability & Growth Index...")
     
