@@ -300,373 +300,271 @@ class LiveBanner extends HTMLElement {
     }
 }
 
-// File: worker.js
-
-export default {
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    const pathname = url.pathname.toLowerCase();
-
-    // 1. Establish robust CORS response headers
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Max-Age": "86400",
-    };
-
-    // 2. Intercept browser safety preflight checks (OPTIONS)
-    if (request.method === "OPTIONS") {
-      return new Response(null, { headers: corsHeaders });
+/* ==========================================================================
+   5. AUTHOR CMS PUBLISHER WEB SUITE (<cms-publisher>)
+   ========================================================================== */
+class CMSPublisher extends HTMLElement {
+    constructor() {
+        super();
+        this.authKey = "";
+        this.author = null;
+        this.authorPosts = [];
+        this.editingSlug = null;
     }
 
-    // ====================================================================
-    // ROUTE 1: PROTECTED CMS PUBLISHER SUITE (/publisher)
-    // ====================================================================
-    if (pathname.startsWith("/publisher")) {
-      // A. GET ROUTE: Fetch author session and 10 recent posts via Apps Script
-      if (request.method === "GET") {
-        const authKey = url.searchParams.get("AUTHKEY") || url.searchParams.get("AuthKey") || url.searchParams.get("auth_key") || "";
-        if (!authKey) {
-          return new Response(JSON.stringify({ status: "error", message: "Missing AuthKey parameter." }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
-          });
-        }
+    async connectedCallback() {
+        const urlParams = new URLSearchParams(window.location.search);
+        this.authKey = urlParams.get("AUTHKEY") || urlParams.get("AuthKey") || urlParams.get("auth_key") || "";
 
-        const appsScriptUrl = env.APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycby1g96t4ibQzFPaTqkHYtZFgWAaZLNso9YhF2Usw5VGV3Qmzwcr45mnY75nT9fYhxkG/exec";
-        const res = await fetch(`${appsScriptUrl}?AUTHKEY=${encodeURIComponent(authKey)}`);
-        const data = await res.json();
-        
-        return new Response(JSON.stringify(data), {
-          status: res.status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
+        if (!this.authKey) return;
 
-      // B. POST ROUTE: Authenticate AuthKey, upload R2 WebP images, commit .md to GitHub, and rebuild
-      if (request.method === "POST") {
+        this.innerHTML = `<div style="text-align:center; padding: 3rem; color: var(--premier-charcoal);">Authenticating author session...</div>`;
+
         try {
-          const formData = await request.formData();
-          const authKey = formData.get("AUTHKEY") || formData.get("AuthKey") || formData.get("auth_key") || "";
-
-          if (!authKey) {
-            return new Response(JSON.stringify({ status: "error", message: "Unauthorized: Missing AuthKey." }), {
-              status: 403,
-              headers: { ...corsHeaders, "Content-Type": "application/json" }
-            });
-          }
-
-          // SERVER-SIDE AUTHKEY VERIFICATION WITH APPS SCRIPT
-          const appsScriptUrl = env.APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycby1g96t4ibQzFPaTqkHYtZFgWAaZLNso9YhF2Usw5VGV3Qmzwcr45mnY75nT9fYhxkG/exec";
-          const verifyRes = await fetch(`${appsScriptUrl}?AUTHKEY=${encodeURIComponent(authKey)}`);
-          const verifyData = await verifyRes.json();
-
-          if (!verifyRes.ok || verifyData.status !== "success") {
-            return new Response(JSON.stringify({ status: "error", message: "Unauthorized: Invalid AuthKey." }), {
-              status: 403,
-              headers: { ...corsHeaders, "Content-Type": "application/json" }
-            });
-          }
-
-          const teamId = verifyData.teamId;
-          const postType = (formData.get("type") || "post").toLowerCase();
-          const title = formData.get("title") || "Untitled";
-          const headline = formData.get("headline") || "";
-          const subhead = formData.get("subhead") || "";
-          const tags = formData.get("tags") || "";
-          const content = formData.get("content") || "";
-          const url1Label = formData.get("url_1_label") || "";
-          const url1 = formData.get("url_1") || "";
-          const url2Label = formData.get("url_2_label") || "";
-          const url2 = formData.get("url_2") || "";
-          const editingSlug = formData.get("editingSlug") || "";
-
-          const todayStr = new Date().toISOString().split("T")[0];
-          const rawSlug = editingSlug || `${todayStr}-${slugify(title)}`;
-          const postSlug = rawSlug.replace(/^(\d{4}-\d{2}-\d{2}-)+/, `${todayStr}-`);
-
-          // OPTIMIZE & UPLOAD IMAGES DIRECTLY TO CLOUDFLARE R2
-          const imageUrls = [];
-          for (let i = 1; i <= 5; i++) {
-            const file = formData.get(`image_${i}`);
-            if (file && file instanceof File && file.size > 0) {
-              const r2Key = `cms/${postSlug}-img-${i}.webp`;
-              await env.MYSEATTLESEARCH_R2.put(r2Key, file.stream(), {
-                httpMetadata: { contentType: "image/webp" }
-              });
-              imageUrls.push(`https://assets.myseattlesearch.com/${r2Key}`);
-            } else {
-              imageUrls.push("");
+            // 1. Fetch team roster data with fallback handling
+            let teamData = [];
+            try {
+                const teamRes = await fetch('/data/team.json');
+                if (teamRes.ok) teamData = await teamRes.json();
+            } catch (e) {
+                console.warn("Could not load local team.json, using session fallbacks:", e);
             }
-          }
 
-          // CONSTRUCT NUNJUCKS FRONT-MATTER & MARKDOWN PAYLOAD
-          const tagsFormatted = tags.split(",").map(t => `"${t.trim()}"`).filter(t => t !== '""').join(", ");
-          const markdownContent = `---
-layout: post.njk
-title: "${title.replace(/"/g, '\\"')}"
-headline: "${headline.replace(/"/g, '\\"')}"
-subhead: "${subhead.replace(/"/g, '\\"')}"
-date: ${todayStr}
-author: "${teamId}"
-tags: [${tagsFormatted}]
-type: "${postType}"
-url_1_label: "${url1Label}"
-url_1: "${url1}"
-url_2_label: "${url2Label}"
-url_2: "${url2}"
-image_1: "${imageUrls[0]}"
-image_2: "${imageUrls[1]}"
-image_3: "${imageUrls[2]}"
-image_4: "${imageUrls[3]}"
-image_5: "${imageUrls[4]}"
----
-${content}`;
-
-          // COMMIT FILE DIRECTLY TO GITHUB REPOSITORY
-          const repoPath = `posts/${postSlug}.md`;
-          const ghRepo = env.GH_REPO || "joe-sheldon-lofte/myseattlesearch";
-          const ghApiUrl = `https://api.github.com/repos/${ghRepo}/contents/${repoPath}`;
-
-          let sha = "";
-          const existingFileRes = await fetch(ghApiUrl, {
-            headers: {
-              "Authorization": `Bearer ${env.GH_PAT}`,
-              "User-Agent": "Cloudflare-Worker-CMS",
-              "Accept": "application/vnd.github.v3+json"
+            // 2. Fetch author session & past posts through Cloudflare Worker CORS Proxy
+            const workerUrl = 'https://myseattlesearch-quiz-gateway.joe-54b.workers.dev/publisher';
+            const pubRes = await fetch(`${workerUrl}?AUTHKEY=${encodeURIComponent(this.authKey)}`);
+            
+            if (!pubRes.ok) {
+                this.innerHTML = `<div style="text-align:center; padding: 2rem; color: var(--card-accent-color); font-weight: bold;">Authentication Failed: Gateway connection error (${pubRes.status}).</div>`;
+                return;
             }
-          });
-          if (existingFileRes.ok) {
-            const existingFileData = await existingFileRes.json();
-            sha = existingFileData.sha;
-          }
 
-          const commitPayload = {
-            message: `CMS Publisher: ${editingSlug ? 'Update' : 'Create'} ${postSlug}.md`,
-            content: btoa(unescape(encodeURIComponent(markdownContent))),
-            branch: "main"
-          };
-          if (sha) commitPayload.sha = sha;
+            const sessionData = await pubRes.json();
+            if (sessionData.status !== "success") {
+                this.innerHTML = `<div style="text-align:center; padding: 2rem; color: var(--card-accent-color); font-weight: bold;">Authentication Failed: ${sessionData.message || "Invalid AuthKey"}.</div>`;
+                return;
+            }
 
-          const commitRes = await fetch(ghApiUrl, {
-            method: "PUT",
-            headers: {
-              "Authorization": `Bearer ${env.GH_PAT}`,
-              "User-Agent": "Cloudflare-Worker-CMS",
-              "Content-Type": "application/json",
-              "Accept": "application/vnd.github.v3+json"
-            },
-            body: JSON.stringify(commitPayload)
-          });
+            const teamIdStr = String(sessionData.teamId || "").replace(".0", "").trim();
+            const matchedTeam = (Array.isArray(teamData) ? teamData.find(m => String(m.id).replace(".0", "").trim() === teamIdStr) : null) || {};
 
-          if (!commitRes.ok) {
-            const commitErr = await commitRes.text();
-            throw new Error(`GitHub Commit Error: ${commitErr}`);
-          }
+            this.author = {
+                teamId: teamIdStr || matchedTeam.id || "1",
+                name: sessionData.name || matchedTeam.name || "Joe Sheldon",
+                position: matchedTeam.position || "Senior Real Estate Agent",
+                photo: matchedTeam.photo || "https://assets.myseattlesearch.com/repomove/joe.webp",
+                description: matchedTeam.description || "",
+                email: matchedTeam.email || "joe.sheldon@redfin.com"
+            };
 
-          // TRIGGER ELEVENTY BUILD DISPATCH EVENT
-          const dispatchUrl = `https://api.github.com/repos/${ghRepo}/actions/workflows/deploy-site.yml/dispatches`;
-          await fetch(dispatchUrl, {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${env.GH_PAT}`,
-              "User-Agent": "Cloudflare-Worker-CMS",
-              "Content-Type": "application/json",
-              "Accept": "application/vnd.github.v3+json"
-            },
-            body: JSON.stringify({ ref: "main" })
-          });
-
-          return new Response(JSON.stringify({
-            status: "success",
-            message: "Post published and site build dispatched.",
-            slug: postSlug
-          }), {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
-          });
-
+            this.authorPosts = sessionData.recentPosts || [];
+            this.renderPublisherSuite();
         } catch (err) {
-          return new Response(JSON.stringify({ status: "error", message: err.message }), {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
-          });
+            console.error("Publisher Suite Hydration Error:", err);
+            this.innerHTML = `<div style="text-align:center; padding: 2rem; color: var(--card-accent-color); font-weight: bold;">Unable to load publishing suite interface: ${err.message}</div>`;
         }
-      }
     }
 
-    // ====================================================================
-    // ROUTE 2: EXISTING PUBLIC QUIZZES & EVENTS GOOGLE SHEETS INGESTION
-    // ====================================================================
-    if (request.method !== "POST") {
-      return new Response(JSON.stringify({ error: "Method not allowed. Use POST." }), {
-        status: 405,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+    renderPublisherSuite() {
+        this.innerHTML = `
+            <div style="background: var(--white); padding: 2rem; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); margin-bottom: 2rem; border-top: 5px solid var(--card-accent-color);">
+                <div style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
+                    <img src="${this.author.photo}" alt="${this.author.name}" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--card-accent-color);" />
+                    <div style="flex: 1;">
+                        <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--card-accent-color);">Authenticated Author Session (Team ID: ${this.author.teamId})</span>
+                        <h2 style="margin: 0.2rem 0; font-size: 1.6rem; color: var(--premier-charcoal);">${this.author.name}</h2>
+                        <p style="margin: 0 0 0.5rem 0; font-weight: 700; color: rgba(0,0,0,0.6); font-size: 0.9rem;">${this.author.position}</p>
+                        <p style="margin: 0; font-size: 0.9rem; line-height: 1.4; opacity: 0.85;">${this.author.description}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: var(--white); padding: 2rem; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); margin-bottom: 2.5rem; border: 1px solid var(--premier-beige);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h3 id="form-mode-title" style="margin: 0; color: var(--premier-charcoal); font-size: 1.3rem;">Create New Post</h3>
+                    <button id="cancel-edit-btn" style="display: none; background: transparent; border: 1px solid var(--card-accent-color); color: var(--card-accent-color); padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: 700; cursor: pointer;">Cancel Editing</button>
+                </div>
+
+                <form id="publisher-editor-form" style="display: flex; flex-direction: column; gap: 1.2rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label style="display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem;">Entry Type *</label>
+                            <select id="post-type" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--premier-beige); border-radius: 6px; font-size: 0.95rem;">
+                                <option value="post">Post (Short Update)</option>
+                                <option value="note">Note (Focused Commentary)</option>
+                                <option value="article">Article (Full Markdown Publication)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem;">Tags (comma-separated)</label>
+                            <input type="text" id="post-tags" placeholder="e.g. real-estate, kirkland, open-house" style="width: 100%; padding: 0.75rem; border: 1px solid var(--premier-beige); border-radius: 6px; font-size: 0.95rem; box-sizing: border-box;" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem;">Title *</label>
+                        <input type="text" id="post-title" required placeholder="Entry Title" style="width: 100%; padding: 0.75rem; border: 1px solid var(--premier-beige); border-radius: 6px; font-size: 0.95rem; box-sizing: border-box;" />
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem;">Headline (Displayed on Card)</label>
+                        <input type="text" id="post-headline" placeholder="Public headline text..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--premier-beige); border-radius: 6px; font-size: 0.95rem; box-sizing: border-box;" />
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem;">Subhead</label>
+                        <input type="text" id="post-subhead" placeholder="Brief subtitle or summary..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--premier-beige); border-radius: 6px; font-size: 0.95rem; box-sizing: border-box;" />
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem;">Content (Full Markdown Supported) *</label>
+                        <textarea id="post-content" required rows="10" placeholder="Write update in Markdown..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--premier-beige); border-radius: 6px; font-size: 0.95rem; font-family: monospace; box-sizing: border-box; line-height: 1.5;"></textarea>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label style="display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem;">URL 1 Label & Link</label>
+                            <input type="text" id="url-1-label" placeholder="Button 1 Label" style="width: 100%; padding: 0.5rem; margin-bottom: 0.4rem; border: 1px solid var(--premier-beige); border-radius: 4px; box-sizing: border-box;" />
+                            <input type="url" id="url-1" placeholder="https://..." style="width: 100%; padding: 0.5rem; border: 1px solid var(--premier-beige); border-radius: 4px; box-sizing: border-box;" />
+                        </div>
+                        <div>
+                            <label style="display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem;">URL 2 Label & Link</label>
+                            <input type="text" id="url-2-label" placeholder="Button 2 Label" style="width: 100%; padding: 0.5rem; margin-bottom: 0.4rem; border: 1px solid var(--premier-beige); border-radius: 4px; box-sizing: border-box;" />
+                            <input type="url" id="url-2" placeholder="https://..." style="width: 100%; padding: 0.5rem; border: 1px solid var(--premier-beige); border-radius: 4px; box-sizing: border-box;" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem;">Attach Images (Up to 5 files - Uploaded directly to R2 as WebP)</label>
+                        <input type="file" id="image-files" multiple accept="image/*" style="width: 100%; padding: 0.75rem; border: 2px dashed var(--premier-beige); border-radius: 6px; box-sizing: border-box; background: rgba(0,0,0,0.01);" />
+                        <div id="image-upload-status" style="font-size: 0.85rem; color: var(--card-accent-color); margin-top: 0.4rem;"></div>
+                    </div>
+
+                    <button type="submit" id="submit-post-btn" style="padding: 1rem; background-color: var(--card-accent-color); color: var(--white); border: none; border-radius: 6px; font-weight: 800; font-size: 1rem; cursor: pointer; letter-spacing: 0.5px; margin-top: 0.5rem;">
+                        Publish Entry
+                    </button>
+                </form>
+            </div>
+
+            <div style="background: var(--white); padding: 2rem; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid var(--premier-beige);">
+                <h3 style="margin: 0 0 1.25rem 0; color: var(--premier-charcoal);">Recent 10 Published Entries</h3>
+                <div id="author-archive-list" style="display: flex; flex-direction: column; gap: 1rem;">
+                    ${this.renderArchiveList()}
+                </div>
+            </div>
+        `;
+
+        this.bindEvents();
     }
 
-    try {
-      // Extract the clean submission payload sent from your website frontend
-      const payload = await request.json();
-      const { quizId, sheetName: customSheetName, rowData } = payload;
+    renderArchiveList() {
+        if (!this.authorPosts || this.authorPosts.length === 0) {
+            return `<p style="opacity: 0.7; font-style: italic;">No previous entries found.</p>`;
+        }
 
-      // Validate that we have row data AND at least one valid routing parameter
-      if (!rowData || (!quizId && !customSheetName)) {
-        return new Response(JSON.stringify({ error: "Missing required parameters (rowData and either quizId or sheetName) in payload." }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-
-      // MULTI-WORKBOOK ROUTING MATRIX
-      const QUIZZES_SPREADSHEET_ID = "1L_kxk9RuutO29uDwjI1VLdxK3eLeHhmXCoxjSGIGohc";
-      const WEBSITE_DATA_SPREADSHEET_ID = "1WpMB4uciEaNOl6P4g7TnBJozmuT-8QUtSdWuxms4qL0";
-
-      let targetSpreadsheetId;
-      let targetSheetName;
-
-      // Route based on incoming payload configuration
-      if (customSheetName) {
-        // Event Registrations or Custom Tab Route -> Website Data Workbook
-        targetSpreadsheetId = WEBSITE_DATA_SPREADSHEET_ID;
-        targetSheetName = customSheetName;
-      } else {
-        // Standard Quiz Route -> Quizzes Workbook
-        targetSpreadsheetId = QUIZZES_SPREADSHEET_ID;
-        targetSheetName = `Results_${quizId}`;
-      }
-
-      // Retrieve encrypted environment variables from Cloudflare dashboard vault
-      const clientEmail = env.GOOGLE_CLIENT_EMAIL;
-      const privateKeyRaw = env.GOOGLE_PRIVATE_KEY;
-
-      if (!clientEmail || !privateKeyRaw) {
-        return new Response(JSON.stringify({ error: "System Error: Google API secrets missing from Worker vault." }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-
-      // Request a secure authorization token using Web Crypto functions
-      const accessToken = await getGoogleOAuthToken(clientEmail, privateKeyRaw);
-
-      // Handshake directly with Google Sheets API v4 to safely append the fresh row data
-      const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${targetSpreadsheetId}/values/${encodeURIComponent(targetSheetName)}!A:A:append?valueInputOption=USER_ENTERED`;
-      
-      const sheetsResponse = await fetch(appendUrl, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          values: [rowData]
-        })
-      });
-
-      const sheetsResult = await sheetsResponse.json();
-      if (!sheetsResponse.ok) {
-        return new Response(JSON.stringify({ error: "Google Sheets API write failed", details: sheetsResult }), {
-          status: sheetsResponse.status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-
-      return new Response(JSON.stringify({ success: true, message: `Lead written securely to ${targetSheetName} ledger.` }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
-
-    } catch (err) {
-      return new Response(JSON.stringify({ error: "Internal Gateway Fault", message: err.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+        return this.authorPosts.slice(0, 10).map(post => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border: 1px solid var(--premier-beige); border-radius: 6px; background: var(--dynamic-bg-highlight);">
+                <div>
+                    <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: var(--card-accent-color); display: inline-block; margin-bottom: 0.2rem;">${post.type || 'post'} • ${post.date || ''}</span>
+                    <h4 style="margin: 0; font-size: 1rem; color: var(--premier-charcoal);">${post.title || post.headline || 'Untitled'}</h4>
+                </div>
+                <button class="edit-post-btn" data-slug="${post.slug}" style="padding: 0.4rem 0.9rem; background-color: var(--premier-charcoal); color: var(--white); border: none; border-radius: 4px; font-weight: 700; cursor: pointer; font-size: 0.8rem;">
+                    Edit
+                </button>
+            </div>
+        `).join('');
     }
-  }
-};
 
-// ====================================================================
-// CRYPTOGRAPHIC WEB CRYPTO SERVICE HELPERS (STANDALONE SIGN-ENGINE)
-// ====================================================================
+    bindEvents() {
+        const form = this.querySelector('#publisher-editor-form');
+        const cancelBtn = this.querySelector('#cancel-edit-btn');
 
-function slugify(text) {
-  return String(text || "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/[\s-]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
+        this.querySelectorAll('.edit-post-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const slug = e.target.getAttribute('data-slug');
+                const post = this.authorPosts.find(p => p.slug === slug);
+                if (post) {
+                    this.editingSlug = slug;
+                    this.querySelector('#form-mode-title').textContent = `Editing Post: ${post.title || slug}`;
+                    cancelBtn.style.display = 'inline-block';
 
-function base64url(source) {
-  const base64 = btoa(typeof source === "string" ? source : String.fromCharCode(...new Uint8Array(source)));
-  return base64.replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-}
+                    this.querySelector('#post-type').value = post.type || 'post';
+                    this.querySelector('#post-title').value = post.title || '';
+                    this.querySelector('#post-headline').value = post.headline || '';
+                    this.querySelector('#post-subhead').value = post.subhead || '';
+                    this.querySelector('#post-tags').value = (post.tags || []).join(', ');
+                    this.querySelector('#post-content').value = post.content || '';
+                    this.querySelector('#url-1-label').value = post.url_1_label || '';
+                    this.querySelector('#url-1').value = post.url_1 || '';
+                    this.querySelector('#url-2-label').value = post.url_2_label || '';
+                    this.querySelector('#url-2').value = post.url_2 || '';
 
-async function getGoogleOAuthToken(clientEmail, privateKeyRaw) {
-  const now = Math.floor(Date.now() / 1000);
-  const expiry = now + 3600;
+                    window.scrollTo({ top: form.offsetTop - 100, behavior: 'smooth' });
+                }
+            });
+        });
 
-  const header = JSON.stringify({ alg: "RS256", typ: "JWT" });
-  const claimSet = JSON.stringify({
-    iss: clientEmail,
-    scope: "https://www.googleapis.com/auth/spreadsheets",
-    aud: "https://oauth2.googleapis.com/token",
-    exp: expiry,
-    iat: now
-  });
+        cancelBtn.addEventListener('click', () => {
+            this.editingSlug = null;
+            form.reset();
+            this.querySelector('#form-mode-title').textContent = 'Create New Post';
+            cancelBtn.style.display = 'none';
+        });
 
-  const encodedHeader = base64url(header);
-  const encodedClaimSet = base64url(claimSet);
-  const signatureInput = `${encodedHeader}.${encodedClaimSet}`;
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = this.querySelector('#submit-post-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Optimizing & Publishing...';
 
-  let cleanKey = privateKeyRaw.trim();
-  if ((cleanKey.startsWith('"') && cleanKey.endsWith('"')) || (cleanKey.startsWith("'") && cleanKey.endsWith("'"))) {
-    cleanKey = cleanKey.slice(1, -1);
-  }
+            const fileInput = this.querySelector('#image-files');
+            const files = Array.from(fileInput.files).slice(0, 5);
 
-  const pemContents = cleanKey
-    .replace(/-----BEGIN [A-Z ]+-----/g, "")
-    .replace(/-----END [A-Z ]+-----/g, "")
-    .replace(/\\n/g, "")
-    .replace(/[\r\n\s"']/g, "");
+            const formData = new FormData();
+            formData.append('AUTHKEY', this.authKey);
+            formData.append('type', this.querySelector('#post-type').value);
+            formData.append('title', this.querySelector('#post-title').value);
+            formData.append('headline', this.querySelector('#post-headline').value);
+            formData.append('subhead', this.querySelector('#post-subhead').value);
+            formData.append('tags', this.querySelector('#post-tags').value);
+            formData.append('content', this.querySelector('#post-content').value);
+            formData.append('url_1_label', this.querySelector('#url-1-label').value);
+            formData.append('url_1', this.querySelector('#url-1').value);
+            formData.append('url_2_label', this.querySelector('#url-2-label').value);
+            formData.append('url_2', this.querySelector('#url-2').value);
+            formData.append('author', this.author.teamId);
 
-  const binaryDerString = atob(pemContents);
-  const binaryDer = new Uint8Array(binaryDerString.length);
-  for (let i = 0; i < binaryDerString.length; i++) {
-    binaryDer[i] = binaryDerString.charCodeAt(i);
-  }
+            if (this.editingSlug) {
+                formData.append('editingSlug', this.editingSlug);
+            }
 
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8",
-    binaryDer.buffer,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
+            files.forEach((file, idx) => {
+                formData.append(`image_${idx + 1}`, file);
+            });
 
-  const signature = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    cryptoKey,
-    new TextEncoder().encode(signatureInput)
-  );
+            try {
+                const res = await fetch('https://myseattlesearch-quiz-gateway.joe-54b.workers.dev/publisher', {
+                    method: 'POST',
+                    body: formData
+                });
 
-  const jwt = `${signatureInput}.${base64url(signature)}`;
-
-  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
-  });
-
-  const tokenData = await tokenResponse.json();
-  if (!tokenResponse.ok) {
-    throw new Error(`OAuth token claim rejected: ${tokenData.error_description || tokenData.error}`);
-  }
-
-  return tokenData.access_token;
+                if (res.ok) {
+                    alert('Entry successfully published & live site rebuild triggered!');
+                    window.location.reload();
+                } else {
+                    const err = await res.json();
+                    alert(`Publishing error: ${err.message || 'Server failed to save entry.'}`);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Publish Entry';
+                }
+            } catch (err) {
+                console.error('Publish submission failed:', err);
+                alert('Connection error submitting entry to gateway.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Publish Entry';
+            }
+        });
+    }
 }
 
 /**
