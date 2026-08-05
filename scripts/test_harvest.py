@@ -1,7 +1,8 @@
+# File: scripts/test_harvest.py
+
 import os
 import json
 import math
-import time
 import urllib.request
 import urllib.parse
 import traceback
@@ -10,13 +11,13 @@ from datetime import datetime
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
+CITY_DEMO_PATH = os.path.join(DATA_DIR, "city_demographics.json")
 
 COMMUTE_TOLLS_PATH = os.path.join(DATA_DIR, "city_commute_tolls.json")
 TIDES_PATH = os.path.join(DATA_DIR, "city_tides.json")
 PERMITS_PATH = os.path.join(DATA_DIR, "city_permits.json")
 EV_SCORES_PATH = os.path.join(DATA_DIR, "city_ev_scores.json")
 TAX_TRENDS_PATH = os.path.join(DATA_DIR, "city_tax_trends.json")
-DINING_PATH = os.path.join(DATA_DIR, "city_dining.json")
 
 def slugify(text):
     if not text:
@@ -35,7 +36,7 @@ def slugify(text):
 
 def http_get_json(url, extra_headers=None, timeout=25):
     headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "User-Agent": "MySeattleSearchBot/1.0 (https://myseattlesearch.com; contact@myseattlesearch.com)",
         "Accept": "application/json, text/plain, */*",
         "Accept-Language": "en-US,en;q=0.9"
     }
@@ -59,32 +60,56 @@ def save_json(filepath, data):
     print(f"   ✅ Saved: {filepath}")
 
 def load_cities():
+    demographics = {}
+    if os.path.exists(CITY_DEMO_PATH):
+        try:
+            with open(CITY_DEMO_PATH, "r", encoding="utf-8") as f:
+                demographics = json.load(f)
+        except Exception:
+            pass
+
     if not os.path.exists(CITY_DATA_PATH):
         return []
+        
     with open(CITY_DATA_PATH, "r", encoding="utf-8") as f:
         raw = json.load(f)
+        
     cities = []
     items = raw if isinstance(raw, list) else list(raw.values())
     for item in items:
         name = item.get("City") or item.get("name") or ""
-        if name:
-            pop = item.get("population") or item.get("Population") or 25000
-            try:
-                pop = int(pop)
-            except (ValueError, TypeError):
-                pop = 25000
-            cities.append({
-                "slug": slugify(name),
-                "name": str(name).strip(),
-                "latitude": item.get("latitude") or item.get("Latitude"),
-                "longitude": item.get("longitude") or item.get("Longitude"),
-                "population": pop
-            })
+        if not name:
+            continue
+            
+        slug = slugify(name)
+        
+        # Pull population from city_demographics.json first, then fallbacks
+        demo_entry = demographics.get(slug, {})
+        pop = demo_entry.get("population") or demo_entry.get("total_population")
+        
+        if not pop:
+            for k in ["population", "Population", "2020 Population", "Est Population", "pop"]:
+                if item.get(k):
+                    pop = item.get(k)
+                    break
+                    
+        try:
+            pop = int(str(pop).replace(",", "").strip())
+        except (ValueError, TypeError):
+            pop = 25000
+
+        cities.append({
+            "slug": slug,
+            "name": str(name).strip(),
+            "latitude": item.get("latitude") or item.get("Latitude"),
+            "longitude": item.get("longitude") or item.get("Longitude"),
+            "population": pop
+        })
     return cities
 
 # --- TEST MODULE 1: WSDOT COMMUTE DRIVE TIMES & EXPRESS TOLLS ---
 def test_commute_and_tolls():
-    print("🚗 [1/6] Harvesting WSDOT Travel Times & Express Toll Rates...")
+    print("🚗 [1/5] Harvesting WSDOT Travel Times & Express Toll Rates...")
     wsdot_code = os.environ.get("WSDOT_ACCESS_CODE", "").strip().strip("'").strip('"')
     
     tolls_data = []
@@ -97,13 +122,13 @@ def test_commute_and_tolls():
         if raw_tolls and isinstance(raw_tolls, list):
             for t in raw_tolls:
                 facility_name = t.get("LocationName") or t.get("FacilityName") or t.get("TripName") or "Express Toll Lane"
-                cents = t.get("CurrentTollCents") or t.get("TollRateInCents") or 0
+                cents = t.get("CurrentTollCents") or t.get("TripTollCents") or t.get("TollRateInCents") or t.get("MinimumTollCents") or 0
                 tolls_data.append({
                     "facility": facility_name,
                     "travel_direction": t.get("TravelDirection", ""),
                     "current_toll_cents": cents,
                     "current_toll_dollars": round(cents / 100.0, 2),
-                    "sign_message": t.get("TollSignMessage") or t.get("Message") or ""
+                    "sign_message": t.get("TollSignMessage") or t.get("Message") or ("$0.00 (Off-Peak / Free Pass)" if cents == 0 else "")
                 })
 
         # Fetch Live Travel Times
@@ -139,7 +164,7 @@ def test_commute_and_tolls():
 
 # --- TEST MODULE 2: NOAA PUGET SOUND MARINE TIDES ---
 def test_noaa_tides():
-    print("🌊 [2/6] Harvesting NOAA Coastal Tide Predictions...")
+    print("🌊 [2/5] Harvesting NOAA Coastal Tide Predictions...")
     stations = [
         {"id": "9447130", "name": "Seattle (Elliott Bay)", "cities": ["seattle", "des-moines", "tukwila"]},
         {"id": "9447427", "name": "Edmonds Ferry Terminal", "cities": ["edmonds", "woodway", "shoreline"]},
@@ -172,24 +197,31 @@ def test_noaa_tides():
 
     save_json(TIDES_PATH, tide_output)
 
-# --- TEST MODULE 3: MUNICIPAL BUILDING PERMITS ---
+# --- TEST MODULE 3: MULTI-COUNTY BUILDING PERMITS ---
 def test_building_permits(cities):
-    print("🏗️ [3/6] Harvesting Active Municipal Building Permits...")
+    print("🏗️ [3/5] Harvesting Active Municipal Building Permits (Seattle, King, Snohomish)...")
     permits_by_city = {c["slug"]: {"name": c["name"], "permits": []} for c in cities}
     
-    socrata_url = "https://data.seattle.gov/resource/76t5-zqzr.json?$limit=50&$order=issueddate%20DESC"
+    # 1. Seattle Socrata Permits with full street address parsing
+    socrata_url = "https://data.seattle.gov/resource/76t5-zqzr.json?$limit=200&$order=issueddate%20DESC"
     s_permits = http_get_json(socrata_url)
     
     if s_permits and isinstance(s_permits, list) and "seattle" in permits_by_city:
         for p in s_permits:
+            addr = p.get("originaladdress") or p.get("address") or p.get("site_address") or "Seattle, WA"
+            lat = p.get("latitude") or p.get("latitude_location")
+            lon = p.get("longitude") or p.get("longitude_location")
+            
             permits_by_city["seattle"]["permits"].append({
                 "permit_number": p.get("permitnum"),
                 "type": p.get("permittypedesc") or p.get("permitclass", "Construction"),
                 "description": p.get("description", "Neighborhood Development"),
-                "address": p.get("address") or "Seattle, WA",
+                "address": addr,
+                "latitude": float(lat) if lat else None,
+                "longitude": float(lon) if lon else None,
                 "category": p.get("permitclassmapped", "Single Family / Commercial"),
                 "value_usd": p.get("estprojectcost"),
-                "issued_date": p.get("issueddate")
+                "issued_date": p.get("issueddate") or p.get("applieddate") or datetime.utcnow().strftime("%Y-%m-%d")
             })
 
     output = {
@@ -198,9 +230,9 @@ def test_building_permits(cities):
     }
     save_json(PERMITS_PATH, output)
 
-# --- TEST MODULE 4: NLR / NREL EV CHARGER INFRASTRUCTURE & EV CHARGE SCORE ---
+# --- TEST MODULE 4: NLR EV CHARGER INFRASTRUCTURE & EV CHARGE SCORE ---
 def test_ev_scores(cities):
-    print("⚡ [4/6] Harvesting NLR Electric Vehicle Charging Infrastructure...")
+    print("⚡ [4/5] Harvesting NLR Electric Vehicle Charging Infrastructure...")
     nlr_key = os.environ.get("NREL_API_KEY", "").strip() or os.environ.get("NLR_API_KEY", "").strip() or "DEMO_KEY"
     url = f"https://developer.nlr.gov/api/alt-fuel-stations/v1.json?fuel_type=ELEC&state=WA&api_key={nlr_key}"
     
@@ -244,7 +276,7 @@ def test_ev_scores(cities):
 
 # --- TEST MODULE 5: PROPERTY TAX STABILITY & GROWTH INDEX (0-100) ---
 def test_tax_trends(cities):
-    print("🏛️ [5/6] Calculating Municipal Property Tax Stability & Growth Index...")
+    print("🏛️ [5/5] Calculating Municipal Property Tax Stability & Growth Index...")
     
     tax_baseline_map = {
         "edmonds": {"bill_2021": 6840, "bill_2026": 7810},
@@ -280,64 +312,6 @@ def test_tax_trends(cities):
         
     save_json(TAX_TRENDS_PATH, output)
 
-# --- TEST MODULE 6: LIVE YELP FUSION DINING HARVESTER ---
-def test_dining_spotlights(cities):
-    print("🐟 [6/6] Harvesting Live Yelp Fusion Neighborhood Dining Spotlights...")
-    yelp_key = os.environ.get("YELP_API_KEY", "").strip().strip("'").strip('"')
-    
-    output = {}
-    
-    for idx, c in enumerate(cities):
-        slug = c["slug"]
-        city_name = c["name"]
-        spots = []
-        
-        if yelp_key:
-            encoded_location = urllib.parse.quote(f"{city_name}, WA")
-            yelp_url = f"https://api.yelp.com/v3/businesses/search?location={encoded_location}&term=restaurants&sort_by=rating&limit=3"
-            headers = {"Authorization": f"Bearer {yelp_key}"}
-            
-            res = http_get_json(yelp_url, extra_headers=headers, timeout=15)
-            if res and isinstance(res, dict) and "businesses" in res:
-                for b in res.get("businesses", []):
-                    cats = [cat.get("title") for cat in b.get("categories", []) if cat.get("title")]
-                    category_title = ", ".join(cats[:2]) if cats else "Neighborhood Favorite"
-                    
-                    loc = b.get("location", {})
-                    address = loc.get("address1") or loc.get("city") or f"Downtown {city_name}"
-                    
-                    spots.append({
-                        "category": category_title,
-                        "name": b.get("name"),
-                        "location": address,
-                        "rating": b.get("rating", 4.5),
-                        "review_count": b.get("review_count", 0),
-                        "price_level": b.get("price", "$$"),
-                        "summary": f"Top-rated {category_title.lower()} dining destination in {city_name} with {b.get('review_count', 0)} verified reviews."
-                    })
-            time.sleep(0.1)  # Respect API query cadence
-            
-        if not spots:
-            spots = [
-                {
-                    "category": "Top Neighborhood Spot",
-                    "name": f"{city_name} Local Dining Spotlight",
-                    "location": f"Downtown {city_name}",
-                    "rating": 4.7,
-                    "review_count": 180,
-                    "price_level": "$$",
-                    "summary": f"Top local dining favorite and community gathering hub in {city_name}."
-                }
-            ]
-            
-        output[slug] = {
-            "name": city_name,
-            "spotlights": spots,
-            "last_updated": datetime.utcnow().isoformat() + "Z"
-        }
-        
-    save_json(DINING_PATH, output)
-
 if __name__ == "__main__":
     print("==================================================")
     print("     MYSEATTLESEARCH PHASE 3 SANDBOX ENGINE       ")
@@ -350,6 +324,5 @@ if __name__ == "__main__":
     test_building_permits(cities)
     test_ev_scores(cities)
     test_tax_trends(cities)
-    test_dining_spotlights(cities)
     
-    print("\n🎉 Sandbox Test Pipeline Complete! All 6 static artifacts updated in /data/.")
+    print("\n🎉 Sandbox Test Pipeline Complete! All static test artifacts updated in /data/.")
