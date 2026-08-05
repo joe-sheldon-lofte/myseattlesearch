@@ -37,12 +37,10 @@ def slugify(text):
     return res.strip('-')
 
 def http_get_json(url, extra_headers=None, timeout=25):
-    parsed_url = urllib.parse.urlparse(url)
     headers = {
-        "User-Agent": "MySeattleSearchBot/1.0 (https://myseattlesearch.com; contact@myseattlesearch.com)",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Host": parsed_url.netloc
+        "Accept-Language": "en-US,en;q=0.9"
     }
     if extra_headers:
         headers.update(extra_headers)
@@ -64,7 +62,7 @@ def save_json(filepath, data):
     print(f"   ✅ Saved: {filepath}")
 
 def load_cities():
-    # 1. Ingest dynamic population baseline from crime_stats.json
+    # 1. Dynamic population baseline from crime_stats.json
     crime_pop_map = {}
     if os.path.exists(CRIME_STATS_PATH):
         try:
@@ -120,7 +118,7 @@ def load_cities():
                         pass
                         
         if not pop or pop <= 0:
-            pop = 25000  # Default fallback if city is absent across datasets
+            pop = 25000  # Default fallback if city is unlisted
 
         cities.append({
             "slug": slug,
@@ -132,7 +130,7 @@ def load_cities():
         
     return cities
 
-# --- TEST MODULE 1: WSDOT COMMUTE DRIVE TIMES & LIVE EXPRESS TOLLS ---
+# --- TEST MODULE 1: WSDOT COMMUTE DRIVE TIMES & LIVE TOLLS ---
 def test_commute_and_tolls():
     print("🚗 [1/5] Harvesting WSDOT Travel Times & Express Toll Rates...")
     wsdot_code = os.environ.get("WSDOT_ACCESS_CODE", "").strip().strip("'").strip('"')
@@ -141,26 +139,58 @@ def test_commute_and_tolls():
     travel_times_data = []
 
     if wsdot_code:
-        # Fetch Live Toll Rates
-        tolls_url = f"https://wsdot.wa.gov/Traffic/api/TollRates/TollRatesREST.svc/GetTollRatesAsJson?AccessCode={wsdot_code}"
-        raw_tolls = http_get_json(tolls_url)
-        if raw_tolls and isinstance(raw_tolls, list):
-            for t in raw_tolls:
-                facility_name = t.get("LocationName") or t.get("FacilityName") or t.get("TripName") or "Express Toll Lane"
-                cents = t.get("CurrentTollCents") or t.get("TripTollCents") or t.get("TollRateInCents") or t.get("MinimumTollCents") or 0
+        # Fetch Live Point Tolls (HOT Lanes / Bridges) and Trip Rates
+        tolls_url_1 = f"https://wsdot.wa.gov/Traffic/api/TollRates/TollRatesREST.svc/GetTollRatesAsJson?AccessCode={wsdot_code}"
+        tolls_url_2 = f"https://wsdot.wa.gov/Traffic/api/TollRates/TollRatesREST.svc/GetTollTripRatesAsJson?AccessCode={wsdot_code}"
+        
+        raw_tolls_1 = http_get_json(tolls_url_1) or []
+        raw_tolls_2 = http_get_json(tolls_url_2) or []
+        
+        seen_facilities = set()
+        
+        # Ingest Trip Toll Endpoint (SR 520 Bridge, Tacoma Narrows, I-405, SR 167)
+        if isinstance(raw_tolls_2, list):
+            for t in raw_tolls_2:
+                facility_name = t.get("TripName") or t.get("LocationName") or t.get("FacilityName") or "Express Toll Corridor"
+                cents = t.get("TripTollCents") or t.get("CurrentTollCents") or t.get("TollRateInCents") or 0
                 dollars = round(cents / 100.0, 2)
                 
                 sign_msg = t.get("TollSignMessage") or t.get("Message") or ""
                 if cents == 0 and not sign_msg:
                     sign_msg = "$0.00 (Off-Peak / Free HOV Pass)"
 
-                tolls_data.append({
-                    "facility": facility_name,
-                    "travel_direction": t.get("TravelDirection", ""),
-                    "current_toll_cents": cents,
-                    "current_toll_dollars": dollars,
-                    "sign_message": sign_msg
-                })
+                key = f"{facility_name}_{t.get('TravelDirection', '')}"
+                if key not in seen_facilities:
+                    seen_facilities.add(key)
+                    tolls_data.append({
+                        "facility": facility_name,
+                        "travel_direction": t.get("TravelDirection", ""),
+                        "current_toll_cents": cents,
+                        "current_toll_dollars": dollars,
+                        "sign_message": sign_msg
+                    })
+
+        # Ingest Point Toll Endpoint
+        if isinstance(raw_tolls_1, list):
+            for t in raw_tolls_1:
+                facility_name = t.get("LocationName") or t.get("FacilityName") or "Toll Facility"
+                cents = t.get("CurrentTollCents") or t.get("TollRateInCents") or 0
+                dollars = round(cents / 100.0, 2)
+                
+                sign_msg = t.get("TollSignMessage") or t.get("Message") or ""
+                if cents == 0 and not sign_msg:
+                    sign_msg = "$0.00 (Off-Peak / Free HOV Pass)"
+
+                key = f"{facility_name}_{t.get('TravelDirection', '')}"
+                if key not in seen_facilities:
+                    seen_facilities.add(key)
+                    tolls_data.append({
+                        "facility": facility_name,
+                        "travel_direction": t.get("TravelDirection", ""),
+                        "current_toll_cents": cents,
+                        "current_toll_dollars": dollars,
+                        "sign_message": sign_msg
+                    })
 
         # Fetch Live Travel Times
         tt_url = f"https://wsdot.wa.gov/Traffic/api/TravelTimes/TravelTimesREST.svc/GetTravelTimesAsJson?AccessCode={wsdot_code}"
@@ -202,10 +232,11 @@ def test_noaa_tides():
         {"id": "9447659", "name": "Everett Harbor", "cities": ["everett", "mukilteo", "marysville"]}
     ]
     
+    today_str = datetime.utcnow().strftime("%Y%m%d")
     tide_output = {}
 
     for st in stations:
-        url = f"https://api.tidesandcurrents.noaa.gov/api/v1/datagetter?date=today&station={st['id']}&product=predictions&datum=MLLW&time_zone=lst_ldt&units=english&interval=hilo&format=json"
+        url = f"https://api.tidesandcurrents.noaa.gov/api/v1/datagetter?begin_date={today_str}&range=24&station={st['id']}&product=predictions&datum=MLLW&time_zone=lst_ldt&units=english&interval=hilo&format=json"
         res = http_get_json(url)
         predictions = res.get("predictions", []) if res and isinstance(res, dict) else []
         
@@ -253,6 +284,52 @@ def test_building_permits(cities):
                 "value_usd": p.get("estprojectcost"),
                 "issued_date": p.get("issueddate") or p.get("applieddate") or datetime.utcnow().strftime("%Y-%m-%d")
             })
+
+    # 2. King County Regional Permits (Socrata Open Data)
+    kc_url = "https://data.kingcounty.gov/resource/35eb-2msc.json?$limit=200&$order=applied_date%20DESC"
+    kc_permits = http_get_json(kc_url)
+    if kc_permits and isinstance(kc_permits, list):
+        for p in kc_permits:
+            c_name = slugify(p.get("jurisdiction") or p.get("city") or "")
+            if c_name in permits_by_city:
+                addr = p.get("address") or p.get("site_address") or f"{permits_by_city[c_name]['name']}, WA"
+                lat = p.get("latitude")
+                lon = p.get("longitude")
+                
+                permits_by_city[c_name]["permits"].append({
+                    "permit_number": p.get("permit_num") or p.get("permit_number"),
+                    "type": p.get("permit_type", "Construction"),
+                    "description": p.get("description") or p.get("project_name", "Municipal Development"),
+                    "address": addr,
+                    "latitude": float(lat) if lat else None,
+                    "longitude": float(lon) if lon else None,
+                    "category": p.get("permit_class", "General"),
+                    "value_usd": p.get("valuation") or p.get("project_valuation"),
+                    "issued_date": p.get("applied_date") or p.get("issue_date") or datetime.utcnow().strftime("%Y-%m-%d")
+                })
+
+    # 3. Snohomish County Regional Permits
+    snoco_url = "https://data.snoco.org/resource/pds-permits.json?$limit=200"
+    snoco_permits = http_get_json(snoco_url)
+    if snoco_permits and isinstance(snoco_permits, list):
+        for p in snoco_permits:
+            c_name = slugify(p.get("city") or p.get("jurisdiction") or "")
+            if c_name in permits_by_city:
+                addr = p.get("site_address") or p.get("address") or f"{permits_by_city[c_name]['name']}, WA"
+                lat = p.get("lat") or p.get("latitude")
+                lon = p.get("lon") or p.get("longitude")
+                
+                permits_by_city[c_name]["permits"].append({
+                    "permit_number": p.get("permit_number") or p.get("permit_id"),
+                    "type": p.get("permit_type", "Construction"),
+                    "description": p.get("description", "Neighborhood Development"),
+                    "address": addr,
+                    "latitude": float(lat) if lat else None,
+                    "longitude": float(lon) if lon else None,
+                    "category": p.get("category", "General"),
+                    "value_usd": p.get("valuation"),
+                    "issued_date": p.get("issued_date") or datetime.utcnow().strftime("%Y-%m-%d")
+                })
 
     output = {
         "city_permits": permits_by_city,
