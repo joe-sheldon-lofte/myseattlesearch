@@ -1,4 +1,3 @@
-# File: scripts/harvest_hourly.py
 import os
 import io
 import json
@@ -22,6 +21,12 @@ from dateutil.parser import UnknownTimezoneWarning
 from zoneinfo import ZoneInfo
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
+
+# Import standalone weather harvester module
+try:
+    from harvest_weather_hourly import harvest_weather_data
+except ImportError:
+    from scripts.harvest_weather_hourly import harvest_weather_data
 
 # Suppress dateutil PST/PDT unknown timezone warnings
 warnings.filterwarnings("ignore", category=UnknownTimezoneWarning)
@@ -63,16 +68,6 @@ FALLBACK_POPULATION = {
     "sultan": 7160, "woodway": 1345
 }
 
-KING_SNO_RIVER_GAUGES = [
-    "12119000",  # Cedar River at Renton
-    "12113000",  # Green River at Auburn
-    "12149000",  # Snoqualmie River near Carnation
-    "12155300",  # Snohomish River at Snohomish
-    "12134500",  # Skykomish River near Gold Bar
-    "12125200",  # Sammamish River at Bothell
-    "12167000"   # Stillaguamish River at Arlington
-]
-
 def slugify(text):
     if not text:
         return ""
@@ -113,7 +108,6 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
-# Spatial Point-in-Polygon Engine
 def get_geometry_bbox(geometry):
     g_type = geometry.get("type")
     coords = geometry.get("coordinates", [])
@@ -329,136 +323,6 @@ def load_sheets_admin_config_local():
             print(f"Local Transit Data Read Notice: {e}")
 
     return config
-
-def harvest_weather(cities):
-    print("⛅ Ingesting Weather Forecasts via Open-Meteo...")
-    valid_cities = [c for c in cities if c["latitude"] is not None and c["longitude"] is not None]
-    if not valid_cities:
-        return
-
-    chunk_size = 10
-    output = {}
-    
-    for i in range(0, len(valid_cities), chunk_size):
-        chunk = valid_cities[i:i + chunk_size]
-        lats = [str(c["latitude"]) for c in chunk]
-        lons = [str(c["longitude"]) for c in chunk]
-        
-        params = {
-            "latitude": ",".join(lats),
-            "longitude": ",".join(lons),
-            "current": "temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m",
-            "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max",
-            "temperature_unit": "fahrenheit",
-            "wind_speed_unit": "mph",
-            "precipitation_unit": "inch",
-            "timezone": "America/Los_Angeles"
-        }
-        
-        url = f"https://api.open-meteo.com/v1/forecast?{urllib.parse.urlencode(params)}"
-        try:
-            results = http_get_json_simple(url, timeout=15)
-            if results:
-                if isinstance(results, dict):
-                    results = [results]
-                for idx, city in enumerate(chunk):
-                    if idx < len(results):
-                        res = results[idx]
-                        output[city["slug"]] = {
-                            "name": city["name"],
-                            "last_updated": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                            "current": res.get("current", {}),
-                            "forecast": res.get("daily", {})
-                        }
-        except Exception as e:
-            print(f"Weather Batch Error (Chunk {i}): {e}")
-            
-    if output:
-        target_path = os.path.join(DATA_DIR, "city_weather.json")
-        with open(target_path, "w", encoding="utf-8") as f:
-            json.dump(output, f, indent=2, ensure_ascii=False)
-        print(f"   ✅ Weather updated across {len(output)} cities.")
-
-def harvest_environment(cities):
-    print("🌊 Ingesting River Flood Gauges (USGS) & EPA AirNow Air Quality...")
-    
-    # 1. USGS River Flood Gauges
-    stations_param = ",".join(KING_SNO_RIVER_GAUGES)
-    usgs_url = f"https://waterservices.usgs.gov/nwis/iv/?format=json&sites={stations_param}&parameterCd=00060,00065&siteStatus=active"
-    gauge_data = []
-    
-    try:
-        res = http_get_json_simple(usgs_url, timeout=20)
-        if res:
-            time_series = res.get("value", {}).get("timeSeries", [])
-            for ts in time_series:
-                site_name = ts.get("sourceInfo", {}).get("siteName")
-                values = ts.get("values", [{}])[0].get("value", [{}])
-                current_val = values[-1].get("value") if values else None
-                unit = ts.get("variable", {}).get("unit", {}).get("unitCode")
-                
-                if current_val and current_val != "-999999":
-                    gauge_data.append({
-                        "site_name": site_name,
-                        "reading": current_val,
-                        "unit": unit
-                    })
-    except Exception as e:
-        print(f"Environment Gauge Harvest Notice: {e}")
-
-    # 2. EPA AirNow Air Quality
-    airnow_key = os.environ.get("AIRNOW_API_KEY", "").strip().strip("'").strip('"')
-    city_aqi_map = {}
-
-    if airnow_key and cities:
-        regional_stations = [
-            {"name": "Seattle Hub", "lat": 47.6062, "lon": -122.3321},
-            {"name": "Bellevue / Eastside Hub", "lat": 47.6101, "lon": -122.2015},
-            {"name": "Everett / North Sound Hub", "lat": 47.9790, "lon": -122.2021},
-            {"name": "Tacoma / South Sound Hub", "lat": 47.2529, "lon": -122.4443}
-        ]
-
-        station_data = []
-        for st in regional_stations:
-            url = f"https://www.airnowapi.org/aq/observation/latLong/current/?format=application/json&latitude={st['lat']}&longitude={st['lon']}&distance=25&API_KEY={airnow_key}"
-            obs = http_get_json_simple(url, timeout=15)
-            if obs and isinstance(obs, list) and len(obs) > 0:
-                primary_param = obs[0]
-                station_data.append({
-                    "reporting_area": primary_param.get("ReportingArea", st["name"]),
-                    "aqi": primary_param.get("AQI", 30),
-                    "category": primary_param.get("Category", {}).get("Name", "Good"),
-                    "parameter": primary_param.get("ParameterName", "PM2.5"),
-                    "observed_time": f"{primary_param.get('DateObserved', '')} {primary_param.get('HourObserved', '')}:00",
-                    "lat": st["lat"],
-                    "lon": st["lon"]
-                })
-
-        if station_data:
-            for c in cities:
-                clat, clon = c.get("latitude"), c.get("longitude")
-                if clat is None or clon is None:
-                    continue
-                nearest = min(station_data, key=lambda st: haversine_distance(clat, clon, st["lat"], st["lon"]))
-                city_aqi_map[c["slug"]] = {
-                    "name": c["name"],
-                    "aqi": nearest["aqi"],
-                    "category": nearest["category"],
-                    "parameter": nearest["parameter"],
-                    "reporting_area": nearest["reporting_area"],
-                    "observed_time": nearest["observed_time"]
-                }
-
-    output = {
-        "regional_water_gauges": gauge_data,
-        "city_air_quality": city_aqi_map,
-        "last_updated": datetime.datetime.now(datetime.timezone.utc).isoformat()
-    }
-    
-    target_path = os.path.join(DATA_DIR, "city_environment.json")
-    with open(target_path, "w", encoding="utf-8") as f:
-        json.dump(output, f, indent=2, ensure_ascii=False)
-    print(f"   ✅ River gauges ({len(gauge_data)}) & EPA AirNow AQI ({len(city_aqi_map)} cities) updated.")
 
 def harvest_transit_radar(cities, city_boundaries, sheets_config):
     print("🚆 Harvesting OneBusAway GTFS-RT Transit Positions & Schedule Deviation...")
@@ -1087,26 +951,20 @@ def main():
     os.makedirs(posts_dir, exist_ok=True)
     
     # --------------------------------------------------------------------
-    # MODULE 0: WEATHER, EPA AIRNOW AQI & RIVER FLOOD GAUGES
+    # MODULE 0: STANDALONE WEATHER, TIDES, AQI & RIVER GAUGES HARVESTER
+    # --------------------------------------------------------------------
+    try:
+        harvest_weather_data()
+    except Exception as e:
+        print(f"   ❌ Standalone Weather/Environment Harvester Error: {e}")
+
+    # --------------------------------------------------------------------
+    # MODULE 0B: TRANSIT RADAR, 168H HISTORY & INTERCITY SUMMARY
     # --------------------------------------------------------------------
     cities = load_city_data()
     city_boundaries = load_city_boundaries()
     sheets_config = load_sheets_admin_config_local()
 
-    if cities:
-        try:
-            harvest_weather(cities)
-        except Exception as e:
-            print(f"   ❌ Weather harvest error: {e}")
-            
-    try:
-        harvest_environment(cities)
-    except Exception as e:
-        print(f"   ❌ Environment (River Gauges & AQI) harvest error: {e}")
-
-    # --------------------------------------------------------------------
-    # MODULE 0B: TRANSIT RADAR, 168H HISTORY & INTERCITY SUMMARY
-    # --------------------------------------------------------------------
     if cities and city_boundaries:
         try:
             harvest_transit_radar(cities, city_boundaries, sheets_config)
@@ -1683,10 +1541,8 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
 
                     body_text = ""
 
-                    # Ingestion contract: docs.google.com vs myseattlesearch.com
                     if "docs.google.com" in content_field:
                         body_text = get_google_doc_as_markdown(docs_service, content_field)
-                        # Queue cell writeback to replace Google Doc link with published post URL
                         published_post_url = f"https://myseattlesearch.com/posts/{slug}/"
                         col_content_idx = headers.index("Content") if "Content" in headers else -1
                         if col_content_idx != -1:
@@ -1695,7 +1551,6 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                                 'values': [[published_post_url]]
                             })
                     elif "myseattlesearch.com" in content_field or file_exists:
-                        # Preserved post created via website /publisher or previously ingested
                         if file_exists and existing_content and ("---\n" in existing_content):
                             parts = existing_content.split("---\n", 2)
                             body_text = parts[2] if len(parts) >= 3 else content_field

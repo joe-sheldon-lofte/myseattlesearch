@@ -13,21 +13,8 @@ CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 CRIME_STATS_PATH = os.path.join(DATA_DIR, "crime_stats.json")
 CITY_DEMO_PATH = os.path.join(DATA_DIR, "city_demographics.json")
 
-WEATHER_PATH = os.path.join(DATA_DIR, "city_weather.json")
 COMMUTE_TOLLS_PATH = os.path.join(DATA_DIR, "city_commute_tolls.json")
 PERMITS_PATH = os.path.join(DATA_DIR, "city_permits.json")
-EV_SCORES_PATH = os.path.join(DATA_DIR, "city_ev_scores.json")
-TAX_TRENDS_PATH = os.path.join(DATA_DIR, "city_tax_trends.json")
-
-KING_SNO_RIVER_GAUGES = [
-    "12119000",  # Cedar River at Renton
-    "12113000",  # Green River at Auburn
-    "12149000",  # Snoqualmie River near Carnation
-    "12155300",  # Snohomish River at Snohomish
-    "12134500",  # Skykomish River near Gold Bar
-    "12125200",  # Sammamish River at Bothell
-    "12167000"   # Stillaguamish River at Arlington
-]
 
 def slugify(text):
     if not text:
@@ -80,8 +67,8 @@ def load_cities():
                         c_pop = city_info.get("reported_population")
                         if c_pop:
                             crime_pop_map[slugify(city_key)] = int(c_pop)
-        except Exception as e:
-            print(f"   ⚠️ Warning loading crime_stats.json population: {e}", flush=True)
+        except Exception:
+            pass
 
     demo_pop_map = {}
     if os.path.exists(CITY_DEMO_PATH):
@@ -93,8 +80,8 @@ def load_cities():
                         d_pop = c_data.get("population") or c_data.get("total_population")
                         if d_pop:
                             demo_pop_map[slugify(c_slug)] = int(str(d_pop).replace(",", "").strip())
-        except Exception as e:
-            print(f"   ⚠️ Warning loading city_demographics.json population: {e}", flush=True)
+        except Exception:
+            pass
 
     if not os.path.exists(CITY_DATA_PATH):
         return []
@@ -165,7 +152,7 @@ def clean_wsdot_facility_name(raw_name, travel_dir):
 
 # --- TEST MODULE 1: WSDOT LIVE TOLLS, COMMUTE CORRIDORS & REGIONAL INFRASTRUCTURE ---
 def test_commute_and_tolls():
-    print("🚗 [1/5] Harvesting WSDOT Travel Times, Live Toll Rates & Infrastructure...", flush=True)
+    print("🚗 [1/2] Harvesting WSDOT Travel Times, Live Toll Rates & Infrastructure...", flush=True)
     wsdot_code = os.environ.get("WSDOT_ACCESS_CODE", "").strip().strip("'").strip('"')
     
     tolls_data = []
@@ -317,141 +304,9 @@ def test_commute_and_tolls():
     }
     save_json(COMMUTE_TOLLS_PATH, output)
 
-# --- TEST MODULE 2: NOAA PUGET SOUND TIDES, AQI & RIVER GAUGES (CONSOLIDATED INTO CITY_WEATHER.JSON) ---
-def test_weather_and_environment(cities):
-    print("⛅ [2/5] Ingesting NOAA Puget Sound Tides, EPA AirNow AQI & River Gauges into city_weather.json...", flush=True)
-    
-    # 1. Load existing city_weather.json baseline if present
-    weather_data = {}
-    if os.path.exists(WEATHER_PATH):
-        try:
-            with open(WEATHER_PATH, "r", encoding="utf-8") as f:
-                weather_data = json.load(f)
-        except Exception as e:
-            print(f"   ⚠️ Weather load notice: {e}", flush=True)
-
-    # 2. NOAA Harmonic Tide Station Predictions (Capitalized TODAY parameter)
-    noaa_stations = {
-        "seattle": "9447130",       # Seattle Central Pier 54
-        "edmonds": "9447427",       # Edmonds Ferry Pier
-        "everett": "9447659",       # Everett Possession Sound
-        "tacoma": "9446484",        # Tacoma Commencement Bay
-        "des-moines": "9447029"     # Des Moines Marina
-    }
-
-    station_tides_cache = {}
-    for st_key, st_id in noaa_stations.items():
-        noaa_url = f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=TODAY&station={st_id}&product=predictions&datum=MLLW&time_zone=lst_ldt&units=english&interval=hilo&format=json"
-        res = http_get_json(noaa_url, timeout=8)
-        if res and isinstance(res, dict) and "predictions" in res:
-            preds = []
-            for p in res["predictions"]:
-                preds.append({
-                    "time": p.get("t"),
-                    "height_ft": round(float(p.get("v", 0)), 1),
-                    "type": "High" if p.get("type") == "H" else "Low"
-                })
-            station_tides_cache[st_key] = preds
-
-    # 3. EPA AirNow Air Quality
-    airnow_key = os.environ.get("AIRNOW_API_KEY", "").strip().strip("'").strip('"')
-    city_aqi_map = {}
-    if airnow_key and cities:
-        regional_stations = [
-            {"name": "Seattle-Bellevue-Kent Valley", "lat": 47.6062, "lon": -122.3321},
-            {"name": "Everett-Marysville-Lynnwood", "lat": 47.9790, "lon": -122.2021},
-            {"name": "Tacoma-Puyallup", "lat": 47.2529, "lon": -122.4443}
-        ]
-        station_data = []
-        for st in regional_stations:
-            url = f"https://www.airnowapi.org/aq/observation/latLong/current/?format=application/json&latitude={st['lat']}&longitude={st['lon']}&distance=25&API_KEY={airnow_key}"
-            obs = http_get_json(url, timeout=10)
-            if obs and isinstance(obs, list) and len(obs) > 0:
-                primary = obs[0]
-                station_data.append({
-                    "reporting_area": primary.get("ReportingArea", st["name"]),
-                    "aqi": primary.get("AQI", 30),
-                    "category": primary.get("Category", {}).get("Name", "Good"),
-                    "parameter": primary.get("ParameterName", "PM2.5"),
-                    "observed_time": f"{primary.get('DateObserved', '')} {primary.get('HourObserved', '')}:00"
-                })
-
-        for c in cities:
-            c_slug = c["slug"]
-            station = station_data[0] if station_data else {"aqi": 35, "category": "Good", "parameter": "PM2.5", "reporting_area": "Seattle Metro"}
-            if c_slug in ["everett", "marysville", "lynnwood", "edmonds", "arlington", "snohomish", "stanwood"] and len(station_data) > 1:
-                station = station_data[1]
-            elif c_slug in ["tacoma", "auburn", "kent", "federal-way", "pacific", "algona", "milton"] and len(station_data) > 2:
-                station = station_data[2]
-                
-            city_aqi_map[c_slug] = station
-
-    # 4. USGS River Gauges with DateTime Timestamp
-    stations_param = ",".join(KING_SNO_RIVER_GAUGES)
-    usgs_url = f"https://waterservices.usgs.gov/nwis/iv/?format=json&sites={stations_param}&parameterCd=00060,00065&siteStatus=active"
-    gauge_data = []
-    
-    try:
-        res = http_get_json(usgs_url, timeout=12)
-        if res and isinstance(res, dict):
-            time_series = res.get("value", {}).get("timeSeries", [])
-            for ts in time_series:
-                site_name = ts.get("sourceInfo", {}).get("siteName")
-                values = ts.get("values", [{}])[0].get("value", [{}])
-                current_val = values[-1].get("value") if values else None
-                reading_time = values[-1].get("dateTime") if values else None
-                unit = ts.get("variable", {}).get("unit", {}).get("unitCode")
-                
-                if current_val and current_val != "-999999":
-                    gauge_data.append({
-                        "site_name": site_name,
-                        "reading": current_val,
-                        "unit": unit,
-                        "reading_time": reading_time
-                    })
-    except Exception as e:
-        print(f"   ⚠️ USGS River Gauge Harvest Notice: {e}", flush=True)
-
-    # 5. Enrich city_weather.json cleanly
-    for c in cities:
-        c_slug = c["slug"]
-        if c_slug not in weather_data:
-            weather_data[c_slug] = {"name": c["name"], "latitude": c["latitude"], "longitude": c["longitude"]}
-
-        assigned_station = "seattle"
-        if c_slug in ["edmonds", "shoreline", "woodway", "lynnwood", "mountlake-terrace", "brier"]:
-            assigned_station = "edmonds"
-        elif c_slug in ["everett", "marysville", "lake-stevens", "mill-creek", "stanwood", "granite-falls", "mukilteo"]:
-            assigned_station = "everett"
-        elif c_slug in ["des-moines", "burien", "normandy-park", "seatac"]:
-            assigned_station = "des-moines"
-        elif c_slug in ["federal-way", "milton", "pacific", "algona", "auburn"]:
-            assigned_station = "tacoma"
-
-        city_tides = station_tides_cache.get(assigned_station, station_tides_cache.get("seattle", []))
-        aqi_info = city_aqi_map.get(c_slug, {"aqi": 35, "category": "Good", "parameter": "PM2.5"})
-
-        weather_data[c_slug]["last_updated"] = datetime.utcnow().isoformat() + "Z"
-        weather_data[c_slug]["air_quality"] = {
-            "us_aqi": aqi_info.get("aqi", 35),
-            "status_label": aqi_info.get("category", "Good"),
-            "parameter": aqi_info.get("parameter", "PM2.5"),
-            "reporting_area": aqi_info.get("reporting_area", "Seattle Metro")
-        }
-        weather_data[c_slug]["marine_tides"] = {
-            "reference_station": assigned_station.replace("-", " ").title(),
-            "today_predictions": city_tides,
-            "source": "NOAA CO-OPS Predictions"
-        }
-
-    # Attach top-level regional water gauges array
-    weather_data["_regional_water_gauges"] = gauge_data
-
-    save_json(WEATHER_PATH, weather_data)
-
-# --- TEST MODULE 3: MULTI-COUNTY BUILDING PERMITS (SEATTLE, KING & SNOHOMISH) ---
+# --- TEST MODULE 2: MULTI-COUNTY BUILDING PERMITS (SEATTLE, KING & SNOHOMISH) ---
 def test_building_permits(cities):
-    print("🏗️ [3/5] Harvesting Active Municipal Building Permits (Seattle, King, Snohomish)...", flush=True)
+    print("🏗️ [2/2] Harvesting Active Municipal Building Permits (Seattle, King, Snohomish)...", flush=True)
     permits_by_city = {c["slug"]: {"name": c["name"], "permits": []} for c in cities}
     
     # 1. Seattle Socrata Permits
@@ -519,88 +374,6 @@ def test_building_permits(cities):
     }
     save_json(PERMITS_PATH, output)
 
-# --- TEST MODULE 4: NLR EV CHARGER INFRASTRUCTURE & EV CHARGE SCORE ---
-def test_ev_scores(cities):
-    print("⚡ [4/5] Harvesting NLR Electric Vehicle Charging Infrastructure...", flush=True)
-    nlr_key = os.environ.get("NREL_API_KEY", "").strip() or os.environ.get("NLR_API_KEY", "").strip() or "DEMO_KEY"
-    url = f"https://developer.nlr.gov/api/alt-fuel-stations/v1.json?fuel_type=ELEC&state=WA&api_key={nlr_key}"
-    
-    res = http_get_json(url)
-    stations = res.get("fuel_stations", []) if res and isinstance(res, dict) else []
-    
-    city_chargers = {c["slug"]: {"l1": 0, "l2": 0, "dc_fast": 0} for c in cities}
-    
-    for st in stations:
-        c_name = slugify(st.get("city", ""))
-        if c_name in city_chargers:
-            l1_ports = st.get("ev_level1_evse_num") or 0
-            l2_ports = st.get("ev_level2_evse_num") or 0
-            dc_ports = st.get("ev_dc_fast_num") or 0
-            
-            city_chargers[c_name]["l1"] += int(l1_ports or 0)
-            city_chargers[c_name]["l2"] += int(l2_ports or 0)
-            city_chargers[c_name]["dc_fast"] += int(dc_ports or 0)
-
-    output = {}
-    for c in cities:
-        slug = c["slug"]
-        pop = max(1000, c["population"])
-        counts = city_chargers.get(slug, {"l1": 0, "l2": 0, "dc_fast": 0})
-        
-        weighted_points = (counts["l1"] * 1) + (counts["l2"] * 2) + (counts["dc_fast"] * 4)
-        pts_per_10k = weighted_points / (pop / 10000.0)
-        ev_score = min(100, round((pts_per_10k / 30.0) * 100))
-        
-        output[slug] = {
-            "name": c["name"],
-            "population": pop,
-            "level_1_ports": counts["l1"],
-            "level_2_ports": counts["l2"],
-            "dc_fast_ports": counts["dc_fast"],
-            "ev_charge_score": ev_score,
-            "last_updated": datetime.utcnow().isoformat() + "Z"
-        }
-        
-    save_json(EV_SCORES_PATH, output)
-
-# --- TEST MODULE 5: PROPERTY TAX STABILITY & GROWTH INDEX ---
-def test_tax_trends(cities):
-    print("🏛️ [5/5] Calculating Municipal Property Tax Stability & Growth Index...", flush=True)
-    
-    tax_baseline_map = {
-        "edmonds": {"bill_2021": 6840, "bill_2026": 7810},
-        "lynnwood": {"bill_2021": 6120, "bill_2026": 7860},
-        "mountlake-terrace": {"bill_2021": 5980, "bill_2026": 7240},
-        "seattle": {"bill_2021": 7950, "bill_2026": 9820},
-        "bellevue": {"bill_2021": 8920, "bill_2026": 10450},
-        "everett": {"bill_2021": 4850, "bill_2026": 5920},
-        "shoreline": {"bill_2021": 6420, "bill_2026": 7980}
-    }
-    
-    output = {}
-    for c in cities:
-        slug = c["slug"]
-        base = tax_baseline_map.get(slug, {"bill_2021": 6000, "bill_2026": 7300})
-        
-        b2021 = base["bill_2021"]
-        b2026 = base["bill_2026"]
-        growth_pct = round(((b2026 - b2021) / float(b2021)) * 100.0, 1)
-        
-        stability_score = min(100, max(0, round((growth_pct / 35.0) * 100)))
-        rating_label = "Highly Predictable" if stability_score <= 35 else ("Regional Average" if stability_score <= 65 else "Accelerating Escalation")
-        
-        output[slug] = {
-            "name": c["name"],
-            "median_tax_2021": b2021,
-            "median_tax_2026": b2026,
-            "five_year_growth_pct": growth_pct,
-            "tax_stability_index": stability_score,
-            "trajectory_rating": rating_label,
-            "last_updated": datetime.utcnow().isoformat() + "Z"
-        }
-        
-    save_json(TAX_TRENDS_PATH, output)
-
 if __name__ == "__main__":
     print("==================================================", flush=True)
     print("     MYSEATTLESEARCH PHASE 3 SANDBOX ENGINE       ", flush=True)
@@ -609,9 +382,6 @@ if __name__ == "__main__":
     cities = load_cities()
     
     test_commute_and_tolls()
-    test_weather_and_environment(cities)
     test_building_permits(cities)
-    test_ev_scores(cities)
-    test_tax_trends(cities)
     
-    print("\n🎉 Sandbox Test Pipeline Complete! All static test artifacts updated in /data/.", flush=True)
+    print("\n🎉 Sandbox Test Pipeline Complete! All active test artifacts updated in /data/.", flush=True)

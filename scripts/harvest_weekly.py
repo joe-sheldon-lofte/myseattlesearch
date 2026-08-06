@@ -1,5 +1,3 @@
-# File: scripts/harvest_weekly.py
-
 import os
 import json
 import time
@@ -12,7 +10,7 @@ from datetime import datetime
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
-DINING_PATH = os.path.join(DATA_DIR, "city_dining.json")
+BUSINESSES_PATH = os.path.join(DATA_DIR, "city_businesses.json")
 
 def safe_task(task_name, func):
     print(f"🚀 [Weekly Pipeline] Starting: {task_name}...")
@@ -168,22 +166,38 @@ def harvest_dpa_programs():
             json.dump([], f, indent=2)
     print("💾 DPA program directory verified.")
 
-# --- SUB-TASK 8: LIVE YELP FUSION DINING HARVESTER ---
-def harvest_yelp_dining():
-    print("🐟 Ingesting Live Yelp Fusion Neighborhood Dining Spotlights...")
+# --- SUB-TASK 8: LIVE YELP FUSION LOCAL BUSINESSES HARVESTER ---
+def harvest_yelp_businesses():
+    print("🛒 Ingesting Live Yelp Fusion Multi-Category Local Business Spotlights...")
     yelp_key = os.environ.get("YELP_API_KEY", "").strip().strip("'").strip('"')
     if not yelp_key:
-        print("ℹ️ YELP_API_KEY not found in environment secrets. Preserving existing data/city_dining.json.")
+        print("ℹ️ YELP_API_KEY not found in environment secrets. Preserving existing data/city_businesses.json.")
         return
 
     if not os.path.exists(CITY_DATA_PATH):
-        print("ℹ️ city_data.json not found. Skipping Yelp harvest.")
+        print("ℹ️ city_data.json not found. Skipping Yelp business harvest.")
         return
 
     with open(CITY_DATA_PATH, "r", encoding="utf-8") as f:
         raw_cities = json.load(f)
 
     city_items = raw_cities if isinstance(raw_cities, list) else list(raw_cities.values())
+
+    # 23 Category aliases to harvest
+    TARGET_CATEGORIES = [
+        "coffee", "coffeeroasters", "bakeries", "desserts", "pizza", "italian",
+        "breakfast_brunch", "tacos", "mexican", "icecream", "gelato", "seafood",
+        "fishnchips", "breweries", "beer_gardens", "foodtrucks", "pubs",
+        "sportsbars", "vietnamese", "ramen", "thai", "steak", "newamerican"
+    ]
+
+    # Batch categories into 3 query groups per city to respect Yelp API call quotas
+    BATCH_GROUPS = [
+        ["coffee", "coffeeroasters", "bakeries", "desserts", "breakfast_brunch", "icecream", "gelato"],
+        ["pizza", "italian", "tacos", "mexican", "seafood", "fishnchips", "steak", "newamerican"],
+        ["breweries", "beer_gardens", "foodtrucks", "pubs", "sportsbars", "vietnamese", "ramen", "thai"]
+    ]
+
     output = {}
 
     for c_obj in city_items:
@@ -193,55 +207,75 @@ def harvest_yelp_dining():
             
         city_name = str(raw_name).strip()
         slug = slugify(city_name)
-        spots = []
-
-        encoded_location = urllib.parse.quote(f"{city_name}, WA")
-        yelp_url = f"https://api.yelp.com/v3/businesses/search?location={encoded_location}&term=restaurants&sort_by=rating&limit=3"
         headers = {"Authorization": f"Bearer {yelp_key}"}
 
-        res = http_get_json_simple(yelp_url, extra_headers=headers, timeout=15)
-        if res and isinstance(res, dict) and "businesses" in res:
-            for b in res.get("businesses", []):
-                cats = [cat.get("title") for cat in b.get("categories", []) if cat.get("title")]
-                category_title = ", ".join(cats[:2]) if cats else "Neighborhood Favorite"
+        # Initialize bucket for all 23 categories for this city
+        city_categories = {cat: [] for cat in TARGET_CATEGORIES}
 
-                loc = b.get("location", {})
-                address = loc.get("address1") or loc.get("city") or f"Downtown {city_name}"
+        for batch in BATCH_GROUPS:
+            batch_str = ",".join(batch)
+            encoded_location = urllib.parse.quote(f"{city_name}, WA")
+            yelp_url = f"https://api.yelp.com/v3/businesses/search?location={encoded_location}&categories={batch_str}&sort_by=rating&limit=50"
 
-                spots.append({
-                    "category": category_title,
-                    "name": b.get("name"),
-                    "location": address,
-                    "rating": b.get("rating", 4.5),
-                    "review_count": b.get("review_count", 0),
-                    "price_level": b.get("price", "$$"),
-                    "summary": f"Top-rated {category_title.lower()} dining destination in {city_name} with {b.get('review_count', 0)} verified reviews."
-                })
-        time.sleep(0.15)  # Respect API query cadence
+            res = http_get_json_simple(yelp_url, extra_headers=headers, timeout=15)
+            if res and isinstance(res, dict) and "businesses" in res:
+                for b in res.get("businesses", []):
+                    b_cats = [c.get("alias") for c in b.get("categories", []) if c.get("alias")]
+                    cat_titles = [c.get("title") for c in b.get("categories", []) if c.get("title")]
+                    category_display = ", ".join(cat_titles[:2]) if cat_titles else "Local Favorite"
 
-        if not spots:
-            spots = [
-                {
-                    "category": "Top Neighborhood Spot",
-                    "name": f"{city_name} Local Dining Spotlight",
+                    loc = b.get("location", {})
+                    address = loc.get("address1") or loc.get("city") or f"Downtown {city_name}"
+
+                    biz_spotlight = {
+                        "category": category_display,
+                        "name": b.get("name"),
+                        "location": address,
+                        "rating": b.get("rating", 4.5),
+                        "review_count": b.get("review_count", 0),
+                        "price_level": b.get("price", "$$"),
+                        "summary": f"Top-rated {category_display.lower()} spot in {city_name} with {b.get('review_count', 0)} verified reviews."
+                    }
+
+                    # Route business into every target category alias it belongs to
+                    for cat_alias in b_cats:
+                        if cat_alias in city_categories:
+                            # Avoid duplicate business entries inside the same category
+                            if not any(existing["name"] == biz_spotlight["name"] for existing in city_categories[cat_alias]):
+                                city_categories[cat_alias].append(biz_spotlight)
+
+            time.sleep(0.15)  # Respect Yelp API rate limits
+
+        # Sort and slice top 3 businesses for each category
+        processed_categories = {}
+        for cat_alias, biz_list in city_categories.items():
+            sorted_list = sorted(biz_list, key=lambda x: (x["rating"], x["review_count"]), reverse=True)[:3]
+            
+            # Fallback placeholder if no local businesses match category
+            if not sorted_list:
+                cat_readable = cat_alias.replace("_", " ").title()
+                sorted_list = [{
+                    "category": cat_readable,
+                    "name": f"{city_name} {cat_readable} Spotlight",
                     "location": f"Downtown {city_name}",
                     "rating": 4.7,
-                    "review_count": 180,
+                    "review_count": 120,
                     "price_level": "$$",
-                    "summary": f"Top local dining favorite and community gathering hub in {city_name}."
-                }
-            ]
+                    "summary": f"Top local {cat_readable.lower()} destination in {city_name}."
+                }]
+                
+            processed_categories[cat_alias] = sorted_list
 
         output[slug] = {
             "name": city_name,
-            "spotlights": spots,
+            "categories": processed_categories,
             "last_updated": datetime.utcnow().isoformat() + "Z"
         }
 
     os.makedirs(DATA_DIR, exist_ok=True)
-    with open(DINING_PATH, "w", encoding="utf-8") as f:
+    with open(BUSINESSES_PATH, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
-    print(f"💾 Saved live Yelp dining spotlights for {len(output)} cities to {DINING_PATH}")
+    print(f"💾 Saved live Yelp business spotlights across 23 categories for {len(output)} cities to {BUSINESSES_PATH}")
 
 # --- MASTER EXECUTION ROUTINE ---
 def main():
@@ -256,7 +290,7 @@ def main():
     safe_task("5. Emergency Services & Camera Indices", harvest_emergency_surveillance)
     safe_task("6. NOAA Climate & Environmental Hazards", harvest_climate_hazards)
     safe_task("7. Down Payment Assistance Directories", harvest_dpa_programs)
-    safe_task("8. Live Yelp Fusion Dining Spotlights", harvest_yelp_dining)
+    safe_task("8. Live Yelp Fusion Local Business Spotlights", harvest_yelp_businesses)
 
     print("🎉 All weekly data harvest tasks completed successfully!")
 
