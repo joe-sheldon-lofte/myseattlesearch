@@ -36,7 +36,7 @@ def slugify(text):
         res = res.replace('--', '-')
     return res.strip('-')
 
-def http_get_json(url, extra_headers=None, timeout=12):
+def http_get_json(url, extra_headers=None, timeout=15):
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
@@ -141,19 +141,38 @@ def test_commute_and_tolls():
         tolls_url_1 = f"https://wsdot.wa.gov/Traffic/api/TollRates/TollRatesREST.svc/GetTollRatesAsJson?AccessCode={wsdot_code}"
         tolls_url_2 = f"https://wsdot.wa.gov/Traffic/api/TollRates/TollRatesREST.svc/GetTollTripRatesAsJson?AccessCode={wsdot_code}"
         
-        raw_tolls_1 = http_get_json(tolls_url_1) or []
-        raw_tolls_2 = http_get_json(tolls_url_2) or []
+        res_tolls_1 = http_get_json(tolls_url_1)
+        res_tolls_2 = http_get_json(tolls_url_2)
+        
+        raw_tolls_1 = []
+        if isinstance(res_tolls_1, list):
+            raw_tolls_1 = res_tolls_1
+        elif isinstance(res_tolls_1, dict):
+            raw_tolls_1 = res_tolls_1.get("TollRates") or res_tolls_1.get("Tolls") or []
+
+        raw_tolls_2 = []
+        if isinstance(res_tolls_2, list):
+            raw_tolls_2 = res_tolls_2
+        elif isinstance(res_tolls_2, dict):
+            raw_tolls_2 = res_tolls_2.get("Trips") or res_tolls_2.get("TripTollRates") or []
         
         seen_facilities = set()
         
-        # Ingest Trip Toll Endpoint
+        # 1. Ingest Trip Toll Endpoint (e.g. SR 520, Tacoma Narrows, I-405, SR 167 Corridors)
         if isinstance(raw_tolls_2, list):
             for t in raw_tolls_2:
+                if not isinstance(t, dict):
+                    continue
                 facility_name = t.get("TripName") or t.get("LocationName") or t.get("FacilityName") or "Express Toll Lane"
                 cents = t.get("TripTollCents") or t.get("CurrentTollCents") or t.get("TollRateInCents") or 0
+                if not cents and "Toll" in t:
+                    try:
+                        cents = int(float(t["Toll"]) * 100)
+                    except (ValueError, TypeError):
+                        cents = 0
+
                 dollars = round(cents / 100.0, 2)
-                
-                sign_msg = t.get("TollSignMessage") or t.get("Message") or ""
+                sign_msg = t.get("TollSignMessage") or t.get("Message") or f"${dollars:.2f}"
                 if cents == 0 and not sign_msg:
                     sign_msg = "$0.00 (Off-Peak / Free HOV Pass)"
 
@@ -168,14 +187,16 @@ def test_commute_and_tolls():
                         "sign_message": sign_msg
                     })
 
-        # Ingest Point Toll Endpoint
+        # 2. Ingest Point Toll Endpoint
         if isinstance(raw_tolls_1, list):
             for t in raw_tolls_1:
+                if not isinstance(t, dict):
+                    continue
                 facility_name = t.get("LocationName") or t.get("FacilityName") or "Toll Facility"
                 cents = t.get("CurrentTollCents") or t.get("TollRateInCents") or 0
                 dollars = round(cents / 100.0, 2)
                 
-                sign_msg = t.get("TollSignMessage") or t.get("Message") or ""
+                sign_msg = t.get("TollSignMessage") or t.get("Message") or f"${dollars:.2f}"
                 if cents == 0 and not sign_msg:
                     sign_msg = "$0.00 (Off-Peak / Free HOV Pass)"
 
@@ -228,7 +249,8 @@ def test_weather_and_environment(cities):
     if not valid_cities:
         return
 
-    chunk_size = 10
+    # Use smaller batch size of 5 to prevent SSL handshake socket timeouts in GitHub Actions
+    chunk_size = 5
     output = {}
 
     for i in range(0, len(valid_cities), chunk_size):
