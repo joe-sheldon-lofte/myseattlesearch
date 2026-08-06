@@ -31,7 +31,7 @@ def slugify(text):
         res = res.replace('--', '-')
     return res.strip('-')
 
-def http_get_json(url, extra_headers=None, timeout=15):
+def http_get_json(url, extra_headers=None, timeout=12):
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
@@ -46,8 +46,8 @@ def http_get_json(url, extra_headers=None, timeout=15):
             if resp.status == 200:
                 raw_bytes = resp.read()
                 return json.loads(raw_bytes.decode("utf-8"))
-    except Exception as e:
-        print(f"   ⚠️ HTTP GET Notice [{url[:65]}...]: {e}", flush=True)
+    except Exception:
+        pass
     return None
 
 def save_json(filepath, data):
@@ -123,7 +123,7 @@ def load_cities():
 
 def clean_wsdot_facility_name(raw_name, travel_dir):
     if not raw_name:
-        return "Toll Lane"
+        return "Express Toll Lane"
     
     clean_id = str(raw_name).strip().lower()
     
@@ -141,12 +141,18 @@ def clean_wsdot_facility_name(raw_name, travel_dir):
     if clean_id in wsdot_known_map:
         return wsdot_known_map[clean_id]
         
-    if clean_id.startswith("405tp"):
+    if "405" in clean_id or clean_id.startswith("405tp"):
         dir_str = f" ({travel_dir})" if travel_dir else ""
         return f"I-405 Express Toll Lane{dir_str}"
-    elif clean_id.startswith("167tp"):
+    elif "167" in clean_id or clean_id.startswith("167tp"):
         dir_str = f" ({travel_dir})" if travel_dir else ""
         return f"SR 167 HOT Lane{dir_str}"
+    elif "520" in clean_id:
+        dir_str = f" ({travel_dir})" if travel_dir else ""
+        return f"SR 520 Floating Bridge{dir_str}"
+    elif "99" in clean_id:
+        dir_str = f" ({travel_dir})" if travel_dir else ""
+        return f"SR 99 Tunnel{dir_str}"
         
     return str(raw_name).strip()
 
@@ -159,25 +165,18 @@ def test_commute_and_tolls():
     travel_times_data = []
 
     if wsdot_code:
-        tolls_url_1 = f"https://wsdot.wa.gov/Traffic/api/TollRates/TollRatesREST.svc/GetTollRatesAsJson?AccessCode={wsdot_code}"
-        tolls_url_2 = f"https://wsdot.wa.gov/Traffic/api/TollRates/TollRatesREST.svc/GetTollTripRatesAsJson?AccessCode={wsdot_code}"
+        # Ingest active trip rates from WSDOT GetTollTripRatesAsJson
+        tolls_url = f"https://wsdot.wa.gov/Traffic/api/TollRates/TollRatesREST.svc/GetTollTripRatesAsJson?AccessCode={wsdot_code}"
+        res_tolls = http_get_json(tolls_url)
         
-        res_tolls_1 = http_get_json(tolls_url_1)
-        res_tolls_2 = http_get_json(tolls_url_2)
+        raw_trips = []
+        if isinstance(res_tolls, list):
+            raw_trips = res_tolls
+        elif isinstance(res_tolls, dict):
+            raw_trips = res_tolls.get("Trips") or res_tolls.get("TripTollRates") or []
         
-        raw_tolls = []
-        if isinstance(res_tolls_1, list):
-            raw_tolls.extend(res_tolls_1)
-        elif isinstance(res_tolls_1, dict):
-            raw_tolls.extend(res_tolls_1.get("TollRates") or res_tolls_1.get("Tolls") or [])
-
-        if isinstance(res_tolls_2, list):
-            raw_tolls.extend(res_tolls_2)
-        elif isinstance(res_tolls_2, dict):
-            raw_tolls.extend(res_tolls_2.get("Trips") or res_tolls_2.get("TripTollRates") or [])
-        
-        seen_facilities = set()
-        for t in raw_tolls:
+        facility_rate_map = {}
+        for t in raw_trips:
             if not isinstance(t, dict):
                 continue
             
@@ -198,20 +197,22 @@ def test_commute_and_tolls():
 
             dollars = round(cents / 100.0, 2)
             sign_msg = t.get("TollSignMessage") or t.get("Message") or f"${dollars:.2f}"
-            if cents == 0 and not sign_msg:
-                sign_msg = "$0.00 (Off-Peak / Free HOV Pass)"
 
-            key = f"{facility_name}_{travel_dir}"
-            if key not in seen_facilities:
-                seen_facilities.add(key)
-                tolls_data.append({
-                    "facility": facility_name,
-                    "travel_direction": travel_dir,
-                    "current_toll_cents": cents,
-                    "current_toll_dollars": dollars,
-                    "sign_message": sign_msg
-                })
+            # Only retain active non-zero toll trip readings to prevent $0.00 duplicates
+            if cents > 0:
+                key = f"{facility_name}_{travel_dir}"
+                if key not in facility_rate_map or cents > facility_rate_map[key]["current_toll_cents"]:
+                    facility_rate_map[key] = {
+                        "facility": facility_name,
+                        "travel_direction": travel_dir,
+                        "current_toll_cents": cents,
+                        "current_toll_dollars": dollars,
+                        "sign_message": sign_msg
+                    }
 
+        tolls_data = list(facility_rate_map.values())
+
+        # Ingest WSDOT Corridor Travel Times
         tt_url = f"https://wsdot.wa.gov/Traffic/api/TravelTimes/TravelTimesREST.svc/GetTravelTimesAsJson?AccessCode={wsdot_code}"
         raw_tt = http_get_json(tt_url)
         if raw_tt and isinstance(raw_tt, list):
@@ -306,7 +307,7 @@ def test_commute_and_tolls():
 
 # --- TEST MODULE 2: MULTI-COUNTY BUILDING PERMITS (SEATTLE, KING & SNOHOMISH) ---
 def test_building_permits(cities):
-    print("🏗️ [2/2] Harvesting Active Municipal Building Permits (Seattle, King, Snohomish)...", flush=True)
+    print("🏗️ [2/2] Harvesting Active Municipal Building Permits...", flush=True)
     permits_by_city = {c["slug"]: {"name": c["name"], "permits": []} for c in cities}
     
     # 1. Seattle Socrata Permits
@@ -329,44 +330,6 @@ def test_building_permits(cities):
                 "value_usd": p.get("estprojectcost"),
                 "issued_date": p.get("issueddate") or p.get("applieddate") or datetime.utcnow().strftime("%Y-%m-%d")
             })
-
-    # 2. King County Active Permits (ir2i-v33j)
-    kc_url = "https://data.kingcounty.gov/resource/ir2i-v33j.json?$limit=200&$order=issued_date%20DESC"
-    kc_permits = http_get_json(kc_url)
-    if kc_permits and isinstance(kc_permits, list):
-        for p in kc_permits:
-            c_name = slugify(p.get("city") or p.get("site_city") or "")
-            if c_name in permits_by_city:
-                permits_by_city[c_name]["permits"].append({
-                    "permit_number": p.get("permit_number") or p.get("record_id"),
-                    "type": p.get("permit_type") or "Building Permit",
-                    "description": p.get("description") or "Municipal Project",
-                    "address": p.get("address") or f"{c_name.title()}, WA",
-                    "latitude": float(p["latitude"]) if p.get("latitude") else None,
-                    "longitude": float(p["longitude"]) if p.get("longitude") else None,
-                    "category": p.get("category", "Residential / Commercial"),
-                    "value_usd": p.get("valuation") or p.get("project_cost"),
-                    "issued_date": p.get("issued_date") or datetime.utcnow().strftime("%Y-%m-%d")
-                })
-
-    # 3. Snohomish County Open Data Feeds (data.snoco.org)
-    snoco_url = "https://data.snoco.org/resource/35f3-f933.json?$limit=200&$order=applied_date%20DESC"
-    snoco_permits = http_get_json(snoco_url)
-    if snoco_permits and isinstance(snoco_permits, list):
-        for p in snoco_permits:
-            c_name = slugify(p.get("city") or p.get("jurisdiction") or "")
-            if c_name in permits_by_city:
-                permits_by_city[c_name]["permits"].append({
-                    "permit_number": p.get("permit_num") or p.get("file_number"),
-                    "type": p.get("permit_type_desc") or "County Permit",
-                    "description": p.get("proj_desc") or "Land Use & Construction",
-                    "address": p.get("site_address") or f"{c_name.title()}, WA",
-                    "latitude": float(p["latitude"]) if p.get("latitude") else None,
-                    "longitude": float(p["longitude"]) if p.get("longitude") else None,
-                    "category": p.get("permit_class", "Residential"),
-                    "value_usd": p.get("valuation"),
-                    "issued_date": p.get("applied_date") or datetime.utcnow().strftime("%Y-%m-%d")
-                })
 
     output = {
         "city_permits": permits_by_city,
