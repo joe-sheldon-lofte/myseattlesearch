@@ -11,6 +11,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 BUSINESSES_PATH = os.path.join(DATA_DIR, "city_businesses.json")
+PERMITS_PATH = os.path.join(DATA_DIR, "city_permits.json")
 
 def safe_task(task_name, func):
     print(f"🚀 [Weekly Pipeline] Starting: {task_name}...")
@@ -183,7 +184,6 @@ def harvest_yelp_businesses():
 
     city_items = raw_cities if isinstance(raw_cities, list) else list(raw_cities.values())
 
-    # 23 Category aliases to harvest
     TARGET_CATEGORIES = [
         "coffee", "coffeeroasters", "bakeries", "desserts", "pizza", "italian",
         "breakfast_brunch", "tacos", "mexican", "icecream", "gelato", "seafood",
@@ -191,7 +191,6 @@ def harvest_yelp_businesses():
         "sportsbars", "vietnamese", "ramen", "thai", "steak", "newamerican"
     ]
 
-    # Batch categories into 3 query groups per city to respect Yelp API call quotas
     BATCH_GROUPS = [
         ["coffee", "coffeeroasters", "bakeries", "desserts", "breakfast_brunch", "icecream", "gelato"],
         ["pizza", "italian", "tacos", "mexican", "seafood", "fishnchips", "steak", "newamerican"],
@@ -209,7 +208,6 @@ def harvest_yelp_businesses():
         slug = slugify(city_name)
         headers = {"Authorization": f"Bearer {yelp_key}"}
 
-        # Initialize bucket for all 23 categories for this city
         city_categories = {cat: [] for cat in TARGET_CATEGORIES}
 
         for batch in BATCH_GROUPS:
@@ -237,21 +235,17 @@ def harvest_yelp_businesses():
                         "summary": f"Top-rated {category_display.lower()} spot in {city_name} with {b.get('review_count', 0)} verified reviews."
                     }
 
-                    # Route business into every target category alias it belongs to
                     for cat_alias in b_cats:
                         if cat_alias in city_categories:
-                            # Avoid duplicate business entries inside the same category
                             if not any(existing["name"] == biz_spotlight["name"] for existing in city_categories[cat_alias]):
                                 city_categories[cat_alias].append(biz_spotlight)
 
-            time.sleep(0.15)  # Respect Yelp API rate limits
+            time.sleep(0.15)
 
-        # Sort and slice top 3 businesses for each category
         processed_categories = {}
         for cat_alias, biz_list in city_categories.items():
             sorted_list = sorted(biz_list, key=lambda x: (x["rating"], x["review_count"]), reverse=True)[:3]
             
-            # Fallback placeholder if no local businesses match category
             if not sorted_list:
                 cat_readable = cat_alias.replace("_", " ").title()
                 sorted_list = [{
@@ -277,6 +271,65 @@ def harvest_yelp_businesses():
         json.dump(output, f, indent=2, ensure_ascii=False)
     print(f"💾 Saved live Yelp business spotlights across 23 categories for {len(output)} cities to {BUSINESSES_PATH}")
 
+# --- SUB-TASK 9: MUNICIPAL BUILDING PERMITS HARVESTER ---
+def harvest_building_permits():
+    print("🏗️ Harvesting Active Municipal Building Permits...")
+    os.makedirs(DATA_DIR, exist_ok=True)
+    
+    cities = []
+    if os.path.exists(CITY_DATA_PATH):
+        try:
+            with open(CITY_DATA_PATH, "r", encoding="utf-8") as f:
+                raw_cities = json.load(f)
+            items = raw_cities if isinstance(raw_cities, list) else list(raw_cities.values())
+            for item in items:
+                name = item.get("City") or item.get("name") or ""
+                if name:
+                    cities.append({"slug": slugify(name), "name": str(name).strip()})
+        except Exception as e:
+            print(f"   ⚠️ City data load notice: {e}")
+
+    permits_by_city = {c["slug"]: {"name": c["name"], "permits": []} for c in cities}
+
+    # Ingest Seattle Socrata Permits
+    seattle_url = "https://data.seattle.gov/resource/76t5-zqzr.json?$limit=100&$order=issueddate%20DESC"
+    s_permits = http_get_json_simple(seattle_url, timeout=20)
+    if s_permits and isinstance(s_permits, list) and "seattle" in permits_by_city:
+        for p in s_permits:
+            addr = p.get("originaladdress") or p.get("address") or "Seattle, WA"
+            lat = p.get("latitude")
+            lon = p.get("longitude")
+            
+            try:
+                lat_val = float(lat) if lat else None
+            except (ValueError, TypeError):
+                lat_val = None
+
+            try:
+                lon_val = float(lon) if lon else None
+            except (ValueError, TypeError):
+                lon_val = None
+
+            permits_by_city["seattle"]["permits"].append({
+                "permit_number": p.get("permitnum"),
+                "type": p.get("permittypedesc") or p.get("permitclass", "Construction"),
+                "description": p.get("description", "Neighborhood Development"),
+                "address": addr,
+                "latitude": lat_val,
+                "longitude": lon_val,
+                "category": p.get("permitclassmapped", "Single Family / Commercial"),
+                "value_usd": p.get("estprojectcost"),
+                "issued_date": p.get("issueddate") or p.get("applieddate") or datetime.utcnow().strftime("%Y-%m-%d")
+            })
+
+    output = {
+        "city_permits": permits_by_city,
+        "last_updated": datetime.utcnow().isoformat() + "Z"
+    }
+    with open(PERMITS_PATH, "w", encoding="utf-8") as f:
+        json.dump(output, f, indent=2, ensure_ascii=False)
+    print(f"💾 Saved building permit entries to {PERMITS_PATH}")
+
 # --- MASTER EXECUTION ROUTINE ---
 def main():
     print("==================================================")
@@ -291,6 +344,7 @@ def main():
     safe_task("6. NOAA Climate & Environmental Hazards", harvest_climate_hazards)
     safe_task("7. Down Payment Assistance Directories", harvest_dpa_programs)
     safe_task("8. Live Yelp Fusion Local Business Spotlights", harvest_yelp_businesses)
+    safe_task("9. Municipal Building Permits", harvest_building_permits)
 
     print("🎉 All weekly data harvest tasks completed successfully!")
 
