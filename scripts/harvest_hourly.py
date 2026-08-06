@@ -43,30 +43,12 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 CITY_BOUNDARIES_PATH = os.path.join(DATA_DIR, "city_boundaries.json")
 CRIME_STATS_PATH = os.path.join(DATA_DIR, "crime_stats.json")
-DEMOGRAPHICS_PATH = os.path.join(DATA_DIR, "city_demographics.json")
 CITY_FEEDS_PATH = os.path.join(DATA_DIR, "city_feeds.json")
 TRANSIT_DATA_PATH = os.path.join(DATA_DIR, "transit_data.json")
 TRANSIT_LIVE_PATH = os.path.join(DATA_DIR, "transit_radar_live.json")
 TRANSIT_HISTORY_PATH = os.path.join(DATA_DIR, "transit_radar_history.json")
 INTERCITY_SUMMARY_PATH = os.path.join(DATA_DIR, "intercity_summary.json")
-
-FALLBACK_POPULATION = {
-    "algona": 3335, "auburn": 88950, "beaux-arts-village": 315, "bellevue": 155000,
-    "black-diamond": 7195, "bothell": 50670, "burien": 53000, "carnation": 2250,
-    "clyde-hill": 3100, "covington": 22000, "des-moines": 33400, "duvall": 8780,
-    "enumclaw": 13350, "federal-way": 102500, "hunts-point": 3100, "issaquah": 41500,
-    "kenmore": 24350, "kent": 140400, "kirkland": 96710, "lake-forest-park": 13680,
-    "maple-valley": 29320, "medina": 3380, "mercer-island": 25830, "milton": 8755,
-    "newcastle": 13750, "normandy-park": 6855, "north-bend": 8260, "pacific": 7270,
-    "redmond": 80040, "renton": 108800, "sammamish": 68410, "seatac": 32710,
-    "seattle": 797700, "shoreline": 61910, "skykomish": 165, "snoqualmie": 14520,
-    "tukwila": 22930, "woodinville": 13900, "yarrow-point": 1135, "arlington": 22980,
-    "brier": 6600, "darrington": 1515, "edmonds": 43420, "everett": 114800,
-    "gold-bar": 2310, "granite-falls": 4775, "index": 160, "lake-stevens": 41540,
-    "lynnwood": 41500, "marysville": 74390, "mill-creek": 21630, "monroe": 20830,
-    "mountlake-terrace": 24260, "mukilteo": 21590, "snohomish": 10350, "stanwood": 8865,
-    "sultan": 7160, "woodway": 1345
-}
+COMMUTE_TOLLS_PATH = os.path.join(DATA_DIR, "city_commute_tolls.json")
 
 def slugify(text):
     if not text:
@@ -88,8 +70,13 @@ def clean_city_name(name):
         return ""
     return name.lower().replace("city of ", "").replace("town of ", "").strip()
 
-def http_get_json_simple(url, timeout=25):
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RealEstateDataBot/1.0"}
+def http_get_json_simple(url, extra_headers=None, timeout=25):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RealEstateDataBot/1.0",
+        "Accept": "application/json, text/plain, */*"
+    }
+    if extra_headers:
+        headers.update(extra_headers)
     req = urllib.request.Request(url, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -205,7 +192,7 @@ def match_city_for_point(lat, lon, city_boundaries):
     return None
 
 def load_official_population_map():
-    pop_map = dict(FALLBACK_POPULATION)
+    pop_map = {}
 
     if os.path.exists(CRIME_STATS_PATH):
         try:
@@ -215,18 +202,6 @@ def load_official_population_map():
                     if isinstance(details, dict) and "reported_population" in details:
                         slug = slugify(city_name)
                         pop_map[slug] = int(details["reported_population"])
-            return pop_map
-        except Exception:
-            pass
-
-    if os.path.exists(DEMOGRAPHICS_PATH):
-        try:
-            with open(DEMOGRAPHICS_PATH, "r", encoding="utf-8") as f:
-                demo_data = json.load(f)
-                for slug, details in demo_data.items():
-                    if isinstance(details, dict) and "population" in details:
-                        pop_map[slug] = int(details["population"])
-            return pop_map
         except Exception:
             pass
 
@@ -266,7 +241,18 @@ def load_city_data():
         except (ValueError, TypeError):
             lat_float, lon_float = None, None
 
-        population = pop_map.get(slug, 25000)
+        # Population Hierarchy: 1. crime_stats.json -> 2. city_data.json FallbackPopulation -> 3. Error Flag 1
+        population = pop_map.get(slug)
+        if not population:
+            for k in ["FallbackPopulation", "fallback_population", "fallbackpopulation"]:
+                if item.get(k):
+                    try:
+                        population = int(str(item.get(k)).replace(",", "").strip())
+                        break
+                    except (ValueError, TypeError):
+                        pass
+        if not population or population <= 0:
+            population = 1  # Distinguishable error flag if population fails to resolve
 
         normalized.append({
             "slug": slug,
@@ -277,6 +263,141 @@ def load_city_data():
         })
 
     return normalized
+
+def clean_wsdot_facility_name(raw_name, travel_dir):
+    if not raw_name:
+        return "Express Toll Lane"
+    
+    clean_id = str(raw_name).strip().lower()
+    
+    wsdot_known_map = {
+        "520tp00422": "SR 520 Floating Bridge (Eastbound)",
+        "520tp00421": "SR 520 Floating Bridge (Westbound)",
+        "099tp03060": "SR 99 Tunnel (Southbound)",
+        "099tp03268": "SR 99 Tunnel (Northbound)",
+        "509tp02050": "SR 509 Expressway (Southbound)",
+        "509tp02051": "SR 509 Expressway (Southbound)",
+        "509tp02092": "SR 509 Expressway (Southbound)",
+        "509tp02093": "SR 509 Expressway (Southbound)",
+    }
+    
+    if clean_id in wsdot_known_map:
+        return wsdot_known_map[clean_id]
+        
+    if "405" in clean_id or clean_id.startswith("405tp"):
+        dir_str = f" ({travel_dir})" if travel_dir else ""
+        return f"I-405 Express Toll Lane{dir_str}"
+    elif "167" in clean_id or clean_id.startswith("167tp"):
+        dir_str = f" ({travel_dir})" if travel_dir else ""
+        return f"SR 167 HOT Lane{dir_str}"
+    elif "520" in clean_id:
+        dir_str = f" ({travel_dir})" if travel_dir else ""
+        return f"SR 520 Floating Bridge{dir_str}"
+    elif "99" in clean_id:
+        dir_str = f" ({travel_dir})" if travel_dir else ""
+        return f"SR 99 Tunnel{dir_str}"
+        
+    return str(raw_name).strip()
+
+def harvest_commute_and_tolls(toll_schedules_from_sheet=None):
+    print("🚗 Ingesting WSDOT Live Tolls & Travel Times...")
+    wsdot_code = os.environ.get("WSDOT_ACCESS_CODE", "").strip().strip("'").strip('"')
+    
+    tolls_data = []
+    travel_times_data = []
+
+    if wsdot_code:
+        # Ingest active trip rates from WSDOT GetTollTripRatesAsJson
+        tolls_url = f"https://wsdot.wa.gov/Traffic/api/TollRates/TollRatesREST.svc/GetTollTripRatesAsJson?AccessCode={wsdot_code}"
+        res_tolls = http_get_json_simple(tolls_url)
+        
+        raw_trips = []
+        if isinstance(res_tolls, list):
+            raw_trips = res_tolls
+        elif isinstance(res_tolls, dict):
+            raw_trips = res_tolls.get("Trips") or res_tolls.get("TripTollRates") or []
+        
+        facility_rate_map = {}
+        for t in raw_trips:
+            if not isinstance(t, dict):
+                continue
+            
+            raw_facility = t.get("TripName") or t.get("LocationName") or t.get("FacilityName") or ""
+            travel_dir = t.get("TravelDirection") or t.get("Direction") or ""
+            facility_name = clean_wsdot_facility_name(raw_facility, travel_dir)
+            
+            cents = 0
+            if "Toll" in t and t["Toll"] is not None:
+                try:
+                    cents = int(round(float(t["Toll"]) * 100))
+                except (ValueError, TypeError):
+                    cents = 0
+            elif "CurrentTollCents" in t and t["CurrentTollCents"] is not None:
+                cents = int(t["CurrentTollCents"])
+            elif "TripTollCents" in t and t["TripTollCents"] is not None:
+                cents = int(t["TripTollCents"])
+
+            dollars = round(cents / 100.0, 2)
+            sign_msg = t.get("TollSignMessage") or t.get("Message") or f"${dollars:.2f}"
+
+            if cents > 0:
+                key = f"{facility_name}_{travel_dir}"
+                if key not in facility_rate_map or cents > facility_rate_map[key]["current_toll_cents"]:
+                    facility_rate_map[key] = {
+                        "facility": facility_name,
+                        "travel_direction": travel_dir,
+                        "current_toll_cents": cents,
+                        "current_toll_dollars": dollars,
+                        "sign_message": sign_msg
+                    }
+
+        tolls_data = list(facility_rate_map.values())
+
+        # Ingest WSDOT Corridor Travel Times
+        tt_url = f"https://wsdot.wa.gov/Traffic/api/TravelTimes/TravelTimesREST.svc/GetTravelTimesAsJson?AccessCode={wsdot_code}"
+        raw_tt = http_get_json_simple(tt_url)
+        if raw_tt and isinstance(raw_tt, list):
+            for route in raw_tt:
+                name = route.get("Description") or route.get("Title") or f"Route #{route.get('TravelTimeID')}"
+                avg_min = route.get("AverageTime", 0)
+                curr_min = route.get("CurrentTime", 0)
+                
+                friction_score = 0
+                if avg_min > 0 and curr_min > 0:
+                    delay_ratio = curr_min / float(avg_min)
+                    friction_score = min(100, max(0, round((delay_ratio - 1.0) * 100)))
+
+                travel_times_data.append({
+                    "route_id": route.get("TravelTimeID"),
+                    "route_name": name,
+                    "distance_miles": route.get("Distance"),
+                    "average_time_mins": avg_min,
+                    "current_time_mins": curr_min,
+                    "commute_friction_score": friction_score,
+                    "status": "Free Flowing" if friction_score <= 15 else ("Moderate Delay" if friction_score <= 40 else "Heavy Congestion")
+                })
+
+    # Preserve or set static rate schedules from Google Sheet TollData tab
+    static_schedules = toll_schedules_from_sheet if toll_schedules_from_sheet else []
+    if not static_schedules and os.path.exists(COMMUTE_TOLLS_PATH):
+        try:
+            with open(COMMUTE_TOLLS_PATH, "r", encoding="utf-8") as f:
+                prev_data = json.load(f)
+                static_schedules = prev_data.get("static_rate_schedules", [])
+        except Exception:
+            pass
+
+    output = {
+        "live_express_tolls": tolls_data,
+        "static_rate_schedules": static_schedules,
+        "commute_corridors": travel_times_data,
+        "last_updated": datetime.datetime.now(datetime.timezone.utc).isoformat()
+    }
+    
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(COMMUTE_TOLLS_PATH, "w", encoding="utf-8") as f:
+        json.dump(output, f, indent=2, ensure_ascii=False)
+    print(f"   ✅ Commute corridors ({len(travel_times_data)}) & Live Tolls ({len(tolls_data)}) fresh.")
 
 def load_sheets_admin_config_local():
     """Reads local data/city_feeds.json and data/transit_data.json backups."""
@@ -949,9 +1070,9 @@ def main():
     posts_dir = "posts"
     os.makedirs(data_dir, exist_ok=True)
     os.makedirs(posts_dir, exist_ok=True)
-    
+
     # --------------------------------------------------------------------
-    # MODULE 0: STANDALONE WEATHER, TIDES, AQI & RIVER GAUGES HARVESTER
+    # MODULE 0A: STANDALONE WEATHER, TIDES, AQI & RIVER GAUGES HARVESTER
     # --------------------------------------------------------------------
     try:
         harvest_weather_data()
@@ -970,7 +1091,7 @@ def main():
             harvest_transit_radar(cities, city_boundaries, sheets_config)
         except Exception as e:
             print(f"   ❌ Transit Radar harvest error: {e}")
-            
+
     try:
         harvest_intercity_summary()
     except Exception as e:
@@ -980,13 +1101,13 @@ def main():
     if not os.path.exists(creds_path):
         print("❌ Core Error: credentials.json identity file is missing from root path.")
         return
-        
+
     scopes = [
         'https://www.googleapis.com/auth/spreadsheets',
         'https://www.googleapis.com/auth/documents.readonly',
         'https://www.googleapis.com/auth/drive'
     ]
-    
+
     try:
         creds = Credentials.from_service_account_file(creds_path, scopes=scopes)
         sheets_service = build('sheets', 'v4', credentials=creds)
@@ -995,7 +1116,7 @@ def main():
     except Exception as auth_err:
         print(f"❌ Core Error: Cloud authorization handshake failed: {auth_err}")
         return
-        
+
     r2_access_key = os.environ.get("R2_ACCESS_KEY_ID")
     r2_secret_key = os.environ.get("R2_SECRET_ACCESS_KEY")
     r2_endpoint = os.environ.get("R2_ENDPOINT_URL")
@@ -1022,11 +1143,11 @@ def main():
             cc_batch = sheets_service.spreadsheets().values().batchGet(
                 spreadsheetId=cc_sheet_id, ranges=cc_ranges
             ).execute().get('valueRanges', [])
-            
+
             market_rows = cc_batch[0].get('values', []) if len(cc_batch) > 0 else []
             rates_rows = cc_batch[1].get('values', []) if len(cc_batch) > 1 else []
             hist_rows = cc_batch[2].get('values', []) if len(cc_batch) > 2 else []
-            
+
             if market_rows:
                 market_data = parse_sheet_values(market_rows)
                 with open(os.path.join(data_dir, "hourly_market.json"), "w", encoding="utf-8") as f:
@@ -1050,15 +1171,25 @@ def main():
     team_lookup = {}
     if web_sheet_id:
         print("📡 Ingesting multi-tab dataset from the Website Data Workbook...")
-        target_tabs = ["Stats", "Team", "Disclaimers", "Events", "Celebrations", "DPA", "Professionals", "Reviews", "ThirdPartyPrograms", "News", "Sales", "Live_Archive", "Uploads", "Sports"]
+        target_tabs = ["Stats", "Team", "Disclaimers", "Events", "Celebrations", "DPA", "Professionals", "Reviews", "ThirdPartyPrograms", "News", "Sales", "Live_Archive", "Uploads", "Sports", "TollData"]
         try:
             web_ranges = [f"{tab}!A:AZ" for tab in target_tabs]
             web_batch = sheets_service.spreadsheets().values().batchGet(
                 spreadsheetId=web_sheet_id, ranges=web_ranges
             ).execute().get('valueRanges', [])
-            
+
             tabs_data = dict(zip(target_tabs, web_batch))
             batch_sheet_writebacks[web_sheet_id] = []
+
+            # Ingest static toll rate schedules directly from TollData tab
+            toll_rows = tabs_data.get("TollData", {}).get('values', [])
+            parsed_toll_schedules = parse_sheet_values(toll_rows) if toll_rows else []
+            
+            # Execute commute corridors and live tolls harvester with dynamic TollData schedule
+            try:
+                harvest_commute_and_tolls(parsed_toll_schedules)
+            except Exception as e:
+                print(f"   ❌ Commute & Tolls Harvester Error: {e}")
 
             # A. Process Team roster profiles
             team_rows = tabs_data.get("Team", {}).get('values', [])
@@ -1121,7 +1252,7 @@ def main():
                     if row_dict.get("Status", "").strip().lower() != "active": continue
                     evt_id = row_dict.get("Event ID", "").strip().lower()
                     if not evt_id or evt_id == "nan": continue
-                    
+
                     event_images = []
                     for c_idx in img_cols:
                         img_url = padded[c_idx].strip()
@@ -1137,7 +1268,7 @@ def main():
 
                     hosts = [team_lookup[hid.strip()] for hid in row_dict.get("Host IDs", "").split(",") if hid.strip() in team_lookup]
                     city_val = row_dict.get("City", "").strip()
-                    
+
                     cities_array = [city_val.lower()] if city_val and city_val.lower() != "nan" else []
                     if "edmonds" in cities_array or "lynnwood" in cities_array or "mountlake-terrace" in cities_array:
                         if "snohomish-county" not in cities_array:
@@ -1203,13 +1334,13 @@ def main():
             if sales_rows:
                 headers = [h.strip() for h in sales_rows[0]]
                 compiled_sales = []
-                
+
                 img_cols = []
                 for i in range(1, 6):
                     col_name = f"Image URL {i}"
                     if col_name in headers:
                         img_cols.append((i, headers.index(col_name)))
-                        
+
                 pdf_cols = []
                 for i in range(1, 6):
                     col_name = f"PDF URL {i}"
@@ -1220,9 +1351,9 @@ def main():
                     padded = list(r) + [""] * (len(headers) - len(r))
                     row_dict = dict(zip(headers, padded))
                     row_num = idx + 2
-                    
+
                     mls_id = row_dict.get("MLS Number", "").strip() or generate_url_slug(row_dict.get("Address", "listing"))
-                    
+
                     for i_num, c_idx in img_cols:
                         img_url = padded[c_idx].strip()
                         if img_url and is_google_drive_link(img_url) and s3_client:
@@ -1240,7 +1371,7 @@ def main():
                             pdf_url = padded[c_idx].strip()
                             if not pdf_url:
                                 continue
-                                
+
                             if is_google_drive_link(pdf_url) and s3_client:
                                 r2_url, doc_title = process_and_upload_pdf(drive_service, s3_client, r2_bucket, pdf_url, mls_id, p_num)
                                 if "assets.myseattlesearch.com" in r2_url:
@@ -1273,15 +1404,15 @@ def main():
                     padded = list(r) + [""] * (len(headers) - len(r))
                     row_dict = dict(zip(headers, padded))
                     row_num = idx + 2
-                    
+
                     title = row_dict.get("Title", "").strip()
                     if not title:
                         continue
-                    
+
                     slug = generate_url_slug(title)
                     video_url = row_dict.get("Video_URL", "").strip()
                     youtube_id = extract_youtube_id(video_url)
-                    
+
                     thumb_url = row_dict.get("Thumbnail_URL", "").strip()
                     if thumb_url and is_google_drive_link(thumb_url) and s3_client:
                         r2_url = process_and_upload_image(drive_service, s3_client, r2_bucket, thumb_url, "Live", slug)
@@ -1293,7 +1424,7 @@ def main():
                                     'values': [[r2_url]]
                                 })
                             thumb_url = r2_url
-                    
+
                     compiled_archive.append({
                         "Title": title,
                         "Date": row_dict.get("Date", "").strip(),
@@ -1473,14 +1604,14 @@ def main():
                     row_num = idx + 2
                     slug = record.get("Content ID", "").strip()
                     if not slug: continue
-                    
+
                     target_md = os.path.join(posts_dir, f"{slug}.md")
-                    
+
                     if record.get("Active", "").strip().lower() != "yes":
-                        if os.path.exists(target_md): 
+                        if os.path.exists(target_md):
                             os.remove(target_md)
                         continue
-                        
+
                     optimized_images = []
                     for i in range(1, 6):
                         img_url = record.get(f"Image {i} URL", "").strip()
@@ -1496,17 +1627,17 @@ def main():
 
                     if optimized_images and optimized_images[0]:
                         cms_image_map[slug] = optimized_images[0]
-                            
+
                     post_type = record.get("Type", "").strip()
                     content_field = record.get("Content", "").strip()
-                    
+
                     raw_tags = record.get("Tags", "")
                     tags_list = ", ".join([f'"{t.strip()}"' for t in raw_tags.split(",") if t.strip()])
-                    
+
                     clean_title = record.get('Title', '').replace('"', '\\"')
                     clean_headline = record.get('Headline', '').replace('"', '\\"')
                     clean_subhead = record.get('Subhead', '').replace('"', '\\"')
-                    
+
                     front_matter = (
 f"""---
 layout: post.njk
@@ -1581,14 +1712,14 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                 headers = rows[0]
                 img_col_idx = headers.index("Quiz Image") if "Quiz Image" in headers else -1
                 quizzes_db = {}
-                
+
                 for idx, r in enumerate(rows[1:]):
                     padded = list(r) + [""] * (len(headers) - len(r))
                     row_dict = dict(zip(headers, padded))
                     row_num = idx + 2
                     quiz_id = row_dict.get("Quiz ID", "").strip()
                     if not quiz_id: continue
-                    
+
                     quiz_slug = generate_url_slug(row_dict.get("Quiz Name", "quiz"))
                     cover_img = row_dict.get("Quiz Image", "").strip()
                     if cover_img and is_google_drive_link(cover_img) and s3_client:
@@ -1598,12 +1729,12 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                             batch_sheet_writebacks[quiz_sheet_id].append({
                                 'range': f"Quizzes!{get_col_letter(img_col_idx)}{row_num}", 'values': [[r2_url]]
                             })
-                            
+
                     questions = []
                     for i in range(1, 21):
                         q_text = row_dict.get(f"Q{i} Text", "").strip()
                         if q_text: questions.append({"text": q_text, "bucket": row_dict.get(f"Q{i} Bucket", "").strip()})
-                        
+
                     routing = []
                     for j in range(1, 11):
                         r_url = row_dict.get(f"R{j} URL", "").strip()
@@ -1649,18 +1780,18 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                 feed_name = src.get("Name", "Local Wire")
                 rss_url = src.get("RSS Feed URL")
                 if not rss_url: continue
-                
+
                 paywall_val = str(src.get("Paywall", "No")).strip()
                 is_paywall = paywall_val.lower() == "yes"
-                
+
                 city_raw = src.get("City", "").strip()
                 cities_array = [city_raw.lower()] if city_raw and city_raw.lower() != "nan" else []
-                
+
                 categories_array = [c.strip().lower().replace(" ", "-") for c in src.get("Categories", "").split(",") if c.strip()]
-                
+
                 if "north-sound" in categories_array and "snohomish-county" not in categories_array:
                     categories_array.append("snohomish-county")
-                    
+
                 try:
                     res = requests.get(rss_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=5)
                     if res.status_code == 200:
@@ -1669,11 +1800,11 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                             title = entry.get("title", "").strip()
                             link = entry.get("link", "").strip()
                             if not title or not link: continue
-                            
+
                             excerpt = re.sub(r'<[^>]+>', '', entry.get("summary") or entry.get("description") or "")
                             excerpt = " ".join(excerpt.split())
                             if len(excerpt) > 220: excerpt = excerpt[:220] + "..."
-                            
+
                             raw_date = entry.get("published") or entry.get("updated")
                             try:
                                 p_dt = parser.parse(str(raw_date))
@@ -1685,17 +1816,17 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                                 now_pac = datetime.datetime.now(ZoneInfo("America/Los_Angeles"))
                                 pub_str = now_pac.strftime("%a, %b %d, %Y at %I:%M %p")
                                 sort_str = now_pac.isoformat()
-                                
+
                             compiled_articles.append({
                                 "source": feed_name, "title": title, "link": link,
                                 "excerpt": excerpt if excerpt else "Click view details to read full update.",
-                                "published": pub_str, 
+                                "published": pub_str,
                                 "paywall": is_paywall,
                                 "cities": cities_array, "categories": categories_array, "_iso": sort_str
                             })
                 except Exception as e:
                     print(f"   ⚠️ Feed skip warning on '{feed_name}': {e}")
-                    
+
             compiled_articles.sort(key=lambda x: x.get("_iso", ""), reverse=True)
             for a in compiled_articles: a.pop("_iso", None)
             with open(os.path.join(data_dir, "market_news.json"), "w", encoding="utf-8") as f:
@@ -1785,7 +1916,7 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
                         subhead = get_v(col_map_soc["subhead"])
                         content_body = get_v(col_map_soc["content"])
                         url_1 = get_v(col_map_soc["url_1"])
-                        
+
                         image_1 = cms_image_map.get(slug, get_v(col_map_soc["img_1"]))
 
                         primary_text = headline or title
