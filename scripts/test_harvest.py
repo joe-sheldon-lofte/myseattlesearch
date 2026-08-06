@@ -36,7 +36,7 @@ def slugify(text):
         res = res.replace('--', '-')
     return res.strip('-')
 
-def http_get_json(url, extra_headers=None, timeout=25):
+def http_get_json(url, extra_headers=None, timeout=12):
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
@@ -52,14 +52,14 @@ def http_get_json(url, extra_headers=None, timeout=25):
                 raw_bytes = resp.read()
                 return json.loads(raw_bytes.decode("utf-8"))
     except Exception as e:
-        print(f"   ⚠️ HTTP GET Notice [{url[:65]}...]: {e}")
+        print(f"   ⚠️ HTTP GET Notice [{url[:65]}...]: {e}", flush=True)
     return None
 
 def save_json(filepath, data):
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
-    print(f"   ✅ Saved: {filepath}")
+    print(f"   ✅ Saved: {filepath}", flush=True)
 
 def load_cities():
     # 1. Dynamic population baseline from crime_stats.json
@@ -74,7 +74,7 @@ def load_cities():
                         if c_pop:
                             crime_pop_map[slugify(city_key)] = int(c_pop)
         except Exception as e:
-            print(f"   ⚠️ Warning loading crime_stats.json population: {e}")
+            print(f"   ⚠️ Warning loading crime_stats.json population: {e}", flush=True)
 
     # 2. Secondary fallback from city_demographics.json
     demo_pop_map = {}
@@ -88,7 +88,7 @@ def load_cities():
                         if d_pop:
                             demo_pop_map[slugify(c_slug)] = int(str(d_pop).replace(",", "").strip())
         except Exception as e:
-            print(f"   ⚠️ Warning loading city_demographics.json population: {e}")
+            print(f"   ⚠️ Warning loading city_demographics.json population: {e}", flush=True)
 
     if not os.path.exists(CITY_DATA_PATH):
         return []
@@ -130,7 +130,7 @@ def load_cities():
 
 # --- TEST MODULE 1: WSDOT COMMUTE DRIVE TIMES & LIVE TOLLS ---
 def test_commute_and_tolls():
-    print("🚗 [1/5] Harvesting WSDOT Travel Times & Express Toll Rates...")
+    print("🚗 [1/5] Harvesting WSDOT Travel Times & Express Toll Rates...", flush=True)
     wsdot_code = os.environ.get("WSDOT_ACCESS_CODE", "").strip().strip("'").strip('"')
     
     tolls_data = []
@@ -221,22 +221,25 @@ def test_commute_and_tolls():
     }
     save_json(COMMUTE_TOLLS_PATH, output)
 
-# --- TEST MODULE 2: OPEN-METEO WEATHER, SUNRISE/SUNSET, AQI & MARINE TIDES ---
+# --- TEST MODULE 2: BATCHED OPEN-METEO WEATHER, ASTRONOMY, AQI & MARINE TIDES ---
 def test_weather_and_environment(cities):
-    print("⛅ [2/5] Ingesting Weather, Sunrise/Sunset, Air Quality & Open-Meteo Tides...")
-    valid_cities = [c for c in cities if c["latitude"] is not None and c["longitude"] is not None]
+    print("⛅ [2/5] Ingesting Weather, Sunrise/Sunset, Air Quality & Open-Meteo Tides (Batched)...", flush=True)
+    valid_cities = [c for c in cities if c.get("latitude") is not None and c.get("longitude") is not None]
     if not valid_cities:
         return
 
+    chunk_size = 10
     output = {}
-    
-    for city in valid_cities:
-        lat, lon = city["latitude"], city["longitude"]
-        
-        # 1. Fetch Weather, Forecast & Daily Sunrise/Sunset
+
+    for i in range(0, len(valid_cities), chunk_size):
+        chunk = valid_cities[i:i + chunk_size]
+        lats_str = ",".join([str(c["latitude"]) for c in chunk])
+        lons_str = ",".join([str(c["longitude"]) for c in chunk])
+
+        # 1. Open-Meteo Weather Forecast + Daily Sunrise/Sunset
         wx_params = {
-            "latitude": str(lat),
-            "longitude": str(lon),
+            "latitude": lats_str,
+            "longitude": lons_str,
             "current": "temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m",
             "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,sunrise,sunset",
             "temperature_unit": "fahrenheit",
@@ -245,73 +248,92 @@ def test_weather_and_environment(cities):
             "timezone": "America/Los_Angeles"
         }
         wx_url = f"https://api.open-meteo.com/v1/forecast?{urllib.parse.urlencode(wx_params)}"
-        wx_res = http_get_json(wx_url) or {}
+        wx_res = http_get_json(wx_url, timeout=12) or []
+        if isinstance(wx_res, dict):
+            wx_res = [wx_res]
 
-        # 2. Fetch Air Quality Index (AQI)
+        # 2. Open-Meteo Air Quality
         aqi_params = {
-            "latitude": str(lat),
-            "longitude": str(lon),
+            "latitude": lats_str,
+            "longitude": lons_str,
             "current": "us_aqi,pm2_5",
             "timezone": "America/Los_Angeles"
         }
         aqi_url = f"https://air-quality-api.open-meteo.com/v1/air-quality?{urllib.parse.urlencode(aqi_params)}"
-        aqi_res = http_get_json(aqi_url) or {}
+        aqi_res = http_get_json(aqi_url, timeout=12) or []
+        if isinstance(aqi_res, dict):
+            aqi_res = [aqi_res]
 
-        # 3. Fetch Marine Tides & Wave Heights (Auto-snaps to nearest Puget Sound coastal grid point)
+        # 3. Open-Meteo Marine Tides
         marine_params = {
-            "latitude": str(lat),
-            "longitude": str(lon),
+            "latitude": lats_str,
+            "longitude": lons_str,
             "daily": "wave_height_max",
             "length_unit": "imperial",
             "timezone": "America/Los_Angeles"
         }
         marine_url = f"https://marine-api.open-meteo.com/v1/marine?{urllib.parse.urlencode(marine_params)}"
-        marine_res = http_get_json(marine_url) or {}
+        marine_res = http_get_json(marine_url, timeout=12) or []
+        if isinstance(marine_res, dict):
+            marine_res = [marine_res]
 
-        current_wx = wx_res.get("current", {})
-        daily_wx = wx_res.get("daily", {})
-        
-        aqi_val = aqi_res.get("current", {}).get("us_aqi", 30)
-        aqi_label = "Good" if aqi_val <= 50 else ("Moderate" if aqi_val <= 100 else "Unhealthy")
+        for idx, city in enumerate(chunk):
+            city_wx = wx_res[idx] if idx < len(wx_res) and isinstance(wx_res[idx], dict) else {}
+            city_aqi = aqi_res[idx] if idx < len(aqi_res) and isinstance(aqi_res[idx], dict) else {}
+            city_marine = marine_res[idx] if idx < len(marine_res) and isinstance(marine_res[idx], dict) else {}
 
-        output[city["slug"]] = {
-            "name": city["name"],
-            "latitude": lat,
-            "longitude": lon,
-            "last_updated": datetime.utcnow().isoformat() + "Z",
-            "current": {
-                "temp_f": current_wx.get("temperature_2m"),
-                "humidity_pct": current_wx.get("relative_humidity_2m"),
-                "wind_speed_mph": current_wx.get("wind_speed_10m"),
-                "weather_code": current_wx.get("weather_code")
-            },
-            "astronomy": {
-                "sunrise_today": daily_wx.get("sunrise", [""])[0] if isinstance(daily_wx.get("sunrise"), list) else None,
-                "sunset_today": daily_wx.get("sunset", [""])[0] if isinstance(daily_wx.get("sunset"), list) else None
-            },
-            "air_quality": {
-                "us_aqi": aqi_val,
-                "status_label": aqi_label,
-                "pm2_5": aqi_res.get("current", {}).get("pm2_5")
-            },
-            "marine_tides": {
-                "max_wave_height_ft": marine_res.get("daily", {}).get("wave_height_max", [None])[0] if isinstance(marine_res.get("daily"), dict) else None,
-                "source": "Open-Meteo Marine Coastal Model"
-            },
-            "forecast_7_day": {
-                "dates": daily_wx.get("time", []),
-                "temp_max": daily_wx.get("temperature_2m_max", []),
-                "temp_min": daily_wx.get("temperature_2m_min", []),
-                "precip_prob_max": daily_wx.get("precipitation_probability_max", []),
-                "uv_index_max": daily_wx.get("uv_index_max", [])
+            current_wx = city_wx.get("current", {})
+            daily_wx = city_wx.get("daily", {})
+
+            aqi_val = city_aqi.get("current", {}).get("us_aqi", 30)
+            if aqi_val is None:
+                aqi_val = 30
+            aqi_label = "Good" if aqi_val <= 50 else ("Moderate" if aqi_val <= 100 else "Unhealthy")
+
+            wave_height = None
+            if "daily" in city_marine and isinstance(city_marine["daily"], dict):
+                wh_list = city_marine["daily"].get("wave_height_max", [])
+                if wh_list and len(wh_list) > 0:
+                    wave_height = wh_list[0]
+
+            output[city["slug"]] = {
+                "name": city["name"],
+                "latitude": city["latitude"],
+                "longitude": city["longitude"],
+                "last_updated": datetime.utcnow().isoformat() + "Z",
+                "current": {
+                    "temp_f": current_wx.get("temperature_2m"),
+                    "humidity_pct": current_wx.get("relative_humidity_2m"),
+                    "wind_speed_mph": current_wx.get("wind_speed_10m"),
+                    "weather_code": current_wx.get("weather_code")
+                },
+                "astronomy": {
+                    "sunrise_today": daily_wx.get("sunrise", [""])[0] if isinstance(daily_wx.get("sunrise"), list) and daily_wx.get("sunrise") else None,
+                    "sunset_today": daily_wx.get("sunset", [""])[0] if isinstance(daily_wx.get("sunset"), list) and daily_wx.get("sunset") else None
+                },
+                "air_quality": {
+                    "us_aqi": aqi_val,
+                    "status_label": aqi_label,
+                    "pm2_5": city_aqi.get("current", {}).get("pm2_5")
+                },
+                "marine_tides": {
+                    "max_wave_height_ft": wave_height,
+                    "source": "Open-Meteo Marine Coastal Model"
+                },
+                "forecast_7_day": {
+                    "dates": daily_wx.get("time", []),
+                    "temp_max": daily_wx.get("temperature_2m_max", []),
+                    "temp_min": daily_wx.get("temperature_2m_min", []),
+                    "precip_prob_max": daily_wx.get("precipitation_probability_max", []),
+                    "uv_index_max": daily_wx.get("uv_index_max", [])
+                }
             }
-        }
 
     save_json(WEATHER_PATH, output)
 
 # --- TEST MODULE 3: MULTI-COUNTY BUILDING PERMITS ---
 def test_building_permits(cities):
-    print("🏗️ [3/5] Harvesting Active Municipal Building Permits (Seattle, King, Snohomish)...")
+    print("🏗️ [3/5] Harvesting Active Municipal Building Permits (Seattle, King, Snohomish)...", flush=True)
     permits_by_city = {c["slug"]: {"name": c["name"], "permits": []} for c in cities}
     
     # 1. Seattle Socrata Active Permits
@@ -344,7 +366,7 @@ def test_building_permits(cities):
 
 # --- TEST MODULE 4: NLR EV CHARGER INFRASTRUCTURE & EV CHARGE SCORE ---
 def test_ev_scores(cities):
-    print("⚡ [4/5] Harvesting NLR Electric Vehicle Charging Infrastructure...")
+    print("⚡ [4/5] Harvesting NLR Electric Vehicle Charging Infrastructure...", flush=True)
     nlr_key = os.environ.get("NREL_API_KEY", "").strip() or os.environ.get("NLR_API_KEY", "").strip() or "DEMO_KEY"
     url = f"https://developer.nlr.gov/api/alt-fuel-stations/v1.json?fuel_type=ELEC&state=WA&api_key={nlr_key}"
     
@@ -388,7 +410,7 @@ def test_ev_scores(cities):
 
 # --- TEST MODULE 5: PROPERTY TAX STABILITY & GROWTH INDEX ---
 def test_tax_trends(cities):
-    print("🏛️ [5/5] Calculating Municipal Property Tax Stability & Growth Index...")
+    print("🏛️ [5/5] Calculating Municipal Property Tax Stability & Growth Index...", flush=True)
     
     tax_baseline_map = {
         "edmonds": {"bill_2021": 6840, "bill_2026": 7810},
@@ -425,9 +447,9 @@ def test_tax_trends(cities):
     save_json(TAX_TRENDS_PATH, output)
 
 if __name__ == "__main__":
-    print("==================================================")
-    print("     MYSEATTLESEARCH PHASE 3 SANDBOX ENGINE       ")
-    print("==================================================\n")
+    print("==================================================", flush=True)
+    print("     MYSEATTLESEARCH PHASE 3 SANDBOX ENGINE       ", flush=True)
+    print("==================================================\n", flush=True)
 
     cities = load_cities()
     
@@ -437,4 +459,4 @@ if __name__ == "__main__":
     test_ev_scores(cities)
     test_tax_trends(cities)
     
-    print("\n🎉 Sandbox Test Pipeline Complete! All static test artifacts updated in /data/.")
+    print("\n🎉 Sandbox Test Pipeline Complete! All static test artifacts updated in /data/.", flush=True)
