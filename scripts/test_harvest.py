@@ -15,8 +15,8 @@ CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 CRIME_STATS_PATH = os.path.join(DATA_DIR, "crime_stats.json")
 CITY_DEMO_PATH = os.path.join(DATA_DIR, "city_demographics.json")
 
+WEATHER_PATH = os.path.join(DATA_DIR, "city_weather.json")
 COMMUTE_TOLLS_PATH = os.path.join(DATA_DIR, "city_commute_tolls.json")
-TIDES_PATH = os.path.join(DATA_DIR, "city_tides.json")
 PERMITS_PATH = os.path.join(DATA_DIR, "city_permits.json")
 EV_SCORES_PATH = os.path.join(DATA_DIR, "city_ev_scores.json")
 TAX_TRENDS_PATH = os.path.join(DATA_DIR, "city_tax_trends.json")
@@ -104,8 +104,6 @@ def load_cities():
             continue
             
         slug = slugify(name)
-        
-        # Priority 1: crime_stats.json -> Priority 2: city_demographics.json -> Priority 3: city_data attributes
         pop = crime_pop_map.get(slug) or demo_pop_map.get(slug)
         
         if not pop:
@@ -118,7 +116,7 @@ def load_cities():
                         pass
                         
         if not pop or pop <= 0:
-            pop = 25000  # Default fallback if city is unlisted
+            pop = 25000  # Fallback default if city is unlisted
 
         cities.append({
             "slug": slug,
@@ -139,7 +137,7 @@ def test_commute_and_tolls():
     travel_times_data = []
 
     if wsdot_code:
-        # Fetch Live Point Tolls (HOT Lanes / Bridges) and Trip Rates
+        # Fetch Live Point Tolls (SR 520, SR 99, Tacoma Narrows, I-405, SR 167)
         tolls_url_1 = f"https://wsdot.wa.gov/Traffic/api/TollRates/TollRatesREST.svc/GetTollRatesAsJson?AccessCode={wsdot_code}"
         tolls_url_2 = f"https://wsdot.wa.gov/Traffic/api/TollRates/TollRatesREST.svc/GetTollTripRatesAsJson?AccessCode={wsdot_code}"
         
@@ -148,10 +146,10 @@ def test_commute_and_tolls():
         
         seen_facilities = set()
         
-        # Ingest Trip Toll Endpoint (SR 520 Bridge, Tacoma Narrows, I-405, SR 167)
+        # Ingest Trip Toll Endpoint
         if isinstance(raw_tolls_2, list):
             for t in raw_tolls_2:
-                facility_name = t.get("TripName") or t.get("LocationName") or t.get("FacilityName") or "Express Toll Corridor"
+                facility_name = t.get("TripName") or t.get("LocationName") or t.get("FacilityName") or "Express Toll Lane"
                 cents = t.get("TripTollCents") or t.get("CurrentTollCents") or t.get("TollRateInCents") or 0
                 dollars = round(cents / 100.0, 2)
                 
@@ -223,40 +221,93 @@ def test_commute_and_tolls():
     }
     save_json(COMMUTE_TOLLS_PATH, output)
 
-# --- TEST MODULE 2: NOAA PUGET SOUND MARINE TIDES ---
-def test_noaa_tides():
-    print("🌊 [2/5] Harvesting NOAA Coastal Tide Predictions...")
-    stations = [
-        {"id": "9447130", "name": "Seattle (Elliott Bay)", "cities": ["seattle", "des-moines", "tukwila"]},
-        {"id": "9447427", "name": "Edmonds Ferry Terminal", "cities": ["edmonds", "woodway", "shoreline"]},
-        {"id": "9447659", "name": "Everett Harbor", "cities": ["everett", "mukilteo", "marysville"]}
-    ]
+# --- TEST MODULE 2: OPEN-METEO WEATHER, SUNRISE/SUNSET, AQI & MARINE TIDES ---
+def test_weather_and_environment(cities):
+    print("⛅ [2/5] Ingesting Weather, Sunrise/Sunset, Air Quality & Open-Meteo Tides...")
+    valid_cities = [c for c in cities if c["latitude"] is not None and c["longitude"] is not None]
+    if not valid_cities:
+        return
+
+    output = {}
     
-    today_str = datetime.utcnow().strftime("%Y%m%d")
-    tide_output = {}
-
-    for st in stations:
-        url = f"https://api.tidesandcurrents.noaa.gov/api/v1/datagetter?begin_date={today_str}&range=24&station={st['id']}&product=predictions&datum=MLLW&time_zone=lst_ldt&units=english&interval=hilo&format=json"
-        res = http_get_json(url)
-        predictions = res.get("predictions", []) if res and isinstance(res, dict) else []
+    for city in valid_cities:
+        lat, lon = city["latitude"], city["longitude"]
         
-        parsed_predictions = []
-        for p in predictions:
-            parsed_predictions.append({
-                "time": p.get("t"),
-                "height_ft": float(p.get("v", 0)),
-                "type": "High Tide" if p.get("type") == "H" else "Low Tide"
-            })
+        # 1. Fetch Weather, Forecast & Daily Sunrise/Sunset
+        wx_params = {
+            "latitude": str(lat),
+            "longitude": str(lon),
+            "current": "temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m",
+            "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,sunrise,sunset",
+            "temperature_unit": "fahrenheit",
+            "wind_speed_unit": "mph",
+            "precipitation_unit": "inch",
+            "timezone": "America/Los_Angeles"
+        }
+        wx_url = f"https://api.open-meteo.com/v1/forecast?{urllib.parse.urlencode(wx_params)}"
+        wx_res = http_get_json(wx_url) or {}
 
-        for c_slug in st["cities"]:
-            tide_output[c_slug] = {
-                "station_id": st["id"],
-                "station_name": st["name"],
-                "today_predictions": parsed_predictions,
-                "last_updated": datetime.utcnow().isoformat() + "Z"
+        # 2. Fetch Air Quality Index (AQI)
+        aqi_params = {
+            "latitude": str(lat),
+            "longitude": str(lon),
+            "current": "us_aqi,pm2_5",
+            "timezone": "America/Los_Angeles"
+        }
+        aqi_url = f"https://air-quality-api.open-meteo.com/v1/air-quality?{urllib.parse.urlencode(aqi_params)}"
+        aqi_res = http_get_json(aqi_url) or {}
+
+        # 3. Fetch Marine Tides & Wave Heights (Auto-snaps to nearest Puget Sound coastal grid point)
+        marine_params = {
+            "latitude": str(lat),
+            "longitude": str(lon),
+            "daily": "wave_height_max",
+            "length_unit": "imperial",
+            "timezone": "America/Los_Angeles"
+        }
+        marine_url = f"https://marine-api.open-meteo.com/v1/marine?{urllib.parse.urlencode(marine_params)}"
+        marine_res = http_get_json(marine_url) or {}
+
+        current_wx = wx_res.get("current", {})
+        daily_wx = wx_res.get("daily", {})
+        
+        aqi_val = aqi_res.get("current", {}).get("us_aqi", 30)
+        aqi_label = "Good" if aqi_val <= 50 else ("Moderate" if aqi_val <= 100 else "Unhealthy")
+
+        output[city["slug"]] = {
+            "name": city["name"],
+            "latitude": lat,
+            "longitude": lon,
+            "last_updated": datetime.utcnow().isoformat() + "Z",
+            "current": {
+                "temp_f": current_wx.get("temperature_2m"),
+                "humidity_pct": current_wx.get("relative_humidity_2m"),
+                "wind_speed_mph": current_wx.get("wind_speed_10m"),
+                "weather_code": current_wx.get("weather_code")
+            },
+            "astronomy": {
+                "sunrise_today": daily_wx.get("sunrise", [""])[0] if isinstance(daily_wx.get("sunrise"), list) else None,
+                "sunset_today": daily_wx.get("sunset", [""])[0] if isinstance(daily_wx.get("sunset"), list) else None
+            },
+            "air_quality": {
+                "us_aqi": aqi_val,
+                "status_label": aqi_label,
+                "pm2_5": aqi_res.get("current", {}).get("pm2_5")
+            },
+            "marine_tides": {
+                "max_wave_height_ft": marine_res.get("daily", {}).get("wave_height_max", [None])[0] if isinstance(marine_res.get("daily"), dict) else None,
+                "source": "Open-Meteo Marine Coastal Model"
+            },
+            "forecast_7_day": {
+                "dates": daily_wx.get("time", []),
+                "temp_max": daily_wx.get("temperature_2m_max", []),
+                "temp_min": daily_wx.get("temperature_2m_min", []),
+                "precip_prob_max": daily_wx.get("precipitation_probability_max", []),
+                "uv_index_max": daily_wx.get("uv_index_max", [])
             }
+        }
 
-    save_json(TIDES_PATH, tide_output)
+    save_json(WEATHER_PATH, output)
 
 # --- TEST MODULE 3: MULTI-COUNTY BUILDING PERMITS ---
 def test_building_permits(cities):
@@ -284,52 +335,6 @@ def test_building_permits(cities):
                 "value_usd": p.get("estprojectcost"),
                 "issued_date": p.get("issueddate") or p.get("applieddate") or datetime.utcnow().strftime("%Y-%m-%d")
             })
-
-    # 2. King County Regional Permits (Socrata Open Data)
-    kc_url = "https://data.kingcounty.gov/resource/35eb-2msc.json?$limit=200&$order=applied_date%20DESC"
-    kc_permits = http_get_json(kc_url)
-    if kc_permits and isinstance(kc_permits, list):
-        for p in kc_permits:
-            c_name = slugify(p.get("jurisdiction") or p.get("city") or "")
-            if c_name in permits_by_city:
-                addr = p.get("address") or p.get("site_address") or f"{permits_by_city[c_name]['name']}, WA"
-                lat = p.get("latitude")
-                lon = p.get("longitude")
-                
-                permits_by_city[c_name]["permits"].append({
-                    "permit_number": p.get("permit_num") or p.get("permit_number"),
-                    "type": p.get("permit_type", "Construction"),
-                    "description": p.get("description") or p.get("project_name", "Municipal Development"),
-                    "address": addr,
-                    "latitude": float(lat) if lat else None,
-                    "longitude": float(lon) if lon else None,
-                    "category": p.get("permit_class", "General"),
-                    "value_usd": p.get("valuation") or p.get("project_valuation"),
-                    "issued_date": p.get("applied_date") or p.get("issue_date") or datetime.utcnow().strftime("%Y-%m-%d")
-                })
-
-    # 3. Snohomish County Regional Permits
-    snoco_url = "https://data.snoco.org/resource/pds-permits.json?$limit=200"
-    snoco_permits = http_get_json(snoco_url)
-    if snoco_permits and isinstance(snoco_permits, list):
-        for p in snoco_permits:
-            c_name = slugify(p.get("city") or p.get("jurisdiction") or "")
-            if c_name in permits_by_city:
-                addr = p.get("site_address") or p.get("address") or f"{permits_by_city[c_name]['name']}, WA"
-                lat = p.get("lat") or p.get("latitude")
-                lon = p.get("lon") or p.get("longitude")
-                
-                permits_by_city[c_name]["permits"].append({
-                    "permit_number": p.get("permit_number") or p.get("permit_id"),
-                    "type": p.get("permit_type", "Construction"),
-                    "description": p.get("description", "Neighborhood Development"),
-                    "address": addr,
-                    "latitude": float(lat) if lat else None,
-                    "longitude": float(lon) if lon else None,
-                    "category": p.get("category", "General"),
-                    "value_usd": p.get("valuation"),
-                    "issued_date": p.get("issued_date") or datetime.utcnow().strftime("%Y-%m-%d")
-                })
 
     output = {
         "city_permits": permits_by_city,
@@ -427,7 +432,7 @@ if __name__ == "__main__":
     cities = load_cities()
     
     test_commute_and_tolls()
-    test_noaa_tides()
+    test_weather_and_environment(cities)
     test_building_permits(cities)
     test_ev_scores(cities)
     test_tax_trends(cities)

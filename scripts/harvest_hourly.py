@@ -1,8 +1,10 @@
+# File: scripts/harvest_hourly.py
 import os
 import io
 import json
 import math
 import re
+import sys
 import time
 import datetime
 from datetime import timedelta
@@ -1190,7 +1192,7 @@ def main():
     team_lookup = {}
     if web_sheet_id:
         print("📡 Ingesting multi-tab dataset from the Website Data Workbook...")
-        target_tabs = ["Stats", "Team", "Disclaimers", "Events", "Celebrations", "DPA", "Professionals", "Reviews", "ThirdPartyPrograms", "News", "Sales", "Live_Archive", "Uploads"]
+        target_tabs = ["Stats", "Team", "Disclaimers", "Events", "Celebrations", "DPA", "Professionals", "Reviews", "ThirdPartyPrograms", "News", "Sales", "Live_Archive", "Uploads", "Sports"]
         try:
             web_ranges = [f"{tab}!A:AZ" for tab in target_tabs]
             web_batch = sheets_service.spreadsheets().values().batchGet(
@@ -1583,6 +1585,14 @@ def main():
                                     except Exception: pass
                             except Exception as fe:
                                 print(f"   ❌ Document asset ingestion failed for row {row_num}: {fe}")
+
+            # N. Process Sports Tab
+            sports_rows = tabs_data.get("Sports", {}).get('values', [])
+            if sports_rows:
+                records = parse_sheet_values(sports_rows)
+                with open(os.path.join(data_dir, "sports_teams.json"), "w", encoding="utf-8") as f:
+                    json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
+                print(f"   ✅ Sports roster synchronized ({len(records)} teams) to data/sports_teams.json.")
 
         except Exception as e:
             print(f"   ❌ Critical error compiling Website Data workbook: {e}")
