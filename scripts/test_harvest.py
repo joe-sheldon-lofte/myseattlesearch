@@ -19,6 +19,16 @@ PERMITS_PATH = os.path.join(DATA_DIR, "city_permits.json")
 EV_SCORES_PATH = os.path.join(DATA_DIR, "city_ev_scores.json")
 TAX_TRENDS_PATH = os.path.join(DATA_DIR, "city_tax_trends.json")
 
+KING_SNO_RIVER_GAUGES = [
+    "12119000",  # Cedar River at Renton
+    "12113000",  # Green River at Auburn
+    "12149000",  # Snoqualmie River near Carnation
+    "12155300",  # Snohomish River at Snohomish
+    "12134500",  # Skykomish River near Gold Bar
+    "12125200",  # Sammamish River at Bothell
+    "12167000"   # Stillaguamish River at Arlington
+]
+
 def slugify(text):
     if not text:
         return ""
@@ -124,6 +134,35 @@ def load_cities():
         
     return cities
 
+def clean_wsdot_facility_name(raw_name, travel_dir):
+    if not raw_name:
+        return "Toll Lane"
+    
+    clean_id = str(raw_name).strip().lower()
+    
+    wsdot_known_map = {
+        "520tp00422": "SR 520 Floating Bridge (Eastbound)",
+        "520tp00421": "SR 520 Floating Bridge (Westbound)",
+        "099tp03060": "SR 99 Tunnel (Southbound)",
+        "099tp03268": "SR 99 Tunnel (Northbound)",
+        "509tp02050": "SR 509 Expressway (Southbound)",
+        "509tp02051": "SR 509 Expressway (Southbound)",
+        "509tp02092": "SR 509 Expressway (Southbound)",
+        "509tp02093": "SR 509 Expressway (Southbound)",
+    }
+    
+    if clean_id in wsdot_known_map:
+        return wsdot_known_map[clean_id]
+        
+    if clean_id.startswith("405tp"):
+        dir_str = f" ({travel_dir})" if travel_dir else ""
+        return f"I-405 Express Toll Lane{dir_str}"
+    elif clean_id.startswith("167tp"):
+        dir_str = f" ({travel_dir})" if travel_dir else ""
+        return f"SR 167 HOT Lane{dir_str}"
+        
+    return str(raw_name).strip()
+
 # --- TEST MODULE 1: WSDOT LIVE TOLLS, COMMUTE CORRIDORS & REGIONAL INFRASTRUCTURE ---
 def test_commute_and_tolls():
     print("🚗 [1/5] Harvesting WSDOT Travel Times, Live Toll Rates & Infrastructure...", flush=True)
@@ -133,7 +172,6 @@ def test_commute_and_tolls():
     travel_times_data = []
 
     if wsdot_code:
-        # 1. Fetch Dynamic Express Toll Lanes & Point Tolls
         tolls_url_1 = f"https://wsdot.wa.gov/Traffic/api/TollRates/TollRatesREST.svc/GetTollRatesAsJson?AccessCode={wsdot_code}"
         tolls_url_2 = f"https://wsdot.wa.gov/Traffic/api/TollRates/TollRatesREST.svc/GetTollTripRatesAsJson?AccessCode={wsdot_code}"
         
@@ -156,8 +194,9 @@ def test_commute_and_tolls():
             if not isinstance(t, dict):
                 continue
             
-            facility_name = t.get("TripName") or t.get("LocationName") or t.get("FacilityName") or "Express Toll Corridor"
+            raw_facility = t.get("TripName") or t.get("LocationName") or t.get("FacilityName") or ""
             travel_dir = t.get("TravelDirection") or t.get("Direction") or ""
+            facility_name = clean_wsdot_facility_name(raw_facility, travel_dir)
             
             cents = 0
             if "Toll" in t and t["Toll"] is not None:
@@ -186,7 +225,6 @@ def test_commute_and_tolls():
                     "sign_message": sign_msg
                 })
 
-        # 2. Fetch Travel Times across regional corridors
         tt_url = f"https://wsdot.wa.gov/Traffic/api/TravelTimes/TravelTimesREST.svc/GetTravelTimesAsJson?AccessCode={wsdot_code}"
         raw_tt = http_get_json(tt_url)
         if raw_tt and isinstance(raw_tt, list):
@@ -210,7 +248,6 @@ def test_commute_and_tolls():
                     "status": "Free Flowing" if friction_score <= 15 else ("Moderate Delay" if friction_score <= 40 else "Heavy Congestion")
                 })
 
-    # Static baseline schedules for full day coverage
     static_schedules = [
         {
             "facility": "SR 520 Floating Bridge",
@@ -263,7 +300,6 @@ def test_commute_and_tolls():
         }
     ]
 
-    # Regional Transit Infrastructure
     static_infrastructure = [
         {"name": "Seattle Colman Dock (Pier 52)", "city": "Seattle", "routes": ["Seattle - Bainbridge Island", "Seattle - Bremerton"], "latitude": 47.6025, "longitude": -122.3383},
         {"name": "Edmonds Ferry Terminal", "city": "Edmonds", "routes": ["Edmonds - Kingston"], "latitude": 47.8131, "longitude": -122.3842},
@@ -281,26 +317,31 @@ def test_commute_and_tolls():
     }
     save_json(COMMUTE_TOLLS_PATH, output)
 
-# --- TEST MODULE 2: BATCHED OPEN-METEO WEATHER, ASTRONOMY & NOAA PUGET SOUND TIDES ---
+# --- TEST MODULE 2: NOAA PUGET SOUND TIDES, AQI & RIVER GAUGES (CONSOLIDATED INTO CITY_WEATHER.JSON) ---
 def test_weather_and_environment(cities):
-    print("⛅ [2/5] Ingesting Weather, Air Quality & NOAA Puget Sound Tides...", flush=True)
-    valid_cities = [c for c in cities if c.get("latitude") is not None and c.get("longitude") is not None]
-    if not valid_cities:
-        return
+    print("⛅ [2/5] Ingesting NOAA Puget Sound Tides, EPA AirNow AQI & River Gauges into city_weather.json...", flush=True)
+    
+    # 1. Load existing city_weather.json baseline if present
+    weather_data = {}
+    if os.path.exists(WEATHER_PATH):
+        try:
+            with open(WEATHER_PATH, "r", encoding="utf-8") as f:
+                weather_data = json.load(f)
+        except Exception as e:
+            print(f"   ⚠️ Weather load notice: {e}", flush=True)
 
-    # NOAA Station Lookup across Puget Sound
+    # 2. NOAA Harmonic Tide Station Predictions (Capitalized TODAY parameter)
     noaa_stations = {
         "seattle": "9447130",       # Seattle Central Pier 54
-        "edmonds": "9447427",       # Edmonds
-        "everett": "9447138",       # Everett / Possession Sound
+        "edmonds": "9447427",       # Edmonds Ferry Pier
+        "everett": "9447659",       # Everett Possession Sound
         "tacoma": "9446484",        # Tacoma Commencement Bay
-        "des-moines": "9447029",    # Des Moines Marina
-        "mukilteo": "9447239"       # Mukilteo
+        "des-moines": "9447029"     # Des Moines Marina
     }
 
     station_tides_cache = {}
     for st_key, st_id in noaa_stations.items():
-        noaa_url = f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=today&station={st_id}&product=predictions&datum=MLLW&time_zone=lst_ldt&units=english&interval=hilo&format=json"
+        noaa_url = f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=TODAY&station={st_id}&product=predictions&datum=MLLW&time_zone=lst_ldt&units=english&interval=hilo&format=json"
         res = http_get_json(noaa_url, timeout=8)
         if res and isinstance(res, dict) and "predictions" in res:
             preds = []
@@ -312,127 +353,105 @@ def test_weather_and_environment(cities):
                 })
             station_tides_cache[st_key] = preds
 
-    chunk_size = 5
-    output = {}
+    # 3. EPA AirNow Air Quality
+    airnow_key = os.environ.get("AIRNOW_API_KEY", "").strip().strip("'").strip('"')
+    city_aqi_map = {}
+    if airnow_key and cities:
+        regional_stations = [
+            {"name": "Seattle-Bellevue-Kent Valley", "lat": 47.6062, "lon": -122.3321},
+            {"name": "Everett-Marysville-Lynnwood", "lat": 47.9790, "lon": -122.2021},
+            {"name": "Tacoma-Puyallup", "lat": 47.2529, "lon": -122.4443}
+        ]
+        station_data = []
+        for st in regional_stations:
+            url = f"https://www.airnowapi.org/aq/observation/latLong/current/?format=application/json&latitude={st['lat']}&longitude={st['lon']}&distance=25&API_KEY={airnow_key}"
+            obs = http_get_json(url, timeout=10)
+            if obs and isinstance(obs, list) and len(obs) > 0:
+                primary = obs[0]
+                station_data.append({
+                    "reporting_area": primary.get("ReportingArea", st["name"]),
+                    "aqi": primary.get("AQI", 30),
+                    "category": primary.get("Category", {}).get("Name", "Good"),
+                    "parameter": primary.get("ParameterName", "PM2.5"),
+                    "observed_time": f"{primary.get('DateObserved', '')} {primary.get('HourObserved', '')}:00"
+                })
 
-    for i in range(0, len(valid_cities), chunk_size):
-        chunk = valid_cities[i:i + chunk_size]
-        lats_str = ",".join([str(c["latitude"]) for c in chunk])
-        lons_str = ",".join([str(c["longitude"]) for c in chunk])
+        for c in cities:
+            c_slug = c["slug"]
+            station = station_data[0] if station_data else {"aqi": 35, "category": "Good", "parameter": "PM2.5", "reporting_area": "Seattle Metro"}
+            if c_slug in ["everett", "marysville", "lynnwood", "edmonds", "arlington", "snohomish", "stanwood"] and len(station_data) > 1:
+                station = station_data[1]
+            elif c_slug in ["tacoma", "auburn", "kent", "federal-way", "pacific", "algona", "milton"] and len(station_data) > 2:
+                station = station_data[2]
+                
+            city_aqi_map[c_slug] = station
 
-        wx_params = {
-            "latitude": lats_str,
-            "longitude": lons_str,
-            "current": "temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m",
-            "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,sunrise,sunset",
-            "temperature_unit": "fahrenheit",
-            "wind_speed_unit": "mph",
-            "precipitation_unit": "inch",
-            "timezone": "America/Los_Angeles"
+    # 4. USGS River Gauges with DateTime Timestamp
+    stations_param = ",".join(KING_SNO_RIVER_GAUGES)
+    usgs_url = f"https://waterservices.usgs.gov/nwis/iv/?format=json&sites={stations_param}&parameterCd=00060,00065&siteStatus=active"
+    gauge_data = []
+    
+    try:
+        res = http_get_json(usgs_url, timeout=12)
+        if res and isinstance(res, dict):
+            time_series = res.get("value", {}).get("timeSeries", [])
+            for ts in time_series:
+                site_name = ts.get("sourceInfo", {}).get("siteName")
+                values = ts.get("values", [{}])[0].get("value", [{}])
+                current_val = values[-1].get("value") if values else None
+                reading_time = values[-1].get("dateTime") if values else None
+                unit = ts.get("variable", {}).get("unit", {}).get("unitCode")
+                
+                if current_val and current_val != "-999999":
+                    gauge_data.append({
+                        "site_name": site_name,
+                        "reading": current_val,
+                        "unit": unit,
+                        "reading_time": reading_time
+                    })
+    except Exception as e:
+        print(f"   ⚠️ USGS River Gauge Harvest Notice: {e}", flush=True)
+
+    # 5. Enrich city_weather.json cleanly
+    for c in cities:
+        c_slug = c["slug"]
+        if c_slug not in weather_data:
+            weather_data[c_slug] = {"name": c["name"], "latitude": c["latitude"], "longitude": c["longitude"]}
+
+        assigned_station = "seattle"
+        if c_slug in ["edmonds", "shoreline", "woodway", "lynnwood", "mountlake-terrace", "brier"]:
+            assigned_station = "edmonds"
+        elif c_slug in ["everett", "marysville", "lake-stevens", "mill-creek", "stanwood", "granite-falls", "mukilteo"]:
+            assigned_station = "everett"
+        elif c_slug in ["des-moines", "burien", "normandy-park", "seatac"]:
+            assigned_station = "des-moines"
+        elif c_slug in ["federal-way", "milton", "pacific", "algona", "auburn"]:
+            assigned_station = "tacoma"
+
+        city_tides = station_tides_cache.get(assigned_station, station_tides_cache.get("seattle", []))
+        aqi_info = city_aqi_map.get(c_slug, {"aqi": 35, "category": "Good", "parameter": "PM2.5"})
+
+        weather_data[c_slug]["last_updated"] = datetime.utcnow().isoformat() + "Z"
+        weather_data[c_slug]["air_quality"] = {
+            "us_aqi": aqi_info.get("aqi", 35),
+            "status_label": aqi_info.get("category", "Good"),
+            "parameter": aqi_info.get("parameter", "PM2.5"),
+            "reporting_area": aqi_info.get("reporting_area", "Seattle Metro")
         }
-        wx_url = f"https://api.open-meteo.com/v1/forecast?{urllib.parse.urlencode(wx_params)}"
-        wx_res = http_get_json(wx_url, timeout=12) or []
-        if isinstance(wx_res, dict):
-            wx_res = [wx_res]
-
-        aqi_params = {
-            "latitude": lats_str,
-            "longitude": lons_str,
-            "current": "us_aqi,pm2_5",
-            "timezone": "America/Los_Angeles"
+        weather_data[c_slug]["marine_tides"] = {
+            "reference_station": assigned_station.replace("-", " ").title(),
+            "today_predictions": city_tides,
+            "source": "NOAA CO-OPS Predictions"
         }
-        aqi_url = f"https://air-quality-api.open-meteo.com/v1/air-quality?{urllib.parse.urlencode(aqi_params)}"
-        aqi_res = http_get_json(aqi_url, timeout=12) or []
-        if isinstance(aqi_res, dict):
-            aqi_res = [aqi_res]
 
-        marine_params = {
-            "latitude": lats_str,
-            "longitude": lons_str,
-            "daily": "wave_height_max",
-            "length_unit": "imperial",
-            "timezone": "America/Los_Angeles"
-        }
-        marine_url = f"https://marine-api.open-meteo.com/v1/marine?{urllib.parse.urlencode(marine_params)}"
-        marine_res = http_get_json(marine_url, timeout=12) or []
-        if isinstance(marine_res, dict):
-            marine_res = [marine_res]
+    # Attach top-level regional water gauges array
+    weather_data["_regional_water_gauges"] = gauge_data
 
-        for idx, city in enumerate(chunk):
-            c_slug = city["slug"]
-            city_wx = wx_res[idx] if idx < len(wx_res) and isinstance(wx_res[idx], dict) else {}
-            city_aqi = aqi_res[idx] if idx < len(aqi_res) and isinstance(aqi_res[idx], dict) else {}
-            city_marine = marine_res[idx] if idx < len(marine_res) and isinstance(marine_res[idx], dict) else {}
-
-            current_wx = city_wx.get("current", {})
-            daily_wx = city_wx.get("daily", {})
-
-            aqi_val = city_aqi.get("current", {}).get("us_aqi", 30)
-            if aqi_val is None:
-                aqi_val = 30
-            aqi_label = "Good" if aqi_val <= 50 else ("Moderate" if aqi_val <= 100 else "Unhealthy")
-
-            wave_height = None
-            if "daily" in city_marine and isinstance(city_marine["daily"], dict):
-                wh_list = city_marine["daily"].get("wave_height_max", [])
-                if wh_list and len(wh_list) > 0:
-                    wave_height = wh_list[0]
-
-            # Route city to nearest NOAA tide station
-            assigned_station = "seattle"
-            if c_slug in ["edmonds", "shoreline", "woodway", "lynnwood", "mountlake-terrace", "brier"]:
-                assigned_station = "edmonds"
-            elif c_slug in ["everett", "marysville", "lake-stevens", "mill-creek", "stanwood", "granite-falls"]:
-                assigned_station = "everett"
-            elif c_slug in ["mukilteo"]:
-                assigned_station = "mukilteo"
-            elif c_slug in ["des-moines", "burien", "normandy-park", "seatac"]:
-                assigned_station = "des-moines"
-            elif c_slug in ["federal-way", "milton", "pacific", "algona", "auburn"]:
-                assigned_station = "tacoma"
-
-            city_tide_preds = station_tides_cache.get(assigned_station, station_tides_cache.get("seattle", []))
-
-            output[c_slug] = {
-                "name": city["name"],
-                "latitude": city["latitude"],
-                "longitude": city["longitude"],
-                "last_updated": datetime.utcnow().isoformat() + "Z",
-                "current": {
-                    "temp_f": current_wx.get("temperature_2m"),
-                    "humidity_pct": current_wx.get("relative_humidity_2m"),
-                    "wind_speed_mph": current_wx.get("wind_speed_10m"),
-                    "weather_code": current_wx.get("weather_code")
-                },
-                "astronomy": {
-                    "sunrise_today": daily_wx.get("sunrise", [""])[0] if isinstance(daily_wx.get("sunrise"), list) and daily_wx.get("sunrise") else None,
-                    "sunset_today": daily_wx.get("sunset", [""])[0] if isinstance(daily_wx.get("sunset"), list) and daily_wx.get("sunset") else None
-                },
-                "air_quality": {
-                    "us_aqi": aqi_val,
-                    "status_label": aqi_label,
-                    "pm2_5": city_aqi.get("current", {}).get("pm2_5")
-                },
-                "marine_tides": {
-                    "max_wave_height_ft": wave_height,
-                    "reference_station": assigned_station.replace("-", " ").title(),
-                    "today_predictions": city_tide_preds,
-                    "source": "NOAA CO-OPS Predictions & Open-Meteo Coastal Model"
-                },
-                "forecast_7_day": {
-                    "dates": daily_wx.get("time", []),
-                    "temp_max": daily_wx.get("temperature_2m_max", []),
-                    "temp_min": daily_wx.get("temperature_2m_min", []),
-                    "precip_prob_max": daily_wx.get("precipitation_probability_max", []),
-                    "uv_index_max": daily_wx.get("uv_index_max", [])
-                }
-            }
-
-    save_json(WEATHER_PATH, output)
+    save_json(WEATHER_PATH, weather_data)
 
 # --- TEST MODULE 3: MULTI-COUNTY BUILDING PERMITS (SEATTLE, KING & SNOHOMISH) ---
 def test_building_permits(cities):
-    print("🏗️ [3/5] Harvesting Active Municipal Building Permits...", flush=True)
+    print("🏗️ [3/5] Harvesting Active Municipal Building Permits (Seattle, King, Snohomish)...", flush=True)
     permits_by_city = {c["slug"]: {"name": c["name"], "permits": []} for c in cities}
     
     # 1. Seattle Socrata Permits
@@ -456,8 +475,8 @@ def test_building_permits(cities):
                 "issued_date": p.get("issueddate") or p.get("applieddate") or datetime.utcnow().strftime("%Y-%m-%d")
             })
 
-    # 2. King County & Regional Open Data Feeds
-    kc_url = "https://data.kingcounty.gov/resource/y23t-psfq.json?$limit=200&$order=issued_date%20DESC"
+    # 2. King County Active Permits (ir2i-v33j)
+    kc_url = "https://data.kingcounty.gov/resource/ir2i-v33j.json?$limit=200&$order=issued_date%20DESC"
     kc_permits = http_get_json(kc_url)
     if kc_permits and isinstance(kc_permits, list):
         for p in kc_permits:
@@ -475,8 +494,8 @@ def test_building_permits(cities):
                     "issued_date": p.get("issued_date") or datetime.utcnow().strftime("%Y-%m-%d")
                 })
 
-    # 3. Snohomish County Open Data Feeds
-    snoco_url = "https://data.snohomishcountywa.gov/resource/35f3-f933.json?$limit=200&$order=applied_date%20DESC"
+    # 3. Snohomish County Open Data Feeds (data.snoco.org)
+    snoco_url = "https://data.snoco.org/resource/35f3-f933.json?$limit=200&$order=applied_date%20DESC"
     snoco_permits = http_get_json(snoco_url)
     if snoco_permits and isinstance(snoco_permits, list):
         for p in snoco_permits:
