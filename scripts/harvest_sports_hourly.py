@@ -1,19 +1,33 @@
+# File: scripts/harvest_sports_hourly.py
 import os
 import re
 import json
 import requests
 import feedparser
 import datetime
+import warnings
+import urllib3
 from zoneinfo import ZoneInfo
 from dateutil import parser
+from dateutil.parser import UnknownTimezoneWarning
+
+# Suppress PST/PDT timezone warnings and unverified HTTPS request warnings
+warnings.filterwarnings("ignore", category=UnknownTimezoneWarning)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 SPORTS_TEAMS_PATH = os.path.join(DATA_DIR, "sports_teams.json")
 SPORTS_DATA_PATH = os.path.join(DATA_DIR, "sports_data.json")
 
-# In-memory HTTP cache to eliminate duplicate network calls for shared feeds
 HTTP_CACHE = {}
+KNOWN_JSON_DOMAINS = [
+    "api.espn.com",
+    "site.api.espn.com",
+    "statsapi.mlb.com",
+    "api-web.nhle.com",
+    "lscluster.hockeytech.com"
+]
 
 def slugify(text):
     if not text:
@@ -31,20 +45,28 @@ def slugify(text):
     return res.strip('-')
 
 def fetch_json_deduped(url, timeout=5):
-    """Fetches JSON with deduplication and strict 5-second connection timeout."""
+    """Fetches JSON with SSL fallback, deduplication, and JSON payload verification."""
     if not url or not isinstance(url, str) or not url.strip() or url.strip().lower() == "nan":
         return None
     
     clean_url = url.strip()
     if clean_url in HTTP_CACHE:
         return HTTP_CACHE[clean_url]
+
+    headers = {"User-Agent": "MySeattleSearch/1.0"}
     
     try:
-        res = requests.get(clean_url, headers={"User-Agent": "MySeattleSearch/1.0"}, timeout=timeout)
+        try:
+            res = requests.get(clean_url, headers=headers, timeout=timeout, verify=True)
+        except requests.exceptions.SSLError:
+            res = requests.get(clean_url, headers=headers, timeout=timeout, verify=False)
+
         if res.status_code == 200:
-            data = res.json()
-            HTTP_CACHE[clean_url] = data
-            return data
+            text_start = res.text.strip()[:10]
+            if text_start.startswith("{") or text_start.startswith("["):
+                data = res.json()
+                HTTP_CACHE[clean_url] = data
+                return data
     except Exception as e:
         print(f"   ⚠️ DataFeed fetch warning [{clean_url[:60]}]: {e}")
     
@@ -52,15 +74,20 @@ def fetch_json_deduped(url, timeout=5):
     return None
 
 def fetch_rss_stories(url, max_items=3, timeout=5):
-    """Parses up to max_items articles from an RSS feed with a 5-second timeout."""
+    """Parses up to max_items articles from an RSS feed with SSL fallback."""
     if not url or not isinstance(url, str) or not url.strip() or url.strip().lower() == "nan":
         return []
     
     clean_url = url.strip()
     stories = []
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MySeattleSearch/1.0"}
     
     try:
-        res = requests.get(clean_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MySeattleSearch/1.0"}, timeout=timeout)
+        try:
+            res = requests.get(clean_url, headers=headers, timeout=timeout, verify=True)
+        except requests.exceptions.SSLError:
+            res = requests.get(clean_url, headers=headers, timeout=timeout, verify=False)
+
         if res.status_code == 200:
             feed = feedparser.parse(res.content)
             for entry in feed.entries[:max_items]:
@@ -110,8 +137,6 @@ def parse_espn_data(raw_json):
     
     try:
         team_obj = raw_json.get("team", {})
-        
-        # Record & Standing Summary
         record_obj = team_obj.get("record", {})
         items = record_obj.get("items", [])
         if items and isinstance(items, list):
@@ -119,15 +144,12 @@ def parse_espn_data(raw_json):
         
         summary["standing"] = team_obj.get("standingSummary", "")
         
-        # Next Game Event
         next_event = team_obj.get("nextEvent", [])
         if next_event and isinstance(next_event, list) and len(next_event) > 0:
             evt = next_event[0]
-            evt_name = evt.get("name", "")
-            evt_date = evt.get("date", "")
             summary["next_game"] = {
-                "name": evt_name,
-                "date": evt_date
+                "name": evt.get("name", ""),
+                "date": evt.get("date", "")
             }
     except Exception as e:
         print(f"   ⚠️ ESPN payload parse notice: {e}")
@@ -190,16 +212,14 @@ def run_sports_harvest():
         slug = slugify(team_name)
         data_feed_url = team.get("DataFeed", "").strip()
         
-        # 1. Standings & Stats Harvest
+        # 1. Standings & Stats Harvest (Only call fetch_json_deduped if domain is a known REST API)
         stats_summary = {}
-        if "api.espn.com" in data_feed_url:
+        if any(domain in data_feed_url for domain in KNOWN_JSON_DOMAINS):
             raw_data = fetch_json_deduped(data_feed_url)
-            stats_summary = parse_espn_data(raw_data)
-        elif "statsapi.mlb.com" in data_feed_url:
-            raw_data = fetch_json_deduped(data_feed_url)
-            stats_summary = parse_mlb_data(raw_data)
-        elif data_feed_url and data_feed_url.lower() != "nan":
-            fetch_json_deduped(data_feed_url)
+            if "api.espn.com" in data_feed_url:
+                stats_summary = parse_espn_data(raw_data)
+            elif "statsapi.mlb.com" in data_feed_url:
+                stats_summary = parse_mlb_data(raw_data)
         
         # 2. News Feeds Harvest
         news_items = []

@@ -1,5 +1,3 @@
-# File: scripts/test_harvest.py
-
 import os
 import json
 import math
@@ -62,7 +60,6 @@ def save_json(filepath, data):
     print(f"   ✅ Saved: {filepath}", flush=True)
 
 def load_cities():
-    # 1. Dynamic population baseline from crime_stats.json
     crime_pop_map = {}
     if os.path.exists(CRIME_STATS_PATH):
         try:
@@ -76,7 +73,6 @@ def load_cities():
         except Exception as e:
             print(f"   ⚠️ Warning loading crime_stats.json population: {e}", flush=True)
 
-    # 2. Secondary fallback from city_demographics.json
     demo_pop_map = {}
     if os.path.exists(CITY_DEMO_PATH):
         try:
@@ -116,7 +112,7 @@ def load_cities():
                         pass
                         
         if not pop or pop <= 0:
-            pop = 25000  # Fallback default if city is unlisted
+            pop = 25000
 
         cities.append({
             "slug": slug,
@@ -128,90 +124,69 @@ def load_cities():
         
     return cities
 
-# --- TEST MODULE 1: WSDOT COMMUTE DRIVE TIMES & LIVE TOLLS ---
+# --- TEST MODULE 1: WSDOT LIVE TOLLS, COMMUTE CORRIDORS & REGIONAL INFRASTRUCTURE ---
 def test_commute_and_tolls():
-    print("🚗 [1/5] Harvesting WSDOT Travel Times & Express Toll Rates...", flush=True)
+    print("🚗 [1/5] Harvesting WSDOT Travel Times, Live Toll Rates & Infrastructure...", flush=True)
     wsdot_code = os.environ.get("WSDOT_ACCESS_CODE", "").strip().strip("'").strip('"')
     
     tolls_data = []
     travel_times_data = []
 
     if wsdot_code:
-        # Fetch Live Point Tolls (SR 520, SR 99, Tacoma Narrows, I-405, SR 167)
+        # 1. Fetch Dynamic Express Toll Lanes & Point Tolls
         tolls_url_1 = f"https://wsdot.wa.gov/Traffic/api/TollRates/TollRatesREST.svc/GetTollRatesAsJson?AccessCode={wsdot_code}"
         tolls_url_2 = f"https://wsdot.wa.gov/Traffic/api/TollRates/TollRatesREST.svc/GetTollTripRatesAsJson?AccessCode={wsdot_code}"
         
         res_tolls_1 = http_get_json(tolls_url_1)
         res_tolls_2 = http_get_json(tolls_url_2)
         
-        raw_tolls_1 = []
+        raw_tolls = []
         if isinstance(res_tolls_1, list):
-            raw_tolls_1 = res_tolls_1
+            raw_tolls.extend(res_tolls_1)
         elif isinstance(res_tolls_1, dict):
-            raw_tolls_1 = res_tolls_1.get("TollRates") or res_tolls_1.get("Tolls") or []
+            raw_tolls.extend(res_tolls_1.get("TollRates") or res_tolls_1.get("Tolls") or [])
 
-        raw_tolls_2 = []
         if isinstance(res_tolls_2, list):
-            raw_tolls_2 = res_tolls_2
+            raw_tolls.extend(res_tolls_2)
         elif isinstance(res_tolls_2, dict):
-            raw_tolls_2 = res_tolls_2.get("Trips") or res_tolls_2.get("TripTollRates") or []
+            raw_tolls.extend(res_tolls_2.get("Trips") or res_tolls_2.get("TripTollRates") or [])
         
         seen_facilities = set()
-        
-        # 1. Ingest Trip Toll Endpoint (e.g. SR 520, Tacoma Narrows, I-405, SR 167 Corridors)
-        if isinstance(raw_tolls_2, list):
-            for t in raw_tolls_2:
-                if not isinstance(t, dict):
-                    continue
-                facility_name = t.get("TripName") or t.get("LocationName") or t.get("FacilityName") or "Express Toll Lane"
-                cents = t.get("TripTollCents") or t.get("CurrentTollCents") or t.get("TollRateInCents") or 0
-                if not cents and "Toll" in t:
-                    try:
-                        cents = int(float(t["Toll"]) * 100)
-                    except (ValueError, TypeError):
-                        cents = 0
+        for t in raw_tolls:
+            if not isinstance(t, dict):
+                continue
+            
+            facility_name = t.get("TripName") or t.get("LocationName") or t.get("FacilityName") or "Express Toll Corridor"
+            travel_dir = t.get("TravelDirection") or t.get("Direction") or ""
+            
+            cents = 0
+            if "Toll" in t and t["Toll"] is not None:
+                try:
+                    cents = int(round(float(t["Toll"]) * 100))
+                except (ValueError, TypeError):
+                    cents = 0
+            elif "CurrentTollCents" in t and t["CurrentTollCents"] is not None:
+                cents = int(t["CurrentTollCents"])
+            elif "TripTollCents" in t and t["TripTollCents"] is not None:
+                cents = int(t["TripTollCents"])
 
-                dollars = round(cents / 100.0, 2)
-                sign_msg = t.get("TollSignMessage") or t.get("Message") or f"${dollars:.2f}"
-                if cents == 0 and not sign_msg:
-                    sign_msg = "$0.00 (Off-Peak / Free HOV Pass)"
+            dollars = round(cents / 100.0, 2)
+            sign_msg = t.get("TollSignMessage") or t.get("Message") or f"${dollars:.2f}"
+            if cents == 0 and not sign_msg:
+                sign_msg = "$0.00 (Off-Peak / Free HOV Pass)"
 
-                key = f"{facility_name}_{t.get('TravelDirection', '')}"
-                if key not in seen_facilities:
-                    seen_facilities.add(key)
-                    tolls_data.append({
-                        "facility": facility_name,
-                        "travel_direction": t.get("TravelDirection", ""),
-                        "current_toll_cents": cents,
-                        "current_toll_dollars": dollars,
-                        "sign_message": sign_msg
-                    })
+            key = f"{facility_name}_{travel_dir}"
+            if key not in seen_facilities:
+                seen_facilities.add(key)
+                tolls_data.append({
+                    "facility": facility_name,
+                    "travel_direction": travel_dir,
+                    "current_toll_cents": cents,
+                    "current_toll_dollars": dollars,
+                    "sign_message": sign_msg
+                })
 
-        # 2. Ingest Point Toll Endpoint
-        if isinstance(raw_tolls_1, list):
-            for t in raw_tolls_1:
-                if not isinstance(t, dict):
-                    continue
-                facility_name = t.get("LocationName") or t.get("FacilityName") or "Toll Facility"
-                cents = t.get("CurrentTollCents") or t.get("TollRateInCents") or 0
-                dollars = round(cents / 100.0, 2)
-                
-                sign_msg = t.get("TollSignMessage") or t.get("Message") or f"${dollars:.2f}"
-                if cents == 0 and not sign_msg:
-                    sign_msg = "$0.00 (Off-Peak / Free HOV Pass)"
-
-                key = f"{facility_name}_{t.get('TravelDirection', '')}"
-                if key not in seen_facilities:
-                    seen_facilities.add(key)
-                    tolls_data.append({
-                        "facility": facility_name,
-                        "travel_direction": t.get("TravelDirection", ""),
-                        "current_toll_cents": cents,
-                        "current_toll_dollars": dollars,
-                        "sign_message": sign_msg
-                    })
-
-        # Fetch Live Travel Times
+        # 2. Fetch Travel Times across regional corridors
         tt_url = f"https://wsdot.wa.gov/Traffic/api/TravelTimes/TravelTimesREST.svc/GetTravelTimesAsJson?AccessCode={wsdot_code}"
         raw_tt = http_get_json(tt_url)
         if raw_tt and isinstance(raw_tt, list):
@@ -235,21 +210,108 @@ def test_commute_and_tolls():
                     "status": "Free Flowing" if friction_score <= 15 else ("Moderate Delay" if friction_score <= 40 else "Heavy Congestion")
                 })
 
+    # Static baseline schedules for full day coverage
+    static_schedules = [
+        {
+            "facility": "SR 520 Floating Bridge",
+            "toll_type": "Variable Time-of-Day (24/7 Tolled)",
+            "good_to_go_range": "$1.25 - $4.50",
+            "pay_by_mail_range": "$3.25 - $6.50",
+            "peak_hours_rate": "$4.50 (7-9 AM & 3-6 PM Weekdays)",
+            "mid_day_rate": "$3.40",
+            "overnight_rate": "$1.25 (11 PM - 5 AM)",
+            "hov_rules": "Free for HOV 3+ with registered Flex Pass in HOV mode"
+        },
+        {
+            "facility": "SR 99 Tunnel",
+            "toll_type": "Variable Time-of-Day (24/7 Tolled)",
+            "good_to_go_range": "$1.20 - $2.70",
+            "pay_by_mail_range": "$3.20 - $4.70",
+            "peak_hours_rate": "$2.70 (7-9 AM & 3-6 PM Weekdays)",
+            "mid_day_rate": "$1.75",
+            "overnight_rate": "$1.20 (11 PM - 6 AM)",
+            "hov_rules": "No HOV exemption (All vehicles pay active toll)"
+        },
+        {
+            "facility": "Tacoma Narrows Bridge (Eastbound)",
+            "toll_type": "Fixed Rate (Eastbound Only)",
+            "good_to_go_range": "$5.25",
+            "pay_by_mail_range": "$7.25",
+            "booth_rate": "$6.25",
+            "overnight_rate": "$5.25",
+            "hov_rules": "No HOV exemption"
+        },
+        {
+            "facility": "I-405 Express Toll Lanes (Lynnwood to Bellevue)",
+            "toll_type": "Dynamic Congestion Pricing",
+            "good_to_go_range": "$1.00 - $15.00",
+            "pay_by_mail_range": "$3.00 - $17.00",
+            "peak_hours_rate": "Dynamic ($1.00 min / $15.00 max based on speed)",
+            "mid_day_rate": "Dynamic ($1.00 min)",
+            "overnight_rate": "Free / Open to all (8 PM - 5 AM)",
+            "hov_rules": "Free for HOV 3+ (HOV 2+ off-peak) with Flex Pass"
+        },
+        {
+            "facility": "SR 167 HOT Lanes (Renton to Auburn)",
+            "toll_type": "Dynamic Congestion Pricing",
+            "good_to_go_range": "$1.00 - $15.00",
+            "pay_by_mail_range": "N/A (Good To Go! Pass Required)",
+            "peak_hours_rate": "Dynamic ($1.00 min / $15.00 max)",
+            "mid_day_rate": "Dynamic ($1.00 min)",
+            "overnight_rate": "Free / Open to all (7 PM - 5 AM)",
+            "hov_rules": "Free for HOV 2+ with Flex Pass"
+        }
+    ]
+
+    # Regional Transit Infrastructure
+    static_infrastructure = [
+        {"name": "Seattle Colman Dock (Pier 52)", "city": "Seattle", "routes": ["Seattle - Bainbridge Island", "Seattle - Bremerton"], "latitude": 47.6025, "longitude": -122.3383},
+        {"name": "Edmonds Ferry Terminal", "city": "Edmonds", "routes": ["Edmonds - Kingston"], "latitude": 47.8131, "longitude": -122.3842},
+        {"name": "Mukilteo Ferry Terminal", "city": "Mukilteo", "routes": ["Mukilteo - Clinton"], "latitude": 47.9501, "longitude": -122.3053},
+        {"name": "Fauntleroy Ferry Terminal", "city": "Seattle", "routes": ["Fauntleroy - Vashon - Southworth"], "latitude": 47.5233, "longitude": -122.3928},
+        {"name": "Point Defiance Ferry Terminal", "city": "Tacoma", "routes": ["Point Defiance - Tahlequah"], "latitude": 47.3060, "longitude": -122.5144}
+    ]
+
     output = {
-        "express_tolls": tolls_data,
+        "live_express_tolls": tolls_data,
+        "static_rate_schedules": static_schedules,
+        "transit_infrastructure": static_infrastructure,
         "commute_corridors": travel_times_data,
         "last_updated": datetime.utcnow().isoformat() + "Z"
     }
     save_json(COMMUTE_TOLLS_PATH, output)
 
-# --- TEST MODULE 2: BATCHED OPEN-METEO WEATHER, ASTRONOMY, AQI & MARINE TIDES ---
+# --- TEST MODULE 2: BATCHED OPEN-METEO WEATHER, ASTRONOMY & NOAA PUGET SOUND TIDES ---
 def test_weather_and_environment(cities):
-    print("⛅ [2/5] Ingesting Weather, Sunrise/Sunset, Air Quality & Open-Meteo Tides (Batched)...", flush=True)
+    print("⛅ [2/5] Ingesting Weather, Air Quality & NOAA Puget Sound Tides...", flush=True)
     valid_cities = [c for c in cities if c.get("latitude") is not None and c.get("longitude") is not None]
     if not valid_cities:
         return
 
-    # Use smaller batch size of 5 to prevent SSL handshake socket timeouts in GitHub Actions
+    # NOAA Station Lookup across Puget Sound
+    noaa_stations = {
+        "seattle": "9447130",       # Seattle Central Pier 54
+        "edmonds": "9447427",       # Edmonds
+        "everett": "9447138",       # Everett / Possession Sound
+        "tacoma": "9446484",        # Tacoma Commencement Bay
+        "des-moines": "9447029",    # Des Moines Marina
+        "mukilteo": "9447239"       # Mukilteo
+    }
+
+    station_tides_cache = {}
+    for st_key, st_id in noaa_stations.items():
+        noaa_url = f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=today&station={st_id}&product=predictions&datum=MLLW&time_zone=lst_ldt&units=english&interval=hilo&format=json"
+        res = http_get_json(noaa_url, timeout=8)
+        if res and isinstance(res, dict) and "predictions" in res:
+            preds = []
+            for p in res["predictions"]:
+                preds.append({
+                    "time": p.get("t"),
+                    "height_ft": round(float(p.get("v", 0)), 1),
+                    "type": "High" if p.get("type") == "H" else "Low"
+                })
+            station_tides_cache[st_key] = preds
+
     chunk_size = 5
     output = {}
 
@@ -258,7 +320,6 @@ def test_weather_and_environment(cities):
         lats_str = ",".join([str(c["latitude"]) for c in chunk])
         lons_str = ",".join([str(c["longitude"]) for c in chunk])
 
-        # 1. Open-Meteo Weather Forecast + Daily Sunrise/Sunset
         wx_params = {
             "latitude": lats_str,
             "longitude": lons_str,
@@ -274,7 +335,6 @@ def test_weather_and_environment(cities):
         if isinstance(wx_res, dict):
             wx_res = [wx_res]
 
-        # 2. Open-Meteo Air Quality
         aqi_params = {
             "latitude": lats_str,
             "longitude": lons_str,
@@ -286,7 +346,6 @@ def test_weather_and_environment(cities):
         if isinstance(aqi_res, dict):
             aqi_res = [aqi_res]
 
-        # 3. Open-Meteo Marine Tides
         marine_params = {
             "latitude": lats_str,
             "longitude": lons_str,
@@ -300,6 +359,7 @@ def test_weather_and_environment(cities):
             marine_res = [marine_res]
 
         for idx, city in enumerate(chunk):
+            c_slug = city["slug"]
             city_wx = wx_res[idx] if idx < len(wx_res) and isinstance(wx_res[idx], dict) else {}
             city_aqi = aqi_res[idx] if idx < len(aqi_res) and isinstance(aqi_res[idx], dict) else {}
             city_marine = marine_res[idx] if idx < len(marine_res) and isinstance(marine_res[idx], dict) else {}
@@ -318,7 +378,22 @@ def test_weather_and_environment(cities):
                 if wh_list and len(wh_list) > 0:
                     wave_height = wh_list[0]
 
-            output[city["slug"]] = {
+            # Route city to nearest NOAA tide station
+            assigned_station = "seattle"
+            if c_slug in ["edmonds", "shoreline", "woodway", "lynnwood", "mountlake-terrace", "brier"]:
+                assigned_station = "edmonds"
+            elif c_slug in ["everett", "marysville", "lake-stevens", "mill-creek", "stanwood", "granite-falls"]:
+                assigned_station = "everett"
+            elif c_slug in ["mukilteo"]:
+                assigned_station = "mukilteo"
+            elif c_slug in ["des-moines", "burien", "normandy-park", "seatac"]:
+                assigned_station = "des-moines"
+            elif c_slug in ["federal-way", "milton", "pacific", "algona", "auburn"]:
+                assigned_station = "tacoma"
+
+            city_tide_preds = station_tides_cache.get(assigned_station, station_tides_cache.get("seattle", []))
+
+            output[c_slug] = {
                 "name": city["name"],
                 "latitude": city["latitude"],
                 "longitude": city["longitude"],
@@ -340,7 +415,9 @@ def test_weather_and_environment(cities):
                 },
                 "marine_tides": {
                     "max_wave_height_ft": wave_height,
-                    "source": "Open-Meteo Marine Coastal Model"
+                    "reference_station": assigned_station.replace("-", " ").title(),
+                    "today_predictions": city_tide_preds,
+                    "source": "NOAA CO-OPS Predictions & Open-Meteo Coastal Model"
                 },
                 "forecast_7_day": {
                     "dates": daily_wx.get("time", []),
@@ -353,15 +430,14 @@ def test_weather_and_environment(cities):
 
     save_json(WEATHER_PATH, output)
 
-# --- TEST MODULE 3: MULTI-COUNTY BUILDING PERMITS ---
+# --- TEST MODULE 3: MULTI-COUNTY BUILDING PERMITS (SEATTLE, KING & SNOHOMISH) ---
 def test_building_permits(cities):
-    print("🏗️ [3/5] Harvesting Active Municipal Building Permits (Seattle, King, Snohomish)...", flush=True)
+    print("🏗️ [3/5] Harvesting Active Municipal Building Permits...", flush=True)
     permits_by_city = {c["slug"]: {"name": c["name"], "permits": []} for c in cities}
     
-    # 1. Seattle Socrata Active Permits
-    socrata_url = "https://data.seattle.gov/resource/76t5-zqzr.json?$limit=200&$order=issueddate%20DESC"
-    s_permits = http_get_json(socrata_url)
-    
+    # 1. Seattle Socrata Permits
+    seattle_url = "https://data.seattle.gov/resource/76t5-zqzr.json?$limit=100&$order=issueddate%20DESC"
+    s_permits = http_get_json(seattle_url)
     if s_permits and isinstance(s_permits, list) and "seattle" in permits_by_city:
         for p in s_permits:
             addr = p.get("originaladdress") or p.get("address") or "Seattle, WA"
@@ -379,6 +455,44 @@ def test_building_permits(cities):
                 "value_usd": p.get("estprojectcost"),
                 "issued_date": p.get("issueddate") or p.get("applieddate") or datetime.utcnow().strftime("%Y-%m-%d")
             })
+
+    # 2. King County & Regional Open Data Feeds
+    kc_url = "https://data.kingcounty.gov/resource/y23t-psfq.json?$limit=200&$order=issued_date%20DESC"
+    kc_permits = http_get_json(kc_url)
+    if kc_permits and isinstance(kc_permits, list):
+        for p in kc_permits:
+            c_name = slugify(p.get("city") or p.get("site_city") or "")
+            if c_name in permits_by_city:
+                permits_by_city[c_name]["permits"].append({
+                    "permit_number": p.get("permit_number") or p.get("record_id"),
+                    "type": p.get("permit_type") or "Building Permit",
+                    "description": p.get("description") or "Municipal Project",
+                    "address": p.get("address") or f"{c_name.title()}, WA",
+                    "latitude": float(p["latitude"]) if p.get("latitude") else None,
+                    "longitude": float(p["longitude"]) if p.get("longitude") else None,
+                    "category": p.get("category", "Residential / Commercial"),
+                    "value_usd": p.get("valuation") or p.get("project_cost"),
+                    "issued_date": p.get("issued_date") or datetime.utcnow().strftime("%Y-%m-%d")
+                })
+
+    # 3. Snohomish County Open Data Feeds
+    snoco_url = "https://data.snohomishcountywa.gov/resource/35f3-f933.json?$limit=200&$order=applied_date%20DESC"
+    snoco_permits = http_get_json(snoco_url)
+    if snoco_permits and isinstance(snoco_permits, list):
+        for p in snoco_permits:
+            c_name = slugify(p.get("city") or p.get("jurisdiction") or "")
+            if c_name in permits_by_city:
+                permits_by_city[c_name]["permits"].append({
+                    "permit_number": p.get("permit_num") or p.get("file_number"),
+                    "type": p.get("permit_type_desc") or "County Permit",
+                    "description": p.get("proj_desc") or "Land Use & Construction",
+                    "address": p.get("site_address") or f"{c_name.title()}, WA",
+                    "latitude": float(p["latitude"]) if p.get("latitude") else None,
+                    "longitude": float(p["longitude"]) if p.get("longitude") else None,
+                    "category": p.get("permit_class", "Residential"),
+                    "value_usd": p.get("valuation"),
+                    "issued_date": p.get("applied_date") or datetime.utcnow().strftime("%Y-%m-%d")
+                })
 
     output = {
         "city_permits": permits_by_city,
