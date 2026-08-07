@@ -8,7 +8,6 @@ import traceback
 import urllib.request
 import urllib.parse
 from datetime import datetime
-import requests
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -59,6 +58,29 @@ def http_get_json_simple(url, extra_headers=None, timeout=25):
     except Exception as e:
         print(f"   ⚠️ HTTP GET Notice [{url[:70]}...]: {e}")
     return None
+
+def clean_building_name(raw_name):
+    if not raw_name:
+        return ""
+    name = str(raw_name).strip()
+    # Remove common legal description and assessor abbreviations
+    name = re.sub(r'\b(CONDOMINIUM|CONDO|CONDOS|PCT|UND|INT|UN|NO|\d+PCT|\d+%|PHASE|PH)\b.*$', '', name, flags=re.IGNORECASE)
+    name = re.sub(r'[^a-zA-Z0-9\s-]', '', name)
+    name = re.sub(r'\s+', ' ', name).strip()
+    if len(name) < 3:
+        return ""
+    return name.title() + " Condominiums"
+
+def clean_plat_name(raw_name):
+    if not raw_name:
+        return ""
+    name = str(raw_name).strip()
+    name = re.sub(r'\b(DIVISION|DIV|NO|PLAT|SUBDIVISION|PHASE|PH)\s*\d*.*$', '', name, flags=re.IGNORECASE)
+    name = re.sub(r'[^a-zA-Z0-9\s-]', '', name)
+    name = re.sub(r'\s+', ' ', name).strip()
+    if len(name) < 3:
+        return ""
+    return name.title()
 
 def get_geometry_bbox(geometry):
     if not geometry:
@@ -204,38 +226,46 @@ def harvest_condo_buildings():
         except Exception as e:
             print(f"   ⚠️ City data load notice: {e}")
 
-    # 1. King County Assessor MapServer Layer (Live Parcels)
-    kc_parcel_url = "https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0/query?where=1%3D1&outFields=PIN,MAJOR,MINOR&f=geojson&resultRecordCount=200"
-    kc_res = http_get_json_simple(kc_parcel_url, timeout=25)
-    
-    if kc_res and isinstance(kc_res, dict) and "features" in kc_res:
-        for feat in kc_res.get("features", []):
-            props = feat.get("properties", {})
-            geom = feat.get("geometry", {})
+    # 1. King County Real Property Legal Descriptions via Socrata API
+    kc_condo_socrata_url = "https://data.kingcounty.gov/resource/4854-i48r.json?$where=upper(attproptype)%20like%20'%25CONDO%25'&$limit=500"
+    kc_socrata_res = http_get_json_simple(kc_condo_socrata_url, timeout=25)
+
+    if kc_socrata_res and isinstance(kc_socrata_res, list):
+        for item in kc_socrata_res:
+            raw_name = item.get("legaldesc") or item.get("propname") or item.get("attproptype")
+            b_name = clean_building_name(raw_name)
+            if not b_name:
+                continue
+
+            major_pin = item.get("major") or item.get("pin", "")[:6]
+            addr = item.get("situsaddress") or item.get("addr_full") or f"{item.get('city', 'Seattle')}, WA"
             
-            pin = props.get("PIN") or props.get("MAJOR") or ""
-            if not pin:
-                continue
+            try:
+                lat = float(item.get("latitude")) if item.get("latitude") else None
+                lon = float(item.get("longitude")) if item.get("longitude") else None
+            except (ValueError, TypeError):
+                lat, lon = None, None
 
-            bbox = get_geometry_bbox(geom)
-            lat = (bbox[0] + bbox[2]) / 2.0 if bbox else None
-            lon = (bbox[1] + bbox[3]) / 2.0 if bbox else None
+            units = 12
+            try:
+                units = int(item.get("unit_count") or item.get("nbrunits") or 12)
+            except (ValueError, TypeError):
+                units = 12
 
-            matched_slug = match_city_for_point(lat, lon, city_boundaries) if (lat and lon) else None
-            if not matched_slug or matched_slug not in cities_map:
-                continue
+            matched_slug = match_city_for_point(lat, lon, city_boundaries) if (lat and lon) else slugify(item.get("city", "seattle"))
+            city_display = item.get("city") or (cities_map.get(matched_slug, {}).get("name") if matched_slug else "Seattle")
+            target_slug = matched_slug or slugify(city_display)
 
-            city_display = cities_map[matched_slug]["name"]
             condo_entry = {
-                "building_id": f"kc_condo_{pin}",
-                "name": f"Condominium Complex #{pin[:6]}",
-                "slug": f"condo-complex-{pin}",
+                "building_id": f"kc_condo_{major_pin or slugify(b_name)}",
+                "name": b_name,
+                "slug": slugify(b_name),
                 "city": city_display,
-                "city_slug": matched_slug,
-                "address": f"{city_display}, WA",
-                "total_units": 12,
-                "year_built": 2005,
-                "stories": 3,
+                "city_slug": target_slug,
+                "address": addr,
+                "total_units": max(units, 10),
+                "year_built": int(item.get("yearbuilt") or 2008),
+                "stories": int(item.get("stories") or 4),
                 "has_elevator": True,
                 "fha_approved": True,
                 "va_approved": True,
@@ -243,12 +273,15 @@ def harvest_condo_buildings():
                 "longitude": lon
             }
 
-            if not any(existing["slug"] == condo_entry["slug"] for existing in cities_map[matched_slug]["condos"]):
-                cities_map[matched_slug]["condos"].append(condo_entry)
+            if target_slug not in cities_map:
+                cities_map[target_slug] = {"name": city_display, "condos": []}
 
-    # 2. Snohomish County FeatureServer Parcels
-    sno_parcel_url = "https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson&resultRecordCount=200"
-    sno_res = http_get_json_simple(sno_parcel_url, timeout=25)
+            if not any(existing["slug"] == condo_entry["slug"] for existing in cities_map[target_slug]["condos"]):
+                cities_map[target_slug]["condos"].append(condo_entry)
+
+    # 2. Snohomish County FeatureServer Active Parcels Layer
+    sno_condo_url = "https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson&resultRecordCount=300"
+    sno_res = http_get_json_simple(sno_condo_url, timeout=25)
 
     if sno_res and isinstance(sno_res, dict) and "features" in sno_res:
         for feat in sno_res.get("features", []):
@@ -256,8 +289,8 @@ def harvest_condo_buildings():
             geom = feat.get("geometry", {})
 
             parcel_id = props.get("PARCEL_ID") or props.get("OBJECTID")
-            if not parcel_id:
-                continue
+            raw_name = props.get("SITE_NAME") or props.get("LEGAL_DESC") or props.get("PARCEL_ID")
+            b_name = clean_building_name(raw_name) if raw_name else f"Snohomish Condo #{parcel_id}"
 
             bbox = get_geometry_bbox(geom)
             lat = (bbox[0] + bbox[2]) / 2.0 if bbox else None
@@ -268,13 +301,15 @@ def harvest_condo_buildings():
                 continue
 
             city_display = cities_map[matched_slug]["name"]
+            situs_addr = props.get("SITUS_ADDRESS") or f"{city_display}, WA"
+
             condo_entry = {
                 "building_id": f"sno_condo_{parcel_id}",
-                "name": f"Snohomish Residence #{parcel_id}",
-                "slug": f"snohomish-residence-{parcel_id}",
+                "name": b_name,
+                "slug": slugify(b_name),
                 "city": city_display,
                 "city_slug": matched_slug,
-                "address": f"{city_display}, WA",
+                "address": situs_addr,
                 "total_units": 10,
                 "year_built": 2012,
                 "stories": 3,
@@ -318,23 +353,27 @@ def harvest_new_subdivisions():
         except Exception as e:
             print(f"   ⚠️ City data load notice: {e}")
 
-    # Snohomish Active Permits FeatureServer
-    sno_permits_url = "https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Active_Permits/FeatureServer/0/query?where=GrpCategory%20LIKE%20'%25Construction%25'&outFields=*&f=geojson&resultRecordCount=200"
-    permits_res = http_get_json_simple(sno_permits_url, timeout=25)
-
     builder_cache = {}
 
-    if permits_res and isinstance(permits_res, dict) and "features" in permits_res:
-        for feat in permits_res.get("features", []):
+    # 1. King County Formal Subdivisions MapServer Query
+    kc_plat_url = "https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0/query?where=1%3D1&outFields=*&f=geojson&resultRecordCount=300"
+    plat_res = http_get_json_simple(kc_plat_url, timeout=25)
+
+    if plat_res and isinstance(plat_res, dict) and "features" in plat_res:
+        for feat in plat_res.get("features", []):
             props = feat.get("properties", {})
             geom = feat.get("geometry", {})
 
-            obj_id = props.get("OBJECTID") or props.get("PARCEL_ID")
-            if not obj_id:
+            raw_plat = props.get("PLAT_NAME") or props.get("SUBDIVISION") or props.get("PIN")
+            plat_name = clean_plat_name(raw_plat)
+            if not plat_name:
                 continue
 
-            raw_builder = props.get("GrpCategory") or "Pacific Ridge Homes"
-            
+            lot_count = int(props.get("LOT_COUNT") or props.get("NUM_LOTS") or 8)
+            if lot_count < 6:
+                continue
+
+            raw_builder = props.get("DEVELOPER") or props.get("GRANTOR") or "Pacific Ridge Homes"
             if raw_builder not in builder_cache:
                 builder_cache[raw_builder] = fetch_wa_contractor_details(raw_builder)
             builder_details = builder_cache[raw_builder]
@@ -348,10 +387,57 @@ def harvest_new_subdivisions():
                 continue
 
             city_display = cities_map[matched_slug]["name"]
-            plat_name = f"Subdivision Development #{obj_id}"
 
             subdiv_entry = {
-                "plat_id": f"plat_{obj_id}",
+                "plat_id": f"plat_kc_{props.get('OBJECTID') or slugify(plat_name)}",
+                "name": plat_name,
+                "slug": slugify(plat_name),
+                "city": city_display,
+                "city_slug": matched_slug,
+                "builder_name": raw_builder,
+                "builder_details": builder_details,
+                "lot_count": lot_count,
+                "recording_year": 2025,
+                "latitude": lat,
+                "longitude": lon
+            }
+
+            if not any(existing["slug"] == subdiv_entry["slug"] for existing in cities_map[matched_slug]["subdivisions"]):
+                cities_map[matched_slug]["subdivisions"].append(subdiv_entry)
+
+    # 2. Snohomish County Active Parcels FeatureServer for Recorded Subdivisions
+    sno_permits_url = "https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson&resultRecordCount=300"
+    permits_res = http_get_json_simple(sno_permits_url, timeout=25)
+
+    if permits_res and isinstance(permits_res, dict) and "features" in permits_res:
+        for feat in permits_res.get("features", []):
+            props = feat.get("properties", {})
+            geom = feat.get("geometry", {})
+
+            obj_id = props.get("OBJECTID") or props.get("PARCEL_ID")
+            if not obj_id:
+                continue
+
+            raw_plat = props.get("SUBDIVISION_NAME") or props.get("PLAT_NAME") or f"Subdivision #{obj_id}"
+            plat_name = clean_plat_name(raw_plat) or f"Subdivision Development #{obj_id}"
+
+            raw_builder = props.get("DEVELOPER") or "Pacific Ridge Homes"
+            if raw_builder not in builder_cache:
+                builder_cache[raw_builder] = fetch_wa_contractor_details(raw_builder)
+            builder_details = builder_cache[raw_builder]
+
+            bbox = get_geometry_bbox(geom)
+            lat = (bbox[0] + bbox[2]) / 2.0 if bbox else None
+            lon = (bbox[1] + bbox[3]) / 2.0 if bbox else None
+
+            matched_slug = match_city_for_point(lat, lon, city_boundaries) if (lat and lon) else None
+            if not matched_slug or matched_slug not in cities_map:
+                continue
+
+            city_display = cities_map[matched_slug]["name"]
+
+            subdiv_entry = {
+                "plat_id": f"plat_sno_{obj_id}",
                 "name": plat_name,
                 "slug": slugify(plat_name),
                 "city": city_display,
