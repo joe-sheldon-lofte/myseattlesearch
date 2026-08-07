@@ -41,7 +41,7 @@ def slugify(text):
         res = res.replace('--', '-')
     return res.strip('-')
 
-def http_get_json_simple(url, extra_headers=None, timeout=25):
+def http_get_json_simple(url, extra_headers=None, timeout=30):
     headers = {
         "User-Agent": "MySeattleSearchBot/1.0 (https://myseattlesearch.com; contact@myseattlesearch.com)",
         "Accept": "application/json, text/plain, */*"
@@ -63,7 +63,6 @@ def clean_building_name(raw_name):
     if not raw_name:
         return ""
     name = str(raw_name).strip()
-    # Strip legal description fluff and unit numbers
     name = re.sub(r'^(SEC\s+\d+.*?PLAT\s+OF\s+)?', '', name, flags=re.IGNORECASE)
     name = re.sub(r'\b(UNIT|APT|LOT|PARCEL|BLK|BLOCK|PCT|UND|INT|NO)\b.*$', '', name, flags=re.IGNORECASE)
     name = re.sub(r'\b(CONDOMINIUM|CONDO|CONDOS)\b.*$', '', name, flags=re.IGNORECASE)
@@ -77,7 +76,8 @@ def clean_plat_name(raw_name):
     if not raw_name:
         return ""
     name = str(raw_name).strip()
-    # Strip section/township prefix and trailing lot/block numbers
+    if name.isdigit() or re.match(r'^\d{6,}', name):
+        return ""
     name = re.sub(r'^SEC\s+\d+.*?(PLAT\s+OF|SUBDIVISION\s+OF|PLAT\s+)|^(PLAT\s+OF|SUBDIVISION\s+OF|PLAT\s+)', '', name, flags=re.IGNORECASE)
     name = re.sub(r'\b(DIVISION|DIV|PHASE|PH|LOT|BLK|BLOCK|NO)\b.*$', '', name, flags=re.IGNORECASE)
     name = re.sub(r'[^a-zA-Z0-9\s-]', '', name)
@@ -209,9 +209,9 @@ def fetch_wa_contractor_details(builder_name):
         }
     return None
 
-# --- SUB-TASK 1: MASTER CONDO BUILDINGS HARVESTER ---
+# --- SUB-TASK 1: MASTER CONDO BUILDINGS HARVESTER (PAGINATED) ---
 def harvest_condo_buildings():
-    print("🏢 Ingesting King & Snohomish County Condo Buildings (>= 10 Units)...")
+    print("🏢 Ingesting King & Snohomish County Condo Buildings (Paginated Stream)...")
     os.makedirs(DATA_DIR, exist_ok=True)
     
     city_boundaries = load_city_boundaries()
@@ -230,29 +230,53 @@ def harvest_condo_buildings():
         except Exception as e:
             print(f"   ⚠️ City data load notice: {e}")
 
-    # 1. Fetch King County Legal Descriptions Map (Socrata)
+    # 1. Paginated Stream: King County Socrata Legal Descriptions
     kc_socrata_map = {}
-    kc_socrata_url = "https://data.kingcounty.gov/resource/4854-i48r.json?$where=upper(legal_description)%20like%20'%25CONDOMINIUM%25'&$limit=1000"
-    kc_socrata_res = http_get_json_simple(kc_socrata_url, timeout=25)
+    offset = 0
+    limit = 1000
+    print("   📡 Streaming King County Legal Descriptions (Socrata)...")
     
-    if kc_socrata_res and isinstance(kc_socrata_res, list):
+    while True:
+        kc_socrata_url = f"https://data.kingcounty.gov/resource/4854-i48r.json?$where=upper(legal_description)%20like%20'%25CONDOMINIUM%25'&$limit={limit}&$offset={offset}"
+        kc_socrata_res = http_get_json_simple(kc_socrata_url, timeout=25)
+        
+        if not kc_socrata_res or not isinstance(kc_socrata_res, list) or len(kc_socrata_res) == 0:
+            break
+            
         for item in kc_socrata_res:
             major_pin = item.get("plat_lot_major") or item.get("parcel_number", "")[:6]
             legal_desc = item.get("legal_description", "")
             if major_pin and legal_desc:
                 kc_socrata_map[major_pin] = legal_desc
+                
+        if len(kc_socrata_res) < limit:
+            break
+        offset += limit
 
-    # 2. King County Parcels GIS MapServer Query for Lat/Lon Centroids & Real Addresses
-    kc_parcel_url = "https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0/query?where=1%3D1&outFields=*&f=geojson&resultRecordCount=500"
-    kc_gis_res = http_get_json_simple(kc_parcel_url, timeout=25)
+    print(f"   Found {len(kc_socrata_map)} King County condo complex legal descriptors.")
 
-    if kc_gis_res and isinstance(kc_gis_res, dict) and "features" in kc_gis_res:
-        for feat in kc_gis_res.get("features", []):
+    # 2. Paginated Stream: King County Parcels GIS Layer
+    offset = 0
+    limit = 1000
+    print("   📡 Streaming King County Parcel Centroids (ArcGIS GIS)...")
+    
+    while True:
+        kc_parcel_url = f"https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0/query?where=1%3D1&outFields=*&f=geojson&resultRecordCount={limit}&resultOffset={offset}"
+        kc_gis_res = http_get_json_simple(kc_parcel_url, timeout=30)
+        
+        if not kc_gis_res or not isinstance(kc_gis_res, dict) or "features" not in kc_gis_res:
+            break
+            
+        features = kc_gis_res.get("features", [])
+        if not features:
+            break
+            
+        for feat in features:
             props = feat.get("properties", {})
             geom = feat.get("geometry", {})
 
             major_pin = props.get("MAJOR") or props.get("PIN", "")[:6]
-            if not major_pin:
+            if not major_pin or major_pin not in kc_socrata_map:
                 continue
 
             bbox = get_geometry_bbox(geom)
@@ -290,12 +314,27 @@ def harvest_condo_buildings():
             if not any(existing["slug"] == condo_entry["slug"] for existing in cities_map[matched_slug]["condos"]):
                 cities_map[matched_slug]["condos"].append(condo_entry)
 
-    # 3. Snohomish County FeatureServer Parcels Query
-    sno_condo_url = "https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson&resultRecordCount=500"
-    sno_res = http_get_json_simple(sno_condo_url, timeout=25)
+        if len(features) < limit or offset >= 10000:
+            break
+        offset += limit
 
-    if sno_res and isinstance(sno_res, dict) and "features" in sno_res:
-        for feat in sno_res.get("features", []):
+    # 3. Paginated Stream: Snohomish County Parcels Layer
+    offset = 0
+    limit = 1000
+    print("   📡 Streaming Snohomish County Parcels (ArcGIS FeatureServer)...")
+
+    while True:
+        sno_condo_url = f"https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson&resultRecordCount={limit}&resultOffset={offset}"
+        sno_res = http_get_json_simple(sno_condo_url, timeout=30)
+
+        if not sno_res or not isinstance(sno_res, dict) or "features" not in sno_res:
+            break
+
+        features = sno_res.get("features", [])
+        if not features:
+            break
+
+        for feat in features:
             props = feat.get("properties", {})
             geom = feat.get("geometry", {})
 
@@ -338,6 +377,10 @@ def harvest_condo_buildings():
                 if not any(existing["slug"] == condo_entry["slug"] for existing in cities_map[matched_slug]["condos"]):
                     cities_map[matched_slug]["condos"].append(condo_entry)
 
+        if len(features) < limit or offset >= 10000:
+            break
+        offset += limit
+
     out_payload = {
         "cities": cities_map,
         "last_updated": datetime.utcnow().isoformat() + "Z"
@@ -347,9 +390,9 @@ def harvest_condo_buildings():
         json.dump(out_payload, f, indent=2, ensure_ascii=False)
     print(f"💾 Saved live condo complex index across {len(cities_map)} cities to {CONDO_BUILDINGS_PATH}")
 
-# --- SUB-TASK 2: NEW CONSTRUCTION SUBDIVISIONS HARVESTER ---
+# --- SUB-TASK 2: NEW CONSTRUCTION SUBDIVISIONS HARVESTER (PAGINATED) ---
 def harvest_new_subdivisions():
-    print("🏗️ Ingesting New Construction Plats & Subdivisions (>= 6 Lots)...")
+    print("🏗️ Ingesting New Construction Plats & Subdivisions (Paginated Stream)...")
     os.makedirs(DATA_DIR, exist_ok=True)
     
     city_boundaries = load_city_boundaries()
@@ -370,12 +413,23 @@ def harvest_new_subdivisions():
 
     builder_cache = {}
 
-    # 1. King County Recorded Plats
-    kc_plat_url = "https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0/query?where=1%3D1&outFields=*&f=geojson&resultRecordCount=500"
-    plat_res = http_get_json_simple(kc_plat_url, timeout=25)
+    # 1. Paginated Stream: King County Recorded Plats
+    offset = 0
+    limit = 1000
+    print("   📡 Streaming King County Subdivision Plats (ArcGIS GIS)...")
 
-    if plat_res and isinstance(plat_res, dict) and "features" in plat_res:
-        for feat in plat_res.get("features", []):
+    while True:
+        kc_plat_url = f"https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0/query?where=1%3D1&outFields=*&f=geojson&resultRecordCount={limit}&resultOffset={offset}"
+        plat_res = http_get_json_simple(kc_plat_url, timeout=30)
+
+        if not plat_res or not isinstance(plat_res, dict) or "features" not in plat_res:
+            break
+
+        features = plat_res.get("features", [])
+        if not features:
+            break
+
+        for feat in features:
             props = feat.get("properties", {})
             geom = feat.get("geometry", {})
 
@@ -416,12 +470,27 @@ def harvest_new_subdivisions():
             if not any(existing["slug"] == subdiv_entry["slug"] for existing in cities_map[matched_slug]["subdivisions"]):
                 cities_map[matched_slug]["subdivisions"].append(subdiv_entry)
 
-    # 2. Snohomish County Recorded Subdivisions
-    sno_permits_url = "https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson&resultRecordCount=500"
-    permits_res = http_get_json_simple(sno_permits_url, timeout=25)
+        if len(features) < limit or offset >= 10000:
+            break
+        offset += limit
 
-    if permits_res and isinstance(permits_res, dict) and "features" in permits_res:
-        for feat in permits_res.get("features", []):
+    # 2. Paginated Stream: Snohomish County Recorded Subdivisions
+    offset = 0
+    limit = 1000
+    print("   📡 Streaming Snohomish County Subdivision Plats (ArcGIS FeatureServer)...")
+
+    while True:
+        sno_permits_url = f"https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson&resultRecordCount={limit}&resultOffset={offset}"
+        permits_res = http_get_json_simple(sno_permits_url, timeout=30)
+
+        if not permits_res or not isinstance(permits_res, dict) or "features" not in permits_res:
+            break
+
+        features = permits_res.get("features", [])
+        if not features:
+            break
+
+        for feat in features:
             props = feat.get("properties", {})
             geom = feat.get("geometry", {})
 
@@ -466,6 +535,10 @@ def harvest_new_subdivisions():
 
                 if not any(existing["slug"] == subdiv_entry["slug"] for existing in cities_map[matched_slug]["subdivisions"]):
                     cities_map[matched_slug]["subdivisions"].append(subdiv_entry)
+
+        if len(features) < limit or offset >= 10000:
+            break
+        offset += limit
 
     out_payload = {
         "cities": cities_map,
