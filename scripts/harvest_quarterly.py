@@ -81,7 +81,7 @@ def state_plane_to_wgs84(x_ft, y_ft):
     except (ValueError, TypeError):
         return None, None
 
-    # If already in Lat/Lon degree range
+    # Check if already in Lat/Lon degree range
     if 46.0 <= y <= 49.5 and -123.5 <= x <= -120.5:
         return y, x
     if 46.0 <= x <= 49.5 and -123.5 <= y <= -120.5:
@@ -363,14 +363,17 @@ def harvest_condo_buildings():
             break
         offset += limit
 
-    print(f"   Found {len(kc_socrata_map)} King County 6-digit numeric condo major PIN blocks.")
+    print(f"   [DIAGNOSTIC] Socrata found {len(kc_socrata_map)} 6-digit numeric major PIN blocks.")
+    sample_pins = list(kc_socrata_map.keys())[:5]
+    print(f"   [DIAGNOSTIC] Sample Socrata PINs: {sample_pins}")
 
     # Batch Query King County ArcGIS for Coordinates
     major_keys = list(kc_socrata_map.keys())
     batch_size = 50
-    print(f"   📡 Querying King County GIS coordinates for {len(major_keys)} major PIN blocks...")
+    total_batches = math.ceil(len(major_keys) / batch_size) if major_keys else 0
+    print(f"   📡 Querying King County GIS coordinates across {total_batches} batches...")
 
-    for i in range(0, len(major_keys), batch_size):
+    for b_idx, i in enumerate(range(0, len(major_keys), batch_size), start=1):
         chunk = major_keys[i:i + batch_size]
         majors_str = "','".join(chunk)
         
@@ -382,6 +385,17 @@ def harvest_condo_buildings():
         }
         kc_parcel_url = f"https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0/query?{urllib.parse.urlencode(params)}"
         kc_gis_res = http_get_json_simple(kc_parcel_url, timeout=25)
+
+        if b_idx == 1:
+            if not kc_gis_res:
+                print("   [DIAGNOSTIC ⚠️] Batch 1 HTTP request failed or returned None.")
+            elif isinstance(kc_gis_res, dict):
+                features = kc_gis_res.get("features", [])
+                print(f"   [DIAGNOSTIC ✅] Batch 1 returned {len(features)} GIS features from King County server.")
+                if features:
+                    sample_props = features[0].get("properties") or features[0].get("attributes") or {}
+                    print(f"   [DIAGNOSTIC 🔍] Sample Feature 1 Attributes: {list(sample_props.keys())}")
+                    print(f"   [DIAGNOSTIC 🔍] Sample Feature 1 Data: {sample_props}")
 
         if kc_gis_res and isinstance(kc_gis_res, dict):
             features = kc_gis_res.get("features", [])
@@ -433,6 +447,9 @@ def harvest_condo_buildings():
 
         time.sleep(0.05)
 
+    kc_condo_count = sum(len(v["condos"]) for v in cities_map.values())
+    print(f"   [DIAGNOSTIC 📊] Total King County Condos Added: {kc_condo_count}")
+
     # 2. Server-Side SQL Filtered Stream: Snohomish County Parcels
     offset = 0
     limit = 1000
@@ -449,6 +466,19 @@ def harvest_condo_buildings():
         }
         sno_condo_url = f"https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?{urllib.parse.urlencode(params)}"
         sno_res = http_get_json_simple(sno_condo_url, timeout=30)
+
+        if offset == 0:
+            if not sno_res:
+                print("   [DIAGNOSTIC ⚠️] Snohomish Condo API returned None.")
+            elif isinstance(sno_res, dict):
+                if "error" in sno_res:
+                    print(f"   [DIAGNOSTIC ⚠️] Snohomish Condo API Error: {sno_res.get('error')}")
+                else:
+                    sno_feats = sno_res.get("features", [])
+                    print(f"   [DIAGNOSTIC ✅] Snohomish Condo API Page 1 returned {len(sno_feats)} features.")
+                    if sno_feats:
+                        sno_sample = sno_feats[0].get("properties") or sno_feats[0].get("attributes") or {}
+                        print(f"   [DIAGNOSTIC 🔍] Snohomish Sample Attributes: {list(sno_sample.keys())}")
 
         if not sno_res or not isinstance(sno_res, dict) or "error" in sno_res:
             break
@@ -560,14 +590,15 @@ def harvest_new_subdivisions():
             break
         offset += limit
 
-    print(f"   Found {len(kc_plat_map)} King County 6-digit numeric subdivision plat major PIN blocks.")
+    print(f"   [DIAGNOSTIC] Found {len(kc_plat_map)} King County 6-digit numeric subdivision plat major PIN blocks.")
 
     # Batch Query King County GIS for Plat Coordinates
     major_keys = list(kc_plat_map.keys())
     batch_size = 50
-    print(f"   📡 Querying King County GIS coordinates for {len(major_keys)} subdivision major PIN blocks...")
+    total_batches = math.ceil(len(major_keys) / batch_size) if major_keys else 0
+    print(f"   📡 Querying King County GIS coordinates across {total_batches} subdivision batches...")
 
-    for i in range(0, len(major_keys), batch_size):
+    for b_idx, i in enumerate(range(0, len(major_keys), batch_size), start=1):
         chunk = major_keys[i:i + batch_size]
         majors_str = "','".join(chunk)
         
@@ -579,6 +610,13 @@ def harvest_new_subdivisions():
         }
         kc_parcel_url = f"https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0/query?{urllib.parse.urlencode(params)}"
         kc_gis_res = http_get_json_simple(kc_parcel_url, timeout=25)
+
+        if b_idx == 1:
+            if not kc_gis_res:
+                print("   [DIAGNOSTIC ⚠️] Subdivisions Batch 1 HTTP request failed or returned None.")
+            elif isinstance(kc_gis_res, dict):
+                features = kc_gis_res.get("features", [])
+                print(f"   [DIAGNOSTIC ✅] Subdivisions Batch 1 returned {len(features)} GIS features.")
 
         if kc_gis_res and isinstance(kc_gis_res, dict):
             features = kc_gis_res.get("features", [])
@@ -628,6 +666,9 @@ def harvest_new_subdivisions():
 
         time.sleep(0.05)
 
+    kc_subdiv_count = sum(len(v["subdivisions"]) for v in cities_map.values())
+    print(f"   [DIAGNOSTIC 📊] Total King County Subdivisions Added: {kc_subdiv_count}")
+
     # 2. Server-Side SQL Filtered Stream: Snohomish County Recorded Subdivisions
     offset = 0
     limit = 1000
@@ -644,6 +685,16 @@ def harvest_new_subdivisions():
         }
         sno_permits_url = f"https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?{urllib.parse.urlencode(params)}"
         permits_res = http_get_json_simple(sno_permits_url, timeout=30)
+
+        if offset == 0:
+            if not permits_res:
+                print("   [DIAGNOSTIC ⚠️] Snohomish Subdivisions API returned None.")
+            elif isinstance(permits_res, dict):
+                if "error" in permits_res:
+                    print(f"   [DIAGNOSTIC ⚠️] Snohomish Subdivisions API Error: {permits_res.get('error')}")
+                else:
+                    sno_feats = permits_res.get("features", [])
+                    print(f"   [DIAGNOSTIC ✅] Snohomish Subdivisions Page 1 returned {len(sno_feats)} features.")
 
         if not permits_res or not isinstance(permits_res, dict) or "error" in permits_res:
             break
