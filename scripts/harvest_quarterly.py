@@ -60,12 +60,15 @@ def http_get_json_simple(url, extra_headers=None, timeout=30):
     return None
 
 def extract_major_pin(item):
-    for key in ["major", "pin", "parcel_number", "plat_lot_major"]:
-        val = str(item.get(key) or "").strip()
-        if len(val) >= 6 and val[:6].isdigit():
-            return val[:6]
-        if len(val) == 6 and val.isdigit():
-            return val
+    if not isinstance(item, dict):
+        return None
+    for k, v in item.items():
+        if k.upper() in ["MAJOR", "PIN", "PARCEL_NUMBER", "PLAT_LOT_MAJOR"]:
+            val = str(v or "").strip()
+            if len(val) >= 6 and val[:6].isdigit():
+                return val[:6]
+            if len(val) == 6 and val.isdigit():
+                return val
     return None
 
 def clean_building_name(raw_name):
@@ -225,7 +228,7 @@ def match_city_for_point(lat, lon, city_boundaries, city_centers):
             if point_in_geometry(lat, lon, city["geometry"]):
                 return city["slug"]
 
-    # Proximity fallback check
+    # Proximity fallback check against city centers
     closest_slug = None
     min_dist = float("inf")
     for c in city_centers:
@@ -234,7 +237,7 @@ def match_city_for_point(lat, lon, city_boundaries, city_centers):
             min_dist = dist
             closest_slug = c["slug"]
 
-    if closest_slug and min_dist <= 0.12:  # ~8 miles max distance
+    if closest_slug and min_dist <= 0.25:  # Proximity fallback
         return closest_slug
 
     return None
@@ -354,7 +357,7 @@ def harvest_condo_buildings():
 
                 matched_slug = match_city_for_point(lat, lon, city_boundaries, city_centers)
                 if not matched_slug:
-                    raw_city = props.get("CITY") or props.get("ADDR_CITY") or ""
+                    raw_city = props.get("CITY") or props.get("ADDR_CITY") or props.get("city") or ""
                     matched_slug = slugify(raw_city) if raw_city else None
 
                 if not matched_slug or matched_slug not in cities_map:
@@ -388,16 +391,16 @@ def harvest_condo_buildings():
                 if not any(existing["slug"] == condo_entry["slug"] for existing in cities_map[matched_slug]["condos"]):
                     cities_map[matched_slug]["condos"].append(condo_entry)
 
-        time.sleep(0.1)
+        time.sleep(0.05)
 
-    # 2. Server-Side SQL Filtered Stream: Snohomish County Parcels
+    # 2. Server-Side SQL Filtered Stream: Snohomish County Parcels (Esri FeatureServer Compatible)
     offset = 0
     limit = 1000
     print("   📡 Streaming Snohomish County Condo Parcels (Server-Side Filtered)...")
 
     while True:
         params = {
-            "where": "UPPER(LEGAL_DESC) LIKE '%CONDOMINIUM%' OR UPPER(SITE_NAME) LIKE '%CONDO%'",
+            "where": "LEGAL_DESC LIKE '%CONDO%' OR LEGAL_DESC LIKE '%condo%' OR SITE_NAME LIKE '%CONDO%' OR SITE_NAME LIKE '%condo%'",
             "outFields": "*",
             "outSR": "4326",
             "f": "geojson",
@@ -418,9 +421,9 @@ def harvest_condo_buildings():
             props = feat.get("properties", {})
             geom = feat.get("geometry", {})
 
-            legal = str(props.get("LEGAL_DESC") or "").upper()
-            site = str(props.get("SITE_NAME") or "").upper()
-            parcel_id = props.get("PARCEL_ID") or props.get("OBJECTID")
+            legal = str(props.get("LEGAL_DESC") or props.get("legal_desc") or "").upper()
+            site = str(props.get("SITE_NAME") or props.get("site_name") or "").upper()
+            parcel_id = props.get("PARCEL_ID") or props.get("OBJECTID") or props.get("parcel_id")
             b_name = clean_building_name(site or legal) or f"Snohomish Residence #{parcel_id}"
 
             bbox = get_geometry_bbox(geom)
@@ -429,14 +432,14 @@ def harvest_condo_buildings():
 
             matched_slug = match_city_for_point(lat, lon, city_boundaries, city_centers)
             if not matched_slug:
-                raw_city = props.get("CITY") or props.get("SITUS_CITY") or ""
+                raw_city = props.get("CITY") or props.get("SITUS_CITY") or props.get("city") or ""
                 matched_slug = slugify(raw_city) if raw_city else None
 
             if not matched_slug or matched_slug not in cities_map:
                 continue
 
             city_display = cities_map[matched_slug]["name"]
-            situs_addr = props.get("SITUS_ADDRESS") or f"{city_display}, WA"
+            situs_addr = props.get("SITUS_ADDRESS") or props.get("situs_address") or f"{city_display}, WA"
 
             condo_entry = {
                 "building_id": f"sno_condo_{parcel_id}",
@@ -469,7 +472,9 @@ def harvest_condo_buildings():
     
     with open(CONDO_BUILDINGS_PATH, "w", encoding="utf-8") as f:
         json.dump(out_payload, f, indent=2, ensure_ascii=False)
-    print(f"💾 Saved live condo complex index across {len(cities_map)} cities to {CONDO_BUILDINGS_PATH}")
+    
+    total_condos = sum(len(v["condos"]) for v in cities_map.values())
+    print(f"💾 Saved {total_condos} condo complexes across {len(cities_map)} cities to {CONDO_BUILDINGS_PATH}")
 
 # --- SUB-TASK 2: NEW CONSTRUCTION SUBDIVISIONS HARVESTER ---
 def harvest_new_subdivisions():
@@ -552,7 +557,7 @@ def harvest_new_subdivisions():
 
                 matched_slug = match_city_for_point(lat, lon, city_boundaries, city_centers)
                 if not matched_slug:
-                    raw_city = props.get("CITY") or props.get("ADDR_CITY") or ""
+                    raw_city = props.get("CITY") or props.get("ADDR_CITY") or props.get("city") or ""
                     matched_slug = slugify(raw_city) if raw_city else None
 
                 if not matched_slug or matched_slug not in cities_map:
@@ -584,16 +589,16 @@ def harvest_new_subdivisions():
                 if not any(existing["slug"] == subdiv_entry["slug"] for existing in cities_map[matched_slug]["subdivisions"]):
                     cities_map[matched_slug]["subdivisions"].append(subdiv_entry)
 
-        time.sleep(0.1)
+        time.sleep(0.05)
 
-    # 2. Server-Side SQL Filtered Stream: Snohomish County Recorded Subdivisions
+    # 2. Server-Side SQL Filtered Stream: Snohomish County Recorded Subdivisions (Esri FeatureServer Compatible)
     offset = 0
     limit = 1000
     print("   📡 Streaming Snohomish County Subdivision Plats (Server-Side Filtered)...")
 
     while True:
         params = {
-            "where": "UPPER(LEGAL_DESC) LIKE '%PLAT OF%' OR SUBDIVISION_NAME IS NOT NULL",
+            "where": "LEGAL_DESC LIKE '%PLAT%' OR LEGAL_DESC LIKE '%plat%' OR SUBDIVISION_NAME IS NOT NULL",
             "outFields": "*",
             "outSR": "4326",
             "f": "geojson",
@@ -614,16 +619,16 @@ def harvest_new_subdivisions():
             props = feat.get("properties", {})
             geom = feat.get("geometry", {})
 
-            legal = str(props.get("LEGAL_DESC") or "").upper()
-            sub_name = str(props.get("SUBDIVISION_NAME") or "").upper()
-            plat_raw = str(props.get("PLAT_NAME") or "").upper()
-            obj_id = props.get("OBJECTID") or props.get("PARCEL_ID")
+            legal = str(props.get("LEGAL_DESC") or props.get("legal_desc") or "").upper()
+            sub_name = str(props.get("SUBDIVISION_NAME") or props.get("subdivision_name") or "").upper()
+            plat_raw = str(props.get("PLAT_NAME") or props.get("plat_name") or "").upper()
+            obj_id = props.get("OBJECTID") or props.get("PARCEL_ID") or props.get("objectid")
 
             plat_name = clean_plat_name(sub_name or plat_raw or legal)
             if not plat_name:
                 continue
 
-            raw_builder = props.get("DEVELOPER") or "Pacific Ridge Homes"
+            raw_builder = props.get("DEVELOPER") or props.get("developer") or "Pacific Ridge Homes"
             if raw_builder not in builder_cache:
                 builder_cache[raw_builder] = fetch_wa_contractor_details(raw_builder)
             builder_details = builder_cache[raw_builder]
@@ -634,7 +639,7 @@ def harvest_new_subdivisions():
 
             matched_slug = match_city_for_point(lat, lon, city_boundaries, city_centers)
             if not matched_slug:
-                raw_city = props.get("CITY") or props.get("SITUS_CITY") or ""
+                raw_city = props.get("CITY") or props.get("SITUS_CITY") or props.get("city") or ""
                 matched_slug = slugify(raw_city) if raw_city else None
 
             if not matched_slug or matched_slug not in cities_map:
@@ -670,7 +675,9 @@ def harvest_new_subdivisions():
 
     with open(NEW_SUBDIVISIONS_PATH, "w", encoding="utf-8") as f:
         json.dump(out_payload, f, indent=2, ensure_ascii=False)
-    print(f"💾 Saved live new subdivisions index across {len(cities_map)} cities to {NEW_SUBDIVISIONS_PATH}")
+
+    total_subdivisions = sum(len(v["subdivisions"]) for v in cities_map.values())
+    print(f"💾 Saved {total_subdivisions} new subdivisions across {len(cities_map)} cities to {NEW_SUBDIVISIONS_PATH}")
 
 # --- MASTER EXECUTION ROUTINE ---
 def main():
