@@ -1,7 +1,7 @@
 import json
 import os
 import re
-
+ 
 def slugify(text):
     """Normalizes city names into clean, lowercase slugs (e.g., 'Lake Forest Park' -> 'lake-forest-park')."""
     if not text:
