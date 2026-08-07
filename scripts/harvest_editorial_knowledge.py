@@ -1,7 +1,7 @@
 import json
 import os
 import re
- 
+
 def slugify(text):
     """Normalizes city names into clean, lowercase slugs (e.g., 'Lake Forest Park' -> 'lake-forest-park')."""
     if not text:
@@ -12,7 +12,7 @@ def slugify(text):
     return s
 
 def load_json_file(filepath):
-    """Safely loads a JSON file, returning an empty dict or list if not found."""
+    """Safely loads a JSON file, returning None if not found or unparseable."""
     if not os.path.exists(filepath):
         print(f"Warning: File not found -> {filepath}")
         return None
@@ -42,7 +42,7 @@ def main():
     # Primary driver dataset
     raw_city_data = load_json_file(os.path.join(data_dir, "city_data.json")) or []
 
-    # Secondary datasets (Slug keyed or Title Case keyed)
+    # Secondary datasets
     businesses_raw = load_json_file(os.path.join(base_dir, "city_businesses.json")) or load_json_file(os.path.join(data_dir, "city_businesses.json")) or {}
     walk_scores_raw = load_json_file(os.path.join(data_dir, "walk_transit_bike_scores.json")) or {}
     demographics_raw = load_json_file(os.path.join(data_dir, "city_demographics.json")) or {}
@@ -73,11 +73,11 @@ def main():
 
         slug = slugify(city_name)
 
-        # Process health hazards string into clean list
+        # Process health hazards string into a clean list
         hazards_str = entry.get("Health Hazards", "")
         hazards_list = [h.strip() for h in hazards_str.split(",") if h.strip()] if hazards_str else []
 
-        # Extract top Yelp business recommendations by category
+        # Extract top Yelp business recommendations
         city_biz_data = businesses.get(slug, {}).get("categories", {})
         top_yelp = {}
         if city_biz_data:
@@ -94,7 +94,7 @@ def main():
                         for b in items[:3]
                     ]
 
-        # Extract specific dataset sub-objects
+        # Extract dataset sub-objects
         demo_data = demographics.get(slug, {})
         walk_data = walk_scores.get(slug, {})
         climate_data = climate.get(slug, {})
@@ -103,6 +103,10 @@ def main():
         ev_data = ev_scores.get(slug, {})
         amenity_data = amenities.get(slug, {}).get("amenities", {})
         surv_data = surveillance.get(slug, {})
+
+        # Extract expanded mobility scores (Walk, Transit, Bike)
+        transit_obj = walk_data.get("transit") or {}
+        bike_obj = walk_data.get("bike") or {}
 
         master_knowledge[slug] = {
             "name": city_name,
@@ -123,9 +127,14 @@ def main():
                 "renter_occupied_pct": demo_data.get("renter_occupied_pct"),
                 "remote_worker_pct": demo_data.get("remote_worker_pct")
             },
-            "walkability": {
+            "mobility": {
                 "walkscore": walk_data.get("walkscore"),
-                "description": walk_data.get("description")
+                "walk_description": walk_data.get("description"),
+                "transit_score": transit_obj.get("score"),
+                "transit_description": transit_obj.get("description"),
+                "transit_summary": transit_obj.get("summary"),
+                "bike_score": bike_obj.get("score"),
+                "bike_description": bike_obj.get("description")
             },
             "climate": {
                 "weather_station": climate_data.get("assigned_weather_station"),
@@ -160,7 +169,7 @@ def main():
             "verified_yelp_businesses": top_yelp
         }
 
-    # Write out master compiled dataset
+    # Output master compiled JSON dataset
     with open(output_filepath, "w", encoding="utf-8") as f:
         json.dump(master_knowledge, f, indent=2, ensure_ascii=False)
 
