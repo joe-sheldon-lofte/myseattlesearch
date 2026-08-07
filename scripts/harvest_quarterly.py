@@ -59,6 +59,15 @@ def http_get_json_simple(url, extra_headers=None, timeout=30):
         print(f"   ⚠️ HTTP GET Notice [{url[:70]}...]: {e}")
     return None
 
+def extract_major_pin(item):
+    for key in ["major", "pin", "parcel_number", "plat_lot_major"]:
+        val = str(item.get(key) or "").strip()
+        if len(val) >= 6 and val[:6].isdigit():
+            return val[:6]
+        if len(val) == 6 and val.isdigit():
+            return val
+    return None
+
 def clean_building_name(raw_name):
     if not raw_name:
         return ""
@@ -155,8 +164,11 @@ def load_city_boundaries():
     if not os.path.exists(CITY_BOUNDARIES_PATH):
         return []
         
-    with open(CITY_BOUNDARIES_PATH, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    try:
+        with open(CITY_BOUNDARIES_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return []
         
     features = data.get("features", [])
     indexed = []
@@ -178,14 +190,53 @@ def load_city_boundaries():
             
     return indexed
 
-def match_city_for_point(lat, lon, city_boundaries):
+def load_city_centers():
+    centers = []
+    if os.path.exists(CITY_DATA_PATH):
+        try:
+            with open(CITY_DATA_PATH, "r", encoding="utf-8") as f:
+                raw_c = json.load(f)
+            c_items = raw_c if isinstance(raw_c, list) else list(raw_c.values())
+            for item in c_items:
+                c_name = item.get("City") or item.get("name") or ""
+                lat = item.get("Latitude") or item.get("lat") or item.get("latitude")
+                lon = item.get("Longitude") or item.get("lon") or item.get("lng") or item.get("longitude")
+                if c_name and lat and lon:
+                    try:
+                        centers.append({
+                            "slug": slugify(c_name),
+                            "name": str(c_name).strip(),
+                            "lat": float(lat),
+                            "lon": float(lon)
+                        })
+                    except (ValueError, TypeError):
+                        pass
+        except Exception:
+            pass
+    return centers
+
+def match_city_for_point(lat, lon, city_boundaries, city_centers):
     if lat is None or lon is None:
         return None
+
     for city in city_boundaries:
         bbox = city["bbox"]
         if bbox[0] <= lat <= bbox[2] and bbox[1] <= lon <= bbox[3]:
             if point_in_geometry(lat, lon, city["geometry"]):
                 return city["slug"]
+
+    # Proximity fallback check
+    closest_slug = None
+    min_dist = float("inf")
+    for c in city_centers:
+        dist = math.hypot(lat - c["lat"], lon - c["lon"])
+        if dist < min_dist:
+            min_dist = dist
+            closest_slug = c["slug"]
+
+    if closest_slug and min_dist <= 0.12:  # ~8 miles max distance
+        return closest_slug
+
     return None
 
 def fetch_wa_contractor_details(builder_name):
@@ -193,8 +244,8 @@ def fetch_wa_contractor_details(builder_name):
         return None
         
     clean_name = re.sub(r'[^a-zA-Z0-9\s]', '', builder_name).strip()
-    encoded_query = urllib.parse.quote(clean_name)
-    url = f"https://data.wa.gov/resource/m8qx-ubtq.json?$where=upper(businessname)%20like%20upper('%25{encoded_query}%25')&$limit=1"
+    params = {"$where": f"upper(businessname) like upper('%{clean_name}%')", "$limit": "1"}
+    url = f"https://data.wa.gov/resource/m8qx-ubtq.json?{urllib.parse.urlencode(params)}"
     
     res = http_get_json_simple(url, timeout=10)
     if res and isinstance(res, list) and len(res) > 0:
@@ -231,6 +282,7 @@ def harvest_condo_buildings():
     os.makedirs(DATA_DIR, exist_ok=True)
     
     city_boundaries = load_city_boundaries()
+    city_centers = load_city_centers()
     cities_map = initialize_cities_map()
 
     # 1. Targeted Socrata Stream: King County Condo Legal Descriptors
@@ -240,16 +292,21 @@ def harvest_condo_buildings():
     print("   📡 Streaming King County Legal Descriptions (Socrata)...")
     
     while True:
-        kc_socrata_url = f"https://data.kingcounty.gov/resource/4854-i48r.json?$where=upper(legal_description)%20like%20'%25CONDOMINIUM%25'&$limit={limit}&$offset={offset}"
+        params = {
+            "$where": "upper(legal_description) like '%CONDOMINIUM%'",
+            "$limit": str(limit),
+            "$offset": str(offset)
+        }
+        kc_socrata_url = f"https://data.kingcounty.gov/resource/4854-i48r.json?{urllib.parse.urlencode(params)}"
         kc_socrata_res = http_get_json_simple(kc_socrata_url, timeout=25)
         
         if not kc_socrata_res or not isinstance(kc_socrata_res, list) or len(kc_socrata_res) == 0:
             break
             
         for item in kc_socrata_res:
-            major_pin = item.get("plat_lot_major") or (item.get("parcel_number", "")[:6] if item.get("parcel_number") else "")
+            major_pin = extract_major_pin(item)
             legal_desc = item.get("legal_description", "")
-            if major_pin and len(major_pin) == 6:
+            if major_pin:
                 if major_pin not in kc_socrata_map:
                     kc_socrata_map[major_pin] = {
                         "legal": legal_desc,
@@ -262,9 +319,9 @@ def harvest_condo_buildings():
             break
         offset += limit
 
-    print(f"   Found {len(kc_socrata_map)} King County condo major PIN blocks.")
+    print(f"   Found {len(kc_socrata_map)} King County 6-digit numeric condo major PIN blocks.")
 
-    # Batch Query King County ArcGIS for Coordinates using targeted MAJOR IN (...) filters
+    # Batch Query King County ArcGIS for Coordinates
     major_keys = list(kc_socrata_map.keys())
     batch_size = 50
     print(f"   📡 Querying King County GIS coordinates for {len(major_keys)} major PIN blocks...")
@@ -272,14 +329,21 @@ def harvest_condo_buildings():
     for i in range(0, len(major_keys), batch_size):
         chunk = major_keys[i:i + batch_size]
         majors_str = "','".join(chunk)
-        kc_parcel_url = f"https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0/query?where=MAJOR+IN+('{majors_str}')&outFields=MAJOR,PIN,ADDR_FULL,CITY,SITUS_ADDRESS&outSR=4326&f=geojson"
+        
+        params = {
+            "where": f"MAJOR IN ('{majors_str}')",
+            "outFields": "MAJOR,PIN,ADDR_FULL,CITY,ADDR_CITY,SITUS_ADDRESS",
+            "outSR": "4326",
+            "f": "geojson"
+        }
+        kc_parcel_url = f"https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0/query?{urllib.parse.urlencode(params)}"
         kc_gis_res = http_get_json_simple(kc_parcel_url, timeout=25)
 
         if kc_gis_res and isinstance(kc_gis_res, dict) and "features" in kc_gis_res:
             for feat in kc_gis_res.get("features", []):
                 props = feat.get("properties", {})
                 geom = feat.get("geometry", {})
-                major_pin = props.get("MAJOR") or (props.get("PIN", "")[:6] if props.get("PIN") else "")
+                major_pin = extract_major_pin(props)
 
                 if not major_pin or major_pin not in kc_socrata_map:
                     continue
@@ -288,7 +352,7 @@ def harvest_condo_buildings():
                 lat = (bbox[0] + bbox[2]) / 2.0 if bbox else None
                 lon = (bbox[1] + bbox[3]) / 2.0 if bbox else None
 
-                matched_slug = match_city_for_point(lat, lon, city_boundaries) if (lat and lon) else None
+                matched_slug = match_city_for_point(lat, lon, city_boundaries, city_centers)
                 if not matched_slug:
                     raw_city = props.get("CITY") or props.get("ADDR_CITY") or ""
                     matched_slug = slugify(raw_city) if raw_city else None
@@ -332,7 +396,15 @@ def harvest_condo_buildings():
     print("   📡 Streaming Snohomish County Condo Parcels (Server-Side Filtered)...")
 
     while True:
-        sno_condo_url = f"https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?where=UPPER(LEGAL_DESC)+LIKE+'%25CONDOMINIUM%25'+OR+UPPER(SITE_NAME)+LIKE+'%25CONDO%25'&outFields=*&outSR=4326&f=geojson&resultRecordCount={limit}&resultOffset={offset}"
+        params = {
+            "where": "UPPER(LEGAL_DESC) LIKE '%CONDOMINIUM%' OR UPPER(SITE_NAME) LIKE '%CONDO%'",
+            "outFields": "*",
+            "outSR": "4326",
+            "f": "geojson",
+            "resultRecordCount": str(limit),
+            "resultOffset": str(offset)
+        }
+        sno_condo_url = f"https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?{urllib.parse.urlencode(params)}"
         sno_res = http_get_json_simple(sno_condo_url, timeout=30)
 
         if not sno_res or not isinstance(sno_res, dict) or "features" not in sno_res:
@@ -355,7 +427,7 @@ def harvest_condo_buildings():
             lat = (bbox[0] + bbox[2]) / 2.0 if bbox else None
             lon = (bbox[1] + bbox[3]) / 2.0 if bbox else None
 
-            matched_slug = match_city_for_point(lat, lon, city_boundaries) if (lat and lon) else None
+            matched_slug = match_city_for_point(lat, lon, city_boundaries, city_centers)
             if not matched_slug:
                 raw_city = props.get("CITY") or props.get("SITUS_CITY") or ""
                 matched_slug = slugify(raw_city) if raw_city else None
@@ -405,6 +477,7 @@ def harvest_new_subdivisions():
     os.makedirs(DATA_DIR, exist_ok=True)
     
     city_boundaries = load_city_boundaries()
+    city_centers = load_city_centers()
     cities_map = initialize_cities_map()
     builder_cache = {}
 
@@ -415,18 +488,23 @@ def harvest_new_subdivisions():
     print("   📡 Streaming King County Recorded Plats (Socrata)...")
 
     while True:
-        kc_plat_url = f"https://data.kingcounty.gov/resource/4854-i48r.json?$where=upper(legal_description)%20like%20'%25PLAT%20OF%25'&$limit={limit}&$offset={offset}"
+        params = {
+            "$where": "upper(legal_description) like '%PLAT OF%'",
+            "$limit": str(limit),
+            "$offset": str(offset)
+        }
+        kc_plat_url = f"https://data.kingcounty.gov/resource/4854-i48r.json?{urllib.parse.urlencode(params)}"
         kc_plat_res = http_get_json_simple(kc_plat_url, timeout=25)
 
         if not kc_plat_res or not isinstance(kc_plat_res, list) or len(kc_plat_res) == 0:
             break
 
         for item in kc_plat_res:
-            major_pin = item.get("plat_lot_major") or (item.get("parcel_number", "")[:6] if item.get("parcel_number") else "")
+            major_pin = extract_major_pin(item)
             legal_desc = item.get("legal_description", "")
             plat_name = clean_plat_name(legal_desc)
             
-            if major_pin and len(major_pin) == 6 and plat_name:
+            if major_pin and plat_name:
                 if major_pin not in kc_plat_map:
                     kc_plat_map[major_pin] = {
                         "name": plat_name,
@@ -439,7 +517,7 @@ def harvest_new_subdivisions():
             break
         offset += limit
 
-    print(f"   Found {len(kc_plat_map)} King County subdivision plat major PIN blocks.")
+    print(f"   Found {len(kc_plat_map)} King County 6-digit numeric subdivision plat major PIN blocks.")
 
     # Batch Query King County GIS for Plat Coordinates
     major_keys = list(kc_plat_map.keys())
@@ -449,14 +527,21 @@ def harvest_new_subdivisions():
     for i in range(0, len(major_keys), batch_size):
         chunk = major_keys[i:i + batch_size]
         majors_str = "','".join(chunk)
-        kc_parcel_url = f"https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0/query?where=MAJOR+IN+('{majors_str}')&outFields=MAJOR,PIN,ADDR_FULL,CITY,DEVELOPER,GRANTOR&outSR=4326&f=geojson"
+        
+        params = {
+            "where": f"MAJOR IN ('{majors_str}')",
+            "outFields": "MAJOR,PIN,ADDR_FULL,CITY,ADDR_CITY,DEVELOPER,GRANTOR",
+            "outSR": "4326",
+            "f": "geojson"
+        }
+        kc_parcel_url = f"https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0/query?{urllib.parse.urlencode(params)}"
         kc_gis_res = http_get_json_simple(kc_parcel_url, timeout=25)
 
         if kc_gis_res and isinstance(kc_gis_res, dict) and "features" in kc_gis_res:
             for feat in kc_gis_res.get("features", []):
                 props = feat.get("properties", {})
                 geom = feat.get("geometry", {})
-                major_pin = props.get("MAJOR") or (props.get("PIN", "")[:6] if props.get("PIN") else "")
+                major_pin = extract_major_pin(props)
 
                 if not major_pin or major_pin not in kc_plat_map:
                     continue
@@ -465,7 +550,7 @@ def harvest_new_subdivisions():
                 lat = (bbox[0] + bbox[2]) / 2.0 if bbox else None
                 lon = (bbox[1] + bbox[3]) / 2.0 if bbox else None
 
-                matched_slug = match_city_for_point(lat, lon, city_boundaries) if (lat and lon) else None
+                matched_slug = match_city_for_point(lat, lon, city_boundaries, city_centers)
                 if not matched_slug:
                     raw_city = props.get("CITY") or props.get("ADDR_CITY") or ""
                     matched_slug = slugify(raw_city) if raw_city else None
@@ -507,7 +592,15 @@ def harvest_new_subdivisions():
     print("   📡 Streaming Snohomish County Subdivision Plats (Server-Side Filtered)...")
 
     while True:
-        sno_permits_url = f"https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?where=UPPER(LEGAL_DESC)+LIKE+'%25PLAT+OF%25'+OR+SUBDIVISION_NAME+IS+NOT+NULL&outFields=*&outSR=4326&f=geojson&resultRecordCount={limit}&resultOffset={offset}"
+        params = {
+            "where": "UPPER(LEGAL_DESC) LIKE '%PLAT OF%' OR SUBDIVISION_NAME IS NOT NULL",
+            "outFields": "*",
+            "outSR": "4326",
+            "f": "geojson",
+            "resultRecordCount": str(limit),
+            "resultOffset": str(offset)
+        }
+        sno_permits_url = f"https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?{urllib.parse.urlencode(params)}"
         permits_res = http_get_json_simple(sno_permits_url, timeout=30)
 
         if not permits_res or not isinstance(permits_res, dict) or "features" not in permits_res:
@@ -539,7 +632,7 @@ def harvest_new_subdivisions():
             lat = (bbox[0] + bbox[2]) / 2.0 if bbox else None
             lon = (bbox[1] + bbox[3]) / 2.0 if bbox else None
 
-            matched_slug = match_city_for_point(lat, lon, city_boundaries) if (lat and lon) else None
+            matched_slug = match_city_for_point(lat, lon, city_boundaries, city_centers)
             if not matched_slug:
                 raw_city = props.get("CITY") or props.get("SITUS_CITY") or ""
                 matched_slug = slugify(raw_city) if raw_city else None
