@@ -81,7 +81,6 @@ def state_plane_to_wgs84(x_ft, y_ft):
     except (ValueError, TypeError):
         return None, None
 
-    # Check if already in Lat/Lon degree range
     if 46.0 <= y <= 49.5 and -123.5 <= x <= -120.5:
         return y, x
     if 46.0 <= x <= 49.5 and -123.5 <= y <= -120.5:
@@ -162,7 +161,6 @@ def get_geometry_bbox(geometry):
         return None
     all_pts = []
     
-    # GeoJSON coordinates
     coords = geometry.get("coordinates", [])
     g_type = geometry.get("type")
     if g_type == "Polygon":
@@ -173,13 +171,11 @@ def get_geometry_bbox(geometry):
             for ring in poly:
                 all_pts.extend(ring)
 
-    # ESRI JSON rings
     rings = geometry.get("rings", [])
     if rings:
         for ring in rings:
             all_pts.extend(ring)
 
-    # ESRI Point x/y
     if "x" in geometry and "y" in geometry:
         try:
             x, y = float(geometry["x"]), float(geometry["y"])
@@ -196,7 +192,6 @@ def get_geometry_bbox(geometry):
         min_y = min(pt[1] for pt in all_pts if isinstance(pt, (list, tuple)) and len(pt) >= 2)
         max_y = max(pt[1] for pt in all_pts if isinstance(pt, (list, tuple)) and len(pt) >= 2)
         
-        # Convert State Plane feet to WGS84 GPS Lat/Lon if needed
         lat_min, lon_min = state_plane_to_wgs84(min_x, min_y)
         lat_max, lon_max = state_plane_to_wgs84(max_x, max_y)
         
@@ -205,6 +200,47 @@ def get_geometry_bbox(geometry):
     except Exception:
         pass
     return None
+
+def point_in_ring(lat, lon, ring):
+    inside = False
+    n = len(ring)
+    j = n - 1
+    for i in range(n):
+        xi, yi = ring[i][0], ring[i][1]
+        xj, yj = ring[j][0], ring[j][1]
+        intersect = ((yi > lat) != (yj > lat)) and (lon < (xj - xi) * (lat - yi) / (yj - yi + 1e-12) + xi)
+        if intersect:
+            inside = not inside
+        j = i
+    return inside
+
+def point_in_geometry(lat, lon, geometry):
+    if not geometry:
+        return False
+    g_type = geometry.get("type")
+    coords = geometry.get("coordinates", [])
+    
+    if g_type == "Polygon":
+        if not coords:
+            return False
+        if point_in_ring(lat, lon, coords[0]):
+            for hole in coords[1:]:
+                if point_in_ring(lat, lon, hole):
+                    return False
+            return True
+    elif g_type == "MultiPolygon":
+        for poly in coords:
+            if not poly:
+                continue
+            if point_in_ring(lat, lon, poly[0]):
+                in_hole = False
+                for hole in poly[1:]:
+                    if point_in_ring(lat, lon, hole):
+                        in_hole = True
+                        break
+                if not in_hole:
+                    return True
+    return False
 
 def load_city_boundaries():
     if not os.path.exists(CITY_BOUNDARIES_PATH):
@@ -267,19 +303,23 @@ def match_city_for_point(lat, lon, city_boundaries, city_centers, raw_city_str=N
             if c["slug"] == candidate_slug:
                 return candidate_slug
 
-    if lat is None or lon is None:
-        return None
+    if lat is not None and lon is not None:
+        for city in city_boundaries:
+            bbox = city["bbox"]
+            if bbox[0] <= lat <= bbox[2] and bbox[1] <= lon <= bbox[3]:
+                if point_in_geometry(lat, lon, city["geometry"]):
+                    return city["slug"]
 
-    closest_slug = None
-    min_dist = float("inf")
-    for c in city_centers:
-        dist = math.hypot(lat - c["lat"], lon - c["lon"])
-        if dist < min_dist:
-            min_dist = dist
-            closest_slug = c["slug"]
+        closest_slug = None
+        min_dist = float("inf")
+        for c in city_centers:
+            dist = math.hypot(lat - c["lat"], lon - c["lon"])
+            if dist < min_dist:
+                min_dist = dist
+                closest_slug = c["slug"]
 
-    if closest_slug and min_dist <= 0.40:
-        return closest_slug
+        if closest_slug and min_dist <= 0.40:
+            return closest_slug
 
     return None
 
@@ -363,11 +403,9 @@ def harvest_condo_buildings():
             break
         offset += limit
 
-    print(f"   [DIAGNOSTIC] Socrata found {len(kc_socrata_map)} 6-digit numeric major PIN blocks.")
-    sample_pins = list(kc_socrata_map.keys())[:5]
-    print(f"   [DIAGNOSTIC] Sample Socrata PINs: {sample_pins}")
+    print(f"   [DIAGNOSTIC] Socrata found {len(kc_socrata_map)} 6-digit numeric condo major PIN blocks.")
 
-    # Batch Query King County ArcGIS for Coordinates
+    # Batch Query King County ArcGIS for Coordinates using Unquoted Integers
     major_keys = list(kc_socrata_map.keys())
     batch_size = 50
     total_batches = math.ceil(len(major_keys) / batch_size) if major_keys else 0
@@ -375,11 +413,12 @@ def harvest_condo_buildings():
 
     for b_idx, i in enumerate(range(0, len(major_keys), batch_size), start=1):
         chunk = major_keys[i:i + batch_size]
-        majors_str = "','".join(chunk)
+        int_majors = [str(int(k)) for k in chunk if k.isdigit()]
+        majors_str = ",".join(int_majors)
         
         params = {
-            "where": f"MAJOR IN ('{majors_str}')",
-            "outFields": "MAJOR,PIN,ADDR_FULL,SITUS_CITY,CITY,SITUS_ADDRESS",
+            "where": f"MAJOR IN ({majors_str})",
+            "outFields": "*",
             "outSR": "4326",
             "f": "json"
         }
@@ -388,14 +427,13 @@ def harvest_condo_buildings():
 
         if b_idx == 1:
             if not kc_gis_res:
-                print("   [DIAGNOSTIC ⚠️] Batch 1 HTTP request failed or returned None.")
+                print("   [DIAGNOSTIC ⚠️] Batch 1 HTTP request returned None.")
             elif isinstance(kc_gis_res, dict):
                 features = kc_gis_res.get("features", [])
-                print(f"   [DIAGNOSTIC ✅] Batch 1 returned {len(features)} GIS features from King County server.")
+                print(f"   [DIAGNOSTIC ✅] Batch 1 returned {len(features)} GIS features.")
                 if features:
                     sample_props = features[0].get("properties") or features[0].get("attributes") or {}
-                    print(f"   [DIAGNOSTIC 🔍] Sample Feature 1 Attributes: {list(sample_props.keys())}")
-                    print(f"   [DIAGNOSTIC 🔍] Sample Feature 1 Data: {sample_props}")
+                    print(f"   [DIAGNOSTIC 🔍] Sample Feature 1 Attribute Keys: {list(sample_props.keys())}")
 
         if kc_gis_res and isinstance(kc_gis_res, dict):
             features = kc_gis_res.get("features", [])
@@ -450,14 +488,14 @@ def harvest_condo_buildings():
     kc_condo_count = sum(len(v["condos"]) for v in cities_map.values())
     print(f"   [DIAGNOSTIC 📊] Total King County Condos Added: {kc_condo_count}")
 
-    # 2. Server-Side SQL Filtered Stream: Snohomish County Parcels
+    # 2. Server-Side SQL Filtered Stream: Snohomish County Parcels (Universal Property Filter)
     offset = 0
     limit = 1000
-    print("   📡 Streaming Snohomish County Condo Parcels (Server-Side Filtered)...")
+    print("   📡 Streaming Snohomish County Condo Parcels (Universal Property Filter)...")
 
     while True:
         params = {
-            "where": "LEGAL_DESC LIKE '%CONDO%' OR LEGAL_DESC LIKE '%condo%'",
+            "where": "1=1",
             "outFields": "*",
             "outSR": "4326",
             "f": "json",
@@ -471,14 +509,11 @@ def harvest_condo_buildings():
             if not sno_res:
                 print("   [DIAGNOSTIC ⚠️] Snohomish Condo API returned None.")
             elif isinstance(sno_res, dict):
-                if "error" in sno_res:
-                    print(f"   [DIAGNOSTIC ⚠️] Snohomish Condo API Error: {sno_res.get('error')}")
-                else:
-                    sno_feats = sno_res.get("features", [])
-                    print(f"   [DIAGNOSTIC ✅] Snohomish Condo API Page 1 returned {len(sno_feats)} features.")
-                    if sno_feats:
-                        sno_sample = sno_feats[0].get("properties") or sno_feats[0].get("attributes") or {}
-                        print(f"   [DIAGNOSTIC 🔍] Snohomish Sample Attributes: {list(sno_sample.keys())}")
+                sno_feats = sno_res.get("features", [])
+                print(f"   [DIAGNOSTIC ✅] Snohomish Condo API Page 1 returned {len(sno_feats)} features.")
+                if sno_feats:
+                    sno_sample = sno_feats[0].get("properties") or sno_feats[0].get("attributes") or {}
+                    print(f"   [DIAGNOSTIC 🔍] Snohomish Attribute Keys: {list(sno_sample.keys())}")
 
         if not sno_res or not isinstance(sno_res, dict) or "error" in sno_res:
             break
@@ -491,23 +526,33 @@ def harvest_condo_buildings():
             props = feat.get("properties") or feat.get("attributes") or {}
             geom = feat.get("geometry") or feat
 
-            legal = str(props.get("LEGAL_DESC") or props.get("legal_desc") or "").upper()
-            site = str(props.get("SITE_NAME") or props.get("site_name") or "").upper()
-            parcel_id = props.get("PARCEL_ID") or props.get("OBJECTID") or props.get("parcel_id")
-            b_name = clean_building_name(site or legal) or f"Snohomish Residence #{parcel_id}"
+            # Client-side property text inspection
+            is_condo = False
+            for k, v in props.items():
+                v_str = str(v or "").upper()
+                if "CONDO" in v_str or "CONDOMINIUM" in v_str:
+                    is_condo = True
+                    break
+
+            if not is_condo:
+                continue
+
+            parcel_id = props.get("PARCEL_ID") or props.get("OBJECTID") or props.get("parcel_id") or "100"
+            raw_title = props.get("SITE_NAME") or props.get("SITUSLINE1") or props.get("LEGALDESC") or f"Snohomish Residence #{parcel_id}"
+            b_name = clean_building_name(raw_title) or f"Snohomish Residence #{parcel_id}"
 
             bbox = get_geometry_bbox(geom)
             lat = (bbox[0] + bbox[2]) / 2.0 if bbox else None
             lon = (bbox[1] + bbox[3]) / 2.0 if bbox else None
 
-            raw_city = props.get("SITUS_CITY") or props.get("CITY") or props.get("CITY_NAME") or ""
+            raw_city = props.get("SITUSCITY") or props.get("SITUS_CITY") or props.get("CITY") or ""
             matched_slug = match_city_for_point(lat, lon, city_boundaries, city_centers, raw_city)
 
             if not matched_slug or matched_slug not in cities_map:
                 continue
 
             city_display = cities_map[matched_slug]["name"]
-            situs_addr = props.get("SITUS_ADDRESS") or props.get("situs_address") or f"{city_display}, WA"
+            situs_addr = props.get("SITUSLINE1") or props.get("SITUS_ADDRESS") or f"{city_display}, WA"
 
             condo_entry = {
                 "building_id": f"sno_condo_{parcel_id}",
@@ -529,7 +574,7 @@ def harvest_condo_buildings():
             if not any(existing["slug"] == condo_entry["slug"] for existing in cities_map[matched_slug]["condos"]):
                 cities_map[matched_slug]["condos"].append(condo_entry)
 
-        if len(features) < limit:
+        if len(features) < limit or offset >= 10000:
             break
         offset += limit
 
@@ -592,7 +637,7 @@ def harvest_new_subdivisions():
 
     print(f"   [DIAGNOSTIC] Found {len(kc_plat_map)} King County 6-digit numeric subdivision plat major PIN blocks.")
 
-    # Batch Query King County GIS for Plat Coordinates
+    # Batch Query King County GIS for Plat Coordinates using Unquoted Integers
     major_keys = list(kc_plat_map.keys())
     batch_size = 50
     total_batches = math.ceil(len(major_keys) / batch_size) if major_keys else 0
@@ -600,11 +645,12 @@ def harvest_new_subdivisions():
 
     for b_idx, i in enumerate(range(0, len(major_keys), batch_size), start=1):
         chunk = major_keys[i:i + batch_size]
-        majors_str = "','".join(chunk)
+        int_majors = [str(int(k)) for k in chunk if k.isdigit()]
+        majors_str = ",".join(int_majors)
         
         params = {
-            "where": f"MAJOR IN ('{majors_str}')",
-            "outFields": "MAJOR,PIN,ADDR_FULL,SITUS_CITY,CITY,DEVELOPER,GRANTOR",
+            "where": f"MAJOR IN ({majors_str})",
+            "outFields": "*",
             "outSR": "4326",
             "f": "json"
         }
@@ -613,7 +659,7 @@ def harvest_new_subdivisions():
 
         if b_idx == 1:
             if not kc_gis_res:
-                print("   [DIAGNOSTIC ⚠️] Subdivisions Batch 1 HTTP request failed or returned None.")
+                print("   [DIAGNOSTIC ⚠️] Subdivisions Batch 1 HTTP request returned None.")
             elif isinstance(kc_gis_res, dict):
                 features = kc_gis_res.get("features", [])
                 print(f"   [DIAGNOSTIC ✅] Subdivisions Batch 1 returned {len(features)} GIS features.")
@@ -672,11 +718,11 @@ def harvest_new_subdivisions():
     # 2. Server-Side SQL Filtered Stream: Snohomish County Recorded Subdivisions
     offset = 0
     limit = 1000
-    print("   📡 Streaming Snohomish County Subdivision Plats (Server-Side Filtered)...")
+    print("   📡 Streaming Snohomish County Subdivision Plats (Universal Property Filter)...")
 
     while True:
         params = {
-            "where": "LEGAL_DESC LIKE '%PLAT%' OR LEGAL_DESC LIKE '%plat%'",
+            "where": "1=1",
             "outFields": "*",
             "outSR": "4326",
             "f": "json",
@@ -690,11 +736,8 @@ def harvest_new_subdivisions():
             if not permits_res:
                 print("   [DIAGNOSTIC ⚠️] Snohomish Subdivisions API returned None.")
             elif isinstance(permits_res, dict):
-                if "error" in permits_res:
-                    print(f"   [DIAGNOSTIC ⚠️] Snohomish Subdivisions API Error: {permits_res.get('error')}")
-                else:
-                    sno_feats = permits_res.get("features", [])
-                    print(f"   [DIAGNOSTIC ✅] Snohomish Subdivisions Page 1 returned {len(sno_feats)} features.")
+                sno_feats = permits_res.get("features", [])
+                print(f"   [DIAGNOSTIC ✅] Snohomish Subdivisions Page 1 returned {len(sno_feats)} features.")
 
         if not permits_res or not isinstance(permits_res, dict) or "error" in permits_res:
             break
@@ -707,12 +750,19 @@ def harvest_new_subdivisions():
             props = feat.get("properties") or feat.get("attributes") or {}
             geom = feat.get("geometry") or feat
 
-            legal = str(props.get("LEGAL_DESC") or props.get("legal_desc") or "").upper()
-            sub_name = str(props.get("SUBDIVISION_NAME") or props.get("subdivision_name") or "").upper()
-            plat_raw = str(props.get("PLAT_NAME") or props.get("plat_name") or "").upper()
-            obj_id = props.get("OBJECTID") or props.get("PARCEL_ID") or props.get("objectid")
+            is_plat = False
+            for k, v in props.items():
+                v_str = str(v or "").upper()
+                if "PLAT" in v_str or "SUBDIVISION" in v_str:
+                    is_plat = True
+                    break
 
-            plat_name = clean_plat_name(sub_name or plat_raw or legal)
+            if not is_plat:
+                continue
+
+            obj_id = props.get("OBJECTID") or props.get("PARCEL_ID") or props.get("objectid") or "100"
+            raw_title = props.get("SUBDIVISION_NAME") or props.get("PLAT_NAME") or props.get("SITE_NAME") or ""
+            plat_name = clean_plat_name(raw_title)
             if not plat_name:
                 continue
 
@@ -725,7 +775,7 @@ def harvest_new_subdivisions():
             lat = (bbox[0] + bbox[2]) / 2.0 if bbox else None
             lon = (bbox[1] + bbox[3]) / 2.0 if bbox else None
 
-            raw_city = props.get("SITUS_CITY") or props.get("CITY") or props.get("CITY_NAME") or ""
+            raw_city = props.get("SITUSCITY") or props.get("SITUS_CITY") or props.get("CITY") or ""
             matched_slug = match_city_for_point(lat, lon, city_boundaries, city_centers, raw_city)
 
             if not matched_slug or matched_slug not in cities_map:
@@ -750,7 +800,7 @@ def harvest_new_subdivisions():
             if not any(existing["slug"] == subdiv_entry["slug"] for existing in cities_map[matched_slug]["subdivisions"]):
                 cities_map[matched_slug]["subdivisions"].append(subdiv_entry)
 
-        if len(features) < limit:
+        if len(features) < limit or offset >= 10000:
             break
         offset += limit
 
