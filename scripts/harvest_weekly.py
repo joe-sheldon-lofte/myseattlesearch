@@ -85,41 +85,73 @@ def harvest_school_ratings():
 
 # --- SUB-TASK 3: WALK, TRANSIT & BIKE SCORES ---
 def harvest_walk_scores():
-    print("🚶 Polling Walk Score API for North Sound Municipalities...")
+    print("🚶 Polling Walk Score API for all cities in dataset...")
     os.makedirs(DATA_DIR, exist_ok=True)
     out_path = os.path.join(DATA_DIR, "walk_transit_bike_scores.json")
     api_key = os.environ.get("WALK_SCORE_API_KEY")
 
-    cities = [
-        {"name": "Lynnwood", "lat": 47.8209, "lon": -122.3151},
-        {"name": "Edmonds", "lat": 47.8107, "lon": -122.3774},
-        {"name": "Mountlake Terrace", "lat": 47.7882, "lon": -122.3085},
-        {"name": "Shoreline", "lat": 47.7560, "lon": -122.3457},
-        {"name": "Brier", "lat": 47.7840, "lon": -122.2754},
-        {"name": "Kenmore", "lat": 47.7573, "lon": -122.2440},
-        {"name": "Mukilteo", "lat": 47.9445, "lon": -122.3046},
-        {"name": "Woodinville", "lat": 47.7543, "lon": -122.1635},
-        {"name": "Lake Forest Park", "lat": 47.7551, "lon": -122.2840}
-    ]
+    if not api_key:
+        print("ℹ️ WALK_SCORE_API_KEY not configured. Preserving existing walk score dataset.")
+        return
+
+    if not os.path.exists(CITY_DATA_PATH):
+        print("ℹ️ city_data.json not found. Skipping Walk Score harvest.")
+        return
+
+    try:
+        with open(CITY_DATA_PATH, "r", encoding="utf-8") as f:
+            raw_cities = json.load(f)
+    except Exception as e:
+        print(f"⚠️ Failed to read city_data.json: {e}")
+        return
+
+    city_items = raw_cities if isinstance(raw_cities, list) else list(raw_cities.values())
 
     scores_data = {}
-    if api_key:
-        for c in cities:
-            url = f"https://api.walkscore.com/score?format=json&lat={c['lat']}&lon={c['lon']}&wsapikey={api_key}"
-            try:
-                res = requests.get(url, timeout=10)
-                if res.status_code == 200:
-                    scores_data[c['name']] = res.json()
-            except Exception as e:
-                print(f"⚠️ WalkScore fetch failed for {c['name']}: {e}")
-            time.sleep(0.5)
+    if os.path.exists(out_path):
+        try:
+            with open(out_path, "r", encoding="utf-8") as f:
+                scores_data = json.load(f)
+        except Exception:
+            scores_data = {}
 
-        if scores_data:
-            with open(out_path, "w", encoding="utf-8") as f:
-                json.dump(scores_data, f, indent=2)
-            print(f"💾 Updated Walk Scores for {len(scores_data)} cities.")
-    else:
-        print("ℹ️ WALK_SCORE_API_KEY not configured. Preserving existing walk score dataset.")
+    fetched_count = 0
+    for item in city_items:
+        city_name = str(item.get("City") or item.get("name") or "").strip()
+        if not city_name:
+            continue
+
+        lat = item.get("Latitude") or item.get("lat") or item.get("latitude")
+        lon = item.get("Longitude") or item.get("lon") or item.get("lng") or item.get("longitude")
+
+        if not lat or not lon:
+            print(f"   ⚠️ Skipping {city_name}: Missing coordinates.")
+            continue
+
+        try:
+            lat_val = float(lat)
+            lon_val = float(lon)
+        except (ValueError, TypeError):
+            print(f"   ⚠️ Skipping {city_name}: Invalid coordinates ({lat}, {lon}).")
+            continue
+
+        url = f"https://api.walkscore.com/score?format=json&transit=1&bike=1&lat={lat_val}&lon={lon_val}&wsapikey={api_key}"
+        try:
+            res = requests.get(url, timeout=10)
+            if res.status_code == 200:
+                scores_data[city_name] = res.json()
+                fetched_count += 1
+            else:
+                print(f"   ⚠️ WalkScore HTTP {res.status_code} for {city_name}")
+        except Exception as e:
+            print(f"   ⚠️ WalkScore fetch failed for {city_name}: {e}")
+
+        time.sleep(0.25)
+
+    if scores_data:
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(scores_data, f, indent=2, ensure_ascii=False)
+        print(f"💾 Updated Walk, Transit & Bike Scores for {fetched_count} cities (Total in dataset: {len(scores_data)}).")
 
 # --- SUB-TASK 4: PUBLIC SAFETY & CRIME STATS ---
 def harvest_crime():
