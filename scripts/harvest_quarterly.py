@@ -65,11 +65,70 @@ def extract_major_pin(item):
     for k, v in item.items():
         if k.upper() in ["MAJOR", "PIN", "PARCEL_NUMBER", "PLAT_LOT_MAJOR"]:
             val = str(v or "").strip()
+            if val.isdigit():
+                val = val.zfill(6)
             if len(val) >= 6 and val[:6].isdigit():
                 return val[:6]
-            if len(val) == 6 and val.isdigit():
-                return val
     return None
+
+def state_plane_to_wgs84(x_ft, y_ft):
+    """Converts WA State Plane North Feet (EPSG:2926) to WGS84 GPS Lat/Lon (EPSG:4326)."""
+    if not x_ft or not y_ft:
+        return None, None
+    try:
+        x = float(x_ft)
+        y = float(y_ft)
+    except (ValueError, TypeError):
+        return None, None
+
+    # If already in Lat/Lon degree range
+    if 46.0 <= y <= 49.5 and -123.5 <= x <= -120.5:
+        return y, x
+    if 46.0 <= x <= 49.5 and -123.5 <= y <= -120.5:
+        return x, y
+
+    FEET2METERS = 0.3048006096012192
+    x_m = x * FEET2METERS
+    y_m = y * FEET2METERS
+
+    e2 = 0.006694380022900787
+    e = math.sqrt(e2)
+
+    lat1 = 47.5 * (math.pi / 180.0)
+    lat2 = (48.0 + 44.0 / 60.0) * (math.pi / 180.0)
+    lat0 = 47.0 * (math.pi / 180.0)
+    lon0 = -120.83333333333333 * (math.pi / 180.0)
+    false_easting = 500000.0
+    false_northing = 0.0
+
+    m1 = math.cos(lat1) / math.sqrt(1.0 - e2 * (math.sin(lat1) ** 2))
+    m2 = math.cos(lat2) / math.sqrt(1.0 - e2 * (math.sin(lat2) ** 2))
+
+    t1 = math.tan(math.pi / 4.0 - lat1 / 2.0) / (((1.0 - e * math.sin(lat1)) / (1.0 + e * math.sin(lat1))) ** (e / 2.0))
+    t2 = math.tan(math.pi / 4.0 - lat2 / 2.0) / (((1.0 - e * math.sin(lat2)) / (1.0 + e * math.sin(lat2))) ** (e / 2.0))
+    t0 = math.tan(math.pi / 4.0 - lat0 / 2.0) / (((1.0 - e * math.sin(lat0)) / (1.0 + e * math.sin(lat0))) ** (e / 2.0))
+
+    n = math.log(m1 / m2) / math.log(t1 / t2)
+    F = m1 / (n * (t1 ** n))
+    rho0 = 6378137.0 * F * (t0 ** n)
+
+    E = x_m - false_easting
+    N = y_m - false_northing
+
+    rho = math.sqrt(E ** 2 + (rho0 - N) ** 2)
+    if n < 0:
+        rho = -rho
+
+    theta = math.atan2(E, rho0 - N)
+    t = (rho / (6378137.0 * F)) ** (1.0 / n)
+
+    lat = math.pi / 2.0 - 2.0 * math.atan(t)
+    for _ in range(5):
+        con = e * math.sin(lat)
+        lat = math.pi / 2.0 - 2.0 * math.atan(t * (((1.0 - con) / (1.0 + con)) ** (e / 2.0)))
+
+    lon = theta / n + lon0
+    return lat * (180.0 / math.pi), lon * (180.0 / math.pi)
 
 def clean_building_name(raw_name):
     if not raw_name:
@@ -99,12 +158,13 @@ def clean_plat_name(raw_name):
     return name.title()
 
 def get_geometry_bbox(geometry):
-    if not geometry:
+    if not geometry or not isinstance(geometry, dict):
         return None
-    g_type = geometry.get("type")
-    coords = geometry.get("coordinates", [])
     all_pts = []
     
+    # GeoJSON coordinates
+    coords = geometry.get("coordinates", [])
+    g_type = geometry.get("type")
     if g_type == "Polygon":
         for ring in coords:
             all_pts.extend(ring)
@@ -112,61 +172,43 @@ def get_geometry_bbox(geometry):
         for poly in coords:
             for ring in poly:
                 all_pts.extend(ring)
-                
+
+    # ESRI JSON rings
+    rings = geometry.get("rings", [])
+    if rings:
+        for ring in rings:
+            all_pts.extend(ring)
+
+    # ESRI Point x/y
+    if "x" in geometry and "y" in geometry:
+        try:
+            x, y = float(geometry["x"]), float(geometry["y"])
+            return (y, x, y, x)
+        except (ValueError, TypeError):
+            pass
+
     if not all_pts:
         return None
+
+    try:
+        min_x = min(pt[0] for pt in all_pts if isinstance(pt, (list, tuple)) and len(pt) >= 2)
+        max_x = max(pt[0] for pt in all_pts if isinstance(pt, (list, tuple)) and len(pt) >= 2)
+        min_y = min(pt[1] for pt in all_pts if isinstance(pt, (list, tuple)) and len(pt) >= 2)
+        max_y = max(pt[1] for pt in all_pts if isinstance(pt, (list, tuple)) and len(pt) >= 2)
         
-    min_lon = min(pt[0] for pt in all_pts)
-    max_lon = max(pt[0] for pt in all_pts)
-    min_lat = min(pt[1] for pt in all_pts)
-    max_lat = max(pt[1] for pt in all_pts)
-    return (min_lat, min_lon, max_lat, max_lon)
-
-def point_in_ring(lat, lon, ring):
-    inside = False
-    n = len(ring)
-    j = n - 1
-    for i in range(n):
-        xi, yi = ring[i][0], ring[i][1]
-        xj, yj = ring[j][0], ring[j][1]
-        intersect = ((yi > lat) != (yj > lat)) and (lon < (xj - xi) * (lat - yi) / (yj - yi + 1e-12) + xi)
-        if intersect:
-            inside = not inside
-        j = i
-    return inside
-
-def point_in_geometry(lat, lon, geometry):
-    if not geometry:
-        return False
-    g_type = geometry.get("type")
-    coords = geometry.get("coordinates", [])
-    
-    if g_type == "Polygon":
-        if not coords:
-            return False
-        if point_in_ring(lat, lon, coords[0]):
-            for hole in coords[1:]:
-                if point_in_ring(lat, lon, hole):
-                    return False
-            return True
-    elif g_type == "MultiPolygon":
-        for poly in coords:
-            if not poly:
-                continue
-            if point_in_ring(lat, lon, poly[0]):
-                in_hole = False
-                for hole in poly[1:]:
-                    if point_in_ring(lat, lon, hole):
-                        in_hole = True
-                        break
-                if not in_hole:
-                    return True
-    return False
+        # Convert State Plane feet to WGS84 GPS Lat/Lon if needed
+        lat_min, lon_min = state_plane_to_wgs84(min_x, min_y)
+        lat_max, lon_max = state_plane_to_wgs84(max_x, max_y)
+        
+        if lat_min and lon_min and lat_max and lon_max:
+            return (min(lat_min, lat_max), min(lon_min, lon_max), max(lat_min, lat_max), max(lon_min, lon_max))
+    except Exception:
+        pass
+    return None
 
 def load_city_boundaries():
     if not os.path.exists(CITY_BOUNDARIES_PATH):
         return []
-        
     try:
         with open(CITY_BOUNDARIES_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -177,7 +219,7 @@ def load_city_boundaries():
     indexed = []
     
     for feat in features:
-        props = feat.get("properties", {})
+        props = feat.get("properties", {}) or feat.get("attributes", {})
         slug = props.get("slug") or slugify(props.get("CityName") or props.get("name") or "")
         name = props.get("name") or props.get("CityName") or ""
         geom = feat.get("geometry", {})
@@ -218,17 +260,16 @@ def load_city_centers():
             pass
     return centers
 
-def match_city_for_point(lat, lon, city_boundaries, city_centers):
+def match_city_for_point(lat, lon, city_boundaries, city_centers, raw_city_str=None):
+    if raw_city_str:
+        candidate_slug = slugify(raw_city_str)
+        for c in city_centers:
+            if c["slug"] == candidate_slug:
+                return candidate_slug
+
     if lat is None or lon is None:
         return None
 
-    for city in city_boundaries:
-        bbox = city["bbox"]
-        if bbox[0] <= lat <= bbox[2] and bbox[1] <= lon <= bbox[3]:
-            if point_in_geometry(lat, lon, city["geometry"]):
-                return city["slug"]
-
-    # Proximity fallback check against city centers
     closest_slug = None
     min_dist = float("inf")
     for c in city_centers:
@@ -237,7 +278,7 @@ def match_city_for_point(lat, lon, city_boundaries, city_centers):
             min_dist = dist
             closest_slug = c["slug"]
 
-    if closest_slug and min_dist <= 0.25:  # Proximity fallback
+    if closest_slug and min_dist <= 0.40:
         return closest_slug
 
     return None
@@ -335,17 +376,18 @@ def harvest_condo_buildings():
         
         params = {
             "where": f"MAJOR IN ('{majors_str}')",
-            "outFields": "MAJOR,PIN,ADDR_FULL,CITY,ADDR_CITY,SITUS_ADDRESS",
+            "outFields": "MAJOR,PIN,ADDR_FULL,SITUS_CITY,CITY,SITUS_ADDRESS",
             "outSR": "4326",
-            "f": "geojson"
+            "f": "json"
         }
         kc_parcel_url = f"https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0/query?{urllib.parse.urlencode(params)}"
         kc_gis_res = http_get_json_simple(kc_parcel_url, timeout=25)
 
-        if kc_gis_res and isinstance(kc_gis_res, dict) and "features" in kc_gis_res:
-            for feat in kc_gis_res.get("features", []):
-                props = feat.get("properties", {})
-                geom = feat.get("geometry", {})
+        if kc_gis_res and isinstance(kc_gis_res, dict):
+            features = kc_gis_res.get("features", [])
+            for feat in features:
+                props = feat.get("properties") or feat.get("attributes") or {}
+                geom = feat.get("geometry") or feat
                 major_pin = extract_major_pin(props)
 
                 if not major_pin or major_pin not in kc_socrata_map:
@@ -355,16 +397,14 @@ def harvest_condo_buildings():
                 lat = (bbox[0] + bbox[2]) / 2.0 if bbox else None
                 lon = (bbox[1] + bbox[3]) / 2.0 if bbox else None
 
-                matched_slug = match_city_for_point(lat, lon, city_boundaries, city_centers)
-                if not matched_slug:
-                    raw_city = props.get("CITY") or props.get("ADDR_CITY") or props.get("city") or ""
-                    matched_slug = slugify(raw_city) if raw_city else None
+                raw_city = props.get("SITUS_CITY") or props.get("CITY") or props.get("ADDR_CITY") or ""
+                matched_slug = match_city_for_point(lat, lon, city_boundaries, city_centers, raw_city)
 
                 if not matched_slug or matched_slug not in cities_map:
                     continue
 
                 city_display = cities_map[matched_slug]["name"]
-                raw_addr = props.get("ADDR_FULL") or props.get("SITUS_ADDRESS")
+                raw_addr = props.get("ADDR_FULL") or props.get("SITUS_ADDRESS") or props.get("situs_address")
                 situs_addr = f"{raw_addr.title()}, {city_display}, WA" if raw_addr else f"{city_display}, WA"
 
                 legal_desc = kc_socrata_map[major_pin]["legal"]
@@ -393,24 +433,24 @@ def harvest_condo_buildings():
 
         time.sleep(0.05)
 
-    # 2. Server-Side SQL Filtered Stream: Snohomish County Parcels (Esri FeatureServer Compatible)
+    # 2. Server-Side SQL Filtered Stream: Snohomish County Parcels
     offset = 0
     limit = 1000
     print("   📡 Streaming Snohomish County Condo Parcels (Server-Side Filtered)...")
 
     while True:
         params = {
-            "where": "LEGAL_DESC LIKE '%CONDO%' OR LEGAL_DESC LIKE '%condo%' OR SITE_NAME LIKE '%CONDO%' OR SITE_NAME LIKE '%condo%'",
+            "where": "LEGAL_DESC LIKE '%CONDO%' OR LEGAL_DESC LIKE '%condo%'",
             "outFields": "*",
             "outSR": "4326",
-            "f": "geojson",
+            "f": "json",
             "resultRecordCount": str(limit),
             "resultOffset": str(offset)
         }
         sno_condo_url = f"https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?{urllib.parse.urlencode(params)}"
         sno_res = http_get_json_simple(sno_condo_url, timeout=30)
 
-        if not sno_res or not isinstance(sno_res, dict) or "features" not in sno_res:
+        if not sno_res or not isinstance(sno_res, dict) or "error" in sno_res:
             break
 
         features = sno_res.get("features", [])
@@ -418,8 +458,8 @@ def harvest_condo_buildings():
             break
 
         for feat in features:
-            props = feat.get("properties", {})
-            geom = feat.get("geometry", {})
+            props = feat.get("properties") or feat.get("attributes") or {}
+            geom = feat.get("geometry") or feat
 
             legal = str(props.get("LEGAL_DESC") or props.get("legal_desc") or "").upper()
             site = str(props.get("SITE_NAME") or props.get("site_name") or "").upper()
@@ -430,10 +470,8 @@ def harvest_condo_buildings():
             lat = (bbox[0] + bbox[2]) / 2.0 if bbox else None
             lon = (bbox[1] + bbox[3]) / 2.0 if bbox else None
 
-            matched_slug = match_city_for_point(lat, lon, city_boundaries, city_centers)
-            if not matched_slug:
-                raw_city = props.get("CITY") or props.get("SITUS_CITY") or props.get("city") or ""
-                matched_slug = slugify(raw_city) if raw_city else None
+            raw_city = props.get("SITUS_CITY") or props.get("CITY") or props.get("CITY_NAME") or ""
+            matched_slug = match_city_for_point(lat, lon, city_boundaries, city_centers, raw_city)
 
             if not matched_slug or matched_slug not in cities_map:
                 continue
@@ -535,17 +573,18 @@ def harvest_new_subdivisions():
         
         params = {
             "where": f"MAJOR IN ('{majors_str}')",
-            "outFields": "MAJOR,PIN,ADDR_FULL,CITY,ADDR_CITY,DEVELOPER,GRANTOR",
+            "outFields": "MAJOR,PIN,ADDR_FULL,SITUS_CITY,CITY,DEVELOPER,GRANTOR",
             "outSR": "4326",
-            "f": "geojson"
+            "f": "json"
         }
         kc_parcel_url = f"https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0/query?{urllib.parse.urlencode(params)}"
         kc_gis_res = http_get_json_simple(kc_parcel_url, timeout=25)
 
-        if kc_gis_res and isinstance(kc_gis_res, dict) and "features" in kc_gis_res:
-            for feat in kc_gis_res.get("features", []):
-                props = feat.get("properties", {})
-                geom = feat.get("geometry", {})
+        if kc_gis_res and isinstance(kc_gis_res, dict):
+            features = kc_gis_res.get("features", [])
+            for feat in features:
+                props = feat.get("properties") or feat.get("attributes") or {}
+                geom = feat.get("geometry") or feat
                 major_pin = extract_major_pin(props)
 
                 if not major_pin or major_pin not in kc_plat_map:
@@ -555,10 +594,8 @@ def harvest_new_subdivisions():
                 lat = (bbox[0] + bbox[2]) / 2.0 if bbox else None
                 lon = (bbox[1] + bbox[3]) / 2.0 if bbox else None
 
-                matched_slug = match_city_for_point(lat, lon, city_boundaries, city_centers)
-                if not matched_slug:
-                    raw_city = props.get("CITY") or props.get("ADDR_CITY") or props.get("city") or ""
-                    matched_slug = slugify(raw_city) if raw_city else None
+                raw_city = props.get("SITUS_CITY") or props.get("CITY") or props.get("ADDR_CITY") or ""
+                matched_slug = match_city_for_point(lat, lon, city_boundaries, city_centers, raw_city)
 
                 if not matched_slug or matched_slug not in cities_map:
                     continue
@@ -591,24 +628,24 @@ def harvest_new_subdivisions():
 
         time.sleep(0.05)
 
-    # 2. Server-Side SQL Filtered Stream: Snohomish County Recorded Subdivisions (Esri FeatureServer Compatible)
+    # 2. Server-Side SQL Filtered Stream: Snohomish County Recorded Subdivisions
     offset = 0
     limit = 1000
     print("   📡 Streaming Snohomish County Subdivision Plats (Server-Side Filtered)...")
 
     while True:
         params = {
-            "where": "LEGAL_DESC LIKE '%PLAT%' OR LEGAL_DESC LIKE '%plat%' OR SUBDIVISION_NAME IS NOT NULL",
+            "where": "LEGAL_DESC LIKE '%PLAT%' OR LEGAL_DESC LIKE '%plat%'",
             "outFields": "*",
             "outSR": "4326",
-            "f": "geojson",
+            "f": "json",
             "resultRecordCount": str(limit),
             "resultOffset": str(offset)
         }
         sno_permits_url = f"https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?{urllib.parse.urlencode(params)}"
         permits_res = http_get_json_simple(sno_permits_url, timeout=30)
 
-        if not permits_res or not isinstance(permits_res, dict) or "features" not in permits_res:
+        if not permits_res or not isinstance(permits_res, dict) or "error" in permits_res:
             break
 
         features = permits_res.get("features", [])
@@ -616,8 +653,8 @@ def harvest_new_subdivisions():
             break
 
         for feat in features:
-            props = feat.get("properties", {})
-            geom = feat.get("geometry", {})
+            props = feat.get("properties") or feat.get("attributes") or {}
+            geom = feat.get("geometry") or feat
 
             legal = str(props.get("LEGAL_DESC") or props.get("legal_desc") or "").upper()
             sub_name = str(props.get("SUBDIVISION_NAME") or props.get("subdivision_name") or "").upper()
@@ -637,10 +674,8 @@ def harvest_new_subdivisions():
             lat = (bbox[0] + bbox[2]) / 2.0 if bbox else None
             lon = (bbox[1] + bbox[3]) / 2.0 if bbox else None
 
-            matched_slug = match_city_for_point(lat, lon, city_boundaries, city_centers)
-            if not matched_slug:
-                raw_city = props.get("CITY") or props.get("SITUS_CITY") or props.get("city") or ""
-                matched_slug = slugify(raw_city) if raw_city else None
+            raw_city = props.get("SITUS_CITY") or props.get("CITY") or props.get("CITY_NAME") or ""
+            matched_slug = match_city_for_point(lat, lon, city_boundaries, city_centers, raw_city)
 
             if not matched_slug or matched_slug not in cities_map:
                 continue
