@@ -1,0 +1,28 @@
+name: Harvest Editorial Knowledge Base
+
+on:
+  workflow_dispatch:
+
+jobs:
+  compile_master_knowledge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Execute Knowledge Base Compiler
+        run: python scripts/harvest_editorial_knowledge.py
+
+      - name: Commit Updated Master Knowledge File
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: compile master_city_knowledge.json"
+          file_pattern: "data/master_city_knowledge.json"
