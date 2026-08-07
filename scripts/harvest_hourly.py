@@ -1068,8 +1068,10 @@ def main():
     print("🧠 Starting the MySeattleSearch Master Omnibus Data Engine...")
     data_dir = "data"
     posts_dir = "posts"
+    editorials_dir = os.path.join(data_dir, "editorials")
     os.makedirs(data_dir, exist_ok=True)
     os.makedirs(posts_dir, exist_ok=True)
+    os.makedirs(editorials_dir, exist_ok=True)
 
     # --------------------------------------------------------------------
     # MODULE 0A: STANDALONE WEATHER, TIDES, AQI & RIVER GAUGES HARVESTER
@@ -1165,6 +1167,71 @@ def main():
             print(f"   ⚠️ Warning: Command Center download pass skipped: {e}")
 
     # ====================================================================
+    # MODULE 1B: CITY DATA WORKBOOK & GOOGLE DOCS EDITORIAL INGESTION
+    # ====================================================================
+    city_sheet_id = os.environ.get("CITY_DATA_SHEET_ID")
+    if city_sheet_id:
+        print("📡 Ingesting CityData workbook and checking for pending Google Doc editorials...")
+        try:
+            if city_sheet_id not in batch_sheet_writebacks:
+                batch_sheet_writebacks[city_sheet_id] = []
+
+            rows = sheets_service.spreadsheets().values().get(
+                spreadsheetId=city_sheet_id, range="CityData!A:AZ"
+            ).execute().get('values', [])
+
+            if rows and len(rows) >= 2:
+                headers = [str(h).strip() for h in rows[0]]
+                parsed_city_data = parse_sheet_values(rows)
+
+                # Synchronize local city_data.json
+                with open(CITY_DATA_PATH, "w", encoding="utf-8") as f:
+                    json.dump(clean_nan_tokens(parsed_city_data), f, indent=2, ensure_ascii=False)
+                print(f"   ✅ Synchronized {len(parsed_city_data)} cities into data/city_data.json.")
+
+                # Locate EditorialStatus column index dynamically for writebacks
+                col_status_idx = -1
+                for candidate in ["EditorialStatus", "Editorial Status", "Editorial_Status"]:
+                    if candidate in headers:
+                        col_status_idx = headers.index(candidate)
+                        break
+
+                for idx, r in enumerate(rows[1:]):
+                    padded = list(r) + [""] * (len(headers) - len(r))
+                    record = dict(zip(headers, padded))
+                    row_num = idx + 2
+
+                    city_name = record.get("City", "").strip()
+                    if not city_name:
+                        continue
+
+                    slug = slugify(city_name)
+                    doc_url = record.get("Editorial", "").strip()
+                    status = (record.get("EditorialStatus", "") or record.get("Editorial Status", "") or record.get("Editorial_Status", "")).strip()
+
+                    # Ingest pending editorial Google Doc
+                    if doc_url and is_google_drive_link(doc_url) and status.lower() == "pending":
+                        print(f"   ✍️ Downloading pending editorial Google Doc for {city_name} ({slug})...")
+                        md_content = get_google_doc_as_markdown(docs_service, doc_url)
+
+                        if md_content and md_content.strip():
+                            out_md_path = os.path.join(editorials_dir, f"{slug}.md")
+                            with open(out_md_path, "w", encoding="utf-8") as f_md:
+                                f_md.write(md_content)
+                            print(f"   ✅ Saved editorial Markdown for {city_name} -> data/editorials/{slug}.md")
+
+                            # Queue writeback to Google Sheet setting EditorialStatus to "Complete"
+                            if col_status_idx != -1:
+                                cell_range = f"CityData!{get_col_letter(col_status_idx)}{row_num}"
+                                batch_sheet_writebacks[city_sheet_id].append({
+                                    'range': cell_range,
+                                    'values': [["Complete"]]
+                                })
+
+        except Exception as e:
+            print(f"   ❌ CityData ingestion and Google Doc harvester fault: {e}")
+
+    # ====================================================================
     # MODULE 2: WEBSITE DATA SHEET MULTI-TAB INGESTION
     # ====================================================================
     web_sheet_id = os.environ.get("WEBSITE_DATA_SHEET_ID")
@@ -1179,7 +1246,8 @@ def main():
             ).execute().get('valueRanges', [])
 
             tabs_data = dict(zip(target_tabs, web_batch))
-            batch_sheet_writebacks[web_sheet_id] = []
+            if web_sheet_id not in batch_sheet_writebacks:
+                batch_sheet_writebacks[web_sheet_id] = []
 
             # Ingest static toll rate schedules directly from TollData tab
             toll_rows = tabs_data.get("TollData", {}).get('values', [])
@@ -1593,7 +1661,9 @@ def main():
     if cms_sheet_id:
         print("📡 Accessing Headless CMS Content Workbook parameters...")
         try:
-            batch_sheet_writebacks[cms_sheet_id] = []
+            if cms_sheet_id not in batch_sheet_writebacks:
+                batch_sheet_writebacks[cms_sheet_id] = []
+
             rows = sheets_service.spreadsheets().values().get(spreadsheetId=cms_sheet_id, range="Posts!A:X").execute().get('values', [])
             if rows:
                 headers = rows[0]
@@ -1706,7 +1776,9 @@ image_5: "{optimized_images[4] if len(optimized_images) > 4 else ''}"
     if quiz_sheet_id:
         print("📡 Accessing Polymorphic interactive lead assessments...")
         try:
-            batch_sheet_writebacks[quiz_sheet_id] = []
+            if quiz_sheet_id not in batch_sheet_writebacks:
+                batch_sheet_writebacks[quiz_sheet_id] = []
+
             rows = sheets_service.spreadsheets().values().get(spreadsheetId=quiz_sheet_id, range="Quizzes!A:DB").execute().get('values', [])
             if rows:
                 headers = rows[0]
