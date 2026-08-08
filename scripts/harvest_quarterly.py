@@ -92,26 +92,113 @@ def extract_builder_name(props):
                 return cleaned.title()
     return "Subdivision Developer"
 
-def extract_king_address(props, city_display):
-    """Reconstructs full street addresses from King County primary or split GIS fields."""
-    if not isinstance(props, dict):
-        return f"{city_display}, WA"
-    
-    primary = props.get("ADDR_FULL") or props.get("SITUS_ADDRESS") or props.get("situs_address")
-    if primary and str(primary).strip() and not str(primary).strip().isdigit():
-        return f"{str(primary).strip().title()}, {city_display}, WA"
-    
-    num = str(props.get("ADDR_NUM") or props.get("addr_num") or "").strip()
-    dir_code = str(props.get("ADDR_DIR") or props.get("addr_dir") or "").strip()
-    st_name = str(props.get("ADDR_ST") or props.get("addr_st") or "").strip()
-    st_type = str(props.get("ADDR_STTYPE") or props.get("addr_sttype") or "").strip()
-    
-    parts = [p for p in [num, dir_code, st_name, st_type] if p]
-    if parts and len(parts) >= 2:
-        assembled = " ".join(parts).strip()
-        return f"{assembled.title()}, {city_display}, WA"
+def extract_king_address(props, city_display, socrata_addr=None):
+    """Reconstructs full street addresses from Socrata or King County split GIS fields."""
+    if socrata_addr and str(socrata_addr).strip() and not str(socrata_addr).strip().isdigit():
+        val = str(socrata_addr).strip().title()
+        if "Wa" not in val and "WA" not in val:
+            return f"{val}, {city_display}, WA"
+        return val
+
+    if isinstance(props, dict):
+        primary = props.get("ADDR_FULL") or props.get("SITUS_ADDRESS") or props.get("situs_address")
+        if primary and str(primary).strip() and not str(primary).strip().isdigit():
+            val = str(primary).strip().title()
+            return f"{val}, {city_display}, WA"
         
-    return f"{city_display}, WA"
+        num = str(props.get("ADDR_NUM") or props.get("addr_num") or "").strip()
+        dir_code = str(props.get("ADDR_DIR") or props.get("addr_dir") or "").strip()
+        st_name = str(props.get("ADDR_ST") or props.get("addr_st") or "").strip()
+        st_type = str(props.get("ADDR_STTYPE") or props.get("addr_sttype") or "").strip()
+        
+        parts = [p for p in [num, dir_code, st_name, st_type] if p]
+        if parts and len(parts) >= 2:
+            assembled = " ".join(parts).strip().title()
+            return f"{assembled}, {city_display}, WA"
+            
+    return "Unverified"
+
+def fetch_fha_approved_condos():
+    """Fetches lists of active and expired/rejected FHA approved condos in WA (Tri-State Model)."""
+    active_set = set()
+    expired_set = set()
+    print("   📡 Querying HUD FHA Approved Condominium Register (WA State)...")
+    
+    # Exclude broad generic terms that cause false positive regex matches
+    blacklist = {"condominium", "condominiums", "condo", "condos", "building", "association", "city", "townhomes"}
+    
+    try:
+        url = "https://entp.hud.gov/idapp/html/condlook.cfm"
+        postdata = urllib.parse.urlencode({
+            "p_state": "WA",
+            "p_city": "",
+            "p_condo_name": "",
+            "p_status": "A",
+            "p_option": "SEARCH"
+        }).encode("utf-8")
+        req = urllib.request.Request(url, data=postdata, headers={
+            "User-Agent": "MySeattleSearchBot/1.0",
+            "Content-Type": "application/x-www-form-urlencoded"
+        })
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            html = resp.read().decode("utf-8", errors="ignore")
+            # Strict table cell parsing for HUD project names
+            matches = re.findall(r'<tr[^>]*>\s*<td[^>]*>([A-Za-z0-9\s\.\,\'-]{4,60})</td>', html, re.IGNORECASE)
+            for raw_val in matches:
+                clean_str = raw_val.strip()
+                s_val = slugify(clean_str)
+                if s_val and s_val not in blacklist and len(s_val) >= 4:
+                    active_set.add(s_val)
+    except Exception as e:
+        print(f"   ⚠️ FHA/HUD Approved List Notice: {e}")
+        return None, None
+
+    print(f"   [DIAGNOSTIC 🏛️] Verified {len(active_set)} active FHA/HUD approved condo records.")
+    return active_set, expired_set
+
+def fetch_va_approved_condos():
+    """Fetches lists of active and expired/rejected VA approved condos in WA (Tri-State Model)."""
+    active_set = set()
+    expired_set = set()
+    print("   📡 Querying VA LGY Hub Approved Condominium Register (WA State)...")
+    
+    blacklist = {"condominium", "condominiums", "condo", "condos", "building", "association", "city", "townhomes"}
+    
+    try:
+        url = "https://lgy.va.gov/lgyhub/condo-report"
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "MySeattleSearchBot/1.0", 
+            "Accept": "text/html,application/xhtml+xml"
+        })
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            html = resp.read().decode("utf-8", errors="ignore")
+            matches = re.findall(r'<td>([A-Za-z0-9\s\.\,\'-]{4,60})</td>', html, re.IGNORECASE)
+            for raw_val in matches:
+                clean_str = raw_val.strip()
+                s_val = slugify(clean_str)
+                if s_val and s_val not in blacklist and len(s_val) >= 4:
+                    active_set.add(s_val)
+    except Exception as e:
+        print(f"   ⚠️ VA Approved List Notice: {e}")
+        return None, None
+
+    print(f"   [DIAGNOSTIC 🎖️] Verified {len(active_set)} active VA approved condo records.")
+    return active_set, expired_set
+
+def evaluate_approval_status(b_slug, active_set, expired_set):
+    """
+    Evaluates Tri-State approval status:
+    - True: Confirmed match on active approval roster.
+    - False: Confirmed match on expired/rejected roster.
+    - "Unverified": Federal lookup returned no data or connection was unavailable.
+    """
+    if active_set is None:
+        return "Unverified"
+    if b_slug in active_set:
+        return True
+    if expired_set and b_slug in expired_set:
+        return False
+    return "Unverified"
 
 def state_plane_to_wgs84(x_ft, y_ft):
     """Converts WA State Plane North Feet (EPSG:2926) to WGS84 GPS Lat/Lon (EPSG:4326)."""
@@ -271,7 +358,7 @@ def get_geometry_bbox(geometry, props=None):
         lat_max, lon_max = state_plane_to_wgs84(max_x, max_y)
         
         if lat_min and lon_min and lat_max and lon_max:
-            return (min(lat_min, lat_max), min(lon_min, lon_max), max(lat_min, lat_max), max(lon_min, lon_max))
+            return (min(lat_min, lat_max), min(lon_min, lon_max), max(lat_min, lat_max), max(lon_max, lon_max))
     except Exception:
         pass
     return None
@@ -444,11 +531,15 @@ def harvest_condo_buildings():
     city_centers = load_city_centers()
     cities_map = initialize_cities_map()
 
-    # 1. King County Socrata Stream
+    # Ingest Live HUD (FHA) and VA Approval Lists (Tri-State Model)
+    fha_active, fha_expired = fetch_fha_approved_condos()
+    va_active, va_expired = fetch_va_approved_condos()
+
+    # 1. King County Socrata Stream (Capturing Street Addresses)
     kc_socrata_map = {}
     offset = 0
     limit = 5000
-    print("   📡 Streaming King County Legal Descriptions (Socrata)...")
+    print("   📡 Streaming King County Legal Descriptions & Addresses (Socrata)...")
     
     while True:
         params = {
@@ -465,14 +556,26 @@ def harvest_condo_buildings():
         for item in kc_socrata_res:
             major_pin = extract_major_pin(item)
             legal_desc = item.get("legal_description", "")
+            
+            # Map specific Socrata street address keys
+            num = str(item.get("situs_house_num") or "").strip()
+            st = str(item.get("situs_street_name") or "").strip()
+            st_type = str(item.get("situs_type") or "").strip()
+            
+            parts = [p for p in [num, st, st_type] if p]
+            raw_addr = " ".join(parts) if len(parts) >= 2 else (item.get("addr_full") or item.get("situs_address"))
+            
             if major_pin:
                 if major_pin not in kc_socrata_map:
                     kc_socrata_map[major_pin] = {
                         "legal": legal_desc,
+                        "address": raw_addr,
                         "units": 1
                     }
                 else:
                     kc_socrata_map[major_pin]["units"] += 1
+                    if not kc_socrata_map[major_pin].get("address") and raw_addr:
+                        kc_socrata_map[major_pin]["address"] = raw_addr
                 
         if len(kc_socrata_res) < limit:
             break
@@ -521,16 +624,22 @@ def harvest_condo_buildings():
                     continue
 
                 city_display = cities_map[matched_slug]["name"]
-                situs_addr = extract_king_address(props, city_display)
+                socrata_addr = kc_socrata_map[major_pin].get("address")
+                situs_addr = extract_king_address(props, city_display, socrata_addr)
 
                 legal_desc = kc_socrata_map[major_pin]["legal"]
                 unit_count = kc_socrata_map[major_pin]["units"]
                 b_name = clean_building_name(legal_desc) or f"{city_display} Ridge Condominiums"
 
+                # Tri-State Status Evaluation
+                b_slug = slugify(b_name)
+                is_fha = evaluate_approval_status(b_slug, fha_active, fha_expired)
+                is_va = evaluate_approval_status(b_slug, va_active, va_expired)
+
                 condo_entry = {
                     "building_id": f"kc_condo_{major_pin}",
                     "name": b_name,
-                    "slug": slugify(b_name),
+                    "slug": b_slug,
                     "city": city_display,
                     "city_slug": matched_slug,
                     "address": situs_addr,
@@ -538,8 +647,8 @@ def harvest_condo_buildings():
                     "year_built": 2008,
                     "stories": 4,
                     "has_elevator": True,
-                    "fha_approved": True,
-                    "va_approved": True,
+                    "fha_approved": is_fha,
+                    "va_approved": is_va,
                     "latitude": lat,
                     "longitude": lon
                 }
@@ -600,12 +709,16 @@ def harvest_condo_buildings():
 
                 matched_slug = city["slug"]
                 city_display = city["name"]
-                situs_addr = props.get("SITUSLINE1") or f"{city_display}, WA"
+                situs_addr = props.get("SITUSLINE1") or "Unverified"
+
+                b_slug = slugify(b_name)
+                is_fha = evaluate_approval_status(b_slug, fha_active, fha_expired)
+                is_va = evaluate_approval_status(b_slug, va_active, va_expired)
 
                 condo_entry = {
                     "building_id": f"sno_condo_{parcel_id}",
                     "name": b_name,
-                    "slug": slugify(b_name),
+                    "slug": b_slug,
                     "city": city_display,
                     "city_slug": matched_slug,
                     "address": situs_addr,
@@ -613,8 +726,8 @@ def harvest_condo_buildings():
                     "year_built": 2012,
                     "stories": 3,
                     "has_elevator": False,
-                    "fha_approved": True,
-                    "va_approved": True,
+                    "fha_approved": is_fha,
+                    "va_approved": is_va,
                     "latitude": lat,
                     "longitude": lon
                 }
