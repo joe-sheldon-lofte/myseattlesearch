@@ -534,15 +534,19 @@ def harvest_condo_buildings():
     kc_condo_count = sum(len(v["condos"]) for v in cities_map.values())
     print(f"   [DIAGNOSTIC 📊] Total King County Condos Added: {kc_condo_count}")
 
-    # 2. Server-Side Unconstrained Stream + Python Filter: Snohomish County Parcels
-    VALID_CONDO_USECODES = {"140", "141", "142", "143", "145", "149"}
+    # 2. Targeted Server-Side SQL Filtered Stream: Snohomish County Parcels (Explicit SQL OR Clauses)
+    condo_codes = ["140", "141", "142", "143", "145", "149"]
+    where_quoted = " OR ".join([f"USECODE = '{c}'" for c in condo_codes])
+    where_unquoted = " OR ".join([f"USECODE = {c}" for c in condo_codes])
+
     offset = 0
-    limit = 2000
-    print("   📡 Streaming Snohomish County Condo Parcels (In-Memory USECODE Filter)...")
+    limit = 1000
+    active_where = where_quoted
+    print("   📡 Streaming Snohomish County Condo Parcels (Explicit SQL OR Filter)...")
 
     while True:
         params = {
-            "where": "1=1",
+            "where": active_where,
             "outFields": "*",
             "outSR": "4326",
             "f": "json",
@@ -551,6 +555,11 @@ def harvest_condo_buildings():
         }
         sno_condo_url = f"https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?{urllib.parse.urlencode(params)}"
         sno_res = http_get_json_simple(sno_condo_url, timeout=30)
+
+        # Failover to unquoted integer OR clause if quoted string returned an ESRI error
+        if (not sno_res or not isinstance(sno_res, dict) or "error" in sno_res) and active_where == where_quoted and offset == 0:
+            active_where = where_unquoted
+            continue
 
         if not sno_res or not isinstance(sno_res, dict) or "error" in sno_res:
             if sno_res and "error" in sno_res:
@@ -564,10 +573,6 @@ def harvest_condo_buildings():
         for feat in features:
             props = feat.get("properties") or feat.get("attributes") or {}
             geom = feat.get("geometry") or feat
-
-            raw_usecode = str(props.get("USECODE") or props.get("usecode") or "").strip()
-            if raw_usecode not in VALID_CONDO_USECODES:
-                continue
 
             parcel_id = props.get("PARCEL_ID") or props.get("OBJECTID") or props.get("parcel_id") or "100"
             raw_title = props.get("SITUSLINE1") or props.get("TAXPRNAME") or props.get("OWNERNAME") or f"Snohomish Residence #{parcel_id}"
@@ -748,15 +753,19 @@ def harvest_new_subdivisions():
     kc_subdiv_count = sum(len(v["subdivisions"]) for v in cities_map.values())
     print(f"   [DIAGNOSTIC 📊] Total King County Subdivisions Added: {kc_subdiv_count}")
 
-    # 2. Server-Side Unconstrained Stream + Python Filter: Snohomish County Recorded Subdivisions
-    VALID_SUBDIV_USECODES = {"110", "111", "112", "120"}
+    # 2. Targeted Server-Side SQL Filtered Stream: Snohomish County Recorded Subdivisions (Explicit SQL OR Clauses)
+    subdiv_codes = ["110", "111", "112", "120"]
+    where_quoted = " OR ".join([f"USECODE = '{c}'" for c in subdiv_codes])
+    where_unquoted = " OR ".join([f"USECODE = {c}" for c in subdiv_codes])
+
     offset = 0
-    limit = 2000
-    print("   📡 Streaming Snohomish County Subdivision Plats (In-Memory USECODE Filter)...")
+    limit = 1000
+    active_where = where_quoted
+    print("   📡 Streaming Snohomish County Subdivision Plats (Explicit SQL OR Filter)...")
 
     while True:
         params = {
-            "where": "1=1",
+            "where": active_where,
             "outFields": "*",
             "outSR": "4326",
             "f": "json",
@@ -765,6 +774,11 @@ def harvest_new_subdivisions():
         }
         sno_permits_url = f"https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?{urllib.parse.urlencode(params)}"
         permits_res = http_get_json_simple(sno_permits_url, timeout=30)
+
+        # Failover to unquoted integer OR clause if quoted string returned an ESRI error
+        if (not permits_res or not isinstance(permits_res, dict) or "error" in permits_res) and active_where == where_quoted and offset == 0:
+            active_where = where_unquoted
+            continue
 
         if not permits_res or not isinstance(permits_res, dict) or "error" in permits_res:
             if permits_res and "error" in permits_res:
@@ -778,10 +792,6 @@ def harvest_new_subdivisions():
         for feat in features:
             props = feat.get("properties") or feat.get("attributes") or {}
             geom = feat.get("geometry") or feat
-
-            raw_usecode = str(props.get("USECODE") or props.get("usecode") or "").strip()
-            if raw_usecode not in VALID_SUBDIV_USECODES:
-                continue
 
             obj_id = props.get("OBJECTID") or props.get("PARCEL_ID") or props.get("objectid") or "100"
             raw_title = props.get("TAXPRNAME") or props.get("OWNERNAME") or props.get("SITUSLINE1") or ""
