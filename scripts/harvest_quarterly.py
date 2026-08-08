@@ -77,10 +77,9 @@ def extract_builder_name(props):
     
     candidates = [
         props.get("DEVELOPER") or props.get("developer"),
-        props.get("GRANTOR") or props.get("grantor"),
-        props.get("TAXPRNAME") or props.get("taxprname"),
-        props.get("OWNERNAME") or props.get("ownername"),
-        props.get("TAXPAYER_NAME") or props.get("taxpayer_name")
+        props.get("GRANTOR") or props.get("grantor") or props.get("grantor_name"),
+        props.get("TAXPAYER_NAME") or props.get("taxpayer_name") or props.get("taxprname") or props.get("TAXPRNAME"),
+        props.get("OWNERNAME") or props.get("ownername") or props.get("owner_name")
     ]
     
     for raw in candidates:
@@ -156,6 +155,8 @@ def clean_building_name(raw_name):
         return ""
     name = str(raw_name).strip()
     
+    name = re.sub(r'\b(TGW|UND\s+INT\s+IN|LESS\s+ST|LESS\b.*|POR\b.*|POR\s+OF\b.*|SEC\d+.*|TWP.*|RNG.*|DAF.*|BEG.*|BAAP.*|TPOB.*|TAP.*|LBA.*|PCL\s+[A-Z].*)\b', '', name, flags=re.IGNORECASE)
+
     if re.search(r'\b(POR OF|SEC|TWP|RNG|DAF|BEG|BAAP|TPOB|TAP|TH\s+[NSEW]|FEET|FT)\b', name, flags=re.IGNORECASE):
         m = re.search(r'\b(CONDOMINIUM|CONDO)\s+OF\s+([A-Za-z0-9\s-]+)', name, flags=re.IGNORECASE)
         if m:
@@ -179,8 +180,8 @@ def clean_plat_name(raw_name):
     if name.isdigit() or re.match(r'^\d{6,}', name):
         return ""
 
-    # Strip legal survey noise phrases
-    name = re.sub(r'\b(TGW|UND\s+INT\s+IN|LESS\s+ST|LESS\b.*|POR\b.*|SEC\d+.*|TWP.*|RNG.*|DAF.*|BEG.*|BAAP.*|TPOB.*|TAP.*|LBA.*|PCL\s+[A-Z].*)\b', '', name, flags=re.IGNORECASE)
+    # Deep legal survey artifact scrubber
+    name = re.sub(r'\b(TGW|UND\s+INT\s+IN|LESS\s+ST|LESS\b.*|POR\b.*|POR\s+OF\b.*|SEC\d+.*|TWP.*|RNG.*|DAF.*|BEG.*|BAAP.*|TPOB.*|TAP.*|LBA.*|PCL\s+[A-Z].*)\b', '', name, flags=re.IGNORECASE)
 
     if re.search(r'\b(POR OF|SEC|TWP|RNG|DAF|BEG|BAAP|TPOB|TAP|TH\s+[NSEW]|FEET|FT)\b', name, flags=re.IGNORECASE):
         m = re.search(r'\b(PLAT OF|SUBDIVISION OF|ADDITION TO|ADD TO)\s+([A-Za-z0-9\s-]+)', name, flags=re.IGNORECASE)
@@ -533,14 +534,15 @@ def harvest_condo_buildings():
     kc_condo_count = sum(len(v["condos"]) for v in cities_map.values())
     print(f"   [DIAGNOSTIC 📊] Total King County Condos Added: {kc_condo_count}")
 
-    # 2. Server-Side SQL Filtered Stream: Snohomish County Parcels (Unquoted Numeric Integer USECODE Query)
+    # 2. Server-Side Unconstrained Stream + Python Filter: Snohomish County Parcels
+    VALID_CONDO_USECODES = {"140", "141", "142", "143", "145", "149"}
     offset = 0
-    limit = 1000
-    print("   📡 Streaming Snohomish County Condo Parcels (Server-Side USECODE Filter)...")
+    limit = 2000
+    print("   📡 Streaming Snohomish County Condo Parcels (In-Memory USECODE Filter)...")
 
     while True:
         params = {
-            "where": "USECODE IN (140,141,142,143,145,149)",
+            "where": "1=1",
             "outFields": "*",
             "outSR": "4326",
             "f": "json",
@@ -562,6 +564,10 @@ def harvest_condo_buildings():
         for feat in features:
             props = feat.get("properties") or feat.get("attributes") or {}
             geom = feat.get("geometry") or feat
+
+            raw_usecode = str(props.get("USECODE") or props.get("usecode") or "").strip()
+            if raw_usecode not in VALID_CONDO_USECODES:
+                continue
 
             parcel_id = props.get("PARCEL_ID") or props.get("OBJECTID") or props.get("parcel_id") or "100"
             raw_title = props.get("SITUSLINE1") or props.get("TAXPRNAME") or props.get("OWNERNAME") or f"Snohomish Residence #{parcel_id}"
@@ -625,7 +631,7 @@ def harvest_new_subdivisions():
     cities_map = initialize_cities_map()
     builder_cache = {}
 
-    # 1. Targeted Socrata Stream: King County Subdivision Plats
+    # 1. Targeted Socrata Stream: King County Recorded Plats
     kc_plat_map = {}
     offset = 0
     limit = 5000
@@ -712,8 +718,9 @@ def harvest_new_subdivisions():
                 plat_name = clean_plat_name(raw_plat) or f"{city_display} Estates"
                 lot_count = kc_plat_map[major_pin]["lots"]
                 
-                raw_builder = props.get("DEVELOPER") or props.get("GRANTOR") or kc_plat_map[major_pin].get("builder") or "Unable to Verify"
-                raw_builder = extract_builder_name({"DEVELOPER": raw_builder})
+                raw_builder = extract_builder_name(props)
+                if raw_builder == "Unable to Verify":
+                    raw_builder = kc_plat_map[major_pin].get("builder", "Unable to Verify")
 
                 if raw_builder not in builder_cache:
                     builder_cache[raw_builder] = fetch_wa_contractor_details(raw_builder)
@@ -741,14 +748,15 @@ def harvest_new_subdivisions():
     kc_subdiv_count = sum(len(v["subdivisions"]) for v in cities_map.values())
     print(f"   [DIAGNOSTIC 📊] Total King County Subdivisions Added: {kc_subdiv_count}")
 
-    # 2. Server-Side SQL Filtered Stream: Snohomish County Recorded Subdivisions (Unquoted Numeric Integer USECODE Query)
+    # 2. Server-Side Unconstrained Stream + Python Filter: Snohomish County Recorded Subdivisions
+    VALID_SUBDIV_USECODES = {"110", "111", "112", "120"}
     offset = 0
-    limit = 1000
-    print("   📡 Streaming Snohomish County Subdivision Plats (Server-Side USECODE Filter)...")
+    limit = 2000
+    print("   📡 Streaming Snohomish County Subdivision Plats (In-Memory USECODE Filter)...")
 
     while True:
         params = {
-            "where": "USECODE IN (110,111,112,120)",
+            "where": "1=1",
             "outFields": "*",
             "outSR": "4326",
             "f": "json",
@@ -770,6 +778,10 @@ def harvest_new_subdivisions():
         for feat in features:
             props = feat.get("properties") or feat.get("attributes") or {}
             geom = feat.get("geometry") or feat
+
+            raw_usecode = str(props.get("USECODE") or props.get("usecode") or "").strip()
+            if raw_usecode not in VALID_SUBDIV_USECODES:
+                continue
 
             obj_id = props.get("OBJECTID") or props.get("PARCEL_ID") or props.get("objectid") or "100"
             raw_title = props.get("TAXPRNAME") or props.get("OWNERNAME") or props.get("SITUSLINE1") or ""
