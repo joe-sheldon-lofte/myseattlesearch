@@ -1,0 +1,694 @@
+---
+layout: base.njk
+title: "The Neighborhood — Mukilteo Hub"
+permalink: /city-test/
+---
+
+<div id="neighborhood-root">
+  <style>
+    #neighborhood-root {
+      /* System Tokens Map */
+      --glass-passive: rgba(255, 255, 255, 0.35);
+      --glass-active: rgba(255, 255, 255, 0.85);
+      --glass-border: rgba(255, 255, 255, 0.45);
+      --glass-dark-border: rgba(28, 29, 31, 0.12);
+      --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+
+      background-color: var(--premier-beige);
+      color: var(--premier-charcoal);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      position: relative;
+      min-height: 100vh;
+      padding-bottom: 5rem;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    #neighborhood-root * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Floating Liquid Glass Navigation Spine */
+    #neighborhood-root .liquid-rail {
+      position: fixed;
+      left: 1.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 900;
+      background: var(--glass-passive);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--glass-border);
+      border-radius: 30px;
+      padding: 1.25rem 0.65rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      align-items: center;
+      transition: background 0.3s ease, opacity 0.3s ease, border-color 0.3s ease;
+      box-shadow: var(--card-shadow);
+      opacity: 0.35;
+    }
+
+    #neighborhood-root .liquid-rail.is-active,
+    #neighborhood-root .liquid-rail:hover {
+      background: var(--glass-active);
+      opacity: 0.95;
+      border-color: var(--glass-border);
+    }
+
+    #neighborhood-root .rail-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: var(--premier-charcoal);
+      opacity: 0.35;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+    }
+
+    #neighborhood-root .rail-dot.active {
+      opacity: 1;
+      background-color: var(--card-accent-color);
+      transform: scale(1.35);
+    }
+
+    #neighborhood-root .rail-dot .tooltip {
+      position: absolute;
+      left: 26px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--premier-charcoal);
+      color: var(--white);
+      font-size: 0.75rem;
+      padding: 0.3rem 0.65rem;
+      border-radius: 6px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      font-weight: 600;
+    }
+
+    #neighborhood-root .rail-dot:hover .tooltip {
+      opacity: 1;
+    }
+
+    /* 20%/60%/20% Hero Stage Architecture */
+    #neighborhood-root .hero-stage {
+      position: relative;
+      max-width: 1350px;
+      margin: 1.5rem auto 2.5rem;
+      padding: 0 1rem;
+      overflow: hidden;
+    }
+
+    #neighborhood-root .carousel-track {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.25rem;
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #neighborhood-root .hero-slide {
+      border-radius: 24px;
+      overflow: hidden;
+      min-height: 380px;
+      background-size: cover;
+      background-position: center;
+      transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: var(--card-shadow);
+      position: relative;
+    }
+
+    #neighborhood-root .hero-slide.side {
+      flex: 0 0 20%;
+      transform: scale(0.92);
+      opacity: 0.5;
+      filter: blur(1px);
+    }
+
+    #neighborhood-root .hero-slide.center {
+      flex: 0 0 60%;
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    /* Liquid Glass City Badge & Dashboard Status Light */
+    #neighborhood-root .hero-glass-badge {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--glass-passive);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--glass-border);
+      padding: 1.75rem 2.75rem;
+      border-radius: 28px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+      z-index: 10;
+      width: min(90%, 460px);
+    }
+
+    #neighborhood-root .hero-glass-badge h1 {
+      font-size: 2.6rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--premier-charcoal);
+      line-height: 1.1;
+    }
+
+    #neighborhood-root .hero-glass-badge .subhead {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-weight: 700;
+      color: var(--card-accent-color);
+      margin-top: 0.35rem;
+    }
+
+    /* Dashboard Status Indicator Light */
+    #neighborhood-root .dashboard-status-light {
+      margin-top: 1rem;
+      padding: 0.45rem 0.9rem;
+      background: var(--glass-active);
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--premier-charcoal);
+      cursor: pointer;
+      border: 1px solid var(--glass-border);
+      transition: all 0.25s ease;
+      user-select: none;
+    }
+
+    #neighborhood-root .dashboard-status-light:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    }
+
+    #neighborhood-root .status-bead {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background-color: var(--card-accent-color);
+      position: relative;
+    }
+
+    #neighborhood-root .status-bead.active-alert {
+      background-color: var(--card-accent-color);
+      box-shadow: 0 0 0 0 rgba(43, 92, 70, 0.6);
+      animation: bead-pulse 2s infinite;
+    }
+
+    @keyframes bead-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(43, 92, 70, 0.6); }
+      70% { box-shadow: 0 0 0 8px rgba(43, 92, 70, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(43, 92, 70, 0); }
+    }
+
+    /* Expandable Status Light Drawer */
+    #neighborhood-root .status-drawer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), margin-top 0.3s ease;
+      text-align: left;
+      font-size: 0.8rem;
+      line-height: 1.4;
+      background: var(--white);
+      border-radius: 14px;
+      padding: 0 0.85rem;
+    }
+
+    #neighborhood-root .status-drawer.open {
+      max-height: 140px;
+      margin-top: 0.75rem;
+      padding: 0.75rem 0.85rem;
+      border: 1px solid var(--glass-border);
+    }
+
+    /* Main Container Frame */
+    #neighborhood-root .main-container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* Civic Score Ring Row */
+    #neighborhood-root .rings-card {
+      background: var(--white);
+      border-radius: 24px;
+      padding: 1.75rem 2rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--card-shadow);
+      border: 1px solid var(--glass-dark-border);
+    }
+
+    #neighborhood-root .section-micro-title {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+      color: var(--card-accent-color);
+      margin-bottom: 1.25rem;
+    }
+
+    #neighborhood-root .rings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 1.5rem;
+      text-align: center;
+    }
+
+    #neighborhood-root .ring-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #neighborhood-root .svg-ring {
+      position: relative;
+      width: 92px;
+      height: 92px;
+    }
+
+    #neighborhood-root .svg-ring svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    #neighborhood-root .svg-ring circle {
+      fill: none;
+      stroke-width: 8;
+      stroke-linecap: round;
+    }
+
+    #neighborhood-root .bg-track {
+      stroke: var(--dynamic-bg-highlight);
+    }
+
+    #neighborhood-root .active-track {
+      stroke: var(--card-accent-color);
+      stroke-dasharray: 226;
+      stroke-dashoffset: 226;
+      transition: stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #neighborhood-root .ring-number {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--premier-charcoal);
+    }
+
+    #neighborhood-root .ring-label {
+      margin-top: 0.6rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--premier-charcoal);
+    }
+
+    /* Bento Grid System */
+    #neighborhood-root .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 1.25rem;
+    }
+
+    #neighborhood-root .bento-card {
+      background: var(--white);
+      border-radius: 22px;
+      padding: 1.5rem;
+      box-shadow: var(--card-shadow);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1px solid var(--glass-dark-border);
+      position: relative;
+    }
+
+    #neighborhood-root .col-4 { grid-column: span 4; }
+    #neighborhood-root .col-6 { grid-column: span 6; }
+    #neighborhood-root .col-8 { grid-column: span 8; }
+    #neighborhood-root .col-12 { grid-column: span 12; }
+
+    #neighborhood-root .metric-heading {
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--premier-charcoal);
+      line-height: 1.2;
+    }
+
+    #neighborhood-root .metric-body {
+      font-size: 0.88rem;
+      color: var(--premier-charcoal);
+      opacity: 0.8;
+      margin-top: 0.35rem;
+    }
+
+    #neighborhood-root .card-footer-note {
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--card-accent-color);
+    }
+
+    /* Market Indicator Badge Widget */
+    #neighborhood-root .market-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--dynamic-bg-highlight);
+      padding: 0.4rem 0.75rem;
+      border-radius: 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--card-accent-color);
+      text-decoration: none;
+      transition: background 0.2s ease;
+      margin-top: 0.75rem;
+    }
+
+    #neighborhood-root .market-badge:hover {
+      background: var(--premier-beige);
+    }
+
+    /* High School Prep Sports Ticker */
+    #neighborhood-root .sports-ticker {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      margin-top: 0.75rem;
+    }
+
+    #neighborhood-root .sports-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--dynamic-bg-highlight);
+      padding: 0.65rem 0.85rem;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    #neighborhood-root .sports-tag {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      font-weight: 800;
+      background: var(--card-accent-color);
+      color: var(--white);
+      padding: 0.2rem 0.45rem;
+      border-radius: 4px;
+    }
+
+    /* Mobile Responsive Adaptation */
+    @media (max-width: 900px) {
+      #neighborhood-root .col-4, 
+      #neighborhood-root .col-6, 
+      #neighborhood-root .col-8 { 
+        grid-column: span 12; 
+      }
+
+      #neighborhood-root .hero-slide.side { display: none; }
+      #neighborhood-root .hero-slide.center { flex: 0 0 100%; }
+
+      #neighborhood-root .liquid-rail {
+        top: auto;
+        bottom: 1.25rem;
+        left: 50%;
+        transform: translateX(-50%);
+        flex-direction: row;
+        padding: 0.65rem 1.25rem;
+      }
+
+      #neighborhood-root .rail-dot .tooltip { display: none; }
+
+      #neighborhood-root .hero-glass-badge {
+        padding: 1.25rem 1.5rem;
+      }
+
+      #neighborhood-root .hero-glass-badge h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+
+  <!-- Floating Liquid Glass Left Spine Navigation -->
+  <nav class="liquid-rail" id="liquidRail">
+    <div class="rail-dot active" data-target="civic-rings"><span class="tooltip">Civic Scores</span></div>
+    <div class="rail-dot" data-target="daily-briefing"><span class="tooltip">Daily Briefing</span></div>
+    <div class="rail-dot" data-target="community-wire"><span class="tooltip">Community Wire</span></div>
+  </nav>
+
+  <!-- Hero Stage (20%/60%/20% Visual Proportions) -->
+  <header class="hero-stage">
+    <div class="carousel-track">
+      <div class="hero-slide side" style="background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80');"></div>
+      <div class="hero-slide center" style="background-image: url('https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=1200&q=80');"></div>
+      <div class="hero-slide side" style="background-image: url('https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=800&q=80');"></div>
+    </div>
+
+    <!-- Liquid Glass Overlay Badge & Integrated Status Light -->
+    <div class="hero-glass-badge">
+      <h1>MUKILTEO</h1>
+      <div class="subhead">Snohomish County • Washington</div>
+
+      <!-- Dashboard Check-Engine Style Status Indicator -->
+      <div class="dashboard-status-light" id="statusLight" onclick="toggleStatusDrawer()">
+        <div class="status-bead active-alert"></div>
+        <span>⚡ POWER OUTAGE DETECTED</span>
+      </div>
+
+      <!-- Drawer Content -->
+      <div class="status-drawer" id="statusDrawer">
+        <p><strong>South Everett / Mukilteo Border:</strong> Snohomish PUD reports 1,240 customers affected. Crew dispatched.</p>
+        <a href="https://www.snopud.com/outages/" target="_blank" rel="noopener" style="color: var(--card-accent-color); font-weight: 700; text-decoration: underline; margin-top: 0.35rem; display: inline-block;">View Live Snohomish PUD Map &rarr;</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Canvas Section -->
+  <main class="main-container">
+
+    <!-- Civic Score Rings Array -->
+    <section class="rings-card" id="civic-rings">
+      <div class="section-micro-title">Civic Vitality Index</div>
+      <div class="rings-grid">
+
+        <div class="ring-item">
+          <div class="svg-ring">
+            <svg viewBox="0 0 80 80">
+              <circle class="bg-track" cx="40" cy="40" r="36"></circle>
+              <circle class="active-track" cx="40" cy="40" r="36" data-score="88"></circle>
+            </svg>
+            <div class="ring-number">88</div>
+          </div>
+          <div class="ring-label">Park Score</div>
+        </div>
+
+        <div class="ring-item">
+          <div class="svg-ring">
+            <svg viewBox="0 0 80 80">
+              <circle class="bg-track" cx="40" cy="40" r="36"></circle>
+              <circle class="active-track" cx="40" cy="40" r="36" data-score="74"></circle>
+            </svg>
+            <div class="ring-number">74</div>
+          </div>
+          <div class="ring-label">Bark Score</div>
+        </div>
+
+        <div class="ring-item">
+          <div class="svg-ring">
+            <svg viewBox="0 0 80 80">
+              <circle class="bg-track" cx="40" cy="40" r="36"></circle>
+              <circle class="active-track" cx="40" cy="40" r="36" data-score="62"></circle>
+            </svg>
+            <div class="ring-number">62</div>
+          </div>
+          <div class="ring-label">Transit Rating</div>
+        </div>
+
+        <div class="ring-item">
+          <div class="svg-ring">
+            <svg viewBox="0 0 80 80">
+              <circle class="bg-track" cx="40" cy="40" r="36"></circle>
+              <circle class="active-track" cx="40" cy="40" r="36" data-score="81"></circle>
+            </svg>
+            <div class="ring-number">81</div>
+          </div>
+          <div class="ring-label">Walkability</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Bento Utility Grid Layout -->
+    <section class="bento-grid" id="daily-briefing">
+
+      <!-- School District Pulse -->
+      <article class="bento-card col-6">
+        <div>
+          <div class="section-micro-title">School District Pulse</div>
+          <div class="metric-heading">Mukilteo SD #6</div>
+          <div class="metric-body">Standard Hours Today • Early Release Friday @ 1:30 PM</div>
+        </div>
+        <div class="card-footer-note">
+          Teacher In-Service Day: Scheduled in 12 days
+        </div>
+      </article>
+
+      <!-- Environmental & Marine Safety -->
+      <article class="bento-card col-6">
+        <div>
+          <div class="section-micro-title">Environmental Watch</div>
+          <div class="metric-heading">24 AQI (Good)</div>
+          <div class="metric-body">Low UV Index • Snohomish River: Normal Flow Stage</div>
+        </div>
+        <div class="card-footer-note">
+          Mukilteo / Clinton Ferry: Operating on Schedule (15m Terminal Wait)
+        </div>
+      </article>
+
+      <!-- Real Estate Market Indicator Badge Widget -->
+      <article class="bento-card col-4">
+        <div>
+          <div class="section-micro-title">Market Pulse Indicator</div>
+          <div class="metric-heading">$842k</div>
+          <div class="metric-body">Median Active Price • 18 Days Avg on Market</div>
+          <a href="/city-stats/" class="market-badge">
+            <span>Explore City Market Data</span>
+            <span>&rarr;</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- Prep Athletics Score Bug -->
+      <article class="bento-card col-8" id="community-wire">
+        <div>
+          <div class="section-micro-title">WESCO Prep Athletics</div>
+          <div class="sports-ticker">
+            <div class="sports-row">
+              <span>Kamiak Knights vs. Mariner Marauders (Football)</span>
+              <span>28 - 14</span>
+              <span class="sports-tag">FINAL</span>
+            </div>
+            <div class="sports-row">
+              <span>Kamiak Girls Soccer @ Jackson High</span>
+              <span>Fri 7:00 PM</span>
+              <span class="sports-tag" style="background: var(--premier-charcoal);">UPCOMING</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Seattle Pro Sports Game Day Badge -->
+      <article class="bento-card col-6">
+        <div>
+          <div class="section-micro-title">Seattle Pro Game Day</div>
+          <div class="metric-heading" style="font-size: 1.35rem;">Mariners vs. Rangers</div>
+          <div class="metric-body">First Pitch 7:10 PM • T-Mobile Park (ROOT Sports)</div>
+        </div>
+        <div class="card-footer-note">
+          Traffic Notice: Heavy I-5 Southbound volume expected around 6:00 PM
+        </div>
+      </article>
+
+      <!-- Daily Commute Matrix -->
+      <article class="bento-card col-6">
+        <div>
+          <div class="section-micro-title">Corridor Commute Pulse</div>
+          <div class="metric-heading" style="font-size: 1.35rem;">28 mins to SLU</div>
+          <div class="metric-body">I-5 South Express Lanes Open • Toll Rate: Baseline</div>
+        </div>
+        <div class="card-footer-note">
+          I-405 Corridor to Bellevue: 34 mins
+        </div>
+      </article>
+
+    </section>
+
+  </main>
+
+  <!-- Prototype Client Scripting -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. SVG Civic Ring Animation
+      const activeTracks = document.querySelectorAll('#neighborhood-root .active-track');
+      activeTracks.forEach(track => {
+        const score = parseInt(track.getAttribute('data-score'), 10);
+        const maxOffset = 226;
+        const strokeOffset = maxOffset - (maxOffset * score) / 100;
+        setTimeout(() => {
+          track.style.strokeDashoffset = strokeOffset;
+        }, 250);
+      });
+
+      // 2. Liquid Glass Rail Navigation & Scroll Spy
+      const liquidRail = document.getElementById('liquidRail');
+      const dots = document.querySelectorAll('#neighborhood-root .rail-dot');
+      const targetSections = [
+        document.getElementById('civic-rings'),
+        document.getElementById('daily-briefing'),
+        document.getElementById('community-wire')
+      ];
+
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 60) {
+          liquidRail.classList.add('is-active');
+        } else {
+          liquidRail.classList.remove('is-active');
+        }
+
+        let currentId = '';
+        targetSections.forEach(section => {
+          if (section) {
+            const top = section.offsetTop - 220;
+            if (window.scrollY >= top) {
+              currentId = section.getAttribute('id');
+            }
+          }
+        });
+
+        dots.forEach(dot => {
+          dot.classList.remove('active');
+          if (dot.getAttribute('data-target') === currentId) {
+            dot.classList.add('active');
+          }
+        });
+      });
+
+      dots.forEach(dot => {
+        dot.addEventListener('click', () => {
+          const targetId = dot.getAttribute('data-target');
+          const el = document.getElementById(targetId);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+          }
+        });
+      });
+    });
+
+    // 3. Status Light Drawer Toggle
+    function toggleStatusDrawer() {
+      const drawer = document.getElementById('statusDrawer');
+      if (drawer) {
+        drawer.classList.toggle('open');
+      }
+    }
+  </script>
+</div>
