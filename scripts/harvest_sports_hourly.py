@@ -28,6 +28,11 @@ KNOWN_JSON_DOMAINS = [
     "lscluster.hockeytech.com"
 ]
 
+BROWSER_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*"
+}
+
 def slugify(text):
     if not text:
         return ""
@@ -43,8 +48,8 @@ def slugify(text):
         res = res.replace('--', '-')
     return res.strip('-')
 
-def fetch_json_deduped(url, timeout=5):
-    """Fetches JSON with SSL fallback, deduplication, and JSON payload verification."""
+def fetch_json_deduped(url, timeout=6):
+    """Fetches JSON with browser headers, SSL fallback, deduplication, and JSON verification."""
     if not url or not isinstance(url, str) or not url.strip() or url.strip().lower() == "nan":
         return None
     
@@ -52,13 +57,11 @@ def fetch_json_deduped(url, timeout=5):
     if clean_url in HTTP_CACHE:
         return HTTP_CACHE[clean_url]
 
-    headers = {"User-Agent": "MySeattleSearch/1.0"}
-    
     try:
         try:
-            res = requests.get(clean_url, headers=headers, timeout=timeout, verify=True)
+            res = requests.get(clean_url, headers=BROWSER_HEADERS, timeout=timeout, verify=True)
         except requests.exceptions.SSLError:
-            res = requests.get(clean_url, headers=headers, timeout=timeout, verify=False)
+            res = requests.get(clean_url, headers=BROWSER_HEADERS, timeout=timeout, verify=False)
 
         if res.status_code == 200:
             text_start = res.text.strip()[:10]
@@ -66,8 +69,12 @@ def fetch_json_deduped(url, timeout=5):
                 data = res.json()
                 HTTP_CACHE[clean_url] = data
                 return data
+            else:
+                print(f"   ⚠️ DataFeed non-JSON body [{clean_url[:60]}]")
+        else:
+            print(f"   ⚠️ DataFeed HTTP {res.status_code} [{clean_url[:60]}]")
     except Exception as e:
-        print(f"   ⚠️ DataFeed fetch warning [{clean_url[:60]}]: {e}")
+        print(f"   ⚠️ DataFeed fetch error [{clean_url[:60]}]: {e}")
     
     HTTP_CACHE[clean_url] = None
     return None
@@ -79,13 +86,12 @@ def fetch_rss_stories(url, max_items=3, timeout=5):
     
     clean_url = url.strip()
     stories = []
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MySeattleSearch/1.0"}
     
     try:
         try:
-            res = requests.get(clean_url, headers=headers, timeout=timeout, verify=True)
+            res = requests.get(clean_url, headers=BROWSER_HEADERS, timeout=timeout, verify=True)
         except requests.exceptions.SSLError:
-            res = requests.get(clean_url, headers=headers, timeout=timeout, verify=False)
+            res = requests.get(clean_url, headers=BROWSER_HEADERS, timeout=timeout, verify=False)
 
         if res.status_code == 200:
             feed = feedparser.parse(res.content)
@@ -137,7 +143,7 @@ def parse_espn_data(raw_json):
     try:
         team_obj = raw_json.get("team", {})
         
-        # Record parsing with multi-level fallbacks
+        # 1. Record parsing with multi-level fallbacks
         record_obj = team_obj.get("record", {})
         if isinstance(record_obj, dict):
             items = record_obj.get("items", [])
@@ -151,13 +157,13 @@ def parse_espn_data(raw_json):
             if not summary["record"]:
                 summary["record"] = record_obj.get("summary") or record_obj.get("displayValue", "")
         
-        # Standing summary
+        # 2. Standing summary
         standing_val = team_obj.get("standingSummary")
         if not standing_val and isinstance(team_obj.get("standing"), dict):
             standing_val = team_obj.get("standing", {}).get("summary")
         summary["standing"] = standing_val or ""
         
-        # Next Game parsing
+        # 3. Next Game parsing
         next_events = team_obj.get("nextEvent", [])
         if next_events and isinstance(next_events, list) and len(next_events) > 0:
             evt = next_events[0]
@@ -245,15 +251,24 @@ def run_sports_harvest():
             continue
             
         slug = slugify(team_name)
-        data_feed_url = team.get("DataFeed", "").strip()
         
+        # Evaluate DataFeed first, falling back to LiveScores if DataFeed is empty or invalid
+        data_feed_url = team.get("DataFeed", "").strip()
+        live_scores_url = team.get("LiveScores", "").strip()
+        
+        target_api_url = ""
+        if any(domain in data_feed_url for domain in KNOWN_JSON_DOMAINS):
+            target_api_url = data_feed_url
+        elif any(domain in live_scores_url for domain in KNOWN_JSON_DOMAINS):
+            target_api_url = live_scores_url
+
         # 1. Standings & Stats Harvest
         stats_summary = {}
-        if any(domain in data_feed_url for domain in KNOWN_JSON_DOMAINS):
-            raw_data = fetch_json_deduped(data_feed_url)
-            if "api.espn.com" in data_feed_url or "site.api.espn.com" in data_feed_url:
+        if target_api_url:
+            raw_data = fetch_json_deduped(target_api_url)
+            if "api.espn.com" in target_api_url or "site.api.espn.com" in target_api_url:
                 stats_summary = parse_espn_data(raw_data)
-            elif "statsapi.mlb.com" in data_feed_url:
+            elif "statsapi.mlb.com" in target_api_url:
                 stats_summary = parse_mlb_data(raw_data)
         
         # 2. News Feeds Harvest
@@ -278,7 +293,7 @@ def run_sports_harvest():
             "facilityCity": team.get("FacilityCity", "").strip(),
             "facilityCoordinates": team.get("FacilityCoordinates", "").strip(),
             "teamSite": team.get("TeamSite", "").strip(),
-            "liveScores": team.get("LiveScores", "").strip(),
+            "liveScores": live_scores_url,
             "youTubeRSS": team.get("YouTubeRSS", "").strip(),
             "podcastRSS": team.get("PodcastRSS", "").strip(),
             "dataFeed": data_feed_url,
