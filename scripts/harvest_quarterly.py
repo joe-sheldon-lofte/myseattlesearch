@@ -156,11 +156,20 @@ def clean_plat_name(raw_name):
         return ""
     return name.title()
 
-def get_geometry_bbox(geometry):
+def get_geometry_bbox(geometry, props=None):
     if not geometry or not isinstance(geometry, dict):
-        return None
-    all_pts = []
+        geometry = {}
     
+    # Check direct point attributes if available (e.g. Snohomish X_COORD, Y_COORD)
+    if props and isinstance(props, dict):
+        x_c = props.get("X_COORD") or props.get("x_coord")
+        y_c = props.get("Y_COORD") or props.get("y_coord")
+        if x_c and y_c:
+            lat, lon = state_plane_to_wgs84(x_c, y_c)
+            if lat and lon:
+                return (lat, lon, lat, lon)
+
+    all_pts = []
     coords = geometry.get("coordinates", [])
     g_type = geometry.get("type")
     if g_type == "Polygon":
@@ -179,7 +188,9 @@ def get_geometry_bbox(geometry):
     if "x" in geometry and "y" in geometry:
         try:
             x, y = float(geometry["x"]), float(geometry["y"])
-            return (y, x, y, x)
+            lat, lon = state_plane_to_wgs84(x, y)
+            if lat and lon:
+                return (lat, lon, lat, lon)
         except (ValueError, TypeError):
             pass
 
@@ -259,7 +270,7 @@ def load_city_boundaries():
         slug = props.get("slug") or slugify(props.get("CityName") or props.get("name") or "")
         name = props.get("name") or props.get("CityName") or ""
         geom = feat.get("geometry", {})
-        bbox = get_geometry_bbox(geom)
+        bbox = get_geometry_bbox(geom, props)
         
         if slug and bbox:
             indexed.append({
@@ -405,16 +416,16 @@ def harvest_condo_buildings():
 
     print(f"   [DIAGNOSTIC] Socrata found {len(kc_socrata_map)} 6-digit numeric condo major PIN blocks.")
 
-    # Batch Query King County ArcGIS for Coordinates using Unquoted Integers
+    # Batch Query King County ArcGIS using 25-item Quoted Batches
     major_keys = list(kc_socrata_map.keys())
-    batch_size = 50
+    batch_size = 25
     total_batches = math.ceil(len(major_keys) / batch_size) if major_keys else 0
     print(f"   📡 Querying King County GIS coordinates across {total_batches} batches...")
 
     for b_idx, i in enumerate(range(0, len(major_keys), batch_size), start=1):
         chunk = major_keys[i:i + batch_size]
-        int_majors = [str(int(k)) for k in chunk if k.isdigit()]
-        majors_str = ",".join(int_majors)
+        quoted_majors = [f"'{str(k).zfill(6)}'" for k in chunk]
+        majors_str = ",".join(quoted_majors)
         
         params = {
             "where": f"MAJOR IN ({majors_str})",
@@ -431,9 +442,6 @@ def harvest_condo_buildings():
             elif isinstance(kc_gis_res, dict):
                 features = kc_gis_res.get("features", [])
                 print(f"   [DIAGNOSTIC ✅] Batch 1 returned {len(features)} GIS features.")
-                if features:
-                    sample_props = features[0].get("properties") or features[0].get("attributes") or {}
-                    print(f"   [DIAGNOSTIC 🔍] Sample Feature 1 Attribute Keys: {list(sample_props.keys())}")
 
         if kc_gis_res and isinstance(kc_gis_res, dict):
             features = kc_gis_res.get("features", [])
@@ -445,7 +453,7 @@ def harvest_condo_buildings():
                 if not major_pin or major_pin not in kc_socrata_map:
                     continue
 
-                bbox = get_geometry_bbox(geom)
+                bbox = get_geometry_bbox(geom, props)
                 lat = (bbox[0] + bbox[2]) / 2.0 if bbox else None
                 lon = (bbox[1] + bbox[3]) / 2.0 if bbox else None
 
@@ -488,10 +496,10 @@ def harvest_condo_buildings():
     kc_condo_count = sum(len(v["condos"]) for v in cities_map.values())
     print(f"   [DIAGNOSTIC 📊] Total King County Condos Added: {kc_condo_count}")
 
-    # 2. Server-Side SQL Filtered Stream: Snohomish County Parcels (Universal Property Filter)
+    # 2. Server-Side SQL Filtered Stream: Snohomish County Parcels
     offset = 0
     limit = 1000
-    print("   📡 Streaming Snohomish County Condo Parcels (Universal Property Filter)...")
+    print("   📡 Streaming Snohomish County Condo Parcels...")
 
     while True:
         params = {
@@ -505,16 +513,6 @@ def harvest_condo_buildings():
         sno_condo_url = f"https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?{urllib.parse.urlencode(params)}"
         sno_res = http_get_json_simple(sno_condo_url, timeout=30)
 
-        if offset == 0:
-            if not sno_res:
-                print("   [DIAGNOSTIC ⚠️] Snohomish Condo API returned None.")
-            elif isinstance(sno_res, dict):
-                sno_feats = sno_res.get("features", [])
-                print(f"   [DIAGNOSTIC ✅] Snohomish Condo API Page 1 returned {len(sno_feats)} features.")
-                if sno_feats:
-                    sno_sample = sno_feats[0].get("properties") or sno_feats[0].get("attributes") or {}
-                    print(f"   [DIAGNOSTIC 🔍] Snohomish Attribute Keys: {list(sno_sample.keys())}")
-
         if not sno_res or not isinstance(sno_res, dict) or "error" in sno_res:
             break
 
@@ -526,22 +524,25 @@ def harvest_condo_buildings():
             props = feat.get("properties") or feat.get("attributes") or {}
             geom = feat.get("geometry") or feat
 
-            # Client-side property text inspection
-            is_condo = False
-            for k, v in props.items():
-                v_str = str(v or "").upper()
-                if "CONDO" in v_str or "CONDOMINIUM" in v_str:
-                    is_condo = True
-                    break
+            # Inspect USECODE or text properties for condo indicators
+            use_code = str(props.get("USECODE") or props.get("usecode") or "").strip()
+            is_condo = use_code in ["140", "141", "142", "143", "145", "149"]
+
+            if not is_condo:
+                for k, v in props.items():
+                    v_str = str(v or "").upper()
+                    if "CONDO" in v_str or "CONDOMINIUM" in v_str:
+                        is_condo = True
+                        break
 
             if not is_condo:
                 continue
 
             parcel_id = props.get("PARCEL_ID") or props.get("OBJECTID") or props.get("parcel_id") or "100"
-            raw_title = props.get("SITE_NAME") or props.get("SITUSLINE1") or props.get("LEGALDESC") or f"Snohomish Residence #{parcel_id}"
+            raw_title = props.get("SITUSLINE1") or props.get("TAXPRNAME") or props.get("OWNERNAME") or f"Snohomish Residence #{parcel_id}"
             b_name = clean_building_name(raw_title) or f"Snohomish Residence #{parcel_id}"
 
-            bbox = get_geometry_bbox(geom)
+            bbox = get_geometry_bbox(geom, props)
             lat = (bbox[0] + bbox[2]) / 2.0 if bbox else None
             lon = (bbox[1] + bbox[3]) / 2.0 if bbox else None
 
@@ -637,16 +638,16 @@ def harvest_new_subdivisions():
 
     print(f"   [DIAGNOSTIC] Found {len(kc_plat_map)} King County 6-digit numeric subdivision plat major PIN blocks.")
 
-    # Batch Query King County GIS for Plat Coordinates using Unquoted Integers
+    # Batch Query King County GIS for Plat Coordinates using 25-item Quoted Batches
     major_keys = list(kc_plat_map.keys())
-    batch_size = 50
+    batch_size = 25
     total_batches = math.ceil(len(major_keys) / batch_size) if major_keys else 0
     print(f"   📡 Querying King County GIS coordinates across {total_batches} subdivision batches...")
 
     for b_idx, i in enumerate(range(0, len(major_keys), batch_size), start=1):
         chunk = major_keys[i:i + batch_size]
-        int_majors = [str(int(k)) for k in chunk if k.isdigit()]
-        majors_str = ",".join(int_majors)
+        quoted_majors = [f"'{str(k).zfill(6)}'" for k in chunk]
+        majors_str = ",".join(quoted_majors)
         
         params = {
             "where": f"MAJOR IN ({majors_str})",
@@ -674,7 +675,7 @@ def harvest_new_subdivisions():
                 if not major_pin or major_pin not in kc_plat_map:
                     continue
 
-                bbox = get_geometry_bbox(geom)
+                bbox = get_geometry_bbox(geom, props)
                 lat = (bbox[0] + bbox[2]) / 2.0 if bbox else None
                 lon = (bbox[1] + bbox[3]) / 2.0 if bbox else None
 
@@ -718,7 +719,7 @@ def harvest_new_subdivisions():
     # 2. Server-Side SQL Filtered Stream: Snohomish County Recorded Subdivisions
     offset = 0
     limit = 1000
-    print("   📡 Streaming Snohomish County Subdivision Plats (Universal Property Filter)...")
+    print("   📡 Streaming Snohomish County Subdivision Plats...")
 
     while True:
         params = {
@@ -732,13 +733,6 @@ def harvest_new_subdivisions():
         sno_permits_url = f"https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?{urllib.parse.urlencode(params)}"
         permits_res = http_get_json_simple(sno_permits_url, timeout=30)
 
-        if offset == 0:
-            if not permits_res:
-                print("   [DIAGNOSTIC ⚠️] Snohomish Subdivisions API returned None.")
-            elif isinstance(permits_res, dict):
-                sno_feats = permits_res.get("features", [])
-                print(f"   [DIAGNOSTIC ✅] Snohomish Subdivisions Page 1 returned {len(sno_feats)} features.")
-
         if not permits_res or not isinstance(permits_res, dict) or "error" in permits_res:
             break
 
@@ -750,18 +744,21 @@ def harvest_new_subdivisions():
             props = feat.get("properties") or feat.get("attributes") or {}
             geom = feat.get("geometry") or feat
 
-            is_plat = False
-            for k, v in props.items():
-                v_str = str(v or "").upper()
-                if "PLAT" in v_str or "SUBDIVISION" in v_str:
-                    is_plat = True
-                    break
+            use_code = str(props.get("USECODE") or props.get("usecode") or "").strip()
+            is_plat = use_code in ["110", "111", "112", "120"]
+
+            if not is_plat:
+                for k, v in props.items():
+                    v_str = str(v or "").upper()
+                    if "PLAT" in v_str or "SUBDIVISION" in v_str:
+                        is_plat = True
+                        break
 
             if not is_plat:
                 continue
 
             obj_id = props.get("OBJECTID") or props.get("PARCEL_ID") or props.get("objectid") or "100"
-            raw_title = props.get("SUBDIVISION_NAME") or props.get("PLAT_NAME") or props.get("SITE_NAME") or ""
+            raw_title = props.get("TAXPRNAME") or props.get("OWNERNAME") or props.get("SITUSLINE1") or ""
             plat_name = clean_plat_name(raw_title)
             if not plat_name:
                 continue
@@ -771,7 +768,7 @@ def harvest_new_subdivisions():
                 builder_cache[raw_builder] = fetch_wa_contractor_details(raw_builder)
             builder_details = builder_cache[raw_builder]
 
-            bbox = get_geometry_bbox(geom)
+            bbox = get_geometry_bbox(geom, props)
             lat = (bbox[0] + bbox[2]) / 2.0 if bbox else None
             lon = (bbox[1] + bbox[3]) / 2.0 if bbox else None
 
