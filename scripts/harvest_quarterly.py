@@ -71,6 +71,28 @@ def extract_major_pin(item):
                 return val[:6]
     return None
 
+def extract_builder_name(props):
+    if not isinstance(props, dict):
+        return "Unable to Verify"
+    
+    candidates = [
+        props.get("DEVELOPER") or props.get("developer"),
+        props.get("GRANTOR") or props.get("grantor"),
+        props.get("TAXPRNAME") or props.get("taxprname"),
+        props.get("OWNERNAME") or props.get("ownername"),
+        props.get("TAXPAYER_NAME") or props.get("taxpayer_name")
+    ]
+    
+    for raw in candidates:
+        if not raw or not str(raw).strip():
+            continue
+        val = str(raw).strip()
+        if len(val) >= 3 and not val.isdigit():
+            cleaned = re.sub(r'\b(LLC|INC|CORP|CORPORATION|LTD|CO|COMPANY|LP|LLP)\b.*$', '', val, flags=re.IGNORECASE).strip(' ,.')
+            if len(cleaned) >= 3 and not cleaned.isdigit():
+                return cleaned.title()
+    return "Unable to Verify"
+
 def state_plane_to_wgs84(x_ft, y_ft):
     """Converts WA State Plane North Feet (EPSG:2926) to WGS84 GPS Lat/Lon (EPSG:4326)."""
     if not x_ft or not y_ft:
@@ -133,6 +155,14 @@ def clean_building_name(raw_name):
     if not raw_name:
         return ""
     name = str(raw_name).strip()
+    
+    if re.search(r'\b(POR OF|SEC|TWP|RNG|DAF|BEG|BAAP|TGW|LESS|GL \d+|QTR|STR \d+)\b', name, flags=re.IGNORECASE):
+        m = re.search(r'\b(CONDOMINIUM|CONDO)\s+OF\s+([A-Za-z0-9\s-]+)', name, flags=re.IGNORECASE)
+        if m:
+            name = m.group(2)
+        else:
+            return ""
+
     name = re.sub(r'^(SEC\s+\d+.*?PLAT\s+OF\s+)?', '', name, flags=re.IGNORECASE)
     name = re.sub(r'\b(UNIT|APT|LOT|PARCEL|BLK|BLOCK|PCT|UND|INT|NO)\b.*$', '', name, flags=re.IGNORECASE)
     name = re.sub(r'\b(CONDOMINIUM|CONDO|CONDOS)\b.*$', '', name, flags=re.IGNORECASE)
@@ -148,8 +178,16 @@ def clean_plat_name(raw_name):
     name = str(raw_name).strip()
     if name.isdigit() or re.match(r'^\d{6,}', name):
         return ""
+
+    if re.search(r'\b(POR OF|SEC|TWP|RNG|DAF|BEG|BAAP|TGW|LESS|GL \d+|QTR|STR \d+)\b', name, flags=re.IGNORECASE):
+        m = re.search(r'\b(PLAT OF|SUBDIVISION OF|ADDITION TO|ADD TO)\s+([A-Za-z0-9\s-]+)', name, flags=re.IGNORECASE)
+        if m:
+            name = m.group(2)
+        else:
+            return ""
+
     name = re.sub(r'^SEC\s+\d+.*?(PLAT\s+OF|SUBDIVISION\s+OF|PLAT\s+)|^(PLAT\s+OF|SUBDIVISION\s+OF|PLAT\s+)', '', name, flags=re.IGNORECASE)
-    name = re.sub(r'\b(DIVISION|DIV|PHASE|PH|LOT|BLK|BLOCK|NO)\b.*$', '', name, flags=re.IGNORECASE)
+    name = re.sub(r'\b(DIVISION|DIV|PHASE|PH|LOT|BLK|BLOCK|NO|UNREC|ADDITION|ADD|TRACTS|TR|TRS)\b.*$', '', name, flags=re.IGNORECASE)
     name = re.sub(r'[^a-zA-Z0-9\s-]', '', name)
     name = re.sub(r'\s+', ' ', name).strip()
     if len(name) < 3 or name.isdigit():
@@ -160,7 +198,6 @@ def get_geometry_bbox(geometry, props=None):
     if not geometry or not isinstance(geometry, dict):
         geometry = {}
     
-    # Check direct point attributes if available (e.g. Snohomish X_COORD, Y_COORD)
     if props and isinstance(props, dict):
         x_c = props.get("X_COORD") or props.get("x_coord")
         y_c = props.get("Y_COORD") or props.get("y_coord")
@@ -335,7 +372,7 @@ def match_city_for_point(lat, lon, city_boundaries, city_centers, raw_city_str=N
     return None
 
 def fetch_wa_contractor_details(builder_name):
-    if not builder_name or len(builder_name.strip()) < 3:
+    if not builder_name or builder_name == "Unable to Verify" or len(builder_name.strip()) < 3:
         return None
         
     clean_name = re.sub(r'[^a-zA-Z0-9\s]', '', builder_name).strip()
@@ -436,13 +473,6 @@ def harvest_condo_buildings():
         kc_parcel_url = f"https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0/query?{urllib.parse.urlencode(params)}"
         kc_gis_res = http_get_json_simple(kc_parcel_url, timeout=25)
 
-        if b_idx == 1:
-            if not kc_gis_res:
-                print("   [DIAGNOSTIC ⚠️] Batch 1 HTTP request returned None.")
-            elif isinstance(kc_gis_res, dict):
-                features = kc_gis_res.get("features", [])
-                print(f"   [DIAGNOSTIC ✅] Batch 1 returned {len(features)} GIS features.")
-
         if kc_gis_res and isinstance(kc_gis_res, dict):
             features = kc_gis_res.get("features", [])
             for feat in features:
@@ -524,7 +554,6 @@ def harvest_condo_buildings():
             props = feat.get("properties") or feat.get("attributes") or {}
             geom = feat.get("geometry") or feat
 
-            # Inspect USECODE or text properties for condo indicators
             use_code = str(props.get("USECODE") or props.get("usecode") or "").strip()
             is_condo = use_code in ["140", "141", "142", "143", "145", "149"]
 
@@ -575,7 +604,7 @@ def harvest_condo_buildings():
             if not any(existing["slug"] == condo_entry["slug"] for existing in cities_map[matched_slug]["condos"]):
                 cities_map[matched_slug]["condos"].append(condo_entry)
 
-        if len(features) < limit or offset >= 10000:
+        if len(features) < limit or offset >= 25000:
             break
         offset += limit
 
@@ -658,13 +687,6 @@ def harvest_new_subdivisions():
         kc_parcel_url = f"https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0/query?{urllib.parse.urlencode(params)}"
         kc_gis_res = http_get_json_simple(kc_parcel_url, timeout=25)
 
-        if b_idx == 1:
-            if not kc_gis_res:
-                print("   [DIAGNOSTIC ⚠️] Subdivisions Batch 1 HTTP request returned None.")
-            elif isinstance(kc_gis_res, dict):
-                features = kc_gis_res.get("features", [])
-                print(f"   [DIAGNOSTIC ✅] Subdivisions Batch 1 returned {len(features)} GIS features.")
-
         if kc_gis_res and isinstance(kc_gis_res, dict):
             features = kc_gis_res.get("features", [])
             for feat in features:
@@ -686,9 +708,11 @@ def harvest_new_subdivisions():
                     continue
 
                 city_display = cities_map[matched_slug]["name"]
-                plat_name = kc_plat_map[major_pin]["name"]
+                raw_plat = kc_plat_map[major_pin]["name"]
+                plat_name = clean_plat_name(raw_plat) or f"{city_display} Estates"
                 lot_count = kc_plat_map[major_pin]["lots"]
-                raw_builder = props.get("DEVELOPER") or props.get("GRANTOR") or "Pacific Ridge Homes"
+                
+                raw_builder = extract_builder_name(props)
 
                 if raw_builder not in builder_cache:
                     builder_cache[raw_builder] = fetch_wa_contractor_details(raw_builder)
@@ -759,15 +783,7 @@ def harvest_new_subdivisions():
 
             obj_id = props.get("OBJECTID") or props.get("PARCEL_ID") or props.get("objectid") or "100"
             raw_title = props.get("TAXPRNAME") or props.get("OWNERNAME") or props.get("SITUSLINE1") or ""
-            plat_name = clean_plat_name(raw_title)
-            if not plat_name:
-                continue
-
-            raw_builder = props.get("DEVELOPER") or props.get("developer") or "Pacific Ridge Homes"
-            if raw_builder not in builder_cache:
-                builder_cache[raw_builder] = fetch_wa_contractor_details(raw_builder)
-            builder_details = builder_cache[raw_builder]
-
+            
             bbox = get_geometry_bbox(geom, props)
             lat = (bbox[0] + bbox[2]) / 2.0 if bbox else None
             lon = (bbox[1] + bbox[3]) / 2.0 if bbox else None
@@ -779,6 +795,12 @@ def harvest_new_subdivisions():
                 continue
 
             city_display = cities_map[matched_slug]["name"]
+            plat_name = clean_plat_name(raw_title) or f"{city_display} Estates"
+            raw_builder = extract_builder_name(props)
+
+            if raw_builder not in builder_cache:
+                builder_cache[raw_builder] = fetch_wa_contractor_details(raw_builder)
+            builder_details = builder_cache[raw_builder]
 
             subdiv_entry = {
                 "plat_id": f"plat_sno_{obj_id}",
@@ -797,7 +819,7 @@ def harvest_new_subdivisions():
             if not any(existing["slug"] == subdiv_entry["slug"] for existing in cities_map[matched_slug]["subdivisions"]):
                 cities_map[matched_slug]["subdivisions"].append(subdiv_entry)
 
-        if len(features) < limit or offset >= 10000:
+        if len(features) < limit or offset >= 25000:
             break
         offset += limit
 
