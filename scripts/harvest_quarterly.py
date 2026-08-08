@@ -179,6 +179,9 @@ def clean_plat_name(raw_name):
     if name.isdigit() or re.match(r'^\d{6,}', name):
         return ""
 
+    # Strip legal survey noise phrases
+    name = re.sub(r'\b(TGW|UND\s+INT\s+IN|LESS\s+ST|LESS\b.*|POR\b.*|SEC\d+.*|TWP.*|RNG.*|DAF.*|BEG.*|BAAP.*|TPOB.*|TAP.*|LBA.*|PCL\s+[A-Z].*)\b', '', name, flags=re.IGNORECASE)
+
     if re.search(r'\b(POR OF|SEC|TWP|RNG|DAF|BEG|BAAP|TPOB|TAP|TH\s+[NSEW]|FEET|FT)\b', name, flags=re.IGNORECASE):
         m = re.search(r'\b(PLAT OF|SUBDIVISION OF|ADDITION TO|ADD TO)\s+([A-Za-z0-9\s-]+)', name, flags=re.IGNORECASE)
         if m:
@@ -530,14 +533,14 @@ def harvest_condo_buildings():
     kc_condo_count = sum(len(v["condos"]) for v in cities_map.values())
     print(f"   [DIAGNOSTIC 📊] Total King County Condos Added: {kc_condo_count}")
 
-    # 2. Server-Side SQL Filtered Stream: Snohomish County Parcels (Server-Side USECODE Query)
+    # 2. Server-Side SQL Filtered Stream: Snohomish County Parcels (Unquoted Numeric Integer USECODE Query)
     offset = 0
     limit = 1000
     print("   📡 Streaming Snohomish County Condo Parcels (Server-Side USECODE Filter)...")
 
     while True:
         params = {
-            "where": "USECODE IN ('140','141','142','143','145','149')",
+            "where": "USECODE IN (140,141,142,143,145,149)",
             "outFields": "*",
             "outSR": "4326",
             "f": "json",
@@ -548,6 +551,8 @@ def harvest_condo_buildings():
         sno_res = http_get_json_simple(sno_condo_url, timeout=30)
 
         if not sno_res or not isinstance(sno_res, dict) or "error" in sno_res:
+            if sno_res and "error" in sno_res:
+                print(f"   ⚠️ Snohomish Condo API Notice: {sno_res['error']}")
             break
 
         features = sno_res.get("features", [])
@@ -736,14 +741,14 @@ def harvest_new_subdivisions():
     kc_subdiv_count = sum(len(v["subdivisions"]) for v in cities_map.values())
     print(f"   [DIAGNOSTIC 📊] Total King County Subdivisions Added: {kc_subdiv_count}")
 
-    # 2. Server-Side SQL Filtered Stream: Snohomish County Recorded Subdivisions
+    # 2. Server-Side SQL Filtered Stream: Snohomish County Recorded Subdivisions (Unquoted Numeric Integer USECODE Query)
     offset = 0
     limit = 1000
     print("   📡 Streaming Snohomish County Subdivision Plats (Server-Side USECODE Filter)...")
 
     while True:
         params = {
-            "where": "USECODE IN ('110','111','112','120')",
+            "where": "USECODE IN (110,111,112,120)",
             "outFields": "*",
             "outSR": "4326",
             "f": "json",
@@ -754,6 +759,8 @@ def harvest_new_subdivisions():
         permits_res = http_get_json_simple(sno_permits_url, timeout=30)
 
         if not permits_res or not isinstance(permits_res, dict) or "error" in permits_res:
+            if permits_res and "error" in permits_res:
+                print(f"   ⚠️ Snohomish Subdivision API Notice: {permits_res['error']}")
             break
 
         features = permits_res.get("features", [])
