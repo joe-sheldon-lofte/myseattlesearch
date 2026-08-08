@@ -1,3 +1,4 @@
+# File: scripts/harvest_sports_hourly.py
 import os
 import re
 import json
@@ -28,9 +29,16 @@ KNOWN_JSON_DOMAINS = [
     "lscluster.hockeytech.com"
 ]
 
+# Browser headers with referer and language context to bypass ESPN 403 cloud runner blocks
 BROWSER_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept": "application/json, text/plain, */*"
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.espn.com/",
+    "Origin": "https://www.espn.com",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-site"
 }
 
 def slugify(text):
@@ -48,12 +56,26 @@ def slugify(text):
         res = res.replace('--', '-')
     return res.strip('-')
 
-def fetch_json_deduped(url, timeout=6):
-    """Fetches JSON with browser headers, SSL fallback, deduplication, and JSON verification."""
+def prepare_data_url(url):
+    """Normalizes DataFeed URLs and programmatically ensures MLB endpoints carry hydrate=record."""
     if not url or not isinstance(url, str) or not url.strip() or url.strip().lower() == "nan":
-        return None
+        return ""
     
     clean_url = url.strip()
+    
+    # Programmatically enforce MLB hydration if missing
+    if "statsapi.mlb.com" in clean_url and "hydrate=" not in clean_url:
+        separator = "&" if "?" in clean_url else "?"
+        clean_url = f"{clean_url}{separator}hydrate=record"
+        
+    return clean_url
+
+def fetch_json_deduped(url, timeout=8):
+    """Fetches JSON with full browser headers, SSL fallback, deduplication, and payload verification."""
+    clean_url = prepare_data_url(url)
+    if not clean_url:
+        return None
+    
     if clean_url in HTTP_CACHE:
         return HTTP_CACHE[clean_url]
 
@@ -70,7 +92,7 @@ def fetch_json_deduped(url, timeout=6):
                 HTTP_CACHE[clean_url] = data
                 return data
             else:
-                print(f"   ⚠️ DataFeed non-JSON body [{clean_url[:60]}]")
+                print(f"   ⚠️ DataFeed non-JSON payload [{clean_url[:60]}]")
         else:
             print(f"   ⚠️ DataFeed HTTP {res.status_code} [{clean_url[:60]}]")
     except Exception as e:
@@ -205,6 +227,15 @@ def parse_mlb_data(raw_json):
                 losses = lrec.get("losses")
                 pct = pct or lrec.get("pct")
                 
+            # Deep search inside records array if present
+            if wins is None and "records" in rec and isinstance(rec["records"], list):
+                for sub_rec in rec["records"]:
+                    if isinstance(sub_rec, dict) and "wins" in sub_rec:
+                        wins = sub_rec.get("wins")
+                        losses = sub_rec.get("losses")
+                        pct = pct or sub_rec.get("winningPercentage")
+                        break
+                
             if wins is not None and losses is not None:
                 summary["record"] = f"{wins}-{losses}"
                 
@@ -252,7 +283,7 @@ def run_sports_harvest():
             
         slug = slugify(team_name)
         
-        # Evaluate DataFeed first, falling back to LiveScores if DataFeed is empty or invalid
+        # Evaluate DataFeed first, falling back to LiveScores if DataFeed is missing
         data_feed_url = team.get("DataFeed", "").strip()
         live_scores_url = team.get("LiveScores", "").strip()
         
