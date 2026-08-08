@@ -156,7 +156,7 @@ def clean_building_name(raw_name):
         return ""
     name = str(raw_name).strip()
     
-    if re.search(r'\b(POR OF|SEC|TWP|RNG|DAF|BEG|BAAP|TGW|LESS|GL \d+|QTR|STR \d+)\b', name, flags=re.IGNORECASE):
+    if re.search(r'\b(POR OF|SEC|TWP|RNG|DAF|BEG|BAAP|TPOB|TAP|TH\s+[NSEW]|FEET|FT)\b', name, flags=re.IGNORECASE):
         m = re.search(r'\b(CONDOMINIUM|CONDO)\s+OF\s+([A-Za-z0-9\s-]+)', name, flags=re.IGNORECASE)
         if m:
             name = m.group(2)
@@ -179,12 +179,16 @@ def clean_plat_name(raw_name):
     if name.isdigit() or re.match(r'^\d{6,}', name):
         return ""
 
-    if re.search(r'\b(POR OF|SEC|TWP|RNG|DAF|BEG|BAAP|TGW|LESS|GL \d+|QTR|STR \d+)\b', name, flags=re.IGNORECASE):
+    if re.search(r'\b(POR OF|SEC|TWP|RNG|DAF|BEG|BAAP|TPOB|TAP|TH\s+[NSEW]|FEET|FT)\b', name, flags=re.IGNORECASE):
         m = re.search(r'\b(PLAT OF|SUBDIVISION OF|ADDITION TO|ADD TO)\s+([A-Za-z0-9\s-]+)', name, flags=re.IGNORECASE)
         if m:
             name = m.group(2)
         else:
-            return ""
+            parts = re.split(r'\b(TH|DAF|BEG|BAAP|TPOB|POR OF|LESS|SEC)\b', name, flags=re.IGNORECASE)
+            if parts and len(parts[0].strip()) >= 3:
+                name = parts[0].strip()
+            else:
+                return ""
 
     name = re.sub(r'^SEC\s+\d+.*?(PLAT\s+OF|SUBDIVISION\s+OF|PLAT\s+)|^(PLAT\s+OF|SUBDIVISION\s+OF|PLAT\s+)', '', name, flags=re.IGNORECASE)
     name = re.sub(r'\b(DIVISION|DIV|PHASE|PH|LOT|BLK|BLOCK|NO|UNREC|ADDITION|ADD|TRACTS|TR|TRS)\b.*$', '', name, flags=re.IGNORECASE)
@@ -526,14 +530,14 @@ def harvest_condo_buildings():
     kc_condo_count = sum(len(v["condos"]) for v in cities_map.values())
     print(f"   [DIAGNOSTIC 📊] Total King County Condos Added: {kc_condo_count}")
 
-    # 2. Server-Side SQL Filtered Stream: Snohomish County Parcels
+    # 2. Server-Side SQL Filtered Stream: Snohomish County Parcels (Server-Side USECODE Query)
     offset = 0
     limit = 1000
-    print("   📡 Streaming Snohomish County Condo Parcels...")
+    print("   📡 Streaming Snohomish County Condo Parcels (Server-Side USECODE Filter)...")
 
     while True:
         params = {
-            "where": "1=1",
+            "where": "USECODE IN ('140','141','142','143','145','149')",
             "outFields": "*",
             "outSR": "4326",
             "f": "json",
@@ -553,19 +557,6 @@ def harvest_condo_buildings():
         for feat in features:
             props = feat.get("properties") or feat.get("attributes") or {}
             geom = feat.get("geometry") or feat
-
-            use_code = str(props.get("USECODE") or props.get("usecode") or "").strip()
-            is_condo = use_code in ["140", "141", "142", "143", "145", "149"]
-
-            if not is_condo:
-                for k, v in props.items():
-                    v_str = str(v or "").upper()
-                    if "CONDO" in v_str or "CONDOMINIUM" in v_str:
-                        is_condo = True
-                        break
-
-            if not is_condo:
-                continue
 
             parcel_id = props.get("PARCEL_ID") or props.get("OBJECTID") or props.get("parcel_id") or "100"
             raw_title = props.get("SITUSLINE1") or props.get("TAXPRNAME") or props.get("OWNERNAME") or f"Snohomish Residence #{parcel_id}"
@@ -604,7 +595,7 @@ def harvest_condo_buildings():
             if not any(existing["slug"] == condo_entry["slug"] for existing in cities_map[matched_slug]["condos"]):
                 cities_map[matched_slug]["condos"].append(condo_entry)
 
-        if len(features) < limit or offset >= 25000:
+        if len(features) < limit:
             break
         offset += limit
 
@@ -651,15 +642,19 @@ def harvest_new_subdivisions():
             major_pin = extract_major_pin(item)
             legal_desc = item.get("legal_description", "")
             plat_name = clean_plat_name(legal_desc)
+            builder = extract_builder_name(item)
             
             if major_pin and plat_name:
                 if major_pin not in kc_plat_map:
                     kc_plat_map[major_pin] = {
                         "name": plat_name,
+                        "builder": builder,
                         "lots": 1
                     }
                 else:
                     kc_plat_map[major_pin]["lots"] += 1
+                    if builder != "Unable to Verify":
+                        kc_plat_map[major_pin]["builder"] = builder
 
         if len(kc_plat_res) < limit:
             break
@@ -712,7 +707,8 @@ def harvest_new_subdivisions():
                 plat_name = clean_plat_name(raw_plat) or f"{city_display} Estates"
                 lot_count = kc_plat_map[major_pin]["lots"]
                 
-                raw_builder = extract_builder_name(props)
+                raw_builder = props.get("DEVELOPER") or props.get("GRANTOR") or kc_plat_map[major_pin].get("builder") or "Unable to Verify"
+                raw_builder = extract_builder_name({"DEVELOPER": raw_builder})
 
                 if raw_builder not in builder_cache:
                     builder_cache[raw_builder] = fetch_wa_contractor_details(raw_builder)
@@ -743,11 +739,11 @@ def harvest_new_subdivisions():
     # 2. Server-Side SQL Filtered Stream: Snohomish County Recorded Subdivisions
     offset = 0
     limit = 1000
-    print("   📡 Streaming Snohomish County Subdivision Plats...")
+    print("   📡 Streaming Snohomish County Subdivision Plats (Server-Side USECODE Filter)...")
 
     while True:
         params = {
-            "where": "1=1",
+            "where": "USECODE IN ('110','111','112','120')",
             "outFields": "*",
             "outSR": "4326",
             "f": "json",
@@ -767,19 +763,6 @@ def harvest_new_subdivisions():
         for feat in features:
             props = feat.get("properties") or feat.get("attributes") or {}
             geom = feat.get("geometry") or feat
-
-            use_code = str(props.get("USECODE") or props.get("usecode") or "").strip()
-            is_plat = use_code in ["110", "111", "112", "120"]
-
-            if not is_plat:
-                for k, v in props.items():
-                    v_str = str(v or "").upper()
-                    if "PLAT" in v_str or "SUBDIVISION" in v_str:
-                        is_plat = True
-                        break
-
-            if not is_plat:
-                continue
 
             obj_id = props.get("OBJECTID") or props.get("PARCEL_ID") or props.get("objectid") or "100"
             raw_title = props.get("TAXPRNAME") or props.get("OWNERNAME") or props.get("SITUSLINE1") or ""
@@ -819,7 +802,7 @@ def harvest_new_subdivisions():
             if not any(existing["slug"] == subdiv_entry["slug"] for existing in cities_map[matched_slug]["subdivisions"]):
                 cities_map[matched_slug]["subdivisions"].append(subdiv_entry)
 
-        if len(features) < limit or offset >= 25000:
+        if len(features) < limit:
             break
         offset += limit
 
