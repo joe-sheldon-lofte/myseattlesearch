@@ -1,4 +1,3 @@
-# File: scripts/harvest_sports_hourly.py
 import os
 import re
 import json
@@ -137,19 +136,36 @@ def parse_espn_data(raw_json):
     
     try:
         team_obj = raw_json.get("team", {})
+        
+        # Record parsing with multi-level fallbacks
         record_obj = team_obj.get("record", {})
-        items = record_obj.get("items", [])
-        if items and isinstance(items, list):
-            summary["record"] = items[0].get("summary", "")
+        if isinstance(record_obj, dict):
+            items = record_obj.get("items", [])
+            if items and isinstance(items, list) and len(items) > 0:
+                first_item = items[0]
+                summary["record"] = (
+                    first_item.get("summary") or 
+                    first_item.get("displayValue") or 
+                    first_item.get("description", "")
+                )
+            if not summary["record"]:
+                summary["record"] = record_obj.get("summary") or record_obj.get("displayValue", "")
         
-        summary["standing"] = team_obj.get("standingSummary", "")
+        # Standing summary
+        standing_val = team_obj.get("standingSummary")
+        if not standing_val and isinstance(team_obj.get("standing"), dict):
+            standing_val = team_obj.get("standing", {}).get("summary")
+        summary["standing"] = standing_val or ""
         
-        next_event = team_obj.get("nextEvent", [])
-        if next_event and isinstance(next_event, list) and len(next_event) > 0:
-            evt = next_event[0]
+        # Next Game parsing
+        next_events = team_obj.get("nextEvent", [])
+        if next_events and isinstance(next_events, list) and len(next_events) > 0:
+            evt = next_events[0]
+            evt_name = evt.get("name") or evt.get("shortName") or evt.get("displayName", "")
+            evt_date = evt.get("date", "")
             summary["next_game"] = {
-                "name": evt.get("name", ""),
-                "date": evt.get("date", "")
+                "name": evt_name,
+                "date": evt_date
             }
     except Exception as e:
         print(f"   ⚠️ ESPN payload parse notice: {e}")
@@ -157,7 +173,7 @@ def parse_espn_data(raw_json):
     return summary
 
 def parse_mlb_data(raw_json):
-    """Extracts record and league rank info from MLB Stats API payloads."""
+    """Extracts hydrated wins, losses, and standing info from MLB Stats API payloads."""
     if not raw_json or not isinstance(raw_json, dict):
         return {}
     
@@ -172,13 +188,32 @@ def parse_mlb_data(raw_json):
         if teams and isinstance(teams, list) and len(teams) > 0:
             tm = teams[0]
             rec = tm.get("record", {})
+            
             wins = rec.get("wins")
             losses = rec.get("losses")
-            pct = rec.get("winningPercentage")
+            pct = rec.get("winningPercentage") or rec.get("pct")
+            
+            if wins is None and "leagueRecord" in rec:
+                lrec = rec.get("leagueRecord", {})
+                wins = lrec.get("wins")
+                losses = lrec.get("losses")
+                pct = pct or lrec.get("pct")
+                
             if wins is not None and losses is not None:
                 summary["record"] = f"{wins}-{losses}"
-                if pct:
-                    summary["standing"] = f"Win Pct: {pct}"
+                
+            div_rank = rec.get("divisionRank") or tm.get("divisionRank")
+            div_gb = rec.get("divisionGamesBack") or rec.get("gamesBack")
+            
+            standing_parts = []
+            if div_rank:
+                standing_parts.append(f"Rank: #{div_rank}")
+            if div_gb:
+                standing_parts.append(f"GB: {div_gb}")
+            elif pct:
+                standing_parts.append(f"Pct: {pct}")
+                
+            summary["standing"] = " | ".join(standing_parts)
     except Exception as e:
         print(f"   ⚠️ MLB payload parse notice: {e}")
         
@@ -212,11 +247,11 @@ def run_sports_harvest():
         slug = slugify(team_name)
         data_feed_url = team.get("DataFeed", "").strip()
         
-        # 1. Standings & Stats Harvest (Only call fetch_json_deduped if domain is a known REST API)
+        # 1. Standings & Stats Harvest
         stats_summary = {}
         if any(domain in data_feed_url for domain in KNOWN_JSON_DOMAINS):
             raw_data = fetch_json_deduped(data_feed_url)
-            if "api.espn.com" in data_feed_url:
+            if "api.espn.com" in data_feed_url or "site.api.espn.com" in data_feed_url:
                 stats_summary = parse_espn_data(raw_data)
             elif "statsapi.mlb.com" in data_feed_url:
                 stats_summary = parse_mlb_data(raw_data)
@@ -258,7 +293,10 @@ def run_sports_harvest():
         }
         
         compiled_sports.append(compiled_team)
-        print(f"   ✅ Synchronized: {team_name} ({len(news_items)} news articles)")
+        
+        rec_str = stats_summary.get("record", "")
+        log_rec = f"Record: {rec_str}" if rec_str else "No active record"
+        print(f"   ✅ Synchronized: {team_name} ({log_rec} | {len(news_items)} news articles)")
 
     output_payload = {
         "last_updated": datetime.datetime.now(datetime.timezone.utc).isoformat(),
