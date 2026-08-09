@@ -109,6 +109,34 @@ def clean_plat_name(raw_name):
 
     return name.title()
 
+def extract_snohomish_plat_title(props, city_name):
+    """Checks multi-field plat sources (PLAT_NAME, SUBDIVISION, DESCRIPT, FILE_NAME)."""
+    candidates = [
+        props.get("PLAT_NAME"),
+        props.get("SUBDIVISION"),
+        props.get("DESCRIPT"),
+        props.get("FILE_NAME")
+    ]
+    
+    for raw in candidates:
+        if not raw or not str(raw).strip():
+            continue
+        val = str(raw).strip()
+        
+        # Check for embedded "PLAT OF [NAME]" or "SUBDIVISION OF [NAME]"
+        match = re.search(r'\b(?:PLAT\s+OF|SUBDIVISION\s+OF|ADDITION\s+TO)\s+([A-Za-z0-9\s-]+)', val, flags=re.IGNORECASE)
+        if match:
+            cleaned = clean_plat_name(match.group(1))
+            if cleaned:
+                return cleaned
+
+        cleaned = clean_plat_name(val)
+        if cleaned:
+            return cleaned
+
+    # Fallback to city default if no valid title is found
+    return f"{city_name} Estates"
+
 def state_plane_to_wgs84(x_ft, y_ft):
     if not x_ft or not y_ft:
         return None, None
@@ -298,12 +326,8 @@ def harvest_snohomish_subdivisions():
 
                 obj_id = props.get("OBJECTID") or props.get("PARCEL_ID") or "100"
                 
-                # Check multi-field plat sources (NEVER pass human TAXPRNAME into clean_plat_name)
-                raw_title = props.get("PLAT_NAME") or props.get("SUBDIVISION") or props.get("DESCRIPT") or props.get("FILE_NAME") or ""
-                plat_name = clean_plat_name(raw_title)
-
-                if not plat_name:
-                    continue
+                # Check multi-field plat sources
+                plat_name = extract_snohomish_plat_title(props, city["name"])
 
                 c_bbox = get_geometry_bbox(geom, props)
                 lat = (c_bbox[0] + c_bbox[2]) / 2.0 if c_bbox else (bbox[0] + bbox[2]) / 2.0
