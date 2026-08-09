@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 import urllib3
 
-# Suppress insecure SSL warnings for legacy city web servers
+# Suppress insecure SSL warnings for municipal government servers
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 try:
@@ -35,6 +35,21 @@ CSV_COLUMNS = [
     "Feed URL", "Test Data"
 ]
 
+def slugify(text):
+    if not text:
+        return ""
+    text = str(text).lower().strip()
+    out = []
+    for ch in text:
+        if ch.isalnum():
+            out.append(ch)
+        elif ch in [' ', '-', '_']:
+            out.append('-')
+    res = "".join(out)
+    while '--' in res:
+        res = res.replace('--', '-')
+    return res.strip('-')
+
 def clean_text(text):
     if not text:
         return ""
@@ -49,7 +64,7 @@ def extract_sample_titles(content, feed_format):
         matches = re.findall(r'<title>(.*?)</title>', content, re.IGNORECASE | re.DOTALL)
         for m in matches:
             t = clean_text(re.sub(r'<!\[CDATA\[(.*?)\]\]>', r'\1', m))
-            if t and not any(skip in t.lower() for skip in ["rss", "feed", "index", "home", "wordpress"]):
+            if t and not any(skip in t.lower() for skip in ["rss", "feed", "index", "home", "wordpress", "civicplus"]):
                 titles.append(t)
             if len(titles) >= 3:
                 break
@@ -92,26 +107,73 @@ def discover_site_feeds(item, scope):
     county = item.get("County", "").strip()
     school_district = item.get("School District", "").strip()
 
-    # Get URL from JSON flexibly
     if scope == "city":
         base_url = item.get("City Website") or item.get("city_website") or item.get("City_Website") or ""
     elif scope == "school":
         base_url = item.get("School Website") or item.get("school_website") or item.get("School_Website") or ""
     else:
-        base_url = item.get("County Website") or item.get("county_website") or item.get("County_Website") or ""
+        return discovered
 
     if not base_url or not base_url.startswith("http"):
         return discovered
 
     base_url = base_url.rstrip("/")
+    city_slug = slugify(city)
     
-    # Standard Paths & Deterministic Vendor Endpoints
+    # 1. Deterministic Swagit & Granicus Vendor Subdomain Probes
+    if scope == "city" and city_slug:
+        swagit_subdomain_url = f"https://{city_slug}wa.new.swagit.com/views/236"
+        sw_status, sw_content = probe_url(f"https://{city_slug}wa.new.swagit.com")
+        if sw_status == 200:
+            discovered.append({
+                "City": city,
+                "County": county,
+                "School District": school_district,
+                "Scope": scope,
+                "Category": "Video Stream",
+                "Notes": "Discovered Swagit Vendor Subdomain",
+                "Feed Name": f"{city} Swagit Meeting Portal",
+                "Feed Format": "swagit",
+                "Valid": "Yes",
+                "Status Code": sw_status,
+                "Feed URL": f"https://{city_slug}wa.new.swagit.com",
+                "Test Data": "Swagit Municipal Live Video Portal Active"
+            })
+
+        granicus_subdomain_url = f"https://{city_slug}.granicus.com/ViewPublisher.php?view_id=2"
+        gr_status, gr_content = probe_url(f"https://{city_slug}.granicus.com")
+        if gr_status == 200:
+            discovered.append({
+                "City": city,
+                "County": county,
+                "School District": school_district,
+                "Scope": scope,
+                "Category": "Video Stream",
+                "Notes": "Discovered Granicus Vendor Subdomain",
+                "Feed Name": f"{city} Granicus Meeting Portal",
+                "Feed Format": "granicus",
+                "Valid": "Yes",
+                "Status Code": gr_status,
+                "Feed URL": f"https://{city_slug}.granicus.com",
+                "Test Data": "Granicus Municipal Video Portal Active"
+            })
+
+    # 2. Deep Sub-Path Inspection
     paths_to_check = [
         "",
         "/agendas",
+        "/agendacenter",
         "/calendar",
         "/news",
         "/events",
+        "/city-council",
+        "/council",
+        "/videos",
+        "/watch",
+        "/mediacenter",
+        "/videocenter",
+        "/Government/City-Council/City-Council-Meetings",
+        "/Government/Boards-and-Commissions/Meeting-Agendas-and-Minutes",
         "/RSSFeed.aspx?ModID=1&MainCatID=1",
         "/RSSFeed.aspx?ModID=58&MainCatID=1",
         "/RSSFeed.aspx?ModID=14&MainCatID=1",
@@ -134,7 +196,7 @@ def discover_site_feeds(item, scope):
         if status_code != 200 or not content:
             continue
 
-        # 1. Direct XML/RSS Payload Check
+        # A. Direct XML/RSS Payload
         if any(token in content.lower()[:300] for token in ["<rss", "<feed", "<channel", "xmlns:content"]):
             samples = extract_sample_titles(content, "rss")
             cat = "News Feed" if "news" in target_url.lower() else ("Community Events" if "modid=58" in target_url.lower() else "Municipal RSS")
@@ -154,7 +216,7 @@ def discover_site_feeds(item, scope):
             })
             continue
 
-        # 2. Direct iCal Payload Check
+        # B. Direct iCal Payload
         if "BEGIN:VCALENDAR" in content[:300]:
             samples = extract_sample_titles(content, "ical")
             discovered.append({
@@ -173,8 +235,8 @@ def discover_site_feeds(item, scope):
             })
             continue
 
-        # 3. HTML Scraping for Embedded Feeds
-        # RSS Links
+        # C. Scraping HTML for Feeds & Embedded Players
+        # RSS Matches
         rss_matches = re.findall(r'href=["\']([^"\']*\.(?:rss|xml)|[^"\']*RSSFeed\.aspx[^"\']*|[^"\']*/feed/?)["\']', content, re.IGNORECASE)
         for rel_link in rss_matches:
             full_rss = urllib.parse.urljoin(target_url, rel_link)
@@ -198,7 +260,7 @@ def discover_site_feeds(item, scope):
                         "Test Data": samples
                     })
 
-        # iCal Links
+        # iCal Matches
         ics_matches = re.findall(r'href=["\']([^"\']*\.(?:ics|ical)|[^"\']*Calendar-Feed[^"\']*|[^"\']*Type=iCal[^"\']*)["\']', content, re.IGNORECASE)
         for rel_link in ics_matches:
             full_ics = urllib.parse.urljoin(target_url, rel_link)
@@ -222,7 +284,7 @@ def discover_site_feeds(item, scope):
                         "Test Data": samples
                     })
 
-        # Swagit Video Streams
+        # Swagit Matches
         swagit_matches = re.findall(r'(?:swagit\.com/views/|views/)(\d+)', content, re.IGNORECASE)
         for view_id in set(swagit_matches):
             swagit_url = f"https://swagit.com/views/{view_id}"
@@ -244,7 +306,7 @@ def discover_site_feeds(item, scope):
                     "Test Data": f"Swagit Portal View {view_id}"
                 })
 
-        # Granicus Video Streams
+        # Granicus Matches
         granicus_matches = re.findall(r'granicus\.com/[^"\']*view_id=(\d+)', content, re.IGNORECASE)
         for view_id in set(granicus_matches):
             granicus_url = f"https://granicus.com/MediaPlayer.php?view_id={view_id}"
@@ -265,19 +327,40 @@ def discover_site_feeds(item, scope):
                     "Test Data": f"Granicus Player View ID {view_id}"
                 })
 
-        # 4. Create Fallback Portal Link for Agendas/News if status is 200
-        if path in ["/agendas", "/calendar", "/news"]:
+        # YouTube Matches
+        yt_channel_matches = re.findall(r'youtube\.com/(?:channel/|@)([a-zA-Z0-9_\-]+)', content, re.IGNORECASE)
+        for yt_id in set(yt_channel_matches):
+            yt_url = f"https://www.youtube.com/@{yt_id}" if not yt_id.startswith("UC") else f"https://www.youtube.com/channel/{yt_id}"
+            if yt_url not in seen_urls and yt_id.lower() not in ["youtube", "user", "watch", "embed"]:
+                seen_urls.add(yt_url)
+                discovered.append({
+                    "City": city,
+                    "County": county,
+                    "School District": school_district,
+                    "Scope": scope,
+                    "Category": "Video Stream",
+                    "Notes": f"Discovered Official YouTube Channel (@{yt_id})",
+                    "Feed Name": f"{city} Official YouTube Channel",
+                    "Feed Format": "youtube_channel",
+                    "Valid": "Yes",
+                    "Status Code": 200,
+                    "Feed URL": yt_url,
+                    "Test Data": f"YouTube Channel @{yt_id}"
+                })
+
+        # D. Official Portal Fallbacks
+        if path in ["/agendas", "/agendacenter", "/calendar", "/news", "/city-council", "/mediacenter"]:
             portal_url = target_url
             if portal_url not in seen_urls:
                 seen_urls.add(portal_url)
-                cat = "City Council" if path == "/agendas" else ("Calendar Feed" if path == "/calendar" else "City News")
+                cat = "City Council" if "council" in path or "agenda" in path else ("Calendar Feed" if path == "/calendar" else "City News")
                 discovered.append({
                     "City": city,
                     "County": county,
                     "School District": school_district,
                     "Scope": scope,
                     "Category": cat,
-                    "Notes": f"Official Portal Link ({path})",
+                    "Notes": f"Official Portal Route ({path})",
                     "Feed Name": f"{city} {cat} Portal",
                     "Feed Format": "external_link",
                     "Valid": "Yes",
@@ -292,7 +375,6 @@ def process_city_data(item):
     results = []
     results.extend(discover_site_feeds(item, "city"))
     results.extend(discover_site_feeds(item, "school"))
-    results.extend(discover_site_feeds(item, "county"))
     return results
 
 def main():
@@ -308,7 +390,7 @@ def main():
         city_records = json.load(f)
 
     print(f"📡 Loaded {len(city_records)} municipalities from city_data.json")
-    print("🚀 Launching multithreaded discovery crawler...")
+    print("🚀 Launching multithreaded discovery crawler (City & School Scopes)...")
 
     all_discovered_feeds = []
 

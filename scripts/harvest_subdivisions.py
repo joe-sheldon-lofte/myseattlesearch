@@ -60,8 +60,9 @@ def extract_major_pin(item):
                 return val[:6]
     return None
 
-def extract_builder_name(props, plat_name=""):
-    """Extracts verified corporate builder/developer entities dynamically, filtering out human individual names."""
+def extract_builder_name(props):
+    """Extracts verified corporate builder/developer entities dynamically. 
+    Requires explicit corporate indicators and excludes individual human names."""
     if not isinstance(props, dict):
         props = {}
 
@@ -103,14 +104,14 @@ def extract_builder_name(props, plat_name=""):
     return "Unable to Verify"
 
 def clean_plat_name(raw_name):
-    """Filters metes-and-bounds survey artifacts and individual human names to return real recorded plat titles."""
+    """Strips metes-and-bounds survey artifacts while preserving clean recorded plat titles."""
     if not raw_name:
         return ""
     name = str(raw_name).strip()
     if name.isdigit() or re.match(r'^\d{6,}', name):
         return ""
 
-    # Strict rejection of survey / metes-and-bounds description landmarks
+    # Rejection pattern for survey / metes-and-bounds description landmarks
     survey_patterns = [
         r'^\s*[NSEW]\s+\d+\s*(FT|FEET)',
         r'\b(FT|FEET)\s+OF\b',
@@ -148,7 +149,7 @@ def clean_plat_name(raw_name):
     
     for pat in survey_patterns:
         if re.search(pat, name, flags=re.IGNORECASE):
-            # Extract underlying plat title if embedded e.g. "PLAT OF XYZ"
+            # Attempt to extract embedded title e.g. "PLAT OF XYZ"
             m = re.search(r'\b(PLAT\s+OF|SUBDIVISION\s+OF|ADDITION\s+TO)\s+([A-Za-z0-9\s-]+)', name, flags=re.IGNORECASE)
             if m:
                 extracted = m.group(2).strip()
@@ -166,54 +167,7 @@ def clean_plat_name(raw_name):
     if len(name) < 3 or name.isdigit():
         return ""
 
-    # Disambiguate individual human taxpayer names vs real development names
-    plat_keywords = [
-        "ESTATES", "RIDGE", "PARK", "VILLAGE", "HEIGHTS", "GLEN", "MEADOWS", "CREEK", 
-        "HILL", "HILLS", "WOODS", "WOOD", "RANCH", "VIEW", "VALLEY", "MANOR", "CROSSING", 
-        "LANDING", "POINT", "PINES", "LAKE", "LAKES", "SHORES", "BAY", "HAVEN", "PLACE", 
-        "COURT", "TERRACE", "GARDENS", "GARDEN", "FARMS", "FARM", "COUNTRY", "CLUB", 
-        "SQUARE", "TOWNSITE", "PLAZA", "PUD", "COMMONS", "COMMUNITY", "TOWNHOMES", "HOMES"
-    ]
-    
-    has_plat_kw = any(re.search(r'\b' + kw + r'\b', name, re.IGNORECASE) for kw in plat_keywords)
-    
-    if not has_plat_kw:
-        words = name.split()
-        if 1 <= len(words) <= 3:
-            corp_words = ["LLC", "INC", "CORP", "CO", "PROPERTIES", "DEVELOPMENT", "BUILDERS", "GROUP", "HOLDINGS"]
-            if not any(re.search(r'\b' + cw + r'\b', name, re.IGNORECASE) for cw in corp_words):
-                return ""
-
     return name.title()
-
-def fetch_king_taxpayers(major_pins):
-    """Streams registered developer LLC names directly from King County Assessor dataset k2tr-in39."""
-    taxpayer_map = {}
-    if not major_pins:
-        return taxpayer_map
-        
-    print(f"   📡 Querying King County Assessor Taxpayer Dataset (k2tr-in39) across {len(major_pins)} PIN blocks...")
-    quoted_majors = [f"'{str(p).zfill(6)}'" for p in major_pins]
-    
-    chunk_size = 50
-    for i in range(0, len(quoted_majors), chunk_size):
-        chunk = quoted_majors[i:i + chunk_size]
-        where_clause = f"major in ({','.join(chunk)})"
-        params = {
-            "$where": where_clause,
-            "$limit": "5000"
-        }
-        url = f"https://data.kingcounty.gov/resource/k2tr-in39.json?{urllib.parse.urlencode(params)}"
-        res = http_get_json_simple(url, timeout=15)
-        
-        if res and isinstance(res, list):
-            for item in res:
-                major = extract_major_pin(item)
-                taxpayer = item.get("taxpayer_name") or item.get("owner_name")
-                if major and taxpayer and major not in taxpayer_map:
-                    taxpayer_map[major] = taxpayer.strip()
-                    
-    return taxpayer_map
 
 def state_plane_to_wgs84(x_ft, y_ft):
     """Converts WA State Plane North Feet (EPSG:2926) to WGS84 GPS Lat/Lon (EPSG:4326)."""
@@ -518,7 +472,7 @@ def harvest_new_subdivisions():
             major_pin = extract_major_pin(item)
             legal_desc = item.get("legal_description", "")
             plat_name = clean_plat_name(legal_desc)
-            builder = extract_builder_name(item, plat_name)
+            builder = extract_builder_name(item)
             
             if major_pin:
                 if major_pin not in kc_plat_map:
@@ -539,9 +493,6 @@ def harvest_new_subdivisions():
         offset += limit
 
     print(f"   [DIAGNOSTIC] Found {len(kc_plat_map)} King County 6-digit numeric subdivision plat major PIN blocks.")
-
-    # Bulk fetch King County registered developer LLCs from Assessor k2tr-in39 dataset
-    kc_taxpayers = fetch_king_taxpayers(list(kc_plat_map.keys()))
 
     # Batch Query King County GIS
     major_keys = list(kc_plat_map.keys())
@@ -588,12 +539,9 @@ def harvest_new_subdivisions():
                 plat_name = clean_plat_name(raw_plat) or f"{city_display} Estates"
                 lot_count = kc_plat_map[major_pin]["lots"]
                 
-                # Check builder in order: Socrata record -> Assessor Taxpayer k2tr-in39 -> GIS props
                 raw_builder = kc_plat_map[major_pin].get("builder", "Unable to Verify")
-                if raw_builder == "Unable to Verify" and major_pin in kc_taxpayers:
-                    raw_builder = extract_builder_name({"TAXPAYER_NAME": kc_taxpayers[major_pin]}, plat_name)
                 if raw_builder == "Unable to Verify":
-                    raw_builder = extract_builder_name(props, plat_name)
+                    raw_builder = extract_builder_name(props)
 
                 if raw_builder not in builder_cache:
                     builder_cache[raw_builder] = fetch_wa_contractor_details(raw_builder)
@@ -660,7 +608,9 @@ def harvest_new_subdivisions():
                 geom = feat.get("geometry") or feat
 
                 obj_id = props.get("OBJECTID") or props.get("PARCEL_ID") or "100"
-                raw_title = props.get("PLAT_NAME") or props.get("SUBDIVISION") or props.get("DESCRIPT") or props.get("TAXPRNAME") or ""
+                
+                # Check plat name fields exclusively (NEVER pass raw human TAXPRNAME into clean_plat_name)
+                raw_title = props.get("PLAT_NAME") or props.get("SUBDIVISION") or props.get("DESCRIPT") or ""
                 plat_name = clean_plat_name(raw_title) or f"{city['name']} Estates"
 
                 c_bbox = get_geometry_bbox(geom, props)
@@ -670,8 +620,8 @@ def harvest_new_subdivisions():
                 matched_slug = city["slug"]
                 city_display = city["name"]
                 
-                # Verify raw_builder explicitly requires corporate entity markers
-                raw_builder = extract_builder_name(props, plat_name)
+                # Requires explicit corporate markers (LLC, INC, etc.) for builder classification
+                raw_builder = extract_builder_name(props)
 
                 if raw_builder not in builder_cache:
                     builder_cache[raw_builder] = fetch_wa_contractor_details(raw_builder)
