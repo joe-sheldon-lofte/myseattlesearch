@@ -60,8 +60,6 @@ def extract_major_pin(item):
     return None
 
 def extract_builder_name(props):
-    """Extracts verified corporate builder/developer entities dynamically.
-    Requires explicit corporate indicators and excludes individual human names."""
     if not isinstance(props, dict):
         props = {}
 
@@ -101,32 +99,7 @@ def extract_builder_name(props):
 
     return "Unable to Verify"
 
-def fetch_kc_assessor_taxpayer(major_pin, cache):
-    """Queries King County Socrata Assessor dataset by Major PIN to extract corporate builder/taxpayer LLCs."""
-    if not major_pin:
-        return "Unable to Verify"
-    if major_pin in cache:
-        return cache[major_pin]
-
-    params = {
-        "$where": f"major='{major_pin}'",
-        "$limit": "5"
-    }
-    url = f"https://data.kingcounty.gov/resource/pv2w-3b3h.json?{urllib.parse.urlencode(params)}"
-    res = http_get_json_simple(url, timeout=10)
-
-    if res and isinstance(res, list):
-        for item in res:
-            extracted = extract_builder_name(item)
-            if extracted != "Unable to Verify":
-                cache[major_pin] = extracted
-                return extracted
-
-    cache[major_pin] = "Unable to Verify"
-    return "Unable to Verify"
-
 def clean_plat_name(raw_name):
-    """Slices survey artifacts strictly at directional transition tokens."""
     if not raw_name:
         return ""
     name = str(raw_name).strip()
@@ -331,7 +304,6 @@ def harvest_king_subdivisions():
     city_boundaries = load_city_boundaries()
     city_centers = load_city_centers()
     cities_map = {}
-    assessor_cache = {}
 
     if os.path.exists(CITY_DATA_PATH):
         try:
@@ -432,14 +404,15 @@ def harvest_king_subdivisions():
 
                 city_display = cities_map[matched_slug]["name"]
                 raw_plat = kc_plat_map[major_pin]["name"]
-                plat_name = clean_plat_name(raw_plat) or f"{city_display} Estates"
-                lot_count = kc_plat_map[major_pin]["lots"]
+                plat_name = clean_plat_name(raw_plat)
                 
+                if not plat_name:
+                    continue
+
+                lot_count = kc_plat_map[major_pin]["lots"]
                 raw_builder = kc_plat_map[major_pin].get("builder", "Unable to Verify")
                 if raw_builder == "Unable to Verify":
                     raw_builder = extract_builder_name(props)
-                if raw_builder == "Unable to Verify":
-                    raw_builder = fetch_kc_assessor_taxpayer(major_pin, assessor_cache)
 
                 subdiv_entry = {
                     "plat_id": f"plat_kc_{major_pin}",

@@ -48,7 +48,6 @@ def http_get_json_simple(url, extra_headers=None, timeout=30):
     return None
 
 def extract_builder_name(props):
-    """Extracts corporate entity builders. Excludes individual human homeowner names."""
     if not isinstance(props, dict):
         props = {}
 
@@ -88,7 +87,6 @@ def extract_builder_name(props):
     return "Unable to Verify"
 
 def clean_plat_name(raw_name):
-    """Slices survey artifacts strictly at transition tokens."""
     if not raw_name:
         return ""
     name = str(raw_name).strip()
@@ -109,8 +107,7 @@ def clean_plat_name(raw_name):
 
     return name.title()
 
-def extract_snohomish_plat_title(props, city_name):
-    """Checks multi-field plat sources (PLAT_NAME, SUBDIVISION, DESCRIPT, FILE_NAME)."""
+def extract_snohomish_plat_title(props):
     candidates = [
         props.get("PLAT_NAME"),
         props.get("SUBDIVISION"),
@@ -123,7 +120,6 @@ def extract_snohomish_plat_title(props, city_name):
             continue
         val = str(raw).strip()
         
-        # Check for embedded "PLAT OF [NAME]" or "SUBDIVISION OF [NAME]"
         match = re.search(r'\b(?:PLAT\s+OF|SUBDIVISION\s+OF|ADDITION\s+TO)\s+([A-Za-z0-9\s-]+)', val, flags=re.IGNORECASE)
         if match:
             cleaned = clean_plat_name(match.group(1))
@@ -134,8 +130,7 @@ def extract_snohomish_plat_title(props, city_name):
         if cleaned:
             return cleaned
 
-    # Fallback to city default if no valid title is found
-    return f"{city_name} Estates"
+    return ""
 
 def state_plane_to_wgs84(x_ft, y_ft):
     if not x_ft or not y_ft:
@@ -292,7 +287,7 @@ def harvest_snohomish_subdivisions():
 
     for city in city_boundaries:
         bbox = city["bbox"]
-        if bbox[0] < 47.75:  # Filter out South King County bounds
+        if bbox[0] < 47.75:
             continue
 
         geometry_env = {
@@ -304,7 +299,7 @@ def harvest_snohomish_subdivisions():
         }
         
         params = {
-            "where": "1=1",
+            "where": "PLAT_NAME IS NOT NULL OR SUBDIVISION IS NOT NULL",
             "geometry": json.dumps(geometry_env),
             "geometryType": "esriGeometryEnvelope",
             "spatialRel": "esriSpatialRelIntersects",
@@ -326,8 +321,9 @@ def harvest_snohomish_subdivisions():
 
                 obj_id = props.get("OBJECTID") or props.get("PARCEL_ID") or "100"
                 
-                # Check multi-field plat sources
-                plat_name = extract_snohomish_plat_title(props, city["name"])
+                plat_name = extract_snohomish_plat_title(props)
+                if not plat_name:
+                    continue
 
                 c_bbox = get_geometry_bbox(geom, props)
                 lat = (c_bbox[0] + c_bbox[2]) / 2.0 if c_bbox else (bbox[0] + bbox[2]) / 2.0
