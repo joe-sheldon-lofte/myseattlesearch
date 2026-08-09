@@ -4,16 +4,15 @@ import math
 import re
 import sys
 import time
-import traceback
 import urllib.request
 import urllib.parse
 from datetime import datetime
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 CITY_BOUNDARIES_PATH = os.path.join(DATA_DIR, "city_boundaries.json")
-NEW_SUBDIVISIONS_PATH = os.path.join(DATA_DIR, "new_subdivisions.json")
+KING_SUBDIVISIONS_PATH = os.path.join(DATA_DIR, "king_subdivisions.json")
 
 def slugify(text):
     if not text:
@@ -61,8 +60,6 @@ def extract_major_pin(item):
     return None
 
 def extract_builder_name(props):
-    """Extracts verified corporate builder/developer entities dynamically. 
-    Requires explicit corporate indicators and excludes individual human names."""
     if not isinstance(props, dict):
         props = {}
 
@@ -86,8 +83,6 @@ def extract_builder_name(props):
         if not raw or not str(raw).strip():
             continue
         val = str(raw).strip()
-        
-        # Must explicitly contain a corporate entity marker to be classified as a builder
         is_corporate = any(re.search(m, val, flags=re.IGNORECASE) for m in corp_markers)
         
         if is_corporate:
@@ -104,59 +99,16 @@ def extract_builder_name(props):
     return "Unable to Verify"
 
 def clean_plat_name(raw_name):
-    """Strips metes-and-bounds survey artifacts while preserving clean recorded plat titles."""
+    """Slices survey artifacts strictly at directional transition tokens."""
     if not raw_name:
         return ""
     name = str(raw_name).strip()
     if name.isdigit() or re.match(r'^\d{6,}', name):
         return ""
 
-    # Rejection pattern for survey / metes-and-bounds description landmarks
-    survey_patterns = [
-        r'^\s*[NSEW]\s+\d+\s*(FT|FEET)',
-        r'\b(FT|FEET)\s+OF\b',
-        r'\bPORTION\s+OF\b',
-        r'\bPOR\s+OF\b',
-        r'\bQTR\b',
-        r'\bSTR\s+\d+',
-        r'\bSEC\s+\d+',
-        r'\bTWP\b',
-        r'\bRNG\b',
-        r'\bDAF\b',
-        r'\bBEG\b',
-        r'\bBAAP\b',
-        r'\bTPOB\b',
-        r'\bTAP\b',
-        r'\bLBA\b',
-        r'\bPCL\s+[A-Z0-9]\b',
-        r'\bPARCEL\s+[A-Z0-9]\b',
-        r'\bPP\s+ACT\b',
-        r'\bGL\s+\d+\b',
-        r'\bGOVT\b',
-        r'\bLOTS?\s+\d+\s+(THRU|AND|TO)\b',
-        r'\bSP\s+\d+',
-        r'\bKCSP\b',
-        r'\bBSP\b',
-        r'\bLLA\b',
-        r'\bUNREC\b',
-        r'\bREPLAT\s+OF\b',
-        r'\bCORRECT(ION|ED)\s+PLAT\b',
-        r'\bSUP(PL)?(EMENTAL)?\s+PLAT\b',
-        r'\bASSESSORS?\s+PLAT\b',
-        r'\bUND\s+\d+\s+INT\b',
-        r'\bTRACT\s+[A-Z0-9]\b'
-    ]
-    
-    for pat in survey_patterns:
-        if re.search(pat, name, flags=re.IGNORECASE):
-            # Attempt to extract embedded title e.g. "PLAT OF XYZ"
-            m = re.search(r'\b(PLAT\s+OF|SUBDIVISION\s+OF|ADDITION\s+TO)\s+([A-Za-z0-9\s-]+)', name, flags=re.IGNORECASE)
-            if m:
-                extracted = m.group(2).strip()
-                if not any(re.search(p, extracted, flags=re.IGNORECASE) for p in survey_patterns):
-                    name = extracted
-                    break
-            return ""
+    # Strict truncation pattern at metes-and-bounds survey transitions
+    cutoff_pattern = r'\b(TH|THENCE|TGW|TOGETHER\s+WITH|LESS|POR|PORTION|EXC|EXCEPT|SEC|SECTION|TWP|RNG|VOL|PG|AFN|PER\s+REC)\b.*$'
+    name = re.sub(cutoff_pattern, '', name, flags=re.IGNORECASE).strip()
 
     name = re.sub(r'^(SEC\s+\d+.*?PLAT\s+OF\s+)?', '', name, flags=re.IGNORECASE)
     name = re.sub(r'^(PLAT\s+OF|SUBDIVISION\s+OF|PLAT\s+)', '', name, flags=re.IGNORECASE)
@@ -170,7 +122,6 @@ def clean_plat_name(raw_name):
     return name.title()
 
 def state_plane_to_wgs84(x_ft, y_ft):
-    """Converts WA State Plane North Feet (EPSG:2926) to WGS84 GPS Lat/Lon (EPSG:4326)."""
     if not x_ft or not y_ft:
         return None, None
     try:
@@ -255,15 +206,6 @@ def get_geometry_bbox(geometry, props=None):
         for ring in rings:
             all_pts.extend(ring)
 
-    if "x" in geometry and "y" in geometry:
-        try:
-            x, y = float(geometry["x"]), float(geometry["y"])
-            lat, lon = state_plane_to_wgs84(x, y)
-            if lat and lon:
-                return (lat, lon, lat, lon)
-        except (ValueError, TypeError):
-            pass
-
     if not all_pts:
         return None
 
@@ -281,47 +223,6 @@ def get_geometry_bbox(geometry, props=None):
     except Exception:
         pass
     return None
-
-def point_in_ring(lat, lon, ring):
-    inside = False
-    n = len(ring)
-    j = n - 1
-    for i in range(n):
-        xi, yi = ring[i][0], ring[i][1]
-        xj, yj = ring[j][0], ring[j][1]
-        intersect = ((yi > lat) != (yj > lat)) and (lon < (xj - xi) * (lat - yi) / (yj - yi + 1e-12) + xi)
-        if intersect:
-            inside = not inside
-        j = i
-    return inside
-
-def point_in_geometry(lat, lon, geometry):
-    if not geometry:
-        return False
-    g_type = geometry.get("type")
-    coords = geometry.get("coordinates", [])
-    
-    if g_type == "Polygon":
-        if not coords:
-            return False
-        if point_in_ring(lat, lon, coords[0]):
-            for hole in coords[1:]:
-                if point_in_ring(lat, lon, hole):
-                    return False
-            return True
-    elif g_type == "MultiPolygon":
-        for poly in coords:
-            if not poly:
-                continue
-            if point_in_ring(lat, lon, poly[0]):
-                in_hole = False
-                for hole in poly[1:]:
-                    if point_in_ring(lat, lon, hole):
-                        in_hole = True
-                        break
-                if not in_hole:
-                    return True
-    return False
 
 def load_city_boundaries():
     if not os.path.exists(CITY_BOUNDARIES_PATH):
@@ -346,8 +247,7 @@ def load_city_boundaries():
             indexed.append({
                 "slug": slug,
                 "name": name,
-                "bbox": bbox,
-                "geometry": geom
+                "bbox": bbox
             })
             
     return indexed
@@ -385,12 +285,6 @@ def match_city_for_point(lat, lon, city_boundaries, city_centers, raw_city_str=N
                 return candidate_slug
 
     if lat is not None and lon is not None:
-        for city in city_boundaries:
-            bbox = city["bbox"]
-            if bbox[0] <= lat <= bbox[2] and bbox[1] <= lon <= bbox[3]:
-                if point_in_geometry(lat, lon, city["geometry"]):
-                    return city["slug"]
-
         closest_slug = None
         min_dist = float("inf")
         for c in city_centers:
@@ -404,29 +298,14 @@ def match_city_for_point(lat, lon, city_boundaries, city_centers, raw_city_str=N
 
     return None
 
-def fetch_wa_contractor_details(builder_name):
-    if not builder_name or builder_name in ["Unable to Verify", "Subdivision Developer"] or len(builder_name.strip()) < 3:
-        return None
-        
-    clean_name = re.sub(r'[^a-zA-Z0-9\s]', '', builder_name).strip()
-    params = {"$where": f"upper(businessname) like upper('%{clean_name}%')", "$limit": "1"}
-    url = f"https://data.wa.gov/resource/m8qx-ubtq.json?{urllib.parse.urlencode(params)}"
+def harvest_king_subdivisions():
+    print("🏗️ Ingesting King County New Construction Plats & Subdivisions...")
+    os.makedirs(DATA_DIR, exist_ok=True)
     
-    res = http_get_json_simple(url, timeout=10)
-    if res and isinstance(res, list) and len(res) > 0:
-        c = res[0]
-        return {
-            "business_name": c.get("businessname", builder_name),
-            "license_number": c.get("contractorlicensenumber") or c.get("license_number"),
-            "ubi": c.get("ubi"),
-            "principal_owner": c.get("primaryprincipalname") or c.get("principal_name"),
-            "address": f"{c.get('address1', '')}, {c.get('city', '')}, {c.get('state', '')} {c.get('zip', '')}".strip(" ,"),
-            "license_status": "Active"
-        }
-    return None
-
-def initialize_cities_map():
+    city_boundaries = load_city_boundaries()
+    city_centers = load_city_centers()
     cities_map = {}
+
     if os.path.exists(CITY_DATA_PATH):
         try:
             with open(CITY_DATA_PATH, "r", encoding="utf-8") as f:
@@ -439,18 +318,8 @@ def initialize_cities_map():
                     cities_map[slug] = {"name": str(c_name).strip(), "subdivisions": []}
         except Exception as e:
             print(f"   ⚠️ City data load notice: {e}")
-    return cities_map
 
-def harvest_new_subdivisions():
-    print("🏗️ Ingesting New Construction Plats & Subdivisions...")
-    os.makedirs(DATA_DIR, exist_ok=True)
-    
-    city_boundaries = load_city_boundaries()
-    city_centers = load_city_centers()
-    cities_map = initialize_cities_map()
-    builder_cache = {}
-
-    # 1. King County Recorded Plats Stream (Socrata)
+    # Stream King County Recorded Plats via Socrata
     kc_plat_map = {}
     offset = 0
     limit = 5000
@@ -492,15 +361,15 @@ def harvest_new_subdivisions():
             break
         offset += limit
 
-    print(f"   [DIAGNOSTIC] Found {len(kc_plat_map)} King County 6-digit numeric subdivision plat major PIN blocks.")
+    print(f"   [DIAGNOSTIC] Found {len(kc_plat_map)} King County major PIN blocks.")
 
-    # Batch Query King County GIS
+    # Batch Query King County GIS MapServer
     major_keys = list(kc_plat_map.keys())
     batch_size = 25
     total_batches = math.ceil(len(major_keys) / batch_size) if major_keys else 0
-    print(f"   📡 Querying King County GIS coordinates across {total_batches} subdivision batches...")
+    print(f"   📡 Querying King County GIS coordinates across {total_batches} batches...")
 
-    for b_idx, i in enumerate(range(0, len(major_keys), batch_size), start=1):
+    for i in range(0, len(major_keys), batch_size):
         chunk = major_keys[i:i + batch_size]
         quoted_majors = [f"'{str(k).zfill(6)}'" for k in chunk]
         majors_str = ",".join(quoted_majors)
@@ -543,10 +412,6 @@ def harvest_new_subdivisions():
                 if raw_builder == "Unable to Verify":
                     raw_builder = extract_builder_name(props)
 
-                if raw_builder not in builder_cache:
-                    builder_cache[raw_builder] = fetch_wa_contractor_details(raw_builder)
-                builder_details = builder_cache[raw_builder]
-
                 subdiv_entry = {
                     "plat_id": f"plat_kc_{major_pin}",
                     "name": plat_name,
@@ -554,9 +419,9 @@ def harvest_new_subdivisions():
                     "city": city_display,
                     "city_slug": matched_slug,
                     "builder_name": raw_builder,
-                    "builder_details": builder_details,
+                    "builder_details": None,
                     "lot_count": max(lot_count, 6),
-                    "recording_year": 2025,
+                    "recording_year": datetime.now().year,
                     "latitude": lat,
                     "longitude": lon
                 }
@@ -565,107 +430,20 @@ def harvest_new_subdivisions():
                     cities_map[matched_slug]["subdivisions"].append(subdiv_entry)
 
         time.sleep(0.05)
-
-    kc_subdiv_count = sum(len(v["subdivisions"]) for v in cities_map.values())
-    print(f"   [DIAGNOSTIC 📊] Total King County Subdivisions Added: {kc_subdiv_count}")
-
-    # 2. Snohomish County Spatial BBOX Stream for Subdivisions
-    print("   📡 Streaming Snohomish County Subdivision Plats (Spatial BBOX Envelopes)...")
-    sno_subdiv_count = 0
-
-    for city in city_boundaries:
-        bbox = city["bbox"]
-        if bbox[0] < 47.75:
-            continue
-
-        geometry_env = {
-            "xmin": bbox[1],
-            "ymin": bbox[0],
-            "xmax": bbox[3],
-            "ymax": bbox[2],
-            "spatialReference": {"wkid": 4326}
-        }
-        
-        params = {
-            "where": "1=1",
-            "geometry": json.dumps(geometry_env),
-            "geometryType": "esriGeometryEnvelope",
-            "spatialRel": "esriSpatialRelIntersects",
-            "inSR": "4326",
-            "outFields": "*",
-            "outSR": "4326",
-            "f": "json",
-            "resultRecordCount": "100"
-        }
-        
-        sno_url = f"https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query?{urllib.parse.urlencode(params)}"
-        sno_res = http_get_json_simple(sno_url, timeout=15)
-
-        if sno_res and isinstance(sno_res, dict) and "features" in sno_res:
-            features = sno_res.get("features", [])
-            for feat in features:
-                props = feat.get("properties") or feat.get("attributes") or {}
-                geom = feat.get("geometry") or feat
-
-                obj_id = props.get("OBJECTID") or props.get("PARCEL_ID") or "100"
-                
-                # Check plat name fields exclusively (NEVER pass raw human TAXPRNAME into clean_plat_name)
-                raw_title = props.get("PLAT_NAME") or props.get("SUBDIVISION") or props.get("DESCRIPT") or ""
-                plat_name = clean_plat_name(raw_title) or f"{city['name']} Estates"
-
-                c_bbox = get_geometry_bbox(geom, props)
-                lat = (c_bbox[0] + c_bbox[2]) / 2.0 if c_bbox else (bbox[0] + bbox[2]) / 2.0
-                lon = (c_bbox[1] + c_bbox[3]) / 2.0 if c_bbox else (bbox[1] + bbox[3]) / 2.0
-
-                matched_slug = city["slug"]
-                city_display = city["name"]
-                
-                # Requires explicit corporate markers (LLC, INC, etc.) for builder classification
-                raw_builder = extract_builder_name(props)
-
-                if raw_builder not in builder_cache:
-                    builder_cache[raw_builder] = fetch_wa_contractor_details(raw_builder)
-                builder_details = builder_cache[raw_builder]
-
-                subdiv_entry = {
-                    "plat_id": f"plat_sno_{obj_id}",
-                    "name": plat_name,
-                    "slug": slugify(plat_name),
-                    "city": city_display,
-                    "city_slug": matched_slug,
-                    "builder_name": raw_builder,
-                    "builder_details": builder_details,
-                    "lot_count": 8,
-                    "recording_year": 2025,
-                    "latitude": lat,
-                    "longitude": lon
-                }
-
-                if not any(existing["slug"] == subdiv_entry["slug"] for existing in cities_map[matched_slug]["subdivisions"]):
-                    cities_map[matched_slug]["subdivisions"].append(subdiv_entry)
-                    sno_subdiv_count += 1
-
-        time.sleep(0.05)
-
-    print(f"   [DIAGNOSTIC 📊] Total Snohomish County Subdivisions Added: {sno_subdiv_count}")
 
     out_payload = {
-        "cities": {k: {"name": v["name"], "subdivisions": v["subdivisions"]} for k, v in cities_map.items()},
+        "cities": {k: {"name": v["name"], "subdivisions": v["subdivisions"]} for k, v in cities_map.items() if v["subdivisions"]},
         "last_updated": datetime.utcnow().isoformat() + "Z"
     }
 
-    with open(NEW_SUBDIVISIONS_PATH, "w", encoding="utf-8") as f:
+    with open(KING_SUBDIVISIONS_PATH, "w", encoding="utf-8") as f:
         json.dump(out_payload, f, indent=2, ensure_ascii=False)
 
     total_subdivisions = sum(len(v["subdivisions"]) for v in cities_map.values())
-    print(f"💾 Saved {total_subdivisions} new subdivisions across {len(cities_map)} cities to {NEW_SUBDIVISIONS_PATH}")
+    print(f"💾 Saved {total_subdivisions} King County subdivisions to {KING_SUBDIVISIONS_PATH}")
 
 def main():
-    print("==================================================")
-    print("     SUBDIVISION HARVESTER (STANDALONE)           ")
-    print("==================================================\n")
-    harvest_new_subdivisions()
-    print("🎉 Subdivision harvest completed successfully!")
+    harvest_king_subdivisions()
 
 if __name__ == "__main__":
     main()
