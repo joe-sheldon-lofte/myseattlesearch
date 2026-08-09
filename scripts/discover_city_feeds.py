@@ -7,6 +7,10 @@ import re
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
+import urllib3
+
+# Suppress insecure SSL warnings for legacy city web servers
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 try:
     from bs4 import BeautifulSoup
@@ -20,7 +24,9 @@ CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 OUTPUT_CSV_PATH = os.path.join(DATA_DIR, "city_feeds_testing.csv")
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5"
 }
 
 CSV_COLUMNS = [
@@ -43,7 +49,7 @@ def extract_sample_titles(content, feed_format):
         matches = re.findall(r'<title>(.*?)</title>', content, re.IGNORECASE | re.DOTALL)
         for m in matches:
             t = clean_text(re.sub(r'<!\[CDATA\[(.*?)\]\]>', r'\1', m))
-            if t and not any(skip in t.lower() for skip in ["rss", "feed", "index", "home"]):
+            if t and not any(skip in t.lower() for skip in ["rss", "feed", "index", "home", "wordpress"]):
                 titles.append(t)
             if len(titles) >= 3:
                 break
@@ -59,7 +65,7 @@ def extract_sample_titles(content, feed_format):
         soup = BeautifulSoup(content, 'html.parser')
         for tag in soup.find_all(['h1', 'h2', 'h3', 'a', 'title']):
             t = clean_text(tag.get_text())
-            if len(t) > 10 and t not in titles:
+            if len(t) > 10 and t not in titles and not any(skip in t.lower() for skip in ["404", "error", "not found"]):
                 titles.append(t)
             if len(titles) >= 3:
                 break
@@ -67,8 +73,15 @@ def extract_sample_titles(content, feed_format):
     return " | ".join(titles[:3]) if titles else "Endpoint active (200 OK)"
 
 def probe_url(url):
+    if not url:
+        return 0, ""
+    
+    # Normalize webcal:// to https://
+    if url.startswith("webcal://"):
+        url = "https://" + url[9:]
+        
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=6, allow_redirects=True)
+        resp = requests.get(url, headers=HEADERS, timeout=8, allow_redirects=True, verify=False)
         return resp.status_code, resp.text
     except Exception as e:
         return 0, str(e)
@@ -79,6 +92,7 @@ def discover_site_feeds(item, scope):
     county = item.get("County", "").strip()
     school_district = item.get("School District", "").strip()
 
+    # Get URL from JSON flexibly
     if scope == "city":
         base_url = item.get("City Website") or item.get("city_website") or item.get("City_Website") or ""
     elif scope == "school":
@@ -90,6 +104,8 @@ def discover_site_feeds(item, scope):
         return discovered
 
     base_url = base_url.rstrip("/")
+    
+    # Standard Paths & Deterministic Vendor Endpoints
     paths_to_check = [
         "",
         "/agendas",
@@ -97,7 +113,13 @@ def discover_site_feeds(item, scope):
         "/news",
         "/events",
         "/RSSFeed.aspx?ModID=1&MainCatID=1",
-        "/Calendar-Feed"
+        "/RSSFeed.aspx?ModID=58&MainCatID=1",
+        "/RSSFeed.aspx?ModID=14&MainCatID=1",
+        "/Calendar.aspx?CID=1&Type=iCal",
+        "/Calendar-Feed",
+        "/feed/",
+        "/rss.cfm?news=0",
+        "/sitemap.xml"
     ]
 
     seen_urls = set()
@@ -109,85 +131,123 @@ def discover_site_feeds(item, scope):
         seen_urls.add(target_url)
 
         status_code, content = probe_url(target_url)
-        if status_code != 200:
+        if status_code != 200 or not content:
             continue
 
-        # Check for RSS
-        rss_matches = re.findall(r'href=["\']([^"\']*\.(?:rss|xml)|[^"\']*RSSFeed\.aspx[^"\']*)["\']', content, re.IGNORECASE)
+        # 1. Direct XML/RSS Payload Check
+        if any(token in content.lower()[:300] for token in ["<rss", "<feed", "<channel", "xmlns:content"]):
+            samples = extract_sample_titles(content, "rss")
+            cat = "News Feed" if "news" in target_url.lower() else ("Community Events" if "modid=58" in target_url.lower() else "Municipal RSS")
+            discovered.append({
+                "City": city,
+                "County": county,
+                "School District": school_district,
+                "Scope": scope,
+                "Category": cat,
+                "Notes": f"Direct RSS Feed ({path or 'root'})",
+                "Feed Name": f"{city} {scope.title()} RSS Feed",
+                "Feed Format": "rss",
+                "Valid": "Yes",
+                "Status Code": status_code,
+                "Feed URL": target_url,
+                "Test Data": samples
+            })
+            continue
+
+        # 2. Direct iCal Payload Check
+        if "BEGIN:VCALENDAR" in content[:300]:
+            samples = extract_sample_titles(content, "ical")
+            discovered.append({
+                "City": city,
+                "County": county,
+                "School District": school_district,
+                "Scope": scope,
+                "Category": "Calendar Feed",
+                "Notes": f"Direct iCal Feed ({path or 'root'})",
+                "Feed Name": f"{city} {scope.title()} iCal Calendar",
+                "Feed Format": "ical",
+                "Valid": "Yes",
+                "Status Code": status_code,
+                "Feed URL": target_url,
+                "Test Data": samples
+            })
+            continue
+
+        # 3. HTML Scraping for Embedded Feeds
+        # RSS Links
+        rss_matches = re.findall(r'href=["\']([^"\']*\.(?:rss|xml)|[^"\']*RSSFeed\.aspx[^"\']*|[^"\']*/feed/?)["\']', content, re.IGNORECASE)
         for rel_link in rss_matches:
             full_rss = urllib.parse.urljoin(target_url, rel_link)
             if full_rss not in seen_urls:
                 seen_urls.add(full_rss)
                 rss_status, rss_content = probe_url(full_rss)
-                is_valid = "Yes" if rss_status == 200 else "No"
-                samples = extract_sample_titles(rss_content, "rss") if rss_status == 200 else ""
-                discovered.append({
-                    "City": city,
-                    "County": county,
-                    "School District": school_district,
-                    "Scope": scope,
-                    "Category": "News Feed" if "news" in full_rss.lower() else "Municipal RSS",
-                    "Notes": f"Auto-discovered via {path or 'homepage'}",
-                    "Feed Name": f"{city} {scope.title()} RSS Feed",
-                    "Feed Format": "rss",
-                    "Valid": is_valid,
-                    "Status Code": rss_status,
-                    "Feed URL": full_rss,
-                    "Test Data": samples
-                })
+                if rss_status == 200 and rss_content:
+                    samples = extract_sample_titles(rss_content, "rss")
+                    discovered.append({
+                        "City": city,
+                        "County": county,
+                        "School District": school_district,
+                        "Scope": scope,
+                        "Category": "News Feed" if "news" in full_rss.lower() else "Municipal RSS",
+                        "Notes": f"Scraped RSS via {path or 'homepage'}",
+                        "Feed Name": f"{city} {scope.title()} RSS Feed",
+                        "Feed Format": "rss",
+                        "Valid": "Yes",
+                        "Status Code": rss_status,
+                        "Feed URL": full_rss,
+                        "Test Data": samples
+                    })
 
-        # Check for iCal
-        ics_matches = re.findall(r'href=["\']([^"\']*\.(?:ics|ical)|[^"\']*Calendar-Feed[^"\']*)["\']', content, re.IGNORECASE)
+        # iCal Links
+        ics_matches = re.findall(r'href=["\']([^"\']*\.(?:ics|ical)|[^"\']*Calendar-Feed[^"\']*|[^"\']*Type=iCal[^"\']*)["\']', content, re.IGNORECASE)
         for rel_link in ics_matches:
             full_ics = urllib.parse.urljoin(target_url, rel_link)
             if full_ics not in seen_urls:
                 seen_urls.add(full_ics)
                 ics_status, ics_content = probe_url(full_ics)
-                is_valid = "Yes" if ics_status == 200 else "No"
-                samples = extract_sample_titles(ics_content, "ical") if ics_status == 200 else ""
-                discovered.append({
-                    "City": city,
-                    "County": county,
-                    "School District": school_district,
-                    "Scope": scope,
-                    "Category": "Calendar Feed",
-                    "Notes": f"Auto-discovered iCal via {path or 'homepage'}",
-                    "Feed Name": f"{city} {scope.title()} Calendar",
-                    "Feed Format": "ical",
-                    "Valid": is_valid,
-                    "Status Code": ics_status,
-                    "Feed URL": full_ics,
-                    "Test Data": samples
-                })
+                if ics_status == 200 and ics_content:
+                    samples = extract_sample_titles(ics_content, "ical")
+                    discovered.append({
+                        "City": city,
+                        "County": county,
+                        "School District": school_district,
+                        "Scope": scope,
+                        "Category": "Calendar Feed",
+                        "Notes": f"Scraped iCal via {path or 'homepage'}",
+                        "Feed Name": f"{city} {scope.title()} Calendar",
+                        "Feed Format": "ical",
+                        "Valid": "Yes",
+                        "Status Code": ics_status,
+                        "Feed URL": full_ics,
+                        "Test Data": samples
+                    })
 
-        # Check for Swagit
-        swagit_matches = re.findall(r'swagit\.com/views/(\d+)', content, re.IGNORECASE)
+        # Swagit Video Streams
+        swagit_matches = re.findall(r'(?:swagit\.com/views/|views/)(\d+)', content, re.IGNORECASE)
         for view_id in set(swagit_matches):
             swagit_url = f"https://swagit.com/views/{view_id}"
             if swagit_url not in seen_urls:
                 seen_urls.add(swagit_url)
                 swagit_status, swagit_content = probe_url(swagit_url)
-                is_valid = "Yes" if swagit_status == 200 else "No"
-                samples = extract_sample_titles(swagit_content, "html") if swagit_status == 200 else ""
                 discovered.append({
                     "City": city,
                     "County": county,
                     "School District": school_district,
                     "Scope": scope,
                     "Category": "Video Stream",
-                    "Notes": f"Discovered Swagit view {view_id}",
+                    "Notes": f"Discovered Swagit View ID {view_id}",
                     "Feed Name": f"{city} Meeting Video Stream",
                     "Feed Format": "swagit",
-                    "Valid": is_valid,
+                    "Valid": "Yes" if swagit_status == 200 else "No",
                     "Status Code": swagit_status,
                     "Feed URL": swagit_url,
-                    "Test Data": samples
+                    "Test Data": f"Swagit Portal View {view_id}"
                 })
 
-        # Check for Granicus
+        # Granicus Video Streams
         granicus_matches = re.findall(r'granicus\.com/[^"\']*view_id=(\d+)', content, re.IGNORECASE)
         for view_id in set(granicus_matches):
-            granicus_url = target_url
+            granicus_url = f"https://granicus.com/MediaPlayer.php?view_id={view_id}"
             if granicus_url not in seen_urls:
                 seen_urls.add(granicus_url)
                 discovered.append({
@@ -196,13 +256,34 @@ def discover_site_feeds(item, scope):
                     "School District": school_district,
                     "Scope": scope,
                     "Category": "Video Stream",
-                    "Notes": f"Discovered Granicus view_id={view_id}",
+                    "Notes": f"Discovered Granicus View ID {view_id}",
                     "Feed Name": f"{city} Granicus Meeting Stream",
                     "Feed Format": "granicus",
-                    "Valid": "Yes" if status_code == 200 else "No",
-                    "Status Code": status_code,
+                    "Valid": "Yes",
+                    "Status Code": 200,
                     "Feed URL": target_url,
-                    "Test Data": f"Granicus Player (View ID {view_id})"
+                    "Test Data": f"Granicus Player View ID {view_id}"
+                })
+
+        # 4. Create Fallback Portal Link for Agendas/News if status is 200
+        if path in ["/agendas", "/calendar", "/news"]:
+            portal_url = target_url
+            if portal_url not in seen_urls:
+                seen_urls.add(portal_url)
+                cat = "City Council" if path == "/agendas" else ("Calendar Feed" if path == "/calendar" else "City News")
+                discovered.append({
+                    "City": city,
+                    "County": county,
+                    "School District": school_district,
+                    "Scope": scope,
+                    "Category": cat,
+                    "Notes": f"Official Portal Link ({path})",
+                    "Feed Name": f"{city} {cat} Portal",
+                    "Feed Format": "external_link",
+                    "Valid": "Yes",
+                    "Status Code": status_code,
+                    "Feed URL": portal_url,
+                    "Test Data": f"Official portal page active (HTTP {status_code})"
                 })
 
     return discovered
