@@ -61,21 +61,35 @@ def extract_major_pin(item):
     return None
 
 def extract_builder_name(props, plat_name=""):
+    """Extracts verified corporate builder/developer entities dynamically, filtering out human individual names."""
     if not isinstance(props, dict):
         props = {}
-    
+
     candidates = [
         props.get("DEVELOPER") or props.get("developer"),
+        props.get("BUILDER") or props.get("builder") or props.get("builder_name"),
         props.get("GRANTOR") or props.get("grantor") or props.get("grantor_name"),
         props.get("TAXPAYER_NAME") or props.get("taxpayer_name") or props.get("taxprname") or props.get("TAXPRNAME"),
         props.get("OWNERNAME") or props.get("ownername") or props.get("owner_name") or props.get("owner")
     ]
-    
+
+    corp_markers = [
+        r'\bLLC\b', r'\bINC\b', r'\bCORP\b', r'\bCORPORATION\b', r'\bLTD\b', r'\bCO\b', 
+        r'\bCOMPANY\b', r'\bLP\b', r'\bLLP\b', r'\bHOMES\b', r'\bBUILDERS?\b', 
+        r'\bPROPERTIES\b', r'\bCONST(RUCTION)?\b', r'\bDEVELOPMENT\b', r'\bHOLDINGS\b', 
+        r'\bGROUP\b', r'\bVENTURES\b', r'\bHOUSING\b', r'\bPARTNERS\b', r'\bENTERPRISES\b', 
+        r'\bREALTY\b', r'\bINVESTMENTS?\b', r'\bDESIGN\b', r'\bBUILDING\b', r'\bCRAFT\b'
+    ]
+
     for raw in candidates:
         if not raw or not str(raw).strip():
             continue
         val = str(raw).strip()
-        if len(val) >= 3 and not val.isdigit():
+        
+        # Must explicitly contain a corporate entity marker to be classified as a builder
+        is_corporate = any(re.search(m, val, flags=re.IGNORECASE) for m in corp_markers)
+        
+        if is_corporate:
             cleaned = re.sub(
                 r'\b(LLC|INC|CORP|CORPORATION|LTD|CO|COMPANY|LP|LLP|TRUST|TRUSTEE|ET\s+AL)\b.*$', 
                 '', 
@@ -83,21 +97,123 @@ def extract_builder_name(props, plat_name=""):
                 flags=re.IGNORECASE
             ).strip(' ,.')
             
-            if len(cleaned) >= 3 and not cleaned.isdigit() and not re.search(r'\b(COUNTY|CITY|STATE|DEPT|DEPARTMENT|PORT|DISTRICT)\b', cleaned, flags=re.IGNORECASE):
+            if len(cleaned) >= 3 and not cleaned.isdigit() and not re.search(r'\b(COUNTY|CITY|STATE|DEPT|DEPARTMENT|PORT|DISTRICT|CHURCH|SCHOOL|TRIBE)\b', cleaned, flags=re.IGNORECASE):
                 return cleaned.title()
 
-    if plat_name:
-        known_builders = [
-            "Lennar", "DR Horton", "D.R. Horton", "Pulte", "Toll Brothers",
-            "Richmond American", "Tri Pointe", "Taylor Morrison", "Century Communities",
-            "Mainue Homes", "Cornerstone", "RM Homes", "Quadrant", "Polygon",
-            "Pacific Ridge", "Soundbuilt", "Harbor Homes", "Sundance", "CamWest"
-        ]
-        for kb in known_builders:
-            if re.search(r'\b' + re.escape(kb) + r'\b', plat_name, re.IGNORECASE):
-                return kb.title()
-                
-    return "Subdivision Developer"
+    return "Unable to Verify"
+
+def clean_plat_name(raw_name):
+    """Filters metes-and-bounds survey artifacts and individual human names to return real recorded plat titles."""
+    if not raw_name:
+        return ""
+    name = str(raw_name).strip()
+    if name.isdigit() or re.match(r'^\d{6,}', name):
+        return ""
+
+    # Strict rejection of survey / metes-and-bounds description landmarks
+    survey_patterns = [
+        r'^\s*[NSEW]\s+\d+\s*(FT|FEET)',
+        r'\b(FT|FEET)\s+OF\b',
+        r'\bPORTION\s+OF\b',
+        r'\bPOR\s+OF\b',
+        r'\bQTR\b',
+        r'\bSTR\s+\d+',
+        r'\bSEC\s+\d+',
+        r'\bTWP\b',
+        r'\bRNG\b',
+        r'\bDAF\b',
+        r'\bBEG\b',
+        r'\bBAAP\b',
+        r'\bTPOB\b',
+        r'\bTAP\b',
+        r'\bLBA\b',
+        r'\bPCL\s+[A-Z0-9]\b',
+        r'\bPARCEL\s+[A-Z0-9]\b',
+        r'\bPP\s+ACT\b',
+        r'\bGL\s+\d+\b',
+        r'\bGOVT\b',
+        r'\bLOTS?\s+\d+\s+(THRU|AND|TO)\b',
+        r'\bSP\s+\d+',
+        r'\bKCSP\b',
+        r'\bBSP\b',
+        r'\bLLA\b',
+        r'\bUNREC\b',
+        r'\bREPLAT\s+OF\b',
+        r'\bCORRECT(ION|ED)\s+PLAT\b',
+        r'\bSUP(PL)?(EMENTAL)?\s+PLAT\b',
+        r'\bASSESSORS?\s+PLAT\b',
+        r'\bUND\s+\d+\s+INT\b',
+        r'\bTRACT\s+[A-Z0-9]\b'
+    ]
+    
+    for pat in survey_patterns:
+        if re.search(pat, name, flags=re.IGNORECASE):
+            # Extract underlying plat title if embedded e.g. "PLAT OF XYZ"
+            m = re.search(r'\b(PLAT\s+OF|SUBDIVISION\s+OF|ADDITION\s+TO)\s+([A-Za-z0-9\s-]+)', name, flags=re.IGNORECASE)
+            if m:
+                extracted = m.group(2).strip()
+                if not any(re.search(p, extracted, flags=re.IGNORECASE) for p in survey_patterns):
+                    name = extracted
+                    break
+            return ""
+
+    name = re.sub(r'^(SEC\s+\d+.*?PLAT\s+OF\s+)?', '', name, flags=re.IGNORECASE)
+    name = re.sub(r'^(PLAT\s+OF|SUBDIVISION\s+OF|PLAT\s+)', '', name, flags=re.IGNORECASE)
+    name = re.sub(r'\b(DIVISION|DIV|PHASE|PH|LOT|BLK|BLOCK|NO|UNREC|ADDITION|ADD|TRACTS|TR|TRS)\b.*$', '', name, flags=re.IGNORECASE)
+    name = re.sub(r'[^a-zA-Z0-9\s-]', '', name)
+    name = re.sub(r'\s+', ' ', name).strip()
+
+    if len(name) < 3 or name.isdigit():
+        return ""
+
+    # Disambiguate individual human taxpayer names vs real development names
+    plat_keywords = [
+        "ESTATES", "RIDGE", "PARK", "VILLAGE", "HEIGHTS", "GLEN", "MEADOWS", "CREEK", 
+        "HILL", "HILLS", "WOODS", "WOOD", "RANCH", "VIEW", "VALLEY", "MANOR", "CROSSING", 
+        "LANDING", "POINT", "PINES", "LAKE", "LAKES", "SHORES", "BAY", "HAVEN", "PLACE", 
+        "COURT", "TERRACE", "GARDENS", "GARDEN", "FARMS", "FARM", "COUNTRY", "CLUB", 
+        "SQUARE", "TOWNSITE", "PLAZA", "PUD", "COMMONS", "COMMUNITY", "TOWNHOMES", "HOMES"
+    ]
+    
+    has_plat_kw = any(re.search(r'\b' + kw + r'\b', name, re.IGNORECASE) for kw in plat_keywords)
+    
+    if not has_plat_kw:
+        words = name.split()
+        if 1 <= len(words) <= 3:
+            corp_words = ["LLC", "INC", "CORP", "CO", "PROPERTIES", "DEVELOPMENT", "BUILDERS", "GROUP", "HOLDINGS"]
+            if not any(re.search(r'\b' + cw + r'\b', name, re.IGNORECASE) for cw in corp_words):
+                return ""
+
+    return name.title()
+
+def fetch_king_taxpayers(major_pins):
+    """Streams registered developer LLC names directly from King County Assessor dataset k2tr-in39."""
+    taxpayer_map = {}
+    if not major_pins:
+        return taxpayer_map
+        
+    print(f"   📡 Querying King County Assessor Taxpayer Dataset (k2tr-in39) across {len(major_pins)} PIN blocks...")
+    quoted_majors = [f"'{str(p).zfill(6)}'" for p in major_pins]
+    
+    chunk_size = 50
+    for i in range(0, len(quoted_majors), chunk_size):
+        chunk = quoted_majors[i:i + chunk_size]
+        where_clause = f"major in ({','.join(chunk)})"
+        params = {
+            "$where": where_clause,
+            "$limit": "5000"
+        }
+        url = f"https://data.kingcounty.gov/resource/k2tr-in39.json?{urllib.parse.urlencode(params)}"
+        res = http_get_json_simple(url, timeout=15)
+        
+        if res and isinstance(res, list):
+            for item in res:
+                major = extract_major_pin(item)
+                taxpayer = item.get("taxpayer_name") or item.get("owner_name")
+                if major and taxpayer and major not in taxpayer_map:
+                    taxpayer_map[major] = taxpayer.strip()
+                    
+    return taxpayer_map
 
 def state_plane_to_wgs84(x_ft, y_ft):
     """Converts WA State Plane North Feet (EPSG:2926) to WGS84 GPS Lat/Lon (EPSG:4326)."""
@@ -156,34 +272,6 @@ def state_plane_to_wgs84(x_ft, y_ft):
 
     lon = theta / n + lon0
     return lat * (180.0 / math.pi), lon * (180.0 / math.pi)
-
-def clean_plat_name(raw_name):
-    if not raw_name:
-        return ""
-    name = str(raw_name).strip()
-    if name.isdigit() or re.match(r'^\d{6,}', name):
-        return ""
-
-    name = re.sub(r'\b(TGW|UND\s+INT\s+IN|LESS\s+ST|LESS\b.*|POR\b.*|POR\s+OF\b.*|SEC\d+.*|TWP.*|RNG.*|DAF.*|BEG.*|BAAP.*|TPOB.*|TAP.*|LBA.*|PCL\s+[A-Z].*)\b', '', name, flags=re.IGNORECASE)
-
-    if re.search(r'\b(POR OF|SEC|TWP|RNG|DAF|BEG|BAAP|TPOB|TAP|TH\s+[NSEW]|FEET|FT)\b', name, flags=re.IGNORECASE):
-        m = re.search(r'\b(PLAT OF|SUBDIVISION OF|ADDITION TO|ADD TO)\s+([A-Za-z0-9\s-]+)', name, flags=re.IGNORECASE)
-        if m:
-            name = m.group(2)
-        else:
-            parts = re.split(r'\b(TH|DAF|BEG|BAAP|TPOB|POR OF|LESS|SEC)\b', name, flags=re.IGNORECASE)
-            if parts and len(parts[0].strip()) >= 3:
-                name = parts[0].strip()
-            else:
-                return ""
-
-    name = re.sub(r'^SEC\s+\d+.*?(PLAT\s+OF|SUBDIVISION\s+OF|PLAT\s+)|^(PLAT\s+OF|SUBDIVISION\s+OF|PLAT\s+)', '', name, flags=re.IGNORECASE)
-    name = re.sub(r'\b(DIVISION|DIV|PHASE|PH|LOT|BLK|BLOCK|NO|UNREC|ADDITION|ADD|TRACTS|TR|TRS)\b.*$', '', name, flags=re.IGNORECASE)
-    name = re.sub(r'[^a-zA-Z0-9\s-]', '', name)
-    name = re.sub(r'\s+', ' ', name).strip()
-    if len(name) < 3 or name.isdigit():
-        return ""
-    return name.title()
 
 def get_geometry_bbox(geometry, props=None):
     if not geometry or not isinstance(geometry, dict):
@@ -363,7 +451,7 @@ def match_city_for_point(lat, lon, city_boundaries, city_centers, raw_city_str=N
     return None
 
 def fetch_wa_contractor_details(builder_name):
-    if not builder_name or builder_name == "Subdivision Developer" or len(builder_name.strip()) < 3:
+    if not builder_name or builder_name in ["Unable to Verify", "Subdivision Developer"] or len(builder_name.strip()) < 3:
         return None
         
     clean_name = re.sub(r'[^a-zA-Z0-9\s]', '', builder_name).strip()
@@ -412,7 +500,7 @@ def harvest_new_subdivisions():
     kc_plat_map = {}
     offset = 0
     limit = 5000
-    print("   📡 Streaming King County Recorded Plats & Builder Taxpayers (Socrata)...")
+    print("   📡 Streaming King County Recorded Plats (Socrata)...")
 
     while True:
         params = {
@@ -432,7 +520,7 @@ def harvest_new_subdivisions():
             plat_name = clean_plat_name(legal_desc)
             builder = extract_builder_name(item, plat_name)
             
-            if major_pin and plat_name:
+            if major_pin:
                 if major_pin not in kc_plat_map:
                     kc_plat_map[major_pin] = {
                         "name": plat_name,
@@ -441,7 +529,9 @@ def harvest_new_subdivisions():
                     }
                 else:
                     kc_plat_map[major_pin]["lots"] += 1
-                    if builder != "Subdivision Developer":
+                    if not kc_plat_map[major_pin]["name"] and plat_name:
+                        kc_plat_map[major_pin]["name"] = plat_name
+                    if builder != "Unable to Verify":
                         kc_plat_map[major_pin]["builder"] = builder
 
         if len(kc_plat_res) < limit:
@@ -449,6 +539,9 @@ def harvest_new_subdivisions():
         offset += limit
 
     print(f"   [DIAGNOSTIC] Found {len(kc_plat_map)} King County 6-digit numeric subdivision plat major PIN blocks.")
+
+    # Bulk fetch King County registered developer LLCs from Assessor k2tr-in39 dataset
+    kc_taxpayers = fetch_king_taxpayers(list(kc_plat_map.keys()))
 
     # Batch Query King County GIS
     major_keys = list(kc_plat_map.keys())
@@ -495,8 +588,11 @@ def harvest_new_subdivisions():
                 plat_name = clean_plat_name(raw_plat) or f"{city_display} Estates"
                 lot_count = kc_plat_map[major_pin]["lots"]
                 
-                raw_builder = kc_plat_map[major_pin].get("builder", "Subdivision Developer")
-                if raw_builder == "Subdivision Developer":
+                # Check builder in order: Socrata record -> Assessor Taxpayer k2tr-in39 -> GIS props
+                raw_builder = kc_plat_map[major_pin].get("builder", "Unable to Verify")
+                if raw_builder == "Unable to Verify" and major_pin in kc_taxpayers:
+                    raw_builder = extract_builder_name({"TAXPAYER_NAME": kc_taxpayers[major_pin]}, plat_name)
+                if raw_builder == "Unable to Verify":
                     raw_builder = extract_builder_name(props, plat_name)
 
                 if raw_builder not in builder_cache:
@@ -564,7 +660,7 @@ def harvest_new_subdivisions():
                 geom = feat.get("geometry") or feat
 
                 obj_id = props.get("OBJECTID") or props.get("PARCEL_ID") or "100"
-                raw_title = props.get("TAXPRNAME") or props.get("OWNERNAME") or props.get("SITUSLINE1") or ""
+                raw_title = props.get("PLAT_NAME") or props.get("SUBDIVISION") or props.get("DESCRIPT") or props.get("TAXPRNAME") or ""
                 plat_name = clean_plat_name(raw_title) or f"{city['name']} Estates"
 
                 c_bbox = get_geometry_bbox(geom, props)
@@ -573,6 +669,8 @@ def harvest_new_subdivisions():
 
                 matched_slug = city["slug"]
                 city_display = city["name"]
+                
+                # Verify raw_builder explicitly requires corporate entity markers
                 raw_builder = extract_builder_name(props, plat_name)
 
                 if raw_builder not in builder_cache:
