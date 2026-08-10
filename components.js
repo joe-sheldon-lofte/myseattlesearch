@@ -1,3 +1,4 @@
+/* File: components.js */
 /* ==========================================================================
    MYSEATTLESEARCH - NATIVE WEB COMPONENTS BUNDLE
    Includes: <youtube-lite>, <quiz-engine>, <local-reviews>, <live-banner>, 
@@ -620,38 +621,38 @@ class FloatingDock extends HTMLElement {
 
             <!-- Contact Options Liquid Glass Bottom Drawer Sheet (Mobile Only) -->
             <div class="dock-sheet-backdrop" id="dockContactSheet">
-                <div class="dock-sheet-card" style="background-color: #ffffff !important; color: #3D3935 !important;">
+                <div class="dock-sheet-card">
                     <div class="dock-sheet-header">
-                        <h3 style="color: #3D3935 !important; margin: 0; font-size: 1.2rem; font-weight: 800;">Connect with Joe Sheldon</h3>
-                        <button class="dock-sheet-close" id="dockContactClose" aria-label="Close Contact Sheet" style="color: #3D3935 !important;">&times;</button>
+                        <h3 class="dock-sheet-title">Connect with Joe Sheldon</h3>
+                        <button class="dock-sheet-close" id="dockContactClose" aria-label="Close Contact Sheet">&times;</button>
                     </div>
                     <div class="dock-sheet-links">
-                        <a href="sms:+12066577493" class="dock-sheet-item" style="color: #3D3935 !important; background-color: #FDFBFA !important;">
+                        <a href="sms:+12066577493" class="dock-sheet-item">
                             <span class="dock-sheet-icon">💬</span>
                             <div class="dock-sheet-text">
-                                <strong style="color: #3D3935 !important;">Text Joe</strong>
-                                <small style="color: #3D3935 !important; opacity: 0.75;">Instant SMS: (206) 657-7493</small>
+                                <strong>Text Joe</strong>
+                                <small>Instant SMS: (206) 657-7493</small>
                             </div>
                         </a>
-                        <a href="/chat/" class="dock-sheet-item" style="color: #3D3935 !important; background-color: #FDFBFA !important;">
+                        <a href="/chat/" class="dock-sheet-item">
                             <span class="dock-sheet-icon">💬</span>
                             <div class="dock-sheet-text">
-                                <strong style="color: #3D3935 !important;">Live Chat</strong>
-                                <small style="color: #3D3935 !important; opacity: 0.75;">Real-Time Q&A with Joe</small>
+                                <strong>Live Chat</strong>
+                                <small>Real-Time Q&A with Joe</small>
                             </div>
                         </a>
-                        <a href="/book/" class="dock-sheet-item" style="color: #3D3935 !important; background-color: #FDFBFA !important;">
+                        <a href="/book/" class="dock-sheet-item">
                             <span class="dock-sheet-icon">📅</span>
                             <div class="dock-sheet-text">
-                                <strong style="color: #3D3935 !important;">Book Consultation</strong>
-                                <small style="color: #3D3935 !important; opacity: 0.75;">Schedule Strategy Meeting</small>
+                                <strong>Book Consultation</strong>
+                                <small>Schedule Strategy Meeting</small>
                             </div>
                         </a>
-                        <a href="tel:2066577493" class="dock-sheet-item" style="color: #3D3935 !important; background-color: #FDFBFA !important;">
+                        <a href="tel:2066577493" class="dock-sheet-item">
                             <span class="dock-sheet-icon">📞</span>
                             <div class="dock-sheet-text">
-                                <strong style="color: #3D3935 !important;">Call Direct</strong>
-                                <small style="color: #3D3935 !important; opacity: 0.75;">(206) 657-7493</small>
+                                <strong>Call Direct</strong>
+                                <small>(206) 657-7493</small>
                             </div>
                         </a>
                     </div>
@@ -660,10 +661,10 @@ class FloatingDock extends HTMLElement {
 
             <!-- Pagefind Search Full-Width Modal Overlay -->
             <div class="dock-modal-backdrop" id="dockSearchModal">
-                <div class="dock-modal-card" style="background-color: #ffffff !important; color: #3D3935 !important;">
+                <div class="dock-modal-card">
                     <div class="dock-modal-header">
-                        <span style="color: #3D3935 !important; font-weight: 800;">Site Search</span>
-                        <button class="dock-modal-close" id="dockSearchClose" aria-label="Close Search Overlay" style="color: #3D3935 !important;">&times;</button>
+                        <span class="dock-modal-title">Site Search</span>
+                        <button class="dock-modal-close" id="dockSearchClose" aria-label="Close Search Overlay">&times;</button>
                     </div>
                     <div id="pagefind-search-container" class="dock-pagefind-mount"></div>
                 </div>
@@ -740,7 +741,7 @@ class FloatingDock extends HTMLElement {
 
         const container = this.querySelector('#pagefind-search-container');
         if (container) {
-            container.innerHTML = '<div style="text-align:center; padding: 2.5rem; color: #3D3935; font-weight: 600;">Loading search engine...</div>';
+            container.innerHTML = '<div style="text-align:center; padding: 2.5rem; color: var(--premier-charcoal); font-weight: 500;">Loading search engine...</div>';
         }
 
         // 1. Inject Pagefind UI CSS Stylesheet
