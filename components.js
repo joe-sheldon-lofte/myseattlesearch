@@ -577,23 +577,33 @@ class FloatingDock extends HTMLElement {
     }
 
     connectedCallback() {
+        // Automatically suppress legacy floating CTA elements if present
+        document.querySelectorAll('.floating-cta, .cta-bar, .mobile-cta, [class*="cta-floating"]').forEach(el => el.remove());
+
         this.innerHTML = `
             <!-- Floating Dock Outer Capsule -->
             <div class="dock-floating-container">
                 <div class="dock-capsule-bar">
-                    <!-- Left Section: Desktop Contact Pills / Mobile Contact Pill -->
+                    <!-- Left Section: Desktop Direct Pills / Mobile Contact Trigger Pill -->
                     <div class="dock-left-actions">
-                        <button class="dock-pill-btn dock-btn-contact-main" id="dockContactTrigger" aria-label="Open Contact Options">
+                        <!-- Mobile Only: Contact Drawer Trigger Pill -->
+                        <button class="dock-pill-btn dock-btn-contact-main dock-mobile-only" id="dockContactTrigger" aria-label="Open Contact Options">
                             <svg viewBox="0 0 24 24" class="dock-svg-icon"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/></svg>
                             <span>Contact</span>
                         </button>
-                        <a href="tel:2066577493" class="dock-pill-btn dock-desktop-only" aria-label="Call Direct">
-                            <svg viewBox="0 0 24 24" class="dock-svg-icon"><path d="M6.62 10.79c1.44 2.83 2.63 4.02 5.47 5.47l2.2-2.23c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.23z"/></svg>
-                            <span>Call</span>
-                        </a>
-                        <a href="sms:+12066577493" class="dock-pill-btn dock-desktop-only" aria-label="Text SMS">
+                        
+                        <!-- Desktop Only: Direct Action Pills (Text, Chat, Book) -->
+                        <a href="sms:+12066577493" class="dock-pill-btn dock-desktop-only" aria-label="Text Joe via SMS">
                             <svg viewBox="0 0 24 24" class="dock-svg-icon"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9 11H7V9h2v2zm4 0h-2V9h2v2zm4 0h-2V9h2v2z"/></svg>
                             <span>Text</span>
+                        </a>
+                        <a href="/chat/" class="dock-pill-btn dock-desktop-only" aria-label="Live Chat with Joe">
+                            <svg viewBox="0 0 24 24" class="dock-svg-icon"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm0 4h8v2H6v-2z"/></svg>
+                            <span>Chat</span>
+                        </a>
+                        <a href="/book/" class="dock-pill-btn dock-desktop-only" aria-label="Book Strategy Consultation">
+                            <svg viewBox="0 0 24 24" class="dock-svg-icon"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+                            <span>Book</span>
                         </a>
                     </div>
 
@@ -608,33 +618,40 @@ class FloatingDock extends HTMLElement {
                 </div>
             </div>
 
-            <!-- Contact Options Liquid Glass Bottom Drawer Sheet -->
+            <!-- Contact Options Liquid Glass Bottom Drawer Sheet (Mobile Only) -->
             <div class="dock-sheet-backdrop" id="dockContactSheet">
                 <div class="dock-sheet-card">
                     <div class="dock-sheet-header">
-                        <h3>Connect with Joe Sheldon</h3>
+                        <h3 style="color: var(--premier-charcoal); margin: 0; font-size: 1.2rem; font-weight: 800;">Connect with Joe Sheldon</h3>
                         <button class="dock-sheet-close" id="dockContactClose" aria-label="Close Contact Sheet">&times;</button>
                     </div>
                     <div class="dock-sheet-links">
-                        <a href="tel:2066577493" class="dock-sheet-item">
-                            <span class="dock-sheet-icon">📞</span>
-                            <div class="dock-sheet-text">
-                                <strong>Call Direct</strong>
-                                <small>(206) 657-7493</small>
-                            </div>
-                        </a>
                         <a href="sms:+12066577493" class="dock-sheet-item">
                             <span class="dock-sheet-icon">💬</span>
                             <div class="dock-sheet-text">
-                                <strong>Text Joe</strong>
-                                <small>Instant SMS Inquiry</small>
+                                <strong style="color: var(--premier-charcoal);">Text Joe</strong>
+                                <small style="color: var(--premier-charcoal); opacity: 0.75;">Instant SMS: (206) 657-7493</small>
                             </div>
                         </a>
                         <a href="/chat/" class="dock-sheet-item">
+                            <span class="dock-sheet-icon">💬</span>
+                            <div class="dock-sheet-text">
+                                <strong style="color: var(--premier-charcoal);">Live Chat</strong>
+                                <small style="color: var(--premier-charcoal); opacity: 0.75;">Real-Time Q&A with Joe</small>
+                            </div>
+                        </a>
+                        <a href="/book/" class="dock-sheet-item">
                             <span class="dock-sheet-icon">📅</span>
                             <div class="dock-sheet-text">
-                                <strong>Schedule Consultation</strong>
-                                <small>Live Chat or Video Meeting</small>
+                                <strong style="color: var(--premier-charcoal);">Book Consultation</strong>
+                                <small style="color: var(--premier-charcoal); opacity: 0.75;">Schedule Strategy Meeting</small>
+                            </div>
+                        </a>
+                        <a href="tel:2066577493" class="dock-sheet-item">
+                            <span class="dock-sheet-icon">📞</span>
+                            <div class="dock-sheet-text">
+                                <strong style="color: var(--premier-charcoal);">Call Direct</strong>
+                                <small style="color: var(--premier-charcoal); opacity: 0.75;">(206) 657-7493</small>
                             </div>
                         </a>
                     </div>
@@ -645,7 +662,7 @@ class FloatingDock extends HTMLElement {
             <div class="dock-modal-backdrop" id="dockSearchModal">
                 <div class="dock-modal-card">
                     <div class="dock-modal-header">
-                        <span>Site Search</span>
+                        <span style="color: var(--premier-charcoal);">Site Search</span>
                         <button class="dock-modal-close" id="dockSearchClose" aria-label="Close Search Overlay">&times;</button>
                     </div>
                     <div id="pagefind-search-container" class="dock-pagefind-mount"></div>

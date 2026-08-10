@@ -53,6 +53,17 @@ floating-dock {
     display: block;
 }
 
+/* Legacy Floating CTA Hard Wipeout */
+.floating-cta, 
+.cta-bar, 
+.mobile-cta, 
+[class*="cta-floating"] {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+}
+
 /* ====================================================================
    REAL-TIME EDGE LIVE STREAM NOTIFICATION BANNER (<live-banner>)
    ==================================================================== */
@@ -67,12 +78,12 @@ live-banner {
 }
 
 .live-banner-bar {
-    max-width: 800px; /* Constrained to match central content reading grid */
+    max-width: 800px;
     margin: 0 auto;
     padding: 0.65rem 1rem;
     display: flex;
     align-items: center;
-    justify-content: center; /* Centered tight layout */
+    justify-content: center;
     gap: 1.25rem;
     box-sizing: border-box;
     flex-wrap: wrap;
@@ -187,8 +198,6 @@ live-banner {
    GLOBAL RESPONSIVE CONTAINERS 
    ========================================= */
 
-/* Both standard containers and wide dashboard containers expand to 1140px on widescreen 
-   and use a clean 1rem padding on mobile to eliminate double margins and compression. */
 .container,
 .container-wide {
     width: 100%;
@@ -202,13 +211,11 @@ live-banner {
 @media (min-width: 768px) {
     .container,
     .container-wide {
-        padding: 2rem 1.5rem; /* Generous breathing room on tablet and desktop monitors */
+        padding: 2rem 1.5rem;
     }
 }
 
-/* HOMEPAGE PROTECTION LAYER 
-   Constrains home profile elements to a readable 600px grid, 
-   centered down the middle of the viewport. */
+/* HOMEPAGE PROTECTION LAYER */
 .profile-card, 
 .bio-section, 
 .video-card-wrapper,
@@ -2954,11 +2961,13 @@ oil-tank-evaluator {
 .dock-search-label-desktop { display: inline; }
 .dock-search-label-mobile { display: none; }
 .dock-desktop-only { display: inline-flex; }
+.dock-mobile-only { display: none; }
 
 @media (max-width: 600px) {
     .dock-search-label-desktop { display: none; }
     .dock-search-label-mobile { display: inline; }
-    .dock-desktop-only { display: none; }
+    .dock-desktop-only { display: none !important; }
+    .dock-mobile-only { display: inline-flex !important; }
     
     .dock-btn-search {
         width: auto;
@@ -2966,7 +2975,7 @@ oil-tank-evaluator {
     }
 }
 
-/* Contact Drawer Sheet Modal */
+/* Contact Drawer Sheet Modal (High Contrast Overrides) */
 .dock-sheet-backdrop {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -3010,7 +3019,7 @@ oil-tank-evaluator {
 .dock-sheet-header h3 {
     font-size: 1.2rem;
     font-weight: 800;
-    color: var(--premier-charcoal);
+    color: var(--premier-charcoal) !important;
 }
 
 .dock-sheet-close,
@@ -3023,7 +3032,7 @@ oil-tank-evaluator {
     font-size: 1.2rem;
     font-weight: 800;
     cursor: pointer;
-    color: var(--premier-charcoal);
+    color: var(--premier-charcoal) !important;
 }
 
 .dock-sheet-links {
@@ -3041,7 +3050,7 @@ oil-tank-evaluator {
     padding: 0.85rem 1.15rem;
     border-radius: 16px;
     text-decoration: none;
-    color: var(--premier-charcoal);
+    color: var(--premier-charcoal) !important;
     transition: background 0.2s ease;
 }
 
@@ -3056,8 +3065,17 @@ oil-tank-evaluator {
     flex-direction: column;
 }
 
-.dock-sheet-text strong { font-size: 0.95rem; font-weight: 700; }
-.dock-sheet-text small { font-size: 0.8rem; opacity: 0.75; }
+.dock-sheet-text strong { 
+    font-size: 0.95rem; 
+    font-weight: 700; 
+    color: var(--premier-charcoal) !important;
+}
+
+.dock-sheet-text small { 
+    font-size: 0.8rem; 
+    color: var(--premier-charcoal) !important;
+    opacity: 0.75; 
+}
 
 /* Pagefind Search Full-Width Modal Overlay */
 .dock-modal-backdrop {
@@ -3099,6 +3117,7 @@ oil-tank-evaluator {
     margin-bottom: 1rem;
     font-weight: 800;
     font-size: 1.1rem;
+    color: var(--premier-charcoal) !important;
 }
 
 .dock-pagefind-mount {

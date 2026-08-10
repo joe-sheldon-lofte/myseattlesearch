@@ -15,8 +15,11 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 CITY_DATA_JSON = os.path.join(DATA_DIR, "city_data.json")
 OUTPUT_JSON = os.path.join(DATA_DIR, "ospi_school_data.json")
 
-# Verified Active OSPI Socrata REST Endpoint (Report Card Assessment Data)
-OSPI_ASSESSMENT_ENDPOINT = "https://data.wa.gov/resource/h5d9-vgwi.json"
+# Primary and Fallback OSPI Socrata Endpoints (Data.WA.gov Report Card Assessment Series)
+OSPI_ENDPOINTS = [
+    "https://data.wa.gov/resource/h5d9-vgwi.json",  # OSPI Report Card Assessment (Current)
+    "https://data.wa.gov/resource/x73g-mrqp.json"   # OSPI Report Card Assessment (Historical)
+]
 
 HTTP_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -60,13 +63,26 @@ def load_city_district_mappings():
 
     return city_map
 
+def get_field(record, *possible_keys):
+    """Schema-agnostic field getter that extracts values across Socrata endpoint variations."""
+    for key in possible_keys:
+        if key in record and record[key] is not None:
+            val = str(record[key]).strip()
+            if val != "":
+                return val
+    return ""
+
 def safe_float(val):
-    """Safely parses string percentage values into floats."""
-    if val is None or val == "" or str(val).strip().lower() in ["null", "n/a", "suppressed", "s", "*"]:
+    """Safely parses percentage strings into floats, handling '80%', '>80%', '<10%', and 'Suppressed'."""
+    if val is None or val == "":
+        return None
+    s = str(val).strip().lower()
+    if s in ["null", "n/a", "suppressed", "s", "*", "none", "-"]:
         return None
     try:
-        clean_str = str(val).replace("%", "").replace(">", "").replace("<", "").strip()
-        return round(float(clean_str), 1)
+        clean_str = s.replace("%", "").replace(">", "").replace("<", "").replace(",", "").strip()
+        v = float(clean_str)
+        return round(v, 1)
     except (ValueError, TypeError):
         return None
 
@@ -123,46 +139,50 @@ def resolve_redfin_school_data(school_name, district_name, county):
 
     return resolved_info
 
-def fetch_filtered_ospi_records():
-    """
-    Queries Data.WA.gov Socrata REST API filtering specifically for 'All Students' population records.
-    Filters out demographic noise to retrieve high-speed, 100% accurate building & district score streams.
-    """
-    print("📡 Querying Targeted OSPI Assessment Stream ('All Students' Cohorts)...")
-    
-    all_records = []
+def fetch_ospi_endpoint_records(endpoint):
+    """Pages through a single Socrata endpoint to retrieve records for King and Snohomish counties."""
+    records = []
     limit = 25000
     offset = 0
 
-    where_clause = (
-        "county in ('King', 'Snohomish') AND "
-        "(studentgrouptype = 'All' OR studentgroup = 'All Students' OR studentgrouptype = 'Federal')"
-    )
+    where_clause = "county in ('King', 'Snohomish')"
 
     while True:
         params = {
             "$where": where_clause,
             "$limit": limit,
-            "$offset": offset
+            "$offset": offset,
+            "$order": ":id ASC"
         }
 
         try:
-            resp = requests.get(OSPI_ASSESSMENT_ENDPOINT, headers=HTTP_HEADERS, params=params, timeout=30, verify=False)
+            resp = requests.get(endpoint, headers=HTTP_HEADERS, params=params, timeout=30, verify=False)
             if resp.status_code == 200:
                 chunk = resp.json()
                 if not chunk:
                     break
-                all_records.extend(chunk)
-                print(f"  ✓ Fetched page block: {len(chunk)} records (Total Ingested: {len(all_records)})...")
+                records.extend(chunk)
                 if len(chunk) < limit:
                     break
                 offset += limit
             else:
-                print(f"  ❌ OSPI Endpoint returned HTTP status {resp.status_code}")
                 break
         except Exception as e:
-            print(f"  ❌ Exception during OSPI fetch: {e}")
+            print(f"  ❌ Endpoint exception on {endpoint}: {e}")
             break
+
+    return records
+
+def fetch_all_ospi_records():
+    """Queries all configured OSPI Report Card Socrata REST endpoints."""
+    print("📡 Querying OSPI Assessment Data from Data.WA.gov...")
+    all_records = []
+
+    for ep in OSPI_ENDPOINTS:
+        print(f"  • Ingesting stream: {ep}...")
+        ep_records = fetch_ospi_endpoint_records(ep)
+        print(f"    ✓ Retrieved {len(ep_records)} records from stream.")
+        all_records.extend(ep_records)
 
     print(f"  ✅ Completed OSPI data ingestion: {len(all_records)} total assessment records compiled.")
     return all_records
@@ -176,13 +196,13 @@ def process_ospi_data(records):
     district_raw_scores = {}
 
     for r in records:
-        org_level = str(r.get("organizationlevel", "")).lower()
-        scode = r.get("schoolcode")
-        sname = r.get("schoolname", "").strip()
-        dname = r.get("districtname", "").strip()
-        dcode = str(r.get("districtcode", "")).strip()
-        county = r.get("county", "").strip()
-        stype = r.get("currentschooltype", "Regular Public").strip()
+        org_level = str(get_field(r, "organizationlevel", "org_level", "organization_level")).lower()
+        scode = get_field(r, "schoolcode", "school_code", "buildingcode", "building_code")
+        sname = get_field(r, "schoolname", "school_name", "buildingname", "building_name")
+        dname = get_field(r, "districtname", "district_name")
+        dcode = get_field(r, "districtcode", "district_code")
+        county = get_field(r, "county", "countyname")
+        stype = get_field(r, "currentschooltype", "schooltype", "type") or "P"
 
         # --- STEP 1: INITIALIZE METADATA ---
         if org_level == "school" and scode and sname:
@@ -190,7 +210,7 @@ def process_ospi_data(records):
                 schools_map[scode] = {
                     "school_name": sname,
                     "school_code": scode,
-                    "ospi_org_id": r.get("schoolorganizationid"),
+                    "ospi_org_id": get_field(r, "schoolorganizationid", "school_org_id", "org_id"),
                     "district_name": dname,
                     "district_code": dcode,
                     "county": county,
@@ -212,13 +232,34 @@ def process_ospi_data(records):
                 district_raw_scores[dname] = {"math": {}, "ela": {}, "science": {}}
 
         # --- STEP 2: ACCUMULATE PROFICIENCY PERCENTAGES ---
-        raw_pct = r.get("percentmetstandard") if "percentmetstandard" in r else r.get("percent_met_standard")
+        sgroup_type = str(get_field(r, "studentgrouptype", "student_group_type")).lower()
+        sgroup = str(get_field(r, "studentgroup", "student_group")).lower()
+
+        # Relaxed Student Group Check (Targeting overall cohort rows)
+        is_all_students = (
+            sgroup in ["all students", "all", "total", ""] or 
+            sgroup_type in ["all", "federal", ""] or 
+            "all students" in sgroup or 
+            sgroup_type == ""
+        )
+        if not is_all_students:
+            continue
+
+        raw_pct = get_field(
+            r, 
+            "percentmetstandard", 
+            "percent_met_standard", 
+            "percentmet", 
+            "percent_met", 
+            "pctmetstandard", 
+            "pct_met_standard"
+        )
         pct_met = safe_float(raw_pct)
         if pct_met is None:
             continue
 
-        syear = r.get("schoolyear", "Unknown")
-        subject_raw = str(r.get("subject", "")).lower()
+        syear = get_field(r, "schoolyear", "school_year", "year") or "Unknown"
+        subject_raw = str(get_field(r, "testsubject", "subject", "test_subject", "subjectname")).lower()
 
         subject_key = None
         if "math" in subject_raw:
@@ -241,7 +282,7 @@ def process_ospi_data(records):
                 district_raw_scores[dname][subject_key][syear] = []
             district_raw_scores[dname][subject_key][syear].append(pct_met)
 
-    # Average annual scores to build 5-year trends
+    # Calculate average annual test scores for trends
     for scode, subjects in school_raw_scores.items():
         for sub, years in subjects.items():
             for yr, score_list in years.items():
@@ -272,14 +313,14 @@ def process_ospi_data(records):
 
 def main():
     print("==================================================")
-    print("     OSPI MASTER SCHOOL DATA HARVESTER (V4.2)     ")
+    print("     OSPI MASTER SCHOOL DATA HARVESTER (V4.3)     ")
     print("==================================================\n")
 
     os.makedirs(DATA_DIR, exist_ok=True)
 
     city_mapping = load_city_district_mappings()
 
-    raw_records = fetch_filtered_ospi_records()
+    raw_records = fetch_all_ospi_records()
     if not raw_records:
         print("❌ No OSPI assessment records fetched. Exiting.")
         return
