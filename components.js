@@ -1,6 +1,7 @@
 /* ==========================================================================
    MYSEATTLESEARCH - NATIVE WEB COMPONENTS BUNDLE
-   Includes: <youtube-lite>, <quiz-engine>, <local-reviews>, <live-banner>, <cms-publisher>
+   Includes: <youtube-lite>, <quiz-engine>, <local-reviews>, <live-banner>, 
+             <cms-publisher>, <floating-dock>
    ========================================================================== */
 
 /**
@@ -300,9 +301,9 @@ class LiveBanner extends HTMLElement {
     }
 }
 
-/* ==========================================================================
-   5. AUTHOR CMS PUBLISHER WEB SUITE (<cms-publisher>)
-   ========================================================================== */
+/**
+ * 5. AUTHOR CMS PUBLISHER WEB SUITE (<cms-publisher>)
+ */
 class CMSPublisher extends HTMLElement {
     constructor() {
         super();
@@ -321,7 +322,6 @@ class CMSPublisher extends HTMLElement {
         this.innerHTML = `<div style="text-align:center; padding: 3rem; color: var(--premier-charcoal);">Authenticating author session...</div>`;
 
         try {
-            // 1. Fetch team roster data with fallback handling
             let teamData = [];
             try {
                 const teamRes = await fetch('/data/team.json');
@@ -330,7 +330,6 @@ class CMSPublisher extends HTMLElement {
                 console.warn("Could not load local team.json, using session fallbacks:", e);
             }
 
-            // 2. Fetch author session & past posts through Cloudflare Worker CORS Proxy
             const workerUrl = 'https://myseattlesearch-quiz-gateway.joe-54b.workers.dev/publisher';
             const pubRes = await fetch(`${workerUrl}?AUTHKEY=${encodeURIComponent(this.authKey)}`);
             
@@ -568,6 +567,200 @@ class CMSPublisher extends HTMLElement {
 }
 
 /**
+ * 6. UNIFIED LIQUID GLASS FLOATING DOCK (<floating-dock>)
+ * Features: Dual-embedded pill capsule, Pagefind lazy-loader, and direct contact drawer sheet.
+ */
+class FloatingDock extends HTMLElement {
+    constructor() {
+        super();
+        this.pagefindLoaded = false;
+    }
+
+    connectedCallback() {
+        this.innerHTML = `
+            <!-- Floating Dock Outer Capsule -->
+            <div class="dock-floating-container">
+                <div class="dock-capsule-bar">
+                    <!-- Left Section: Desktop Contact Pills / Mobile Contact Pill -->
+                    <div class="dock-left-actions">
+                        <button class="dock-pill-btn dock-btn-contact-main" id="dockContactTrigger" aria-label="Open Contact Options">
+                            <svg viewBox="0 0 24 24" class="dock-svg-icon"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/></svg>
+                            <span>Contact</span>
+                        </button>
+                        <a href="tel:2066577493" class="dock-pill-btn dock-desktop-only" aria-label="Call Direct">
+                            <svg viewBox="0 0 24 24" class="dock-svg-icon"><path d="M6.62 10.79c1.44 2.83 2.63 4.02 5.47 5.47l2.2-2.23c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.23z"/></svg>
+                            <span>Call</span>
+                        </a>
+                        <a href="sms:+12066577493" class="dock-pill-btn dock-desktop-only" aria-label="Text SMS">
+                            <svg viewBox="0 0 24 24" class="dock-svg-icon"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9 11H7V9h2v2zm4 0h-2V9h2v2zm4 0h-2V9h2v2z"/></svg>
+                            <span>Text</span>
+                        </a>
+                    </div>
+
+                    <!-- Right Section: Pagefind Search Trigger Pill -->
+                    <div class="dock-right-actions">
+                        <button class="dock-pill-btn dock-btn-search" id="dockSearchTrigger" aria-label="Open Site Search">
+                            <svg viewBox="0 0 24 24" class="dock-svg-icon"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                            <span class="dock-search-label-desktop">Search MySeattleSearch...</span>
+                            <span class="dock-search-label-mobile">Search</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Options Liquid Glass Bottom Drawer Sheet -->
+            <div class="dock-sheet-backdrop" id="dockContactSheet">
+                <div class="dock-sheet-card">
+                    <div class="dock-sheet-header">
+                        <h3>Connect with Joe Sheldon</h3>
+                        <button class="dock-sheet-close" id="dockContactClose" aria-label="Close Contact Sheet">&times;</button>
+                    </div>
+                    <div class="dock-sheet-links">
+                        <a href="tel:2066577493" class="dock-sheet-item">
+                            <span class="dock-sheet-icon">📞</span>
+                            <div class="dock-sheet-text">
+                                <strong>Call Direct</strong>
+                                <small>(206) 657-7493</small>
+                            </div>
+                        </a>
+                        <a href="sms:+12066577493" class="dock-sheet-item">
+                            <span class="dock-sheet-icon">💬</span>
+                            <div class="dock-sheet-text">
+                                <strong>Text Joe</strong>
+                                <small>Instant SMS Inquiry</small>
+                            </div>
+                        </a>
+                        <a href="/chat/" class="dock-sheet-item">
+                            <span class="dock-sheet-icon">📅</span>
+                            <div class="dock-sheet-text">
+                                <strong>Schedule Consultation</strong>
+                                <small>Live Chat or Video Meeting</small>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagefind Search Full-Width Modal Overlay -->
+            <div class="dock-modal-backdrop" id="dockSearchModal">
+                <div class="dock-modal-card">
+                    <div class="dock-modal-header">
+                        <span>Site Search</span>
+                        <button class="dock-modal-close" id="dockSearchClose" aria-label="Close Search Overlay">&times;</button>
+                    </div>
+                    <div id="pagefind-search-container" class="dock-pagefind-mount"></div>
+                </div>
+            </div>
+        `;
+
+        this.bindDockEvents();
+    }
+
+    bindDockEvents() {
+        const contactTrigger = this.querySelector('#dockContactTrigger');
+        const contactSheet = this.querySelector('#dockContactSheet');
+        const contactClose = this.querySelector('#dockContactClose');
+
+        const searchTrigger = this.querySelector('#dockSearchTrigger');
+        const searchModal = this.querySelector('#dockSearchModal');
+        const searchClose = this.querySelector('#dockSearchClose');
+
+        // Contact Sheet Controls
+        if (contactTrigger && contactSheet) {
+            contactTrigger.addEventListener('click', () => {
+                contactSheet.classList.add('is-open');
+            });
+        }
+
+        if (contactClose && contactSheet) {
+            contactClose.addEventListener('click', () => {
+                contactSheet.classList.remove('is-open');
+            });
+        }
+
+        if (contactSheet) {
+            contactSheet.addEventListener('click', (e) => {
+                if (e.target === contactSheet) {
+                    contactSheet.classList.remove('is-open');
+                }
+            });
+        }
+
+        // Search Overlay Controls & Lazy Loader
+        if (searchTrigger && searchModal) {
+            searchTrigger.addEventListener('click', () => {
+                searchModal.classList.add('is-open');
+                this.lazyLoadPagefind();
+            });
+        }
+
+        if (searchClose && searchModal) {
+            searchClose.addEventListener('click', () => {
+                searchModal.classList.remove('is-open');
+            });
+        }
+
+        if (searchModal) {
+            searchModal.addEventListener('click', (e) => {
+                if (e.target === searchModal) {
+                    searchModal.classList.remove('is-open');
+                }
+            });
+        }
+
+        // Global Esc Key Dismissal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (contactSheet) contactSheet.classList.remove('is-open');
+                if (searchModal) searchModal.classList.remove('is-open');
+            }
+        });
+    }
+
+    lazyLoadPagefind() {
+        if (this.pagefindLoaded) return;
+        this.pagefindLoaded = true;
+
+        const container = this.querySelector('#pagefind-search-container');
+        if (container) {
+            container.innerHTML = '<div style="text-align:center; padding: 2.5rem; color: var(--premier-charcoal); font-weight: 600;">Loading search engine...</div>';
+        }
+
+        // 1. Inject Pagefind UI CSS Stylesheet
+        if (!document.querySelector('link[href*="pagefind-ui.css"]')) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = '/pagefind/pagefind-ui.css';
+            document.head.appendChild(link);
+        }
+
+        // 2. Inject Pagefind UI JS Engine
+        if (!document.querySelector('script[src*="pagefind-ui.js"]')) {
+            const script = document.createElement('script');
+            script.src = '/pagefind/pagefind-ui.js';
+            script.onload = () => {
+                if (window.PagefindUI) {
+                    if (container) container.innerHTML = '';
+                    new window.PagefindUI({
+                        element: "#pagefind-search-container",
+                        showSubResults: true,
+                        showImages: false,
+                        resetStyles: false,
+                        bundlePath: "/pagefind/"
+                    });
+
+                    setTimeout(() => {
+                        const input = container.querySelector('input');
+                        if (input) input.focus();
+                    }, 150);
+                }
+            };
+            document.head.appendChild(script);
+        }
+    }
+}
+
+/**
  * Platform Share Utility Bridge
  */
 document.addEventListener("DOMContentLoaded", () => {
@@ -627,4 +820,7 @@ if (!customElements.get('live-banner')) {
 }
 if (!customElements.get('cms-publisher')) {
     customElements.define('cms-publisher', CMSPublisher);
+}
+if (!customElements.get('floating-dock')) {
+    customElements.define('floating-dock', FloatingDock);
 }

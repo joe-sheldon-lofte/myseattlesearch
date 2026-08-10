@@ -1,7 +1,6 @@
-/* File: style.css */
 /* Color Palette */
 :root {
-    /* Your Master Baseline Color Palettes */
+    /* Master Baseline Color Palettes */
     --redfin-red: #C13030;
     --premier-beige: #EFECE5;
     --premier-charcoal: #3D3935;
@@ -9,9 +8,15 @@
     --featured-highlight: #FDFBFA;
     --light-gray: #e0e0e0;
 
-    /* HOLIDAY SWITCHBOARD HOOKS (Elements site-wide must point to these two tokens) */
+    /* SYSTEM TOKENS */
     --card-accent-color: var(--redfin-red);
     --dynamic-bg-highlight: var(--featured-highlight);
+    
+    /* GLASS SYSTEM TOKENS */
+    --glass-passive: rgba(255, 255, 255, 0.65);
+    --glass-active: rgba(255, 255, 255, 0.92);
+    --glass-border: rgba(255, 255, 255, 0.55);
+    --glass-dark-border: rgba(61, 57, 53, 0.12);
 }
 
 /* Global Styles */
@@ -27,7 +32,8 @@ html, body {
 }
 
 body {
-    font-family: 'Helvetica Neue', Arial, sans-serif;
+    /* Native Apple System Font Stack */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--premier-beige);
     color: var(--premier-charcoal);
     line-height: 1.6;
@@ -36,11 +42,13 @@ body {
     align-items: center;
     min-height: 100vh;
     padding-top: 70px;
+    padding-bottom: 5rem;
 }
 
 /* Custom Component Layout Fixes */
 universal-header, 
-universal-footer {
+universal-footer,
+floating-dock {
     width: 100%;
     display: block;
 }
@@ -138,7 +146,7 @@ live-banner {
     padding: 0.4rem 0.85rem;
     font-size: 0.8rem;
     font-weight: 700;
-    border-radius: 4px;
+    border-radius: 9999px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     transition: transform 0.15s ease, opacity 0.15s ease;
@@ -185,7 +193,7 @@ live-banner {
 .container-wide {
     width: 100%;
     max-width: 1140px;
-    padding: 2rem 1rem;
+    padding: 1.5rem 1rem;
     flex: 1;
     box-sizing: border-box;
     margin: 0 auto;
@@ -231,7 +239,7 @@ live-banner {
     align-items: center;
     max-width: 1000px;
     margin: 0 auto;
-    padding: 1rem 1.5rem;
+    padding: 0.85rem 1rem;
     position: relative;
 }
 
@@ -503,21 +511,30 @@ live-banner {
     gap: 1rem;
 }
 
+/* =========================================
+   APPLE STADIUM PILL BUTTON REFACTOR
+   ========================================= */
+
 .btn {
-    display: block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
-    padding: 1rem;
+    padding: 0.65rem 1.25rem;
     text-decoration: none;
     text-align: center;
-    border-radius: 8px;
-    font-weight: bold;
-    font-size: 1.1rem;
-    transition: all 0.2s ease;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: -0.01em;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-sizing: border-box;
+    border: 1px solid transparent;
 }
 
 .btn-small {
-    padding: 0.6rem 1.2rem;
-    font-size: 0.95rem;
+    padding: 0.45rem 1rem;
+    font-size: 0.88rem;
     width: auto;
 }
 
@@ -528,6 +545,7 @@ live-banner {
 
 .btn-primary:hover {
     background-color: var(--premier-charcoal);
+    color: var(--white);
 }
 
 .btn-secondary {
@@ -1119,52 +1137,6 @@ live-banner {
     gap: 1rem;
     margin-top: 2rem;
     flex-wrap: wrap;
-}
-
-/* Footer Compliance & Office Info */
-footer {
-    width: 100%;
-    background-color: var(--premier-charcoal);
-    color: var(--white);
-    text-align: center;
-    padding: 2rem 1rem;
-    margin-top: auto;
-    z-index: 10;
-    position: relative;
-}
-
-footer p,
-footer div,
-footer span,
-footer address {
-    color: var(--white);
-    opacity: 1;
-}
-
-footer a {
-    color: var(--white);
-    text-decoration: underline;
-    opacity: 1;
-}
-
-footer a:hover {
-    color: var(--premier-beige);
-}
-
-.footer-logo {
-    max-width: 130px;
-    height: auto;
-    object-fit: contain;
-    margin: 0 auto 1rem auto;
-    display: block;
-    filter: brightness(0) invert(1);
-}
-
-.office-address {
-    font-size: 0.85rem;
-    color: var(--white);
-    opacity: 1;
-    line-height: 1.4;
 }
 
 /* =========================================
@@ -1929,7 +1901,7 @@ oil-tank-evaluator {
     padding: 0.85rem 1.75rem;
     font-size: 1.05rem;
     font-weight: 800;
-    border-radius: 8px;
+    border-radius: 9999px;
     transition: transform 0.15s ease, background-color 0.15s ease;
     box-shadow: 0 2px 8px rgba(193, 48, 48, 0.25);
 }
@@ -2893,4 +2865,276 @@ oil-tank-evaluator {
     color: var(--premier-charcoal) !important;
     opacity: 0.9 !important;
     margin: 0 auto !important;
+}
+
+/* =========================================
+   UNIFIED LIQUID GLASS FLOATING DOCK (<floating-dock>)
+   ========================================= */
+
+.dock-floating-container {
+    position: fixed;
+    bottom: 1.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    width: min(92%, 580px);
+    pointer-events: none;
+}
+
+.dock-capsule-bar {
+    pointer-events: auto;
+    background: var(--glass-passive);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--glass-border);
+    border-radius: 9999px;
+    padding: 0.4rem 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+    transition: background 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+}
+
+.dock-capsule-bar:hover {
+    background: var(--glass-active);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.dock-left-actions,
+.dock-right-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.dock-right-actions {
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.dock-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    background: var(--white);
+    color: var(--premier-charcoal);
+    border: 1px solid var(--glass-dark-border);
+    padding: 0.45rem 0.95rem;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.dock-pill-btn:hover {
+    background: var(--premier-beige);
+    border-color: var(--card-accent-color);
+    color: var(--card-accent-color);
+}
+
+.dock-btn-search {
+    width: 100%;
+    justify-content: flex-start;
+    background: rgba(255, 255, 255, 0.85);
+}
+
+.dock-svg-icon {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+    flex-shrink: 0;
+}
+
+.dock-search-label-desktop { display: inline; }
+.dock-search-label-mobile { display: none; }
+.dock-desktop-only { display: inline-flex; }
+
+@media (max-width: 600px) {
+    .dock-search-label-desktop { display: none; }
+    .dock-search-label-mobile { display: inline; }
+    .dock-desktop-only { display: none; }
+    
+    .dock-btn-search {
+        width: auto;
+        justify-content: center;
+    }
+}
+
+/* Contact Drawer Sheet Modal */
+.dock-sheet-backdrop {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(8px);
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.dock-sheet-backdrop.is-open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.dock-sheet-card {
+    background: var(--white);
+    width: min(100%, 540px);
+    border-radius: 24px 24px 0 0;
+    padding: 1.75rem 1.5rem 2.5rem;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.dock-sheet-backdrop.is-open .dock-sheet-card {
+    transform: translateY(0);
+}
+
+.dock-sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+}
+
+.dock-sheet-header h3 {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--premier-charcoal);
+}
+
+.dock-sheet-close,
+.dock-modal-close {
+    background: var(--premier-beige);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    font-weight: 800;
+    cursor: pointer;
+    color: var(--premier-charcoal);
+}
+
+.dock-sheet-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.dock-sheet-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--featured-highlight);
+    border: 1px solid var(--glass-dark-border);
+    padding: 0.85rem 1.15rem;
+    border-radius: 16px;
+    text-decoration: none;
+    color: var(--premier-charcoal);
+    transition: background 0.2s ease;
+}
+
+.dock-sheet-item:hover {
+    background: var(--premier-beige);
+}
+
+.dock-sheet-icon { font-size: 1.4rem; }
+
+.dock-sheet-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.dock-sheet-text strong { font-size: 0.95rem; font-weight: 700; }
+.dock-sheet-text small { font-size: 0.8rem; opacity: 0.75; }
+
+/* Pagefind Search Full-Width Modal Overlay */
+.dock-modal-backdrop {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.dock-modal-backdrop.is-open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.dock-modal-card {
+    background: var(--white);
+    width: min(100%, 680px);
+    max-height: 85vh;
+    border-radius: 24px;
+    padding: 1.5rem;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+}
+
+.dock-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    font-weight: 800;
+    font-size: 1.1rem;
+}
+
+.dock-pagefind-mount {
+    margin-top: 0.5rem;
+}
+
+/* Footer Compliance & Office Info */
+footer {
+    width: 100%;
+    background-color: var(--premier-charcoal);
+    color: var(--white);
+    text-align: center;
+    padding: 2rem 1rem 6rem;
+    margin-top: auto;
+    z-index: 10;
+    position: relative;
+}
+
+footer p, footer div, footer span, footer address {
+    color: var(--white);
+}
+
+footer a {
+    color: var(--white);
+    text-decoration: underline;
+}
+
+.footer-logo {
+    max-width: 130px;
+    height: auto;
+    margin: 0 auto 1rem auto;
+    display: block;
+    filter: brightness(0) invert(1);
+}
+
+.office-address {
+    font-size: 0.85rem;
+    line-height: 1.4;
 }
