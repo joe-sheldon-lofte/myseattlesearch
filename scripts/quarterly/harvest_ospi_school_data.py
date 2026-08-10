@@ -17,8 +17,8 @@ OUTPUT_JSON = os.path.join(DATA_DIR, "ospi_school_data.json")
 
 # Primary and Fallback OSPI Socrata Endpoints (Data.WA.gov Report Card Assessment Series)
 OSPI_ENDPOINTS = [
-    "https://data.wa.gov/resource/h5d9-vgwi.json",  # OSPI Report Card Assessment (Current)
-    "https://data.wa.gov/resource/x73g-mrqp.json"   # OSPI Report Card Assessment (Historical)
+    "https://data.wa.gov/resource/h5d9-vgwi.json",  # OSPI Report Card Assessment (2024-25)
+    "https://data.wa.gov/resource/x73g-mrqp.json"   # OSPI Report Card Assessment (2023-24)
 ]
 
 HTTP_HEADERS = {
@@ -77,7 +77,7 @@ def safe_float(val):
     if val is None or val == "":
         return None
     s = str(val).strip().lower()
-    if s in ["null", "n/a", "suppressed", "s", "*", "none", "-"]:
+    if s in ["null", "n/a", "suppressed", "s", "*", "none", "-", "count unavailable"]:
         return None
     try:
         clean_str = s.replace("%", "").replace(">", "").replace("<", "").replace(",", "").strip()
@@ -200,7 +200,9 @@ def process_ospi_data(records):
         scode = get_field(r, "schoolcode", "school_code", "buildingcode", "building_code")
         sname = get_field(r, "schoolname", "school_name", "buildingname", "building_name")
         dname = get_field(r, "districtname", "district_name")
-        dcode = get_field(r, "districtcode", "district_code")
+        
+        # Capture OSPI District Code across county_district_number variations
+        dcode = get_field(r, "county_district_number", "countydistrictnumber", "districtcode", "district_code")
         county = get_field(r, "county", "countyname")
         stype = get_field(r, "currentschooltype", "schooltype", "type") or "P"
 
@@ -230,6 +232,8 @@ def process_ospi_data(records):
                     "assessment_trends": {"math": [], "ela": [], "science": []}
                 }
                 district_raw_scores[dname] = {"math": {}, "ela": {}, "science": {}}
+            elif dcode and not districts_map[dname]["district_code"]:
+                districts_map[dname]["district_code"] = dcode
 
         # --- STEP 2: ACCUMULATE PROFICIENCY PERCENTAGES ---
         sgroup_type = str(get_field(r, "studentgrouptype", "student_group_type")).lower()
@@ -245,8 +249,11 @@ def process_ospi_data(records):
         if not is_all_students:
             continue
 
+        # Extract percentage string or compute from raw student counts
         raw_pct = get_field(
             r, 
+            "percentconsistentgradelevelknowledgeandabove",
+            "percent_consistent_grade_level_knowledge_and_above",
             "percentmetstandard", 
             "percent_met_standard", 
             "percentmet", 
@@ -255,6 +262,13 @@ def process_ospi_data(records):
             "pct_met_standard"
         )
         pct_met = safe_float(raw_pct)
+
+        if pct_met is None:
+            c_met = safe_float(get_field(r, "countconsistentgradelevelknowledgeandabove", "countmetstandard", "count_met_standard"))
+            c_tot = safe_float(get_field(r, "countofstudentsexpectedtotest", "countexpectedtotest", "count_expected"))
+            if c_met is not None and c_tot is not None and c_tot > 0:
+                pct_met = round((c_met / c_tot) * 100.0, 1)
+
         if pct_met is None:
             continue
 
@@ -282,7 +296,7 @@ def process_ospi_data(records):
                 district_raw_scores[dname][subject_key][syear] = []
             district_raw_scores[dname][subject_key][syear].append(pct_met)
 
-    # Calculate average annual test scores for trends
+    # Calculate average annual test scores for school building trends
     for scode, subjects in school_raw_scores.items():
         for sub, years in subjects.items():
             for yr, score_list in years.items():
@@ -293,6 +307,7 @@ def process_ospi_data(records):
                         "pct_met_standard": avg_score
                     })
 
+    # Calculate average annual test scores for district trends
     for dname, subjects in district_raw_scores.items():
         for sub, years in subjects.items():
             for yr, score_list in years.items():
@@ -313,7 +328,7 @@ def process_ospi_data(records):
 
 def main():
     print("==================================================")
-    print("     OSPI MASTER SCHOOL DATA HARVESTER (V4.3)     ")
+    print("     OSPI MASTER SCHOOL DATA HARVESTER (V4.4)     ")
     print("==================================================\n")
 
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -380,7 +395,7 @@ def main():
         latest_math = ddata["assessment_trends"]["math"][-1]["pct_met_standard"] if ddata["assessment_trends"]["math"] else None
         latest_ela = ddata["assessment_trends"]["ela"][-1]["pct_met_standard"] if ddata["assessment_trends"]["ela"] else None
 
-        # Fallback calculation: Average individual school building scores if district summary row is absent
+        # Fallback calculation: Aggregate individual school building scores if district summary row is absent
         if latest_math is None or latest_ela is None:
             dist_schools = [s for s in compiled_schools if s["district_name"] == dname]
             if dist_schools:
@@ -413,7 +428,7 @@ def main():
         matched_dists = []
         for ospi_id in raw_ospi_ids:
             for d_name, d_info in compiled_districts.items():
-                if d_info.get("district_code") == ospi_id:
+                if str(d_info.get("district_code")).strip() == ospi_id:
                     matched_dists.append(d_info)
                     break
 

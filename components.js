@@ -577,8 +577,8 @@ class FloatingDock extends HTMLElement {
     }
 
     connectedCallback() {
-        // Automatically suppress legacy floating CTA elements if present
-        document.querySelectorAll('.floating-cta, .cta-bar, .mobile-cta, [class*="cta-floating"]').forEach(el => el.remove());
+        // Automatically purge any legacy floating CTA elements if present in DOM
+        document.querySelectorAll('.floating-cta, .cta-bar, .mobile-cta, .persistent-cta-deck, [class*="cta-floating"]').forEach(el => el.remove());
 
         this.innerHTML = `
             <!-- Floating Dock Outer Capsule -->
@@ -620,38 +620,38 @@ class FloatingDock extends HTMLElement {
 
             <!-- Contact Options Liquid Glass Bottom Drawer Sheet (Mobile Only) -->
             <div class="dock-sheet-backdrop" id="dockContactSheet">
-                <div class="dock-sheet-card">
+                <div class="dock-sheet-card" style="background-color: #ffffff !important; color: #3D3935 !important;">
                     <div class="dock-sheet-header">
-                        <h3 style="color: var(--premier-charcoal); margin: 0; font-size: 1.2rem; font-weight: 800;">Connect with Joe Sheldon</h3>
-                        <button class="dock-sheet-close" id="dockContactClose" aria-label="Close Contact Sheet">&times;</button>
+                        <h3 style="color: #3D3935 !important; margin: 0; font-size: 1.2rem; font-weight: 800;">Connect with Joe Sheldon</h3>
+                        <button class="dock-sheet-close" id="dockContactClose" aria-label="Close Contact Sheet" style="color: #3D3935 !important;">&times;</button>
                     </div>
                     <div class="dock-sheet-links">
-                        <a href="sms:+12066577493" class="dock-sheet-item">
+                        <a href="sms:+12066577493" class="dock-sheet-item" style="color: #3D3935 !important; background-color: #FDFBFA !important;">
                             <span class="dock-sheet-icon">💬</span>
                             <div class="dock-sheet-text">
-                                <strong style="color: var(--premier-charcoal);">Text Joe</strong>
-                                <small style="color: var(--premier-charcoal); opacity: 0.75;">Instant SMS: (206) 657-7493</small>
+                                <strong style="color: #3D3935 !important;">Text Joe</strong>
+                                <small style="color: #3D3935 !important; opacity: 0.75;">Instant SMS: (206) 657-7493</small>
                             </div>
                         </a>
-                        <a href="/chat/" class="dock-sheet-item">
+                        <a href="/chat/" class="dock-sheet-item" style="color: #3D3935 !important; background-color: #FDFBFA !important;">
                             <span class="dock-sheet-icon">💬</span>
                             <div class="dock-sheet-text">
-                                <strong style="color: var(--premier-charcoal);">Live Chat</strong>
-                                <small style="color: var(--premier-charcoal); opacity: 0.75;">Real-Time Q&A with Joe</small>
+                                <strong style="color: #3D3935 !important;">Live Chat</strong>
+                                <small style="color: #3D3935 !important; opacity: 0.75;">Real-Time Q&A with Joe</small>
                             </div>
                         </a>
-                        <a href="/book/" class="dock-sheet-item">
+                        <a href="/book/" class="dock-sheet-item" style="color: #3D3935 !important; background-color: #FDFBFA !important;">
                             <span class="dock-sheet-icon">📅</span>
                             <div class="dock-sheet-text">
-                                <strong style="color: var(--premier-charcoal);">Book Consultation</strong>
-                                <small style="color: var(--premier-charcoal); opacity: 0.75;">Schedule Strategy Meeting</small>
+                                <strong style="color: #3D3935 !important;">Book Consultation</strong>
+                                <small style="color: #3D3935 !important; opacity: 0.75;">Schedule Strategy Meeting</small>
                             </div>
                         </a>
-                        <a href="tel:2066577493" class="dock-sheet-item">
+                        <a href="tel:2066577493" class="dock-sheet-item" style="color: #3D3935 !important; background-color: #FDFBFA !important;">
                             <span class="dock-sheet-icon">📞</span>
                             <div class="dock-sheet-text">
-                                <strong style="color: var(--premier-charcoal);">Call Direct</strong>
-                                <small style="color: var(--premier-charcoal); opacity: 0.75;">(206) 657-7493</small>
+                                <strong style="color: #3D3935 !important;">Call Direct</strong>
+                                <small style="color: #3D3935 !important; opacity: 0.75;">(206) 657-7493</small>
                             </div>
                         </a>
                     </div>
@@ -660,10 +660,10 @@ class FloatingDock extends HTMLElement {
 
             <!-- Pagefind Search Full-Width Modal Overlay -->
             <div class="dock-modal-backdrop" id="dockSearchModal">
-                <div class="dock-modal-card">
+                <div class="dock-modal-card" style="background-color: #ffffff !important; color: #3D3935 !important;">
                     <div class="dock-modal-header">
-                        <span style="color: var(--premier-charcoal);">Site Search</span>
-                        <button class="dock-modal-close" id="dockSearchClose" aria-label="Close Search Overlay">&times;</button>
+                        <span style="color: #3D3935 !important; font-weight: 800;">Site Search</span>
+                        <button class="dock-modal-close" id="dockSearchClose" aria-label="Close Search Overlay" style="color: #3D3935 !important;">&times;</button>
                     </div>
                     <div id="pagefind-search-container" class="dock-pagefind-mount"></div>
                 </div>
@@ -740,7 +740,7 @@ class FloatingDock extends HTMLElement {
 
         const container = this.querySelector('#pagefind-search-container');
         if (container) {
-            container.innerHTML = '<div style="text-align:center; padding: 2.5rem; color: var(--premier-charcoal); font-weight: 600;">Loading search engine...</div>';
+            container.innerHTML = '<div style="text-align:center; padding: 2.5rem; color: #3D3935; font-weight: 600;">Loading search engine...</div>';
         }
 
         // 1. Inject Pagefind UI CSS Stylesheet
