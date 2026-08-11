@@ -12,11 +12,9 @@ HEADERS = {
     "Accept": "application/json, text/plain, */*"
 }
 
-# Selective list of local PNW / Seattle broadcasts
 LOCAL_NETWORKS = ["FOX", "CBS", "NBC", "ESPN", "ROOT Sports", "ROOT Sports NW", "KING 5", "KONG", "93.3 KJR", "710 Seattle Sports", "NFL+"]
 
 def parse_local_broadcast(tv_listings):
-    """Filter TV listings down to a single local Seattle network name."""
     if not tv_listings or not isinstance(tv_listings, dict):
         return "Check Local Listings"
     
@@ -34,7 +32,7 @@ def parse_local_broadcast(tv_listings):
 def fetch_mlb_scores(session):
     url = "https://statsapi.mlb.com/api/v1/schedule?sportId=1,11,13&teamId=136,529,487,468"
     try:
-        res = session.get(url, timeout=10)
+        res = session.get(url, timeout=15)
         if res.status_code != 200:
             return []
         data = res.json()
@@ -55,7 +53,7 @@ def fetch_mlb_scores(session):
                     "away_team": away.get("team", {}).get("name"),
                     "away_score": away.get("score", 0),
                     "venue": g.get("venue", {}).get("name"),
-                    "ticket_link": f"https://www.mlb.com/tickets"
+                    "ticket_link": "https://www.mlb.com/tickets"
                 })
         return games
     except Exception as e:
@@ -65,7 +63,7 @@ def fetch_mlb_scores(session):
 def fetch_nhl_scores(session):
     url = "https://api-web.nhle.com/v1/score/now"
     try:
-        res = session.get(url, timeout=10)
+        res = session.get(url, timeout=15)
         if res.status_code != 200:
             return []
         data = res.json()
@@ -73,7 +71,6 @@ def fetch_nhl_scores(session):
         for g in data.get("games", []):
             away = g.get("awayTeam", {})
             home = g.get("homeTeam", {})
-            # Only pull if Kraken or active game
             if away.get("abbrev") == "SEA" or home.get("abbrev") == "SEA":
                 games.append({
                     "game_id": f"nhl-{g.get('id')}",
@@ -97,7 +94,7 @@ def fetch_nhl_scores(session):
 def fetch_thescore_events(session, sport_key):
     url = f"https://api.thescore.com/{sport_key}/events"
     try:
-        res = session.get(url, timeout=10)
+        res = session.get(url, timeout=15)
         if res.status_code != 200:
             return []
         events = res.json()
@@ -109,7 +106,6 @@ def fetch_thescore_events(session, sport_key):
             progress = box.get("progress") or {}
             scores = box.get("score") or {}
 
-            # Strip alerts, odds, extra logos, subscriber metrics
             games.append({
                 "game_id": f"{sport_key}-{ev.get('id')}",
                 "league": sport_key.upper(),
