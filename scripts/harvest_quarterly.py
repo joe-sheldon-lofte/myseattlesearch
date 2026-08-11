@@ -1,5 +1,3 @@
-# File: scripts/harvest_quarterly.py
-
 import os
 import sys
 import traceback
@@ -41,9 +39,7 @@ def main():
             from quarterly.harvest_king_subdivisions import harvest_king_subdivisions
             safe_task("1. King County New Construction Subdivisions", harvest_king_subdivisions)
         except ImportError as e:
-            print(f"❌ Could not import harvest_king_subdivisions.py: {e}\n")
-    else:
-        print("⏸️ [Quarterly Pipeline] Bypassing King Subdivisions (RUN_KING_SUBDIVISIONS = False)\n")
+            print(f"ℹ️ Optional module harvest_king_subdivisions.py skipped: {e}\n")
 
     # 2. Snohomish County Subdivisions
     if RUN_SNOHOMISH_SUBDIVISIONS:
@@ -51,9 +47,7 @@ def main():
             from quarterly.harvest_snohomish_subdivisions import harvest_snohomish_subdivisions
             safe_task("2. Snohomish County New Construction Subdivisions", harvest_snohomish_subdivisions)
         except ImportError as e:
-            print(f"❌ Could not import harvest_snohomish_subdivisions.py: {e}\n")
-    else:
-        print("⏸️ [Quarterly Pipeline] Bypassing Snohomish Subdivisions (RUN_SNOHOMISH_SUBDIVISIONS = False)\n")
+            print(f"ℹ️ Optional module harvest_snohomish_subdivisions.py skipped: {e}\n")
 
     # 3. King County Condos
     if RUN_KING_CONDOS:
@@ -61,9 +55,7 @@ def main():
             from quarterly.harvest_king_condos import harvest_king_condos
             safe_task("3. King County Condo Complexes", harvest_king_condos)
         except ImportError as e:
-            print(f"❌ Could not import harvest_king_condos.py: {e}\n")
-    else:
-        print("⏸️ [Quarterly Pipeline] Bypassing King Condos (RUN_KING_CONDOS = False)\n")
+            print(f"ℹ️ Optional module harvest_king_condos.py skipped: {e}\n")
 
     # 4. Snohomish County Condos
     if RUN_SNOHOMISH_CONDOS:
@@ -71,9 +63,7 @@ def main():
             from quarterly.harvest_snohomish_condos import harvest_snohomish_condos
             safe_task("4. Snohomish County Condo Complexes", harvest_snohomish_condos)
         except ImportError as e:
-            print(f"❌ Could not import harvest_snohomish_condos.py: {e}\n")
-    else:
-        print("⏸️ [Quarterly Pipeline] Bypassing Snohomish Condos (RUN_SNOHOMISH_CONDOS = False)\n")
+            print(f"ℹ️ Optional module harvest_snohomish_condos.py skipped: {e}\n")
 
     # 5. OSPI Master School Data Harvester
     if RUN_OSPI_SCHOOL_DATA:
@@ -83,7 +73,7 @@ def main():
         except ImportError as e:
             print(f"❌ Could not import harvest_ospi_school_data.py: {e}\n")
     else:
-        print("⏸️ [Quarterly Pipeline] Bypassing OSPI School Data (RUN_OSPI_SCHOOL_DATA = False)\n")
+        print("⏸️ Bypassing OSPI School Data (RUN_OSPI_SCHOOL_DATA = False)\n")
 
     # 6. School Boundaries Harvester
     if RUN_SCHOOL_BOUNDARIES:
@@ -93,7 +83,7 @@ def main():
         except ImportError as e:
             print(f"❌ Could not import harvest_school_boundaries.py: {e}\n")
     else:
-        print("⏸️ [Quarterly Pipeline] Bypassing School Boundaries (RUN_SCHOOL_BOUNDARIES = False)\n")
+        print("⏸️ Bypassing School Boundaries (RUN_SCHOOL_BOUNDARIES = False)\n")
 
     print("🎉 Quarterly harvester execution completed successfully!")
 
