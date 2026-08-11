@@ -590,21 +590,21 @@ class FloatingDock extends HTMLElement {
                         <!-- Mobile Only: Contact Drawer Trigger Pill -->
                         <button class="dock-pill-btn dock-btn-contact-main dock-mobile-only" id="dockContactTrigger" aria-label="Open Contact Options">
                             <svg viewBox="0 0 24 24" class="dock-svg-icon"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/></svg>
-                            <span>Contact</span>
+                            <span class="dock-btn-text">Contact</span>
                         </button>
                         
                         <!-- Desktop Only: Direct Action Pills (Text, Chat, Book) -->
                         <a href="sms:+12066577493" class="dock-pill-btn dock-desktop-only" aria-label="Text Joe via SMS">
                             <svg viewBox="0 0 24 24" class="dock-svg-icon"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9 11H7V9h2v2zm4 0h-2V9h2v2zm4 0h-2V9h2v2z"/></svg>
-                            <span>Text</span>
+                            <span class="dock-btn-text">Text</span>
                         </a>
                         <a href="/chat/" class="dock-pill-btn dock-desktop-only" aria-label="Live Chat with Joe">
                             <svg viewBox="0 0 24 24" class="dock-svg-icon"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm0 4h8v2H6v-2z"/></svg>
-                            <span>Chat</span>
+                            <span class="dock-btn-text">Chat</span>
                         </a>
                         <a href="/book/" class="dock-pill-btn dock-desktop-only" aria-label="Book Strategy Consultation">
                             <svg viewBox="0 0 24 24" class="dock-svg-icon"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
-                            <span>Book</span>
+                            <span class="dock-btn-text">Book</span>
                         </a>
                     </div>
 
@@ -612,8 +612,8 @@ class FloatingDock extends HTMLElement {
                     <div class="dock-right-actions">
                         <button class="dock-pill-btn dock-btn-search" id="dockSearchTrigger" aria-label="Open Site Search">
                             <svg viewBox="0 0 24 24" class="dock-svg-icon"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                            <span class="dock-search-label-desktop">Search MySeattleSearch...</span>
-                            <span class="dock-search-label-mobile">Search</span>
+                            <span class="dock-btn-text dock-search-label-desktop">Search site...</span>
+                            <span class="dock-btn-text dock-search-label-mobile">Search</span>
                         </button>
                     </div>
                 </div>

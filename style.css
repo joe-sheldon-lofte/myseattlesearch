@@ -2886,7 +2886,7 @@ oil-tank-evaluator {
     bottom: calc(1.25rem + env(safe-area-inset-bottom));
     left: 50%;
     transform: translateX(-50%);
-    z-index: 9999;
+    z-index: 999999 !important;
     width: min(92%, 620px);
     pointer-events: none;
 }
@@ -2924,52 +2924,60 @@ oil-tank-evaluator {
     justify-content: flex-end;
 }
 
+/* Explicit Charcoal Contrast Rules to Override Footer Inheritances */
+footer .dock-pill-btn,
+footer .dock-pill-btn span,
+footer .dock-pill-btn .dock-btn-text,
+.dock-pill-btn,
+.dock-pill-btn span,
+.dock-btn-text {
+    color: var(--premier-charcoal) !important;
+    text-decoration: none !important;
+}
+
 .dock-pill-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.4rem;
-    background: var(--white);
-    color: var(--premier-charcoal) !important;
-    border: 1px solid var(--glass-dark-border);
+    background: var(--white) !important;
+    border: 1px solid var(--glass-dark-border) !important;
     padding: 0.45rem 0.95rem;
     border-radius: 9999px;
     font-size: 0.88rem;
     font-weight: 500;
     letter-spacing: -0.01em;
-    text-decoration: none;
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
 }
 
 .dock-pill-btn:hover {
-    background: var(--premier-beige);
-    border-color: rgba(61, 57, 53, 0.25);
-    color: var(--premier-charcoal) !important;
+    background: var(--premier-beige) !important;
+    border-color: rgba(61, 57, 53, 0.25) !important;
 }
 
 .dock-btn-search {
     width: 100%;
     justify-content: flex-start;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.9) !important;
 }
 
 .dock-svg-icon {
     width: 16px;
     height: 16px;
-    fill: var(--premier-charcoal);
+    fill: var(--premier-charcoal) !important;
     flex-shrink: 0;
 }
 
-.dock-search-label-desktop { display: inline; color: var(--premier-charcoal) !important; }
-.dock-search-label-mobile { display: none; color: var(--premier-charcoal) !important; }
+.dock-search-label-desktop { display: inline; }
+.dock-search-label-mobile { display: none; }
 .dock-desktop-only { display: inline-flex; }
 .dock-mobile-only { display: none; }
 
 @media (max-width: 767px) {
-    .dock-search-label-desktop { display: none; }
-    .dock-search-label-mobile { display: inline; }
+    .dock-search-label-desktop { display: none !important; }
+    .dock-search-label-mobile { display: inline !important; }
     .dock-desktop-only { display: none !important; }
     .dock-mobile-only { display: inline-flex !important; }
     
@@ -2986,7 +2994,7 @@ oil-tank-evaluator {
     background: rgba(0, 0, 0, 0.35);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    z-index: 10000;
+    z-index: 1000000;
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
@@ -3032,26 +3040,26 @@ oil-tank-evaluator {
 
 .dock-sheet-close,
 .dock-modal-close {
-    background: rgba(61, 57, 53, 0.08);
-    border: none;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    font-size: 1rem;
-    font-weight: 400;
+    background: rgba(61, 57, 53, 0.08) !important;
+    border: none !important;
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 50% !important;
+    font-size: 1rem !important;
+    font-weight: 400 !important;
     cursor: pointer;
     color: var(--premier-charcoal) !important;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    padding: 0;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+    padding: 0 !important;
     transition: background 0.2s ease;
 }
 
 .dock-sheet-close:hover,
 .dock-modal-close:hover {
-    background: rgba(61, 57, 53, 0.15);
+    background: rgba(61, 57, 53, 0.15) !important;
 }
 
 .dock-sheet-links {
@@ -3065,10 +3073,10 @@ oil-tank-evaluator {
     align-items: center;
     gap: 1rem;
     background: var(--featured-highlight) !important;
-    border: 1px solid var(--glass-dark-border);
+    border: 1px solid var(--glass-dark-border) !important;
     padding: 0.85rem 1.15rem;
     border-radius: 16px;
-    text-decoration: none;
+    text-decoration: none !important;
     color: var(--premier-charcoal) !important;
     transition: background 0.2s ease;
 }
@@ -3103,7 +3111,7 @@ oil-tank-evaluator {
     background: rgba(0, 0, 0, 0.35);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    z-index: 10000;
+    z-index: 1000000;
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
@@ -3146,7 +3154,7 @@ oil-tank-evaluator {
 #pagefind-search-container .pagefind-ui__search-input {
     color: var(--premier-charcoal) !important;
     background-color: var(--white) !important;
-    border: 1px solid var(--glass-dark-border) !important;
+    border: 1.5px solid var(--premier-charcoal) !important;
     border-radius: 12px !important;
     font-size: 0.95rem !important;
     font-weight: 500 !important;
@@ -3154,8 +3162,9 @@ oil-tank-evaluator {
 }
 
 #pagefind-search-container .pagefind-ui__search-input::placeholder {
-    color: rgba(61, 57, 53, 0.5) !important;
-    font-weight: 400 !important;
+    color: #666666 !important;
+    font-weight: 500 !important;
+    opacity: 1 !important;
 }
 
 #pagefind-search-container .pagefind-ui__result-title a {
