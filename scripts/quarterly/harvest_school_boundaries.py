@@ -18,7 +18,9 @@ OUTPUT_BOUNDARIES_JSON = os.path.join(DATA_DIR, "school_boundaries.json")
 
 HTTP_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept": "application/json"
+    "Accept": "application/json, text/plain, */*",
+    "Referer": "https://gisdata.seattle.gov/",
+    "Origin": "https://gisdata.seattle.gov"
 }
 
 # --- TIER 1 GIS CATCHMENT ENDPOINTS ---
@@ -26,26 +28,26 @@ SEATTLE_CATCHMENT_ENDPOINTS = [
     {
         "grade_level": "Elementary",
         "urls": [
-            "https://services.arcgis.com/ZOyb2R4BAY3knLwq/arcgis/rest/services/Elementary_School_Attendance_Areas/FeatureServer/0/query",
-            "https://gisdata.seattle.gov/server/rest/services/SPS/AttendanceAreas/MapServer/0/query"
+            "https://gisdata.seattle.gov/server/rest/services/SPS/AttendanceAreas/MapServer/0/query",
+            "https://services.arcgis.com/ZOyb2R4BAY3knLwq/arcgis/rest/services/Elementary_School_Attendance_Areas/FeatureServer/0/query"
         ],
-        "name_fields": ["ES_ZONE", "SCHOOL", "ES_NAME", "NAME", "SPS_NAME", "SPS_ES"]
+        "name_fields": ["SPS_ES", "ES_ZONE", "SCHOOL", "ES_NAME", "NAME", "SPS_NAME"]
     },
     {
         "grade_level": "Middle",
         "urls": [
-            "https://services.arcgis.com/ZOyb2R4BAY3knLwq/arcgis/rest/services/Middle_School_Attendance_Areas/FeatureServer/0/query",
-            "https://gisdata.seattle.gov/server/rest/services/SPS/AttendanceAreas/MapServer/1/query"
+            "https://gisdata.seattle.gov/server/rest/services/SPS/AttendanceAreas/MapServer/1/query",
+            "https://services.arcgis.com/ZOyb2R4BAY3knLwq/arcgis/rest/services/Middle_School_Attendance_Areas/FeatureServer/0/query"
         ],
-        "name_fields": ["MS_ZONE", "SCHOOL", "MS_NAME", "NAME", "SPS_NAME", "SPS_MS"]
+        "name_fields": ["SPS_MS", "MS_ZONE", "SCHOOL", "MS_NAME", "NAME", "SPS_NAME"]
     },
     {
         "grade_level": "High",
         "urls": [
-            "https://services.arcgis.com/ZOyb2R4BAY3knLwq/arcgis/rest/services/High_School_Attendance_Areas/FeatureServer/0/query",
-            "https://gisdata.seattle.gov/server/rest/services/SPS/AttendanceAreas/MapServer/2/query"
+            "https://gisdata.seattle.gov/server/rest/services/SPS/AttendanceAreas/MapServer/2/query",
+            "https://services.arcgis.com/ZOyb2R4BAY3knLwq/arcgis/rest/services/High_School_Attendance_Areas/FeatureServer/0/query"
         ],
-        "name_fields": ["HS_ZONE", "SCHOOL", "HS_NAME", "NAME", "SPS_NAME", "SPS_HS"]
+        "name_fields": ["SPS_HS", "HS_ZONE", "SCHOOL", "HS_NAME", "NAME", "SPS_NAME"]
     }
 ]
 
@@ -55,21 +57,21 @@ BELLEVUE_CATCHMENT_ENDPOINTS = [
         "urls": [
             "https://gis.bellevuewa.gov/arcgis/rest/services/Public/SchoolBoundaries/MapServer/0/query"
         ],
-        "name_fields": ["NAME", "SCHOOL_NAME", "SCHNAME", "ATTENDANCE"]
+        "name_fields": ["NAME", "SCHOOL_NAME", "SCHNAME", "ATTENDANCE", "SCHOOL"]
     },
     {
         "grade_level": "Middle",
         "urls": [
             "https://gis.bellevuewa.gov/arcgis/rest/services/Public/SchoolBoundaries/MapServer/1/query"
         ],
-        "name_fields": ["NAME", "SCHOOL_NAME", "SCHNAME", "ATTENDANCE"]
+        "name_fields": ["NAME", "SCHOOL_NAME", "SCHNAME", "ATTENDANCE", "SCHOOL"]
     },
     {
         "grade_level": "High",
         "urls": [
             "https://gis.bellevuewa.gov/arcgis/rest/services/Public/SchoolBoundaries/MapServer/2/query"
         ],
-        "name_fields": ["NAME", "SCHOOL_NAME", "SCHNAME", "ATTENDANCE"]
+        "name_fields": ["NAME", "SCHOOL_NAME", "SCHNAME", "ATTENDANCE", "SCHOOL"]
     }
 ]
 
@@ -116,7 +118,7 @@ def normalize_name(text):
     if not text:
         return ""
     s = text.lower().strip()
-    s = re.sub(r"\b(hs|es|ms)\b", "", s)
+    s = re.sub(r"\b(hs|es|ms|elem|middle|high)\b", "", s)
     s = re.sub(r"[^\w\s]", "", s)
     s = re.sub(r"\b(school|district|no|1|63|public|elementary|middle|high|k8|k5|k12|senior)\b", "", s)
     return re.sub(r"\s+", " ", s).strip()
@@ -182,43 +184,25 @@ def extract_property(props, keys):
 
 def fetch_gis_features(url):
     """
-    Queries an Esri ArcGIS REST endpoint with fallback support for both GeoJSON (FeatureServer)
-    and Esri JSON (MapServer) formats.
+    Queries an Esri ArcGIS REST endpoint using standard Esri JSON (f=json)
+    and converts rings geometry directly into GeoJSON polygons.
     """
-    # 1. Try native GeoJSON request
-    params_geojson = {
+    params = {
         "where": "1=1",
         "outFields": "*",
         "outSR": "4326",
-        "f": "geojson"
-    }
-
-    try:
-        resp = requests.get(url, headers=HTTP_HEADERS, params=params_geojson, timeout=20, verify=False)
-        if resp.status_code == 200:
-            data = resp.json()
-            features = data.get("features", [])
-            if features and "geometry" in features[0] and "type" in features[0]["geometry"]:
-                return features
-    except Exception:
-        pass
-
-    # 2. Fallback to Esri JSON (MapServer compatibility)
-    params_esri = {
-        "where": "1=1",
-        "outFields": "*",
-        "outSR": "4326",
+        "returnGeometry": "true",
         "f": "json"
     }
 
     try:
-        resp = requests.get(url, headers=HTTP_HEADERS, params=params_esri, timeout=20, verify=False)
+        resp = requests.get(url, headers=HTTP_HEADERS, params=params, timeout=25, verify=False)
         if resp.status_code == 200:
             data = resp.json()
-            features = data.get("features", [])
+            raw_features = data.get("features", [])
             converted_features = []
 
-            for f in features:
+            for f in raw_features:
                 attrs = f.get("attributes", {})
                 geom = f.get("geometry", {})
                 rings = geom.get("rings", [])
@@ -239,8 +223,8 @@ def fetch_gis_features(url):
                 })
 
             return converted_features
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"  ⚠️ Esri fetch exception on {url}: {e}")
 
     return []
 
@@ -359,7 +343,7 @@ def harvest_district_polygons(schools_by_name):
 
 def main():
     print("==================================================")
-    print("   OSPI HYBRID SCHOOL BOUNDARY HARVESTER (V2.1)   ")
+    print("   OSPI HYBRID SCHOOL BOUNDARY HARVESTER (V2.4)   ")
     print("==================================================\n")
 
     os.makedirs(DATA_DIR, exist_ok=True)

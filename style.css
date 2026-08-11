@@ -1,3 +1,4 @@
+/* File: style.css */
 /* Color Palette */
 :root {
     /* Master Baseline Color Palettes */
@@ -441,6 +442,7 @@ live-banner {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center;
 }
 
 .name {
@@ -761,6 +763,7 @@ live-banner {
     aspect-ratio: 1 / 1;
     border-radius: 50%;
     object-fit: cover;
+    object-position: center;
     margin-bottom: 1rem;
     border: 3px solid var(--premier-beige);
 }
@@ -2884,7 +2887,9 @@ oil-tank-evaluator {
     bottom: 1.25rem;
     bottom: calc(1.25rem + env(safe-area-inset-bottom));
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate3d(-50%, 0, 0) !important;
+    -webkit-transform: translate3d(-50%, 0, 0) !important;
+    will-change: transform;
     z-index: 999999 !important;
     width: min(92%, 620px);
     pointer-events: none;
@@ -3162,7 +3167,7 @@ footer .dock-pill-btn .dock-btn-text,
     border-radius: 12px !important;
     font-size: 0.95rem !important;
     font-weight: 500 !important;
-    padding: 0.75rem 4rem 0.75rem 2.5rem !important;
+    padding: 0.75rem 4.5rem 0.75rem 2.5rem !important;
     box-shadow: none !important;
 }
 
@@ -3172,11 +3177,11 @@ footer .dock-pill-btn .dock-btn-text,
     opacity: 1 !important;
 }
 
-/* Pagefind Clear Button Reset */
+/* Pagefind Clear Button Absolute Lock to Input Header */
 #pagefind-search-container .pagefind-ui__search-clear {
     position: absolute !important;
-    top: 50% !important;
-    right: 12px !important;
+    top: 23px !important;
+    right: 14px !important;
     transform: translateY(-50%) !important;
     background: transparent !important;
     border: none !important;
@@ -3188,6 +3193,7 @@ footer .dock-pill-btn .dock-btn-text,
     height: auto !important;
     cursor: pointer !important;
     box-shadow: none !important;
+    z-index: 10 !important;
 }
 
 #pagefind-search-container .pagefind-ui__result-title a {
