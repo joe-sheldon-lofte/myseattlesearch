@@ -6,31 +6,38 @@ on:
     - cron: '0 0 1 1,4,7,10 *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-and-update:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repo Code
-      uses: actions/checkout@v4
+      - name: Checkout Repo Code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-    - name: Install Script Dependencies
-      run: |
-        pip install requests python-dateutil
+      - name: Install Script Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests urllib3 python-dateutil
 
-    - name: Execute Quarterly Data Pipeline
-      run: python scripts/harvest_quarterly.py
+      - name: Execute Quarterly Data Pipeline
+        run: python scripts/harvest_quarterly.py
 
-    - name: Commit and Push Updated Datasets
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git add data/
-        git diff-index --quiet HEAD || git commit -m "Automated quarterly condo & new subdivision dataset synchronization"
-        git pull --rebase origin main
-        git push
+      - name: Commit and Push Updated Datasets
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --staged --quiet; then
+            echo "No quarterly data changes detected. Skipping commit."
+          else
+            git commit -m "chore(data): automated quarterly school assessment & spatial boundaries sync [skip ci]"
+            git push
+          fi
