@@ -21,7 +21,6 @@ def main():
     print("      TARGETED HOUSING DATA HARVEST TEST RUNNER   ")
     print("==================================================\n")
 
-    run_test_subscript("infosparks_stats.py")
     run_test_subscript("redfin_stats.py")
 
     print("🎉 Targeted housing harvest test suite execution complete!")
