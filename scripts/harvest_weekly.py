@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import sys
 import urllib.request
 import urllib.parse
 import traceback
@@ -323,7 +324,6 @@ def harvest_building_permits():
 
     permits_by_city = {c["slug"]: {"name": c["name"], "permits": []} for c in cities}
 
-    # Ingest Seattle Socrata Permits
     seattle_url = "https://data.seattle.gov/resource/76t5-zqzr.json?$limit=100&$order=issueddate%20DESC"
     s_permits = http_get_json_simple(seattle_url, timeout=20)
     if s_permits and isinstance(s_permits, list) and "seattle" in permits_by_city:
@@ -362,6 +362,17 @@ def harvest_building_permits():
         json.dump(output, f, indent=2, ensure_ascii=False)
     print(f"💾 Saved building permit entries to {PERMITS_PATH}")
 
+# --- SUB-TASK 10: SPORTS WEEKLY METADATA & LOGO PIPELINE ---
+def harvest_sports_weekly():
+    print("⚽ Executing Sports Weekly Metadata & Logo Harvester...")
+    script_path = os.path.join(BASE_DIR, "scripts", "weekly", "sports_weekly.py")
+    if os.path.exists(script_path):
+        exit_code = os.system(f"{sys.executable} {script_path}")
+        if exit_code != 0:
+            print(f"⚠️ sports_weekly.py exited with status code {exit_code}")
+    else:
+        print(f"⚠️ Weekly sports script not found at {script_path}")
+
 # --- MASTER EXECUTION ROUTINE ---
 def main():
     print("==================================================")
@@ -377,6 +388,7 @@ def main():
     safe_task("7. Down Payment Assistance Directories", harvest_dpa_programs)
     safe_task("8. Live Yelp Fusion Local Business Spotlights", harvest_yelp_businesses)
     safe_task("9. Municipal Building Permits", harvest_building_permits)
+    safe_task("10. Sports Weekly Metadata & Logo Sync", harvest_sports_weekly)
 
     print("🎉 All weekly data harvest tasks completed successfully!")
 

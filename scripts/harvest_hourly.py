@@ -241,7 +241,6 @@ def load_city_data():
         except (ValueError, TypeError):
             lat_float, lon_float = None, None
 
-        # Population Hierarchy: 1. crime_stats.json -> 2. city_data.json FallbackPopulation -> 3. Error Flag 1
         population = pop_map.get(slug)
         if not population:
             for k in ["FallbackPopulation", "fallback_population", "fallbackpopulation"]:
@@ -252,7 +251,7 @@ def load_city_data():
                     except (ValueError, TypeError):
                         pass
         if not population or population <= 0:
-            population = 1  # Distinguishable error flag if population fails to resolve
+            population = 1
 
         normalized.append({
             "slug": slug,
@@ -307,7 +306,6 @@ def harvest_commute_and_tolls(toll_schedules_from_sheet=None):
     travel_times_data = []
 
     if wsdot_code:
-        # Ingest active trip rates from WSDOT GetTollTripRatesAsJson
         tolls_url = f"https://wsdot.wa.gov/Traffic/api/TollRates/TollRatesREST.svc/GetTollTripRatesAsJson?AccessCode={wsdot_code}"
         res_tolls = http_get_json_simple(tolls_url)
         
@@ -353,7 +351,6 @@ def harvest_commute_and_tolls(toll_schedules_from_sheet=None):
 
         tolls_data = list(facility_rate_map.values())
 
-        # Ingest WSDOT Corridor Travel Times
         tt_url = f"https://wsdot.wa.gov/Traffic/api/TravelTimes/TravelTimesREST.svc/GetTravelTimesAsJson?AccessCode={wsdot_code}"
         raw_tt = http_get_json_simple(tt_url)
         if raw_tt and isinstance(raw_tt, list):
@@ -377,7 +374,6 @@ def harvest_commute_and_tolls(toll_schedules_from_sheet=None):
                     "status": "Free Flowing" if friction_score <= 15 else ("Moderate Delay" if friction_score <= 40 else "Heavy Congestion")
                 })
 
-    # Preserve or set static rate schedules from Google Sheet TollData tab
     static_schedules = toll_schedules_from_sheet if toll_schedules_from_sheet else []
     if not static_schedules and os.path.exists(COMMUTE_TOLLS_PATH):
         try:
@@ -400,7 +396,6 @@ def harvest_commute_and_tolls(toll_schedules_from_sheet=None):
     print(f"   ✅ Commute corridors ({len(travel_times_data)}) & Live Tolls ({len(tolls_data)}) fresh.")
 
 def load_sheets_admin_config_local():
-    """Reads local data/city_feeds.json and data/transit_data.json backups."""
     config = {"feeds": {}, "transit_rules": {}}
 
     if os.path.exists(CITY_FEEDS_PATH):
@@ -609,7 +604,6 @@ def harvest_transit_radar(cities, city_boundaries, sheets_config):
         json.dump(live_output, f, indent=2, ensure_ascii=False)
     print(f"   ✅ Tracked {total_vehicles} active vehicles. transit_radar_live.json fresh.")
 
-    # 168-Hour Rolling Historical Archive Engine
     print("📈 Processing 168-Hour Rolling Historical Archive (transit_radar_history.json)...")
     slot_dt = now_utc.replace(minute=0, second=0, microsecond=0)
     slot_iso = slot_dt.isoformat()
@@ -741,6 +735,17 @@ def harvest_intercity_summary():
     with open(INTERCITY_SUMMARY_PATH, "w", encoding="utf-8") as f:
         json.dump(intercity, f, indent=2, ensure_ascii=False)
     print("   ✅ Intercity Regional Summary (intercity_summary.json) fresh.")
+
+# --- SUB-TASK: HOURLY SPORTS SCOREBOARD HARVESTER ---
+def harvest_sports_hourly():
+    print("⚡ Executing Hourly Sports Scoreboard Harvester...")
+    script_path = os.path.join(BASE_DIR, "scripts", "hourly", "sports_hourly.py")
+    if os.path.exists(script_path):
+        exit_code = os.system(f"{sys.executable} {script_path}")
+        if exit_code != 0:
+            print(f"⚠️ sports_hourly.py exited with status code {exit_code}")
+    else:
+        print(f"⚠️ Hourly sports script not found at {script_path}")
 
 def get_col_letter(col_idx):
     result = ""
@@ -1099,6 +1104,14 @@ def main():
     except Exception as e:
         print(f"   ❌ Intercity summary harvest error: {e}")
 
+    # --------------------------------------------------------------------
+    # MODULE 0C: HOURLY SPORTS SCOREBOARD HARVESTER
+    # --------------------------------------------------------------------
+    try:
+        harvest_sports_hourly()
+    except Exception as e:
+        print(f"   ❌ Hourly Sports Scoreboard Harvester Error: {e}")
+
     creds_path = "credentials.json"
     if not os.path.exists(creds_path):
         print("❌ Core Error: credentials.json identity file is missing from root path.")
@@ -1184,12 +1197,10 @@ def main():
                 headers = [str(h).strip() for h in rows[0]]
                 parsed_city_data = parse_sheet_values(rows)
 
-                # Synchronize local city_data.json
                 with open(CITY_DATA_PATH, "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(parsed_city_data), f, indent=2, ensure_ascii=False)
                 print(f"   ✅ Synchronized {len(parsed_city_data)} cities into data/city_data.json.")
 
-                # Locate EditorialStatus column index dynamically for writebacks
                 col_status_idx = -1
                 for candidate in ["EditorialStatus", "Editorial Status", "Editorial_Status"]:
                     if candidate in headers:
@@ -1209,7 +1220,6 @@ def main():
                     doc_url = record.get("Editorial", "").strip()
                     status = (record.get("EditorialStatus", "") or record.get("Editorial Status", "") or record.get("Editorial_Status", "")).strip()
 
-                    # Ingest pending editorial Google Doc
                     if doc_url and is_google_drive_link(doc_url) and status.lower() == "pending":
                         print(f"   ✍️ Downloading pending editorial Google Doc for {city_name} ({slug})...")
                         md_content = get_google_doc_as_markdown(docs_service, doc_url)
@@ -1220,7 +1230,6 @@ def main():
                                 f_md.write(md_content)
                             print(f"   ✅ Saved editorial Markdown for {city_name} -> data/editorials/{slug}.md")
 
-                            # Queue writeback to Google Sheet setting EditorialStatus to "Complete"
                             if col_status_idx != -1:
                                 cell_range = f"CityData!{get_col_letter(col_status_idx)}{row_num}"
                                 batch_sheet_writebacks[city_sheet_id].append({
@@ -1249,17 +1258,14 @@ def main():
             if web_sheet_id not in batch_sheet_writebacks:
                 batch_sheet_writebacks[web_sheet_id] = []
 
-            # Ingest static toll rate schedules directly from TollData tab
             toll_rows = tabs_data.get("TollData", {}).get('values', [])
             parsed_toll_schedules = parse_sheet_values(toll_rows) if toll_rows else []
             
-            # Execute commute corridors and live tolls harvester with dynamic TollData schedule
             try:
                 harvest_commute_and_tolls(parsed_toll_schedules)
             except Exception as e:
                 print(f"   ❌ Commute & Tolls Harvester Error: {e}")
 
-            # A. Process Team roster profiles
             team_rows = tabs_data.get("Team", {}).get('values', [])
             if team_rows:
                 headers = [h.strip() for h in team_rows[0]]
@@ -1293,21 +1299,18 @@ def main():
                 with open(os.path.join(data_dir, "team.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(compiled_team), f, indent=2, ensure_ascii=False)
 
-            # B. Process Personal Stats Row
             stats_rows = tabs_data.get("Stats", {}).get('values', [])
             if stats_rows:
                 records = parse_sheet_values(stats_rows)
                 with open(os.path.join(data_dir, "stats.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records[0] if records else {}), f, indent=2, ensure_ascii=False)
 
-            # C. Process Page Disclaimers
             disc_rows = tabs_data.get("Disclaimers", {}).get('values', [])
             if disc_rows:
                 disc_map = {r[0].strip(): r[1].strip() for r in disc_rows[1:] if len(r) >= 2 and r[0].strip()}
                 with open(os.path.join(data_dir, "disclaimers.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(disc_map), f, indent=2, ensure_ascii=False)
 
-            # D. Process Events tab
             event_rows = tabs_data.get("Events", {}).get('values', [])
             if event_rows:
                 headers = [h.strip() for h in event_rows[0]]
@@ -1355,49 +1358,42 @@ def main():
                 with open(os.path.join(data_dir, "events.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(compiled_events), f, indent=2, ensure_ascii=False)
 
-            # E. Process Celebrations
             cel_rows = tabs_data.get("Celebrations", {}).get('values', [])
             if cel_rows:
                 records = parse_sheet_values(cel_rows)
                 with open(os.path.join(data_dir, "celebrations.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
-            # F. Process DPA Programs
             dpa_rows = tabs_data.get("DPA", {}).get('values', [])
             if dpa_rows:
                 records = parse_sheet_values(dpa_rows)
                 with open(os.path.join(data_dir, "dpa_programs.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
-            # G. Process Professionals
             prof_rows = tabs_data.get("Professionals", {}).get('values', [])
             if prof_rows:
                 records = parse_sheet_values(prof_rows)
                 with open(os.path.join(data_dir, "professionals.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
-            # H. Process Reviews
             rev_rows = tabs_data.get("Reviews", {}).get('values', [])
             if rev_rows:
                 records = parse_sheet_values(rev_rows)
                 with open(os.path.join(data_dir, "reviews.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
-            # I. Process ThirdPartyPrograms
             tpp_rows = tabs_data.get("ThirdPartyPrograms", {}).get('values', [])
             if tpp_rows:
                 records = parse_sheet_values(tpp_rows)
                 with open(os.path.join(data_dir, "thirdpartyprograms.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
-            # J. Process News
             news_rows = tabs_data.get("News", {}).get('values', [])
             if news_rows:
                 records = parse_sheet_values(news_rows)
                 with open(os.path.join(data_dir, "news.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(records), f, indent=2, ensure_ascii=False)
 
-            # K. Process Sales Tab
             sales_rows = tabs_data.get("Sales", {}).get('values', [])
             if sales_rows:
                 headers = [h.strip() for h in sales_rows[0]]
@@ -1461,7 +1457,6 @@ def main():
                 with open(os.path.join(data_dir, "sales.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(compiled_sales), f, indent=4, ensure_ascii=False)
 
-            # L. Process Live_Archive Tab
             archive_rows = tabs_data.get("Live_Archive", {}).get('values', [])
             if archive_rows:
                 headers = [h.strip() for h in archive_rows[0]]
@@ -1505,7 +1500,6 @@ def main():
                 with open(os.path.join(data_dir, "live_archive.json"), "w", encoding="utf-8") as f:
                     json.dump(clean_nan_tokens(compiled_archive), f, indent=2, ensure_ascii=False)
 
-            # M. Process Uploads Tab
             uploads_rows = tabs_data.get("Uploads", {}).get('values', [])
             if uploads_rows and s3_client:
                 headers = [h.strip() for h in uploads_rows[0]]
@@ -1643,7 +1637,6 @@ def main():
                             except Exception as fe:
                                 print(f"   ❌ Document asset ingestion failed for row {row_num}: {fe}")
 
-            # N. Process Sports Tab
             sports_rows = tabs_data.get("Sports", {}).get('values', [])
             if sports_rows:
                 records = parse_sheet_values(sports_rows)
