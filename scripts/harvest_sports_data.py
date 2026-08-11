@@ -3,12 +3,21 @@ import json
 import requests
 from datetime import datetime, timezone
 
-# Headers to prevent requests from being blocked by anti-bot rules
+# Comprehensive browser headers to bypass CDN/Akamai blocks on cloud runners
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.espn.com/",
+    "Origin": "https://www.espn.com",
+    "Sec-Ch-Ua": '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+    "Sec-Ch-Ua-Mobile": "?0",
+    "Sec-Ch-Ua-Platform": '"Windows"',
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-site"
 }
 
-# Endpoints mapping covering all leagues, minor leagues, and college sports
 ENDPOINTS = {
     "pro_sports": {
         "nfl": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
@@ -35,22 +44,29 @@ ENDPOINTS = {
     }
 }
 
-def fetch_feed(url: str) -> dict:
-    """Helper function to safely fetch JSON data from a feed endpoint."""
+def fetch_feed(session: requests.Session, url: str) -> dict:
+    """Safely fetch and parse endpoint responses with fallback error handling."""
     try:
-        response = requests.get(url, headers=HEADERS, timeout=10)
+        response = session.get(url, timeout=15)
         response.raise_for_status()
+
+        # Check for empty response body before attempting JSON parsing
+        text = response.text.strip()
+        if not text:
+            return {"status": "error", "message": "Server returned an empty body", "url": url}
+
         return response.json()
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": str(e),
-            "url": url
-        }
+
+    except requests.exceptions.HTTPError as err:
+        return {"status": "error", "message": f"HTTP Error: {err}", "url": url}
+    except json.JSONDecodeError:
+        return {"status": "error", "message": "Failed to decode JSON (non-JSON payload returned)", "url": url}
+    except Exception as err:
+        return {"status": "error", "message": str(err), "url": url}
 
 def main():
-    print("Starting sports data fetch...")
-    
+    print("Starting sports data harvest...")
+
     output_data = {
         "metadata": {
             "last_updated_utc": datetime.now(timezone.utc).isoformat(),
@@ -61,23 +77,25 @@ def main():
         "college_sports": {}
     }
 
-    # Iterate through categories and pull raw responses
+    # Use a persistent session to retain headers across calls
+    session = requests.Session()
+    session.headers.update(HEADERS)
+
     for category, feeds in ENDPOINTS.items():
         print(f"Fetching {category}...")
         for key, url in feeds.items():
             print(f"  - Pulling {key}...")
-            output_data[category][key] = fetch_feed(url)
+            output_data[category][key] = fetch_feed(session, url)
 
-    # Ensure output directory exists
+    # Ensure output target directory exists
     output_dir = "data"
     os.makedirs(output_dir, exist_ok=True)
     file_path = os.path.join(output_dir, "sports_data.json")
 
-    # Save to JSON file
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(output_data, f, indent=2)
 
-    print(f"Successfully saved all sports data to {file_path}")
+    print(f"Harvest complete! Output saved to {file_path}")
 
 if __name__ == "__main__":
     main()
