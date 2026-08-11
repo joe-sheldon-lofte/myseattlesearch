@@ -29,7 +29,8 @@ SEATTLE_CATCHMENT_ENDPOINTS = [
         "grade_level": "Elementary",
         "urls": [
             "https://services2.arcgis.com/I7NQBinfvOmxQbXs/arcgis/rest/services/sps_attendance_area_ES_2023_2024/FeatureServer/0/query",
-            "https://gisdata.seattle.gov/server/rest/services/SPS/AttendanceAreas/MapServer/0/query"
+            "https://gisdata.seattle.gov/server/rest/services/SPS/AttendanceAreas/MapServer/0/query",
+            "https://services.arcgis.com/ZOyb2R4BAY3knLwq/arcgis/rest/services/Elementary_School_Attendance_Areas/FeatureServer/0/query"
         ],
         "name_fields": ["SPS_ES", "ES_ZONE", "SCHOOL", "ES_NAME", "NAME", "SPS_NAME", "SPS_SCHNAM", "SCHOOL_NAME"]
     },
@@ -37,7 +38,8 @@ SEATTLE_CATCHMENT_ENDPOINTS = [
         "grade_level": "Middle",
         "urls": [
             "https://services2.arcgis.com/I7NQBinfvOmxQbXs/arcgis/rest/services/sps_attendance_area_MS_2023_2024/FeatureServer/0/query",
-            "https://gisdata.seattle.gov/server/rest/services/SPS/AttendanceAreas/MapServer/1/query"
+            "https://gisdata.seattle.gov/server/rest/services/SPS/AttendanceAreas/MapServer/1/query",
+            "https://services.arcgis.com/ZOyb2R4BAY3knLwq/arcgis/rest/services/Middle_School_Attendance_Areas/FeatureServer/0/query"
         ],
         "name_fields": ["SPS_MS", "MS_ZONE", "SCHOOL", "MS_NAME", "NAME", "SPS_NAME", "SPS_SCHNAM", "SCHOOL_NAME"]
     },
@@ -45,7 +47,8 @@ SEATTLE_CATCHMENT_ENDPOINTS = [
         "grade_level": "High",
         "urls": [
             "https://services2.arcgis.com/I7NQBinfvOmxQbXs/arcgis/rest/services/sps_attendance_area_HS_2023_2024/FeatureServer/0/query",
-            "https://gisdata.seattle.gov/server/rest/services/SPS/AttendanceAreas/MapServer/2/query"
+            "https://gisdata.seattle.gov/server/rest/services/SPS/AttendanceAreas/MapServer/2/query",
+            "https://services.arcgis.com/ZOyb2R4BAY3knLwq/arcgis/rest/services/High_School_Attendance_Areas/FeatureServer/0/query"
         ],
         "name_fields": ["SPS_HS", "HS_ZONE", "SCHOOL", "HS_NAME", "NAME", "SPS_NAME", "SPS_SCHNAM", "SCHOOL_NAME"]
     }
@@ -55,21 +58,24 @@ BELLEVUE_CATCHMENT_ENDPOINTS = [
     {
         "grade_level": "Elementary",
         "urls": [
-            "https://services1.arcgis.com/EYzEZbDhXZjURPbP/arcgis/rest/services/Attendance_Areas_Elementary_School/FeatureServer/0/query"
+            "https://services1.arcgis.com/EYzEZbDhXZjURPbP/arcgis/rest/services/Attendance_Areas_Elementary_School/FeatureServer/0/query",
+            "https://gis.bellevuewa.gov/arcgis/rest/services/Public/SchoolBoundaries/MapServer/0/query"
         ],
         "name_fields": ["NAME", "SCHOOL_NAME", "SCHNAME", "ATTENDANCE", "SCHOOL"]
     },
     {
         "grade_level": "Middle",
         "urls": [
-            "https://services1.arcgis.com/EYzEZbDhXZjURPbP/arcgis/rest/services/Attendance_Areas_Middle_School/FeatureServer/0/query"
+            "https://services1.arcgis.com/EYzEZbDhXZjURPbP/arcgis/rest/services/Attendance_Areas_Middle_School/FeatureServer/0/query",
+            "https://gis.bellevuewa.gov/arcgis/rest/services/Public/SchoolBoundaries/MapServer/1/query"
         ],
         "name_fields": ["NAME", "SCHOOL_NAME", "SCHNAME", "ATTENDANCE", "SCHOOL"]
     },
     {
         "grade_level": "High",
         "urls": [
-            "https://services1.arcgis.com/EYzEZbDhXZjURPbP/arcgis/rest/services/Attendance_Areas_High_School/FeatureServer/0/query"
+            "https://services1.arcgis.com/EYzEZbDhXZjURPbP/arcgis/rest/services/Attendance_Areas_High_School/FeatureServer/0/query",
+            "https://gis.bellevuewa.gov/arcgis/rest/services/Public/SchoolBoundaries/MapServer/2/query"
         ],
         "name_fields": ["NAME", "SCHOOL_NAME", "SCHNAME", "ATTENDANCE", "SCHOOL"]
     }
@@ -118,7 +124,7 @@ def normalize_name(text):
     if not text:
         return ""
     s = text.lower().strip()
-    s = re.sub(r"\b(hs|es|ms|elem|middle|high)\b", "", s)
+    s = re.sub(r"\b(zone|area|hs|es|ms|elem|middle|high|sps)\b", "", s)
     s = re.sub(r"[^\w\s]", "", s)
     s = re.sub(r"\b(school|district|no|1|63|public|elementary|middle|high|k8|k5|k12|senior)\b", "", s)
     return re.sub(r"\s+", " ", s).strip()
@@ -283,11 +289,13 @@ def harvest_catchments(endpoints, district_target_name, schools_by_name):
                 schools_by_name.get((norm_gis_name, "any"))
             )
 
-            # Fallback string containment matching
+            # Robust fallback matching using word tokens
             if not matched_school:
+                gis_tokens = set(norm_gis_name.split())
                 for (s_key, d_key), s_data in schools_by_name.items():
                     if d_key in [target_dname_norm, "any"]:
-                        if norm_gis_name and (norm_gis_name in s_key or s_key in norm_gis_name):
+                        s_tokens = set(s_key.split())
+                        if gis_tokens and s_tokens and (gis_tokens.issubset(s_tokens) or s_tokens.issubset(gis_tokens) or norm_gis_name in s_key or s_key in norm_gis_name):
                             matched_school = s_data
                             break
 
@@ -363,13 +371,12 @@ def harvest_district_polygons(schools_by_name):
 
 def main():
     print("==================================================")
-    print("   OSPI HYBRID SCHOOL BOUNDARY HARVESTER (V3.1)   ")
+    print("   OSPI HYBRID SCHOOL BOUNDARY HARVESTER (V3.2)   ")
     print("==================================================\n")
 
     os.makedirs(DATA_DIR, exist_ok=True)
     schools_by_code, schools_by_name, known_districts = load_ospi_metadata()
 
-    # --- 1. HARVEST TIER 1 INDIVIDUAL SCHOOL CATCHMENTS ---
     print("\n📡 Ingesting Tier 1 Catchment Boundaries (Seattle & Bellevue)...")
     seattle_catchments = harvest_catchments(SEATTLE_CATCHMENT_ENDPOINTS, "Seattle School District No. 1", schools_by_name)
     bellevue_catchments = harvest_catchments(BELLEVUE_CATCHMENT_ENDPOINTS, "Bellevue School District", schools_by_name)
@@ -377,11 +384,9 @@ def main():
     all_school_catchments = {**seattle_catchments, **bellevue_catchments}
     print(f"  ✅ Successfully compiled {len(all_school_catchments)} Tier 1 school catchments.")
 
-    # --- 2. HARVEST TIER 2/3 DISTRICT PERIMETERS ---
     district_boundaries = harvest_district_polygons(schools_by_name)
     print(f"  ✅ Successfully compiled {len(district_boundaries)} Tier 2 district perimeters.")
 
-    # --- 3. CONSTRUCT MASTER HYBRID JSON ASSET ---
     master_output = {
         "metadata": {
             "generated_at": datetime.now().isoformat(),

@@ -578,6 +578,12 @@ class FloatingDock extends HTMLElement {
     }
 
     connectedCallback() {
+        // Mobile Safari Fix: Relocate element to <body> to avoid iOS <footer> stacking/clipping
+        if (this.parentElement && this.parentElement.tagName.toLowerCase() === 'footer') {
+            document.body.appendChild(this);
+            return;
+        }
+
         // Purge legacy floating CTA elements if present in DOM
         document.querySelectorAll('.floating-cta, .cta-bar, .mobile-cta, .persistent-cta-deck, [class*="cta-floating"]').forEach(el => el.remove());
 

@@ -1,3 +1,5 @@
+# File: scripts/harvest_quarterly.py
+
 import os
 import sys
 import traceback
@@ -10,6 +12,8 @@ RUN_KING_SUBDIVISIONS = True
 RUN_SNOHOMISH_SUBDIVISIONS = True
 RUN_KING_CONDOS = False
 RUN_SNOHOMISH_CONDOS = False
+RUN_OSPI_SCHOOL_DATA = True
+RUN_SCHOOL_BOUNDARIES = True
 
 # Ensure scripts and quarterly subfolder are in Python path for clean module imports
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -72,6 +76,26 @@ def main():
             print(f"❌ Could not import harvest_snohomish_condos.py: {e}\n")
     else:
         print("⏸️ [Quarterly Pipeline] Bypassing Snohomish Condos (RUN_SNOHOMISH_CONDOS = False)\n")
+
+    # 5. OSPI Master School Data Harvester
+    if RUN_OSPI_SCHOOL_DATA:
+        try:
+            from harvest_ospi_school_data import main as harvest_ospi_main
+            safe_task("5. OSPI Public School Assessment Data & Ratings", harvest_ospi_main)
+        except ImportError as e:
+            print(f"❌ Could not import harvest_ospi_school_data.py: {e}\n")
+    else:
+        print("⏸️ [Quarterly Pipeline] Bypassing OSPI School Data (RUN_OSPI_SCHOOL_DATA = False)\n")
+
+    # 6. School Boundaries Harvester
+    if RUN_SCHOOL_BOUNDARIES:
+        try:
+            from harvest_school_boundaries import main as harvest_boundaries_main
+            safe_task("6. School Catchments & District Spatial Boundaries", harvest_boundaries_main)
+        except ImportError as e:
+            print(f"❌ Could not import harvest_school_boundaries.py: {e}\n")
+    else:
+        print("⏸️ [Quarterly Pipeline] Bypassing School Boundaries (RUN_SCHOOL_BOUNDARIES = False)\n")
 
     print("🎉 Quarterly harvester execution completed successfully!")
 
