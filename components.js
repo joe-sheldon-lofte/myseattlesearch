@@ -1,4 +1,3 @@
-/* File: components.js */
 /* ==========================================================================
    MYSEATTLESEARCH - NATIVE WEB COMPONENTS BUNDLE
    Includes: <youtube-lite>, <quiz-engine>, <local-reviews>, <live-banner>, 
@@ -578,7 +577,13 @@ class FloatingDock extends HTMLElement {
     }
 
     connectedCallback() {
-        // Automatically purge any legacy floating CTA elements if present in DOM
+        // Self-relocate directly to document.body to prevent iOS WebKit footer viewport clipping
+        if (this.parentNode && this.parentNode !== document.body) {
+            document.body.appendChild(this);
+            return;
+        }
+
+        // Purge legacy floating CTA elements if present in DOM
         document.querySelectorAll('.floating-cta, .cta-bar, .mobile-cta, .persistent-cta-deck, [class*="cta-floating"]').forEach(el => el.remove());
 
         this.innerHTML = `
