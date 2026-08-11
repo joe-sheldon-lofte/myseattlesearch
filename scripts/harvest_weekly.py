@@ -30,6 +30,7 @@ def harvest_dpa_directory(): run_subscript("dpa_directory.py")
 def harvest_yelp_businesses(): run_subscript("yelp_businesses.py")
 def harvest_building_permits(): run_subscript("building_permits.py")
 def harvest_sports_weekly(): run_subscript("sports_weekly.py")
+def harvest_traffic_cameras(): run_subscript("traffic_cameras.py")
 
 def main():
     print("==================================================")
@@ -43,6 +44,7 @@ def main():
     safe_task("5. Live Yelp Fusion Business Spotlights", harvest_yelp_businesses)
     safe_task("6. Municipal Building Permits", harvest_building_permits)
     safe_task("7. Sports Weekly Metadata & WebP Logos", harvest_sports_weekly)
+    safe_task("8. Multi-Agency Traffic Cameras Mapping", harvest_traffic_cameras)
 
     print("🎉 Weekly master harvesting sequence complete. Data fresh!")
 
