@@ -1,8 +1,7 @@
-# File: scripts/harvest_daily.py
-
 import os
 import json
 import math
+import sys
 import traceback
 import urllib.request
 import urllib.parse
@@ -78,7 +77,6 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
-# --- SPATIAL POINT-IN-POLYGON ENGINE ---
 def get_geometry_bbox(geometry):
     g_type = geometry.get("type")
     coords = geometry.get("coordinates", [])
@@ -291,7 +289,7 @@ def harvest_website_stats():
     except gspread.exceptions.WorksheetNotFound:
         print("ℹ️ 'Stats' worksheet not found in Website Data workbook. Skipping.")
 
-# --- HARVEST TASK 3: SHEETS ADMIN CONFIG BACKUP (Traffic Cams & TransitData) ---
+# --- HARVEST TASK 3: SHEETS ADMIN CONFIG BACKUP ---
 def harvest_sheets_admin_config():
     _, creds = get_gspread_client()
     sheet_id = os.environ.get("CITY_DATA_SHEET_ID")
@@ -318,7 +316,6 @@ def harvest_sheets_admin_config():
                 spreadsheetId=sheet_id, ranges=ranges_to_fetch
             ).execute().get('valueRanges', [])
 
-            # Export Traffic Cams Config
             if traffic_cams_title and len(batch) > 0:
                 feed_rows = batch[0].get('values', [])
                 if feed_rows and len(feed_rows) > 1:
@@ -331,7 +328,6 @@ def harvest_sheets_admin_config():
                         json.dump(raw_feeds_export, f, indent=2, ensure_ascii=False)
                     print(f"💾 Exported {len(raw_feeds_export)} traffic cam overrides to {TRAFFIC_CAMS_PATH}")
 
-            # Export TransitData
             transit_batch_idx = 1 if (traffic_cams_title and len(batch) > 1) else 0
             if transit_data_title and len(batch) > transit_batch_idx:
                 transit_rows = batch[transit_batch_idx].get('values', [])
@@ -372,7 +368,6 @@ def harvest_traffic_cams():
     city_map = {c["slug"]: {"name": c["name"], "cameras": []} for c in cities}
     total_found = 0
 
-    # 1. WSDOT Highway Cameras
     if wsdot_code:
         wsdot_url = f"https://wsdot.wa.gov/Traffic/api/HighwayCameras/HighwayCamerasREST.svc/GetCamerasAsJson?AccessCode={wsdot_code}"
         cams = http_get_json_simple(wsdot_url, timeout=25)
@@ -406,7 +401,6 @@ def harvest_traffic_cams():
                     })
                     total_found += 1
 
-    # 2. Seattle DOT (SDOT) Cameras
     sdot_url = "https://web6.seattle.gov/Travelers/api/Map/GetMapData"
     sdot_res = http_get_json_simple(sdot_url, timeout=25)
     if sdot_res and isinstance(sdot_res, dict) and "Features" in sdot_res:
@@ -525,6 +519,17 @@ def harvest_construction():
         json.dump(output, f, indent=2, ensure_ascii=False)
     print(f"💾 Saved {total_alerts} active construction alerts to {out_path}")
 
+# --- HARVEST TASK 6: DAILY QUIZZES PROCESSOR ---
+def harvest_quizzes_daily():
+    print("🎯 Executing Daily Quizzes Processor...")
+    script_path = os.path.join(BASE_DIR, "scripts", "daily", "quizzes_processor.py")
+    if os.path.exists(script_path):
+        exit_code = os.system(f"{sys.executable} {script_path}")
+        if exit_code != 0:
+            print(f"⚠️ quizzes_processor.py exited with status code {exit_code}")
+    else:
+        print(f"⚠️ Daily quizzes script not found at {script_path}")
+
 def main():
     print("==================================================")
     print("       MYSEATTLESEARCH DAILY DATA HARVESTER       ")
@@ -535,6 +540,7 @@ def main():
     safe_run("Sheets Admin Config Backup (data/traffic_cams.json & transit_data.json)", harvest_sheets_admin_config)
     safe_run("Traffic Cameras Mapping (data/city_traffic_cams.json)", harvest_traffic_cams)
     safe_run("WSDOT Construction & Work Zones (data/city_construction.json)", harvest_construction)
+    safe_run("Daily Quizzes Processing (data/quizzes.json)", harvest_quizzes_daily)
     
     print("🎉 Daily data harvesting sequence completed.")
 
