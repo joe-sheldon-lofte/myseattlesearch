@@ -1,7 +1,6 @@
 import os
 import json
 import io
-import gzip
 import requests
 import pandas as pd
 from datetime import datetime, timezone
@@ -12,8 +11,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 DATA_DIR = os.path.join(BASE_DIR, "data")
 INFOSPARKS_LINKS_OUT = os.path.join(DATA_DIR, "infosparks_links.json")
 INFOSPARKS_STATS_OUT = os.path.join(DATA_DIR, "infosparks_stats.json")
-REDFIN_OUT = os.path.join(DATA_DIR, "redfin_stats.json")
-CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 
@@ -53,7 +50,26 @@ def get_sheets_service():
         return build('sheets', 'v4', credentials=creds)
     return None
 
-# STEP 1: Sync Google Sheet links tab to data/infosparks_links.json
+def parse_infosparks_csv_text(csv_text):
+    if not csv_text or not csv_text.strip():
+        return []
+    lines = csv_text.splitlines()
+    header_idx = None
+    for idx, line in enumerate(lines):
+        if line.startswith('Date') or line.startswith('"Date"'):
+            header_idx = idx
+            break
+            
+    if header_idx is not None:
+        table_text = "\n".join(lines[header_idx:])
+        df = pd.read_csv(io.StringIO(table_text))
+        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+        if 'Date' in df.columns:
+            df = df[~df['Date'].astype(str).str.contains('Northwest Multiple Listing Service|ShowingTime|All data from', case=False, na=False)]
+        df = df.fillna("")
+        return df.to_dict(orient="records")
+    return []
+
 def sync_infosparks_links():
     print("📋 [Step 1] Syncing InfoSparks CSV links from Google Sheet...")
     sheet_id = os.environ.get("CITY_DATA_SHEET_ID")
@@ -112,7 +128,6 @@ def sync_infosparks_links():
     except Exception as e:
         print(f"⚠️ Google Sheet InfoSparks link sync notice: {e}")
 
-# STEP 2: Download live CSV data using data/infosparks_links.json
 def parse_infosparks_csv_data():
     print("📊 [Step 2] Ingesting live InfoSparks CSV data using infosparks_links.json...")
     if not os.path.exists(INFOSPARKS_LINKS_OUT):
@@ -139,19 +154,16 @@ def parse_infosparks_csv_data():
             try:
                 csv_res = requests.get(csv_url, headers=headers_http, timeout=15)
                 if csv_res.status_code == 200:
-                    df = pd.read_csv(io.StringIO(csv_res.text))
-                    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-                    df = df.fillna("")
-                    
-                    data_records = df.to_dict(orient="records")
-                    feeds_output[feed_key] = {
-                        "meta": {
-                            "group": info.get("group"),
-                            "metric": info.get("metric"),
-                            "geographies": info.get("geographies", [])
-                        },
-                        "data": data_records
-                    }
+                    data_records = parse_infosparks_csv_text(csv_res.text)
+                    if data_records:
+                        feeds_output[feed_key] = {
+                            "meta": {
+                                "group": info.get("group"),
+                                "metric": info.get("metric"),
+                                "geographies": info.get("geographies", [])
+                            },
+                            "data": data_records
+                        }
             except Exception as e:
                 print(f"   ⚠️ Failed to download CSV [{csv_url[:50]}...]: {e}")
 
@@ -168,59 +180,9 @@ def parse_infosparks_csv_data():
     except Exception as e:
         print(f"❌ Error during InfoSparks CSV data parsing: {e}")
 
-# STEP 3: Redfin Public Data Center Ingestion
-def fetch_redfin_data():
-    print("📈 Ingesting Redfin Data Center WA city market tracker...")
-    redfin_url = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_market_tracker/city_market_tracker.tsv.gz"
-    
-    target_cities = set()
-    if os.path.exists(CITY_DATA_PATH):
-        try:
-            with open(CITY_DATA_PATH, "r", encoding="utf-8") as f:
-                c_data = json.load(f)
-                items = c_data if isinstance(c_data, list) else list(c_data.values())
-                for it in items:
-                    name = it.get("City") or it.get("name") or ""
-                    if name: target_cities.add(str(name).strip().lower())
-        except Exception:
-            pass
-
-    try:
-        headers_http = {"User-Agent": "Mozilla/5.0"}
-        res = requests.get(redfin_url, headers=headers_http, timeout=30)
-        if res.status_code == 200:
-            with gzip.open(io.BytesIO(res.content), 'rt', encoding='utf-8') as gz:
-                df = pd.read_csv(gz, sep='\t')
-
-            df_wa = df[(df['state_code'] == 'WA') & (df['city'].str.lower().isin(target_cities))]
-            
-            desired_cols = [
-                'period_begin', 'period_end', 'region_type', 'city', 'state', 'state_code',
-                'property_type', 'median_sale_price', 'median_sale_price_yoy', 'median_dom',
-                'avg_sale_to_list', 'homes_sold', 'homes_sold_yoy', 'inventory', 'months_of_supply',
-                'sold_above_list', 'price_drops', 'off_market_in_two_weeks'
-            ]
-            
-            avail_cols = [c for c in desired_cols if c in df_wa.columns]
-            df_filtered = df_wa[avail_cols].copy()
-            df_filtered = df_filtered.sort_values(by=['city', 'period_begin'], ascending=[True, True])
-            
-            df_filtered['market_friction_index'] = (df_filtered['months_of_supply'].fillna(0) * 10).round().astype(int)
-            df_filtered = df_filtered.fillna("")
-
-            records = df_filtered.to_dict(orient="records")
-            os.makedirs(DATA_DIR, exist_ok=True)
-            with open(REDFIN_OUT, "w", encoding="utf-8") as f:
-                json.dump(records, f, indent=2, ensure_ascii=False)
-            print(f"💾 Saved {len(records)} Redfin city market trend records to {REDFIN_OUT}")
-
-    except Exception as e:
-        print(f"⚠️ Redfin live fetch notice (preserving existing dataset): {e}")
-
 def main():
     sync_infosparks_links()
     parse_infosparks_csv_data()
-    fetch_redfin_data()
 
 if __name__ == "__main__":
     main()

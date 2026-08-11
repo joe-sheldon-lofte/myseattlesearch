@@ -1,37 +1,14 @@
-# File: .github/workflows/test_harvest.yml
 name: Test Harvest Pipeline
 
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   test-harvest:
     runs-on: ubuntu-latest
-
-    env:
-      CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
-      WSDOT_ACCESS_CODE: ${{ secrets.WSDOT_ACCESS_CODE }}
-      ONEBUSAWAY_API_KEY: ${{ secrets.ONEBUSAWAY_API_KEY }}
-      AIRNOW_API_KEY: ${{ secrets.AIRNOW_API_KEY }}
-      CITY_DATA_SHEET_ID: ${{ secrets.CITY_DATA_SHEET_ID }}
-      CMS_SHEET_ID: ${{ secrets.CMS_SHEET_ID }}
-      COMMAND_CENTER_SHEET_ID: ${{ secrets.COMMAND_CENTER_SHEET_ID }}
-      FBI_API_KEY: ${{ secrets.FBI_API_KEY }}
-      FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
-      FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
-      GA_GOOGLE_CREDENTIALS: ${{ secrets.GA_GOOGLE_CREDENTIALS }}
-      LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
-      LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
-      QUIZZES_SHEET_ID: ${{ secrets.QUIZZES_SHEET_ID }}
-      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-      R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
-      R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
-      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
-      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
-      WALK_SCORE_API_KEY: ${{ secrets.WALK_SCORE_API_KEY }}
-      WEBSITE_DATA_SHEET_ID: ${{ secrets.WEBSITE_DATA_SHEET_ID }}
-      YELP_API_KEY: ${{ secrets.YELP_API_KEY }}
 
     steps:
       - name: Checkout Code
@@ -40,25 +17,28 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas openpyxl google-api-python-client google-auth requests feedparser pillow pillow-heif python-dateutil boto3
+          pip install pandas openpyxl google-api-python-client google-auth requests
 
       - name: Authenticate Google Service Account
+        env:
+          GA_CREDENTIALS: ${{ secrets.GA_GOOGLE_CREDENTIALS }}
         run: |
-          if [ -n "$GA_GOOGLE_CREDENTIALS" ]; then
-            echo "$GA_GOOGLE_CREDENTIALS" > credentials.json
+          if [ -n "$GA_CREDENTIALS" ]; then
+            echo "$GA_CREDENTIALS" > credentials.json
             echo "Service account credentials written from GA_GOOGLE_CREDENTIALS."
-          else
-            echo "GA_GOOGLE_CREDENTIALS not found in environment secrets."
           fi
 
-      - name: Run Sports Hourly Harvester
+      - name: Run Targeted Test Script
+        env:
+          GA_GOOGLE_CREDENTIALS: ${{ secrets.GA_GOOGLE_CREDENTIALS }}
+          CITY_DATA_SHEET_ID: ${{ secrets.CITY_DATA_SHEET_ID }}
         run: |
-          python scripts/harvest_sports_hourly.py
+          python scripts/test_harvest.py
 
       - name: Clean Credentials
         if: always()
@@ -70,5 +50,9 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add data/
-          git diff --staged --quiet || git commit -m "test: update sandbox harvest test artifacts [skip ci]"
-          git push
+          if git diff --staged --quiet; then
+            echo "No test data changes detected. Skipping commit."
+          else
+            git commit -m "test: update housing stats test artifacts [skip ci]"
+            git push
+          fi

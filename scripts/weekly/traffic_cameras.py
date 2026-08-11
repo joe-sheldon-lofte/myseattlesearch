@@ -25,7 +25,7 @@ def http_get_json_simple(url, timeout=25):
             if resp.status == 200:
                 return json.loads(resp.read().decode("utf-8"))
     except Exception as e:
-        print(f"HTTP GET Error [{url[:60]}...]: {e}")
+        print(f"   ⚠️ Traffic Cam GET notice [{url[:50]}...]: {e}")
     return None
 
 def get_geometry_bbox(geometry):
@@ -123,28 +123,27 @@ def main():
                     })
                     total_found += 1
 
-    # 2. SDOT Cameras
-    sdot_res = http_get_json_simple("https://web6.seattle.gov/Travelers/api/Map/GetMapData")
-    if sdot_res and isinstance(sdot_res, dict) and "Features" in sdot_res:
-        for feat in sdot_res.get("Features", []):
-            coords = feat.get("PointCoordinate") or []
-            if len(coords) < 2: continue
-            clat, clon = float(coords[0]), float(coords[1])
-            
-            for c_idx, cam in enumerate(feat.get("Cameras") or []):
-                cam_id = f"sdot-{cam.get('Id') or c_idx}"
-                title = cam.get("Description") or "SDOT Camera"
-                img_url = cam.get("ImageUrl", "")
-                if img_url and not img_url.startswith("http"):
-                    img_url = f"https://www.seattle.gov/trafficers/images/{img_url}"
-                    
-                matched_slug = match_city_for_point(clat, clon, city_boundaries)
-                if matched_slug and matched_slug in city_map:
-                    city_map[matched_slug]["cameras"].append({
-                        "id": cam_id, "title": title, "agency": "SDOT", "direction": "",
-                        "latitude": clat, "longitude": clon, "image_url": img_url
-                    })
-                    total_found += 1
+    # 2. SDOT Cameras (Seattle Open Data Socrata API)
+    sdot_url = "https://data.seattle.gov/resource/65db-xm6k.json?$limit=1000"
+    sdot_cams = http_get_json_simple(sdot_url)
+    if sdot_cams and isinstance(sdot_cams, list):
+        for idx, cam in enumerate(sdot_cams):
+            try:
+                clat = float(cam.get("latitude") or cam.get("location", {}).get("latitude"))
+                clon = float(cam.get("longitude") or cam.get("location", {}).get("longitude"))
+            except (ValueError, TypeError): continue
+
+            cam_id = f"sdot-{cam.get('cameraid') or idx}"
+            title = cam.get("cameralocation") or cam.get("webcamtitle") or "SDOT Camera"
+            img_url = cam.get("imageurl") or cam.get("url") or ""
+
+            matched_slug = match_city_for_point(clat, clon, city_boundaries)
+            if matched_slug and matched_slug in city_map:
+                city_map[matched_slug]["cameras"].append({
+                    "id": cam_id, "title": title, "agency": "SDOT", "direction": "",
+                    "latitude": clat, "longitude": clon, "image_url": img_url
+                })
+                total_found += 1
 
     output = {
         slug: {"name": details["name"], "camera_count": len(details["cameras"]), "cameras": details["cameras"], "last_updated": datetime.now(timezone.utc).isoformat()}
