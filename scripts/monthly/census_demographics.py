@@ -50,8 +50,8 @@ def main():
 
     raw_key = os.environ.get("CENSUS_API_KEY", "").strip().strip("'").strip('"')
     census_by_place = {}
+    census_by_name = {}
 
-    # Query Census ACS 5-Year Data across recent vintages
     vintages = ["2024", "2023", "2022"]
     for vintage in vintages:
         key_param = f"&key={raw_key}" if raw_key else ""
@@ -62,8 +62,16 @@ def main():
             for row in res[1:]:
                 row_dict = dict(zip(headers, row))
                 place_fips = str(row_dict.get("place", "")).strip().zfill(5)
+                place_name = str(row_dict.get("NAME", "")).strip()
+                
                 census_by_place[place_fips] = row_dict
-            print(f"   ✅ Fetched ACS {vintage} demographics & population for {len(census_by_place)} WA places.")
+                
+                # Build fuzzy name lookup key (e.g. "issaquah")
+                clean_name = slugify(place_name.split(" ")[0].replace(",", ""))
+                if clean_name:
+                    census_by_name[clean_name] = row_dict
+                    
+            print(f"   ✅ Fetched ACS {vintage} demographics for {len(census_by_place)} WA places.")
             break
 
     output = {}
@@ -74,7 +82,8 @@ def main():
         name = city["name"]
         fips = city["fips"]
 
-        c_data = census_by_place.get(fips) if fips else None
+        # Primary lookup by FIPS ID; fallback lookup by city name slug
+        c_data = census_by_place.get(fips) or census_by_name.get(slug)
 
         def safe_float(val, default=0.0):
             try:
@@ -111,7 +120,7 @@ def main():
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(OUT_PATH, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
-    print(f"💾 Saved Census demographics & population data ({found_count}/{len(cities)} matched) to {OUT_PATH}")
+    print(f"💾 Saved Census demographics ({found_count}/{len(cities)} matched) to {OUT_PATH}")
 
 if __name__ == "__main__":
     main()
