@@ -3,9 +3,10 @@ import json
 import math
 import urllib.request
 import urllib.parse
-from datetime import datetime
+from datetime import datetime, timezone
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Resolve project root from scripts/hourly/
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
@@ -58,7 +59,7 @@ def http_get_json(url, extra_headers=None, timeout=12):
     return None
 
 def save_json(filepath, data):
-    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
     print(f"   ✅ Saved: {filepath}", flush=True)
@@ -159,7 +160,7 @@ def harvest_weather_data():
             if idx < len(wx_res) and isinstance(wx_res[idx], dict):
                 wx_cache[city["slug"]] = wx_res[idx]
 
-    # 2. Fetch NOAA Harmonic Tide Predictions (date=TODAY)
+    # 2. Fetch NOAA Harmonic Tide Predictions
     noaa_stations = {
         "seattle": "9447130",       # Seattle Central Pier 54
         "edmonds": "9447427",       # Edmonds Ferry Pier
@@ -182,7 +183,7 @@ def harvest_weather_data():
                 })
             station_tides_cache[st_key] = preds
 
-    # 3. Fetch EPA AirNow AQI & Extract PM2.5 numerical value
+    # 3. Fetch EPA AirNow AQI
     airnow_key = os.environ.get("AIRNOW_API_KEY", "").strip().strip("'").strip('"')
     city_aqi_map = {}
     if airnow_key and valid_cities:
@@ -199,7 +200,6 @@ def harvest_weather_data():
                 pm25_entry = next((item for item in obs if str(item.get("ParameterName", "")).upper() in ["PM2.5", "PM25"]), None)
                 primary = pm25_entry or obs[0]
                 
-                # Estimate numerical PM2.5 concentration from AQI if raw value not directly exposed
                 aqi_val = primary.get("AQI", 35)
                 est_pm25 = round((aqi_val / 50.0) * 12.0, 1) if aqi_val <= 50 else round(12.1 + ((aqi_val - 51) / 50.0) * 23.3, 1)
                 
@@ -221,7 +221,7 @@ def harvest_weather_data():
                 
             city_aqi_map[c_slug] = station
 
-    # 4. Fetch USGS River Flood Gauges with ISO Timestamp
+    # 4. Fetch USGS River Flood Gauges
     stations_param = ",".join(KING_SNO_RIVER_GAUGES)
     usgs_url = f"https://waterservices.usgs.gov/nwis/iv/?format=json&sites={stations_param}&parameterCd=00060,00065&siteStatus=active"
     gauge_data = []
@@ -246,7 +246,7 @@ def harvest_weather_data():
     except Exception as e:
         print(f"   ⚠️ USGS River Gauge Notice: {e}", flush=True)
 
-    # 5. Assemble final consolidated city_weather.json payload
+    # 5. Assemble final consolidated payload
     for c in valid_cities:
         c_slug = c["slug"]
         city_wx = wx_cache.get(c_slug, {})
@@ -270,7 +270,7 @@ def harvest_weather_data():
             "name": c["name"],
             "latitude": c["latitude"],
             "longitude": c["longitude"],
-            "last_updated": datetime.utcnow().isoformat() + "Z",
+            "last_updated": datetime.now(timezone.utc).isoformat(),
             "current": {
                 "temp_f": current_wx.get("temperature_2m"),
                 "humidity_pct": current_wx.get("relative_humidity_2m"),
