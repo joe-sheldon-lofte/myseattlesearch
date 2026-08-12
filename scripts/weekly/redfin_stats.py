@@ -24,7 +24,7 @@ HEADERS_HTTP = {
 }
 
 def main():
-    print("📈 Ingesting Redfin Data Center WA city market tracker (New CSV Endpoint)...")
+    print("📈 Ingesting Redfin Data Center WA city market tracker (Latest Period Only)...")
     
     target_cities = set()
     if os.path.exists(CITY_DATA_PATH):
@@ -73,6 +73,12 @@ def main():
             print("⚠️ No matching Washington target cities found in Redfin CSV file.")
             return
 
+        # FILTER: Retain ONLY rows corresponding to the absolute latest PERIOD END date
+        if 'PERIOD END' in df_matched.columns:
+            latest_period = df_matched['PERIOD END'].max()
+            df_matched = df_matched[df_matched['PERIOD END'] == latest_period].copy()
+            print(f"   🔍 Filtered Redfin dataset to latest period_end only: {latest_period}")
+
         records = []
         for _, row in df_matched.iterrows():
             homes_sold = float(row["HOMES SOLD"]) if pd.notnull(row.get("HOMES SOLD")) else 0.0
@@ -104,14 +110,10 @@ def main():
             }
             records.append(rec)
 
-        if 'PERIOD END' in df_matched.columns:
-            latest_period = df_matched['PERIOD END'].max()
-            print(f"   🔍 Verified Redfin CSV dataset latest period_end: {latest_period}")
-
         os.makedirs(DATA_DIR, exist_ok=True)
         with open(REDFIN_OUT, "w", encoding="utf-8") as f:
             json.dump(records, f, indent=2, ensure_ascii=False)
-        print(f"💾 Saved {len(records)} active Redfin market trend records to {REDFIN_OUT}")
+        print(f"💾 Saved {len(records)} active latest-period Redfin market records to {REDFIN_OUT}")
 
     except Exception as e:
         print(f"❌ Error transforming Redfin CSV dataset: {e}")
