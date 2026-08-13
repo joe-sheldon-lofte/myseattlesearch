@@ -6,12 +6,12 @@ import traceback
 # PIPELINE FEATURE TOGGLES (FLIP SWITCHES)
 # Set to True to execute, or False to bypass during isolated testing/debugging.
 # ==============================================================================
-RUN_KING_SUBDIVISIONS = True
-RUN_SNOHOMISH_SUBDIVISIONS = True
-RUN_KING_CONDOS = False
-RUN_SNOHOMISH_CONDOS = False
-RUN_OSPI_SCHOOL_DATA = True
-RUN_SCHOOL_BOUNDARIES = True
+RUN_KING_SUBDIVISIONS = False
+RUN_SNOHOMISH_SUBDIVISIONS = False
+RUN_KING_CONDOS = True
+RUN_SNOHOMISH_CONDOS = True
+RUN_OSPI_SCHOOL_DATA = False
+RUN_SCHOOL_BOUNDARIES = False
 
 # Add the scripts directory to the path so it can resolve the 'quarterly' folder module
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
