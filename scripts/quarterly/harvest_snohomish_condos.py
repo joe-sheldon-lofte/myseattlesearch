@@ -7,9 +7,9 @@ import pandas as pd
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 DATA_DIR = os.path.join(BASE_DIR, "data")
-OUT_PATH = os.path.join(DATA_DIR, "snohomish_county_raw.csv")
+OUT_PATH = os.path.join(DATA_DIR, "snohomish_county_raw.json")
 
-def extract_snohomish_county():
+def harvest_snohomish_condos():
     print("Starting Snohomish County data pull...")
     os.makedirs(DATA_DIR, exist_ok=True)
     
@@ -50,9 +50,10 @@ def extract_snohomish_county():
 
     print(f"Successfully pulled {len(all_features)} Snohomish County records.")
     
+    # Save the raw data directly to JSON
     df = pd.DataFrame(all_features)
-    df.to_csv(OUT_PATH, index=False)
+    df.to_json(OUT_PATH, orient='records', indent=2)
     print(f"💾 Saved to {OUT_PATH}\n")
 
 if __name__ == "__main__":
-    extract_snohomish_county()
+    harvest_snohomish_condos()
