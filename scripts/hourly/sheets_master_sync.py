@@ -386,7 +386,7 @@ def main():
     # Module 2: Website Data Workbook (Celebrations Removed)
     web_sheet_id = os.environ.get("WEBSITE_DATA_SHEET_ID")
     if web_sheet_id:
-        target_tabs = ["Stats", "Team", "Disclaimers", "Events", "DPA", "Professionals", "Reviews", "ThirdPartyPrograms", "News", "Sales", "Live_Archive", "Uploads", "Sports", "TollData"]
+        target_tabs = ["Stats", "Team", "Disclaimers", "Events", "DPA", "Professionals", "Reviews", "ThirdPartyPrograms", "News", "Sales", "Live_Archive", "Uploads", "Sports", "TollData", "UtilityData"]
         try:
             web_ranges = [f"{tab}!A:AZ" for tab in target_tabs]
             web_batch = sheets_service.spreadsheets().values().batchGet(
@@ -405,7 +405,7 @@ def main():
                 ("Stats", "stats.json"), ("Disclaimers", "disclaimers.json"),
                 ("DPA", "dpa_programs.json"), ("Professionals", "professionals.json"), 
                 ("Reviews", "reviews.json"), ("ThirdPartyPrograms", "thirdpartyprograms.json"), 
-                ("News", "news.json"), ("Sports", "sports_teams.json")
+                ("News", "news.json"), ("Sports", "sports_teams.json"), ("UtilityData", "utility_data.json")
             ]:
                 rows = tabs_data.get(tab_name, {}).get('values', [])
                 if rows:
