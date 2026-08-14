@@ -27,7 +27,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
 
   <!-- Loading Indicator (Hidden by default) -->
   <div id="loading-indicator" style="display: none; padding: 1rem; background-color: #e9ecef; border-radius: 4px; text-align: center; margin-bottom: 2rem;">
-    <strong>⏳ Searching county records and provider maps...</strong>
+    <strong>⏳ Searching provider maps...</strong>
   </div>
 
   <!-- Error Message Container (Hidden by default) -->
@@ -40,3 +40,94 @@ description: Find water, sewer, garbage, power, and internet providers for homes
   </div>
 
 </div>
+
+<script>
+  // 1. Your API Keys and URLs
+  const MAPBOX_TOKEN = 'pk.eyJ1Ijoiam9lc2hlbGRvbiIsImEiOiJjbXN0YmNvaGkwamxjMnhxNjYzbXgyZDczIn0.CgY-LzWupN6S7DBlBk1I9A';
+  const WORKER_URL = 'https://myseattlesearch-utility-finder.joe-54b.workers.dev';
+
+  document.getElementById('search-btn').addEventListener('click', async () => {
+    const address = document.getElementById('address-input').value;
+    const loading = document.getElementById('loading-indicator');
+    const errorContainer = document.getElementById('error-container');
+    const resultsContainer = document.getElementById('results-container');
+
+    // Reset the visual interface
+    errorContainer.style.display = 'none';
+    resultsContainer.innerHTML = '';
+    
+    if (!address) {
+      errorContainer.innerText = 'Please enter an address.';
+      errorContainer.style.display = 'block';
+      return;
+    }
+
+    // Show the loading text
+    loading.style.display = 'block';
+
+    try {
+      // --- STEP 1: Geocoding (Address to Coordinates) ---
+      const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${MAPBOX_TOKEN}&types=address`;
+      const geoResponse = await fetch(geocodeUrl);
+      const geoData = await geoResponse.json();
+
+      if (!geoData.features || geoData.features.length === 0) {
+        throw new Error('Could not find coordinates for this address. Try adding the city and zip code.');
+      }
+
+      // Mapbox returns coordinates as [longitude, latitude]
+      const lon = geoData.features[0].center[0];
+      const lat = geoData.features[0].center[1];
+
+      // --- STEP 2: Telecom Lookup (via your Cloudflare Worker) ---
+      const telecomResponse = await fetch(`${WORKER_URL}/?lat=${lat}&lon=${lon}`);
+      if (!telecomResponse.ok) throw new Error('Failed to securely fetch telecom data.');
+      const telecomData = await telecomResponse.json();
+
+      // --- STEP 3: Render the Results ---
+      loading.style.display = 'none';
+      renderResults(telecomData);
+
+    } catch (error) {
+      loading.style.display = 'none';
+      errorContainer.innerText = error.message;
+      errorContainer.style.display = 'block';
+    }
+  });
+
+  // This function paints the data onto your screen
+  function renderResults(telecomData) {
+    const resultsContainer = document.getElementById('results-container');
+    
+    // Create the Telecom Card
+    let html = `
+      <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Internet & Cable Providers</h2>
+        <ul style="list-style-type: none; padding: 0; margin: 0;">
+    `;
+
+    // The FCC returns a massive payload. We will extract just the provider names.
+    if (telecomData && telecomData.data && telecomData.data.length > 0) {
+      // We use a Set to automatically remove duplicate company names
+      const providers = [...new Set(telecomData.data.map(p => p.provider_name))];
+      
+      providers.forEach(provider => {
+        html += `<li style="padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0;">🌐 <strong>${provider}</strong></li>`;
+      });
+    } else {
+      html += `<li style="padding: 0.5rem 0;">No broadband data found for this exact location.</li>`;
+    }
+
+    html += `</ul></div>`;
+    
+    // Create a placeholder card for the County Utilities (we will build this next)
+    html += `
+      <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 1.5rem;">
+        <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Water, Sewer, & Power</h2>
+        <p style="color: #666; margin: 0;"><em>County GIS mapping coming in the next step...</em></p>
+      </div>
+    `;
+
+    resultsContainer.innerHTML = html;
+  }
+</script>
