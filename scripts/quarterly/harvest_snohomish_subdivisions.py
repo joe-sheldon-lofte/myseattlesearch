@@ -40,14 +40,13 @@ def get_polygon_center(geometry):
     return (min(lats) + max(lats)) / 2.0, (min(lons) + max(lons)) / 2.0
 
 def harvest_snohomish_subdivisions():
-    print("🚀 Starting Snohomish County Subdivision Harvester (Last 24 Months)...")
+    print("🚀 Starting Snohomish County Subdivision Harvester...")
     os.makedirs(DATA_DIR, exist_ok=True)
     
     sub_url = "https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Subdivisions/FeatureServer/0/query"
-    cutoff_date_str = "2024-01-01"
     
     params = {
-        "where": f"SUB_NAME IS NOT NULL AND RECORDDATE >= '{cutoff_date_str}'",
+        "where": "SUB_NAME IS NOT NULL",
         "outFields": "OBJECTID,SUB_NAME,SUB_REF,RECORDDATE,CREATEDATE,GIS_SQ_FT",
         "outSR": "4326",  # Native Lat/Lon degrees
         "f": "json",
@@ -55,61 +54,68 @@ def harvest_snohomish_subdivisions():
         "resultRecordCount": 2000
     }
     
-    try:
-        res = requests.get(sub_url, params=params, timeout=15)
-        res.raise_for_status()
-        data = res.json()
-        features = data.get("features", [])
-        
-        print(f"   Found {len(features)} subdivisions recorded since {cutoff_date_str}.")
-        
-        subdivisions = []
-        for feat in features:
-            attrs = feat.get("attributes", {})
-            geom = feat.get("geometry", {})
+    subdivisions = []
+    seen_names = set()
+    offset = 0
+    limit = 2000
+    
+    while True:
+        params["resultOffset"] = offset
+        try:
+            res = requests.get(sub_url, params=params, timeout=15)
+            res.raise_for_status()
+            data = res.json()
+            features = data.get("features", [])
             
-            raw_name = attrs.get("SUB_NAME")
-            plat_name = clean_plat_name(raw_name)
-            if not plat_name:
-                continue
+            if not features:
+                break
                 
-            lat, lon = get_polygon_center(geom)
-            
-            record_ts = attrs.get("RECORDDATE")
-            rec_year = datetime.now().year
-            if record_ts:
-                try:
-                    rec_year = datetime.fromtimestamp(record_ts / 1000.0).year
-                except Exception:
-                    pass
+            for feat in features:
+                attrs = feat.get("attributes", {})
+                geom = feat.get("geometry", {})
+                
+                raw_name = attrs.get("SUB_NAME")
+                plat_name = clean_plat_name(raw_name)
+                if not plat_name or plat_name in seen_names:
+                    continue
                     
-            subdivisions.append({
-                "plat_id": f"plat_sno_{attrs.get('OBJECTID')}",
-                "name": plat_name,
-                "slug": slugify(plat_name),
-                "subdivision_ref": attrs.get("SUB_REF", ""),
-                "recording_year": rec_year,
-                "sq_ft": attrs.get("GIS_SQ_FT"),
-                "latitude": lat,
-                "longitude": lon,
-                "county": "Snohomish",
-                "last_updated": datetime.now().strftime("%Y-%m-%d")
-            })
+                seen_names.add(plat_name)
+                lat, lon = get_polygon_center(geom)
+                
+                record_ts = attrs.get("RECORDDATE")
+                rec_year = None
+                if record_ts:
+                    try:
+                        rec_year = datetime.fromtimestamp(record_ts / 1000.0).year
+                    except Exception:
+                        pass
+                        
+                subdivisions.append({
+                    "plat_id": f"plat_sno_{attrs.get('OBJECTID')}",
+                    "name": plat_name,
+                    "slug": slugify(plat_name),
+                    "subdivision_ref": attrs.get("SUB_REF", ""),
+                    "city": "Snohomish County",
+                    "county": "Snohomish",
+                    "recording_year": rec_year,
+                    "sq_ft": attrs.get("GIS_SQ_FT"),
+                    "latitude": lat,
+                    "longitude": lon,
+                    "last_updated": datetime.now().strftime("%Y-%m-%d")
+                })
+                
+            if not data.get("exceededTransferLimit", False):
+                break
+                
+            offset += limit
+        except Exception as e:
+            print(f"❌ Error harvesting Snohomish subdivisions: {e}")
+            break
             
-        out_payload = {
-            "county": "Snohomish",
-            "total_subdivisions": len(subdivisions),
-            "subdivisions": subdivisions,
-            "last_updated": datetime.now().strftime("%Y-%m-%d")
-        }
+    with open(OUT_PATH, "w", encoding="utf-8") as f:
+        json.dump(subdivisions, f, indent=2, ensure_ascii=False)
         
-        with open(OUT_PATH, "w", encoding="utf-8") as f:
-            json.dump(out_payload, f, indent=2, ensure_ascii=False)
-            
-        print(f"💾 Saved {len(subdivisions)} active Snohomish subdivisions to {OUT_PATH}\n")
-        
-    except Exception as e:
-        print(f"❌ Error harvesting Snohomish subdivisions: {e}")
+    print(f"💾 Saved {len(subdivisions)} active Snohomish subdivisions to {OUT_PATH}\n")
 
 if __name__ == "__main__":
     harvest_snohomish_subdivisions()
