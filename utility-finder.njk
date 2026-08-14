@@ -10,13 +10,24 @@ description: Find water, sewer, garbage, power, and internet providers for homes
   <p style="color: #555; margin-bottom: 2rem;">Enter a property address in King or Snohomish County to find its local utility providers.</p>
 
   <!-- Search Interface -->
-  <div class="search-box" style="display: flex; gap: 10px; margin-bottom: 2rem;">
-    <input 
-      type="text" 
-      id="address-input" 
-      placeholder="e.g., 123 Main St, Seattle, WA 98101" 
-      style="flex-grow: 1; padding: 0.75rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px;"
-    >
+  <div class="search-box" style="display: flex; gap: 10px; margin-bottom: 2rem; position: relative;">
+    
+    <!-- Input Wrapper for Autocomplete -->
+    <div style="position: relative; flex-grow: 1;">
+      <input 
+        type="text" 
+        id="address-input" 
+        placeholder="e.g., 123 Main St, Seattle, WA" 
+        autocomplete="off"
+        style="width: 100%; padding: 0.75rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"
+      >
+      <!-- Autocomplete Dropdown -->
+      <div 
+        id="autocomplete-dropdown" 
+        style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; border-top: none; z-index: 1000; display: none; max-height: 250px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 0 0 4px 4px;"
+      ></div>
+    </div>
+
     <button 
       id="search-btn" 
       style="padding: 0.75rem 1.5rem; font-size: 1rem; background-color: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;"
@@ -25,16 +36,16 @@ description: Find water, sewer, garbage, power, and internet providers for homes
     </button>
   </div>
 
-  <!-- Loading Indicator (Hidden by default) -->
+  <!-- Loading Indicator -->
   <div id="loading-indicator" style="display: none; padding: 1rem; background-color: #e9ecef; border-radius: 4px; text-align: center; margin-bottom: 2rem;">
     <strong>⏳ Searching provider maps...</strong>
   </div>
 
-  <!-- Error Message Container (Hidden by default) -->
+  <!-- Error Message Container -->
   <div id="error-container" style="display: none; padding: 1rem; background-color: #f8d7da; color: #721c24; border-radius: 4px; margin-bottom: 2rem;">
   </div>
 
-  <!-- Results Container (Empty to start) -->
+  <!-- Results Container -->
   <div id="results-container" style="display: flex; flex-direction: column; gap: 1.5rem;">
     <!-- JavaScript will inject the utility result cards here -->
   </div>
@@ -42,17 +53,91 @@ description: Find water, sewer, garbage, power, and internet providers for homes
 </div>
 
 <script>
-  // 1. Your API Keys and URLs
+  // --- 1. CONFIGURATION ---
   const MAPBOX_TOKEN = 'pk.eyJ1Ijoiam9lc2hlbGRvbiIsImEiOiJjbXN0YmNvaGkwamxjMnhxNjYzbXgyZDczIn0.CgY-LzWupN6S7DBlBk1I9A';
   const WORKER_URL = 'https://myseattlesearch-utility-finder.joe-54b.workers.dev';
 
-  document.getElementById('search-btn').addEventListener('click', async () => {
-    const address = document.getElementById('address-input').value;
-    const loading = document.getElementById('loading-indicator');
-    const errorContainer = document.getElementById('error-container');
-    const resultsContainer = document.getElementById('results-container');
+  // --- DOM ELEMENTS ---
+  const addressInput = document.getElementById('address-input');
+  const searchBtn = document.getElementById('search-btn');
+  const autocompleteDropdown = document.getElementById('autocomplete-dropdown');
+  const loading = document.getElementById('loading-indicator');
+  const errorContainer = document.getElementById('error-container');
+  const resultsContainer = document.getElementById('results-container');
 
-    // Reset the visual interface
+  // --- 2. AUTOCOMPLETE LOGIC ---
+  let debounceTimer;
+
+  addressInput.addEventListener('input', function() {
+    clearTimeout(debounceTimer);
+    const query = this.value;
+
+    if (query.length < 3) {
+      autocompleteDropdown.style.display = 'none';
+      return;
+    }
+
+    // Wait 300ms after the user stops typing to ping the API (saves API quota)
+    debounceTimer = setTimeout(async () => {
+      try {
+        // We restrict to country=us, types=address, and bias to WA state bounding box
+        const bbox = '-122.77,47.08,-121.06,48.35'; // Rough bounding box for King/Snohomish
+        const autoUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&types=address&country=us&bbox=${bbox}&autocomplete=true&limit=5`;
+        
+        const response = await fetch(autoUrl);
+        const data = await response.json();
+
+        autocompleteDropdown.innerHTML = '';
+
+        if (data.features && data.features.length > 0) {
+          data.features.forEach(feature => {
+            // Clean up the address (remove ", United States")
+            const cleanAddress = feature.place_name.replace(', United States', '');
+            
+            const div = document.createElement('div');
+            div.innerText = cleanAddress;
+            div.style.padding = '10px';
+            div.style.cursor = 'pointer';
+            div.style.borderBottom = '1px solid #f0f0f0';
+            
+            // Hover effect
+            div.addEventListener('mouseenter', () => div.style.backgroundColor = '#f8f9fa');
+            div.addEventListener('mouseleave', () => div.style.backgroundColor = 'white');
+
+            // Click event for the suggestion
+            div.addEventListener('click', () => {
+              addressInput.value = cleanAddress;
+              autocompleteDropdown.style.display = 'none';
+              // Instantly trigger the search with the exact coordinates attached!
+              runSearch(addressInput.value, feature.center[0], feature.center[1]);
+            });
+
+            autocompleteDropdown.appendChild(div);
+          });
+          autocompleteDropdown.style.display = 'block';
+        } else {
+          autocompleteDropdown.style.display = 'none';
+        }
+      } catch (err) {
+        console.error("Autocomplete error:", err);
+      }
+    }, 300);
+  });
+
+  // Hide dropdown if clicked outside
+  document.addEventListener('click', function(e) {
+    if (e.target !== addressInput && e.target !== autocompleteDropdown) {
+      autocompleteDropdown.style.display = 'none';
+    }
+  });
+
+  // --- 3. MAIN SEARCH LOGIC ---
+  searchBtn.addEventListener('click', () => {
+    runSearch(addressInput.value);
+  });
+
+  // We allow passing lon/lat directly if the user clicked an autocomplete suggestion
+  async function runSearch(address, passedLon = null, passedLat = null) {
     errorContainer.style.display = 'none';
     resultsContainer.innerHTML = '';
     
@@ -62,29 +147,30 @@ description: Find water, sewer, garbage, power, and internet providers for homes
       return;
     }
 
-    // Show the loading text
     loading.style.display = 'block';
 
     try {
-      // --- STEP 1: Geocoding (Address to Coordinates) ---
-      const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${MAPBOX_TOKEN}&types=address`;
-      const geoResponse = await fetch(geocodeUrl);
-      const geoData = await geoResponse.json();
+      let lon = passedLon;
+      let lat = passedLat;
 
-      if (!geoData.features || geoData.features.length === 0) {
-        throw new Error('Could not find coordinates for this address. Try adding the city and zip code.');
+      // If they hit search without clicking a suggestion, we geocode it manually
+      if (!lon || !lat) {
+        const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${MAPBOX_TOKEN}&types=address`;
+        const geoResponse = await fetch(geocodeUrl);
+        const geoData = await geoResponse.json();
+
+        if (!geoData.features || geoData.features.length === 0) {
+          throw new Error('Could not find exact coordinates. Try selecting an address from the dropdown.');
+        }
+        lon = geoData.features[0].center[0];
+        lat = geoData.features[0].center[1];
       }
 
-      // Mapbox returns coordinates as [longitude, latitude]
-      const lon = geoData.features[0].center[0];
-      const lat = geoData.features[0].center[1];
-
-      // --- STEP 2: Telecom Lookup (via your Cloudflare Worker) ---
+      // --- Telecom Lookup (via your Cloudflare Worker) ---
       const telecomResponse = await fetch(`${WORKER_URL}/?lat=${lat}&lon=${lon}`);
       if (!telecomResponse.ok) throw new Error('Failed to securely fetch telecom data.');
       const telecomData = await telecomResponse.json();
 
-      // --- STEP 3: Render the Results ---
       loading.style.display = 'none';
       renderResults(telecomData);
 
@@ -93,24 +179,20 @@ description: Find water, sewer, garbage, power, and internet providers for homes
       errorContainer.innerText = error.message;
       errorContainer.style.display = 'block';
     }
-  });
+  }
 
-  // This function paints the data onto your screen
+  // --- 4. RENDER RESULTS ---
   function renderResults(telecomData) {
     const resultsContainer = document.getElementById('results-container');
     
-    // Create the Telecom Card
     let html = `
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
         <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Internet & Cable Providers</h2>
         <ul style="list-style-type: none; padding: 0; margin: 0;">
     `;
 
-    // The FCC returns a massive payload. We will extract just the provider names.
     if (telecomData && telecomData.data && telecomData.data.length > 0) {
-      // We use a Set to automatically remove duplicate company names
       const providers = [...new Set(telecomData.data.map(p => p.provider_name))];
-      
       providers.forEach(provider => {
         html += `<li style="padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0;">🌐 <strong>${provider}</strong></li>`;
       });
@@ -120,7 +202,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
 
     html += `</ul></div>`;
     
-    // Create a placeholder card for the County Utilities (we will build this next)
+    // Placeholder for next step
     html += `
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 1.5rem;">
         <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Water, Sewer, & Power</h2>
