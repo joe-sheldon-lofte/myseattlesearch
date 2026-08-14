@@ -102,7 +102,8 @@ description: Find water, sewer, garbage, power, and internet providers for homes
             div.addEventListener('click', () => {
               addressInput.value = cleanAddress;
               autocompleteDropdown.style.display = 'none';
-              runSearch(addressInput.value, feature.center[0], feature.center[1]);
+              // Pass the feature context to extract the city instantly
+              runSearch(addressInput.value, feature.center[0], feature.center[1], feature.context);
             });
 
             autocompleteDropdown.appendChild(div);
@@ -128,7 +129,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
     runSearch(addressInput.value);
   });
 
-  async function runSearch(address, passedLon = null, passedLat = null) {
+  async function runSearch(address, passedLon = null, passedLat = null, passedContext = null) {
     errorContainer.style.display = 'none';
     resultsContainer.innerHTML = '';
     
@@ -143,9 +144,10 @@ description: Find water, sewer, garbage, power, and internet providers for homes
     try {
       let lon = passedLon;
       let lat = passedLat;
+      let city = "your local municipality";
 
-      // Geocode if coordinates weren't passed from autocomplete
-      if (!lon || !lat) {
+      // If coordinates/context weren't passed from autocomplete, geocode manually
+      if (!lon || !lat || !passedContext) {
         const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${MAPBOX_TOKEN}&types=address`;
         const geoResponse = await fetch(geocodeUrl);
         const geoData = await geoResponse.json();
@@ -155,23 +157,47 @@ description: Find water, sewer, garbage, power, and internet providers for homes
         }
         lon = geoData.features[0].center[0];
         lat = geoData.features[0].center[1];
+        passedContext = geoData.features[0].context;
       }
 
-      // --- NEW: KING COUNTY WATER/SEWER GIS LOOKUP ---
-      // We are querying Layer 16 (Water/Sewer Districts) using an esriGeometryPoint intersection
-      let waterDistrict = "Not found or outside King County";
+      // Extract the city name from Mapbox context for our smart fallback
+      if (passedContext) {
+        const placeObj = passedContext.find(c => c.id.startsWith('place'));
+        if (placeObj) city = placeObj.text;
+      }
+
+      // --- WATER/SEWER GIS LOOKUP ---
+      let waterDistrict = null;
+      
+      // Attempt 1: King County Layer 18 (Water Service Areas - includes cities)
       try {
-        const kcUrl = `https://gismaps.kingcounty.gov/arcgis/rest/services/Districts/DistrictsReport/MapServer/16/query?geometry=${lon},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=NAME&returnGeometry=false&f=json`;
-        const kcResponse = await fetch(kcUrl);
-        const kcData = await kcResponse.json();
+        const kcUrl18 = `https://gismaps.kingcounty.gov/imagery/rest/services/Districts/DistrictsReport/MapServer/18/query?geometry=${lon},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=false&f=json`;
+        const kcRes18 = await fetch(kcUrl18);
+        const kcData18 = await kcRes18.json();
         
-        if (kcData.features && kcData.features.length > 0) {
-          // The attribute name is "NAME" in the King County database
-          waterDistrict = kcData.features[0].attributes.NAME;
+        if (kcData18.features && kcData18.features.length > 0) {
+          const attrs = kcData18.features[0].attributes;
+          waterDistrict = attrs.PURVEYOR || attrs.NAME || attrs.WTR_SERV;
         }
-      } catch (kcErr) {
-        console.error("King County GIS Error:", kcErr);
-        waterDistrict = "Error connecting to County records";
+      } catch (e) { console.log("Layer 18 check failed"); }
+
+      // Attempt 2: King County Layer 16 (Combined Special Districts)
+      if (!waterDistrict) {
+        try {
+          const kcUrl16 = `https://gismaps.kingcounty.gov/imagery/rest/services/Districts/DistrictsReport/MapServer/16/query?geometry=${lon},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=false&f=json`;
+          const kcRes16 = await fetch(kcUrl16);
+          const kcData16 = await kcRes16.json();
+          
+          if (kcData16.features && kcData16.features.length > 0) {
+            const attrs = kcData16.features[0].attributes;
+            waterDistrict = attrs.NAME || attrs.WSDST;
+          }
+        } catch (e) { console.log("Layer 16 check failed"); }
+      }
+
+      // Attempt 3: Smart City Fallback (Also catches Snohomish County for now)
+      if (!waterDistrict) {
+        waterDistrict = `City of ${city} (Municipal Utilities)`;
       }
 
       // --- Telecom Lookup ---
@@ -199,14 +225,14 @@ description: Find water, sewer, garbage, power, and internet providers for homes
   function renderResults(telecomData, waterDistrict) {
     const resultsContainer = document.getElementById('results-container');
     
-    // Create the Water/Sewer Card (NEW)
+    // Create the Water/Sewer Card
     let html = `
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-        <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Water & Sewer District</h2>
+        <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Water & Sewer Provider</h2>
         <ul style="list-style-type: none; padding: 0; margin: 0;">
           <li style="padding: 0.5rem 0; font-size: 1.1rem;">💧 <strong>${waterDistrict}</strong></li>
         </ul>
-        <p style="font-size: 0.85rem; color: #777; margin-top: 1rem; margin-bottom: 0;">*Boundaries provided by King County GIS. Actual service connections may vary slightly at district borders.</p>
+        <p style="font-size: 0.85rem; color: #777; margin-top: 1rem; margin-bottom: 0;">*Boundaries provided by County GIS. Actual service connections may vary slightly at district borders.</p>
       </div>
     `;
 
