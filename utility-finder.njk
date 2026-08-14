@@ -1,7 +1,7 @@
 ---
 layout: base.njk
 title: Utility Provider Lookup
-description: Find water, sewer, garbage, power, and internet providers for homes in King and Snohomish counties.
+description: Find water, sewer, garbage, power, and internet providers for homes in Washington State.
 ---
 
 <div class="utility-finder-container" style="max-width: 800px; margin: 0 auto; padding: 2rem 1rem;">
@@ -35,7 +35,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
   </div>
 
   <div id="loading-indicator" style="display: none; padding: 1rem; background-color: #e9ecef; border-radius: 4px; text-align: center; margin-bottom: 2rem;">
-    <strong>⏳ Searching official state provider maps...</strong>
+    <strong>⏳ Searching official provider maps...</strong>
   </div>
 
   <div id="error-container" style="display: none; padding: 1rem; background-color: #f8d7da; color: #721c24; border-radius: 4px; margin-bottom: 2rem;">
@@ -49,6 +49,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
 
 <script>
   const MAPBOX_TOKEN = 'pk.eyJ1Ijoiam9lc2hlbGRvbiIsImEiOiJjbXN0YmNvaGkwamxjMnhxNjYzbXgyZDczIn0.CgY-LzWupN6S7DBlBk1I9A';
+  const WORKER_URL = 'https://myseattlesearch-utility-finder.joe-54b.workers.dev';
 
   const addressInput = document.getElementById('address-input');
   const searchBtn = document.getElementById('search-btn');
@@ -203,8 +204,22 @@ description: Find water, sewer, garbage, power, and internet providers for homes
                           (city.includes("Seattle") ? "Seattle City Light" : "Puget Sound Energy (PSE)");
       let garbageProvider = `City of ${city} Solid Waste / Franchised Provider`;
 
+      // 4. TELECOM LOOKUP (Via Cloudflare Worker)
+      let telecomData = null;
+      try {
+        const telecomResponse = await fetch(`${WORKER_URL}/?lat=${lat}&lon=${lon}`);
+        if (telecomResponse.ok) {
+          telecomData = await telecomResponse.json();
+          console.log("FCC API Response:", telecomData); // Helps us debug the payload
+        } else {
+          console.error("Cloudflare Worker Error:", await telecomResponse.text());
+        }
+      } catch (err) {
+        console.error("Failed to connect to Cloudflare Worker:", err);
+      }
+
       loading.style.display = 'none';
-      renderResults(waterContact, powerProvider, garbageProvider, providerDirectory, lat, lon);
+      renderResults(waterContact, powerProvider, garbageProvider, providerDirectory, telecomData);
 
     } catch (error) {
       loading.style.display = 'none';
@@ -231,8 +246,8 @@ description: Find water, sewer, garbage, power, and internet providers for homes
     }
   }
 
-  // --- 4. RENDER RESULTS ---
-  function renderResults(waterContact, powerProvider, garbageProvider, providerDirectory, lat, lon) {
+  // --- 5. RENDER RESULTS ---
+  function renderResults(waterContact, powerProvider, garbageProvider, providerDirectory, telecomData) {
     const resultsContainer = document.getElementById('results-container');
     
     // WATER & SEWER CARD (From Official State Data)
@@ -272,19 +287,31 @@ description: Find water, sewer, garbage, power, and internet providers for homes
       </div>
     `;
 
-    // TELECOM CARD (Dynamic Link to FCC)
-    const fccMapUrl = `https://broadbandmap.fcc.gov/location-summary/fixed?lat=${lat}&lon=${lon}`;
+    // TELECOM CARD (Restored Worker Integration)
     html += `
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-        <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Internet & Cable Providers</h2>
-        <p style="margin-top: 0.5rem; font-size: 0.95rem;">Telecom data is federally regulated. To see accurate, verified providers for this exact address, please view the official FCC Broadband Map.</p>
-        <div style="margin-top: 1rem;">
-          <a href="${fccMapUrl}" target="_blank" style="display: inline-block; padding: 0.75rem 1.5rem; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
-            View FCC Internet Providers Map ↗
-          </a>
-        </div>
-      </div>
+        <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Internet Providers</h2>
+        <ul style="list-style-type: none; padding: 0; margin: 0;">
     `;
+
+    // Make extraction flexible in case the API nests the response differently
+    let providerArray = [];
+    if (telecomData && telecomData.data && Array.isArray(telecomData.data)) {
+      providerArray = telecomData.data;
+    } else if (telecomData && Array.isArray(telecomData)) {
+      providerArray = telecomData;
+    }
+
+    if (providerArray.length > 0) {
+      const providers = [...new Set(providerArray.map(p => p.provider_name || p.brand_name || p.name || "Unknown Provider"))];
+      providers.forEach(provider => {
+        html += `<li style="padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0;">🌐 <strong>${provider}</strong></li>`;
+      });
+    } else {
+      html += `<li style="padding: 0.5rem 0;">No broadband data returned for this location. (Check browser console for details).</li>`;
+    }
+
+    html += `</ul></div>`;
 
     resultsContainer.innerHTML = html;
   }
