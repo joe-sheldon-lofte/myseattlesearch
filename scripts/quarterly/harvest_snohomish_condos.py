@@ -3,7 +3,6 @@ import time
 import requests
 import pandas as pd
 
-# Navigate up two levels: /scripts/quarterly -> /scripts -> /repo_root
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -13,17 +12,20 @@ def harvest_snohomish_condos():
     print("Starting Snohomish County data pull...")
     os.makedirs(DATA_DIR, exist_ok=True)
     
-    # Snohomish Assessor Parcels Endpoint
-    base_url = "https://services.arcgis.com/g1fRTDLeMgspWrYp/arcgis/rest/services/Parcels/FeatureServer/0/query"
+    base_url = "https://services6.arcgis.com/z6WYi9VRHfgwgtyW/arcgis/rest/services/Parcels/FeatureServer/0/query"
     
     all_features = []
     limit = 2000
     offset = 0
     
     while True:
+        # We only search columns we know exist in their schema
+        sql_query = "UPPER(USECODE) LIKE '%CONDO%' OR UPPER(TAXPRNAME) LIKE '%CONDO%' OR UPPER(OWNERNAME) LIKE '%CONDO%'"
+        
         params = {
-            'where': "UseCode = 'Condominium'",
+            'where': sql_query,
             'outFields': '*', 
+            'outSR': '4326', # Request standard GPS coordinates
             'f': 'json',
             'resultOffset': offset,
             'resultRecordCount': limit
@@ -40,7 +42,15 @@ def harvest_snohomish_condos():
             break
             
         for feature in features:
-            all_features.append(feature.get('attributes', {}))
+            attr = feature.get('attributes', {})
+            geom = feature.get('geometry', {})
+            
+            # ArcGIS wraps the GPS coordinates in a separate geometry dictionary, so we flatten it
+            if 'x' in geom and 'y' in geom:
+                attr['longitude'] = geom['x']
+                attr['latitude'] = geom['y']
+                
+            all_features.append(attr)
             
         if not data.get('exceededTransferLimit', False):
             break
@@ -50,7 +60,6 @@ def harvest_snohomish_condos():
 
     print(f"Successfully pulled {len(all_features)} Snohomish County records.")
     
-    # Save the raw data directly to JSON
     df = pd.DataFrame(all_features)
     df.to_json(OUT_PATH, orient='records', indent=2)
     print(f"💾 Saved to {OUT_PATH}\n")

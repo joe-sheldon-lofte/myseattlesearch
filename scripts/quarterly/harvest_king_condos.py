@@ -13,34 +13,44 @@ def harvest_king_condos():
     print("Starting King County data pull...")
     os.makedirs(DATA_DIR, exist_ok=True)
     
-    # Socrata API for King County Assessor Data
-    base_url = "https://data.kingcounty.gov/resource/4zn9-h6cw.json"
+    # Correct Assessor Property Roll Socrata Dataset (4854-i48r)
+    base_url = "https://data.kingcounty.gov/resource/4854-i48r.json"
     
     all_records = []
-    limit = 2000
+    limit = 5000 # Socrata allows larger batches
     offset = 0
     
     while True:
-        query_url = f"{base_url}?$limit={limit}&$offset={offset}"
+        params = {
+            "$limit": limit,
+            "$offset": offset,
+            # Query the legal description for condominiums natively on the server
+            "$where": "upper(legal_description) like '%CONDOMINIUM%'"
+        }
+        
         print(f"   Fetching records {offset} to {offset + limit}...")
         
-        response = requests.get(query_url)
+        response = requests.get(base_url, params=params)
         response.raise_for_status()
         
         data = response.json()
         
-        if not data:
+        if not data or len(data) == 0:
             break
             
         all_records.extend(data)
+        
+        # If we got fewer records than the limit, we've hit the end
+        if len(data) < limit:
+            break
+            
         offset += limit
         time.sleep(0.5)
         
-    print(f"Successfully pulled {len(all_records)} King County records.")
+    print(f"Successfully pulled {len(all_records)} King County condo records.")
     
     # Save the raw data directly to JSON
     df = pd.DataFrame(all_records)
-    # orient='records' creates a standard JSON array of objects
     df.to_json(OUT_PATH, orient='records', indent=2)
     print(f"💾 Saved to {OUT_PATH}\n")
 
