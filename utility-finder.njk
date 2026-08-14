@@ -12,7 +12,6 @@ description: Find water, sewer, garbage, power, and internet providers for homes
   <!-- Search Interface -->
   <div class="search-box" style="display: flex; gap: 10px; margin-bottom: 2rem; position: relative;">
     
-    <!-- Input Wrapper for Autocomplete -->
     <div style="position: relative; flex-grow: 1;">
       <input 
         type="text" 
@@ -77,11 +76,9 @@ description: Find water, sewer, garbage, power, and internet providers for homes
       return;
     }
 
-    // Wait 300ms after the user stops typing to ping the API (saves API quota)
     debounceTimer = setTimeout(async () => {
       try {
-        // We restrict to country=us, types=address, and bias to WA state bounding box
-        const bbox = '-122.77,47.08,-121.06,48.35'; // Rough bounding box for King/Snohomish
+        const bbox = '-122.77,47.08,-121.06,48.35'; 
         const autoUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&types=address&country=us&bbox=${bbox}&autocomplete=true&limit=5`;
         
         const response = await fetch(autoUrl);
@@ -91,7 +88,6 @@ description: Find water, sewer, garbage, power, and internet providers for homes
 
         if (data.features && data.features.length > 0) {
           data.features.forEach(feature => {
-            // Clean up the address (remove ", United States")
             const cleanAddress = feature.place_name.replace(', United States', '');
             
             const div = document.createElement('div');
@@ -100,15 +96,12 @@ description: Find water, sewer, garbage, power, and internet providers for homes
             div.style.cursor = 'pointer';
             div.style.borderBottom = '1px solid #f0f0f0';
             
-            // Hover effect
             div.addEventListener('mouseenter', () => div.style.backgroundColor = '#f8f9fa');
             div.addEventListener('mouseleave', () => div.style.backgroundColor = 'white');
 
-            // Click event for the suggestion
             div.addEventListener('click', () => {
               addressInput.value = cleanAddress;
               autocompleteDropdown.style.display = 'none';
-              // Instantly trigger the search with the exact coordinates attached!
               runSearch(addressInput.value, feature.center[0], feature.center[1]);
             });
 
@@ -124,7 +117,6 @@ description: Find water, sewer, garbage, power, and internet providers for homes
     }, 300);
   });
 
-  // Hide dropdown if clicked outside
   document.addEventListener('click', function(e) {
     if (e.target !== addressInput && e.target !== autocompleteDropdown) {
       autocompleteDropdown.style.display = 'none';
@@ -136,7 +128,6 @@ description: Find water, sewer, garbage, power, and internet providers for homes
     runSearch(addressInput.value);
   });
 
-  // We allow passing lon/lat directly if the user clicked an autocomplete suggestion
   async function runSearch(address, passedLon = null, passedLat = null) {
     errorContainer.style.display = 'none';
     resultsContainer.innerHTML = '';
@@ -153,7 +144,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
       let lon = passedLon;
       let lat = passedLat;
 
-      // If they hit search without clicking a suggestion, we geocode it manually
+      // Geocode if coordinates weren't passed from autocomplete
       if (!lon || !lat) {
         const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${MAPBOX_TOKEN}&types=address`;
         const geoResponse = await fetch(geocodeUrl);
@@ -166,13 +157,36 @@ description: Find water, sewer, garbage, power, and internet providers for homes
         lat = geoData.features[0].center[1];
       }
 
-      // --- Telecom Lookup (via your Cloudflare Worker) ---
-      const telecomResponse = await fetch(`${WORKER_URL}/?lat=${lat}&lon=${lon}`);
-      if (!telecomResponse.ok) throw new Error('Failed to securely fetch telecom data.');
-      const telecomData = await telecomResponse.json();
+      // --- NEW: KING COUNTY WATER/SEWER GIS LOOKUP ---
+      // We are querying Layer 16 (Water/Sewer Districts) using an esriGeometryPoint intersection
+      let waterDistrict = "Not found or outside King County";
+      try {
+        const kcUrl = `https://gismaps.kingcounty.gov/arcgis/rest/services/Districts/DistrictsReport/MapServer/16/query?geometry=${lon},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=NAME&returnGeometry=false&f=json`;
+        const kcResponse = await fetch(kcUrl);
+        const kcData = await kcResponse.json();
+        
+        if (kcData.features && kcData.features.length > 0) {
+          // The attribute name is "NAME" in the King County database
+          waterDistrict = kcData.features[0].attributes.NAME;
+        }
+      } catch (kcErr) {
+        console.error("King County GIS Error:", kcErr);
+        waterDistrict = "Error connecting to County records";
+      }
+
+      // --- Telecom Lookup ---
+      let telecomData = { data: [] };
+      try {
+        const telecomResponse = await fetch(`${WORKER_URL}/?lat=${lat}&lon=${lon}`);
+        if (telecomResponse.ok) {
+          telecomData = await telecomResponse.json();
+        }
+      } catch (err) {
+        console.error("Telecom Worker Error:", err);
+      }
 
       loading.style.display = 'none';
-      renderResults(telecomData);
+      renderResults(telecomData, waterDistrict);
 
     } catch (error) {
       loading.style.display = 'none';
@@ -182,10 +196,22 @@ description: Find water, sewer, garbage, power, and internet providers for homes
   }
 
   // --- 4. RENDER RESULTS ---
-  function renderResults(telecomData) {
+  function renderResults(telecomData, waterDistrict) {
     const resultsContainer = document.getElementById('results-container');
     
+    // Create the Water/Sewer Card (NEW)
     let html = `
+      <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Water & Sewer District</h2>
+        <ul style="list-style-type: none; padding: 0; margin: 0;">
+          <li style="padding: 0.5rem 0; font-size: 1.1rem;">💧 <strong>${waterDistrict}</strong></li>
+        </ul>
+        <p style="font-size: 0.85rem; color: #777; margin-top: 1rem; margin-bottom: 0;">*Boundaries provided by King County GIS. Actual service connections may vary slightly at district borders.</p>
+      </div>
+    `;
+
+    // Create the Telecom Card
+    html += `
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
         <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Internet & Cable Providers</h2>
         <ul style="list-style-type: none; padding: 0; margin: 0;">
@@ -201,14 +227,6 @@ description: Find water, sewer, garbage, power, and internet providers for homes
     }
 
     html += `</ul></div>`;
-    
-    // Placeholder for next step
-    html += `
-      <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 1.5rem;">
-        <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Water, Sewer, & Power</h2>
-        <p style="color: #666; margin: 0;"><em>County GIS mapping coming in the next step...</em></p>
-      </div>
-    `;
 
     resultsContainer.innerHTML = html;
   }
