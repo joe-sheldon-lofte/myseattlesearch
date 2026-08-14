@@ -7,23 +7,23 @@ import traceback
 # Set to True to execute, or False to bypass during isolated testing/debugging.
 # ==============================================================================
 # --- Subdivisions & Construction ---
-RUN_KING_SUBDIVISIONS = True
-RUN_SNOHOMISH_SUBDIVISIONS = True
-RUN_BUILD_MASTER_SUBDIVISIONS = True
+RUN_KING_SUBDIVISIONS = False
+RUN_SNOHOMISH_SUBDIVISIONS = False
+RUN_BUILD_MASTER_SUBDIVISIONS = False
 
 # --- Condo Harvesters & Transformers ---
-RUN_KING_CONDOS_HARVEST = False
-RUN_KING_CONDOS_TRANSFORM = False
+RUN_KING_CONDOS_HARVEST = True
+RUN_KING_CONDOS_TRANSFORM = True
 
-RUN_SNOHOMISH_CONDOS_HARVEST = False
-RUN_SNOHOMISH_CONDOS_TRANSFORM = False
+RUN_SNOHOMISH_CONDOS_HARVEST = True
+RUN_SNOHOMISH_CONDOS_TRANSFORM = True
 
 # --- Federal Approval Harvesters ---
-RUN_FHA_CONDOS_HARVEST = False
-RUN_VA_CONDOS_HARVEST = False
+RUN_FHA_CONDOS_HARVEST = True
+RUN_VA_CONDOS_HARVEST = True
 
 # --- Master Condo Compiler ---
-RUN_BUILD_MASTER_CONDOS = False
+RUN_BUILD_MASTER_CONDOS = True
 
 # --- School & Boundary Data ---
 RUN_OSPI_SCHOOL_DATA = False
