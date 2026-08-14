@@ -55,7 +55,7 @@ def safe_task(task_name, func, county="Regional"):
 
         # Report to Sentry with contextual metadata
         if SENTRY_DSN:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.new_scope() as scope:
                 scope.set_tag("task_name", task_name)
                 scope.set_tag("county", county)
                 sentry_sdk.capture_exception(e)
