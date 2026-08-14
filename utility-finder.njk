@@ -7,7 +7,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
 <div class="utility-finder-container" style="max-width: 800px; margin: 0 auto; padding: 2rem 1rem;">
   
   <h1 style="font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem;">Property Utility Lookup</h1>
-  <p style="color: #555; margin-bottom: 2rem;">Enter a property address in King or Snohomish County to find its local utility providers.</p>
+  <p style="color: #555; margin-bottom: 2rem;">Enter a property address in Washington State to find its local utility providers.</p>
 
   <!-- Search Interface -->
   <div class="search-box" style="display: flex; gap: 10px; margin-bottom: 2rem; position: relative;">
@@ -35,7 +35,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
   </div>
 
   <div id="loading-indicator" style="display: none; padding: 1rem; background-color: #e9ecef; border-radius: 4px; text-align: center; margin-bottom: 2rem;">
-    <strong>⏳ Searching provider maps...</strong>
+    <strong>⏳ Searching official state provider maps...</strong>
   </div>
 
   <div id="error-container" style="display: none; padding: 1rem; background-color: #f8d7da; color: #721c24; border-radius: 4px; margin-bottom: 2rem;">
@@ -49,7 +49,6 @@ description: Find water, sewer, garbage, power, and internet providers for homes
 
 <script>
   const MAPBOX_TOKEN = 'pk.eyJ1Ijoiam9lc2hlbGRvbiIsImEiOiJjbXN0YmNvaGkwamxjMnhxNjYzbXgyZDczIn0.CgY-LzWupN6S7DBlBk1I9A';
-  const WORKER_URL = 'https://myseattlesearch-utility-finder.joe-54b.workers.dev';
 
   const addressInput = document.getElementById('address-input');
   const searchBtn = document.getElementById('search-btn');
@@ -71,7 +70,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
 
     debounceTimer = setTimeout(async () => {
       try {
-        const bbox = '-122.77,47.08,-121.06,48.35'; 
+        const bbox = '-124.77,45.54,-116.91,49.05'; // WA State Bounding Box
         const autoUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&types=address&country=us&bbox=${bbox}&autocomplete=true&limit=5`;
         
         const response = await fetch(autoUrl);
@@ -132,14 +131,13 @@ description: Find water, sewer, garbage, power, and internet providers for homes
     loading.style.display = 'block';
 
     try {
-      // 1. Fetch your new Google Sheets JSON Directory
+      // 1. Fetch your Google Sheets JSON Directory (For Garbage/Power fallbacks)
       let providerDirectory = {};
       try {
         const dictResponse = await fetch('/data/utility_data.json');
         if (dictResponse.ok) {
           const rawData = await dictResponse.json();
           rawData.forEach(item => {
-             // Map using exact column headers
              if (item['Utility Name']) {
                providerDirectory[item['Utility Name']] = {
                  phone: item['Phone Number'],
@@ -172,7 +170,6 @@ description: Find water, sewer, garbage, power, and internet providers for homes
         passedContext = geoData.features[0].context;
       }
 
-      // Extract City and County from Mapbox
       if (passedContext) {
         const placeObj = passedContext.find(c => c.id.startsWith('place'));
         if (placeObj) city = placeObj.text;
@@ -181,52 +178,33 @@ description: Find water, sewer, garbage, power, and internet providers for homes
         if (districtObj) county = districtObj.text;
       }
 
-      // 2. WATER/SEWER GIS LOOKUP
-      let waterDistrict = null;
-      if (county.includes("King")) {
-        try {
-          const kcUrl18 = `https://gismaps.kingcounty.gov/arcgis/rest/services/Districts/DistrictsReport/MapServer/18/query?geometry=${lon},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=false&f=json`;
-          const kcRes18 = await fetch(kcUrl18);
-          const kcData18 = await kcRes18.json();
-          if (kcData18.features && kcData18.features.length > 0) {
-            const attrs = kcData18.features[0].attributes;
-            waterDistrict = attrs.PURVEYOR || attrs.NAME || attrs.WTR_SERV;
-          }
-        } catch (e) {}
-
-        if (!waterDistrict) {
-          try {
-            const kcUrl16 = `https://gismaps.kingcounty.gov/arcgis/rest/services/Districts/DistrictsReport/MapServer/16/query?geometry=${lon},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=false&f=json`;
-            const kcRes16 = await fetch(kcUrl16);
-            const kcData16 = await kcRes16.json();
-            if (kcData16.features && kcData16.features.length > 0) {
-              const attrs = kcData16.features[0].attributes;
-              waterDistrict = attrs.NAME || attrs.WSDST;
-            }
-          } catch (e) {}
+      // 2. OFFICIAL WA DOH WATER SERVICE AREA LOOKUP
+      let waterContact = null;
+      try {
+        const dohUrl = `https://services8.arcgis.com/rGGrs6HCnw87OFOT/arcgis/rest/services/Drinking_Water_Service_Areas/FeatureServer/0/query?geometry=${lon},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=WS_Name,Contact_Phone,WS_Address1,WS_City,WS_State,WS_Zip,EMailAddr&returnGeometry=false&f=json`;
+        const dohRes = await fetch(dohUrl);
+        const dohData = await dohRes.json();
+        
+        if (dohData.features && dohData.features.length > 0) {
+          const attrs = dohData.features[0].attributes;
+          waterContact = {
+            name: attrs.WS_Name,
+            phone: attrs.Contact_Phone,
+            address: `${attrs.WS_Address1 || ''}, ${attrs.WS_City || ''}, ${attrs.WS_State || ''} ${attrs.WS_Zip || ''}`.replace(/^, | ,/g, '').trim(),
+            email: attrs.EMailAddr
+          };
         }
-      }
-
-      // Snohomish Fallback & City Fallback
-      if (!waterDistrict) {
-        waterDistrict = `City of ${city} (Municipal Utilities)`;
+      } catch (e) {
+        console.error("DOH Layer failed", e);
       }
 
       // 3. POWER & GARBAGE LOGIC
       let powerProvider = county.includes("Snohomish") ? "Snohomish County PUD" : 
                           (city.includes("Seattle") ? "Seattle City Light" : "Puget Sound Energy (PSE)");
-      
       let garbageProvider = `City of ${city} Solid Waste / Franchised Provider`;
 
-      // 4. TELECOM LOOKUP
-      let telecomData = { data: [] };
-      try {
-        const telecomResponse = await fetch(`${WORKER_URL}/?lat=${lat}&lon=${lon}`);
-        if (telecomResponse.ok) telecomData = await telecomResponse.json();
-      } catch (err) {}
-
       loading.style.display = 'none';
-      renderResults(telecomData, waterDistrict, powerProvider, garbageProvider, providerDirectory);
+      renderResults(waterContact, powerProvider, garbageProvider, providerDirectory, lat, lon);
 
     } catch (error) {
       loading.style.display = 'none';
@@ -235,57 +213,53 @@ description: Find water, sewer, garbage, power, and internet providers for homes
     }
   }
 
-  // --- Helper to build contact HTML ---
-  function getContactHtml(providerName, providerDirectory) {
+  // --- Helper to build JSON Directory HTML (for Garbage/Power) ---
+  function getDictContactHtml(providerName, providerDirectory) {
     const contactInfo = providerDirectory[providerName];
-    console.log("Looking for:", providerName); 
+    console.log("Looking in JSON for:", providerName); 
 
     if (contactInfo) {
       let html = `<div style="margin-top: 10px; font-size: 0.95rem;">`;
-      
-      if (contactInfo.phone) {
-        html += `<div style="margin-bottom: 4px;">📞 <a href="tel:${contactInfo.phone}" style="color: #0056b3; text-decoration: none;">${contactInfo.phone}</a></div>`;
-      }
-      if (contactInfo.physicalAddress) {
-        html += `<div style="margin-bottom: 4px;">📍 <strong>Physical:</strong> <a href="https://maps.google.com/?q=${encodeURIComponent(contactInfo.physicalAddress)}" target="_blank" style="color: #0056b3; text-decoration: none;">${contactInfo.physicalAddress}</a></div>`;
-      }
-      if (contactInfo.mailingAddress) {
-        html += `<div style="margin-bottom: 4px;">✉️ <strong>Mailing:</strong> ${contactInfo.mailingAddress}</div>`;
-      }
-      if (contactInfo.website) {
-        html += `<div style="margin-bottom: 4px;">🌐 <a href="${contactInfo.website}" target="_blank" style="color: #0056b3; text-decoration: none;">Visit Website</a></div>`;
-      }
-      
+      if (contactInfo.phone) html += `<div style="margin-bottom: 4px;">📞 <a href="tel:${contactInfo.phone}" style="color: #0056b3; text-decoration: none;">${contactInfo.phone}</a></div>`;
+      if (contactInfo.physicalAddress) html += `<div style="margin-bottom: 4px;">📍 <strong>Physical:</strong> <a href="https://maps.google.com/?q=${encodeURIComponent(contactInfo.physicalAddress)}" target="_blank" style="color: #0056b3; text-decoration: none;">${contactInfo.physicalAddress}</a></div>`;
+      if (contactInfo.mailingAddress) html += `<div style="margin-bottom: 4px;">✉️ <strong>Mailing:</strong> ${contactInfo.mailingAddress}</div>`;
+      if (contactInfo.website) html += `<div style="margin-bottom: 4px;">🌐 <a href="${contactInfo.website}" target="_blank" style="color: #0056b3; text-decoration: none;">Visit Website</a></div>`;
       html += `</div>`;
       return html;
     } else {
-      return `
-        <div style="margin-top: 10px; font-size: 0.85rem; color: #888;">
-          <em>Contact information not yet added to directory.</em>
-        </div>
-      `;
+      return `<div style="margin-top: 10px; font-size: 0.85rem; color: #888;"><em>Contact information not yet added to directory.</em></div>`;
     }
   }
 
-  // --- 5. RENDER RESULTS ---
-  function renderResults(telecomData, waterDistrict, powerProvider, garbageProvider, providerDirectory) {
+  // --- 4. RENDER RESULTS ---
+  function renderResults(waterContact, powerProvider, garbageProvider, providerDirectory, lat, lon) {
     const resultsContainer = document.getElementById('results-container');
     
-    // WATER & SEWER CARD
+    // WATER & SEWER CARD (From Official State Data)
     let html = `
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-        <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Water & Sewer</h2>
-        <div style="padding: 0.5rem 0; font-size: 1.1rem;">💧 <strong>${waterDistrict}</strong></div>
-        ${getContactHtml(waterDistrict, providerDirectory)}
-      </div>
+        <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Water Provider</h2>
     `;
+    
+    if (waterContact && waterContact.name) {
+      html += `<div style="padding: 0.5rem 0; font-size: 1.1rem;">💧 <strong>${waterContact.name}</strong></div>
+               <div style="margin-top: 10px; font-size: 0.95rem;">`;
+      if (waterContact.phone) html += `<div style="margin-bottom: 4px;">📞 <a href="tel:${waterContact.phone}" style="color: #0056b3; text-decoration: none;">${waterContact.phone}</a></div>`;
+      if (waterContact.address && waterContact.address !== ",  ") html += `<div style="margin-bottom: 4px;">✉️ <strong>Mailing:</strong> ${waterContact.address}</div>`;
+      if (waterContact.email) html += `<div style="margin-bottom: 4px;">📧 <strong>Email:</strong> <a href="mailto:${waterContact.email}" style="color: #0056b3; text-decoration: none;">${waterContact.email}</a></div>`;
+      html += `</div>`;
+    } else {
+      html += `<div style="padding: 0.5rem 0; font-size: 1.1rem; color: #721c24;">No specific water provider found in WA State DOH records for this location.</div>`;
+    }
+    
+    html += `<p style="font-size: 0.85rem; color: #777; margin-top: 1rem; margin-bottom: 0;">*Boundaries provided by Washington State Department of Health.</p></div>`;
 
     // POWER & GAS CARD
     html += `
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
         <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Electric & Gas</h2>
         <div style="padding: 0.5rem 0; font-size: 1.1rem;">⚡ <strong>${powerProvider}</strong></div>
-        ${getContactHtml(powerProvider, providerDirectory)}
+        ${getDictContactHtml(powerProvider, providerDirectory)}
       </div>
     `;
 
@@ -294,27 +268,23 @@ description: Find water, sewer, garbage, power, and internet providers for homes
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
         <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Garbage & Recycling</h2>
         <div style="padding: 0.5rem 0; font-size: 1.1rem;">🗑️ <strong>${garbageProvider}</strong></div>
-        ${getContactHtml(garbageProvider, providerDirectory)}
+        ${getDictContactHtml(garbageProvider, providerDirectory)}
       </div>
     `;
 
-    // TELECOM CARD
+    // TELECOM CARD (Dynamic Link to FCC)
+    const fccMapUrl = `https://broadbandmap.fcc.gov/location-summary/fixed?lat=${lat}&lon=${lon}`;
     html += `
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-        <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Internet Providers</h2>
-        <ul style="list-style-type: none; padding: 0; margin: 0;">
+        <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Internet & Cable Providers</h2>
+        <p style="margin-top: 0.5rem; font-size: 0.95rem;">Telecom data is federally regulated. To see accurate, verified providers for this exact address, please view the official FCC Broadband Map.</p>
+        <div style="margin-top: 1rem;">
+          <a href="${fccMapUrl}" target="_blank" style="display: inline-block; padding: 0.75rem 1.5rem; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
+            View FCC Internet Providers Map ↗
+          </a>
+        </div>
+      </div>
     `;
-
-    if (telecomData && telecomData.data && telecomData.data.length > 0) {
-      const providers = [...new Set(telecomData.data.map(p => p.provider_name))];
-      providers.forEach(provider => {
-        html += `<li style="padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0;">🌐 <strong>${provider}</strong></li>`;
-      });
-    } else {
-      html += `<li style="padding: 0.5rem 0;">No broadband data found for this location.</li>`;
-    }
-
-    html += `</ul></div>`;
 
     resultsContainer.innerHTML = html;
   }
