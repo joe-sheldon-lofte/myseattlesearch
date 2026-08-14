@@ -7,7 +7,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
 <div class="utility-finder-container" style="max-width: 800px; margin: 0 auto; padding: 2rem 1rem;">
   
   <h1 style="font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem;">Property Utility Lookup</h1>
-  <p style="color: #555; margin-bottom: 2rem;">Enter a property address in Washington State to find its local utility providers.</p>
+  <p style="color: #555; margin-bottom: 2rem;">Enter a property address in King or Snohomish County to find its local utility providers.</p>
 
   <!-- Search Interface -->
   <div class="search-box" style="display: flex; gap: 10px; margin-bottom: 2rem; position: relative;">
@@ -35,7 +35,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
   </div>
 
   <div id="loading-indicator" style="display: none; padding: 1rem; background-color: #e9ecef; border-radius: 4px; text-align: center; margin-bottom: 2rem;">
-    <strong>⏳ Searching official provider maps...</strong>
+    <strong>⏳ Searching provider maps...</strong>
   </div>
 
   <div id="error-container" style="display: none; padding: 1rem; background-color: #f8d7da; color: #721c24; border-radius: 4px; margin-bottom: 2rem;">
@@ -71,7 +71,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
 
     debounceTimer = setTimeout(async () => {
       try {
-        const bbox = '-124.77,45.54,-116.91,49.05'; // WA State Bounding Box
+        const bbox = '-124.77,45.54,-116.91,49.05'; 
         const autoUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&types=address&country=us&bbox=${bbox}&autocomplete=true&limit=5`;
         
         const response = await fetch(autoUrl);
@@ -132,7 +132,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
     loading.style.display = 'block';
 
     try {
-      // 1. Fetch your Google Sheets JSON Directory (For Garbage/Power fallbacks)
+      // 1. Fetch your Google Sheets JSON Directory
       let providerDirectory = {};
       try {
         const dictResponse = await fetch('/data/utility_data.json');
@@ -204,18 +204,15 @@ description: Find water, sewer, garbage, power, and internet providers for homes
                           (city.includes("Seattle") ? "Seattle City Light" : "Puget Sound Energy (PSE)");
       let garbageProvider = `City of ${city} Solid Waste / Franchised Provider`;
 
-      // 4. TELECOM LOOKUP (Via Cloudflare Worker)
+      // 4. TELECOM LOOKUP (Via Updated Cloudflare Worker)
       let telecomData = null;
       try {
         const telecomResponse = await fetch(`${WORKER_URL}/?lat=${lat}&lon=${lon}`);
         if (telecomResponse.ok) {
           telecomData = await telecomResponse.json();
-          console.log("FCC API Response:", telecomData); // Helps us debug the payload
-        } else {
-          console.error("Cloudflare Worker Error:", await telecomResponse.text());
         }
       } catch (err) {
-        console.error("Failed to connect to Cloudflare Worker:", err);
+        console.error("Telecom Worker Error:", err);
       }
 
       loading.style.display = 'none';
@@ -231,7 +228,6 @@ description: Find water, sewer, garbage, power, and internet providers for homes
   // --- Helper to build JSON Directory HTML (for Garbage/Power) ---
   function getDictContactHtml(providerName, providerDirectory) {
     const contactInfo = providerDirectory[providerName];
-    console.log("Looking in JSON for:", providerName); 
 
     if (contactInfo) {
       let html = `<div style="margin-top: 10px; font-size: 0.95rem;">`;
@@ -250,7 +246,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
   function renderResults(waterContact, powerProvider, garbageProvider, providerDirectory, telecomData) {
     const resultsContainer = document.getElementById('results-container');
     
-    // WATER & SEWER CARD (From Official State Data)
+    // WATER & SEWER CARD
     let html = `
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
         <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Water Provider</h2>
@@ -266,7 +262,6 @@ description: Find water, sewer, garbage, power, and internet providers for homes
     } else {
       html += `<div style="padding: 0.5rem 0; font-size: 1.1rem; color: #721c24;">No specific water provider found in WA State DOH records for this location.</div>`;
     }
-    
     html += `<p style="font-size: 0.85rem; color: #777; margin-top: 1rem; margin-bottom: 0;">*Boundaries provided by Washington State Department of Health.</p></div>`;
 
     // POWER & GAS CARD
@@ -287,28 +282,30 @@ description: Find water, sewer, garbage, power, and internet providers for homes
       </div>
     `;
 
-    // TELECOM CARD (Restored Worker Integration)
+    // TELECOM CARD
     html += `
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
         <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Internet Providers</h2>
         <ul style="list-style-type: none; padding: 0; margin: 0;">
     `;
 
-    // Make extraction flexible in case the API nests the response differently
-    let providerArray = [];
-    if (telecomData && telecomData.data && Array.isArray(telecomData.data)) {
-      providerArray = telecomData.data;
-    } else if (telecomData && Array.isArray(telecomData)) {
-      providerArray = telecomData;
-    }
-
-    if (providerArray.length > 0) {
-      const providers = [...new Set(providerArray.map(p => p.provider_name || p.brand_name || p.name || "Unknown Provider"))];
-      providers.forEach(provider => {
-        html += `<li style="padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0;">🌐 <strong>${provider}</strong></li>`;
+    if (telecomData && telecomData.services && telecomData.services.length > 0) {
+      // Group by provider to show their fastest available tier
+      const providerMap = {};
+      telecomData.services.forEach(s => {
+        if (!providerMap[s.provider] || s.max_download_mbps > providerMap[s.provider].max_download_mbps) {
+          providerMap[s.provider] = s;
+        }
+      });
+      
+      Object.values(providerMap).forEach(s => {
+        html += `<li style="padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0;">
+          🌐 <strong>${s.provider}</strong> 
+          <span style="color: #666; font-size: 0.9rem;">(${s.tech_type} • Up to ${s.max_download_mbps} Mbps)</span>
+        </li>`;
       });
     } else {
-      html += `<li style="padding: 0.5rem 0;">No broadband data returned for this location. (Check browser console for details).</li>`;
+      html += `<li style="padding: 0.5rem 0;">No broadband data returned for this location.</li>`;
     }
 
     html += `</ul></div>`;
