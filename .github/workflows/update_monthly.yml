@@ -26,7 +26,7 @@ jobs:
       - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install gspread google-auth requests pandas google-api-python-client
+          pip install gspread google-auth requests pandas google-api-python-client sentry-sdk
 
       - name: Extract Cloud Agent Credentials File
         env:
@@ -38,6 +38,7 @@ jobs:
 
       - name: Execute Master Monthly Harvester
         env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
           GA_GOOGLE_CREDENTIALS: ${{ secrets.GA_GOOGLE_CREDENTIALS }}
           CITY_DATA_SHEET_ID: ${{ secrets.CITY_DATA_SHEET_ID }}
