@@ -4,6 +4,9 @@ title: Utility Provider Lookup
 description: Find water, sewer, garbage, power, and internet providers for homes in Washington State.
 ---
 
+<!-- Import Uber's H3 Hexagon Library -->
+<script src="https://unpkg.com/h3-js@4.1.0/dist/h3-js.umd.js"></script>
+
 <div class="utility-finder-container" style="max-width: 800px; margin: 0 auto; padding: 2rem 1rem;">
   
   <h1 style="font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem;">Property Utility Lookup</h1>
@@ -131,7 +134,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
     loading.style.display = 'block';
 
     try {
-      // 1. Fetch your Google Sheets JSON Directory
+      // 1. Fetch Contact Directory
       let providerDirectory = {};
       try {
         const dictResponse = await fetch('/data/utility_data.json');
@@ -139,7 +142,6 @@ description: Find water, sewer, garbage, power, and internet providers for homes
           const rawData = await dictResponse.json();
           rawData.forEach(item => {
              if (item['Utility Name']) {
-               // Standardize the key by trimming whitespace
                const key = item['Utility Name'].trim();
                providerDirectory[key] = {
                  phone: item['Phone Number'],
@@ -152,6 +154,17 @@ description: Find water, sewer, garbage, power, and internet providers for homes
         }
       } catch (e) {
         console.log("No utility_data.json found yet.");
+      }
+
+      // 2. Fetch H3 Broadband Data
+      let h3BroadbandData = {};
+      try {
+        const h3Response = await fetch('/data/h3_broadband.json');
+        if (h3Response.ok) {
+          h3BroadbandData = await h3Response.json();
+        }
+      } catch (e) {
+        console.log("No h3_broadband.json found yet.");
       }
 
       let lon = passedLon;
@@ -180,7 +193,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
         if (districtObj) county = districtObj.text;
       }
 
-      // 2. OFFICIAL WA DOH WATER LOOKUP
+      // 3. OFFICIAL WA DOH WATER LOOKUP
       let waterProviderName = null;
       try {
         const dohUrl = `https://services8.arcgis.com/rGGrs6HCnw87OFOT/arcgis/rest/services/Drinking_Water_Service_Areas/FeatureServer/0/query?geometry=${lon},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=WS_Name&returnGeometry=false&f=json`;
@@ -191,7 +204,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
         }
       } catch (e) {}
 
-      // 3. KING COUNTY GIS SEWER/WATER LOOKUP
+      // 4. KING COUNTY GIS SEWER/WATER LOOKUP
       let kcWaterSewerName = null;
       if (county.includes("King")) {
         try {
@@ -205,17 +218,29 @@ description: Find water, sewer, garbage, power, and internet providers for homes
         } catch (e) {}
       }
 
-      // Set Final Water & Sewer Names using smart fallbacks
       let finalWater = waterProviderName || kcWaterSewerName || `City of ${city} (Municipal Utilities)`;
       let finalSewer = kcWaterSewerName || `City of ${city} (Municipal Utilities)`;
 
-      // 4. POWER & GARBAGE LOGIC
+      // 5. POWER & GARBAGE LOGIC
       let powerProvider = county.includes("Snohomish") ? "Snohomish County PUD" : 
                           (city.includes("Seattle") ? "Seattle City Light" : "Puget Sound Energy (PSE)");
       let garbageProvider = `City of ${city} Solid Waste / Franchised Provider`;
 
+      // 6. CALCULATE H3 HEXAGON FOR BROADBAND
+      let localProviders = [];
+      try {
+        if (typeof h3 !== 'undefined') {
+          const hexId = h3.latLngToCell(lat, lon, 8);
+          if (h3BroadbandData[hexId]) {
+            localProviders = h3BroadbandData[hexId];
+          }
+        }
+      } catch (e) {
+        console.error("H3 calculation failed:", e);
+      }
+
       loading.style.display = 'none';
-      renderResults(finalWater, finalSewer, powerProvider, garbageProvider, providerDirectory, lat, lon);
+      renderResults(finalWater, finalSewer, powerProvider, garbageProvider, providerDirectory, localProviders, lat, lon);
 
     } catch (error) {
       loading.style.display = 'none';
@@ -226,9 +251,6 @@ description: Find water, sewer, garbage, power, and internet providers for homes
 
   // --- Helper to build JSON Directory HTML ---
   function getDictContactHtml(providerName, providerDirectory) {
-    // This logs EXACTLY what the map returned, so you know what to type in your Google Sheet
-    console.log("Looking in JSON for:", providerName); 
-
     const contactInfo = providerDirectory[providerName];
 
     if (contactInfo) {
@@ -245,7 +267,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
   }
 
   // --- 5. RENDER RESULTS ---
-  function renderResults(waterProvider, sewerProvider, powerProvider, garbageProvider, providerDirectory, lat, lon) {
+  function renderResults(waterProvider, sewerProvider, powerProvider, garbageProvider, providerDirectory, localProviders, lat, lon) {
     const resultsContainer = document.getElementById('results-container');
     
     // WATER CARD
@@ -284,12 +306,24 @@ description: Find water, sewer, garbage, power, and internet providers for homes
       </div>
     `;
 
-    // TELECOM CARD (Direct Link)
+    // TELECOM CARD (With H3 Local Data & Direct Link)
     const fccMapUrl = `https://broadbandmap.fcc.gov/location-summary/fixed?lat=${lat}&lon=${lon}`;
     html += `
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-        <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Internet & Cable Providers</h2>
-        <p style="margin-top: 0.5rem; font-size: 0.95rem; color: #444;">To see accurate, federally verified broadband providers and maximum speeds for this exact location, view the official FCC Broadband Map.</p>
+        <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Internet Providers</h2>
+    `;
+
+    if (localProviders && localProviders.length > 0) {
+      html += `<p style="margin-top: 0; margin-bottom: 0.5rem; font-size: 0.95rem; color: #444;">Providers available in this neighborhood:</p>
+               <ul style="list-style-type: none; padding: 0; margin: 0 0 1.5rem 0;">`;
+      localProviders.forEach(provider => {
+        html += `<li style="padding: 0.35rem 0; border-bottom: 1px solid #f0f0f0;">🌐 <strong>${provider}</strong></li>`;
+      });
+      html += `</ul>`;
+    }
+
+    html += `
+        <p style="margin-top: 0; font-size: 0.95rem; color: #444;">To verify exact address coverage and maximum speeds, please view the official FCC Broadband Map.</p>
         <div style="margin-top: 1rem;">
           <a href="${fccMapUrl}" target="_blank" style="display: inline-block; padding: 0.75rem 1.25rem; background-color: #0056b3; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 0.95rem;">
             View Verified Coverage on FCC Map ↗
