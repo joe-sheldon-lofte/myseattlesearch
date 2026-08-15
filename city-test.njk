@@ -1,694 +1,707 @@
----
-layout: base.njk
-title: "The Neighborhood — Mukilteo Hub"
-permalink: /city-test/
----
+{% extends "_includes/base.njk" %}
 
-<div id="neighborhood-root">
-  <style>
-    #neighborhood-root {
-      /* System Tokens Map */
-      --glass-passive: rgba(255, 255, 255, 0.35);
-      --glass-active: rgba(255, 255, 255, 0.85);
-      --glass-border: rgba(255, 255, 255, 0.45);
-      --glass-dark-border: rgba(28, 29, 31, 0.12);
-      --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+{% block content %}
+<!-- PREVIEW CSS (All rules will move into style.css during Step 1) -->
+<style>
+  :root {
+    --premier-beige: #F7F5F0;
+    --premier-charcoal: #1C1C1E;
+    --alpine-blue: #1E4D6B;
+    --pnw-red: #D9232A;
+    --bento-bg: #FFFFFF;
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-border: rgba(0, 0, 0, 0.08);
+    --glass-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+    --squircle-radius: 22px;
+  }
 
-      background-color: var(--premier-beige);
-      color: var(--premier-charcoal);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      position: relative;
-      min-height: 100vh;
-      padding-bottom: 5rem;
-      margin: 0;
-      line-height: 1.5;
+  body {
+    background-color: var(--premier-beige);
+    color: var(--premier-charcoal);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Left Margin Scroll Nodes (Desktop Only) */
+  .scroll-nodes-container {
+    position: fixed;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    z-index: 90;
+  }
+  .scroll-node {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(28, 28, 30, 0.25);
+    backdrop-filter: blur(8px);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    cursor: pointer;
+  }
+  .scroll-node:hover {
+    background: var(--alpine-blue);
+    transform: scale(1.4);
+  }
+  .scroll-node-label {
+    position: absolute;
+    left: 22px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+  .scroll-node:hover .scroll-node-label {
+    opacity: 1;
+  }
+
+  @media (max-width: 768px) {
+    .scroll-nodes-container { display: none; }
+  }
+
+  /* Main Container */
+  .neighborhood-container {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 24px 20px 140px 20px;
+  }
+
+  /* Header Section */
+  .neighborhood-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .neighborhood-header h1 {
+    font-size: 2.5rem;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    margin: 0 0 6px 0;
+  }
+  .neighborhood-header p {
+    font-size: 1.1rem;
+    color: rgba(28, 28, 30, 0.65);
+    margin: 0;
+    font-weight: 400;
+  }
+
+  /* 3D Hero Carousel Frame */
+  .hero-carousel-frame {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 32px;
+    overflow: hidden;
+  }
+  .hero-img-side {
+    width: 220px;
+    height: 240px;
+    border-radius: var(--squircle-radius);
+    object-fit: cover;
+    filter: blur(3px) brightness(0.9);
+    opacity: 0.7;
+    transform: scale(0.92);
+    transition: all 0.4s ease;
+  }
+  .hero-img-main {
+    width: 680px;
+    height: 320px;
+    border-radius: var(--squircle-radius);
+    object-fit: cover;
+    box-shadow: var(--glass-shadow);
+  }
+
+  @media (max-width: 768px) {
+    .hero-img-side { display: none; }
+    .hero-img-main { width: 100%; height: 220px; }
+  }
+
+  /* At-a-Glance Bento Bar */
+  .at-a-glance-bar {
+    background: var(--bento-bg);
+    border-radius: var(--squircle-radius);
+    padding: 18px 24px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 32px;
+    align-items: center;
+  }
+  .glance-widget {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+  }
+  .glance-widget:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    right: -10px;
+    top: 15%;
+    bottom: 15%;
+    width: 1px;
+    background: rgba(28, 28, 30, 0.1);
+  }
+  .glance-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(28,28,30,0.5);
+    margin-bottom: 2px;
+  }
+  .glance-value {
+    font-size: 1.15rem;
+    font-weight: 500;
+  }
+
+  @media (max-width: 768px) {
+    .at-a-glance-bar {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
     }
+    .glance-widget:nth-child(2)::after { display: none; }
+  }
 
-    #neighborhood-root * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+  /* Bento Grid Master Layout */
+  .bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 20px;
+  }
+
+  /* Bento Base Cards */
+  .bento-card {
+    background: var(--bento-bg);
+    border-radius: var(--squircle-radius);
+    padding: 24px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    position: relative;
+    box-sizing: border-box;
+  }
+  .bento-card--callout {
+    border-left: 4px solid var(--alpine-blue);
+  }
+  .bento-card--action {
+    border: 1.5px solid var(--alpine-blue);
+  }
+
+  /* Column Spans */
+  .span-8 { grid-column: span 8; }
+  .span-4 { grid-column: span 4; }
+  .span-6 { grid-column: span 6; }
+  .span-12 { grid-column: span 12; }
+
+  @media (max-width: 768px) {
+    .span-8, .span-4, .span-6, .span-12 {
+      grid-column: span 12; /* Mobile Collapse Rule */
     }
+  }
 
-    /* Floating Liquid Glass Navigation Spine */
-    #neighborhood-root .liquid-rail {
-      position: fixed;
-      left: 1.5rem;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: 900;
-      background: var(--glass-passive);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid var(--glass-border);
-      border-radius: 30px;
-      padding: 1.25rem 0.65rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1.25rem;
-      align-items: center;
-      transition: background 0.3s ease, opacity 0.3s ease, border-color 0.3s ease;
-      box-shadow: var(--card-shadow);
-      opacity: 0.35;
-    }
+  /* Universal Info Trigger (+) */
+  .info-trigger {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px solid rgba(28, 28, 30, 0.3);
+    background: transparent;
+    color: var(--premier-charcoal);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .info-trigger:hover {
+    background: var(--alpine-blue);
+    color: #FFFFFF;
+    border-color: var(--alpine-blue);
+  }
 
-    #neighborhood-root .liquid-rail.is-active,
-    #neighborhood-root .liquid-rail:hover {
-      background: var(--glass-active);
-      opacity: 0.95;
-      border-color: var(--glass-border);
-    }
+  /* Link Arrow */
+  .link-arrow {
+    color: var(--alpine-blue);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .link-arrow::after {
+    content: "→";
+    transition: transform 0.2s ease;
+  }
+  .link-arrow:hover::after {
+    transform: translateX(3px);
+  }
 
-    #neighborhood-root .rail-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background-color: var(--premier-charcoal);
-      opacity: 0.35;
-      transition: all 0.3s ease;
-      cursor: pointer;
-      position: relative;
-    }
+  /* Editorial Section */
+  .editorial-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .editorial-title h2 {
+    font-size: 1.35rem;
+    font-weight: 500;
+    margin: 0;
+  }
+  .editorial-content p {
+    font-size: 1rem;
+    line-height: 1.65;
+    color: rgba(28, 28, 30, 0.85);
+    margin-bottom: 16px;
+  }
 
-    #neighborhood-root .rail-dot.active {
-      opacity: 1;
-      background-color: var(--card-accent-color);
-      transform: scale(1.35);
-    }
+  /* News List Items */
+  .news-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 12px;
+  }
+  .news-item {
+    border-bottom: 1px solid rgba(28,28,30,0.08);
+    padding-bottom: 14px;
+  }
+  .news-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .news-source {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--alpine-blue);
+    font-weight: 500;
+  }
+  .news-headline {
+    font-size: 1.05rem;
+    font-weight: 500;
+    margin: 4px 0 6px 0;
+    color: var(--premier-charcoal);
+  }
+  .news-summary {
+    font-size: 0.88rem;
+    color: rgba(28, 28, 30, 0.7);
+    line-height: 1.45;
+    margin-bottom: 8px;
+  }
+  .news-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.78rem;
+    color: rgba(28,28,30,0.5);
+  }
 
-    #neighborhood-root .rail-dot .tooltip {
-      position: absolute;
-      left: 26px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: var(--premier-charcoal);
-      color: var(--white);
-      font-size: 0.75rem;
-      padding: 0.3rem 0.65rem;
-      border-radius: 6px;
-      white-space: nowrap;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s ease;
-      font-weight: 600;
-    }
+  /* Yelp Showcase Items */
+  .yelp-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .yelp-item {
+    background: var(--premier-beige);
+    padding: 12px;
+    border-radius: 16px;
+    text-align: center;
+  }
+  .yelp-item img {
+    width: 100%;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+  .yelp-item-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
 
-    #neighborhood-root .rail-dot:hover .tooltip {
-      opacity: 1;
-    }
+  /* Review Card Styling */
+  .review-quote-mark {
+    font-size: 1.8rem;
+    color: var(--alpine-blue);
+    line-height: 1;
+  }
+  .review-stars {
+    color: var(--alpine-blue);
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+  .review-author {
+    text-align: right;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: rgba(28,28,30,0.6);
+    margin-top: 12px;
+  }
 
-    /* 20%/60%/20% Hero Stage Architecture */
-    #neighborhood-root .hero-stage {
-      position: relative;
-      max-width: 1350px;
-      margin: 1.5rem auto 2.5rem;
-      padding: 0 1rem;
-      overflow: hidden;
-    }
+  /* Subpage Navigation List */
+  .subpage-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .subpage-list li a {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: var(--premier-beige);
+    color: var(--premier-charcoal);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: background 0.2s ease;
+  }
+  .subpage-list li a:hover {
+    background: rgba(30, 77, 107, 0.08);
+  }
 
-    #neighborhood-root .carousel-track {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 1.25rem;
-      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-    }
+  /* Floating Bottom Action Tray (Liquid Glass) */
+  .bottom-action-tray {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 720px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    border-radius: 999px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 100;
+  }
+  .tray-pills-desktop {
+    display: flex;
+    gap: 8px;
+  }
+  .tray-pill {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 999px;
+    padding: 8px 18px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--premier-charcoal);
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+  .tray-pill:hover {
+    border-color: var(--alpine-blue);
+    color: var(--alpine-blue);
+  }
+  .tray-search-box {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 999px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: rgba(28, 28, 30, 0.5);
+    cursor: pointer;
+    width: 180px;
+  }
+  .tray-contact-mobile { display: none; }
 
-    #neighborhood-root .hero-slide {
+  @media (max-width: 768px) {
+    .tray-pills-desktop { display: none; }
+    .tray-contact-mobile { display: block; }
+    .bottom-action-tray {
       border-radius: 24px;
-      overflow: hidden;
-      min-height: 380px;
-      background-size: cover;
-      background-position: center;
-      transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: var(--card-shadow);
-      position: relative;
+      padding: 10px 14px;
     }
+  }
+</style>
 
-    #neighborhood-root .hero-slide.side {
-      flex: 0 0 20%;
-      transform: scale(0.92);
-      opacity: 0.5;
-      filter: blur(1px);
-    }
+<!-- Left Margin Vertical Scroll Indicators (Desktop) -->
+<div class="scroll-nodes-container">
+  <div class="scroll-node">
+    <span class="scroll-node-label">Hero & Overview</span>
+  </div>
+  <div class="scroll-node">
+    <span class="scroll-node-label">At-a-Glance</span>
+  </div>
+  <div class="scroll-node">
+    <span class="scroll-node-label">Editorial</span>
+  </div>
+  <div class="scroll-node">
+    <span class="scroll-node-label">Local News</span>
+  </div>
+  <div class="scroll-node">
+    <span class="scroll-node-label">Local Business</span>
+  </div>
+  <div class="scroll-node">
+    <span class="scroll-node-label">Community Reviews</span>
+  </div>
+</div>
 
-    #neighborhood-root .hero-slide.center {
-      flex: 0 0 60%;
-      transform: scale(1);
-      opacity: 1;
-    }
+<main class="neighborhood-container">
 
-    /* Liquid Glass City Badge & Dashboard Status Light */
-    #neighborhood-root .hero-glass-badge {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: var(--glass-passive);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid var(--glass-border);
-      padding: 1.75rem 2.75rem;
-      border-radius: 28px;
-      text-align: center;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
-      z-index: 10;
-      width: min(90%, 460px);
-    }
-
-    #neighborhood-root .hero-glass-badge h1 {
-      font-size: 2.6rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      color: var(--premier-charcoal);
-      line-height: 1.1;
-    }
-
-    #neighborhood-root .hero-glass-badge .subhead {
-      font-size: 0.82rem;
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      font-weight: 700;
-      color: var(--card-accent-color);
-      margin-top: 0.35rem;
-    }
-
-    /* Dashboard Status Indicator Light */
-    #neighborhood-root .dashboard-status-light {
-      margin-top: 1rem;
-      padding: 0.45rem 0.9rem;
-      background: var(--glass-active);
-      border-radius: 20px;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--premier-charcoal);
-      cursor: pointer;
-      border: 1px solid var(--glass-border);
-      transition: all 0.25s ease;
-      user-select: none;
-    }
-
-    #neighborhood-root .dashboard-status-light:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-    }
-
-    #neighborhood-root .status-bead {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background-color: var(--card-accent-color);
-      position: relative;
-    }
-
-    #neighborhood-root .status-bead.active-alert {
-      background-color: var(--card-accent-color);
-      box-shadow: 0 0 0 0 rgba(43, 92, 70, 0.6);
-      animation: bead-pulse 2s infinite;
-    }
-
-    @keyframes bead-pulse {
-      0% { box-shadow: 0 0 0 0 rgba(43, 92, 70, 0.6); }
-      70% { box-shadow: 0 0 0 8px rgba(43, 92, 70, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(43, 92, 70, 0); }
-    }
-
-    /* Expandable Status Light Drawer */
-    #neighborhood-root .status-drawer {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), margin-top 0.3s ease;
-      text-align: left;
-      font-size: 0.8rem;
-      line-height: 1.4;
-      background: var(--white);
-      border-radius: 14px;
-      padding: 0 0.85rem;
-    }
-
-    #neighborhood-root .status-drawer.open {
-      max-height: 140px;
-      margin-top: 0.75rem;
-      padding: 0.75rem 0.85rem;
-      border: 1px solid var(--glass-border);
-    }
-
-    /* Main Container Frame */
-    #neighborhood-root .main-container {
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 0 1.5rem;
-    }
-
-    /* Civic Score Ring Row */
-    #neighborhood-root .rings-card {
-      background: var(--white);
-      border-radius: 24px;
-      padding: 1.75rem 2rem;
-      margin-bottom: 2rem;
-      box-shadow: var(--card-shadow);
-      border: 1px solid var(--glass-dark-border);
-    }
-
-    #neighborhood-root .section-micro-title {
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      font-weight: 700;
-      color: var(--card-accent-color);
-      margin-bottom: 1.25rem;
-    }
-
-    #neighborhood-root .rings-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 1.5rem;
-      text-align: center;
-    }
-
-    #neighborhood-root .ring-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    #neighborhood-root .svg-ring {
-      position: relative;
-      width: 92px;
-      height: 92px;
-    }
-
-    #neighborhood-root .svg-ring svg {
-      width: 100%;
-      height: 100%;
-      transform: rotate(-90deg);
-    }
-
-    #neighborhood-root .svg-ring circle {
-      fill: none;
-      stroke-width: 8;
-      stroke-linecap: round;
-    }
-
-    #neighborhood-root .bg-track {
-      stroke: var(--dynamic-bg-highlight);
-    }
-
-    #neighborhood-root .active-track {
-      stroke: var(--card-accent-color);
-      stroke-dasharray: 226;
-      stroke-dashoffset: 226;
-      transition: stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    #neighborhood-root .ring-number {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 1.3rem;
-      font-weight: 800;
-      color: var(--premier-charcoal);
-    }
-
-    #neighborhood-root .ring-label {
-      margin-top: 0.6rem;
-      font-size: 0.82rem;
-      font-weight: 700;
-      color: var(--premier-charcoal);
-    }
-
-    /* Bento Grid System */
-    #neighborhood-root .bento-grid {
-      display: grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap: 1.25rem;
-    }
-
-    #neighborhood-root .bento-card {
-      background: var(--white);
-      border-radius: 22px;
-      padding: 1.5rem;
-      box-shadow: var(--card-shadow);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      border: 1px solid var(--glass-dark-border);
-      position: relative;
-    }
-
-    #neighborhood-root .col-4 { grid-column: span 4; }
-    #neighborhood-root .col-6 { grid-column: span 6; }
-    #neighborhood-root .col-8 { grid-column: span 8; }
-    #neighborhood-root .col-12 { grid-column: span 12; }
-
-    #neighborhood-root .metric-heading {
-      font-size: 1.75rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      color: var(--premier-charcoal);
-      line-height: 1.2;
-    }
-
-    #neighborhood-root .metric-body {
-      font-size: 0.88rem;
-      color: var(--premier-charcoal);
-      opacity: 0.8;
-      margin-top: 0.35rem;
-    }
-
-    #neighborhood-root .card-footer-note {
-      margin-top: 1rem;
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: var(--card-accent-color);
-    }
-
-    /* Market Indicator Badge Widget */
-    #neighborhood-root .market-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: var(--dynamic-bg-highlight);
-      padding: 0.4rem 0.75rem;
-      border-radius: 10px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--card-accent-color);
-      text-decoration: none;
-      transition: background 0.2s ease;
-      margin-top: 0.75rem;
-    }
-
-    #neighborhood-root .market-badge:hover {
-      background: var(--premier-beige);
-    }
-
-    /* High School Prep Sports Ticker */
-    #neighborhood-root .sports-ticker {
-      display: flex;
-      flex-direction: column;
-      gap: 0.65rem;
-      margin-top: 0.75rem;
-    }
-
-    #neighborhood-root .sports-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: var(--dynamic-bg-highlight);
-      padding: 0.65rem 0.85rem;
-      border-radius: 12px;
-      font-size: 0.85rem;
-      font-weight: 600;
-    }
-
-    #neighborhood-root .sports-tag {
-      font-size: 0.68rem;
-      text-transform: uppercase;
-      font-weight: 800;
-      background: var(--card-accent-color);
-      color: var(--white);
-      padding: 0.2rem 0.45rem;
-      border-radius: 4px;
-    }
-
-    /* Mobile Responsive Adaptation */
-    @media (max-width: 900px) {
-      #neighborhood-root .col-4, 
-      #neighborhood-root .col-6, 
-      #neighborhood-root .col-8 { 
-        grid-column: span 12; 
-      }
-
-      #neighborhood-root .hero-slide.side { display: none; }
-      #neighborhood-root .hero-slide.center { flex: 0 0 100%; }
-
-      #neighborhood-root .liquid-rail {
-        top: auto;
-        bottom: 1.25rem;
-        left: 50%;
-        transform: translateX(-50%);
-        flex-direction: row;
-        padding: 0.65rem 1.25rem;
-      }
-
-      #neighborhood-root .rail-dot .tooltip { display: none; }
-
-      #neighborhood-root .hero-glass-badge {
-        padding: 1.25rem 1.5rem;
-      }
-
-      #neighborhood-root .hero-glass-badge h1 {
-        font-size: 2rem;
-      }
-    }
-  </style>
-
-  <!-- Floating Liquid Glass Left Spine Navigation -->
-  <nav class="liquid-rail" id="liquidRail">
-    <div class="rail-dot active" data-target="civic-rings"><span class="tooltip">Civic Scores</span></div>
-    <div class="rail-dot" data-target="daily-briefing"><span class="tooltip">Daily Briefing</span></div>
-    <div class="rail-dot" data-target="community-wire"><span class="tooltip">Community Wire</span></div>
-  </nav>
-
-  <!-- Hero Stage (20%/60%/20% Visual Proportions) -->
-  <header class="hero-stage">
-    <div class="carousel-track">
-      <div class="hero-slide side" style="background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80');"></div>
-      <div class="hero-slide center" style="background-image: url('https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=1200&q=80');"></div>
-      <div class="hero-slide side" style="background-image: url('https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=800&q=80');"></div>
-    </div>
-
-    <!-- Liquid Glass Overlay Badge & Integrated Status Light -->
-    <div class="hero-glass-badge">
-      <h1>MUKILTEO</h1>
-      <div class="subhead">Snohomish County • Washington</div>
-
-      <!-- Dashboard Check-Engine Style Status Indicator -->
-      <div class="dashboard-status-light" id="statusLight" onclick="toggleStatusDrawer()">
-        <div class="status-bead active-alert"></div>
-        <span>⚡ POWER OUTAGE DETECTED</span>
-      </div>
-
-      <!-- Drawer Content -->
-      <div class="status-drawer" id="statusDrawer">
-        <p><strong>South Everett / Mukilteo Border:</strong> Snohomish PUD reports 1,240 customers affected. Crew dispatched.</p>
-        <a href="https://www.snopud.com/outages/" target="_blank" rel="noopener" style="color: var(--card-accent-color); font-weight: 700; text-decoration: underline; margin-top: 0.35rem; display: inline-block;">View Live Snohomish PUD Map &rarr;</a>
-      </div>
-    </div>
+  <!-- Header Banner -->
+  <header class="neighborhood-header">
+    <h1>Welcome, Neighbor</h1>
+    <p>Kirkland, Washington • Neighborhood Profile & Intelligence</p>
   </header>
 
-  <!-- Main Canvas Section -->
-  <main class="main-container">
+  <!-- 3D Hero Image Carousel -->
+  <section class="hero-carousel-frame">
+    <img src="https://assets.myseattlesearch.com/neighborhood/hero-images/kirkland-left.webp" alt="Kirkland Waterfront" class="hero-img-side" onerror="this.src='https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400';">
+    <img src="https://assets.myseattlesearch.com/neighborhood/hero-images/kirkland-main.webp" alt="Downtown Kirkland" class="hero-img-main" onerror="this.src='https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1000';">
+    <img src="https://assets.myseattlesearch.com/neighborhood/hero-images/kirkland-right.webp" alt="Heritage Park" class="hero-img-side" onerror="this.src='https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400';">
+  </section>
 
-    <!-- Civic Score Rings Array -->
-    <section class="rings-card" id="civic-rings">
-      <div class="section-micro-title">Civic Vitality Index</div>
-      <div class="rings-grid">
-
-        <div class="ring-item">
-          <div class="svg-ring">
-            <svg viewBox="0 0 80 80">
-              <circle class="bg-track" cx="40" cy="40" r="36"></circle>
-              <circle class="active-track" cx="40" cy="40" r="36" data-score="88"></circle>
-            </svg>
-            <div class="ring-number">88</div>
-          </div>
-          <div class="ring-label">Park Score</div>
-        </div>
-
-        <div class="ring-item">
-          <div class="svg-ring">
-            <svg viewBox="0 0 80 80">
-              <circle class="bg-track" cx="40" cy="40" r="36"></circle>
-              <circle class="active-track" cx="40" cy="40" r="36" data-score="74"></circle>
-            </svg>
-            <div class="ring-number">74</div>
-          </div>
-          <div class="ring-label">Bark Score</div>
-        </div>
-
-        <div class="ring-item">
-          <div class="svg-ring">
-            <svg viewBox="0 0 80 80">
-              <circle class="bg-track" cx="40" cy="40" r="36"></circle>
-              <circle class="active-track" cx="40" cy="40" r="36" data-score="62"></circle>
-            </svg>
-            <div class="ring-number">62</div>
-          </div>
-          <div class="ring-label">Transit Rating</div>
-        </div>
-
-        <div class="ring-item">
-          <div class="svg-ring">
-            <svg viewBox="0 0 80 80">
-              <circle class="bg-track" cx="40" cy="40" r="36"></circle>
-              <circle class="active-track" cx="40" cy="40" r="36" data-score="81"></circle>
-            </svg>
-            <div class="ring-number">81</div>
-          </div>
-          <div class="ring-label">Walkability</div>
-        </div>
-
+  <!-- Full-Width At-a-Glance Bento Bar -->
+  <section class="at-a-glance-bar">
+    
+    <!-- Weather Widget -->
+    <div class="glance-widget">
+      <div>
+        <div class="glance-label">Weather</div>
+        <div class="glance-value">72° Sunny</div>
       </div>
-    </section>
+      <button class="info-trigger" title="More Weather Details">+</button>
+    </div>
 
-    <!-- Bento Utility Grid Layout -->
-    <section class="bento-grid" id="daily-briefing">
+    <!-- Sunrise/Sunset Ring Widget -->
+    <div class="glance-widget">
+      <svg width="42" height="42" viewBox="0 0 42 42">
+        <circle cx="21" cy="21" r="16" fill="none" stroke="rgba(28,28,30,0.1)" stroke-width="4"/>
+        <path d="M 5 21 A 16 16 0 0 1 37 21" fill="none" stroke="#F5A623" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="21" cy="5" r="3" fill="#F5A623"/>
+      </svg>
+      <div>
+        <div class="glance-label">Sun Cycle</div>
+        <div class="glance-value">6:12A / 8:24P</div>
+      </div>
+    </div>
 
-      <!-- School District Pulse -->
-      <article class="bento-card col-6">
-        <div>
-          <div class="section-micro-title">School District Pulse</div>
-          <div class="metric-heading">Mukilteo SD #6</div>
-          <div class="metric-body">Standard Hours Today • Early Release Friday @ 1:30 PM</div>
+    <!-- Active Transit Score Progress Ring -->
+    <div class="glance-widget">
+      <svg width="42" height="42" viewBox="0 0 42 42">
+        <circle cx="21" cy="21" r="16" fill="none" stroke="rgba(28,28,30,0.08)" stroke-width="4"/>
+        <circle cx="21" cy="21" r="16" fill="none" stroke="#1E4D6B" stroke-width="4" stroke-dasharray="100" stroke-dashoffset="22" stroke-linecap="round" transform="rotate(-90 21 21)"/>
+        <text x="21" y="25" text-anchor="middle" font-size="11" font-weight="600" fill="#1C1C1E">78</text>
+      </svg>
+      <div>
+        <div class="glance-label">Transit Score</div>
+        <div class="glance-value">78 / 100</div>
+      </div>
+      <button class="info-trigger" title="Transit Score Details">+</button>
+    </div>
+
+    <!-- Real Estate Market Gauge -->
+    <div class="glance-widget">
+      <svg width="46" height="32" viewBox="0 0 46 32">
+        <path d="M 5 28 A 18 18 0 0 1 41 28" fill="none" stroke="#D9232A" stroke-width="4"/>
+        <path d="M 14 11 A 18 18 0 0 1 32 11" fill="none" stroke="#1E4D6B" stroke-width="4"/>
+        <line x1="23" y1="28" x2="31" y2="12" stroke="#1C1C1E" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <div class="glance-label">Market Hotness</div>
+        <div class="glance-value">Seller's Market</div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Bento Grid Main Layout -->
+  <div class="bento-grid">
+
+    <!-- Left Column: Editorial, News, & Local Showcases (Span 8) -->
+    <div class="span-8" style="display: flex; flex-direction: column; gap: 20px;">
+      
+      <!-- Editorial Section (EP Sourced) -->
+      <article class="bento-card bento-card--callout">
+        <div class="editorial-title">
+          <h2>Kirkland Community Editorial</h2>
+          <button class="info-trigger" title="Editorial Sourcing">+</button>
         </div>
-        <div class="card-footer-note">
-          Teacher In-Service Day: Scheduled in 12 days
+        <div class="editorial-content">
+          <p>Nesting gracefully along the eastern shoreline of Lake Washington, Kirkland balances a vibrant, walkable urban core with picturesque, tree-lined residential sanctuaries. From the peaceful boardwalks of Marina Park to the bustling boutiques along Park Lane, the city invites residents and visitors alike to slow down and enjoy waterfront living at its finest.</p>
+          <p>The local real estate market remains remarkably resilient, driven by award-winning schools, expanding tech campuses, and seamless access to Bellevue and Seattle via the I-405 corridor. Buyers continue to prioritize homes with flexible remote-work layouts and outdoor entertaining spaces.</p>
+          <p>As summer unfolds, Kirkland's civic calendar comes alive with outdoor concerts, farmers markets, and community sailing events. It is a community deeply proud of its public parks, public art installations, and active neighborhood associations.</p>
+          <p>Whether you're looking for a luxury condo overlooking the marina or a classic craftsman in Market Neighborhood, Kirkland offers a refined Pacific Northwest lifestyle rooted in connection, convenience, and natural beauty.</p>
         </div>
       </article>
 
-      <!-- Environmental & Marine Safety -->
-      <article class="bento-card col-6">
-        <div>
-          <div class="section-micro-title">Environmental Watch</div>
-          <div class="metric-heading">24 AQI (Good)</div>
-          <div class="metric-body">Low UV Index • Snohomish River: Normal Flow Stage</div>
+      <!-- Local News Section -->
+      <div class="bento-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <h3 style="margin: 0; font-size: 1.15rem; font-weight: 500;">Kirkland Local News</h3>
+          <button class="info-trigger" title="News Feed Sources">+</button>
         </div>
-        <div class="card-footer-note">
-          Mukilteo / Clinton Ferry: Operating on Schedule (15m Terminal Wait)
-        </div>
-      </article>
-
-      <!-- Real Estate Market Indicator Badge Widget -->
-      <article class="bento-card col-4">
-        <div>
-          <div class="section-micro-title">Market Pulse Indicator</div>
-          <div class="metric-heading">$842k</div>
-          <div class="metric-body">Median Active Price • 18 Days Avg on Market</div>
-          <a href="/city-stats/" class="market-badge">
-            <span>Explore City Market Data</span>
-            <span>&rarr;</span>
-          </a>
-        </div>
-      </article>
-
-      <!-- Prep Athletics Score Bug -->
-      <article class="bento-card col-8" id="community-wire">
-        <div>
-          <div class="section-micro-title">WESCO Prep Athletics</div>
-          <div class="sports-ticker">
-            <div class="sports-row">
-              <span>Kamiak Knights vs. Mariner Marauders (Football)</span>
-              <span>28 - 14</span>
-              <span class="sports-tag">FINAL</span>
+        <div class="news-list">
+          
+          <article class="news-item">
+            <div class="news-source">Kirkland Reporter</div>
+            <h4 class="news-headline">City Council Approves New Downtown Waterfront Park Renovations</h4>
+            <p class="news-summary">Phase two of the Marina Park master plan clears final environmental review, paving the way for expanded green space and upgraded public docks starting this fall.</p>
+            <div class="news-meta">
+              <span>Today at 8:30 AM</span>
+              <a href="#" class="link-arrow">Read Story</a>
             </div>
-            <div class="sports-row">
-              <span>Kamiak Girls Soccer @ Jackson High</span>
-              <span>Fri 7:00 PM</span>
-              <span class="sports-tag" style="background: var(--premier-charcoal);">UPCOMING</span>
+          </article>
+
+          <article class="news-item">
+            <div class="news-source">Puget Sound Business Journal</div>
+            <h4 class="news-headline">Tech Campus Expansion Drives Strong Q2 Housing Demand in Eastside Submarkets</h4>
+            <p class="news-summary">Suburban tech growth continues to fuel competitive buyer demand for single-family residences near the Cross Kirkland Corridor and Totem Lake urban center.</p>
+            <div class="news-meta">
+              <span>Yesterday at 4:15 PM</span>
+              <a href="#" class="link-arrow">Read Story</a>
             </div>
+          </article>
+
+        </div>
+      </div>
+
+      <!-- Yelp Local Business Rotation -->
+      <div class="bento-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h3 style="margin:0; font-size: 1.1rem; font-weight: 500;">Featured Local Coffee & Bakeries</h3>
+          <a href="#" class="link-arrow">View All</a>
+        </div>
+        <div class="yelp-grid">
+          <div class="yelp-item">
+            <img src="https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300" alt="Zoka Coffee">
+            <div class="yelp-item-name">Zoka Coffee Roasters</div>
+            <div style="font-size: 0.75rem; color: var(--alpine-blue); margin-top: 2px;">★★★★★ (4.8)</div>
+          </div>
+          <div class="yelp-item">
+            <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=300" alt="Deru Market">
+            <div class="yelp-item-name">DERU Market</div>
+            <div style="font-size: 0.75rem; color: var(--alpine-blue); margin-top: 2px;">★★★★★ (4.9)</div>
+          </div>
+          <div class="yelp-item">
+            <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300" alt="Caffe Ladro">
+            <div class="yelp-item-name">Caffe Ladro Kirkland</div>
+            <div style="font-size: 0.75rem; color: var(--alpine-blue); margin-top: 2px;">★★★★★ (4.7)</div>
           </div>
         </div>
-      </article>
+      </div>
 
-      <!-- Seattle Pro Sports Game Day Badge -->
-      <article class="bento-card col-6">
-        <div>
-          <div class="section-micro-title">Seattle Pro Game Day</div>
-          <div class="metric-heading" style="font-size: 1.35rem;">Mariners vs. Rangers</div>
-          <div class="metric-body">First Pitch 7:10 PM • T-Mobile Park (ROOT Sports)</div>
+      <!-- Community Review Bento Card -->
+      <div class="bento-card">
+        <div class="review-stars">★★★★★</div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <span class="review-quote-mark">“</span>
+          <p style="margin: 0 12px; font-size: 0.95rem; line-height: 1.5; color: rgba(28,28,30,0.85);">
+            Living near Marina Park in Kirkland has been the best decision for our family. The walking trails, local restaurants, and peaceful lake sunsets make every weekend feel like a getaway.
+          </p>
+          <span class="review-quote-mark">”</span>
         </div>
-        <div class="card-footer-note">
-          Traffic Notice: Heavy I-5 Southbound volume expected around 6:00 PM
+        <div class="review-author">— Sarah & Marcus T., Kirkland Residents</div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Sidebar Widgets & Deep Navigation (Span 4) -->
+    <div class="span-4" style="display: flex; flex-direction: column; gap: 20px;">
+      
+      <!-- Latest Sports Summary Widget -->
+      <div class="bento-card bento-card--action">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(28,28,30,0.5);">Latest Pro Sports</span>
+          <span style="font-size: 0.75rem; color: var(--pnw-red); font-weight: 500;">FINAL</span>
         </div>
-      </article>
-
-      <!-- Daily Commute Matrix -->
-      <article class="bento-card col-6">
-        <div>
-          <div class="section-micro-title">Corridor Commute Pulse</div>
-          <div class="metric-heading" style="font-size: 1.35rem;">28 mins to SLU</div>
-          <div class="metric-body">I-5 South Express Lanes Open • Toll Rate: Baseline</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-weight: 500;">Seattle Mariners</span>
+          <span style="font-weight: 600; font-size: 1.1rem; color: var(--alpine-blue);">5</span>
         </div>
-        <div class="card-footer-note">
-          I-405 Corridor to Bellevue: 34 mins
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <span style="color: rgba(28,28,30,0.6);">LA Angels</span>
+          <span style="font-weight: 500; font-size: 1.1rem; color: rgba(28,28,30,0.6);">2</span>
         </div>
-      </article>
+        <a href="/neighborhood/region-sports/pro/" class="link-arrow">Regional Sports Hub</a>
+      </div>
 
-    </section>
+      <!-- Neighborhood Subpages Directory -->
+      <div class="bento-card">
+        <h3 style="margin: 0 0 14px 0; font-size: 1.1rem; font-weight: 500;">Explore Kirkland</h3>
+        <ul class="subpage-list">
+          <li><a href="/neighborhood/kirkland/weather/">Weather & Tides <span>→</span></a></li>
+          <li><a href="/neighborhood/kirkland/transit-commute/">Transit & Commute <span>→</span></a></li>
+          <li><a href="/neighborhood/kirkland/municipal/">Municipal & City Hall <span>→</span></a></li>
+          <li><a href="/neighborhood/kirkland/emergency/">Emergency & Safety <span>→</span></a></li>
+          <li><a href="/neighborhood/kirkland/data/">City Data Repository <span>→</span></a></li>
+          <li><a href="/neighborhood/kirkland/elections/">Elections Hub <span>→</span></a></li>
+          <li><a href="/neighborhood/school/lake-washington/">School District (LWSD) <span>→</span></a></li>
+        </ul>
+      </div>
 
-  </main>
+      <!-- Upcoming Event Box -->
+      <div class="bento-card">
+        <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(28,28,30,0.5); margin-bottom: 6px;">Next Community Event</div>
+        <div style="font-weight: 500; font-size: 1rem; margin-bottom: 4px;">Kirkland Wednesday Market</div>
+        <div style="font-size: 0.85rem; color: rgba(28,28,30,0.6); margin-bottom: 12px;">Marina Park • Wednesday at 3:00 PM</div>
+        <a href="/neighborhood/kirkland/municipal/" class="link-arrow">Full City Calendar</a>
+      </div>
 
-  <!-- Prototype Client Scripting -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // 1. SVG Civic Ring Animation
-      const activeTracks = document.querySelectorAll('#neighborhood-root .active-track');
-      activeTracks.forEach(track => {
-        const score = parseInt(track.getAttribute('data-score'), 10);
-        const maxOffset = 226;
-        const strokeOffset = maxOffset - (maxOffset * score) / 100;
-        setTimeout(() => {
-          track.style.strokeDashoffset = strokeOffset;
-        }, 250);
-      });
+    </div>
 
-      // 2. Liquid Glass Rail Navigation & Scroll Spy
-      const liquidRail = document.getElementById('liquidRail');
-      const dots = document.querySelectorAll('#neighborhood-root .rail-dot');
-      const targetSections = [
-        document.getElementById('civic-rings'),
-        document.getElementById('daily-briefing'),
-        document.getElementById('community-wire')
-      ];
+  </div>
 
-      window.addEventListener('scroll', () => {
-        if (window.scrollY > 60) {
-          liquidRail.classList.add('is-active');
-        } else {
-          liquidRail.classList.remove('is-active');
-        }
+</main>
 
-        let currentId = '';
-        targetSections.forEach(section => {
-          if (section) {
-            const top = section.offsetTop - 220;
-            if (window.scrollY >= top) {
-              currentId = section.getAttribute('id');
-            }
-          }
-        });
+<!-- Floating Liquid Glass Bottom Action Tray -->
+<nav class="bottom-action-tray">
+  
+  <!-- Desktop Actions -->
+  <div class="tray-pills-desktop">
+    <a href="sms:4255550199" class="tray-pill">Text</a>
+    <a href="/chat/" class="tray-pill">Chat</a>
+    <a href="/book/" class="tray-pill">Book</a>
+  </div>
 
-        dots.forEach(dot => {
-          dot.classList.remove('active');
-          if (dot.getAttribute('data-target') === currentId) {
-            dot.classList.add('active');
-          }
-        });
-      });
+  <!-- Mobile Contact Button Trigger -->
+  <div class="tray-contact-mobile">
+    <button class="tray-pill" style="border:none; cursor:pointer;">Contact 💬</button>
+  </div>
 
-      dots.forEach(dot => {
-        dot.addEventListener('click', () => {
-          const targetId = dot.getAttribute('data-target');
-          const el = document.getElementById(targetId);
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth' });
-          }
-        });
-      });
-    });
+  <!-- Spotlight Search Input -->
+  <div class="tray-search-box">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+    <span>Search Kirkland...</span>
+  </div>
 
-    // 3. Status Light Drawer Toggle
-    function toggleStatusDrawer() {
-      const drawer = document.getElementById('statusDrawer');
-      if (drawer) {
-        drawer.classList.toggle('open');
-      }
-    }
-  </script>
-</div>
+</nav>
+{% endblock %}
