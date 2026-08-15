@@ -221,9 +221,12 @@ description: Find water, sewer, garbage, power, and internet providers for homes
       let finalWater = waterProviderName || kcWaterSewerName || `City of ${city} (Municipal Utilities)`;
       let finalSewer = kcWaterSewerName || `City of ${city} (Municipal Utilities)`;
 
-      // 5. POWER & GARBAGE LOGIC
-      let powerProvider = county.includes("Snohomish") ? "Snohomish County PUD" : 
-                          (city.includes("Seattle") ? "Seattle City Light" : "Puget Sound Energy (PSE)");
+      // 5. ELECTRIC, GAS, & GARBAGE LOGIC
+      let electricProvider = county.includes("Snohomish") ? "Snohomish County PUD" : 
+                             (city.includes("Seattle") ? "Seattle City Light" : "Puget Sound Energy (PSE)");
+                             
+      let gasProvider = "Puget Sound Energy (PSE)"; // PSE covers almost the entirety of King/Snohomish for gas
+      
       let garbageProvider = `City of ${city} Solid Waste / Franchised Provider`;
 
       // 6. CALCULATE H3 HEXAGON FOR BROADBAND
@@ -240,7 +243,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
       }
 
       loading.style.display = 'none';
-      renderResults(finalWater, finalSewer, powerProvider, garbageProvider, providerDirectory, localProviders, lat, lon);
+      renderResults(finalWater, finalSewer, electricProvider, gasProvider, garbageProvider, providerDirectory, localProviders, lat, lon);
 
     } catch (error) {
       loading.style.display = 'none';
@@ -267,7 +270,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
   }
 
   // --- 5. RENDER RESULTS ---
-  function renderResults(waterProvider, sewerProvider, powerProvider, garbageProvider, providerDirectory, localProviders, lat, lon) {
+  function renderResults(waterProvider, sewerProvider, electricProvider, gasProvider, garbageProvider, providerDirectory, localProviders, lat, lon) {
     const resultsContainer = document.getElementById('results-container');
     
     // WATER CARD
@@ -288,12 +291,21 @@ description: Find water, sewer, garbage, power, and internet providers for homes
       </div>
     `;
 
-    // POWER & GAS CARD
+    // ELECTRIC CARD
     html += `
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-        <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Electric & Gas</h2>
-        <div style="padding: 0.5rem 0; font-size: 1.1rem;">⚡ <strong>${powerProvider}</strong></div>
-        ${getDictContactHtml(powerProvider, providerDirectory)}
+        <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Electric Provider</h2>
+        <div style="padding: 0.5rem 0; font-size: 1.1rem;">⚡ <strong>${electricProvider}</strong></div>
+        ${getDictContactHtml(electricProvider, providerDirectory)}
+      </div>
+    `;
+
+    // GAS CARD
+    html += `
+      <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Natural Gas Provider</h2>
+        <div style="padding: 0.5rem 0; font-size: 1.1rem;">🔥 <strong>${gasProvider}</strong></div>
+        ${getDictContactHtml(gasProvider, providerDirectory)}
       </div>
     `;
 
@@ -306,7 +318,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
       </div>
     `;
 
-    // TELECOM CARD (With H3 Local Data & Direct Link)
+    // TELECOM CARD
     const fccMapUrl = `https://broadbandmap.fcc.gov/location-summary/fixed?lat=${lat}&lon=${lon}`;
     html += `
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
