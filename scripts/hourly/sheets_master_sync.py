@@ -153,14 +153,15 @@ def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, fol
         img = img.convert("RGBA") if img.mode in ("RGBA", "P") else img.convert("RGB")
         
         webp_buffer = io.BytesIO()
-        img.save(webp_buffer, format="WEBP", quality=80)
+        img.save(webp_buffer, format="WEBP", quality=85)
         webp_buffer.seek(0)
         
         s3_client.put_object(
             Bucket=r2_bucket,
             Key=object_key,
             Body=webp_buffer,
-            ContentType="image/webp"
+            ContentType="image/webp",
+            CacheControl="public, max-age=31536000, immutable"
         )
 
         try:
@@ -172,6 +173,48 @@ def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, fol
     except Exception as e:
         print(f"   ❌ Image upload notice for {file_id}: {e}")
         return image_url
+
+def process_custom_upload_asset(drive_service, s3_client, r2_bucket, drive_link, target_dir, asset_name):
+    """Converts image from Drive link to WebP and uploads to custom R2 directory path."""
+    file_id = extract_google_id(drive_link)
+    if not file_id or not s3_client or not r2_bucket:
+        return drive_link
+
+    clean_dir = str(target_dir).strip().strip('/')
+    clean_name = slugify(asset_name)
+    object_key = f"{clean_dir}/{clean_name}.webp" if clean_dir else f"{clean_name}.webp"
+    permanent_url = f"https://assets.myseattlesearch.com/{object_key}"
+
+    try:
+        request = drive_service.files().get_media(fileId=file_id)
+        raw_bytes = request.execute()
+
+        file_stream = io.BytesIO(raw_bytes)
+        img = Image.open(file_stream)
+        img = img.convert("RGBA") if img.mode in ("RGBA", "P") else img.convert("RGB")
+
+        webp_buffer = io.BytesIO()
+        img.save(webp_buffer, format="WEBP", quality=85)
+        webp_buffer.seek(0)
+
+        s3_client.put_object(
+            Bucket=r2_bucket,
+            Key=object_key,
+            Body=webp_buffer,
+            ContentType="image/webp",
+            CacheControl="public, max-age=31536000, immutable"
+        )
+        print(f"   🚀 Asset converted & uploaded to R2: {object_key}")
+
+        try:
+            drive_service.files().delete(fileId=file_id).execute()
+        except Exception:
+            pass
+
+        return permanent_url
+    except Exception as e:
+        print(f"   ❌ Asset upload fault for {file_id}: {e}")
+        return drive_link
 
 def process_and_upload_pdf(drive_service, s3_client, r2_bucket, pdf_url, mls_number, index=1):
     file_id = extract_google_id(pdf_url)
@@ -383,10 +426,10 @@ def main():
         except Exception as e:
             print(f"   ⚠️ CityData notice: {e}")
 
-    # Module 2: Website Data Workbook (Celebrations Removed)
+    # Module 2: Website Data Workbook & Uploads Tab Bulk Processing
     web_sheet_id = os.environ.get("WEBSITE_DATA_SHEET_ID")
     if web_sheet_id:
-        target_tabs = ["Stats", "Team", "Disclaimers", "Events", "DPA", "Professionals", "Reviews", "ThirdPartyPrograms", "News", "Sales", "Live_Archive", "Uploads", "Sports", "TollData", "UtilityData", "DataDescriptors"]
+        target_tabs = ["Stats", "Team", "Disclaimers", "Events", "DPA", "Professionals", "Reviews", "ThirdPartyPrograms", "News", "Sales", "Live_Archive", "Uploads", "Sports", "TollData"]
         try:
             web_ranges = [f"{tab}!A:AZ" for tab in target_tabs]
             web_batch = sheets_service.spreadsheets().values().batchGet(
@@ -400,12 +443,49 @@ def main():
             toll_rows = tabs_data.get("TollData", {}).get('values', [])
             harvest_commute_and_tolls(parse_sheet_values(toll_rows) if toll_rows else [])
 
-            # Write out simple tabs
+            # Bulk Process Uploads Tab (Drive -> WebP -> R2 CDN -> Writeback)
+            upload_rows = tabs_data.get("Uploads", {}).get('values', [])
+            if upload_rows and len(upload_rows) >= 2:
+                u_headers = [str(h).strip() for h in upload_rows[0]]
+                col_u_link = u_headers.index("Link") if "Link" in u_headers else -1
+                col_u_dir = u_headers.index("Image Directory") if "Image Directory" in u_headers else -1
+                col_u_name = u_headers.index("Name") if "Name" in u_headers else -1
+                col_u_asset = u_headers.index("New Asset URL") if "New Asset URL" in u_headers else -1
+                col_u_done = u_headers.index("Done") if "Done" in u_headers else -1
+
+                for idx, r in enumerate(upload_rows[1:]):
+                    padded = list(r) + [""] * (len(u_headers) - len(r))
+                    u_rec = dict(zip(u_headers, padded))
+                    row_num = idx + 2
+
+                    d_link = u_rec.get("Link", "").strip()
+                    d_dir = u_rec.get("Image Directory", "").strip()
+                    d_name = u_rec.get("Name", "").strip()
+                    d_done = u_rec.get("Done", "").strip().lower()
+
+                    if d_link and is_google_drive_link(d_link) and d_done != "yes" and s3_client:
+                        new_url = process_custom_upload_asset(
+                            drive_service, s3_client, r2_bucket, d_link, d_dir, d_name
+                        )
+                        if new_url and new_url != d_link:
+                            if col_u_asset != -1:
+                                batch_sheet_writebacks[web_sheet_id].append({
+                                    'range': f"Uploads!{get_col_letter(col_u_asset)}{row_num}",
+                                    'values': [[new_url]]
+                                })
+                            if col_u_done != -1:
+                                batch_sheet_writebacks[web_sheet_id].append({
+                                    'range': f"Uploads!{get_col_letter(col_u_done)}{row_num}",
+                                    'values': [["Yes"]]
+                                })
+
+            # Write out simple JSON tabs
             for tab_name, json_name in [
                 ("Stats", "stats.json"), ("Disclaimers", "disclaimers.json"),
                 ("DPA", "dpa_programs.json"), ("Professionals", "professionals.json"), 
                 ("Reviews", "reviews.json"), ("ThirdPartyPrograms", "thirdpartyprograms.json"), 
-                ("News", "news.json"), ("Sports", "sports_teams.json"), ("UtilityData", "utility_data.json"), ("DataDescriptors", "data_descriptors.json")
+                ("News", "news.json"), ("Sports", "sports_teams.json"),
+                ("Uploads", "uploads.json")
             ]:
                 rows = tabs_data.get(tab_name, {}).get('values', [])
                 if rows:
