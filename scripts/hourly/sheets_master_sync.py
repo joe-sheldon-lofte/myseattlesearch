@@ -150,10 +150,16 @@ def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, fol
         
         file_stream = io.BytesIO(raw_bytes)
         img = Image.open(file_stream)
+        
+        # Downscale large high-res images to max 1600px before WebP encoding
+        max_dim = 1600
+        if img.width > max_dim or img.height > max_dim:
+            img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+
         img = img.convert("RGBA") if img.mode in ("RGBA", "P") else img.convert("RGB")
         
         webp_buffer = io.BytesIO()
-        img.save(webp_buffer, format="WEBP", quality=85)
+        img.save(webp_buffer, format="WEBP", quality=82)
         webp_buffer.seek(0)
         
         s3_client.put_object(
@@ -175,7 +181,7 @@ def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, fol
         return image_url
 
 def process_custom_upload_asset(drive_service, s3_client, r2_bucket, drive_link, target_dir, asset_name):
-    """Converts image from Drive link to WebP and uploads to custom R2 directory path."""
+    """Converts image from Drive link to WebP, downscales to 1600px max, and uploads to custom R2 directory path."""
     file_id = extract_google_id(drive_link)
     if not file_id or not s3_client or not r2_bucket:
         return drive_link
@@ -191,10 +197,16 @@ def process_custom_upload_asset(drive_service, s3_client, r2_bucket, drive_link,
 
         file_stream = io.BytesIO(raw_bytes)
         img = Image.open(file_stream)
+
+        # Downscale large high-res images to max 1600px before WebP encoding
+        max_dim = 1600
+        if img.width > max_dim or img.height > max_dim:
+            img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+
         img = img.convert("RGBA") if img.mode in ("RGBA", "P") else img.convert("RGB")
 
         webp_buffer = io.BytesIO()
-        img.save(webp_buffer, format="WEBP", quality=85)
+        img.save(webp_buffer, format="WEBP", quality=82)
         webp_buffer.seek(0)
 
         s3_client.put_object(
@@ -447,21 +459,49 @@ def main():
             upload_rows = tabs_data.get("Uploads", {}).get('values', [])
             if upload_rows and len(upload_rows) >= 2:
                 u_headers = [str(h).strip() for h in upload_rows[0]]
-                col_u_link = u_headers.index("Link") if "Link" in u_headers else -1
-                col_u_dir = u_headers.index("Image Directory") if "Image Directory" in u_headers else -1
-                col_u_name = u_headers.index("Name") if "Name" in u_headers else -1
-                col_u_asset = u_headers.index("New Asset URL") if "New Asset URL" in u_headers else -1
-                col_u_done = u_headers.index("Done") if "Done" in u_headers else -1
+
+                col_u_link = -1
+                for cand in ["Link", "Drive Link", "URL"]:
+                    if cand in u_headers:
+                        col_u_link = u_headers.index(cand)
+                        break
+
+                col_u_dir = -1
+                for cand in ["Directory", "Image Directory", "Folder", "Dir"]:
+                    if cand in u_headers:
+                        col_u_dir = u_headers.index(cand)
+                        break
+
+                col_u_name = -1
+                for cand in ["Name", "Asset Name", "File Name"]:
+                    if cand in u_headers:
+                        col_u_name = u_headers.index(cand)
+                        break
+
+                col_u_asset = -1
+                for cand in ["New Asset URL", "Asset URL", "New Asset Link", "New URL"]:
+                    if cand in u_headers:
+                        col_u_asset = u_headers.index(cand)
+                        break
+
+                if col_u_asset == -1 and col_u_link != -1:
+                    col_u_asset = col_u_link
+
+                col_u_done = -1
+                for cand in ["Done", "Status", "Complete", "Processed"]:
+                    if cand in u_headers:
+                        col_u_done = u_headers.index(cand)
+                        break
 
                 for idx, r in enumerate(upload_rows[1:]):
                     padded = list(r) + [""] * (len(u_headers) - len(r))
                     u_rec = dict(zip(u_headers, padded))
                     row_num = idx + 2
 
-                    d_link = u_rec.get("Link", "").strip()
-                    d_dir = u_rec.get("Image Directory", "").strip()
-                    d_name = u_rec.get("Name", "").strip()
-                    d_done = u_rec.get("Done", "").strip().lower()
+                    d_link = (u_rec.get("Link") or u_rec.get("Drive Link") or u_rec.get("URL") or "").strip()
+                    d_dir = (u_rec.get("Directory") or u_rec.get("Image Directory") or u_rec.get("Folder") or "").strip()
+                    d_name = (u_rec.get("Name") or u_rec.get("Asset Name") or u_rec.get("File Name") or "").strip()
+                    d_done = (u_rec.get("Done") or u_rec.get("Status") or u_rec.get("Complete") or "").strip().lower()
 
                     if d_link and is_google_drive_link(d_link) and d_done != "yes" and s3_client:
                         new_url = process_custom_upload_asset(
