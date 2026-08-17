@@ -144,6 +144,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
              if (item['Utility Name']) {
                const key = item['Utility Name'].trim();
                providerDirectory[key] = {
+                 normalName: item['Normal Name'] || item['Utility Name'], // Fallback to raw if Normal Name is empty
                  phone: item['Phone Number'],
                  website: item['Website'],
                  physicalAddress: item['Physical Address'],
@@ -225,9 +226,9 @@ description: Find water, sewer, garbage, power, and internet providers for homes
       let electricProvider = county.includes("Snohomish") ? "Snohomish County PUD" : 
                              (city.includes("Seattle") ? "Seattle City Light" : "Puget Sound Energy (PSE)");
                              
-      let gasProvider = "Puget Sound Energy (PSE)"; // PSE covers almost the entirety of King/Snohomish for gas
+      let gasProvider = "Puget Sound Energy (PSE)";
       
-      let garbageProvider = `City of ${city} Solid Waste / Franchised Provider`;
+      let garbageProvider = `${city} Solid Waste`;
 
       // 6. CALCULATE H3 HEXAGON FOR BROADBAND
       let localProviders = [];
@@ -252,6 +253,14 @@ description: Find water, sewer, garbage, power, and internet providers for homes
     }
   }
 
+  // --- Helper to fetch the "Normal Name" for the clean UI ---
+  function getDisplayName(providerName, providerDirectory) {
+    if (providerDirectory[providerName] && providerDirectory[providerName].normalName) {
+      return providerDirectory[providerName].normalName;
+    }
+    return providerName; // Fallback to raw map name if not in directory
+  }
+
   // --- Helper to build JSON Directory HTML ---
   function getDictContactHtml(providerName, providerDirectory) {
     const contactInfo = providerDirectory[providerName];
@@ -273,11 +282,18 @@ description: Find water, sewer, garbage, power, and internet providers for homes
   function renderResults(waterProvider, sewerProvider, electricProvider, gasProvider, garbageProvider, providerDirectory, localProviders, lat, lon) {
     const resultsContainer = document.getElementById('results-container');
     
+    const waterName = getDisplayName(waterProvider, providerDirectory);
+    const sewerName = getDisplayName(sewerProvider, providerDirectory);
+    const electricName = getDisplayName(electricProvider, providerDirectory);
+    const gasName = getDisplayName(gasProvider, providerDirectory);
+    const garbageName = getDisplayName(garbageProvider, providerDirectory);
+    const garbageInfo = providerDirectory[garbageProvider];
+
     // WATER CARD
     let html = `
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
         <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Water Provider</h2>
-        <div style="padding: 0.5rem 0; font-size: 1.1rem;">💧 <strong>${waterProvider}</strong></div>
+        <div style="padding: 0.5rem 0; font-size: 1.1rem;">💧 <strong>${waterName}</strong></div>
         ${getDictContactHtml(waterProvider, providerDirectory)}
       </div>
     `;
@@ -286,7 +302,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
     html += `
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
         <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Sewer Provider</h2>
-        <div style="padding: 0.5rem 0; font-size: 1.1rem;">🚽 <strong>${sewerProvider}</strong></div>
+        <div style="padding: 0.5rem 0; font-size: 1.1rem;">🚽 <strong>${sewerName}</strong></div>
         ${getDictContactHtml(sewerProvider, providerDirectory)}
       </div>
     `;
@@ -295,7 +311,7 @@ description: Find water, sewer, garbage, power, and internet providers for homes
     html += `
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
         <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Electric Provider</h2>
-        <div style="padding: 0.5rem 0; font-size: 1.1rem;">⚡ <strong>${electricProvider}</strong></div>
+        <div style="padding: 0.5rem 0; font-size: 1.1rem;">⚡ <strong>${electricName}</strong></div>
         ${getDictContactHtml(electricProvider, providerDirectory)}
       </div>
     `;
@@ -304,19 +320,32 @@ description: Find water, sewer, garbage, power, and internet providers for homes
     html += `
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
         <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Natural Gas Provider</h2>
-        <div style="padding: 0.5rem 0; font-size: 1.1rem;">🔥 <strong>${gasProvider}</strong></div>
+        <div style="padding: 0.5rem 0; font-size: 1.1rem;">🔥 <strong>${gasName}</strong></div>
         ${getDictContactHtml(gasProvider, providerDirectory)}
       </div>
     `;
 
-    // GARBAGE CARD
+    // GARBAGE CARD (Customized for Municipal Links)
     html += `
       <div style="border: 1px solid #ddd; padding: 1.5rem; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
         <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; font-size: 1.5rem;">Garbage & Recycling</h2>
-        <div style="padding: 0.5rem 0; font-size: 1.1rem;">🗑️ <strong>${garbageProvider}</strong></div>
-        ${getDictContactHtml(garbageProvider, providerDirectory)}
-      </div>
+        <div style="padding: 0.5rem 0; font-size: 1.1rem;">🗑️ <strong>${garbageName}</strong></div>
+        <p style="margin-top: 0.5rem; font-size: 0.95rem; color: #444;">Garbage contracts are awarded by individual municipalities.</p>
     `;
+
+    if (garbageInfo && garbageInfo.website) {
+       html += `
+        <div style="margin-top: 1rem;">
+          <a href="${garbageInfo.website}" target="_blank" style="display: inline-block; padding: 0.75rem 1.25rem; background-color: #0056b3; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 0.95rem;">
+            View City Provider Details ↗
+          </a>
+        </div>
+       `;
+    } else {
+       html += `<div style="margin-top: 10px; font-size: 0.85rem; color: #888;"><em>City solid waste link not yet added to directory.</em></div>`;
+    }
+    
+    html += `</div>`;
 
     // TELECOM CARD
     const fccMapUrl = `https://broadbandmap.fcc.gov/location-summary/fixed?lat=${lat}&lon=${lon}`;
