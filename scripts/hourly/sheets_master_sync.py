@@ -1,3 +1,5 @@
+/* File: sheets_master_sync.py */
+
 import os
 import io
 import json
@@ -390,53 +392,66 @@ def main():
         except Exception as e:
             print(f"   ⚠️ Command Center notice: {e}")
 
-    # Module 1B: City Data
+    # Module 1B: City Data Workbook (CityData + MunicipalFeeds)
     city_sheet_id = os.environ.get("CITY_DATA_SHEET_ID")
     if city_sheet_id:
         try:
             if city_sheet_id not in batch_sheet_writebacks:
                 batch_sheet_writebacks[city_sheet_id] = []
 
-            rows = sheets_service.spreadsheets().values().get(
-                spreadsheetId=city_sheet_id, range="CityData!A:AZ"
-            ).execute().get('values', [])
+            city_ranges = ["CityData!A:AZ", "MunicipalFeeds!A:AZ"]
+            city_batch = sheets_service.spreadsheets().values().batchGet(
+                spreadsheetId=city_sheet_id, ranges=city_ranges
+            ).execute().get('valueRanges', [])
 
-            if rows and len(rows) >= 2:
-                headers = [str(h).strip() for h in rows[0]]
-                parsed_city_data = parse_sheet_values(rows)
+            # Parse CityData
+            if len(city_batch) > 0 and city_batch[0].get('values'):
+                rows = city_batch[0]['values']
+                if rows and len(rows) >= 2:
+                    headers = [str(h).strip() for h in rows[0]]
+                    parsed_city_data = parse_sheet_values(rows)
 
-                with open(CITY_DATA_PATH, "w", encoding="utf-8") as f:
-                    json.dump(clean_nan_tokens(parsed_city_data), f, indent=2, ensure_ascii=False)
+                    with open(CITY_DATA_PATH, "w", encoding="utf-8") as f:
+                        json.dump(clean_nan_tokens(parsed_city_data), f, indent=2, ensure_ascii=False)
 
-                col_status_idx = -1
-                for candidate in ["EditorialStatus", "Editorial Status", "Editorial_Status"]:
-                    if candidate in headers:
-                        col_status_idx = headers.index(candidate)
-                        break
+                    col_status_idx = -1
+                    for candidate in ["EditorialStatus", "Editorial Status", "Editorial_Status"]:
+                        if candidate in headers:
+                            col_status_idx = headers.index(candidate)
+                            break
 
-                for idx, r in enumerate(rows[1:]):
-                    padded = list(r) + [""] * (len(headers) - len(r))
-                    record = dict(zip(headers, padded))
-                    row_num = idx + 2
-                    city_name = record.get("City", "").strip()
-                    if not city_name: continue
+                    for idx, r in enumerate(rows[1:]):
+                        padded = list(r) + [""] * (len(headers) - len(r))
+                        record = dict(zip(headers, padded))
+                        row_num = idx + 2
+                        city_name = record.get("City", "").strip()
+                        if not city_name: continue
 
-                    slug = slugify(city_name)
-                    doc_url = record.get("Editorial", "").strip()
-                    status = (record.get("EditorialStatus", "") or record.get("Editorial Status", "") or "").strip()
+                        slug = slugify(city_name)
+                        doc_url = record.get("Editorial", "").strip()
+                        status = (record.get("EditorialStatus", "") or record.get("Editorial Status", "") or "").strip()
 
-                    if doc_url and is_google_drive_link(doc_url) and status.lower() == "pending":
-                        md_content = get_google_doc_as_markdown(docs_service, doc_url)
-                        if md_content and md_content.strip():
-                            with open(os.path.join(editorials_dir, f"{slug}.md"), "w", encoding="utf-8") as f_md:
-                                f_md.write(md_content)
-                            if col_status_idx != -1:
-                                batch_sheet_writebacks[city_sheet_id].append({
-                                    'range': f"CityData!{get_col_letter(col_status_idx)}{row_num}",
-                                    'values': [["Complete"]]
-                                })
+                        if doc_url and is_google_drive_link(doc_url) and status.lower() == "pending":
+                            md_content = get_google_doc_as_markdown(docs_service, doc_url)
+                            if md_content and md_content.strip():
+                                with open(os.path.join(editorials_dir, f"{slug}.md"), "w", encoding="utf-8") as f_md:
+                                    f_md.write(md_content)
+                                if col_status_idx != -1:
+                                    batch_sheet_writebacks[city_sheet_id].append({
+                                        'range': f"CityData!{get_col_letter(col_status_idx)}{row_num}",
+                                        'values': [["Complete"]]
+                                    })
+
+            # Parse MunicipalFeeds from City Data Sheet
+            if len(city_batch) > 1 and city_batch[1].get('values'):
+                muni_rows = city_batch[1]['values']
+                if muni_rows:
+                    parsed_muni_feeds = parse_sheet_values(muni_rows)
+                    with open(os.path.join(DATA_DIR, "municipal_feeds.json"), "w", encoding="utf-8") as f:
+                        json.dump(clean_nan_tokens(parsed_muni_feeds), f, indent=2, ensure_ascii=False)
+
         except Exception as e:
-            print(f"   ⚠️ CityData notice: {e}")
+            print(f"   ⚠️ CityData / MunicipalFeeds notice: {e}")
 
     # Module 2: Website Data Workbook & Uploads Tab Bulk Processing
     web_sheet_id = os.environ.get("WEBSITE_DATA_SHEET_ID")
@@ -525,7 +540,8 @@ def main():
                 ("DPA", "dpa_programs.json"), ("Professionals", "professionals.json"), 
                 ("Reviews", "reviews.json"), ("ThirdPartyPrograms", "thirdpartyprograms.json"), 
                 ("News", "news.json"), ("Sports", "sports_teams.json"),
-                ("Uploads", "uploads.json"), ("UtilityData", "utility_data.json")
+                ("Uploads", "uploads.json"), ("UtilityData", "utility_data.json"),
+                ("Events", "events.json")
             ]:
                 rows = tabs_data.get(tab_name, {}).get('values', [])
                 if rows:
