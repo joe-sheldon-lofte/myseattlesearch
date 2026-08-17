@@ -1,5 +1,3 @@
-/* File: sheets_master_sync.py */
-
 import os
 import io
 import json
