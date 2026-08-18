@@ -14,12 +14,13 @@ CITY_BOUNDARIES_PATH = os.path.join(DATA_DIR, "city_boundaries.json")
 TRANSIT_DATA_PATH = os.path.join(DATA_DIR, "transit_data.json")
 OUTPUT_RADAR_PATH = os.path.join(DATA_DIR, "transit_radar_live.json")
 
-# Filtered strictly to ground transit agencies serving King & Snohomish Counties
+# Ground transit agencies serving King & Snohomish Counties
 # 1: King County Metro
-# 3: Sound Transit
-# 29: Community Transit
-# 40: Everett Transit
-ONEBUSAWAY_AGENCIES = ["1", "3", "29", "40"]
+# 29 / 3 / 40: Sound Transit
+# 23: Community Transit
+# 13: Everett Transit
+# 10: Seattle Center Monorail
+ONEBUSAWAY_AGENCIES = ["1", "29", "23", "13", "10", "3", "40"]
 
 def slugify(text):
     if not text:
@@ -39,7 +40,7 @@ def http_get_json(url, timeout=12):
             if resp.status == 200:
                 return json.loads(resp.read().decode("utf-8"))
     except Exception as e:
-        print(f"   ⚠️ Transit API notice: {e}")
+        print(f"   ⚠️ Transit API notice for {url}: {e}")
     return None
 
 def point_in_poly(x, y, poly):
@@ -112,54 +113,112 @@ def compute_bbox(geometry):
         return (0, 0, 0, 0)
     return (min(all_lngs), min(all_lats), max(all_lngs), max(all_lats))
 
-def classify_vehicle_mode(vehicle, seat_map):
-    """Determines vehicle mode and seat capacity directly from transit_data.json."""
+def load_transit_rules():
+    """Parses transit_data.json list or dictionary structure cleanly."""
+    route_seat_map = {}
+    mode_seat_map = {
+        "light rail": 296,
+        "commuter rail": 560,
+        "express bus": 55,
+        "bus": 40,
+        "bus rapid transit": 60,
+        "monorail": 250
+    }
+    
+    candidates = [
+        TRANSIT_DATA_PATH,
+        os.path.join(os.getcwd(), "data", "transit_data.json"),
+        os.path.join(os.getcwd(), "transit_data.json"),
+        os.path.join(BASE_DIR, "transit_data.json")
+    ]
+    
+    target_path = None
+    for cand in candidates:
+        if os.path.exists(cand):
+            target_path = cand
+            break
+
+    if target_path:
+        try:
+            with open(target_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                
+            items = data if isinstance(data, list) else data.get("rules", []) if isinstance(data, dict) else []
+            for rule in items:
+                if isinstance(rule, dict) and rule.get("Active Transit Score") == "Yes":
+                    route_id = str(rule.get("Route ID", "")).strip().lower()
+                    mode = str(rule.get("Transit Mode", "")).strip().lower()
+                    try:
+                        seats = int(rule.get("Default Seats", 0))
+                    except (ValueError, TypeError):
+                        seats = 0
+                        
+                    if route_id and seats > 0:
+                        route_seat_map[route_id] = seats
+                    if mode and seats > 0:
+                        mode_seat_map[mode] = seats
+            print(f"✅ Loaded {len(route_seat_map)} route capacity rules from {target_path}")
+        except Exception as e:
+            print(f"⚠️ transit_data.json parse notice: {e}")
+    else:
+        print("⚠️ Warning: transit_data.json not found on disk. Falling back to GTFS mode capacities.")
+
+    return route_seat_map, mode_seat_map
+
+def classify_vehicle_mode(vehicle, route_seat_map, mode_seat_map):
+    """Determines vehicle mode and seat capacity directly from GTFS-RT payload and transit_data.json."""
     vehicle_id = str(vehicle.get("vehicleId") or "").lower()
     trip_status = vehicle.get("tripStatus") or {}
     route_id = str(trip_status.get("activeTrip", {}).get("routeId") or trip_status.get("routeId") or "").lower()
     
-    if "monorail" in vehicle_id or "monorail" in route_id:
-        return "monorail", seat_map.get("monorail", 0)
-    if "link" in route_id or "light_rail" in route_id or "100479" in route_id or "link" in vehicle_id:
-        return "light_rail", seat_map.get("light_rail", 0)
-    if "sounder" in route_id or "commuter" in route_id or "sounder" in vehicle_id:
-        return "commuter_rail", seat_map.get("commuter_rail", 0)
-    if "streetcar" in route_id or "streetcar" in vehicle_id:
-        return "streetcar", seat_map.get("streetcar", 0)
-        
-    return "bus", seat_map.get("bus", 0)
+    # 1. Exact route ID match in transit_data.json
+    if route_id in route_seat_map:
+        seats = route_seat_map[route_id]
+        if "100479" in route_id or "100511" in route_id:
+            mode = "light_rail"
+        elif "100224" in route_id or "100225" in route_id:
+            mode = "commuter_rail"
+        elif "monorail" in route_id:
+            mode = "monorail"
+        else:
+            mode = "bus"
+        return mode, seats
 
-def load_seat_defaults():
-    """Reads seat defaults directly from transit_data.json without fallback constants."""
-    if os.path.exists(TRANSIT_DATA_PATH):
-        try:
-            with open(TRANSIT_DATA_PATH, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                if isinstance(data, dict) and "seat_defaults" in data:
-                    return data["seat_defaults"]
-                elif isinstance(data, dict):
-                    return data
-        except Exception as e:
-            print(f"   ⚠️ transit_data.json parse notice: {e}")
-    print("⚠️ Warning: transit_data.json missing or invalid. Seat capacities set to 0.")
-    return {}
+    # 2. Mode pattern fallbacks
+    if "monorail" in vehicle_id or "monorail" in route_id:
+        return "monorail", mode_seat_map.get("monorail", 250)
+    if "link" in route_id or "light_rail" in route_id or "link" in vehicle_id:
+        return "light_rail", mode_seat_map.get("light rail", 296)
+    if "sounder" in route_id or "commuter" in route_id or "sounder" in vehicle_id:
+        return "commuter_rail", mode_seat_map.get("commuter rail", 560)
+    if "swift" in route_id or "brt" in route_id:
+        return "bus", mode_seat_map.get("bus rapid transit", 60)
+    if "st_bus" in route_id or "express" in route_id:
+        return "bus", mode_seat_map.get("express bus", 55)
+
+    return "bus", mode_seat_map.get("bus", 40)
 
 def main():
     print("🚌 Ingesting Live Ground Transit Vehicles (King & Snohomish Agencies)...")
     
-    if not os.path.exists(CITY_DATA_PATH) or not os.path.exists(CITY_BOUNDARIES_PATH):
-        print("❌ Required city_data.json or city_boundaries.json missing. Aborting.")
+    candidates_city = [CITY_DATA_PATH, os.path.join(os.getcwd(), "data", "city_data.json"), os.path.join(os.getcwd(), "city_data.json")]
+    candidates_bound = [CITY_BOUNDARIES_PATH, os.path.join(os.getcwd(), "data", "city_boundaries.json"), os.path.join(os.getcwd(), "city_boundaries.json")]
+    
+    c_path = next((p for p in candidates_city if os.path.exists(p)), None)
+    b_path = next((p for p in candidates_bound if os.path.exists(p)), None)
+
+    if not c_path or not b_path:
+        print(f"❌ Required city_data.json ({c_path}) or city_boundaries.json ({b_path}) missing. Aborting.")
         return
 
-    # Load City Data & Boundaries
-    with open(CITY_DATA_PATH, "r", encoding="utf-8") as f:
+    with open(c_path, "r", encoding="utf-8") as f:
         raw_cities = json.load(f)
     city_items = raw_cities if isinstance(raw_cities, list) else list(raw_cities.values())
 
-    with open(CITY_BOUNDARIES_PATH, "r", encoding="utf-8") as f:
+    with open(b_path, "r", encoding="utf-8") as f:
         boundaries_geo = json.load(f)
 
-    seat_map = load_seat_defaults()
+    route_seat_map, mode_seat_map = load_transit_rules()
 
     # Pre-index city boundaries with bounding boxes
     city_polygons = []
@@ -214,7 +273,7 @@ def main():
         except (ValueError, TypeError):
             continue
 
-        mode, seats = classify_vehicle_mode(v, seat_map)
+        mode, seats = classify_vehicle_mode(v, route_seat_map, mode_seat_map)
 
         for c in city_polygons:
             min_lng, min_lat, max_lng, max_lat = c["bbox"]
@@ -240,7 +299,11 @@ def main():
 
         city_name = str(raw_name).strip()
         slug = slugify(city_name)
-        pop_val = int(c_obj.get("FallbackPopulation") or c_obj.get("population") or 0)
+        
+        try:
+            pop_val = int(c_obj.get("FallbackPopulation") or c_obj.get("population") or 0)
+        except (ValueError, TypeError):
+            pop_val = 0
 
         c_data = city_counts.get(slug, {
             "name": city_name,
