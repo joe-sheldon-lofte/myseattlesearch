@@ -1,14 +1,22 @@
 import os
 import json
 import re
+import time
 import requests
 import urllib3
 from datetime import datetime, timezone
 
+# Suppress unverified HTTPS request warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(BASE_DIR, "data")
+# Robust Repository Root Path Resolution
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+if os.path.basename(SCRIPT_DIR) == "scripts":
+    REPO_ROOT = os.path.dirname(SCRIPT_DIR)
+else:
+    REPO_ROOT = SCRIPT_DIR
+
+DATA_DIR = os.path.join(REPO_ROOT, "data")
 OUTPUT_PATH = os.path.join(DATA_DIR, "hourly_sports.json")
 
 HEADERS = {
@@ -18,33 +26,60 @@ HEADERS = {
     "Referer": "https://www.google.com/"
 }
 
-# Master list of Washington state teams and aliases for strict local filtering
-WA_TEAM_ALIASES = [
-    "seattle", "seahawks", "mariners", "m's", "kraken", "sounders", "storm", "reign", 
-    "seawolves", "rainiers", "aquasox", "frogs", "spokane indians", "dust devils", 
-    "spokane velocity", "velocity fc", "ballard fc", "thunderbirds", "t-birds", 
-    "silvertips", "tips", "spokane chiefs", "tri-city americans", "applesox", "bellingham bells", 
-    "pippins", "raptors", "cowlitz black bears", "black bears", "sweets", "huskies", "uw", 
-    "cougars", "wsu", "cougs", "bulldogs", "gonzaga", "zags", "redhawks", "seattle u", 
-    "eagles", "ewu", "wildcats", "cwu", "vikings", "wwu", "falcons", "spu", "lutes", "plu", 
-    "loggers", "ups", "whitman blues", "whitworth pirates", "spokane zephyr", "zephyr"
+# 1. Washington State Locations & Distinct Identity Keywords
+WA_LOCATIONS = [
+    "seattle", "spokane", "tacoma", "everett", "tri-city", "tri cities", 
+    "wenatchee", "bellingham", "yakima", "ridgefield", "cowlitz", "walla walla", 
+    "gonzaga", "whitman", "whitworth", "ballard"
 ]
 
-# Modern regional and national broadcast networks (ROOT Sports removed)
+WA_SPECIFIC_NAMES = [
+    "seahawks", "mariners", "kraken", "sounders", "seawolves", "rainiers", 
+    "aquasox", "dust devils", "velocity fc", "zephyr", "thunderbirds", 
+    "silvertips", "applesox", "pippins", "black bears", "sweets", 
+    "huskies", "redhawks", "lutes"
+]
+
+# Exclude Washington D.C. teams to avoid false "Washington" location matches
+DC_EXCLUSIONS = ["commanders", "spirit", "wizards", "nationals", "mystics"]
+
+# Modern regional and national broadcast networks
 LOCAL_NETWORKS = [
     "FOX", "CBS", "NBC", "ESPN", "KING 5", "KONG", "KSTW", "CW", "CW Seattle", 
     "93.3 KJR", "710 Seattle Sports", "NFL+", "Apple TV", "Prime Video", "Peacock", "Netflix"
 ]
 
+def is_wa_team_name(team_name):
+    """Evaluates whether a team name strictly belongs to Washington state."""
+    if not team_name:
+        return False
+    t = str(team_name).lower().strip()
+    
+    # Exclude Washington D.C. franchises
+    if any(dc in t for dc in DC_EXCLUSIONS):
+        return False
+        
+    # Check Washington city/region names
+    if any(loc in t for loc in WA_LOCATIONS):
+        return True
+        
+    # Check unique mascot names
+    if any(spec in t for spec in WA_SPECIFIC_NAMES):
+        return True
+        
+    # Check collegiate variants
+    if "washington state" in t or "wsu" in t or "u of washington" in t or "univ of washington" in t:
+        return True
+    if "eastern wash" in t or "central wash" in t or "western wash" in t or "seattle pacific" in t or "pacific lutheran" in t or "puget sound" in t:
+        return True
+        
+    return False
+
 def is_wa_game(game):
     """Filters events to strictly include games involving Washington teams."""
-    home = str(game.get("home_team", "")).lower()
-    away = str(game.get("away_team", "")).lower()
-    
-    for alias in WA_TEAM_ALIASES:
-        if alias in home or alias in away:
-            return True
-    return False
+    home = game.get("home_team")
+    away = game.get("away_team")
+    return is_wa_team_name(home) or is_wa_team_name(away)
 
 def parse_local_broadcast(tv_listings):
     if not tv_listings or not isinstance(tv_listings, dict):
@@ -65,7 +100,7 @@ def fetch_mlb_scores(session):
     """Fetches live schedule and scores for MLB Mariners & MiLB WA affiliates."""
     url = "https://statsapi.mlb.com/api/v1/schedule?sportId=1,11,13,14&teamId=136,529,403,486,468"
     try:
-        res = session.get(url, timeout=12, verify=False)
+        res = session.get(url, timeout=15, verify=False)
         if res.status_code != 200:
             return []
         data = res.json()
@@ -105,7 +140,7 @@ def fetch_nhl_scores(session):
     """Fetches live NHL scores filtering for Seattle Kraken."""
     url = "https://api-web.nhle.com/v1/score/now"
     try:
-        res = session.get(url, timeout=12, verify=False)
+        res = session.get(url, timeout=15, verify=False)
         if res.status_code != 200:
             return []
         data = res.json()
@@ -142,7 +177,7 @@ def fetch_whl_scores(session):
     """Fetches WHL junior hockey schedule & scores for WA teams."""
     url = "https://lscluster.hockeytech.com/feed/?feed=modulekit&view=schedule&client_code=whl"
     try:
-        res = session.get(url, timeout=12, verify=False)
+        res = session.get(url, timeout=15, verify=False)
         if res.status_code != 200:
             return []
         
@@ -180,12 +215,25 @@ def fetch_whl_scores(session):
         return []
 
 def fetch_thescore_events(session, sport_key):
-    """Fetches pro/college league events and applies PNW filtering."""
+    """Fetches pro/college league events with retry logic and PNW filtering."""
     url = f"https://api.thescore.com/{sport_key}/events"
+    
+    res = None
+    for attempt in range(2):
+        try:
+            res = session.get(url, timeout=15, verify=False)
+            if res.status_code == 200:
+                break
+        except requests.exceptions.RequestException as req_err:
+            if attempt == 1:
+                print(f"   ⚠️ theScore ({sport_key}) Hourly fetch notice: {req_err}")
+                return []
+            time.sleep(1)
+
+    if not res or res.status_code != 200:
+        return []
+
     try:
-        res = session.get(url, timeout=12, verify=False)
-        if res.status_code != 200:
-            return []
         events = res.json()
         games = []
         for ev in events:
@@ -221,7 +269,7 @@ def fetch_thescore_events(session, sport_key):
                 
         return games
     except Exception as e:
-        print(f"   ⚠️ theScore ({sport_key}) Hourly fetch notice: {e}")
+        print(f"   ⚠️ theScore ({sport_key}) parse notice: {e}")
         return []
 
 def main():
