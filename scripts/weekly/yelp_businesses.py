@@ -71,6 +71,8 @@ def main():
                     "rating": b.get("rating", 4.5),
                     "review_count": b.get("review_count", 0),
                     "price_level": b.get("price", "$$"),
+                    "url": b.get("url", "#"),
+                    "image_url": b.get("image_url", ""),
                     "summary": f"Top-rated spot in {city_name} with {b.get('review_count', 0)} reviews."
                 }
                 for c_alias in [c.get("alias") for c in b.get("categories", [])]:
@@ -92,7 +94,7 @@ def main():
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(BUSINESSES_PATH, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
-    print(f"💾 Saved Yelp business spotlights for {len(output)} cities.")
+    print(f"💾 Saved Yelp business spotlights with direct URLs for {len(output)} cities.")
 
 if __name__ == "__main__":
     main()

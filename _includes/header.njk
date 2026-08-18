@@ -1,69 +1,108 @@
-<header class="main-header">
-    <div class="nav-container">
-        <a href="/" class="nav-brand">Joe Sheldon</a>
-        
-        <span class="welcome-neighbor-sig">Welcome, Neighbor</span>
-        
-        <button class="hamburger" id="hamburgerMenu" aria-label="Toggle Menu">
-            <span class="bar"></span>
-            <span class="bar"></span>
-            <span class="bar"></span>
-        </button>
+<!-- Global Header -->
+<header class="global-header" id="globalHeader">
+  <a href="/" class="header-brand">
+    <span>Joe Sheldon</span>
+    <span class="header-active-dot"></span>
+  </a>
+
+  <div class="header-right-controls">
+    <!-- Header Alert Center Indicator -->
+    <div class="header-alert-indicator" id="headerAlertIndicator">
+      <span class="alert-led-dot"></span>
+      <div class="alert-text-stack">
+        <span class="alert-label-top">Alert Center</span>
+        <span class="alert-status-bottom">No Active Alerts</span>
+      </div>
     </div>
-    
-    <nav class="fullscreen-menu" id="navMenu">
-        <div class="menu-content-wrapper">
-            <ul class="menu-links">
-                <li><a href="/">Home</a></li>
-                <li><a href="/notebook/">Social Notebook</a></li>
-                <li><a href="/stats/">Market Insights</a></li>
-                <li><a href="/news/">Market News</a></li>
-                <li><a href="/searches/">Curated Searches</a></li>
-                <li><a href="/sellers/">Sell with Joe</a></li>
-                <li><a href="/events/">Classes & Events</a></li>
-                <li><a href="/movedna/">MoveDNA Assessment</a></li>
-                <li><a href="/quizzes/">Interactive Quizzes</a></li>
-                <li><a href="/calculators/">Real Estate Calculators</a></li>
-                <li><a href="/resources/">Additional Resources</a></li>
-                <li><a href="/professionals/">Preferred Professionals</a></li>
-            </ul>
-        </div>
-    </nav>
+
+    <!-- Apple 3-Line Hamburger Trigger -->
+    <button class="hamburger-btn" aria-label="Toggle Navigation Menu" onclick="document.getElementById('menuOverlay').classList.toggle('open')">
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+    </button>
+  </div>
 </header>
 
-<!-- Self-Contained Interactive Navigation Script with Failsafe Execution -->
-<script>
-    (function() {
-        function initNavigationMenu() {
-            const hamburgerMenu = document.getElementById('hamburgerMenu');
-            const navMenu = document.getElementById('navMenu');
+<!-- 3-Column Overlay Menu -->
+<div class="menu-overlay" id="menuOverlay">
+  <div class="menu-grid">
+    
+    <!-- Left 50%: Double-Wide 58 Neighborhood Navigation -->
+    <div>
+      <div class="menu-column-title">Explore Neighborhoods</div>
+      <div class="neighborhood-subregions-grid">
+        
+        <div class="subregion-block">
+          <h4>Eastside Hubs</h4>
+          <ul class="menu-link-list">
+            <li><a href="/neighborhood/bellevue/">Bellevue</a></li>
+            <li><a href="/neighborhood/kirkland/">Kirkland</a></li>
+            <li><a href="/neighborhood/redmond/">Redmond</a></li>
+            <li><a href="/neighborhood/issaquah/">Issaquah</a></li>
+            <li><a href="/neighborhood/mercer-island/">Mercer Island</a></li>
+          </ul>
+        </div>
 
-            if (!hamburgerMenu || !navMenu) return;
+        <div class="subregion-block">
+          <h4>Seattle & North</h4>
+          <ul class="menu-link-list">
+            <li><a href="/neighborhood/seattle/">Seattle</a></li>
+            <li><a href="/neighborhood/shoreline/">Shoreline</a></li>
+            <li><a href="/neighborhood/bothell/">Bothell</a></li>
+            <li><a href="/neighborhood/edmonds/">Edmonds</a></li>
+            <li><a href="/neighborhood/kenmore/">Kenmore</a></li>
+          </ul>
+        </div>
 
-            // Guard against duplicate event bindings
-            if (hamburgerMenu.dataset.navBound === "true") return;
-            hamburgerMenu.dataset.navBound = "true";
+        <div class="subregion-block">
+          <h4>Snohomish County</h4>
+          <ul class="menu-link-list">
+            <li><a href="/neighborhood/everett/">Everett</a></li>
+            <li><a href="/neighborhood/snohomish/">Snohomish</a></li>
+            <li><a href="/neighborhood/mill-creek/">Mill Creek</a></li>
+            <li><a href="/neighborhood/lake-stevens/">Lake Stevens</a></li>
+          </ul>
+        </div>
 
-            hamburgerMenu.addEventListener('click', (e) => {
-                e.stopPropagation();
-                hamburgerMenu.classList.toggle('active');
-                navMenu.classList.toggle('active');
-                document.body.style.overflow = navMenu.classList.contains('active') ? 'hidden' : '';
-            });
+        <div class="subregion-block">
+          <h4>South King & Valleys</h4>
+          <ul class="menu-link-list">
+            <li><a href="/neighborhood/renton/">Renton</a></li>
+            <li><a href="/neighborhood/kent/">Kent</a></li>
+            <li><a href="/neighborhood/auburn/">Auburn</a></li>
+            <li><a href="/neighborhood/burien/">Burien</a></li>
+          </ul>
+        </div>
 
-            navMenu.querySelectorAll('a').forEach(link => {
-                link.addEventListener('click', () => {
-                    hamburgerMenu.classList.remove('active');
-                    navMenu.classList.remove('active');
-                    document.body.style.overflow = '';
-                });
-            });
-        }
+      </div>
+      <div style="margin-top: 16px;">
+        <a href="/neighborhood/" class="link-arrow">View All 58 Neighborhoods</a>
+      </div>
+    </div>
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initNavigationMenu);
-        } else {
-            initNavigationMenu();
-        }
-    })();
-</script>
+    <!-- Column 2: Real Estate & Client Services -->
+    <div>
+      <div class="menu-column-title">Real Estate & Services</div>
+      <ul class="menu-link-list">
+        <li><a href="/about-joe/">About Joe</a></li>
+        <li><a href="/sellers/">Sell With Joe</a></li>
+        <li><a href="/quizzes/movedna/">MoveDNA Quiz</a></li>
+        <li><a href="/calculators/">Calculators</a></li>
+        <li><a href="/resources/">Resources</a></li>
+      </ul>
+    </div>
+
+    <!-- Column 3: Local Information & Media -->
+    <div>
+      <div class="menu-column-title">Local Information & Media</div>
+      <ul class="menu-link-list">
+        <li><a href="/neighborhood/region-sports/pro/">Regional Sports Hub</a></li>
+        <li><a href="/neighborhood/kirkland/weather/">Puget Sound Weather</a></li>
+        <li><a href="/news/">Market News Wire</a></li>
+        <li><a href="/notebook/">Social Notebook</a></li>
+      </ul>
+    </div>
+
+  </div>
+</div>

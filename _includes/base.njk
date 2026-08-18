@@ -1,377 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if title %}{{ title }} - Joe Sheldon | Redfin{% else %}Joe Sheldon | Redfin Senior Agent | Seattle Real Estate{% endif %}</title>
-    
-    <!-- Primary Search Engine Meta Description -->
-    <meta name="description" content="{% if subhead %}{{ subhead }}{% elif intro %}{{ intro }}{% elif description %}{{ description }}{% else %}Greater Seattle real estate insights, hyper-local market stats, and buyer & seller guides with Redfin Agent Joe Sheldon.{% endif %}">
-    <meta name="build-time" content="{% buildTime %}">
-    <link rel="canonical" href="https://myseattlesearch.com{{ page.url }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title | default("Joe Sheldon | Greater Seattle Real Estate & Neighborhood Intelligence") }}</title>
+  <meta name="description" content="{{ description | default("Hyper-local Pacific Northwest real estate insights, market statistics, and neighborhood intelligence with Joe Sheldon.") }}">
+  
+  <!-- Master V2 Stylesheet -->
+  <link rel="stylesheet" href="/style.css">
 
-    <!-- Inlined & Minified Core Site Stylesheet (Zero Network Render-Blocking Delay) -->
-    <style>
-      {% set rawCss %}{% include "../style.css" %}{% endset %}{{ rawCss | cssmin | safe }}
-    </style>
-    
-    <!-- Google Fonts: Asynchronous Non-Blocking Import for "Welcome, Neighbor" Signature -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&display=swap">
-    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <noscript>
-        <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet">
-    </noscript>
-
-    <!-- Dynamic Open Graph (OG) & Social Card Metadata -->
-    <meta property="og:type" content="website">
-    <meta property="og:site_name" content="MySeattleSearch - Joe Sheldon | Redfin">
-    <meta property="og:title" content="{% if headline %}{{ headline }}{% elif title %}{{ title }} - Joe Sheldon{% else %}MySeattleSearch - Greater Seattle Real Estate{% endif %}">
-    <meta property="og:description" content="{% if subhead %}{{ subhead }}{% elif intro %}{{ intro }}{% elif description %}{{ description }}{% else %}Greater Seattle real estate insights, hyper-local market stats, and buyer & seller guides with Redfin Agent Joe Sheldon.{% endif %}">
-    <meta property="og:url" content="https://myseattlesearch.com{{ page.url }}">
-
-    {# --- 3-TIER SMART SOCIAL IMAGE RESOLVER --- #}
-    {% set socialImage = ogImage %}
-    {% if not socialImage and image_1 %}
-        {% set socialImage = image_1 %}
-    {% endif %}
-    {% if not socialImage and quizImage %}
-        {% set socialImage = quizImage %}
-    {% endif %}
-    {% if not socialImage %}
-        {% set socialImage = "https://assets.myseattlesearch.com/repomove/hero-living-room.webp" %}
-    {% endif %}
-
-    {# Ensure relative paths are converted to absolute URLs for social crawlers #}
-    {% if socialImage and not socialImage.startsWith("http") %}
-        {% set socialImage = "https://myseattlesearch.com" + socialImage %}
-    {% endif %}
-
-    <meta property="og:image" content="{{ socialImage }}">
-    <meta property="og:image:alt" content="{% if title %}{{ title }}{% else %}MySeattleSearch Real Estate{% endif %}">
-
-    <!-- Twitter / X Card Metadata -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{% if headline %}{{ headline }}{% elif title %}{{ title }} - Joe Sheldon{% else %}MySeattleSearch - Greater Seattle Real Estate{% endif %}">
-    <meta name="twitter:description" content="{% if subhead %}{{ subhead }}{% elif intro %}{{ intro }}{% elif description %}{{ description }}{% else %}Greater Seattle real estate insights, hyper-local market stats, and buyer & seller guides with Redfin Agent Joe Sheldon.{% endif %}">
-    <meta name="twitter:image" content="{{ socialImage }}">
-
-    <!-- GLOBAL REAL ESTATE AGENT SCHEMA.ORG ENTITY -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": ["Person", "RealEstateAgent"],
-      "@id": "https://myseattlesearch.com/#agent",
-      "name": "Joe Sheldon - Redfin Real Estate Agent",
-      "jobTitle": "Senior Real Estate Agent",
-      "url": "https://myseattlesearch.com",
-      "image": "https://assets.myseattlesearch.com/repomove/joe.webp",
-      "telephone": "+1-206-657-7493",
-      "email": "joe.sheldon@redfin.com",
-      "priceRange": "$$$",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "3400 188th St SW, Ste 165",
-        "addressLocality": "Lynnwood",
-        "addressRegion": "WA",
-        "postalCode": "98037",
-        "addressCountry": "US"
-      },
-      "worksFor": {
-        "@type": "Organization",
-        "name": "Redfin",
-        "url": "https://www.redfin.com"
-      },
-      "areaServed": [
-        { "@type": "City", "name": "Shoreline", "addressRegion": "WA" },
-        { "@type": "City", "name": "Mountlake Terrace", "addressRegion": "WA" },
-        { "@type": "City", "name": "Lake Forest Park", "addressRegion": "WA" },
-        { "@type": "City", "name": "Kenmore", "addressRegion": "WA" },
-        { "@type": "City", "name": "Kirkland", "addressRegion": "WA" },
-        { "@type": "City", "name": "Edmonds", "addressRegion": "WA" },
-        { "@type": "City", "name": "Lynnwood", "addressRegion": "WA" },
-        { "@type": "City", "name": "Brier", "addressRegion": "WA" },
-        { "@type": "City", "name": "Mukilteo", "addressRegion": "WA" }
-      ],
-      "sameAs": [
-        "https://www.redfin.com/real-estate-agents/joe-sheldon?loyalty=true",
-        "https://www.linkedin.com/in/josephsheldon/",
-        "https://www.zillow.com/profile/seattlesagent",
-        "https://www.instagram.com/seattlesagent",
-        "https://www.tiktok.com/@seattlespremieragent",
-        "https://www.threads.com/@seattlesagent",
-        "https://www.facebook.com/seattlesagent"
-      ]
+  <!-- Global Schema.org Entity -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": ["Person", "RealEstateAgent"],
+    "@id": "https://myseattlesearch.com/#agent",
+    "name": "Joe Sheldon",
+    "jobTitle": "Managing Broker & Founder",
+    "url": "https://myseattlesearch.com",
+    "telephone": "+1-206-657-7493",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "3400 188th St SW, Ste 165",
+      "addressLocality": "Lynnwood",
+      "addressRegion": "WA",
+      "postalCode": "98037",
+      "addressCountry": "US"
     }
-    </script>
+  }
+  </script>
 </head>
 <body>
-    <!-- Real-Time Edge Live Stream Notification Banner -->
-    <live-banner worker-url="https://myseattlesearch-live-status.joe-54b.workers.dev/"></live-banner>
 
-    {% include "header.njk" %}
-    
-    <main class="container">
-        {{ content | safe }}
-    </main>
+  {% include "header.njk" %}
 
-    {% include "footer.njk" %}
-    
-    <div class="build-freshness-wrapper">
-        <p style="margin: 0; font-weight: 600; color: var(--premier-charcoal);">
-            Last Updated: <strong>{% buildTime %}</strong> | <strong>{{ r2_storage.usedGB if r2_storage and r2_storage.usedGB else "0.00" }}/10</strong>
-        </p>
+  <main class="catalog-container">
+    {{ content | safe }}
+  </main>
+
+  <!-- Floating Liquid Glass Bottom Action Tray -->
+  <nav class="bottom-action-tray">
+    <div class="tray-pills-desktop">
+      <a href="sms:4255550199" class="tray-pill">Text</a>
+      <a href="/chat/" class="tray-pill">Chat</a>
+      <a href="/book/" class="tray-pill">Book</a>
     </div>
 
-    <style>
-        /* Build Freshness Banner Layout & Responsive Viewport Rules */
-        .build-freshness-wrapper {
-            text-align: center; 
-            padding: 1.5rem 1rem; 
-            font-size: 0.85rem; 
-            border-top: 1px solid var(--premier-beige); 
-            background-color: var(--dynamic-bg-highlight); 
-            margin-bottom: 0;
-        }
-
-        @media (min-width: 768px) {
-            .build-freshness-wrapper {
-                margin-bottom: 0 !important;
-            }
-        }
-    </style>
-    
-    <script src="/components.js" defer></script>
-
-    <style>
-        /* 1. Dynamic Notification Top Banner */
-        #celebration-banner {
-            display: none; 
-            width: 100%;
-            background-color: var(--premier-charcoal);
-            color: var(--white);
-            text-align: center;
-            padding: 0.65rem 1rem;
-            font-size: 0.85rem;
-            font-weight: 600;
-            box-sizing: border-box;
-            border-bottom: 1px solid var(--premier-beige);
-            cursor: pointer;
-            transition: background-color 0.15s ease;
-        }
-        #celebration-banner:hover {
-            background-color: var(--card-accent-color);
-        }
-        #celebration-banner span {
-            text-decoration: underline;
-            margin-left: 0.5rem;
-            font-weight: 700;
-        }
-
-        /* 2. Immersive Takeover Screen Overlay */
-        #celebration-overlay {
-            display: none; 
-            position: fixed;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            z-index: 999999;
-            box-sizing: border-box;
-        }
-
-        /* 3. True Widescreen / Mobile Canva Background Wrapper */
-        .celebration-canvas {
-            width: 100%;
-            height: 100%;
-            background-position: center;
-            background-size: cover;
-            background-repeat: no-repeat;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1.5rem;
-            box-sizing: border-box;
-            position: relative;
-            background-image: var(--bg-mobile); 
-        }
-
-        @media (min-width: 768px) {
-            .celebration-canvas {
-                background-image: var(--bg-desktop); 
-            }
-        }
-
-        /* 4. High-Contrast Legibility Tint Shield */
-        .celebration-tint-shield {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.8) 100%);
-            z-index: 1;
-        }
-
-        /* 5. Central Text Overlay Card */
-        .celebration-editorial-card {
-            position: relative;
-            z-index: 2;
-            max-width: 600px;
-            width: 100%;
-            text-align: center;
-            color: var(--white);
-            padding: 2.5rem 1.5rem;
-            box-sizing: border-box;
-        }
-
-        .celebration-editorial-card h2 {
-            font-size: 2.25rem;
-            font-weight: 800;
-            margin: 0 0 1rem 0;
-            color: var(--white);
-            letter-spacing: -0.5px;
-            line-height: 1.15;
-        }
-
-        .celebration-editorial-card p {
-            font-size: 1.05rem;
-            line-height: 1.6;
-            opacity: 0.95;
-            margin: 0 0 2rem 0;
-            color: var(--premier-beige);
-        }
-
-        /* 6. Dynamic Action Navigation Link Button */
-        .celebration-action-btn {
-            display: inline-block;
-            background-color: var(--card-accent-color);
-            color: var(--white);
-            text-decoration: none;
-            padding: 0.85rem 2rem;
-            font-size: 0.9rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-radius: 4px;
-            transition: transform 0.15s ease, opacity 0.15s ease;
-        }
-        .celebration-action-btn:hover {
-            transform: translateY(-2px);
-            opacity: 0.95;
-        }
-
-        /* 7. Centered Close Controller Pill at Bottom */
-        .celebration-close-trigger {
-            position: absolute;
-            bottom: 2rem;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 2;
-            background-color: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: var(--white);
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            padding: 0.6rem 1.25rem;
-            border-radius: 30px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            backdrop-filter: blur(5px);
-            transition: all 0.15s ease-in-out;
-        }
-        .celebration-close-trigger:hover {
-            background-color: var(--white);
-            color: var(--premier-charcoal);
-            border-color: var(--white);
-        }
-    </style>
-
-    <div id="celebration-banner" onclick="openCelebrationOverlay()">
-        <span id="banner-text-anchor">Acknowledge Local Celebration</span>
+    <div class="tray-contact-mobile">
+      <button class="tray-pill" onclick="document.getElementById('menuOverlay').classList.toggle('open')">Contact 💬</button>
     </div>
 
-    <div id="celebration-overlay">
-        <div class="celebration-canvas" id="canvas-bg-target">
-            <div class="celebration-tint-shield"></div>
-            
-            <article class="celebration-editorial-card">
-                <h2 id="celebration-heading">Acknowledge Moment</h2>
-                <p id="celebration-message">Loading message summary...</p>
-                <a href="#" id="celebration-link" target="_blank" class="celebration-action-btn">Learn More</a>
-            </article>
-
-            <button class="celebration-close-trigger" onclick="dismissCelebrationOverlay()">
-                ✕ Close & Continue to Site
-            </button>
-        </div>
+    <div class="tray-search-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <span>Search...</span>
     </div>
+  </nav>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const activeCampaigns = {{ celebrations | dump | safe if celebrations else "[]" }};
-            if (!activeCampaigns || activeCampaigns.length === 0) return;
-            const today = new Date();
-            const activeCampaign = activeCampaigns.find(event => {
-                const startDate = new Date(event['Start Date'] || event.startDate);
-                const endDate = new Date(event['End Date'] || event.endDate);
-                endDate.setHours(23, 59, 59, 999);
-                return today >= startDate && today <= endDate;
-            });
+  {% include "footer.njk" %}
 
-            if (!activeCampaign) return; 
-
-            const id = activeCampaign['Celebration ID'] || activeCampaign.id;
-            const name = activeCampaign['Celebration Name'] || activeCampaign.name;
-            const headline = activeCampaign.Headline || activeCampaign.headline;
-            const desc = activeCampaign.Description || activeCampaign.description;
-            const linkText = activeCampaign['Resource Link Label'] || activeCampaign.linkLabel;
-            const linkUrl = activeCampaign['Resource Link'] || activeCampaign.linkUrl;
-            const mobileImg = activeCampaign['Mobile Image'] || activeCampaign.mobileImage;
-            const desktopImg = activeCampaign['Desktop Image'] || activeCampaign.desktopImage;
-            document.getElementById('celebration-heading').textContent = headline;
-            document.getElementById('celebration-message').textContent = desc;
-            document.getElementById('banner-text-anchor').innerHTML = `Currently Acknowledging: ${name}. <span>Click to read our community announcement &rarr;</span>`;
-            
-            const linkButton = document.getElementById('celebration-link');
-            if (linkUrl) {
-                linkButton.href = linkUrl;
-                linkButton.textContent = linkText || "Learn More";
-                linkButton.style.display = "inline-block";
-            } else {
-                linkButton.style.display = "none";
-            }
-
-            const bgContainer = document.getElementById('canvas-bg-target');
-            bgContainer.style.setProperty('--bg-mobile', `url('${mobileImg}')`);
-            bgContainer.style.setProperty('--bg-desktop', `url('${desktopImg}')`);
-
-            const storageKey = `dismissed-celebration-${id}`;
-            window.activeCelebrationKey = storageKey; 
-
-            if (localStorage.getItem(storageKey) === 'true') {
-                document.getElementById('celebration-banner').style.display = 'block';
-            } else {
-                openCelebrationOverlay();
-            }
-        });
-
-        function openCelebrationOverlay() {
-            document.getElementById('celebration-overlay').style.display = 'block';
-            document.getElementById('celebration-banner').style.display = 'none';
-            document.body.style.overflow = 'hidden'; 
+  <!-- Header Scroll State Listener -->
+  <script>
+    window.addEventListener('scroll', function() {
+      const header = document.getElementById('globalHeader');
+      if (header) {
+        if (window.scrollY > 20) {
+          header.classList.add('scrolled');
+        } else {
+          header.classList.remove('scrolled');
         }
-
-        function dismissCelebrationOverlay() {
-            document.getElementById('celebration-overlay').style.display = 'none';
-            document.getElementById('celebration-banner').style.display = 'block';
-            document.body.style.overflow = ''; 
-            
-            if (window.activeCelebrationKey) {
-                localStorage.setItem(window.activeCelebrationKey, 'true');
-            }
-        }
-    </script>
+      }
+    });
+  </script>
 </body>
 </html>

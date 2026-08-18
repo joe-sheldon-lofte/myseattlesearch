@@ -1,0 +1,43 @@
+{# 
+  CARDS MACRO LIBRARY
+  Usage: 
+  {% import "components/cards.njk" as cards %}
+  {{ cards.bentoCard("Title", "Body text", "span-4", "callout") }}
+#}
+
+{% macro bentoCard(title, body, span="span-4", cardType="") %}
+<div class="bento-card {{ span }} {% if cardType == 'callout' %}bento-card--callout{% elif cardType == 'action' %}bento-card--action{% endif %}">
+  {% if title %}<h3 class="bento-card-title-lg">{{ title }}</h3>{% endif %}
+  {% if body %}<p class="bento-card-body-lg">{{ body }}</p>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro reviewCard(quote, author, stars="★★★★★", span="span-4") %}
+<div class="bento-card {{ span }}">
+  <div class="review-stars">{{ stars }}</div>
+  <p class="review-quote-text">
+    <span class="review-quote-mark">“</span>{{ quote }}<span class="review-quote-mark">”</span>
+  </p>
+  <div class="review-author">— {{ author }}</div>
+</div>
+{% endmacro %}
+
+{% macro teamCard(name, title, photoUrl, profileUrl="#", cardType="2x1", span="span-4") %}
+{% if cardType == "2x2" %}
+<div class="bento-card team-card-2x2 {{ span }}">
+  <img src="{{ photoUrl }}" class="person-avatar-squircle" alt="{{ name }}">
+  <h4 class="bento-card-title-lg">{{ name }}</h4>
+  <div class="bento-card-body" style="margin-bottom: 10px;">{{ title }}</div>
+  <a href="{{ profileUrl }}" class="link-arrow">View Profile</a>
+</div>
+{% else %}
+<div class="bento-card team-card-2x1 {{ span }}">
+  <img src="{{ photoUrl }}" class="person-avatar-squircle" alt="{{ name }}">
+  <div>
+    <h4 class="bento-card-title">{{ name }}</h4>
+    <div class="bento-card-body">{{ title }}</div>
+    <a href="{{ profileUrl }}" class="link-arrow">View Profile</a>
+  </div>
+</div>
+{% endif %}
+{% endmacro %}

@@ -1,0 +1,167 @@
+{# 
+  GAUGES & MICRO-WIDGETS MACRO LIBRARY
+  Usage: 
+  {% import "components/gauges.njk" as gauges %}
+#}
+
+{% macro glanceBar(slots=[]) %}
+<section class="at-a-glance-bar">
+  {% for slot in slots %}
+  <div class="glance-slot">
+    <div>
+      <div class="glance-label">{{ slot.label }}</div>
+      <div class="glance-value">{{ slot.value }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</section>
+{% endmacro %}
+
+{% macro infoMetric(label, value, dataKey="", span="span-2") %}
+<div class="bento-card {{ span }}">
+  <div class="flex-between">
+    <span class="bento-card-body">{{ label }}</span>
+    <button class="info-trigger" title="More Info" {% if dataKey %}data-descriptor-key="{{ dataKey }}"{% endif %}>
+      <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="5" y1="1" x2="5" y2="9"></line>
+        <line x1="1" y1="5" x2="9" y2="5"></line>
+      </svg>
+    </button>
+  </div>
+  {% if value %}<div class="gauge-value" style="margin-top: 8px;">{{ value }}</div>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro weatherWidget(temp="72", condition="Sunny") %}
+<div style="display: flex; align-items: center; gap: 8px;">
+  {% if "rain" in condition | lower or "shower" in condition | lower %}
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--alpine-blue)" stroke-width="2"><path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 2 16h.5"/><path d="M8 19v2"/><path d="M12 19v2"/><path d="M16 19v2"/></svg>
+  {% elif "cloud" in condition | lower or "overcast" in condition | lower %}
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--alpine-blue)" stroke-width="2"><path d="M17.5 19A4.5 4.5 0 0 0 17.5 10h-1.8A7 7 0 1 0 2 18h15.5z"/></svg>
+  {% else %}
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFCC00" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+  {% endif %}
+  <div>
+    <div class="glance-label">Weather</div>
+    <div class="glance-value">{% if temp != null %}{{ temp }}° {{ condition }}{% else %}--{% endif %}</div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro sunRing(sunrise="6:08A", sunset="8:18P") %}
+<div style="display: flex; align-items: center; gap: 8px;">
+  <svg width="34" height="20" viewBox="0 0 44 24" class="sun-arc-svg">
+    <path d="M 4 22 A 18 18 0 0 1 40 22" fill="none" stroke="#FFCC00" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="1" y1="22" x2="43" y2="22" stroke="#1C1C1E" stroke-width="1.5"/>
+    <circle cx="22" cy="4" r="3.5" fill="#FFCC00" stroke="#1C1C1E" stroke-width="0.5"/>
+  </svg>
+  <div>
+    <div class="glance-label">Sun Arc</div>
+    <div class="glance-value">{% if sunrise %}{{ sunrise }} / {{ sunset }}{% else %}--{% endif %}</div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro aqiWidget(aqi=61, label="Moderate") %}
+<div style="display: flex; align-items: center; gap: 8px;">
+  <div style="width: 22px; height: 22px; border-radius: 50%; background-color: {% if aqi <= 50 %}#00E400{% elif aqi <= 100 %}#FFDE33{% else %}#FF7E00{% endif %}; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; color: #1C1C1E;">
+    AQI
+  </div>
+  <div>
+    <div class="glance-label">Air Quality</div>
+    <div class="glance-value">{% if aqi %}{{ aqi }} {{ label }}{% else %}--{% endif %}</div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro progressRing(score=62, label="Active Transit Score") %}
+<div style="display: flex; align-items: center; gap: 8px;">
+  <svg width="26" height="26" viewBox="0 0 42 42">
+    <circle cx="21" cy="21" r="16" fill="none" stroke="rgba(28,28,30,0.18)" stroke-width="3.5"/>
+    <circle cx="21" cy="21" r="16" fill="none" stroke="#1E4D6B" stroke-width="3.5" stroke-dasharray="100" stroke-dashoffset="{{ 100 - (score | default(0)) }}" stroke-linecap="round" transform="rotate(-90 21 21)"/>
+    <text x="21" y="25" text-anchor="middle" font-size="13" font-weight="700" fill="#1C1C1E">{{ score | default("--") }}</text>
+  </svg>
+  <div>
+    <div class="glance-label">{{ label }}</div>
+    <div class="glance-value">{% if score != null %}{{ score }}/100{% else %}--{% endif %}</div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro marketGauge(statusText="Seller's Market", label="Market Hotness") %}
+<div style="display: flex; align-items: center; gap: 8px;">
+  <svg width="34" height="22" viewBox="0 0 46 28">
+    <defs>
+      <linearGradient id="gaugeGradRedBlueRedGlance" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#D9232A" />
+        <stop offset="28%" stop-color="#D9232A" />
+        <stop offset="38%" stop-color="#007AFF" />
+        <stop offset="62%" stop-color="#007AFF" />
+        <stop offset="72%" stop-color="#D9232A" />
+        <stop offset="100%" stop-color="#D9232A" />
+      </linearGradient>
+    </defs>
+    <path d="M 5 26 A 18 18 0 0 1 41 26" fill="none" stroke="url(#gaugeGradRedBlueRedGlance)" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="23" y1="26" x2="33" y2="10" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="23" y1="26" x2="33" y2="10" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+  <div>
+    <div class="glance-label">{{ label }}</div>
+    <div class="glance-value">{{ statusText }}</div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro gameMicro(game=null) %}
+<div style="display: flex; align-items: center; gap: 8px;">
+  <span style="font-size: 16px;">⚾</span>
+  <div>
+    <div class="glance-label">Latest Game</div>
+    <div class="glance-value">
+      {% if game %}
+        {{ game.awayShort }} {{ game.awayScore }} @ {{ game.homeShort }} {{ game.homeScore }}
+      {% else %}
+        --
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro tideCard(highTime="8:04 PM", highFt="11.2 ft", currentFt="6.4 ft", lowTime="5:08 AM", lowFt="1.4 ft", span="span-4") %}
+<div class="bento-card {{ span }}" style="padding: 0;">
+  <div class="tide-container-wide">
+    <div class="tide-text-zone">
+      <span>NEXT HIGH {{ highTime }}</span>
+      <span style="font-weight:600;">{{ highFt }}</span>
+    </div>
+    <div class="tide-text-zone" style="font-size: 0.72rem; color: rgba(28,28,30,0.7);">
+      <span>Current Water Level: {{ currentFt }}</span>
+      <span>▲ Rising</span>
+    </div>
+    <div class="tide-water-layer">
+      <svg class="tide-wave-svg" viewBox="0 0 120 12" preserveAspectRatio="none">
+        <path d="M0,0 C30,6 60,0 90,6 C105,9 120,0 120,0 L120,12 L0,12 Z" fill="rgba(30, 77, 107, 0.45)"/>
+      </svg>
+    </div>
+    <div class="tide-sand-layer"></div>
+    <div class="tide-text-zone" style="margin-bottom: 4px;">
+      <span>NEXT LOW {{ lowTime }}</span>
+      <span>{{ lowFt }}</span>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro supplyBar(sellerText="0.5 Mo (Seller)", currentText="1.8 Months Supply", buyerText="6.0+ Mo (Buyer)", leftPos="28%", span="span-4") %}
+<div class="bento-card {{ span }}">
+  <div class="flex-between" style="font-size: 0.85rem; font-weight: 500;">
+    <span>{{ sellerText }}</span>
+    <span>{{ currentText }}</span>
+    <span>{{ buyerText }}</span>
+  </div>
+  <div class="supply-bar-container">
+    <div class="supply-bar-indicator" style="left: {{ leftPos }};"></div>
+  </div>
+</div>
+{% endmacro %}

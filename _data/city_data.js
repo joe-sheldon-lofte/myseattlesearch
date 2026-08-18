@@ -1,23 +1,48 @@
 /* File: _data/city_data.js */
 
-// This acts as a proxy, safely passing ONLY the city_data JSON into Eleventy's build engine 
-// while protecting the compiler from NaN syntax errors inside the other automated data files.
-/* File: _data/city_data.js */
-
 const rawData = require('../data/city_data.json');
 
-// Create an empty array to hold the unique cities, and a Set to track what we've seen
 const uniqueCities = [];
 const seenCities = new Set();
 
 for (const item of rawData) {
-    // We assume the column name for the city in your JSON is "City". 
-    // If it's lowercase "city" or "Name", change `item.City` to match your JSON exactly.
-    if (!seenCities.has(item.City)) {
-        seenCities.add(item.City);
-        uniqueCities.push(item);
-    }
+  if (item.City && !seenCities.has(item.City)) {
+    seenCities.add(item.City);
+
+    // Create a clean URL slug (e.g. "Lake Forest Park" -> "lake-forest-park")
+    const slug = item.City
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    uniqueCities.push({
+      ...item, // Retains all raw original JSON properties as fallbacks
+      name: item.City,
+      slug: slug,
+      county: item.County,
+      
+      // School & Academic Mappings
+      schoolDistrict: item["School District"],
+      ospiDistrictId: item["OSPI District ID"],
+      schoolWebsite: item["School Website"],
+      
+      // Civic & Emergency URL Mappings
+      cityWebsite: item["City Website"],
+      permitUrl: item["Permit URL"],
+      policeUrl: item["Police URL"],
+      policeDepartment: item["Police Department Name"],
+      fireDepartment: item["Fire Department Name"],
+      wsrbRating: item["FD WSRB Rating"],
+      
+      // Geographic & Demographics
+      latitude: item.Latitude,
+      longitude: item.Longitude,
+      population: item.FallbackPopulation,
+      landSquareMiles: item["Land Area Square Mileage"]
+    });
+  }
 }
 
-// Pass the perfectly deduplicated list to Eleventy
+// Passes the normalized array to Eleventy under global data key `city_data`
 module.exports = uniqueCities;

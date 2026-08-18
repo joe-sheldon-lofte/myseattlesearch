@@ -1,0 +1,28 @@
+<footer>
+    <div class="footer-content" style="max-width: 1000px; margin: 0 auto; width: 100%;">
+        <img src="https://assets.myseattlesearch.com/repomove/redfin.webp" alt="Redfin Logo" class="footer-logo" width="130" height="65" loading="lazy" decodes="async">
+        <p class="office-address">3400 188th St SW, Ste 165<br>Lynnwood, WA 98037</p>
+        <p style="margin-top: 1rem; font-size: 0.85rem; display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap;">
+            <a href="/hereforyou/" style="color: var(--white); text-decoration: underline;">Housing Equity Commitment</a>
+            <a href="/team/" style="color: var(--white); text-decoration: underline;">Joe's Team</a>
+            <a href="/chat/" style="color: var(--white); text-decoration: underline;">Live Chat</a>
+        </p>
+        
+        {% set siteDisclaimer = disclaimers["site"] %}
+        {% set pageDisclaimer = page.url | getDisclaimer(disclaimers) %}
+
+        {% if siteDisclaimer or pageDisclaimer %}
+        <div id="dynamic-disclaimers-box" style="max-width: 750px; margin: 1.75rem auto 0 auto; padding-top: 1.25rem; border-top: 1px solid rgba(255, 255, 255, 0.2); font-size: 0.72rem; line-height: 1.5; text-align: justify; color: var(--white); padding-left: 1rem; padding-right: 1rem; box-sizing: border-box;">
+            {% if siteDisclaimer %}
+                <p style="margin: 0 0 0.75rem 0; text-align: justify;">{{ siteDisclaimer }}</p>
+            {% endif %}
+            {% if pageDisclaimer %}
+                <p style="margin: 0; text-align: justify;">{{ pageDisclaimer }}</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Liquid Glass Unified Floating Dock (Search + Contact) -->
+    <floating-dock></floating-dock>
+</footer>

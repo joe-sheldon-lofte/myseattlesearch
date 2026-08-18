@@ -47,14 +47,17 @@ def safe_task(task_name, func):
         print(f"⚠️ Skipping {task_name}.\n")
 
 def run_subscript(script_relative_path):
-    path = os.path.join(BASE_DIR, "scripts", "hourly", script_relative_path)
-    if os.path.exists(path):
-        exit_code = os.system(f"{sys.executable} {path}")
+    primary_path = os.path.join(BASE_DIR, "scripts", "hourly", script_relative_path)
+    fallback_path = os.path.join(BASE_DIR, "scripts", script_relative_path)
+    
+    target_path = primary_path if os.path.exists(primary_path) else fallback_path
+
+    if os.path.exists(target_path):
+        exit_code = os.system(f"{sys.executable} {target_path}")
         if exit_code != 0:
-            # Raise exception so safe_task and Sentry capture the sub-script failure
             raise RuntimeError(f"Sub-script '{script_relative_path}' failed with exit status code {exit_code}")
     else:
-        raise FileNotFoundError(f"Script not found at expected path: {path}")
+        raise FileNotFoundError(f"Script not found at expected path: {primary_path}")
 
 # Sub-script execution wrappers
 def harvest_weather_hourly(): run_subscript("harvest_weather_hourly.py")

@@ -1,0 +1,126 @@
+{# 
+  BOARDS & DIRECTORY MACRO LIBRARY
+  Usage: 
+  {% import "components/boards.njk" as boards %}
+  {{ boards.sportsCard("MLB Pro Baseball", "FINAL", "Seattle Mariners", "5", "88-74", "LA Angels", "2", "63-99") }}
+#}
+
+{% macro flightBoard(title="Sea-Tac (SEA) Flights", rows=[], span="span-4") %}
+<div class="bento-card {{ span }}">
+  <div class="bento-card-header">
+    <span>{{ title }}</span>
+  </div>
+  <div class="flex-between" style="margin-bottom: 12px;">
+    <div class="toggle-pill-group">
+      <button class="toggle-pill-btn active">Departures</button>
+      <button class="toggle-pill-btn">Arrivals</button>
+    </div>
+  </div>
+  <div class="flight-board-row" style="font-weight: 500; color: rgba(28,28,30,0.5);">
+    <span>FLIGHT</span><span>DESTINATION</span><span>STATUS</span><span>TIME</span>
+  </div>
+  {% for row in rows %}
+  <div class="flight-board-row">
+    <span>{{ row.flight }}</span>
+    <span>{{ row.destination }}</span>
+    <span style="color: {% if row.status == 'Delayed' %}var(--pnw-red){% else %}var(--alpine-blue){% endif %};">{{ row.status }}</span>
+    <span>{{ row.time }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro tollBoard(title="SR 520 Bridge Tolls", rows=[], span="span-4") %}
+<div class="bento-card {{ span }}">
+  <div class="bento-card-header">
+    <span>{{ title }}</span>
+  </div>
+  <div class="flex-between" style="margin-bottom: 12px;">
+    <div class="toggle-pill-group">
+      <button class="toggle-pill-btn active">Live Rates</button>
+      <button class="toggle-pill-btn">Rate Ranges</button>
+    </div>
+  </div>
+  <div class="toll-board-card">
+    {% for row in rows %}
+    <div class="toll-board-row">
+      <span>{{ row.type }}</span>
+      <span style="font-weight:600; color:{% if row.alert %}var(--pnw-red){% else %}var(--alpine-blue){% endif %};">{{ row.rate }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endmacro %}
+
+{% macro sportsCard(league="MLB Pro Baseball", status="FINAL", team1="Seattle Mariners", score1="5", record1="88-74", team2="LA Angels", score2="2", record2="63-99", venue="T-Mobile Park • Home Game", linkUrl="/neighborhood/region-sports/pro/", logoBg="https://assets.myseattlesearch.com/repomove/mariners-logo.webp", span="span-4") %}
+<div class="bento-card bento-card--action sports-card-2x1 {{ span }}">
+  <div class="sports-bg-logo" style="background-image: url('{{ logoBg }}');"></div>
+  
+  <div class="sports-glass-content">
+    <div class="sports-header-row">
+      <span class="sports-league-label">{{ league }}</span>
+      <span class="pill-badge sports-status-live">{{ status }}</span>
+    </div>
+    
+    <div class="sports-teams-list">
+      <div class="sports-team-row sports-team-lead">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="sports-team-dot sports-team-dot--active"></span>
+          <span>{{ team1 }} <span class="sports-team-record">({{ record1 }})</span></span>
+        </div>
+        <span class="sports-score-active">{{ score1 }}</span>
+      </div>
+      <div class="sports-team-row sports-team-sub">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="sports-team-dot sports-team-dot--inactive"></span>
+          <span>{{ team2 }} <span class="sports-team-record">({{ record2 }})</span></span>
+        </div>
+        <span class="sports-score-inactive">{{ score2 }}</span>
+      </div>
+    </div>
+
+    <div style="border-top: 1px solid rgba(28,28,30,0.08); padding-top: 10px; margin-top: 10px;">
+      <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(28,28,30,0.5); font-weight: 500; margin-bottom: 6px;">Regional Sports Hubs</div>
+      <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem;">
+        <a href="/neighborhood/region-sports/pro/" class="link-arrow">See All Pro Sports</a>
+        <a href="/neighborhood/region-sports/minor/" class="link-arrow">See All Minor League Sports</a>
+        <a href="/neighborhood/region-sports/collegiate/" class="link-arrow">See All Collegiate Sports</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro directoryList(title="Explore Directory", items=[], span="span-2") %}
+<div class="bento-card {{ span }}">
+  {% if title %}
+  <div class="bento-card-header">
+    <span>{{ title }}</span>
+  </div>
+  {% endif %}
+  <ul class="subpage-list">
+    {% for item in items %}
+    <li><a href="{{ item.url }}"><span>{{ item.label }}</span> <span>→</span></a></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endmacro %}
+
+{% macro faqAccordion(question, answer, dataKey="", span="span-4") %}
+<div class="bento-card {{ span }}">
+  <div class="accordion-item">
+    <div class="accordion-header">
+      <span>{{ question }}</span>
+      <button class="info-trigger" title="More Info" {% if dataKey %}data-descriptor-key="{{ dataKey }}"{% endif %}>
+        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="5" y1="1" x2="5" y2="9"></line>
+          <line x1="1" y1="5" x2="9" y2="5"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="accordion-body">
+      {{ answer }}
+    </div>
+  </div>
+</div>
+{% endmacro %}

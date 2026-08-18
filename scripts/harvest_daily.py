@@ -44,18 +44,22 @@ def safe_task(task_name, func):
         print(f"⚠️ Skipping {task_name}.\n")
 
 def run_subscript(script_relative_path):
-    path = os.path.join(BASE_DIR, "scripts", "daily", script_relative_path)
-    if os.path.exists(path):
-        exit_code = os.system(f"{sys.executable} {path}")
+    primary_path = os.path.join(BASE_DIR, "scripts", "daily", script_relative_path)
+    fallback_path = os.path.join(BASE_DIR, "scripts", script_relative_path)
+    
+    target_path = primary_path if os.path.exists(primary_path) else fallback_path
+
+    if os.path.exists(target_path):
+        exit_code = os.system(f"{sys.executable} {target_path}")
         if exit_code != 0:
-            # Raise exception so safe_task and Sentry capture sub-script failures
             raise RuntimeError(f"Sub-script '{script_relative_path}' failed with exit status code {exit_code}")
     else:
-        raise FileNotFoundError(f"Script not found at expected path: {path}")
+        raise FileNotFoundError(f"Script not found at expected path: {primary_path}")
 
 def harvest_daily_sheet_sync(): run_subscript("daily_sheet_sync.py")
 def harvest_construction_zones(): run_subscript("construction_zones.py")
 def harvest_quizzes_processor(): run_subscript("quizzes_processor.py")
+def harvest_city_events(): run_subscript("harvest_city_events.py")
 
 # ------------------------------------------------------------------------------
 # 3. MASTER DAILY RUNNER WITH SENTRY CRON MONITORING
@@ -77,6 +81,7 @@ def main():
     safe_task("1. Daily Sheets Sync (CityData, Stats, TransitData)", harvest_daily_sheet_sync)
     safe_task("2. WSDOT Active Construction & Work Zones", harvest_construction_zones)
     safe_task("3. Daily Polymorphic Quizzes Processor", harvest_quizzes_processor)
+    safe_task("4. Municipal & City Events Harvester", harvest_city_events)
 
     print("🎉 Daily master harvesting sequence complete. Data fresh!")
 

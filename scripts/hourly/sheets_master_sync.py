@@ -1,3 +1,5 @@
+
+
 import os
 import io
 import json
@@ -150,17 +152,24 @@ def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, fol
         
         file_stream = io.BytesIO(raw_bytes)
         img = Image.open(file_stream)
+        
+        # Downscale large high-res images to max 1600px before WebP encoding
+        max_dim = 1600
+        if img.width > max_dim or img.height > max_dim:
+            img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+
         img = img.convert("RGBA") if img.mode in ("RGBA", "P") else img.convert("RGB")
         
         webp_buffer = io.BytesIO()
-        img.save(webp_buffer, format="WEBP", quality=80)
+        img.save(webp_buffer, format="WEBP", quality=82)
         webp_buffer.seek(0)
         
         s3_client.put_object(
             Bucket=r2_bucket,
             Key=object_key,
             Body=webp_buffer,
-            ContentType="image/webp"
+            ContentType="image/webp",
+            CacheControl="public, max-age=31536000, immutable"
         )
 
         try:
@@ -172,6 +181,54 @@ def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, fol
     except Exception as e:
         print(f"   ❌ Image upload notice for {file_id}: {e}")
         return image_url
+
+def process_custom_upload_asset(drive_service, s3_client, r2_bucket, drive_link, target_dir, asset_name):
+    """Converts image from Drive link to WebP, downscales to 1600px max, and uploads to custom R2 directory path."""
+    file_id = extract_google_id(drive_link)
+    if not file_id or not s3_client or not r2_bucket:
+        return drive_link
+
+    clean_dir = str(target_dir).strip().strip('/')
+    clean_name = slugify(asset_name)
+    object_key = f"{clean_dir}/{clean_name}.webp" if clean_dir else f"{clean_name}.webp"
+    permanent_url = f"https://assets.myseattlesearch.com/{object_key}"
+
+    try:
+        request = drive_service.files().get_media(fileId=file_id)
+        raw_bytes = request.execute()
+
+        file_stream = io.BytesIO(raw_bytes)
+        img = Image.open(file_stream)
+
+        # Downscale large high-res images to max 1600px before WebP encoding
+        max_dim = 1600
+        if img.width > max_dim or img.height > max_dim:
+            img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+
+        img = img.convert("RGBA") if img.mode in ("RGBA", "P") else img.convert("RGB")
+
+        webp_buffer = io.BytesIO()
+        img.save(webp_buffer, format="WEBP", quality=82)
+        webp_buffer.seek(0)
+
+        s3_client.put_object(
+            Bucket=r2_bucket,
+            Key=object_key,
+            Body=webp_buffer,
+            ContentType="image/webp",
+            CacheControl="public, max-age=31536000, immutable"
+        )
+        print(f"   🚀 Asset converted & uploaded to R2: {object_key}")
+
+        try:
+            drive_service.files().delete(fileId=file_id).execute()
+        except Exception:
+            pass
+
+        return permanent_url
+    except Exception as e:
+        print(f"   ❌ Asset upload fault for {file_id}: {e}")
+        return drive_link
 
 def process_and_upload_pdf(drive_service, s3_client, r2_bucket, pdf_url, mls_number, index=1):
     file_id = extract_google_id(pdf_url)
@@ -335,58 +392,71 @@ def main():
         except Exception as e:
             print(f"   ⚠️ Command Center notice: {e}")
 
-    # Module 1B: City Data
+    # Module 1B: City Data Workbook (CityData + MunicipalFeeds)
     city_sheet_id = os.environ.get("CITY_DATA_SHEET_ID")
     if city_sheet_id:
         try:
             if city_sheet_id not in batch_sheet_writebacks:
                 batch_sheet_writebacks[city_sheet_id] = []
 
-            rows = sheets_service.spreadsheets().values().get(
-                spreadsheetId=city_sheet_id, range="CityData!A:AZ"
-            ).execute().get('values', [])
+            city_ranges = ["CityData!A:AZ", "MunicipalFeeds!A:AZ"]
+            city_batch = sheets_service.spreadsheets().values().batchGet(
+                spreadsheetId=city_sheet_id, ranges=city_ranges
+            ).execute().get('valueRanges', [])
 
-            if rows and len(rows) >= 2:
-                headers = [str(h).strip() for h in rows[0]]
-                parsed_city_data = parse_sheet_values(rows)
+            # Parse CityData
+            if len(city_batch) > 0 and city_batch[0].get('values'):
+                rows = city_batch[0]['values']
+                if rows and len(rows) >= 2:
+                    headers = [str(h).strip() for h in rows[0]]
+                    parsed_city_data = parse_sheet_values(rows)
 
-                with open(CITY_DATA_PATH, "w", encoding="utf-8") as f:
-                    json.dump(clean_nan_tokens(parsed_city_data), f, indent=2, ensure_ascii=False)
+                    with open(CITY_DATA_PATH, "w", encoding="utf-8") as f:
+                        json.dump(clean_nan_tokens(parsed_city_data), f, indent=2, ensure_ascii=False)
 
-                col_status_idx = -1
-                for candidate in ["EditorialStatus", "Editorial Status", "Editorial_Status"]:
-                    if candidate in headers:
-                        col_status_idx = headers.index(candidate)
-                        break
+                    col_status_idx = -1
+                    for candidate in ["EditorialStatus", "Editorial Status", "Editorial_Status"]:
+                        if candidate in headers:
+                            col_status_idx = headers.index(candidate)
+                            break
 
-                for idx, r in enumerate(rows[1:]):
-                    padded = list(r) + [""] * (len(headers) - len(r))
-                    record = dict(zip(headers, padded))
-                    row_num = idx + 2
-                    city_name = record.get("City", "").strip()
-                    if not city_name: continue
+                    for idx, r in enumerate(rows[1:]):
+                        padded = list(r) + [""] * (len(headers) - len(r))
+                        record = dict(zip(headers, padded))
+                        row_num = idx + 2
+                        city_name = record.get("City", "").strip()
+                        if not city_name: continue
 
-                    slug = slugify(city_name)
-                    doc_url = record.get("Editorial", "").strip()
-                    status = (record.get("EditorialStatus", "") or record.get("Editorial Status", "") or "").strip()
+                        slug = slugify(city_name)
+                        doc_url = record.get("Editorial", "").strip()
+                        status = (record.get("EditorialStatus", "") or record.get("Editorial Status", "") or "").strip()
 
-                    if doc_url and is_google_drive_link(doc_url) and status.lower() == "pending":
-                        md_content = get_google_doc_as_markdown(docs_service, doc_url)
-                        if md_content and md_content.strip():
-                            with open(os.path.join(editorials_dir, f"{slug}.md"), "w", encoding="utf-8") as f_md:
-                                f_md.write(md_content)
-                            if col_status_idx != -1:
-                                batch_sheet_writebacks[city_sheet_id].append({
-                                    'range': f"CityData!{get_col_letter(col_status_idx)}{row_num}",
-                                    'values': [["Complete"]]
-                                })
+                        if doc_url and is_google_drive_link(doc_url) and status.lower() == "pending":
+                            md_content = get_google_doc_as_markdown(docs_service, doc_url)
+                            if md_content and md_content.strip():
+                                with open(os.path.join(editorials_dir, f"{slug}.md"), "w", encoding="utf-8") as f_md:
+                                    f_md.write(md_content)
+                                if col_status_idx != -1:
+                                    batch_sheet_writebacks[city_sheet_id].append({
+                                        'range': f"CityData!{get_col_letter(col_status_idx)}{row_num}",
+                                        'values': [["Complete"]]
+                                    })
+
+            # Parse MunicipalFeeds from City Data Sheet
+            if len(city_batch) > 1 and city_batch[1].get('values'):
+                muni_rows = city_batch[1]['values']
+                if muni_rows:
+                    parsed_muni_feeds = parse_sheet_values(muni_rows)
+                    with open(os.path.join(DATA_DIR, "municipal_feeds.json"), "w", encoding="utf-8") as f:
+                        json.dump(clean_nan_tokens(parsed_muni_feeds), f, indent=2, ensure_ascii=False)
+
         except Exception as e:
-            print(f"   ⚠️ CityData notice: {e}")
+            print(f"   ⚠️ CityData / MunicipalFeeds notice: {e}")
 
-    # Module 2: Website Data Workbook (Celebrations Removed)
+    # Module 2: Website Data Workbook & Uploads Tab Bulk Processing
     web_sheet_id = os.environ.get("WEBSITE_DATA_SHEET_ID")
     if web_sheet_id:
-        target_tabs = ["Stats", "Team", "Disclaimers", "Events", "DPA", "Professionals", "Reviews", "ThirdPartyPrograms", "News", "Sales", "Live_Archive", "Uploads", "Sports", "TollData", "UtilityData", "DataDescriptors"]
+        target_tabs = ["Stats", "Team", "Disclaimers", "Events", "DPA", "Professionals", "Reviews", "ThirdPartyPrograms", "News", "Sales", "Live_Archive", "Uploads", "Sports", "TollData", "UtilityData"]
         try:
             web_ranges = [f"{tab}!A:AZ" for tab in target_tabs]
             web_batch = sheets_service.spreadsheets().values().batchGet(
@@ -400,12 +470,78 @@ def main():
             toll_rows = tabs_data.get("TollData", {}).get('values', [])
             harvest_commute_and_tolls(parse_sheet_values(toll_rows) if toll_rows else [])
 
-            # Write out simple tabs
+            # Bulk Process Uploads Tab (Drive -> WebP -> R2 CDN -> Writeback)
+            upload_rows = tabs_data.get("Uploads", {}).get('values', [])
+            if upload_rows and len(upload_rows) >= 2:
+                u_headers = [str(h).strip() for h in upload_rows[0]]
+
+                col_u_link = -1
+                for cand in ["Link", "Drive Link", "URL"]:
+                    if cand in u_headers:
+                        col_u_link = u_headers.index(cand)
+                        break
+
+                col_u_dir = -1
+                for cand in ["Directory", "Image Directory", "Folder", "Dir"]:
+                    if cand in u_headers:
+                        col_u_dir = u_headers.index(cand)
+                        break
+
+                col_u_name = -1
+                for cand in ["Name", "Asset Name", "File Name"]:
+                    if cand in u_headers:
+                        col_u_name = u_headers.index(cand)
+                        break
+
+                col_u_asset = -1
+                for cand in ["New Asset URL", "Asset URL", "New Asset Link", "New URL"]:
+                    if cand in u_headers:
+                        col_u_asset = u_headers.index(cand)
+                        break
+
+                if col_u_asset == -1 and col_u_link != -1:
+                    col_u_asset = col_u_link
+
+                col_u_done = -1
+                for cand in ["Done", "Status", "Complete", "Processed"]:
+                    if cand in u_headers:
+                        col_u_done = u_headers.index(cand)
+                        break
+
+                for idx, r in enumerate(upload_rows[1:]):
+                    padded = list(r) + [""] * (len(u_headers) - len(r))
+                    u_rec = dict(zip(u_headers, padded))
+                    row_num = idx + 2
+
+                    d_link = (u_rec.get("Link") or u_rec.get("Drive Link") or u_rec.get("URL") or "").strip()
+                    d_dir = (u_rec.get("Directory") or u_rec.get("Image Directory") or u_rec.get("Folder") or "").strip()
+                    d_name = (u_rec.get("Name") or u_rec.get("Asset Name") or u_rec.get("File Name") or "").strip()
+                    d_done = (u_rec.get("Done") or u_rec.get("Status") or u_rec.get("Complete") or "").strip().lower()
+
+                    if d_link and is_google_drive_link(d_link) and d_done != "yes" and s3_client:
+                        new_url = process_custom_upload_asset(
+                            drive_service, s3_client, r2_bucket, d_link, d_dir, d_name
+                        )
+                        if new_url and new_url != d_link:
+                            if col_u_asset != -1:
+                                batch_sheet_writebacks[web_sheet_id].append({
+                                    'range': f"Uploads!{get_col_letter(col_u_asset)}{row_num}",
+                                    'values': [[new_url]]
+                                })
+                            if col_u_done != -1:
+                                batch_sheet_writebacks[web_sheet_id].append({
+                                    'range': f"Uploads!{get_col_letter(col_u_done)}{row_num}",
+                                    'values': [["Yes"]]
+                                })
+
+            # Write out simple JSON tabs
             for tab_name, json_name in [
                 ("Stats", "stats.json"), ("Disclaimers", "disclaimers.json"),
                 ("DPA", "dpa_programs.json"), ("Professionals", "professionals.json"), 
                 ("Reviews", "reviews.json"), ("ThirdPartyPrograms", "thirdpartyprograms.json"), 
-                ("News", "news.json"), ("Sports", "sports_teams.json"), ("UtilityData", "utility_data.json"), ("DataDescriptors", "data_descriptors.json")
+                ("News", "news.json"), ("Sports", "sports_teams.json"),
+                ("Uploads", "uploads.json"), ("UtilityData", "utility_data.json"),
+                ("Events", "events.json")
             ]:
                 rows = tabs_data.get(tab_name, {}).get('values', [])
                 if rows:

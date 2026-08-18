@@ -1,0 +1,99 @@
+{# 
+  MEDIA & FEEDS MACRO LIBRARY
+  Usage: 
+  {% import "components/media.njk" as media %}
+  {{ media.heroCarousel("Mukilteo", "Weather & Radar", city.heroImages, city.county) }}
+#}
+
+{% macro heroCarousel(cityName="Mukilteo", subtitle="Weather & Radar", heroImages=[], county="King") %}
+{% if county == "Snohomish" %}
+  {% set poolImg1 = "https://assets.myseattlesearch.com/neighborhood/hero-pools/snohomish/1.webp" %}
+  {% set poolImg2 = "https://assets.myseattlesearch.com/neighborhood/hero-pools/snohomish/2.webp" %}
+  {% set poolImg3 = "https://assets.myseattlesearch.com/neighborhood/hero-pools/snohomish/3.webp" %}
+{% else %}
+  {% set poolImg1 = "https://assets.myseattlesearch.com/neighborhood/hero-pools/king/1.webp" %}
+  {% set poolImg2 = "https://assets.myseattlesearch.com/neighborhood/hero-pools/king/2.webp" %}
+  {% set poolImg3 = "https://assets.myseattlesearch.com/neighborhood/hero-pools/king/3.webp" %}
+{% endif %}
+
+<section class="hero-carousel-frame">
+  <img src="{{ heroImages[0] | default(poolImg1) }}" alt="Side Left" class="hero-img-side">
+  <div class="hero-main-wrapper">
+    <img src="{{ heroImages[1] | default(poolImg2) }}" alt="Center Hero" class="hero-img-main">
+    <div class="hero-floating-glass-badge">
+      <div class="hero-welcome-script">Welcome, Neighbor</div>
+      <h2 class="hero-city-title">{{ cityName }}</h2>
+      <div class="hero-page-subtitle">{{ subtitle }}</div>
+    </div>
+  </div>
+  <img src="{{ heroImages[2] | default(poolImg3) }}" alt="Side Right" class="hero-img-side">
+</section>
+{% endmacro %}
+
+{% macro newsCard(source, headline, summary, timestamp, linkUrl="#", span="span-4") %}
+<div class="bento-card {{ span }}">
+  <div class="news-item">
+    <div class="news-source">{{ source }}</div>
+    <h4 class="news-headline">{{ headline }}</h4>
+    <p class="news-summary">{{ summary }}</p>
+    <div class="news-meta">
+      <span>{{ timestamp }}</span>
+      <a href="{{ linkUrl }}" class="link-arrow">Read Story</a>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro yelpShowcase(title="Top Rated Spots", items=[], span="span-6") %}
+<div class="bento-card {{ span }}">
+  <h3 class="bento-card-title-lg">{{ title }}</h3>
+  <div class="yelp-grid">
+    {% for item in items %}
+    <a href="{{ item.url | default('#') }}" class="yelp-item">
+      <img src="{{ item.imgUrl }}" alt="{{ item.name }}">
+      <div style="font-size: 0.85rem; font-weight: 500;">{{ item.name }}</div>
+      <div style="font-size: 0.75rem; color: var(--alpine-blue);">★★★★★ ({{ item.rating }})</div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endmacro %}
+
+{% macro notebookCard(author="Joe Sheldon", avatarUrl="", date="August 15, 2026", title="", body="", postUrl="#", type="Post", span="span-4") %}
+<div class="bento-card {{ span }}">
+  <div class="notebook-header">
+    <img src="{{ avatarUrl | default('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100') }}" class="person-avatar-squircle notebook-avatar" alt="{{ author }}">
+    <div>
+      <div class="notebook-author-name">{{ author }}</div>
+      <div class="notebook-meta-date">{{ date }} • {{ type }}</div>
+    </div>
+  </div>
+  {% if title %}<h4 class="notebook-title">{{ title }}</h4>{% endif %}
+  <p class="notebook-body">{{ body }}</p>
+  <div class="notebook-actions">
+    <button class="pill-badge" style="cursor:pointer;" onclick="if(navigator.share){navigator.share({title:'{{ title | default('Notebook Post') }}',url:window.location.href});}">Share</button>
+    <a href="/chat/?ref=post" class="pill-badge" style="text-decoration:none;">Respond</a>
+    <a href="{{ postUrl }}" class="link-arrow" style="font-size:0.8rem; margin-left:4px;">View</a>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro imageCarousel(images=[], span="span-4") %}
+<div class="bento-card {{ span }}">
+  <div class="image-carousel-container">
+    <div class="image-carousel-chevron image-carousel-chevron--left">‹</div>
+    <img src="{{ images[0] }}" class="image-carousel-main" alt="Property Main View">
+    <div class="image-carousel-chevron image-carousel-chevron--right">›</div>
+    <div class="image-carousel-dots">
+      {% for img in images %}
+      <span class="image-carousel-dot {% if loop.first %}active{% endif %}"></span>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="image-carousel-thumbs">
+    {% for img in images %}
+    <img src="{{ img }}" class="image-carousel-thumb {% if loop.first %}active{% endif %}" alt="Thumb {{ loop.index }}">
+    {% endfor %}
+  </div>
+</div>
+{% endmacro %}
