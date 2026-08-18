@@ -85,6 +85,24 @@ module.exports = function(eleventyConfig) {
     return disclaimers[pageName] || "";
   });
 
+  // Hero Pool Image Randomizer Filter
+  eleventyConfig.addFilter("getRandomHeroImages", function(heroImages, county) {
+    if (Array.isArray(heroImages) && heroImages.length >= 3 && heroImages[0]) {
+      return heroImages;
+    }
+    const isSno = String(county || "").toLowerCase().includes("snohomish");
+    const folder = isSno ? "snohomish" : "king";
+    const maxCount = isSno ? 13 : 17;
+    
+    const indices = [];
+    while (indices.length < 3) {
+      const r = Math.floor(Math.random() * maxCount) + 1;
+      if (!indices.includes(r)) indices.push(r);
+    }
+    
+    return indices.map(idx => `https://assets.myseattlesearch.com/neighborhood/hero-pools/${folder}/${idx}.webp`);
+  });
+
   // 1. Weather & AQI Data Loader
   eleventyConfig.addFilter("getCityWeather", function(citySlug) {
     const data = readJsonDataFile("city_weather.json");
@@ -96,8 +114,11 @@ module.exports = function(eleventyConfig) {
     const curr = record.current || {};
     const astro = record.astronomy || {};
     const aq = record.air_quality || {};
+    const forecast = record.forecast_7_day || {};
 
     const tempVal = curr.temp_f != null ? Math.round(curr.temp_f) : null;
+    const tempHigh = forecast.temp_max && forecast.temp_max[0] != null ? Math.round(forecast.temp_max[0]) : null;
+    const tempLow = forecast.temp_min && forecast.temp_min[0] != null ? Math.round(forecast.temp_min[0]) : null;
 
     const formatIsoTime = (isoStr) => {
       if (!isoStr) return "";
@@ -122,6 +143,8 @@ module.exports = function(eleventyConfig) {
 
     return {
       temp: tempVal,
+      temp_high: tempHigh,
+      temp_low: tempLow,
       condition: condMap[code] || "Sunny",
       sunrise: formatIsoTime(astro.sunrise_today),
       sunset: formatIsoTime(astro.sunset_today),

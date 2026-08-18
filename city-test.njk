@@ -64,7 +64,7 @@ permalink: /city-test/
 <div class="element-block">
   <span class="element-badge">Element 05: Universal Info Trigger (+)</span>
   <div class="bento-grid">
-    {{ gauges.infoMetric("Data Metric", "", "active_transit_score", "span-2") }}
+    {{ gauges.infoMetric("Data Metric", "82/100", "active_transit_score", "span-2") }}
   </div>
 </div>
 
@@ -78,7 +78,7 @@ permalink: /city-test/
 <div class="element-block">
   <span class="element-badge">Element 07: Sunrise / Sunset Ring Widget (1x1 Square)</span>
   <div class="bento-grid">
-    {{ gauges.sunRing("6:12 AM", "8:24 PM", "span-2") }}
+    {{ gauges.sunRing("6:12 AM", "8:24 PM", false, 0.45, "span-2") }}
   </div>
 </div>
 
@@ -90,7 +90,7 @@ permalink: /city-test/
 </div>
 
 <div class="element-block">
-  <span class="element-badge">Element 09: Market Hotness Gauge (Red/Electric Blue/Red Band)</span>
+  <span class="element-badge">Element 09: Market Hotness Gauge (Red / Electric Blue / Red Band)</span>
   <div class="bento-grid">
     {{ gauges.marketGauge("Seller's Market", "Market Hotness", "span-2") }}
   </div>
@@ -99,7 +99,7 @@ permalink: /city-test/
 <div class="element-block">
   <span class="element-badge">Element 10: Months of Supply Bar (Red / Electric Blue / Red Band)</span>
   <div class="bento-grid">
-    {{ gauges.supplyBar("0.5 Mo (Seller)", "1.8 Months Supply", "6.0+ Mo (Buyer)", "28%", "span-4") }}
+    {{ gauges.supplyBar("0 Months (Seller's Market)", "1.8 Months Supply", "6 Months (Buyer's Market)", "28%", "span-6") }}
   </div>
 </div>
 
@@ -107,14 +107,14 @@ permalink: /city-test/
 <div class="catalog-section-title">Category 3: Content, Feeds & Media</div>
 
 <div class="element-block">
-  <span class="element-badge">Element 11: 3D Hero Carousel with Centered Glass Badge & Random Fallback Pool</span>
-  {{ media.heroCarousel(city.name | default("Mukilteo"), "Weather & Radar", city.heroImages, city.county | default("King")) }}
+  <span class="element-badge">Element 11: 3D Hero Carousel with Centered Glass Badge</span>
+  {{ media.heroCarousel("Mukilteo", "Weather & Radar", [], "King") }}
 </div>
 
 <div class="element-block">
   <span class="element-badge">Element 12: Local News Article List Card</span>
   <div class="bento-grid">
-    {{ media.newsCard("Kirkland Reporter", "City Council Approves Marina Park Upgrades", "Phase two clears environmental review, expanding public docks and waterfront green space.", "Today at 8:30 AM", "#", "span-4") }}
+    {{ media.newsCard("Kirkland Reporter", "City Council Approves Marina Park Upgrades", "Phase two clears environmental review, expanding public docks and waterfront green space.", "Today at 8:30 AM", "#", "span-6") }}
   </div>
 </div>
 
@@ -132,14 +132,14 @@ permalink: /city-test/
 <div class="element-block">
   <span class="element-badge">Element 14: Real Estate Client Review Card</span>
   <div class="bento-grid">
-    {{ cards.reviewCard("Joe made our Kirkland home search smooth and stress-free. His local market knowledge gave us a major edge in a competitive market!", "Real Estate Client in Kirkland", "★★★★★", "span-4") }}
+    {{ cards.reviewCard("Joe made our Kirkland home search smooth and stress-free. His local market knowledge gave us a major edge in a competitive market!", "Real Estate Client in Kirkland", "★★★★★", "span-6") }}
   </div>
 </div>
 
 <div class="element-block">
   <span class="element-badge">Element 15: Sports Summary Card (2x1 Wide with Frosted Logo Background)</span>
   <div class="bento-grid">
-    {{ boards.sportsCard("MLB Pro Baseball", "FINAL", "Seattle Mariners", "5", "LA Angels", "2", "T-Mobile Park • Home Game", "/neighborhood/region-sports/pro/", "https://assets.myseattlesearch.com/repomove/mariners-logo.webp", "span-4") }}
+    {{ boards.sportsCard("MLB Pro Baseball", "FINAL", "Seattle Mariners", "5", "88-74", "LA Angels", "2", "63-99", "T-Mobile Park • Home Game", "/neighborhood/region-sports/pro/", "https://assets.myseattlesearch.com/repomove/mariners-logo.webp", "span-6") }}
   </div>
 </div>
 
@@ -149,7 +149,7 @@ permalink: /city-test/
     {{ boards.flightBoard("Sea-Tac (SEA) Flights", [
       { flight: "AS 1042", destination: "San Francisco", status: "On Time", time: "11:45 AM" },
       { flight: "DL 882", destination: "New York (JFK)", status: "Delayed", time: "12:10 PM" }
-    ], "span-4") }}
+    ], "span-6") }}
   </div>
 </div>
 
@@ -160,22 +160,22 @@ permalink: /city-test/
       { type: "PEAK AUTO", rate: "$4.50", alert: false },
       { type: "OFF-PEAK", rate: "$2.80", alert: false },
       { type: "PAY BY MAIL", rate: "$6.50", alert: true }
-    ], "span-4") }}
+    ], "span-6") }}
   </div>
 </div>
 
 <div class="element-block">
   <span class="element-badge">Element 18: Notebook Post & Article Card</span>
   <div class="bento-grid">
-    {{ media.notebookCard("Joe Sheldon", "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100", "August 15, 2026", "Eastside Housing Inventory Shifts Fast", "Just completed a thorough walk-through of a classic mid-century home in Houghton. Inventory is tightening fast across Kirkland!", "/posts/post-101/", "Post", "span-4") }}
+    {{ media.notebookCard("Joe Sheldon", "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100", "August 15, 2026", "Eastside Housing Inventory Shifts Fast", "Just completed a thorough walk-through of a classic mid-century home in Houghton. Inventory is tightening fast across Kirkland!", "/posts/post-101/", "Post", "span-6") }}
   </div>
 </div>
 
 <div class="element-block">
   <span class="element-badge">Element 19: Team Member Cards (Squircle Avatars & Single-Row Height 2x1)</span>
   <div class="bento-grid">
-    {{ cards.teamCard("Joe Sheldon", "Founder & Managing Broker", "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300", "/about-joe/", "2x2", "span-4") }}
-    {{ cards.teamCard("Alex Rivera", "Senior Market Analyst", "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200", "#", "2x1", "span-4") }}
+    {{ cards.teamCard("Joe Sheldon", "Founder & Managing Broker", "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300", "/about-joe/", "2x2", "span-6") }}
+    {{ cards.teamCard("Alex Rivera", "Senior Market Analyst", "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200", "#", "2x1", "span-6") }}
   </div>
 </div>
 
@@ -186,24 +186,24 @@ permalink: /city-test/
       "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600",
       "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600",
       "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600"
-    ], "span-4") }}
+    ], "span-6") }}
   </div>
 </div>
 
 <div class="element-block">
   <span class="element-badge">Element 21: Subpage Directory List Item</span>
   <div class="bento-grid">
-    {{ boards.directoryList([
+    {{ boards.directoryList("Explore Directory", [
       { label: "Weather", url: "#" },
       { label: "Transit", url: "#" },
       { label: "Elections", url: "#" }
-    ], "span-2") }}
+    ], "span-4") }}
   </div>
 </div>
 
 <div class="element-block">
   <span class="element-badge">Element 22: Long-Tail FAQ Accordion Component</span>
   <div class="bento-grid">
-    {{ boards.faqAccordion("How are active transit scores calculated?", "Active transit scores combine real-time bus frequencies, train proximity, and historical on-time performance on a 100-point scale.", "active_transit_score", "span-4") }}
+    {{ boards.faqAccordion("How are active transit scores calculated?", "Active transit scores combine real-time bus frequencies, train proximity, and historical on-time performance on a 100-point scale.", "active_transit_score", "span-6") }}
   </div>
 </div>

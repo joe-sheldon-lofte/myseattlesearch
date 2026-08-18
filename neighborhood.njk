@@ -24,108 +24,32 @@ eleventyComputed:
 {% set editorialParagraphs = neighborhood.slug | getEditorialParagraphs %}
 {% set cityEventList = neighborhood.slug | getCityEvents %}
 
-{{ media.heroCarousel(neighborhood.name, "", neighborhood.heroImages, neighborhood.county) }}
+{{ media.heroCarousel(neighborhood.name, "Local Guide & Telemetry", neighborhood.heroImages, neighborhood.county) }}
 
 <section class="at-a-glance-bar">
   
   <a href="/neighborhood/{{ neighborhood.slug }}/weather/" class="glance-slot" style="text-decoration: none; color: inherit;">
-    <div style="display: flex; align-items: center; gap: 10px;">
-      {% if cityWeather and cityWeather.condition %}
-        {% if "rain" in cityWeather.condition | lower or "shower" in cityWeather.condition | lower %}
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--alpine-blue)" stroke-width="2"><path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 2 16h.5"/><path d="M8 19v2"/><path d="M12 19v2"/><path d="M16 19v2"/></svg>
-        {% elif "cloud" in cityWeather.condition | lower or "overcast" in cityWeather.condition | lower %}
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--alpine-blue)" stroke-width="2"><path d="M17.5 19A4.5 4.5 0 0 0 17.5 10h-1.8A7 7 0 1 0 2 18h15.5z"/></svg>
-        {% else %}
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFCC00" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        {% endif %}
-      {% else %}
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFCC00" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-      {% endif %}
-      <div>
-        <div class="glance-label">Weather</div>
-        <div class="glance-value">{% if cityWeather and cityWeather.temp != null %}{{ cityWeather.temp }}° {{ cityWeather.condition }}{% else %}--{% endif %}</div>
-      </div>
-    </div>
+    {{ gauges.weatherWidget(cityWeather.temp, cityWeather.condition, cityWeather.temp_high, cityWeather.temp_low) }}
   </a>
 
   <a href="/neighborhood/{{ neighborhood.slug }}/weather/" class="glance-slot" style="text-decoration: none; color: inherit;">
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <svg width="40" height="22" viewBox="0 0 44 24" class="sun-arc-svg">
-        <path d="M 4 22 A 18 18 0 0 1 40 22" fill="none" stroke="#FFCC00" stroke-width="3.5" stroke-linecap="round"/>
-        <line x1="1" y1="22" x2="43" y2="22" stroke="#1C1C1E" stroke-width="1.5"/>
-        <circle cx="22" cy="4" r="3.5" fill="#FFCC00" stroke="#1C1C1E" stroke-width="0.5"/>
-      </svg>
-      <div>
-        <div class="glance-label">Sun Arc</div>
-        <div class="glance-value">{% if cityWeather and cityWeather.sunrise %}{{ cityWeather.sunrise }} / {{ cityWeather.sunset }}{% else %}--{% endif %}</div>
-      </div>
-    </div>
+    {{ gauges.sunRingMicro(cityWeather.sunrise, cityWeather.sunset) }}
   </a>
 
   <a href="/neighborhood/{{ neighborhood.slug }}/weather/" class="glance-slot" style="text-decoration: none; color: inherit;">
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <svg width="24" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--alpine-blue)" stroke-width="2">
-        <path d="M2 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M2 17c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>
-      </svg>
-      <div>
-        <div class="glance-label">Puget Sound Tide</div>
-        <div class="glance-value">11.2 ft High</div>
-      </div>
-    </div>
+    {{ gauges.aqiWidget(cityWeather.aqi, cityWeather.aqi_label) }}
   </a>
 
   <a href="/neighborhood/{{ neighborhood.slug }}/transit-commute/" class="glance-slot" style="text-decoration: none; color: inherit;">
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <svg width="28" height="28" viewBox="0 0 42 42">
-        <circle cx="21" cy="21" r="16" fill="none" stroke="rgba(28,28,30,0.18)" stroke-width="3.5"/>
-        <circle cx="21" cy="21" r="16" fill="none" stroke="#1E4D6B" stroke-width="3.5" stroke-dasharray="100" stroke-dashoffset="{{ 100 - (transitLive.active_transit_score | default(0)) }}" stroke-linecap="round" transform="rotate(-90 21 21)"/>
-        <text x="21" y="25" text-anchor="middle" font-size="12" font-weight="700" fill="#1C1C1E">{{ transitLive.active_transit_score | default("--") }}</text>
-      </svg>
-      <div>
-        <div class="glance-label">Active Transit Score</div>
-        <div class="glance-value">{% if transitLive and transitLive.active_transit_score != null %}{{ transitLive.active_transit_score }}/100{% else %}--{% endif %}</div>
-      </div>
-    </div>
+    {{ gauges.progressRingMicro(transitLive.active_transit_score, "Active Transit Score") }}
   </a>
 
-  <div class="glance-slot">
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <svg width="38" height="24" viewBox="0 0 46 28">
-        <defs>
-          <linearGradient id="gaugeGradRedBlueRedGlance" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#D9232A" />
-            <stop offset="28%" stop-color="#D9232A" />
-            <stop offset="38%" stop-color="#007AFF" />
-            <stop offset="62%" stop-color="#007AFF" />
-            <stop offset="72%" stop-color="#D9232A" />
-            <stop offset="100%" stop-color="#D9232A" />
-          </linearGradient>
-        </defs>
-        <path d="M 5 26 A 18 18 0 0 1 41 26" fill="none" stroke="url(#gaugeGradRedBlueRedGlance)" stroke-width="4.5" stroke-linecap="round"/>
-        <line x1="23" y1="26" x2="33" y2="10" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
-        <line x1="23" y1="26" x2="33" y2="10" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-      <div>
-        <div class="glance-label">Market Hotness</div>
-        <div class="glance-value">{% if marketStats and marketStats.market_label %}{{ marketStats.market_label }}{% else %}--{% endif %}</div>
-      </div>
-    </div>
-  </div>
+  <a href="/neighborhood/{{ neighborhood.slug }}/data/" class="glance-slot" style="text-decoration: none; color: inherit;">
+    {{ gauges.marketGaugeMicro(marketStats.market_label, "Market Hotness") }}
+  </a>
 
   <a href="/neighborhood/region-sports/pro/" class="glance-slot" style="text-decoration: none; color: inherit;">
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <span style="font-size: 16px;">⚾</span>
-      <div>
-        <div class="glance-label">Latest Game</div>
-        <div class="glance-value">
-          {% if topGame %}
-            {{ topGame.homeTeam }} {{ topGame.homeScore }}, {{ topGame.awayTeam }} {{ topGame.awayScore }}
-          {% else %}
-            Seattle Mariners 5, LA Angels 2
-          {% endif %}
-        </div>
-      </div>
-    </div>
+    {{ gauges.gameMicro(topGame) }}
   </a>
 
 </section>
