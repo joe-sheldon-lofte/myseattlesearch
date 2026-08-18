@@ -51,7 +51,6 @@ def parse_ical_feed(ics_text):
         link = url_match.group(1).strip() if url_match else "#"
 
         if title and dt_str:
-            # Clean ICS date format YYYYMMDDTHHMMSSZ or YYYYMMDD
             clean_date = re.sub(r'[^0-9T]', '', dt_str)
             formatted_date = clean_date[:8] if len(clean_date) >= 8 else ""
             
@@ -59,7 +58,7 @@ def parse_ical_feed(ics_text):
                 year, month, day = formatted_date[:4], formatted_date[4:6], formatted_date[6:8]
                 date_display = f"{year}-{month}-{day}"
                 
-                # Use chr(92) to avoid backslash escaping inside f-string expressions
+                # Safely replace backslashes without in-line escaping inside f-strings
                 clean_title = title.replace(chr(92), "")
                 clean_loc = location.replace(chr(92), "")
                 
@@ -79,7 +78,6 @@ def parse_rss_feed(xml_text):
         return events
     try:
         root = ET.fromstring(xml_text)
-        # Search for RSS <item> or Atom <entry>
         for item in root.findall(".//item") + root.findall(".//{http://www.w3.org/2005/Atom}entry"):
             title = item.findtext("title") or item.findtext("{http://www.w3.org/2005/Atom}title")
             link = item.findtext("link") or item.findtext("{http://www.w3.org/2005/Atom}link") or "#"
@@ -102,11 +100,18 @@ def main():
     print("📅 Harvesting City & Site Events Feeds...")
     compiled_events = {}
 
+    # Read candidate file paths for events.json and municipal_feeds.json
+    candidates_events = [SITE_EVENTS_PATH, os.path.join(os.getcwd(), "data", "events.json"), os.path.join(os.getcwd(), "events.json")]
+    candidates_muni = [MUNICIPAL_FEEDS_PATH, os.path.join(os.getcwd(), "data", "municipal_feeds.json"), os.path.join(os.getcwd(), "municipal_feeds.json")]
+
+    e_path = next((p for p in candidates_events if os.path.exists(p)), None)
+    m_path = next((p for p in candidates_muni if os.path.exists(p)), None)
+
     # 1. Ingest Site-Wide Personal Events
     site_events = []
-    if os.path.exists(SITE_EVENTS_PATH):
+    if e_path:
         try:
-            with open(SITE_EVENTS_PATH, "r", encoding="utf-8") as f:
+            with open(e_path, "r", encoding="utf-8") as f:
                 site_events = json.load(f)
                 if not isinstance(site_events, list):
                     site_events = []
@@ -114,9 +119,9 @@ def main():
             print(f"   ⚠️ events.json parse notice: {e}")
 
     # 2. Ingest Municipal Feeds from municipal_feeds.json
-    if os.path.exists(MUNICIPAL_FEEDS_PATH):
+    if m_path:
         try:
-            with open(MUNICIPAL_FEEDS_PATH, "r", encoding="utf-8") as f:
+            with open(m_path, "r", encoding="utf-8") as f:
                 muni_feeds = json.load(f)
 
             feed_list = muni_feeds if isinstance(muni_feeds, list) else list(muni_feeds.values())
@@ -151,7 +156,6 @@ def main():
         ]
         combined = city_specific_site_events + compiled_events[slug]
         
-        # Deduplicate by title
         seen_titles = set()
         deduped = []
         for ev in combined:
@@ -160,7 +164,7 @@ def main():
                 seen_titles.add(t)
                 deduped.append(ev)
 
-        compiled_events[slug] = deduped[:5] # Keep top 5 upcoming events per city
+        compiled_events[slug] = deduped[:5]
 
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(OUTPUT_CITY_EVENTS_PATH, "w", encoding="utf-8") as f:
