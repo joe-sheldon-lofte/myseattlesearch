@@ -1,4 +1,3 @@
-
 import os
 import json
 import re
@@ -6,7 +5,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
 MUNICIPAL_FEEDS_PATH = os.path.join(DATA_DIR, "municipal_feeds.json")
@@ -60,10 +59,14 @@ def parse_ical_feed(ics_text):
                 year, month, day = formatted_date[:4], formatted_date[4:6], formatted_date[6:8]
                 date_display = f"{year}-{month}-{day}"
                 
+                # Use chr(92) to avoid backslash escaping inside f-string expressions
+                clean_title = title.replace(chr(92), "")
+                clean_loc = location.replace(chr(92), "")
+                
                 events.append({
-                    "title": title.replace("\\", ""),
+                    "title": clean_title,
                     "date": date_display,
-                    "time_location": f"{location.replace('\\', '')}",
+                    "time_location": clean_loc,
                     "link": link,
                     "type": "Community Meeting",
                     "source": "Municipal Feed"
