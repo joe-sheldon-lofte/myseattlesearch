@@ -1,3 +1,15 @@
+"""
+MYSEATTLESEARCH - HOURLY GROUND TRANSIT & COMMUTE RADAR INGESTION
+File: scripts/hourly/transit_intercity.py
+
+Purpose:
+  1. Ingests live ground transit vehicles from OneBusAway (King & Snohomish agencies)
+     and calculates normalized Active Transit Score (0-100) per city boundary.
+  2. Queries live OSRM route drive times between pre-baked NW and SE city coordinates,
+     compares against static baselines, and calculates Active Commute Score (0-100).
+  3. Outputs consolidated telemetry to data/transit_radar_live.json.
+"""
+
 import os
 import json
 import re
@@ -11,15 +23,11 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 CITY_BOUNDARIES_PATH = os.path.join(DATA_DIR, "city_boundaries.json")
+COMMUTE_BASELINE_PATH = os.path.join(DATA_DIR, "city_commute_baseline.json")
 TRANSIT_DATA_PATH = os.path.join(DATA_DIR, "transit_data.json")
 OUTPUT_RADAR_PATH = os.path.join(DATA_DIR, "transit_radar_live.json")
 
 # Ground transit agencies serving King & Snohomish Counties
-# 1: King County Metro
-# 29 / 3 / 40: Sound Transit
-# 23: Community Transit
-# 13: Everett Transit
-# 10: Seattle Center Monorail
 ONEBUSAWAY_AGENCIES = ["1", "29", "23", "13", "10", "3", "40"]
 
 def slugify(text):
@@ -33,14 +41,14 @@ def slugify(text):
     return res.strip('-')
 
 def http_get_json(url, timeout=12):
-    headers = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Accept": "application/json"}
     req = urllib.request.Request(url, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             if resp.status == 200:
                 return json.loads(resp.read().decode("utf-8"))
     except Exception as e:
-        print(f"   ⚠️ Transit API notice for {url}: {e}")
+        print(f"   ⚠️ API notice for {url}: {e}")
     return None
 
 def point_in_poly(x, y, poly):
@@ -114,7 +122,7 @@ def compute_bbox(geometry):
     return (min(all_lngs), min(all_lats), max(all_lngs), max(all_lats))
 
 def load_transit_rules():
-    """Parses transit_data.json list or dictionary structure cleanly."""
+    """Parses transit_data.json capacity rules."""
     route_seat_map = {}
     mode_seat_map = {
         "light rail": 296,
@@ -132,11 +140,7 @@ def load_transit_rules():
         os.path.join(BASE_DIR, "transit_data.json")
     ]
     
-    target_path = None
-    for cand in candidates:
-        if os.path.exists(cand):
-            target_path = cand
-            break
+    target_path = next((cand for cand in candidates if os.path.exists(cand)), None)
 
     if target_path:
         try:
@@ -157,21 +161,17 @@ def load_transit_rules():
                         route_seat_map[route_id] = seats
                     if mode and seats > 0:
                         mode_seat_map[mode] = seats
-            print(f"✅ Loaded {len(route_seat_map)} route capacity rules from {target_path}")
         except Exception as e:
             print(f"⚠️ transit_data.json parse notice: {e}")
-    else:
-        print("⚠️ Warning: transit_data.json not found on disk. Falling back to GTFS mode capacities.")
 
     return route_seat_map, mode_seat_map
 
 def classify_vehicle_mode(vehicle, route_seat_map, mode_seat_map):
-    """Determines vehicle mode and seat capacity directly from GTFS-RT payload and transit_data.json."""
+    """Determines vehicle mode and seat capacity directly from GTFS-RT payload."""
     vehicle_id = str(vehicle.get("vehicleId") or "").lower()
     trip_status = vehicle.get("tripStatus") or {}
     route_id = str(trip_status.get("activeTrip", {}).get("routeId") or trip_status.get("routeId") or "").lower()
     
-    # 1. Exact route ID match in transit_data.json
     if route_id in route_seat_map:
         seats = route_seat_map[route_id]
         if "100479" in route_id or "100511" in route_id:
@@ -184,7 +184,6 @@ def classify_vehicle_mode(vehicle, route_seat_map, mode_seat_map):
             mode = "bus"
         return mode, seats
 
-    # 2. Mode pattern fallbacks
     if "monorail" in vehicle_id or "monorail" in route_id:
         return "monorail", mode_seat_map.get("monorail", 250)
     if "link" in route_id or "light_rail" in route_id or "link" in vehicle_id:
@@ -198,17 +197,37 @@ def classify_vehicle_mode(vehicle, route_seat_map, mode_seat_map):
 
     return "bus", mode_seat_map.get("bus", 40)
 
+def fetch_live_drive_time(nw_lat, nw_lng, se_lat, se_lng):
+    """Queries OSRM for live driving duration in minutes."""
+    url = f"http://router.project-osrm.org/route/v1/driving/{nw_lng},{nw_lat};{se_lng},{se_lat}?overview=false"
+    res = http_get_json(url)
+    if res and isinstance(res, dict) and "routes" in res and res["routes"]:
+        duration_sec = res["routes"][0].get("duration", 0)
+        return round(duration_sec / 60.0, 1)
+    return None
+
+def calculate_active_commute_score(live_mins, base_mins):
+    """Calculates Active Commute Score (0-100) based on live vs baseline ratio."""
+    if not live_mins or not base_mins or base_mins <= 0:
+        return 88 # Neutral default fallback
+    
+    ratio = live_mins / base_mins
+    if ratio <= 1.0:
+        return 100
+    
+    # 1.5x scaling penalty for traffic delays
+    penalty = (ratio - 1.0) * 100.0 * 1.5
+    return max(0, min(100, int(round(100.0 - penalty))))
+
 def main():
-    print("🚌 Ingesting Live Ground Transit Vehicles (King & Snohomish Agencies)...")
+    print("🚌 Ingesting Live Ground Transit Vehicles & Active Commute Radar...")
     
-    candidates_city = [CITY_DATA_PATH, os.path.join(os.getcwd(), "data", "city_data.json"), os.path.join(os.getcwd(), "city_data.json")]
-    candidates_bound = [CITY_BOUNDARIES_PATH, os.path.join(os.getcwd(), "data", "city_boundaries.json"), os.path.join(os.getcwd(), "city_boundaries.json")]
-    
-    c_path = next((p for p in candidates_city if os.path.exists(p)), None)
-    b_path = next((p for p in candidates_bound if os.path.exists(p)), None)
+    c_path = next((p for p in [CITY_DATA_PATH, os.path.join(os.getcwd(), "data", "city_data.json")] if os.path.exists(p)), None)
+    b_path = next((p for p in [CITY_BOUNDARIES_PATH, os.path.join(os.getcwd(), "data", "city_boundaries.json")] if os.path.exists(p)), None)
+    base_path = next((p for p in [COMMUTE_BASELINE_PATH, os.path.join(os.getcwd(), "data", "city_commute_baseline.json")] if os.path.exists(p)), None)
 
     if not c_path or not b_path:
-        print(f"❌ Required city_data.json ({c_path}) or city_boundaries.json ({b_path}) missing. Aborting.")
+        print("❌ Required city_data.json or city_boundaries.json missing. Aborting.")
         return
 
     with open(c_path, "r", encoding="utf-8") as f:
@@ -218,9 +237,15 @@ def main():
     with open(b_path, "r", encoding="utf-8") as f:
         boundaries_geo = json.load(f)
 
+    # Load static commute baseline coordinates if available
+    commute_baselines = {}
+    if base_path and os.path.exists(base_path):
+        with open(base_path, "r", encoding="utf-8") as f:
+            commute_baselines = json.load(f)
+
     route_seat_map, mode_seat_map = load_transit_rules()
 
-    # Pre-index city boundaries with bounding boxes
+    # Pre-index city boundaries
     city_polygons = []
     for feat in boundaries_geo.get('features', []):
         props = feat.get('properties', {})
@@ -235,10 +260,8 @@ def main():
             "bbox": bbox
         })
 
-    # Read OneBusAway API Key Secret
     oba_key = os.environ.get("ONEBUSAWAY_API_KEY") or os.environ.get("OBA_API_KEY") or "TEST"
     
-    # Fetch live active vehicles from target ground agencies
     active_vehicles = []
     for agency_id in ONEBUSAWAY_AGENCIES:
         url = f"http://api.pugetsound.onebusaway.org/api/where/vehicles-for-agency/{agency_id}.json?key={oba_key}"
@@ -246,32 +269,21 @@ def main():
         if res and isinstance(res, dict) and "data" in res and "list" in res["data"]:
             active_vehicles.extend(res["data"]["list"])
 
-    print(f"📡 Fetched {len(active_vehicles)} live active transit vehicles across King & Snohomish agencies.")
-
-    # Spatial counters per city
     city_counts = {
         c["slug"]: {
             "name": c["name"],
             "total_active_seats": 0,
-            "counts": {"bus": 0, "light_rail": 0, "commuter_rail": 0, "monorail": 0, "streetcar": 0}
+            "counts": {"bus": 0, "light_rail": 0, "commuter_rail": 0, "monorail": 0}
         }
         for c in city_polygons
     }
 
-    # Match live vehicle coordinates to city boundaries
-    matched_vehicles = 0
     for v in active_vehicles:
         loc = v.get("location") or v.get("lastKnownLocation") or {}
-        lat = loc.get("lat") or loc.get("latitude")
-        lon = loc.get("lon") or loc.get("lng") or loc.get("longitude")
-        
-        if lat is None or lon is None:
-            continue
-
-        try:
-            v_lat, v_lon = float(lat), float(lon)
-        except (ValueError, TypeError):
-            continue
+        lat, lon = loc.get("lat") or loc.get("latitude"), loc.get("lon") or loc.get("lng") or loc.get("longitude")
+        if lat is None or lon is None: continue
+        try: v_lat, v_lon = float(lat), float(lon)
+        except (ValueError, TypeError): continue
 
         mode, seats = classify_vehicle_mode(v, route_seat_map, mode_seat_map)
 
@@ -281,41 +293,37 @@ def main():
                 if is_point_in_geojson_geometry(v_lon, v_lat, c["geometry"]):
                     slug = c["slug"]
                     city_counts[slug]["total_active_seats"] += seats
-                    if mode in city_counts[slug]["counts"]:
-                        city_counts[slug]["counts"][mode] += 1
-                    else:
-                        city_counts[slug]["counts"][mode] = 1
-                    matched_vehicles += 1
+                    city_counts[slug]["counts"][mode] = city_counts[slug]["counts"].get(mode, 0) + 1
                     break
 
-    print(f"🎯 Matched {matched_vehicles} live vehicles into target city boundaries.")
-
-    # Calculate Normalized Active Transit Score per City
     output_radar = {}
     for c_obj in city_items:
         raw_name = c_obj.get("City") or c_obj.get("name") or ""
-        if not raw_name:
-            continue
+        if not raw_name: continue
 
         city_name = str(raw_name).strip()
         slug = slugify(city_name)
         
-        try:
-            pop_val = int(c_obj.get("FallbackPopulation") or c_obj.get("population") or 0)
-        except (ValueError, TypeError):
-            pop_val = 0
+        try: pop_val = int(c_obj.get("FallbackPopulation") or c_obj.get("population") or 0)
+        except (ValueError, TypeError): pop_val = 0
 
-        c_data = city_counts.get(slug, {
-            "name": city_name,
-            "total_active_seats": 0,
-            "counts": {"bus": 0, "light_rail": 0, "commuter_rail": 0, "monorail": 0}
-        })
-
+        c_data = city_counts.get(slug, {"name": city_name, "total_active_seats": 0, "counts": {}})
         total_seats = c_data["total_active_seats"]
 
         seats_per_1k = total_seats / (pop_val / 1000.0) if pop_val > 0 else 0.0
-        raw_score = (seats_per_1k / 50.0) * 100.0
-        active_transit_score = min(100, max(0, int(round(raw_score))))
+        active_transit_score = min(100, max(0, int(round((seats_per_1k / 50.0) * 100.0))))
+
+        # Live Commute Score Calculation
+        b_info = commute_baselines.get(slug, {})
+        nw_lat, nw_lng = b_info.get("nw_lat"), b_info.get("nw_lng")
+        se_lat, se_lng = b_info.get("se_lat"), b_info.get("se_lng")
+        base_mins = b_info.get("baseline_drive_minutes", 10.0)
+
+        live_mins = None
+        if nw_lat and nw_lng and se_lat and se_lng:
+            live_mins = fetch_live_drive_time(nw_lat, nw_lng, se_lat, se_lng)
+
+        active_commute_score = calculate_active_commute_score(live_mins, base_mins)
 
         counts = c_data.get("counts", {})
 
@@ -323,6 +331,9 @@ def main():
             "name": city_name,
             "population": pop_val,
             "active_transit_score": active_transit_score,
+            "active_commute_score": active_commute_score,
+            "live_commute_minutes": live_mins or base_mins,
+            "baseline_commute_minutes": base_mins,
             "total_active_seats": total_seats,
             "seats_per_1000": round(seats_per_1k, 1),
             "vehicle_counts": {
@@ -338,7 +349,7 @@ def main():
     with open(OUTPUT_RADAR_PATH, "w", encoding="utf-8") as f:
         json.dump(output_radar, f, indent=2, ensure_ascii=False)
 
-    print(f"💾 Saved strictly live spatial active transit radar for {len(output_radar)} cities.")
+    print(f"💾 Saved live ground transit & active commute score for {len(output_radar)} cities ➔ {OUTPUT_RADAR_PATH}")
 
 if __name__ == "__main__":
     main()
