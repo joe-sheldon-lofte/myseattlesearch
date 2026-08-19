@@ -24,64 +24,33 @@ eleventyComputed:
 {% set editorialParagraphs = neighborhood.slug | getEditorialParagraphs %}
 {% set cityEventList = neighborhood.slug | getCityEvents %}
 
-{{ media.heroCarousel(neighborhood.name, "Local Guide & Telemetry", neighborhood.heroImages, neighborhood.county) }}
+<!-- NO SUBTITLE PASSING ON MAIN HUB PAGE -->
+{{ media.heroCarousel(neighborhood.name, "", neighborhood.heroImages, neighborhood.county) }}
 
-<section class="at-a-glance-bar">
-  
-  <a href="/neighborhood/{{ neighborhood.slug }}/weather/" class="glance-slot" style="text-decoration: none; color: inherit;">
-    {{ gauges.weatherWidget(cityWeather.temp, cityWeather.condition, cityWeather.temp_high, cityWeather.temp_low) }}
-  </a>
-
-  <a href="/neighborhood/{{ neighborhood.slug }}/weather/" class="glance-slot" style="text-decoration: none; color: inherit;">
-    {{ gauges.sunRingMicro(cityWeather.sunrise, cityWeather.sunset) }}
-  </a>
-
-  <a href="/neighborhood/{{ neighborhood.slug }}/weather/" class="glance-slot" style="text-decoration: none; color: inherit;">
-    {{ gauges.aqiWidget(cityWeather.aqi, cityWeather.aqi_label) }}
-  </a>
-
-  <a href="/neighborhood/{{ neighborhood.slug }}/transit-commute/" class="glance-slot" style="text-decoration: none; color: inherit;">
-    {{ gauges.progressRingMicro(transitLive.active_transit_score, "Active Transit Score") }}
-  </a>
-
-  <a href="/neighborhood/{{ neighborhood.slug }}/data/" class="glance-slot" style="text-decoration: none; color: inherit;">
-    {{ gauges.marketGaugeMicro(marketStats.market_label, "Market Hotness") }}
-  </a>
-
-  <a href="/neighborhood/region-sports/pro/" class="glance-slot" style="text-decoration: none; color: inherit;">
-    {{ gauges.gameMicro(topGame) }}
-  </a>
-
-</section>
+<!-- FULL-WIDTH SINGLE AT-A-GLANCE BAR WITH 6 RICH VISUAL SLOTS -->
+{{ gauges.glanceBarFull(cityWeather, transitLive, marketStats, topGame, neighborhood) }}
 
 <div class="bento-grid">
   
+  <!-- Left Main Column (span-8) -->
   <div class="span-8" style="display: flex; flex-direction: column; gap: 24px;">
     
-    <div class="bento-card">
-      <div class="bento-card-header">
-        <span>Top Rated Local Spots</span>
-        <span style="font-size: 0.68rem; opacity: 0.9; text-transform: uppercase;">{{ monthlyFeature.headerBadge }}</span>
+    <!-- EXPLORE DIRECTORY (2-COLUMN GRID OF ORIGINAL PILL BUTTONS) -->
+    <div class="bento-card bento-card--action">
+      <div class="bento-card-header bento-card-header--action">
+        <span>EXPLORE {{ neighborhood.name | upper }}</span>
       </div>
-      <div class="yelp-grid">
-        {% if monthlyFeature.spots and monthlyFeature.spots.length > 0 %}
-          {% for spot in monthlyFeature.spots %}
-            <a href="{{ spot.url }}" class="yelp-item" target="_blank" rel="noopener">
-              {% if spot.image_url %}
-                <img src="{{ spot.image_url }}" alt="{{ spot.name }}">
-              {% endif %}
-              <div style="font-size: 0.85rem; font-weight: 500;">{{ spot.name }}</div>
-              <div style="font-size: 0.75rem; color: var(--alpine-blue);">★ {{ spot.rating }} ({{ spot.review_count }})</div>
-            </a>
-          {% endfor %}
-        {% else %}
-          <div style="grid-column: span 3; font-size: 0.85rem; color: rgba(28,28,30,0.5); padding: 12px 0; text-align: center;">
-            No local spots data found for this category.
-          </div>
-        {% endif %}
-      </div>
+      <ul class="subpage-grid-2col">
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/weather/"><span>Weather</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/transit-commute/"><span>Transit & Commute</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/municipal/"><span>Municipal Services</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/emergency-safety/"><span>Emergency & Safety</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/data/"><span>Data & Statistics</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/elections/"><span>Elections</span> <span>→</span></a></li>
+      </ul>
     </div>
 
+    <!-- Regional Local News List -->
     <div class="bento-card">
       <div class="bento-card-header">
         <span>{{ neighborhood.name }} Area News</span>
@@ -107,6 +76,7 @@ eleventyComputed:
       {% endif %}
     </div>
 
+    <!-- Monthly Editorial Paragraphs -->
     <div class="bento-card">
       <div class="bento-card-header">
         <span>Welcome to {{ neighborhood.name }}</span>
@@ -127,22 +97,41 @@ eleventyComputed:
 
   </div>
 
+  <!-- Right Sidebar Column (span-4) -->
   <div class="span-4" style="display: flex; flex-direction: column; gap: 24px;">
     
-    <div class="bento-card bento-card--action">
-      <div class="bento-card-header bento-card-header--action">
-        <span>Explore {{ neighborhood.name }}</span>
+    <!-- LOCAL FAVORITES (SIDEBAR HORIZONTAL ROWS) -->
+    <div class="bento-card">
+      <div class="bento-card-header">
+        <span>LOCAL FAVORITES</span>
       </div>
-      <ul class="subpage-list">
-        <li><a href="/neighborhood/{{ neighborhood.slug }}/weather/"><span>Weather</span> <span>→</span></a></li>
-        <li><a href="/neighborhood/{{ neighborhood.slug }}/transit-commute/"><span>Transit & Commute</span> <span>→</span></a></li>
-        <li><a href="/neighborhood/{{ neighborhood.slug }}/municipal/"><span>Municipal Services</span> <span>→</span></a></li>
-        <li><a href="/neighborhood/{{ neighborhood.slug }}/emergency-safety/"><span>Emergency & Safety</span> <span>→</span></a></li>
-        <li><a href="/neighborhood/{{ neighborhood.slug }}/data/"><span>Data & Statistics</span> <span>→</span></a></li>
-        <li><a href="/neighborhood/{{ neighborhood.slug }}/elections/"><span>Elections</span> <span>→</span></a></li>
-      </ul>
+      
+      <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(28,28,30,0.6); font-weight: 500; margin-bottom: 12px;">
+        {{ monthlyFeature.monthName | default("August") }}'s Feature: {{ monthlyFeature.categoryLabel | formatCategoryLabel }}
+      </div>
+
+      <div class="yelp-sidebar-list">
+        {% if monthlyFeature.spots and monthlyFeature.spots.length > 0 %}
+          {% for spot in monthlyFeature.spots %}
+            <a href="{{ spot.url }}" class="yelp-sidebar-card" target="_blank" rel="noopener">
+              {% if spot.image_url %}
+                <img src="{{ spot.image_url }}" alt="{{ spot.name }}" class="yelp-sidebar-img">
+              {% endif %}
+              <div class="yelp-sidebar-details">
+                <div class="yelp-sidebar-name">{{ spot.name }}</div>
+                <div class="yelp-sidebar-rating">★ {{ spot.rating }} ({{ spot.review_count }})</div>
+              </div>
+            </a>
+          {% endfor %}
+        {% else %}
+          <div style="font-size: 0.85rem; color: rgba(28,28,30,0.5); padding: 8px 0; text-align: center;">
+            No local spots currently listed.
+          </div>
+        {% endif %}
+      </div>
     </div>
 
+    <!-- City Events Box -->
     <div class="bento-card">
       <div class="bento-card-header">
         <span>Upcoming Events</span>
@@ -170,6 +159,7 @@ eleventyComputed:
       </div>
     </div>
 
+    <!-- Regional Sports Game Card -->
     {% if topGame %}
       {{ boards.sportsCard(
         topGame.league,

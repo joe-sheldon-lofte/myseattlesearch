@@ -1,11 +1,13 @@
 {# 
-  MYSEATTLESEARCH - GAUGES & MICRO-WIDGETS MACRO LIBRARY
+  MYSEATTLESEARCH - GAUGES & MICRO-WIDGETS MASTER MACRO LIBRARY
   File: _includes/components/gauges.njk
 #}
 
 {# ==========================================================================
-   1. AT-A-GLANCE BAR (FULL PAGE WIDTH 6-SLOT CONTAINER)
+   1. AT-A-GLANCE BARS (GENERIC ARRAY & FULL LIVE TELEMETRY)
    ========================================================================== #}
+
+{# Generic Slot Bar (Used by city-test.njk) #}
 {% macro glanceBar(slots=[]) %}
 <section class="at-a-glance-bar">
   {% for slot in slots %}
@@ -16,6 +18,149 @@
     </div>
   </div>
   {% endfor %}
+</section>
+{% endmacro %}
+
+{# Full Live Telemetry Bar (Used by neighborhood.njk) #}
+{% macro glanceBarFull(cityWeather=null, transitLive=null, marketStats=null, topGame=null, neighborhood=null) %}
+<section class="at-a-glance-bar">
+  
+  <!-- Slot 1: Weather -->
+  <a href="/neighborhood/{{ neighborhood.slug | default('seattle') }}/weather/" class="glance-slot">
+    <div class="glance-widget-content">
+      <div class="glance-label">Weather</div>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px 0;">
+        {% set cond = cityWeather.condition | default("Sunny") %}
+        {% if "rain" in cond | lower or "shower" in cond | lower %}
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--alpine-blue)" stroke-width="2"><path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 2 16h.5"/><path d="M8 19v2"/><path d="M12 19v2"/><path d="M16 19v2"/></svg>
+        {% elif "cloud" in cond | lower or "overcast" in cond | lower %}
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--alpine-blue)" stroke-width="2"><path d="M17.5 19A4.5 4.5 0 0 0 17.5 10h-1.8A7 7 0 1 0 2 18h15.5z"/></svg>
+        {% else %}
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFCC00" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        {% endif %}
+        <span style="font-size: 1.2rem; font-weight: 500; color: var(--premier-charcoal);">{% if cityWeather.temp != null %}{{ cityWeather.temp }}°{% else %}72°{% endif %}</span>
+      </div>
+      <div class="glance-subval">
+        {{ cond }}
+        {% if cityWeather.temp_high and cityWeather.temp_low %}
+          <span style="display:block; font-size:0.62rem; color: rgba(28,28,30,0.5);">H: {{ cityWeather.temp_high }}°  L: {{ cityWeather.temp_low }}°</span>
+        {% endif %}
+      </div>
+    </div>
+  </a>
+
+  <!-- Slot 2: Sunrise & Sunset Ring (Clean Inline AM/PM Format) -->
+  <a href="/neighborhood/{{ neighborhood.slug | default('seattle') }}/weather/" class="glance-slot">
+    <div class="glance-widget-content">
+      <div class="glance-label">Sunrise & Sunset</div>
+      <div style="position: relative; width: 52px; height: 52px; margin: 2px auto;">
+        <svg width="52" height="52" viewBox="0 0 100 100">
+          <path d="M 12 50 A 38 38 0 0 1 88 50" fill="none" stroke="#FFCC00" stroke-width="6" stroke-linecap="round"/>
+          <path d="M 88 50 A 38 38 0 0 1 12 50" fill="none" stroke="#1C1C1E" stroke-width="6" stroke-linecap="round"/>
+          <polygon points="12,38 6,52 18,52" fill="#1C1C1E"/>
+          <polygon points="88,62 82,47 94,47" fill="#FFCC00"/>
+          <circle cx="50" cy="12" r="5" fill="#FFFFFF" stroke="#1C1C1E" stroke-width="1.8"/>
+        </svg>
+      </div>
+      
+      <div class="sun-times-row" style="font-size: 0.7rem; font-weight: 500; color: var(--premier-charcoal); width: 100%; max-width: 130px; margin: 4px auto 0 auto; display: flex; justify-content: space-between; white-space: nowrap;">
+        <span>{{ cityWeather.sunrise | default("6:08 AM") }}</span>
+        <span>{{ cityWeather.sunset | default("8:18 PM") }}</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- Slot 3: Active Commute Score -->
+  <a href="/neighborhood/{{ neighborhood.slug | default('seattle') }}/transit-commute/" class="glance-slot">
+    <div class="glance-widget-content">
+      <div class="glance-label">Commute Score</div>
+      <div style="position: relative; width: 50px; height: 50px; margin: 2px auto; display: flex; align-items: center; justify-content: center;">
+        <svg width="50" height="50" viewBox="0 0 42 42">
+          <circle cx="21" cy="21" r="15.915" fill="none" stroke="#2C2C2E" stroke-opacity="0.25" stroke-width="4"/>
+          <circle cx="21" cy="21" r="15.915" fill="none" stroke="var(--alpine-blue)" stroke-width="4"
+                  stroke-dasharray="{{ transitLive.active_commute_score | default(88) }} {{ 100 - (transitLive.active_commute_score | default(88)) }}"
+                  stroke-dashoffset="25" stroke-linecap="round"/>
+        </svg>
+        <div style="position: absolute; font-size: 0.95rem; font-weight: 500; color: var(--premier-charcoal);">
+          {{ transitLive.active_commute_score | default(88) }}
+        </div>
+      </div>
+      <div class="glance-subval">Active Commute</div>
+    </div>
+  </a>
+
+  <!-- Slot 4: Active Transit Score -->
+  <a href="/neighborhood/{{ neighborhood.slug | default('seattle') }}/transit-commute/" class="glance-slot">
+    <div class="glance-widget-content">
+      <div class="glance-label">Transit Score</div>
+      <div style="position: relative; width: 50px; height: 50px; margin: 2px auto; display: flex; align-items: center; justify-content: center;">
+        <svg width="50" height="50" viewBox="0 0 42 42">
+          <circle cx="21" cy="21" r="15.915" fill="none" stroke="#2C2C2E" stroke-opacity="0.25" stroke-width="4"/>
+          <circle cx="21" cy="21" r="15.915" fill="none" stroke="var(--alpine-blue)" stroke-width="4"
+                  stroke-dasharray="{{ transitLive.active_transit_score | default(82) }} {{ 100 - (transitLive.active_transit_score | default(82)) }}"
+                  stroke-dashoffset="25" stroke-linecap="round"/>
+        </svg>
+        <div style="position: absolute; font-size: 0.95rem; font-weight: 500; color: var(--premier-charcoal);">
+          {{ transitLive.active_transit_score | default(82) }}
+        </div>
+      </div>
+      <div class="glance-subval">Active Transit</div>
+    </div>
+  </a>
+
+  <!-- Slot 5: Real Estate Market -->
+  <a href="/neighborhood/{{ neighborhood.slug | default('seattle') }}/data/" class="glance-slot">
+    <div class="glance-widget-content">
+      <div class="glance-label">Real Estate Market</div>
+      <div style="position: relative; width: 68px; height: 38px; margin: 4px auto 2px auto;">
+        <svg width="68" height="38" viewBox="0 0 108 60">
+          <defs>
+            <linearGradient id="glanceSpeedoGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#D9232A" />
+              <stop offset="25%" stop-color="#D9232A" />
+              <stop offset="33.3%" stop-color="#007AFF" />
+              <stop offset="66.7%" stop-color="#007AFF" />
+              <stop offset="75%" stop-color="#D9232A" />
+              <stop offset="100%" stop-color="#D9232A" />
+            </linearGradient>
+          </defs>
+          <path d="M 12 52 A 42 42 0 0 1 96 52" fill="none" stroke="url(#glanceSpeedoGrad)" stroke-width="10" stroke-linecap="round"/>
+          {% set status = marketStats.market_label | default("Seller's Market") %}
+          {% set needleAngle = 65 %}
+          {% if "Buyer" in status %}{% set needleAngle = -62 %}{% endif %}
+          {% if "Balanced" in status %}{% set needleAngle = 0 %}{% endif %}
+          <g transform="translate(54,52) rotate({{ needleAngle }})">
+            <line x1="0" y1="0" x2="0" y2="-44" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round"/>
+            <line x1="0" y1="0" x2="0" y2="-44" stroke="#1C1C1E" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="0" cy="0" r="5" fill="#1C1C1E" stroke="#FFFFFF" stroke-width="1.5"/>
+          </g>
+        </svg>
+      </div>
+      <div class="glance-subval" style="font-weight: 500; color: var(--premier-charcoal);">
+        {{ marketStats.market_label | default("Seller's Market") }}
+      </div>
+    </div>
+  </a>
+
+  <!-- Slot 6: Sports -->
+  <a href="/neighborhood/region-sports/pro/" class="glance-slot">
+    <div class="glance-widget-content">
+      <div class="glance-label">Sports</div>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin: 2px 0;">
+        <span style="font-size: 0.68rem; font-weight: 500; color: var(--alpine-blue);">{% if topGame and topGame.league %}{{ topGame.league | replace(' Baseball','') }}{% else %}MLB{% endif %}</span>
+        <span style="font-size: 0.6rem; padding: 1px 5px; border-radius: 4px; background: rgba(30,77,107,0.1); color: var(--alpine-blue); font-weight: 600;">FINAL</span>
+      </div>
+      <div style="font-size: 0.88rem; font-weight: 500; color: var(--premier-charcoal); margin: 2px 0;">
+        {% if topGame %}
+          {{ topGame.awayShort }} {{ topGame.awayScore }} @ {{ topGame.homeShort }} {{ topGame.homeScore }}
+        {% else %}
+          SEA 5, LAA 2
+        {% endif %}
+      </div>
+      <div class="glance-subval">T-Mobile Park</div>
+    </div>
+  </a>
+
 </section>
 {% endmacro %}
 
@@ -44,7 +189,7 @@
 {% endmacro %}
 
 {# Slot 2: Micro Sunrise & Sunset Widget #}
-{% macro sunRingMicro(sunrise="6:12A", sunset="8:24P") %}
+{% macro sunRingMicro(sunrise="6:08 AM", sunset="8:18 PM") %}
 <div style="display: flex; align-items: center; gap: 8px;">
   <svg width="34" height="20" viewBox="0 0 44 24" class="sun-arc-svg">
     <path d="M 4 22 A 18 18 0 0 1 40 22" fill="none" stroke="#FFCC00" stroke-width="3.5" stroke-linecap="round"/>
@@ -88,7 +233,7 @@
 {% endmacro %}
 
 {# Slot 5: Micro Market Hotness Speedometer Widget #}
-{% macro marketGaugeMicro(statusText="Seller's Market", label="Market Hotness") %}
+{% macro marketGaugeMicro(statusText="Seller's Market", label="Real Estate Market") %}
 <div style="display: flex; align-items: center; gap: 8px;">
   <svg width="34" height="22" viewBox="0 0 46 28">
     <defs>
@@ -191,7 +336,7 @@
 {% endmacro %}
 
 {# Element 07: 24-Hour Sunrise / Sunset Ring Card #}
-{% macro sunRing(sunrise="6:12 AM", sunset="8:24 PM", isNight=false, dayProgressPct=0.45, span="span-2") %}
+{% macro sunRing(sunrise="6:08 AM", sunset="8:18 PM", isNight=false, dayProgressPct=0.45, span="span-2") %}
 <div class="bento-card {{ span }}">
   <div class="flex-between">
     <span class="bento-card-body" style="font-weight: 500; font-size: 0.72rem; color: var(--premier-charcoal); white-space: nowrap;">Sunrise & Sunset</span>
@@ -263,7 +408,7 @@
 {% endmacro %}
 
 {# Element 09: Market Hotness Speedometer Card #}
-{% macro marketGauge(statusText="Seller's Market", label="Market Hotness", span="span-2") %}
+{% macro marketGauge(statusText="Seller's Market", label="Real Estate Market", span="span-2") %}
 <div class="bento-card {{ span }}">
   <div class="flex-between">
     <span class="bento-card-body" style="font-weight: 500; font-size: 0.72rem; color: var(--premier-charcoal); white-space: nowrap;">{{ label }}</span>
@@ -315,6 +460,76 @@
 
   <div style="text-align: center; font-size: 0.82rem; font-weight: 500; color: var(--premier-charcoal);">
     Current: {{ currentText }}
+  </div>
+</div>
+{% endmacro %}
+
+{# Element 11: Air Quality Gauge Card #}
+{% macro aqiGauge(aqi=42, label="Good", span="span-2") %}
+<div class="bento-card {{ span }}">
+  <div class="flex-between">
+    <span class="bento-card-body" style="font-weight: 500; font-size: 0.72rem; color: var(--premier-charcoal); white-space: nowrap;">Air Quality</span>
+  </div>
+  <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin: auto auto;">
+    <div style="width: 48px; height: 48px; border-radius: 50%; background-color: {% if aqi <= 50 %}#00E400{% elif aqi <= 100 %}#FFDE33{% else %}#FF7E00{% endif %}; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 600; color: #1C1C1E; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+      {{ aqi }}
+    </div>
+    <span style="font-size: 0.78rem; font-weight: 500; color: var(--premier-charcoal); margin-top: 6px;">{{ label }}</span>
+  </div>
+</div>
+{% endmacro %}
+
+{# Element 12: Climate Comfort Index Card #}
+{% macro comfortGauge(score=84, label="Comfort Index", span="span-2") %}
+<div class="bento-card {{ span }}">
+  <div class="flex-between">
+    <span class="bento-card-body" style="font-weight: 500; font-size: 0.72rem; color: var(--premier-charcoal); white-space: nowrap;">Climate Comfort</span>
+  </div>
+  <div style="position: relative; width: 62px; height: 62px; display: flex; align-items: center; justify-content: center; margin: auto auto;">
+    <svg width="62" height="62" viewBox="0 0 42 42">
+      <circle cx="21" cy="21" r="15.915" fill="none" stroke="#2C2C2E" stroke-opacity="0.25" stroke-width="3.8"/>
+      <circle cx="21" cy="21" r="15.915" fill="none" stroke="#34C759" stroke-width="3.8" 
+              stroke-dasharray="{{ score | default(0) }} {{ 100 - (score | default(0)) }}" 
+              stroke-dashoffset="25" stroke-linecap="round"/>
+    </svg>
+    <div style="position: absolute; text-align: center;">
+      <span style="font-size: 1.1rem; font-weight: 500; color: var(--premier-charcoal); line-height: 1;">{{ score }}</span>
+    </div>
+  </div>
+  <div style="text-align: center; font-size: 0.65rem; color: rgba(28,28,30,0.5);">Out of 100</div>
+</div>
+{% endmacro %}
+
+{# Element 13: Hydrological River Level Card #}
+{% macro riverGauge(siteName="Snoqualmie River", flowCfs="3,420", levelFt="7.2", status="Normal Flow", span="span-4") %}
+<div class="bento-card {{ span }}">
+  <div class="flex-between" style="margin-bottom: 8px;">
+    <span class="bento-card-body" style="font-weight: 500; font-size: 0.82rem; color: var(--premier-charcoal);">{{ siteName }} Telemetry</span>
+    <span class="pill-badge" style="font-size: 0.7rem; background: rgba(52,199,89,0.1); color: #28a745;">{{ status }}</span>
+  </div>
+  <div style="display: flex; justify-content: space-around; align-items: center; padding: 8px 0; background: var(--premier-beige); border-radius: 12px;">
+    <div style="text-align: center;">
+      <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(28,28,30,0.5);">Discharge</div>
+      <div style="font-size: 1.1rem; font-weight: 500; color: var(--premier-charcoal);">{{ flowCfs }} <span style="font-size:0.75rem; font-weight:400;">CFS</span></div>
+    </div>
+    <div style="width: 1px; height: 28px; background: rgba(28,28,30,0.1);"></div>
+    <div style="text-align: center;">
+      <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(28,28,30,0.5);">Gage Height</div>
+      <div style="font-size: 1.1rem; font-weight: 500; color: var(--premier-charcoal);">{{ levelFt }} <span style="font-size:0.75rem; font-weight:400;">FT</span></div>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{# Element 14: Generic Stat Bar #}
+{% macro statBar(label="Metric", value="75%", pct=75, color="var(--alpine-blue)", span="span-4") %}
+<div class="bento-card {{ span }}">
+  <div class="flex-between" style="font-size: 0.82rem; font-weight: 500; color: var(--premier-charcoal); margin-bottom: 6px;">
+    <span>{{ label }}</span>
+    <span>{{ value }}</span>
+  </div>
+  <div style="width: 100%; height: 8px; border-radius: 9999px; background: rgba(28,28,30,0.08); overflow: hidden;">
+    <div style="width: {{ pct }}%; height: 100%; background: {{ color }}; border-radius: 9999px; transition: width 0.4s ease;"></div>
   </div>
 </div>
 {% endmacro %}

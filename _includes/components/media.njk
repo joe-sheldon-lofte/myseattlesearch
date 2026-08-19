@@ -1,32 +1,24 @@
 {# 
-  MEDIA & FEEDS MACRO LIBRARY
-  Usage: 
-  {% import "components/media.njk" as media %}
-  {{ media.heroCarousel("Mukilteo", "Weather & Radar", city.heroImages, city.county) }}
+  MYSEATTLESEARCH - MEDIA & FEEDS MACRO LIBRARY
+  File: _includes/components/media.njk
 #}
 
-{% macro heroCarousel(cityName="Mukilteo", subtitle="Weather & Radar", heroImages=[], county="King") %}
-{% if county == "Snohomish" %}
-  {% set poolImg1 = "https://assets.myseattlesearch.com/neighborhood/hero-pools/snohomish/1.webp" %}
-  {% set poolImg2 = "https://assets.myseattlesearch.com/neighborhood/hero-pools/snohomish/2.webp" %}
-  {% set poolImg3 = "https://assets.myseattlesearch.com/neighborhood/hero-pools/snohomish/3.webp" %}
-{% else %}
-  {% set poolImg1 = "https://assets.myseattlesearch.com/neighborhood/hero-pools/king/1.webp" %}
-  {% set poolImg2 = "https://assets.myseattlesearch.com/neighborhood/hero-pools/king/2.webp" %}
-  {% set poolImg3 = "https://assets.myseattlesearch.com/neighborhood/hero-pools/king/3.webp" %}
-{% endif %}
+{% macro heroCarousel(cityName="Mukilteo", subtitle="", heroImages=[], county="King") %}
+  {% set finalImages = heroImages | getRandomHeroImages(county) %}
 
 <section class="hero-carousel-frame">
-  <img src="{{ heroImages[0] | default(poolImg1) }}" alt="Side Left" class="hero-img-side">
+  <img src="{{ finalImages[0] }}" alt="Side Left" class="hero-img-side">
   <div class="hero-main-wrapper">
-    <img src="{{ heroImages[1] | default(poolImg2) }}" alt="Center Hero" class="hero-img-main">
+    <img src="{{ finalImages[1] }}" alt="Center Hero" class="hero-img-main">
     <div class="hero-floating-glass-badge">
       <div class="hero-welcome-script">Welcome, Neighbor</div>
       <h2 class="hero-city-title">{{ cityName }}</h2>
-      <div class="hero-page-subtitle">{{ subtitle }}</div>
+      {% if subtitle %}
+        <div class="hero-page-subtitle">{{ subtitle }}</div>
+      {% endif %}
     </div>
   </div>
-  <img src="{{ heroImages[2] | default(poolImg3) }}" alt="Side Right" class="hero-img-side">
+  <img src="{{ finalImages[2] }}" alt="Side Right" class="hero-img-side">
 </section>
 {% endmacro %}
 

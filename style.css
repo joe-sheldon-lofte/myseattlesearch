@@ -493,13 +493,13 @@ body {
 .text-center { text-align: center; }
 
 /* ==========================================================================
-   4. AT-A-GLANCE BAR & UNIVERSAL MICRO-WIDGETS (EXACT 6 SLOTS)
+   4. AT-A-GLANCE BAR & RICH VISUAL WIDGET SLOTS (EXACT 6 SLOTS)
    ========================================================================== */
 
 .at-a-glance-bar {
   background: var(--bento-bg);
   border-radius: var(--radius-squircle);
-  padding: 16px 20px;
+  padding: 20px 16px;
   box-shadow: var(--bento-shadow);
   border: 1px solid var(--bento-border);
   display: grid;
@@ -507,24 +507,43 @@ body {
   gap: 12px;
   align-items: center;
   margin: 28px 0 32px 0;
+  width: 100%;
 }
 
 .glance-slot {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  text-align: center;
   position: relative;
   min-width: 0;
+  text-decoration: none;
+  color: inherit;
+  padding: 4px 8px;
+  transition: transform 0.2s ease;
+}
+
+.glance-slot:hover {
+  transform: translateY(-2px);
 }
 
 .glance-slot:not(:last-child)::after {
   content: "";
   position: absolute;
   right: -6px;
-  top: 15%;
-  bottom: 15%;
+  top: 10%;
+  bottom: 10%;
   width: 1px;
   background: rgba(28, 28, 30, 0.1);
+}
+
+.glance-widget-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .glance-label {
@@ -534,6 +553,7 @@ body {
   color: rgba(28, 28, 30, 0.5);
   margin-bottom: 2px;
   font-weight: 500;
+  text-align: center;
 }
 
 .glance-value {
@@ -542,20 +562,147 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center;
 }
 
+.glance-subval {
+  font-size: 0.72rem;
+  color: rgba(28, 28, 30, 0.6);
+  font-weight: 400;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Responsive Dividers for Stacking */
 @media (max-width: 1024px) {
   .at-a-glance-bar {
     grid-template-columns: repeat(3, 1fr);
+    row-gap: 20px;
+    padding: 24px 16px;
   }
-  .glance-slot:nth-child(3)::after { display: none; }
+  .glance-slot::after { display: none; }
+  .glance-slot {
+    border-right: 1px solid rgba(28, 28, 30, 0.1);
+    padding-bottom: 8px;
+  }
+  .glance-slot:nth-child(3n) { border-right: none; }
+  .glance-slot:nth-child(-n+3) {
+    border-bottom: 1px solid rgba(28, 28, 30, 0.1);
+    padding-bottom: 18px;
+  }
 }
 
 @media (max-width: 600px) {
   .at-a-glance-bar {
     grid-template-columns: repeat(2, 1fr);
+    row-gap: 20px;
   }
-  .glance-slot::after { display: none; }
+  .glance-slot {
+    border-right: 1px solid rgba(28, 28, 30, 0.1);
+    border-bottom: 1px solid rgba(28, 28, 30, 0.1);
+    padding-bottom: 16px;
+  }
+  .glance-slot:nth-child(2n) { border-right: none; }
+  .glance-slot:nth-child(5), .glance-slot:nth-child(6) {
+    border-bottom: none;
+    padding-bottom: 4px;
+  }
+}
+
+/* Explore 2-Column Pill Button Grid */
+.subpage-grid-2col {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.subpage-grid-2col li a {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--premier-beige);
+  color: var(--premier-charcoal);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.88rem;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(28, 28, 30, 0.04);
+}
+
+.subpage-grid-2col li a:hover {
+  background: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+.subpage-grid-2col li a span:last-child {
+  color: var(--alpine-blue);
+  font-weight: 600;
+}
+
+/* Sidebar Yelp Compact Horizontal List with Pop-out Hover */
+.yelp-sidebar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.yelp-sidebar-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--premier-beige);
+  border-radius: 12px;
+  padding: 8px 10px;
+  text-decoration: none;
+  color: var(--premier-charcoal);
+  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid rgba(28, 28, 30, 0.04);
+}
+
+.yelp-sidebar-card:hover {
+  background: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+.yelp-sidebar-img {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.yelp-sidebar-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.yelp-sidebar-name {
+  font-size: 0.88rem;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--premier-charcoal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.yelp-sidebar-rating {
+  font-size: 0.78rem;
+  color: var(--alpine-blue);
+  font-weight: 500;
 }
 
 /* Universal Info Trigger (+) Reset */
@@ -988,35 +1135,8 @@ body {
   font-size: 0.95rem;
 }
 
-.sports-team-record {
-  font-size: 0.72rem;
-  color: rgba(28, 28, 30, 0.5);
-  margin-left: 6px;
-  font-weight: 400;
-}
-
-.sports-team-lead {
-  font-weight: 500;
-}
-
-.sports-team-sub {
-  color: rgba(28, 28, 30, 0.7);
-}
-
-.sports-team-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.sports-team-dot--active {
-  background: var(--alpine-blue);
-}
-
-.sports-team-dot--inactive {
-  background: transparent;
-}
+.sports-team-lead { font-weight: 500; }
+.sports-team-sub { color: rgba(28, 28, 30, 0.7); }
 
 .sports-score-active {
   color: var(--alpine-blue);
@@ -1024,9 +1144,7 @@ body {
   font-size: 1.05rem;
 }
 
-.sports-score-inactive {
-  font-weight: 500;
-}
+.sports-score-inactive { font-weight: 500; }
 
 .sports-card-footer {
   display: flex;
@@ -1378,4 +1496,207 @@ body {
   .footer-right-anchor {
     align-items: center;
   }
+}
+/* ==========================================================================
+   9. MAC SPOTLIGHT SEARCH MODAL & TRAY EXPANSION
+   ========================================================================== */
+
+/* Tray Action Pills (Text, Chat, Book) */
+.tray-pill {
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-pill);
+  padding: 8px 18px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--premier-charcoal);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.tray-pill:hover {
+  border-color: var(--alpine-blue);
+  color: var(--premier-charcoal);
+  background: #FFFFFF;
+}
+
+/* Expand Search Trigger Box on Desktop */
+.tray-search-box {
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-pill);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: rgba(28, 28, 30, 0.5);
+  cursor: pointer;
+  flex: 1;
+  max-width: 320px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.tray-search-box:hover {
+  border-color: var(--alpine-blue);
+  color: var(--premier-charcoal);
+  background: #FFFFFF;
+}
+
+@media (max-width: 600px) {
+  .tray-search-box { max-width: 140px; }
+}
+
+/* Spotlight Frosted Backdrop */
+.spotlight-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 28, 30, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 2000;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.spotlight-modal-overlay.open {
+  display: block;
+  opacity: 1;
+}
+
+/* Spotlight Container Pinned at 15vh */
+.spotlight-modal-container {
+  position: fixed;
+  top: 15vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 640px;
+  background: #FFFFFF;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.18);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 70vh;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.spotlight-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 4px;
+}
+
+/* Elegant Light Title Header */
+.spotlight-modal-title {
+  font-size: 1.05rem;
+  font-weight: 400;
+  color: var(--premier-charcoal);
+  letter-spacing: 0.02em;
+}
+
+.spotlight-close-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: var(--premier-beige);
+  color: var(--premier-charcoal);
+  font-size: 1.2rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.spotlight-close-btn:hover {
+  background: rgba(28, 28, 30, 0.1);
+}
+
+.spotlight-search-body {
+  overflow-y: auto;
+  max-height: 55vh;
+  padding-right: 4px;
+}
+
+/* Pagefind UI Apple x PNW Theme Overrides */
+:root {
+  --pagefind-ui-scale: 0.9;
+  --pagefind-ui-primary: var(--alpine-blue);
+  --pagefind-ui-text: var(--premier-charcoal);
+  --pagefind-ui-background: #FFFFFF;
+  --pagefind-ui-border: rgba(28, 28, 30, 0.1);
+  --pagefind-ui-tag: var(--premier-beige);
+  --pagefind-ui-border-radius: 12px;
+  --pagefind-ui-font: inherit;
+}
+
+.pagefind-ui__search-input {
+  border-radius: 12px !important;
+  padding: 12px 16px !important;
+  font-size: 1rem !important;
+  background: var(--premier-beige) !important;
+  border: 1px solid rgba(28, 28, 30, 0.08) !important;
+  color: var(--premier-charcoal) !important;
+  font-weight: 400 !important;
+}
+
+.pagefind-ui__search-input:focus {
+  outline: none !important;
+  border-color: var(--alpine-blue) !important;
+  background: #FFFFFF !important;
+  box-shadow: 0 0 0 3px rgba(30, 77, 107, 0.1) !important;
+}
+
+.pagefind-ui__result {
+  border-bottom: 1px solid rgba(28, 28, 30, 0.06) !important;
+  padding: 14px 0 !important;
+}
+
+.pagefind-ui__result-link {
+  color: var(--premier-charcoal) !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  font-size: 1.05rem !important;
+}
+
+.pagefind-ui__result-link:hover {
+  color: var(--alpine-blue) !important;
+}
+
+.pagefind-ui__result-excerpt {
+  font-size: 0.88rem !important;
+  color: rgba(28, 28, 30, 0.7) !important;
+  line-height: 1.4 !important;
+  margin-top: 4px !important;
+}
+
+.pagefind-ui__result-excerpt mark {
+  background-color: rgba(30, 77, 107, 0.12) !important;
+  color: var(--alpine-blue) !important;
+  font-weight: 500 !important;
+  border-radius: 4px !important;
+  padding: 1px 5px !important;
+}
+
+.pagefind-ui__message {
+  font-size: 0.82rem !important;
+  color: rgba(28, 28, 30, 0.5) !important;
+  font-weight: 400 !important;
+  padding: 8px 0 !important;
 }

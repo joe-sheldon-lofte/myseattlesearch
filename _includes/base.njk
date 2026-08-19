@@ -9,6 +9,9 @@
   <!-- Master V2 Stylesheet -->
   <link rel="stylesheet" href="/style.css">
 
+  <!-- Pagefind UI CSS -->
+  <link rel="stylesheet" href="/pagefind/pagefind-ui.css">
+
   <!-- Global Schema.org Entity -->
   <script type="application/ld+json">
   {
@@ -41,7 +44,7 @@
   <!-- Floating Liquid Glass Bottom Action Tray -->
   <nav class="bottom-action-tray">
     <div class="tray-pills-desktop">
-      <a href="sms:4255550199" class="tray-pill">Text</a>
+      <a href="sms:+12066577493" class="tray-pill">Text</a>
       <a href="/chat/" class="tray-pill">Chat</a>
       <a href="/book/" class="tray-pill">Book</a>
     </div>
@@ -50,19 +53,33 @@
       <button class="tray-pill" onclick="document.getElementById('menuOverlay').classList.toggle('open')">Contact 💬</button>
     </div>
 
-    <div class="tray-search-box">
+    <div class="tray-search-box" id="openSearchBtn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="8"></circle>
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
       </svg>
-      <span>Search...</span>
+      <span>Search site...</span>
     </div>
   </nav>
 
+  <!-- Mac Spotlight Search Modal -->
+  <div id="spotlightSearchModal" class="spotlight-modal-overlay">
+    <div class="spotlight-modal-container">
+      <div class="spotlight-modal-header">
+        <span class="spotlight-modal-title">Search</span>
+        <button id="closeSearchBtn" class="spotlight-close-btn" aria-label="Close search">&times;</button>
+      </div>
+      <div id="pagefindSearchContainer" class="spotlight-search-body"></div>
+    </div>
+  </div>
+
   {% include "footer.njk" %}
 
-  <!-- Header Scroll State Listener -->
+  <!-- Pagefind UI JS Script -->
+  <script src="/pagefind/pagefind-ui.js" onload="initPagefind()"></script>
+
   <script>
+    // Header Scroll State Listener
     window.addEventListener('scroll', function() {
       const header = document.getElementById('globalHeader');
       if (header) {
@@ -71,6 +88,66 @@
         } else {
           header.classList.remove('scrolled');
         }
+      }
+    });
+
+    // Spotlight Search Modal & Pagefind Controller
+    let pagefindInitialized = false;
+
+    function initPagefind() {
+      if (pagefindInitialized || typeof PagefindUI === 'undefined') return;
+      new PagefindUI({
+        element: "#pagefindSearchContainer",
+        showImages: false,
+        showSubResults: true,
+        resetFilters: true,
+        translations: {
+          placeholder: "Search neighborhoods, news, & telemetry..."
+        }
+      });
+      pagefindInitialized = true;
+    }
+
+    const modal = document.getElementById('spotlightSearchModal');
+    const openBtn = document.getElementById('openSearchBtn');
+    const closeBtn = document.getElementById('closeSearchBtn');
+
+    function openModal() {
+      if (modal) {
+        modal.classList.add('open');
+        initPagefind();
+        setTimeout(() => {
+          const input = modal.querySelector('input');
+          if (input) input.focus();
+        }, 100);
+      }
+    }
+
+    function closeModal() {
+      if (modal) modal.classList.remove('open');
+    }
+
+    if (openBtn) openBtn.addEventListener('click', openModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+    if (modal) {
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) closeModal();
+      });
+    }
+
+    // Keyboard Shortcuts (Cmd+K / Ctrl+K & Escape)
+    document.addEventListener('keydown', function(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        if (modal && modal.classList.contains('open')) {
+          closeModal();
+        } else {
+          openModal();
+        }
+      }
+      if (e.key === 'Escape' && modal && modal.classList.contains('open')) {
+        closeModal();
       }
     });
   </script>
