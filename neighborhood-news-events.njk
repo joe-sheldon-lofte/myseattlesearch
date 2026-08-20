@@ -1,0 +1,129 @@
+---
+layout: base.njk
+pagination:
+  data: city_data
+  size: 1
+  alias: neighborhood
+permalink: "/neighborhood/{{ neighborhood.slug }}/news-events/"
+eleventyComputed:
+  title: "{{ neighborhood.name }} Local News, Community Events & Regional Coverage | MySeattleSearch"
+  description: "Comprehensive local news feed, municipal alerts, and upcoming community events for {{ neighborhood.name }}, Washington."
+---
+
+{% import "components/cards.njk" as cards %}
+{% import "components/gauges.njk" as gauges %}
+{% import "components/media.njk" as media %}
+
+{% set cityWeather = neighborhood.slug | getCityWeather %}
+{% set transitLive = neighborhood.slug | getTransitLive %}
+{% set marketStats = neighborhood.slug | getMarketStats %}
+{% set topGame = "" | getTopSportsGame %}
+
+{% set regionalArticles = neighborhood["News Region"] | getRegionalNews(20) %}
+{% set cityEventList = neighborhood.slug | getCityEvents(20) %}
+
+<!-- HERO CAROUSEL -->
+{{ media.heroCarousel(neighborhood.name, "News & Community Events", neighborhood.heroImages, neighborhood.county) }}
+
+<!-- FULL-WIDTH AT-A-GLANCE TELEMETRY BAR -->
+{{ gauges.glanceBarFull(cityWeather, transitLive, marketStats, topGame, neighborhood) }}
+
+<div class="bento-grid">
+  
+  <!-- Main Column: Full Expanded News Feed (span-8) -->
+  <div class="span-8" style="display: flex; flex-direction: column; gap: 24px;">
+    
+    <div class="bento-card">
+      <div class="bento-card-header">
+        <span>{{ neighborhood.name }} Local & Regional News Archive</span>
+        <span style="font-size: 0.68rem; opacity: 0.9;">{{ neighborhood["News Region"] }} Region</span>
+      </div>
+
+      {% if regionalArticles and regionalArticles.length > 0 %}
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          {% for article in regionalArticles %}
+            <div class="news-item" {% if loop.last %}style="border:none; padding-bottom:0; margin-bottom:0;"{% endif %}>
+              <div class="news-source">{{ article.source | default("Local Feed") }}</div>
+              <h3 class="news-headline" style="font-size: 1.05rem; font-weight: 500; margin: 4px 0 6px 0;">
+                <a href="{{ article.url }}" target="_blank" rel="noopener" style="color: inherit; text-decoration: none;">
+                  {{ article.title }}
+                </a>
+              </h3>
+              <p class="news-summary" style="font-size: 0.88rem; color: rgba(28,28,30,0.75); line-height: 1.45; margin-bottom: 8px;">
+                {{ article.summary }}
+              </p>
+              <div class="news-meta">
+                <span>{{ article.date }}</span>
+                <a href="{{ article.url }}" class="link-arrow" target="_blank" rel="noopener">Read Full Story</a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div style="font-size: 0.88rem; color: rgba(28,28,30,0.5); padding: 20px 0; text-align: center;">
+          No news articles are currently available for {{ neighborhood.name }}'s region.
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- Sidebar Column: Directory & Events Feed Only (span-4) -->
+  <div class="span-4" style="display: flex; flex-direction: column; gap: 24px;">
+    
+    <!-- Directory Navigation -->
+    <div class="bento-card bento-card--action">
+      <div class="bento-card-header bento-card-header--action">
+        <span>{{ neighborhood.name | upper }} DIRECTORY</span>
+      </div>
+      <ul class="subpage-list">
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/"><span>← Main Community Hub</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/weather/"><span>Weather & Radar</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/transit-commute/"><span>Transit & Commute</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/municipal/"><span>Municipal Services</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/emergency-safety/"><span>Emergency & Safety</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/data/"><span>Data & Statistics</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/elections/"><span>Elections & Voting</span> <span>→</span></a></li>
+      </ul>
+    </div>
+
+    <!-- Community & Municipal Events Feed -->
+    <div class="bento-card">
+      <div class="bento-card-header">
+        <span>Upcoming Events Calendar</span>
+      </div>
+      
+      <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(28,28,30,0.6); font-weight: 500; margin-bottom: 12px;">
+        Municipal & Community Listings
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        {% if cityEventList and cityEventList.length > 0 %}
+          {% for ev in cityEventList %}
+            <div {% if not loop.last %}style="border-bottom: 1px solid rgba(28,28,30,0.06); padding-bottom: 10px;"{% endif %}>
+              <div style="font-size: 0.72rem; color: var(--alpine-blue); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">
+                {{ ev.type | default("Community Event") }}
+              </div>
+              <div style="font-size: 0.92rem; font-weight: 500; margin: 3px 0; color: var(--premier-charcoal);">
+                {% if ev.link and ev.link != '#' %}
+                  <a href="{{ ev.link }}" target="_blank" rel="noopener" style="color: inherit; text-decoration: none;">{{ ev.title }}</a>
+                {% else %}
+                  {{ ev.title }}
+                {% endif %}
+              </div>
+              <div style="font-size: 0.78rem; color: rgba(28,28,30,0.6); margin-top: 2px;">
+                {{ ev.date }}{% if ev.time_location %} • {{ ev.time_location }}{% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div style="font-size: 0.85rem; color: rgba(28,28,30,0.5); padding: 12px 0; text-align: center;">
+            No official municipal or community events are currently scheduled for {{ neighborhood.name }}.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+</div>

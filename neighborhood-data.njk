@@ -1,0 +1,1206 @@
+---
+layout: base.njk
+pagination:
+  data: city_data
+  size: 1
+  alias: neighborhood
+permalink: "/neighborhood/{{ neighborhood.slug }}/data/"
+eleventyComputed:
+  title: "{{ neighborhood.name }} Real Estate & City Data | MySeattleSearch"
+  description: "Comprehensive real estate telemetry, Redfin stats, NWMLS market trends, relocation migration maps, and community metrics for {{ neighborhood.name }}, Washington."
+---
+
+{% import "components/cards.njk" as cards %}
+{% import "components/gauges.njk" as gauges %}
+{% import "components/media.njk" as media %}
+
+{% set cityWeather = neighborhood.slug | getCityWeather %}
+{% set transitLive = neighborhood.slug | getTransitLive %}
+{% set marketStats = neighborhood.slug | getMarketStats %}
+{% set topGame = "" | getTopSportsGame %}
+
+{# Data Loaders #}
+{% set redfinStats = neighborhood.name | getRedfinCityStats %}
+{% set infoSparks = neighborhood.name | getInfoSparksCityStats %}
+{% set redfinMigration = neighborhood.name | getRedfinMigration %}
+{% set hourlyPulse = neighborhood.name | getHourlyMarketPulse %}
+{% set mortgageRates = "" | getLatestMortgageRates %}
+
+{# Custom Community Profile Loaders #}
+{% set mobilityData = neighborhood.name | getMobilityScores %}
+{% set schoolData = neighborhood.name | getSchoolData %}
+{% set crimeData = neighborhood.name | getCrimeData %}
+{% set publicSafetyData = neighborhood.name | getPublicSafetyData %}
+{% set surveillanceData = neighborhood.name | getSurveillanceData %}
+{% set climateData = neighborhood.name | getClimateComfort %}
+{% set seattleMigration = "" | getSeattleMigration %}
+{% set affordData = "" | getAffordabilityStats %}
+
+{# Dynamic SVG Chart Builders #}
+{% set hourlyChart = neighborhood.name | buildHourlyVelocityChart(500, 90) %}
+{% set mortgageChartData = "" | buildMortgageTrendChart(280, 70) %}
+
+{% set chartMedianPrice = neighborhood.name | buildInfoSparksChart("Median Sale Price", 400, 60) %}
+{% set chartClosedSales = neighborhood.name | buildInfoSparksChart("Closed Sales", 400, 60) %}
+{% set chartDaysOnMarket = neighborhood.name | buildInfoSparksChart("Average Days on Market", 400, 60) %}
+{% set chartMonthsSupply = neighborhood.name | buildInfoSparksChart("Months Supply Closed", 400, 60) %}
+{% set chartShowsPerListing = neighborhood.name | buildInfoSparksChart("Shows Per Listing", 400, 60) %}
+{% set chartListPricePct = neighborhood.name | buildInfoSparksChart("Percent of List Price Average", 400, 60) %}
+
+<!-- HERO CAROUSEL -->
+{{ media.heroCarousel(neighborhood.name, "Real Estate & City Data", neighborhood.heroImages, neighborhood.county) }}
+
+<!-- FULL-WIDTH AT-A-GLANCE TELEMETRY BAR -->
+{{ gauges.glanceBarFull(cityWeather, transitLive, marketStats, topGame, neighborhood) }}
+
+<div class="bento-grid">
+  
+  <!-- Left Main Column: Full Expanded Market Telemetry Stream (span-8) -->
+  <div class="span-8" style="display: flex; flex-direction: column; gap: 24px;">
+    
+    <!-- 1. CURRENT MARKET BALANCE BENTO BOX -->
+    <div class="bento-card">
+      <div class="bento-card-header">
+        <span>CURRENT MARKET BALANCE</span>
+      </div>
+
+      {% set moisVal = marketStats.months_supply | default(1.8) | float %}
+      {% set moisPct = ((moisVal / 6.0) * 100) | round %}
+      {% if moisPct > 98 %}{% set moisPct = 98 %}{% endif %}
+      {% if moisPct < 2 %}{% set moisPct = 2 %}{% endif %}
+
+      {% set marketLabel = "Seller's Market" %}
+      {% if moisVal > 4.0 %}{% set marketLabel = "Buyer's Market" %}{% elif moisVal >= 2.0 %}{% set marketLabel = "Balanced Market" %}{% endif %}
+
+      {{ gauges.supplyBar(
+        "0 Months (Seller's Market)",
+        (moisVal | string) ~ " Months Supply (" ~ marketLabel ~ ")",
+        "6 Months (Buyer's Market)",
+        moisPct ~ "%",
+        "span-12"
+      ) }}
+    </div>
+
+    <!-- 2. HOURLY MARKET VELOCITY (ONLY RENDERS FOR VERIFIED NORTH SOUND CITIES) -->
+    {% if neighborhood["North Sound"] | lower == "x" %}
+      <div class="bento-card">
+        <div class="bento-card-header">
+          <span>{{ neighborhood.name }} Hourly Market Velocity</span>
+          <span style="font-size: 0.68rem; opacity: 0.9;">Real-Time Feed</span>
+        </div>
+
+        {% if hourlyPulse %}
+          {% set dropsCount = hourlyPulse["Price Drops"] | default(1) | float %}
+          {% set cutsTotal = hourlyPulse["Total Price Cuts ($)"] | default(0) | float %}
+          {% set avgPriceCut = 0 %}
+          {% if dropsCount > 0 %}
+            {% set avgPriceCut = (cutsTotal / dropsCount) | round %}
+          {% endif %}
+
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px;">
+            <div style="background: var(--premier-beige); padding: 10px; border-radius: 10px; text-align: center;">
+              <div style="font-size: 0.6rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">New Listings</div>
+              <div style="font-size: 1.2rem; font-weight: 600; color: var(--premier-charcoal);">{{ hourlyPulse["New Listings"] | default("0") }}</div>
+            </div>
+
+            <div style="background: var(--premier-beige); padding: 10px; border-radius: 10px; text-align: center;">
+              <div style="font-size: 0.6rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">Price Drops</div>
+              <div style="font-size: 1.2rem; font-weight: 600; color: var(--pnw-red);">{{ hourlyPulse["Price Drops"] | default("0") }}</div>
+            </div>
+
+            <div style="background: var(--premier-beige); padding: 10px; border-radius: 10px; text-align: center;">
+              <div style="font-size: 0.6rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">Pending Sales</div>
+              <div style="font-size: 1.2rem; font-weight: 600; color: var(--premier-charcoal);">{{ hourlyPulse["Pending"] | default("0") }}</div>
+            </div>
+
+            <div style="background: var(--premier-beige); padding: 10px; border-radius: 10px; text-align: center;">
+              <div style="font-size: 0.6rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">Closed / Sold</div>
+              <div style="font-size: 1.2rem; font-weight: 600; color: var(--status-green);">{{ hourlyPulse["Sold"] | default("0") }}</div>
+            </div>
+
+            <div style="background: var(--premier-beige); padding: 10px; border-radius: 10px; text-align: center;">
+              <div style="font-size: 0.6rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">Avg New List Price</div>
+              <div style="font-size: 1.05rem; font-weight: 600; color: var(--premier-charcoal); margin-top: 2px;">
+                ${{ hourlyPulse["Avg New Price"] | default("0") | localeString }}
+              </div>
+            </div>
+
+            <div style="background: var(--premier-beige); padding: 10px; border-radius: 10px; text-align: center;">
+              <div style="font-size: 0.6rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">Avg Price Cut ($)</div>
+              <div style="font-size: 1.05rem; font-weight: 600; color: var(--pnw-red); margin-top: 2px;">
+                ${{ avgPriceCut | localeString }}
+              </div>
+            </div>
+          </div>
+
+          {% if hourlyChart %}
+            <!-- Dynamically Calculated SVG Historical Velocity Chart -->
+            <div style="background: var(--premier-beige); padding: 16px; border-radius: 12px; margin-bottom: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span style="font-size: 0.78rem; font-weight: 600; color: var(--premier-charcoal);">Weekly Velocity Trajectory</span>
+                <div style="display: flex; gap: 12px; font-size: 0.65rem; font-weight: 500;">
+                  <span style="color: var(--alpine-blue);">━ New Listings</span>
+                  <span style="color: var(--status-green);">━ Sold</span>
+                  <span style="color: var(--pnw-red);">┈ Price Drops</span>
+                </div>
+              </div>
+
+              <div style="position: relative; width: 100%; height: 110px;">
+                <svg width="100%" height="90" viewBox="0 0 500 90" preserveAspectRatio="none">
+                  <line x1="40" y1="10" x2="485" y2="10" stroke="rgba(28,28,30,0.08)" stroke-width="1"/>
+                  <line x1="40" y1="45" x2="485" y2="45" stroke="rgba(28,28,30,0.06)" stroke-width="1" stroke-dasharray="3"/>
+                  <line x1="40" y1="80" x2="485" y2="80" stroke="rgba(28,28,30,0.15)" stroke-width="1.5"/>
+
+                  <text x="32" y="14" font-size="8" fill="rgba(28,28,30,0.5)" text-anchor="end">{{ hourlyChart.maxLabel }}</text>
+                  <text x="32" y="48" font-size="8" fill="rgba(28,28,30,0.5)" text-anchor="end">{{ hourlyChart.midLabel }}</text>
+                  <text x="32" y="83" font-size="8" fill="rgba(28,28,30,0.5)" text-anchor="end">0</text>
+
+                  <!-- Dynamic Data Lines -->
+                  <polyline fill="none" stroke="var(--alpine-blue)" stroke-width="2.5" stroke-linecap="round" points="{{ hourlyChart.pointsNew }}"/>
+                  <polyline fill="none" stroke="var(--status-green)" stroke-width="2.5" stroke-linecap="round" points="{{ hourlyChart.pointsSold }}"/>
+                  <polyline fill="none" stroke="var(--pnw-red)" stroke-width="2" stroke-dasharray="3" points="{{ hourlyChart.pointsDrops }}"/>
+
+                  <!-- Un-squished Compensated End Dots -->
+                  <ellipse cx="{{ hourlyChart.lastX }}" cy="{{ hourlyChart.lastYNew }}" rx="2.5" ry="3.8" fill="var(--alpine-blue)"/>
+                  <ellipse cx="{{ hourlyChart.lastX }}" cy="{{ hourlyChart.lastYSold }}" rx="2.5" ry="3.8" fill="var(--status-green)"/>
+                </svg>
+
+                <!-- Dynamic Date Labels -->
+                <div style="display: flex; justify-content: space-between; padding-left: 40px; padding-right: 15px; font-size: 0.65rem; color: rgba(28,28,30,0.5); font-weight: 500;">
+                  {% for d in hourlyChart.dates %}
+                    <span>{{ d }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          {% endif %}
+
+          <div style="font-size: 0.72rem; color: rgba(28,28,30,0.5); text-align: right; margin-top: 12px;">
+            Last Updated: {{ "" | topOfHourTime }}
+          </div>
+        {% else %}
+          <div style="font-size: 0.85rem; color: rgba(28,28,30,0.5); text-align: center; padding: 12px 0;">
+            Hourly market velocity feed active for {{ neighborhood.name }}.
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <!-- 3. REDFIN MARKET TELEMETRY (EXCLUSIVE METRICS) -->
+    <div class="bento-card">
+      <div class="bento-card-header">
+        <span>{{ neighborhood.name }} Redfin Market Telemetry</span>
+        <span style="font-size: 0.68rem; opacity: 0.9;">Updated Monthly</span>
+      </div>
+
+      {% if redfinStats %}
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px;">
+          
+          <div style="background: var(--premier-beige); padding: 12px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 0.65rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">Price Per Sq. Ft.</div>
+            <div style="font-size: 1.2rem; font-weight: 600; color: var(--premier-charcoal); margin-top: 4px;">
+              ${{ redfinStats.price_per_sqft | localeString }}
+            </div>
+          </div>
+
+          <div style="background: var(--premier-beige); padding: 12px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 0.65rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">Active Inventory</div>
+            <div style="font-size: 1.2rem; font-weight: 600; color: var(--premier-charcoal); margin-top: 4px;">
+              {{ redfinStats.active_listings | localeString }} Homes
+            </div>
+          </div>
+
+          <div style="background: var(--premier-beige); padding: 12px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 0.65rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">New Listings</div>
+            <div style="font-size: 1.2rem; font-weight: 600; color: var(--premier-charcoal); margin-top: 4px;">
+              {{ redfinStats.new_listings | localeString }}
+            </div>
+          </div>
+
+          <div style="background: var(--premier-beige); padding: 12px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 0.65rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">Pending Sales</div>
+            <div style="font-size: 1.2rem; font-weight: 600; color: var(--premier-charcoal); margin-top: 4px;">
+              {{ redfinStats.pending_sales | localeString }}
+            </div>
+          </div>
+
+          <div style="background: var(--premier-beige); padding: 12px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 0.65rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">Contract Cancellations</div>
+            <div style="font-size: 1.2rem; font-weight: 600; color: var(--pnw-red); margin-top: 4px;">
+              {{ redfinStats.contract_cancellations | localeString }}
+            </div>
+          </div>
+
+          <div style="background: var(--premier-beige); padding: 12px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 0.65rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">Cancellation Rate</div>
+            <div style="font-size: 1.2rem; font-weight: 600; color: var(--pnw-red); margin-top: 4px;">
+              {{ redfinStats.cancellation_rate_pct | default("0") }}%
+            </div>
+          </div>
+
+        </div>
+
+        <div style="font-size: 0.72rem; color: rgba(28,28,30,0.5); text-align: right;">
+          Last Updated: {{ redfinStats.last_updated | postDate | default("July 3, 2026") }}
+        </div>
+      {% else %}
+        <div style="font-size: 0.85rem; color: rgba(28,28,30,0.5); padding: 16px 0; text-align: center;">
+          Monthly Redfin statistics for {{ neighborhood.name }} are currently syncing.
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- 4. NWMLS & INFOSPARKS DATA: SUMMARY BOXES + 6 FULL-WIDTH LINE CHARTS -->
+    <div class="bento-card">
+      <div class="bento-card-header">
+        <span>{{ neighborhood.name | upper }} NWMLS & INFOSPARKS DATA</span>
+        <span style="font-size: 0.68rem; opacity: 0.9;">Updated Monthly</span>
+      </div>
+
+      <div style="font-size: 1.05rem; font-weight: 500; color: var(--premier-charcoal); margin-bottom: 14px;">
+        12-Month History
+      </div>
+
+      {% if infoSparks %}
+        <!-- Summary Data Metric Boxes -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+          
+          <div style="background: var(--premier-beige); padding: 12px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 0.65rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">Median Sale Price</div>
+            <div style="font-size: 1.25rem; font-weight: 600; color: var(--premier-charcoal); margin-top: 4px;">
+              ${{ infoSparks.median_sale_price | localeString }}
+            </div>
+          </div>
+
+          <div style="background: var(--premier-beige); padding: 12px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 0.65rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">Closed Sales</div>
+            <div style="font-size: 1.25rem; font-weight: 600; color: var(--premier-charcoal); margin-top: 4px;">
+              {{ infoSparks.closed_sales | localeString }}
+            </div>
+          </div>
+
+          <div style="background: var(--premier-beige); padding: 12px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 0.65rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">Days on Market</div>
+            <div style="font-size: 1.25rem; font-weight: 600; color: var(--premier-charcoal); margin-top: 4px;">
+              {{ infoSparks.average_dom | default("29") }} Days
+            </div>
+          </div>
+
+          <div style="background: var(--premier-beige); padding: 12px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 0.65rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">Months Supply</div>
+            <div style="font-size: 1.25rem; font-weight: 600; color: var(--premier-charcoal); margin-top: 4px;">
+              {{ infoSparks.months_supply | default("1.8") }} Mo.
+            </div>
+          </div>
+
+          <div style="background: var(--premier-beige); padding: 12px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 0.65rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">Shows Per Listing</div>
+            <div style="font-size: 1.25rem; font-weight: 600; color: var(--premier-charcoal); margin-top: 4px;">
+              {{ infoSparks.shows_per_listing | default("4.9") }}
+            </div>
+          </div>
+
+          <div style="background: var(--premier-beige); padding: 12px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 0.65rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">% of List Price Avg</div>
+            <div style="font-size: 1.25rem; font-weight: 600; color: var(--premier-charcoal); margin-top: 4px;">
+              {{ infoSparks.percent_list_price | default("98.9%") }}
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 6 Full-Width Stacked Line Charts (HTML + SVG Hybrid Canvas Layout) -->
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+
+          <!-- Chart 1: Median Sale Price -->
+          <div style="background: var(--premier-beige); padding: 14px; border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.78rem; font-weight: 600; text-transform: uppercase; color: rgba(28,28,30,0.6);">1. Median Sale Price Trend</span>
+              <span style="font-size: 0.95rem; font-weight: 600; color: var(--alpine-blue);">${{ infoSparks.median_sale_price | localeString }}</span>
+            </div>
+            {% if chartMedianPrice %}
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <div style="display: flex; flex-direction: column; justify-content: space-between; height: 50px; font-size: 0.68rem; font-weight: 600; color: rgba(28,28,30,0.5); text-align: right; min-width: 55px; white-space: nowrap;">
+                  <span>{{ chartMedianPrice.maxLabel }}</span>
+                  <span>{{ chartMedianPrice.minLabel }}</span>
+                </div>
+                <div style="flex: 1; height: 60px; position: relative;">
+                  <svg width="100%" height="100%" viewBox="0 0 400 60" preserveAspectRatio="none">
+                    <line x1="0" y1="5" x2="400" y2="5" stroke="rgba(28,28,30,0.06)" stroke-width="1"/>
+                    <line x1="0" y1="55" x2="400" y2="55" stroke="rgba(28,28,30,0.12)" stroke-width="1"/>
+                    <polyline fill="none" stroke="var(--alpine-blue)" stroke-width="2.5" stroke-linecap="round" points="{{ chartMedianPrice.points }}"/>
+                    <ellipse cx="{{ chartMedianPrice.lastX }}" cy="{{ chartMedianPrice.lastY }}" rx="2.5" ry="3.8" fill="var(--alpine-blue)"/>
+                  </svg>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding-left: 67px; font-size: 0.62rem; color: rgba(28,28,30,0.5); font-weight: 500; margin-top: 4px;">
+                {% for d in chartMedianPrice.dates %}<span>{{ d }}</span>{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Chart 2: Closed Sales -->
+          <div style="background: var(--premier-beige); padding: 14px; border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.78rem; font-weight: 600; text-transform: uppercase; color: rgba(28,28,30,0.6);">2. Closed Sales Volume</span>
+              <span style="font-size: 0.95rem; font-weight: 600; color: var(--alpine-blue);">{{ infoSparks.closed_sales | localeString }}</span>
+            </div>
+            {% if chartClosedSales %}
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <div style="display: flex; flex-direction: column; justify-content: space-between; height: 50px; font-size: 0.68rem; font-weight: 600; color: rgba(28,28,30,0.5); text-align: right; min-width: 55px; white-space: nowrap;">
+                  <span>{{ chartClosedSales.maxLabel }}</span>
+                  <span>{{ chartClosedSales.minLabel }}</span>
+                </div>
+                <div style="flex: 1; height: 60px; position: relative;">
+                  <svg width="100%" height="100%" viewBox="0 0 400 60" preserveAspectRatio="none">
+                    <line x1="0" y1="5" x2="400" y2="5" stroke="rgba(28,28,30,0.06)" stroke-width="1"/>
+                    <line x1="0" y1="55" x2="400" y2="55" stroke="rgba(28,28,30,0.12)" stroke-width="1"/>
+                    <polyline fill="none" stroke="var(--alpine-blue)" stroke-width="2.5" stroke-linecap="round" points="{{ chartClosedSales.points }}"/>
+                    <ellipse cx="{{ chartClosedSales.lastX }}" cy="{{ chartClosedSales.lastY }}" rx="2.5" ry="3.8" fill="var(--alpine-blue)"/>
+                  </svg>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding-left: 67px; font-size: 0.62rem; color: rgba(28,28,30,0.5); font-weight: 500; margin-top: 4px;">
+                {% for d in chartClosedSales.dates %}<span>{{ d }}</span>{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Chart 3: Days on Market -->
+          <div style="background: var(--premier-beige); padding: 14px; border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.78rem; font-weight: 600; text-transform: uppercase; color: rgba(28,28,30,0.6);">3. Average Days on Market</span>
+              <span style="font-size: 0.95rem; font-weight: 600; color: var(--alpine-blue);">{{ infoSparks.average_dom | default("29") }} Days</span>
+            </div>
+            {% if chartDaysOnMarket %}
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <div style="display: flex; flex-direction: column; justify-content: space-between; height: 50px; font-size: 0.68rem; font-weight: 600; color: rgba(28,28,30,0.5); text-align: right; min-width: 55px; white-space: nowrap;">
+                  <span>{{ chartDaysOnMarket.maxLabel }}</span>
+                  <span>{{ chartDaysOnMarket.minLabel }}</span>
+                </div>
+                <div style="flex: 1; height: 60px; position: relative;">
+                  <svg width="100%" height="100%" viewBox="0 0 400 60" preserveAspectRatio="none">
+                    <line x1="0" y1="5" x2="400" y2="5" stroke="rgba(28,28,30,0.06)" stroke-width="1"/>
+                    <line x1="0" y1="55" x2="400" y2="55" stroke="rgba(28,28,30,0.12)" stroke-width="1"/>
+                    <polyline fill="none" stroke="var(--alpine-blue)" stroke-width="2.5" stroke-linecap="round" points="{{ chartDaysOnMarket.points }}"/>
+                    <ellipse cx="{{ chartDaysOnMarket.lastX }}" cy="{{ chartDaysOnMarket.lastY }}" rx="2.5" ry="3.8" fill="var(--alpine-blue)"/>
+                  </svg>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding-left: 67px; font-size: 0.62rem; color: rgba(28,28,30,0.5); font-weight: 500; margin-top: 4px;">
+                {% for d in chartDaysOnMarket.dates %}<span>{{ d }}</span>{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Chart 4: Months Supply -->
+          <div style="background: var(--premier-beige); padding: 14px; border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.78rem; font-weight: 600; text-transform: uppercase; color: rgba(28,28,30,0.6);">4. Months Supply Inventory</span>
+              <span style="font-size: 0.95rem; font-weight: 600; color: var(--alpine-blue);">{{ infoSparks.months_supply | default("1.8") }} Mo.</span>
+            </div>
+            {% if chartMonthsSupply %}
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <div style="display: flex; flex-direction: column; justify-content: space-between; height: 50px; font-size: 0.68rem; font-weight: 600; color: rgba(28,28,30,0.5); text-align: right; min-width: 55px; white-space: nowrap;">
+                  <span>{{ chartMonthsSupply.maxLabel }}</span>
+                  <span>{{ chartMonthsSupply.minLabel }}</span>
+                </div>
+                <div style="flex: 1; height: 60px; position: relative;">
+                  <svg width="100%" height="100%" viewBox="0 0 400 60" preserveAspectRatio="none">
+                    <line x1="0" y1="5" x2="400" y2="5" stroke="rgba(28,28,30,0.06)" stroke-width="1"/>
+                    <line x1="0" y1="55" x2="400" y2="55" stroke="rgba(28,28,30,0.12)" stroke-width="1"/>
+                    <polyline fill="none" stroke="var(--alpine-blue)" stroke-width="2.5" stroke-linecap="round" points="{{ chartMonthsSupply.points }}"/>
+                    <ellipse cx="{{ chartMonthsSupply.lastX }}" cy="{{ chartMonthsSupply.lastY }}" rx="2.5" ry="3.8" fill="var(--alpine-blue)"/>
+                  </svg>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding-left: 67px; font-size: 0.62rem; color: rgba(28,28,30,0.5); font-weight: 500; margin-top: 4px;">
+                {% for d in chartMonthsSupply.dates %}<span>{{ d }}</span>{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Chart 5: Shows Per Listing -->
+          <div style="background: var(--premier-beige); padding: 14px; border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.78rem; font-weight: 600; text-transform: uppercase; color: rgba(28,28,30,0.6);">5. Shows Per Listing</span>
+              <span style="font-size: 0.95rem; font-weight: 600; color: var(--alpine-blue);">{{ infoSparks.shows_per_listing | default("4.9") }}</span>
+            </div>
+            {% if chartShowsPerListing %}
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <div style="display: flex; flex-direction: column; justify-content: space-between; height: 50px; font-size: 0.68rem; font-weight: 600; color: rgba(28,28,30,0.5); text-align: right; min-width: 55px; white-space: nowrap;">
+                  <span>{{ chartShowsPerListing.maxLabel }}</span>
+                  <span>{{ chartShowsPerListing.minLabel }}</span>
+                </div>
+                <div style="flex: 1; height: 60px; position: relative;">
+                  <svg width="100%" height="100%" viewBox="0 0 400 60" preserveAspectRatio="none">
+                    <line x1="0" y1="5" x2="400" y2="5" stroke="rgba(28,28,30,0.06)" stroke-width="1"/>
+                    <line x1="0" y1="55" x2="400" y2="55" stroke="rgba(28,28,30,0.12)" stroke-width="1"/>
+                    <polyline fill="none" stroke="var(--alpine-blue)" stroke-width="2.5" stroke-linecap="round" points="{{ chartShowsPerListing.points }}"/>
+                    <ellipse cx="{{ chartShowsPerListing.lastX }}" cy="{{ chartShowsPerListing.lastY }}" rx="2.5" ry="3.8" fill="var(--alpine-blue)"/>
+                  </svg>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding-left: 67px; font-size: 0.62rem; color: rgba(28,28,30,0.5); font-weight: 500; margin-top: 4px;">
+                {% for d in chartShowsPerListing.dates %}<span>{{ d }}</span>{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Chart 6: Percent of List Price Average -->
+          <div style="background: var(--premier-beige); padding: 14px; border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.78rem; font-weight: 600; text-transform: uppercase; color: rgba(28,28,30,0.6);">6. % of List Price Avg</span>
+              <span style="font-size: 0.95rem; font-weight: 600; color: var(--alpine-blue);">{{ infoSparks.percent_list_price | default("98.9%") }}</span>
+            </div>
+            {% if chartListPricePct %}
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <div style="display: flex; flex-direction: column; justify-content: space-between; height: 50px; font-size: 0.68rem; font-weight: 600; color: rgba(28,28,30,0.5); text-align: right; min-width: 55px; white-space: nowrap;">
+                  <span>{{ chartListPricePct.maxLabel }}</span>
+                  <span>{{ chartListPricePct.minLabel }}</span>
+                </div>
+                <div style="flex: 1; height: 60px; position: relative;">
+                  <svg width="100%" height="100%" viewBox="0 0 400 60" preserveAspectRatio="none">
+                    <line x1="0" y1="5" x2="400" y2="5" stroke="rgba(28,28,30,0.06)" stroke-width="1"/>
+                    <line x1="0" y1="55" x2="400" y2="55" stroke="rgba(28,28,30,0.12)" stroke-width="1"/>
+                    <polyline fill="none" stroke="var(--alpine-blue)" stroke-width="2.5" stroke-linecap="round" points="{{ chartListPricePct.points }}"/>
+                    <ellipse cx="{{ chartListPricePct.lastX }}" cy="{{ chartListPricePct.lastY }}" rx="2.5" ry="3.8" fill="var(--alpine-blue)"/>
+                  </svg>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding-left: 67px; font-size: 0.62rem; color: rgba(28,28,30,0.5); font-weight: 500; margin-top: 4px;">
+                {% for d in chartListPricePct.dates %}<span>{{ d }}</span>{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+
+        </div>
+
+        <div style="font-size: 0.72rem; color: rgba(28,28,30,0.5); text-align: right; margin-top: 14px;">
+          Last Updated: {{ infoSparks.latest_date | default("July 2026") }}
+        </div>
+      {% else %}
+        <div style="font-size: 0.85rem; color: rgba(28,28,30,0.5); padding: 16px 0; text-align: center;">
+          NWMLS and InfoSparks data for {{ neighborhood.name }} are currently syncing.
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- 5. SEATTLE REGIONAL MIGRATION -->
+    <div class="bento-card">
+      <div class="bento-card-header">
+        <span>SEATTLE REGIONAL MIGRATION</span>
+        <span style="font-size: 0.68rem; opacity: 0.9;">Updated Monthly</span>
+      </div>
+
+      <!-- Custom US Vector Migration Map (Un-squished 2:1 Proportions) -->
+      <div style="background: var(--premier-beige); padding: 16px; border-radius: 14px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <span style="font-size: 0.82rem; font-weight: 600; color: var(--premier-charcoal);">Seattle Area Migration Map</span>
+          <div style="display: flex; gap: 14px; font-size: 0.68rem; font-weight: 600;">
+            <span style="color: #3B82F6;">━ Origin (Inflow)</span>
+            <span style="color: #D97706;">━ Destination (Outflow)</span>
+          </div>
+        </div>
+
+        <div style="position: relative; width: 100%; height: 250px;">
+          <svg width="100%" height="100%" viewBox="0 0 500 250" preserveAspectRatio="xMidYMid meet">
+            <!-- SVG Arrowhead Marker Definitions -->
+            <defs>
+              <marker id="arrow-in" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#3B82F6"/>
+              </marker>
+              <marker id="arrow-out" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#D97706"/>
+              </marker>
+            </defs>
+
+            <!-- US Map State Boundaries Outline Base -->
+            <path d="M 25 35 L 75 20 L 140 25 L 220 18 L 310 25 L 410 20 L 480 55 L 465 150 L 390 205 L 310 215 L 210 230 L 150 205 L 90 215 L 35 150 Z" fill="rgba(28,28,30,0.03)" stroke="rgba(28,28,30,0.12)" stroke-width="1.5" stroke-dasharray="4"/>
+            <path d="M 75 20 L 70 80 L 100 170" fill="none" stroke="rgba(28,28,30,0.08)" stroke-width="1"/>
+            <path d="M 140 25 L 135 150 L 210 230" fill="none" stroke="rgba(28,28,30,0.08)" stroke-width="1"/>
+            <path d="M 220 18 L 230 215" fill="none" stroke="rgba(28,28,30,0.08)" stroke-width="1"/>
+            <path d="M 310 25 L 320 205" fill="none" stroke="rgba(28,28,30,0.08)" stroke-width="1"/>
+
+            <!-- Seattle Hub Base Node (x:75, y:35) -->
+            <circle cx="75" cy="35" r="7" fill="var(--premier-charcoal)" stroke="#FFFFFF" stroke-width="2"/>
+            <text x="75" y="22" font-size="9" font-weight="800" fill="var(--premier-charcoal)" text-anchor="middle">SEATTLE</text>
+
+            <!-- INFLOW ARCS (ORIGINS TO SEATTLE) - Origin Dots + Blue Arrowheads at Seattle -->
+            <!-- 1. Los Angeles (65, 165) -->
+            <path d="M 65 165 Q 50 100 75 35" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round" marker-end="url(#arrow-in)"/>
+            <circle cx="65" cy="165" r="4" fill="#3B82F6"/>
+            <text x="65" y="177" font-size="7" font-weight="600" fill="#3B82F6" text-anchor="middle">Los Angeles</text>
+
+            <!-- 2. San Jose (45, 130) -->
+            <path d="M 45 130 Q 35 85 75 35" fill="none" stroke="#3B82F6" stroke-width="2.2" stroke-linecap="round" marker-end="url(#arrow-in)"/>
+            <circle cx="45" cy="130" r="4" fill="#3B82F6"/>
+            <text x="37" y="132" font-size="7" font-weight="600" fill="#3B82F6" text-anchor="end">San Jose</text>
+
+            <!-- 3. New York (450, 85) -->
+            <path d="M 450 85 Q 260 15 75 35" fill="none" stroke="#3B82F6" stroke-width="2.2" stroke-linecap="round" marker-end="url(#arrow-in)"/>
+            <circle cx="450" cy="85" r="4" fill="#3B82F6"/>
+            <text x="457" y="88" font-size="7" font-weight="600" fill="#3B82F6" text-anchor="start">New York</text>
+
+            <!-- 4. Washington DC (430, 110) -->
+            <path d="M 430 110 Q 250 30 75 35" fill="none" stroke="#3B82F6" stroke-width="2" stroke-dasharray="3" marker-end="url(#arrow-in)"/>
+            <circle cx="430" cy="110" r="4" fill="#3B82F6"/>
+            <text x="438" y="113" font-size="7" font-weight="600" fill="#3B82F6" text-anchor="start">Washington DC</text>
+
+            <!-- 5. Chicago (330, 95) -->
+            <path d="M 330 95 Q 200 35 75 35" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" marker-end="url(#arrow-in)"/>
+            <circle cx="330" cy="95" r="4" fill="#3B82F6"/>
+            <text x="330" y="87" font-size="7" font-weight="600" fill="#3B82F6" text-anchor="middle">Chicago</text>
+
+            <!-- OUTFLOW ARCS (SEATTLE TO DESTINATIONS) - Gold lines ending ONLY with Arrowheads at targets -->
+            <!-- 1. Phoenix (125, 175) -->
+            <path d="M 75 35 Q 105 105 125 175" fill="none" stroke="#D97706" stroke-width="2.5" stroke-linecap="round" marker-end="url(#arrow-out)"/>
+            <text x="125" y="187" font-size="7" font-weight="600" fill="#D97706" text-anchor="middle">Phoenix</text>
+
+            <!-- 2. Portland (70, 55) -->
+            <path d="M 75 35 Q 72 45 70 55" fill="none" stroke="#D97706" stroke-width="2.2" stroke-linecap="round" marker-end="url(#arrow-out)"/>
+            <text x="62" y="57" font-size="7" font-weight="600" fill="#D97706" text-anchor="end">Portland</text>
+
+            <!-- 3. Boise (120, 70) -->
+            <path d="M 75 35 Q 98 50 120 70" fill="none" stroke="#D97706" stroke-width="2.2" stroke-linecap="round" marker-end="url(#arrow-out)"/>
+            <text x="127" y="73" font-size="7" font-weight="600" fill="#D97706" text-anchor="start">Boise</text>
+
+            <!-- 4. Las Vegas (100, 145) -->
+            <path d="M 75 35 Q 90 90 100 145" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" marker-end="url(#arrow-out)"/>
+            <text x="108" y="147" font-size="7" font-weight="600" fill="#D97706" text-anchor="start">Las Vegas</text>
+
+            <!-- 5. Dallas (250, 190) -->
+            <path d="M 75 35 Q 160 115 250 190" fill="none" stroke="#D97706" stroke-width="2" stroke-dasharray="3" marker-end="url(#arrow-out)"/>
+            <text x="250" y="202" font-size="7" font-weight="600" fill="#D97706" text-anchor="middle">Dallas</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- 2-Column Tables: Origin & Destination -->
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+        
+        <!-- Column 1: Origin (Inflow to Seattle Area) -->
+        <div style="background: var(--premier-beige); padding: 12px; border-radius: 12px;">
+          <div style="font-size: 0.78rem; font-weight: 700; color: #3B82F6; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid rgba(28,28,30,0.08); padding-bottom: 4px;">
+            Inflow: Origin Cities Moving To Seattle
+          </div>
+          {% if seattleMigration and seattleMigration.top_inflow %}
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              {% for flow in seattleMigration.top_inflow %}
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; padding: 4px 0; border-bottom: 1px dashed rgba(28,28,30,0.06);">
+                  <span style="font-weight: 500; color: var(--premier-charcoal);">{{ flow["ORIGIN REGION NAME"] }}</span>
+                  <span style="font-weight: 600; color: #3B82F6;">{{ flow["PCT OF DESTINATION INFLOW (%)"] }}%</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div style="font-size: 0.8rem; color: rgba(28,28,30,0.5);">Inflow records syncing...</div>
+          {% endif %}
+        </div>
+
+        <!-- Column 2: Destination (Outflow from Seattle Area) -->
+        <div style="background: var(--premier-beige); padding: 12px; border-radius: 12px;">
+          <div style="font-size: 0.78rem; font-weight: 700; color: #D97706; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid rgba(28,28,30,0.08); padding-bottom: 4px;">
+            Outflow: Destinations Leaving Seattle
+          </div>
+          {% if seattleMigration and seattleMigration.top_outflow %}
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              {% for flow in seattleMigration.top_outflow %}
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; padding: 4px 0; border-bottom: 1px dashed rgba(28,28,30,0.06);">
+                  <span style="font-weight: 500; color: var(--premier-charcoal);">{{ flow["DESTINATION REGION NAME"] }}</span>
+                  <span style="font-weight: 600; color: #D97706;">{{ flow["PCT OF ORIGIN OUTFLOW (%)"] }}%</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div style="font-size: 0.8rem; color: rgba(28,28,30,0.5);">Outflow records syncing...</div>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 6. SEATTLE REGIONAL HOUSING AFFORDABILITY METRICS (POSITIONED AT BOTTOM OF LEFT COLUMN) -->
+    <div class="bento-card">
+      <div class="bento-card-header">
+        <span>SEATTLE REGIONAL HOUSING AFFORDABILITY METRICS</span>
+        <span style="font-size: 0.68rem; opacity: 0.9;">Updated Monthly</span>
+      </div>
+
+      {% if affordData %}
+
+        <!-- SECTION A: PROPERTY ENTRY LADDER -->
+        <div style="margin-bottom: 24px; border-bottom: 1px solid rgba(28,28,30,0.08); padding-bottom: 20px;">
+          <div style="font-size: 0.95rem; font-weight: 700; color: var(--premier-charcoal); margin-bottom: 10px;">
+            1. Property Tier Entry Ladder (3.5% Down Baseline)
+          </div>
+
+          <!-- Dynamic Table 1: Property Tiers -->
+          <div style="overflow-x: auto; margin-bottom: 16px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left;">
+              <thead>
+                <tr style="background: var(--premier-beige); border-bottom: 2px solid rgba(28,28,30,0.1);">
+                  <th style="padding: 8px 10px; font-weight: 700; color: var(--premier-charcoal);">Property Type</th>
+                  <th style="padding: 8px 10px; font-weight: 700; color: var(--premier-charcoal);">Median Sale Price</th>
+                  <th style="padding: 8px 10px; font-weight: 700; color: var(--premier-charcoal);">Req. Income (3.5% Down)</th>
+                  <th style="padding: 8px 10px; font-weight: 700; color: var(--premier-charcoal);">Down Payment (3.5%)</th>
+                  <th style="padding: 8px 10px; font-weight: 700; color: var(--premier-charcoal);">Monthly Payment</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in affordData.property_tiers %}
+                  <tr style="border-bottom: 1px solid rgba(28,28,30,0.06);">
+                    <td style="padding: 8px 10px; font-weight: 600; color: var(--premier-charcoal);">{{ row["PROPERTY TYPE"] }}</td>
+                    <td style="padding: 8px 10px; color: var(--alpine-blue); font-weight: 600;">${{ row["MEDIAN SALE PRICE ($)"] | localeString }}</td>
+                    <td style="padding: 8px 10px; color: var(--premier-charcoal); font-weight: 600;">${{ row["INCOME REQUIRED ($)"] | localeString }}</td>
+                    <td style="padding: 8px 10px;">${{ row["DOWN PAYMENT AMOUNT ($)"] | localeString }}</td>
+                    <td style="padding: 8px 10px; font-weight: 600; color: var(--premier-charcoal);">${{ row["MONTHLY HOUSING PAYMENT ($)"] | localeString }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Dynamic Visualization 1: Property Entry Ladder Comparison Bars -->
+          <div style="background: var(--premier-beige); padding: 14px; border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.75rem; font-weight: 600; color: var(--premier-charcoal);">
+              <span>Property Entry Ladder: Price vs. Required Household Income</span>
+              <div style="display: flex; gap: 12px; font-size: 0.65rem;">
+                <span style="color: var(--alpine-blue);">■ Median Price</span>
+                <span style="color: #D97706;">■ Required Income</span>
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              {% for row in affordData.property_tiers %}
+                {% set pricePct = ((row["MEDIAN SALE PRICE ($)"] / 1000000) * 100) | round %}
+                {% set incPct = ((row["INCOME REQUIRED ($)"] / 1000000) * 100) | round %}
+                <div>
+                  <div style="font-size: 0.72rem; font-weight: 600; color: var(--premier-charcoal); margin-bottom: 3px;">
+                    {{ row["PROPERTY TYPE"] }}
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 3px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <div style="background: rgba(28,28,30,0.08); height: 8px; flex: 1; border-radius: 4px; overflow: hidden;">
+                        <div style="background: var(--alpine-blue); height: 100%; width: {{ pricePct }}%;"></div>
+                      </div>
+                      <span style="font-size: 0.68rem; font-weight: 600; width: 70px; text-align: right; color: var(--alpine-blue);">${{ row["MEDIAN SALE PRICE ($)"] | localeString }}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <div style="background: rgba(28,28,30,0.08); height: 8px; flex: 1; border-radius: 4px; overflow: hidden;">
+                        <div style="background: #D97706; height: 100%; width: {{ incPct }}%;"></div>
+                      </div>
+                      <span style="font-size: 0.68rem; font-weight: 600; width: 70px; text-align: right; color: #D97706;">${{ row["INCOME REQUIRED ($)"] | localeString }}</span>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION B: DOWN PAYMENT TIER & PMI BREAKDOWN -->
+        <div style="margin-bottom: 28px; border-bottom: 1px solid rgba(28,28,30,0.08); padding-bottom: 20px;">
+          <div style="font-size: 0.95rem; font-weight: 700; color: var(--premier-charcoal); margin-bottom: 10px;">
+            2. Down Payment Tier & PMI Impact (Median Seattle Starter Home Baseline)
+          </div>
+
+          <!-- Dynamic Table 2: Down Payment Tiers -->
+          <div style="overflow-x: auto; margin-bottom: 16px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left;">
+              <thead>
+                <tr style="background: var(--premier-beige); border-bottom: 2px solid rgba(28,28,30,0.1);">
+                  <th style="padding: 8px 10px; font-weight: 700; color: var(--premier-charcoal);">Down Payment %</th>
+                  <th style="padding: 8px 10px; font-weight: 700; color: var(--premier-charcoal);">Down Payment $</th>
+                  <th style="padding: 8px 10px; font-weight: 700; color: var(--premier-charcoal);">Mortgage P&I</th>
+                  <th style="padding: 8px 10px; font-weight: 700; color: var(--premier-charcoal);">Property Tax</th>
+                  <th style="padding: 8px 10px; font-weight: 700; color: var(--premier-charcoal);">Insurance</th>
+                  <th style="padding: 8px 10px; font-weight: 700; color: var(--pnw-red);">PMI</th>
+                  <th style="padding: 8px 10px; font-weight: 700; color: var(--premier-charcoal);">Total Monthly</th>
+                  <th style="padding: 8px 10px; font-weight: 700; color: var(--premier-charcoal);">Req. Income</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in affordData.dp_tiers %}
+                  <tr style="border-bottom: 1px solid rgba(28,28,30,0.06);">
+                    <td style="padding: 8px 10px; font-weight: 700; color: var(--premier-charcoal);">{{ row["DOWN PAYMENT PERCENT (%)"] }}%</td>
+                    <td style="padding: 8px 10px;">${{ row["DOWN PAYMENT AMOUNT ($)"] | localeString }}</td>
+                    <td style="padding: 8px 10px;">${{ row["MONTHLY MORTGAGE PAYMENT ($)"] | localeString }}</td>
+                    <td style="padding: 8px 10px;">${{ row["MONTHLY PROPERTY TAX ($)"] | localeString }}</td>
+                    <td style="padding: 8px 10px;">${{ row["MONTHLY PROPERTY INSURANCE ($)"] | localeString }}</td>
+                    <td style="padding: 8px 10px; font-weight: 700; color: var(--pnw-red);">${{ row["MONTHLY PMI ($)"] | localeString }}</td>
+                    <td style="padding: 8px 10px; font-weight: 700; color: var(--alpine-blue);">${{ row["MONTHLY HOUSING PAYMENT ($)"] | localeString }}</td>
+                    <td style="padding: 8px 10px; font-weight: 600;">${{ row["INCOME REQUIRED ($)"] | localeString }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Dynamic Visualization 2: Down Payment Impact Stacked Payment Breakdown Bars -->
+          <div style="background: var(--premier-beige); padding: 14px; border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.75rem; font-weight: 600; color: var(--premier-charcoal);">
+              <span>Monthly Payment Component Breakdown Across Down Payment Tiers</span>
+              <div style="display: flex; gap: 10px; font-size: 0.65rem;">
+                <span style="color: var(--alpine-blue);">■ Mortgage</span>
+                <span style="color: #6B7280;">■ Tax</span>
+                <span style="color: #10B981;">■ Ins.</span>
+                <span style="color: var(--pnw-red);">■ PMI</span>
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              {% for row in affordData.dp_tiers %}
+                {% set total = row["MONTHLY HOUSING PAYMENT ($)"] | float %}
+                {% set mortPct = ((row["MONTHLY MORTGAGE PAYMENT ($)"] / total) * 100) | round(1) %}
+                {% set taxPct = ((row["MONTHLY PROPERTY TAX ($)"] / total) * 100) | round(1) %}
+                {% set insPct = ((row["MONTHLY PROPERTY INSURANCE ($)"] / total) * 100) | round(1) %}
+                {% set pmiPct = ((row["MONTHLY PMI ($)"] / total) * 100) | round(1) %}
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span style="font-size: 0.72rem; font-weight: 700; width: 42px; color: var(--premier-charcoal);">{{ row["DOWN PAYMENT PERCENT (%)"] }}%</span>
+                  <div style="flex: 1; height: 16px; background: rgba(28,28,30,0.08); border-radius: 6px; overflow: hidden; display: flex;">
+                    <div style="background: var(--alpine-blue); width: {{ mortPct }}%; height: 100%;" title="Mortgage: ${{ row['MONTHLY MORTGAGE PAYMENT ($)'] }}"></div>
+                    <div style="background: #6B7280; width: {{ taxPct }}%; height: 100%;" title="Tax: ${{ row['MONTHLY PROPERTY TAX ($)'] }}"></div>
+                    <div style="background: #10B981; width: {{ insPct }}%; height: 100%;" title="Insurance: ${{ row['MONTHLY PROPERTY INSURANCE ($)'] }}"></div>
+                    <div style="background: var(--pnw-red); width: {{ pmiPct }}%; height: 100%;" title="PMI: ${{ row['MONTHLY PMI ($)'] }}"></div>
+                  </div>
+                  <span style="font-size: 0.72rem; font-weight: 700; width: 60px; text-align: right; color: var(--premier-charcoal);">${{ total | localeString }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION C: HOUSEHOLD PURCHASING POWER & QUALIFICATION GAPS -->
+        <div>
+          <div style="font-size: 0.95rem; font-weight: 700; color: var(--premier-charcoal); margin-bottom: 10px;">
+            3. Household Income vs. Purchasing Power Benchmarks
+          </div>
+
+          <!-- Dynamic Table 3: Income Groups -->
+          <div style="overflow-x: auto; margin-bottom: 16px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left;">
+              <thead>
+                <tr style="background: var(--premier-beige); border-bottom: 2px solid rgba(28,28,30,0.1);">
+                  <th style="padding: 8px 10px; font-weight: 700; color: var(--premier-charcoal);">Household Group</th>
+                  <th style="padding: 8px 10px; font-weight: 700; color: var(--premier-charcoal);">Median Household Income</th>
+                  <th style="padding: 8px 10px; font-weight: 700; color: var(--premier-charcoal);">Years to Save 3.5% Down</th>
+                  <th style="padding: 8px 10px; font-weight: 700; color: var(--premier-charcoal);">Affordable Listing Share (3.5% Down)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in affordData.income_groups %}
+                  <tr style="border-bottom: 1px solid rgba(28,28,30,0.06);">
+                    <td style="padding: 8px 10px; font-weight: 700; color: var(--premier-charcoal);">
+                      {% if row["INCOME GROUP"] == "Renter" %}Renters{% elif row["INCOME GROUP"] == "Homeowner" %}Homeowners{% else %}All Households{% endif %}
+                    </td>
+                    <td style="padding: 8px 10px; font-weight: 600; color: var(--alpine-blue);">${{ row["MEDIAN HOUSEHOLD INCOME ($)"] | localeString }}</td>
+                    <td style="padding: 8px 10px;">{{ row["YEARS TO SAVE DOWN PAYMENT"] }} Years</td>
+                    <td style="padding: 8px 10px; font-weight: 600; color: var(--premier-charcoal);">{{ row["AFFORDABLE LISTING SHARE (%)"] }}%</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Dynamic Visualization 3: Household Income vs Purchasing Power Target Lines -->
+          <div style="background: var(--premier-beige); padding: 14px; border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.75rem; font-weight: 600; color: var(--premier-charcoal);">
+              <span>Household Income Comparison Against Property Qualification Lines</span>
+              <span style="font-size: 0.65rem; color: var(--pnw-red);">┈ Qualification Targets</span>
+            </div>
+            <div style="position: relative; display: flex; flex-direction: column; gap: 12px; padding: 10px 0;">
+              
+              {% for row in affordData.income_groups %}
+                {% set gName = "Renters" if row["INCOME GROUP"] == "Renter" else ("Homeowners" if row["INCOME GROUP"] == "Homeowner" else "All Households") %}
+                {% set barPct = ((row["MEDIAN HOUSEHOLD INCOME ($)"] / 300000) * 100) | round(1) %}
+                <div style="position: relative; z-index: 1;">
+                  <div style="display: flex; justify-content: space-between; font-size: 0.72rem; font-weight: 600; margin-bottom: 3px;">
+                    <span style="color: var(--premier-charcoal);">{{ gName }}</span>
+                    <span style="color: var(--alpine-blue);">${{ row["MEDIAN HOUSEHOLD INCOME ($)"] | localeString }}</span>
+                  </div>
+                  <div style="background: rgba(28,28,30,0.08); height: 12px; border-radius: 6px; overflow: hidden;">
+                    <div style="background: var(--alpine-blue); height: 100%; width: {{ barPct }}%;"></div>
+                  </div>
+                </div>
+              {% endfor %}
+
+              <!-- Dynamic Target Lines -->
+              {% set condoReq = affordData.property_tiers[0]["INCOME REQUIRED ($)"] | default(138382) %}
+              {% set starterReq = affordData.property_tiers[1]["INCOME REQUIRED ($)"] | default(182452) %}
+              {% set condoLinePct = ((condoReq / 300000) * 100) | round(1) %}
+              {% set starterLinePct = ((starterReq / 300000) * 100) | round(1) %}
+
+              <div style="position: absolute; top: 0; bottom: 0; left: {{ condoLinePct }}%; border-left: 2px dashed #D97706; z-index: 2;" title="Condo Target: ${{ condoReq }}">
+                <span style="position: absolute; top: -14px; transform: translateX(-50%); font-size: 0.58rem; font-weight: 700; color: #D97706; white-space: nowrap;">Condo: ${{ (condoReq / 1000) | round(1) }}K</span>
+              </div>
+
+              <div style="position: absolute; top: 0; bottom: 0; left: {{ starterLinePct }}%; border-left: 2px dashed var(--pnw-red); z-index: 2;" title="Starter Target: ${{ starterReq }}">
+                <span style="position: absolute; top: -14px; transform: translateX(-50%); font-size: 0.58rem; font-weight: 700; color: var(--pnw-red); white-space: nowrap;">Starter: ${{ (starterReq / 1000) | round(1) }}K</span>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        <div style="font-size: 0.72rem; color: rgba(28,28,30,0.5); text-align: right; margin-top: 14px;">
+          Last Updated: {{ affordData.last_updated | postDate | default("July 28, 2026") }}
+        </div>
+
+      {% else %}
+        <div style="font-size: 0.85rem; color: rgba(28,28,30,0.5); padding: 16px 0; text-align: center;">
+          Monthly Redfin affordability telemetry currently syncing.
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- Right Sidebar Column: Directory, Mortgage Rates, and Community Profile Stack (span-4) -->
+  <div class="span-4" style="display: flex; flex-direction: column; gap: 24px;">
+    
+    <!-- Directory Navigation -->
+    <div class="bento-card bento-card--action">
+      <div class="bento-card-header bento-card-header--action">
+        <span>{{ neighborhood.name | upper }} DIRECTORY</span>
+      </div>
+      <ul class="subpage-list">
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/"><span>← Main Community Hub</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/weather/"><span>Weather & Radar</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/transit-commute/"><span>Transit & Commute</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/news-events/"><span>News & Events</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/municipal/"><span>Municipal Services</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/emergency-safety/"><span>Emergency & Safety</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/elections/"><span>Elections & Voting</span> <span>→</span></a></li>
+      </ul>
+    </div>
+
+    <!-- DAILY MORTGAGE RATES (COLOR MATCHED WITH CHART) -->
+    <div class="bento-card">
+      <div class="bento-card-header">
+        <span>Daily Mortgage Rates</span>
+      </div>
+      {% if mortgageRates %}
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(28,28,30,0.06); font-size: 0.85rem;">
+            <span>30-Yr Conventional</span>
+            <span style="font-weight: 600; color: var(--alpine-blue);">{{ mortgageRates["30 Year Conventional"] }}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(28,28,30,0.06); font-size: 0.85rem;">
+            <span>30-Yr FHA Loan</span>
+            <span style="font-weight: 600; color: #D97706;">{{ mortgageRates["30 Year FHA"] }}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.85rem;">
+            <span>30-Yr VA Loan</span>
+            <span style="font-weight: 600; color: #10B981;">{{ mortgageRates["30 Year VA"] }}</span>
+          </div>
+        </div>
+      {% else %}
+        <div style="font-size: 0.85rem; color: rgba(28,28,30,0.5); text-align: center; padding: 8px 0;">
+          Live mortgage rates currently updating.
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- 30-DAY MORTGAGE RATE TREND (FULL 30-DAY EDGE-TO-EDGE MULTI-LINE CHART) -->
+    <div class="bento-card">
+      <div class="bento-card-header">
+        <span>Monthly Rate Trend</span>
+      </div>
+      <div style="background: var(--premier-beige); padding: 12px; border-radius: 12px; margin-top: 4px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; font-weight: 500; margin-bottom: 8px;">
+          <span style="color: var(--alpine-blue);">━ Conv</span>
+          <span style="color: #D97706;">━ FHA</span>
+          <span style="color: #10B981;">━ VA</span>
+        </div>
+
+        {% if mortgageChartData %}
+          <div style="position: relative; width: 100%; height: 80px;">
+            <svg width="100%" height="65" viewBox="0 0 280 65" preserveAspectRatio="none">
+              <line x1="32" y1="10" x2="270" y2="10" stroke="rgba(28,28,30,0.06)" stroke-width="1" stroke-dasharray="2"/>
+              <line x1="32" y1="50" x2="270" y2="50" stroke="rgba(28,28,30,0.12)" stroke-width="1"/>
+
+              <text x="26" y="13" font-size="8" fill="rgba(28,28,30,0.5)" text-anchor="end">{{ mortgageChartData.maxLabel }}</text>
+              <text x="26" y="53" font-size="8" fill="rgba(28,28,30,0.5)" text-anchor="end">{{ mortgageChartData.minLabel }}</text>
+
+              <!-- Conventional Line (Blue) -->
+              <polyline fill="none" stroke="var(--alpine-blue)" stroke-width="2.2" stroke-linecap="round" points="{{ mortgageChartData.convPoints }}"/>
+              <circle cx="{{ mortgageChartData.lastX }}" cy="{{ mortgageChartData.lastYConv }}" r="3" fill="var(--alpine-blue)"/>
+
+              <!-- FHA Line (Gold) -->
+              <polyline fill="none" stroke="#D97706" stroke-width="2.2" stroke-linecap="round" points="{{ mortgageChartData.fhaPoints }}"/>
+              <circle cx="{{ mortgageChartData.lastX }}" cy="{{ mortgageChartData.lastYFha }}" r="3" fill="#D97706"/>
+
+              <!-- VA Line (Green) -->
+              <polyline fill="none" stroke="#10B981" stroke-width="2.2" stroke-linecap="round" points="{{ mortgageChartData.vaPoints }}"/>
+              <circle cx="{{ mortgageChartData.lastX }}" cy="{{ mortgageChartData.lastYVa }}" r="3" fill="#10B981"/>
+            </svg>
+            <div style="display: flex; justify-content: space-between; padding-left: 32px; padding-right: 10px; font-size: 0.61rem; color: rgba(28,28,30,0.5);">
+              <span>30 Days Ago</span>
+              <span>Today</span>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- COMMUNITY PROFILE & LIFESTYLE SIDEBAR STACK -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      
+      <div style="font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(28,28,30,0.5); margin-bottom: 4px;">
+        Community Profile & Lifestyle
+      </div>
+
+      <!-- 1. ACCESSIBILITY & MOBILITY CARD -->
+      <div class="bento-card">
+        <div style="font-size: 0.9rem; font-weight: 600; color: var(--premier-charcoal); margin-bottom: 12px; border-bottom: 1px solid rgba(28,28,30,0.06); padding-bottom: 6px;">
+          Accessibility & Mobility
+        </div>
+
+        {% set walkScoreVal = mobilityData.walk_score | default(neighborhood["Walk Score"] | default(68)) %}
+        {% set transitScoreVal = mobilityData.transit_score | default(transitLive.active_transit_score | default(82)) %}
+        {% set bikeScoreVal = mobilityData.bike_score | default(neighborhood["Bike Score"] | default(58)) %}
+        {% set wsLink = mobilityData.ws_link | default("https://www.walkscore.com") %}
+
+        <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px;">
+          {{ gauges.progressRing(walkScoreVal, "Walk Score®", "walk_score_ring", "span-12") }}
+          {{ gauges.progressRing(transitScoreVal, "Transit Score®", "transit_score_ring", "span-12") }}
+          {{ gauges.progressRing(bikeScoreVal, "Bike Score®", "bike_score_ring", "span-12") }}
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; border-top: 1px solid rgba(28,28,30,0.06); padding-top: 10px;">
+          <a href="{{ wsLink }}" target="_blank" rel="noopener" class="link-arrow" style="font-size: 0.78rem; font-weight: 600;">Explore City on Walk Score</a>
+        </div>
+      </div>
+
+      <!-- 2. SCHOOL DISTRICT & RANKINGS (PSAI) -->
+      <div class="bento-card">
+        <div style="font-size: 0.9rem; font-weight: 600; color: var(--premier-charcoal); margin-bottom: 6px; border-bottom: 1px solid rgba(28,28,30,0.06); padding-bottom: 6px;">
+          School District & Rankings
+        </div>
+
+        <div style="font-size: 0.82rem; font-weight: 600; color: var(--alpine-blue); margin-bottom: 12px;">
+          {{ schoolData.district_name | default(neighborhood["School District"] | default(neighborhood.name ~ " School District")) }}
+        </div>
+
+        {% set rawPsai = schoolData.custom_score | default(neighborhood["Academic Index"] | default(6.1)) %}
+        {% set normPsai = (rawPsai * 10) | round %}
+
+        <div style="margin-bottom: 16px;">
+          {{ gauges.progressRing(normPsai, "Academic Index (PSAI)", "psai_ring", "span-12") }}
+        </div>
+
+        {% set mathVal = schoolData.district_math_proficiency | default(44.0) %}
+        {% set elaVal = schoolData.district_ela_proficiency | default(54.7) %}
+
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; font-size: 0.78rem;">
+          <div>
+            <div style="display: flex; justify-content: space-between; font-weight: 500; margin-bottom: 3px;">
+              <span>📐 MATH PROFICIENCY</span>
+              <span>{{ mathVal }}%</span>
+            </div>
+            <div style="background: rgba(28,28,30,0.08); height: 6px; border-radius: 3px; overflow: hidden;">
+              <div style="background: var(--pnw-red); height: 100%; width: {{ mathVal }}%;"></div>
+            </div>
+          </div>
+
+          <div>
+            <div style="display: flex; justify-content: space-between; font-weight: 500; margin-bottom: 3px;">
+              <span>📖 ELA PROFICIENCY</span>
+              <span>{{ elaVal }}%</span>
+            </div>
+            <div style="background: rgba(28,28,30,0.08); height: 6px; border-radius: 3px; overflow: hidden;">
+              <div style="background: var(--alpine-blue); height: 100%; width: {{ elaVal }}%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size: 0.68rem; color: rgba(28,28,30,0.5); margin-bottom: 12px; line-height: 1.3;">
+          Compared against WA State Baselines (Math: {{ schoolData.state_math_baseline | default(40) }}% / ELA: {{ schoolData.state_ela_baseline | default(51) }}%)
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; border-top: 1px solid rgba(28,28,30,0.06); padding-top: 10px;">
+          <a href="/neighborhood/{{ neighborhood.slug }}/schools/" class="link-arrow" style="font-size: 0.75rem; font-weight: 600;">View Local Schools & Boundaries</a>
+        </div>
+      </div>
+
+      <!-- 3. CLIMATE & MICROCLIMATE PROFILE -->
+      <div class="bento-card">
+        <div style="font-size: 0.9rem; font-weight: 600; color: var(--premier-charcoal); margin-bottom: 8px; border-bottom: 1px solid rgba(28,28,30,0.06); padding-bottom: 6px;">
+          Climate & Microclimate Profile
+        </div>
+
+        {% if climateData %}
+          {% set rawComfort = climateData.comfort_index_score | default(8.1) %}
+          {% set normComfort = (rawComfort * 10) | round %}
+
+          <div style="margin-bottom: 4px;">
+            {{ gauges.progressRing(normComfort, "Climate Comfort Score", "climate_comfort_ring", "span-12") }}
+          </div>
+          <div style="font-size: 0.72rem; color: rgba(28,28,30,0.6); text-align: center; margin-bottom: 12px; font-weight: 500;">
+            Station: {{ climateData.assigned_weather_station | default("NOAA Station") }}
+          </div>
+
+          <p style="font-size: 0.78rem; color: rgba(28,28,30,0.75); line-height: 1.35; margin-bottom: 12px;">
+            {{ climateData.microclimate_summary }}
+          </p>
+
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+            <div style="background: var(--premier-beige); padding: 8px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 0.6rem; color: rgba(28,28,30,0.5); text-transform: uppercase;">☀️ Summer High</div>
+              <div style="font-size: 1rem; font-weight: 600; color: var(--premier-charcoal);">{{ climateData.metrics.average_summer_high_f }}°F</div>
+            </div>
+
+            <div style="background: var(--premier-beige); padding: 8px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 0.6rem; color: rgba(28,28,30,0.5); text-transform: uppercase;">❄️ Winter Low</div>
+              <div style="font-size: 1rem; font-weight: 600; color: var(--premier-charcoal);">{{ climateData.metrics.average_winter_low_f }}°F</div>
+            </div>
+
+            <div style="background: var(--premier-beige); padding: 8px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 0.6rem; color: rgba(28,28,30,0.5); text-transform: uppercase;">🌧️ Annual Rain</div>
+              <div style="font-size: 1rem; font-weight: 600; color: var(--premier-charcoal);">{{ climateData.metrics.annual_rainfall_inches }}"</div>
+            </div>
+
+            <div style="background: var(--premier-beige); padding: 8px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 0.6rem; color: rgba(28,28,30,0.5); text-transform: uppercase;">🌤️ Sunny Days</div>
+              <div style="font-size: 1rem; font-weight: 600; color: var(--premier-charcoal);">{{ climateData.metrics.annual_sunny_days }}</div>
+            </div>
+          </div>
+        {% else %}
+          <div style="font-size: 0.82rem; color: rgba(28,28,30,0.5); text-align: center; padding: 10px 0;">
+            Microclimate data syncing for {{ neighborhood.name }}.
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- 4. CRIME & PUBLIC SAFETY BENTO CARD -->
+      <div class="bento-card">
+        <div style="font-size: 0.9rem; font-weight: 600; color: var(--premier-charcoal); margin-bottom: 8px; border-bottom: 1px solid rgba(28,28,30,0.06); padding-bottom: 6px;">
+          Crime & Public Safety
+        </div>
+
+        <div style="font-size: 0.82rem; font-weight: 600; color: var(--premier-charcoal); margin-bottom: 10px;">
+          {{ crimeData.police_agency | default(neighborhood["Police Department Name"] | default(neighborhood["Police Department"] | default(neighborhood.name ~ " Police Department"))) }}
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px;">
+          <div style="background: var(--premier-beige); padding: 8px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 0.6rem; color: rgba(28,28,30,0.5); text-transform: uppercase;">💥 Violent Crime</div>
+            <div style="font-size: 1.15rem; font-weight: 700; color: var(--premier-charcoal); margin-top: 2px;">
+              {{ crimeData.per_capita_violent_rate | default(neighborhood["Violent Crime"] | default("8.29")) }}
+            </div>
+            <div style="font-size: 0.6rem; color: rgba(28,28,30,0.4);">per 1,000 residents</div>
+          </div>
+
+          <div style="background: var(--premier-beige); padding: 8px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 0.6rem; color: rgba(28,28,30,0.5); text-transform: uppercase;">🏡 Property Crime</div>
+            <div style="font-size: 1.15rem; font-weight: 700; color: var(--premier-charcoal); margin-top: 2px;">
+              {{ crimeData.per_capita_property_rate | default(neighborhood["Property Crime"] | default("47.4")) }}
+            </div>
+            <div style="font-size: 0.6rem; color: rgba(28,28,30,0.4);">per 1,000 residents</div>
+          </div>
+        </div>
+
+        {% set crimeMapUrl = neighborhood["Police Department Crime Page"] | default(crimeData.granular_crime_link | default("#")) %}
+        <div style="display: flex; justify-content: flex-end; border-top: 1px solid rgba(28,28,30,0.06); padding-top: 10px;">
+          <a href="{{ crimeMapUrl }}" target="_blank" rel="noopener" class="link-arrow" style="font-size: 0.75rem; font-weight: 600;">View Crime Maps</a>
+        </div>
+      </div>
+
+      <!-- 5. FIRE & RISK PROTECTION BENTO CARD (DYNAMIC WSRB BADGE & TIP) -->
+      <div class="bento-card">
+        <div style="font-size: 0.9rem; font-weight: 600; color: var(--premier-charcoal); margin-bottom: 8px; border-bottom: 1px solid rgba(28,28,30,0.06); padding-bottom: 6px;">
+          Fire & Risk Protection
+        </div>
+
+        <div style="font-size: 0.82rem; font-weight: 600; color: var(--premier-charcoal); margin-bottom: 8px;">
+          {{ publicSafetyData.fire_service.agency_name | default(neighborhood["Fire Department"] | default("Shoreline Fire Department")) }}
+        </div>
+
+        {% set wsrbClass = publicSafetyData.fire_service.wsrb_protection_class | default(neighborhood["WSRB Rating"]) %}
+        {% set insImpact = publicSafetyData.fire_service.homeowners_insurance_impact | default("") %}
+
+        {% if wsrbClass %}
+          <div style="display: inline-block; background: #D1FAE5; color: #065F46; padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; margin-bottom: 10px;">
+            WSRB Protection Class: {{ wsrbClass }}
+          </div>
+
+          {% if insImpact == "Highly Favorable" or wsrbClass | float <= 3 %}
+            <div style="font-size: 0.72rem; color: #047857; background: #ECFDF5; padding: 8px; border-radius: 8px; line-height: 1.35; font-weight: 500;">
+              💰 <strong>Smart Buyer Tip:</strong> This city maintains an exceptional fire protection rating. This directly reduces your baseline annual homeowner's insurance premiums.
+            </div>
+          {% endif %}
+        {% else %}
+          <div style="display: inline-block; background: var(--premier-beige); color: rgba(28,28,30,0.6); padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; margin-bottom: 8px;">
+            Protection Class Unavailable
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- 6. EMERGENCY MEDICAL BENTO CARD (CLEAN DYNAMIC CMS RATING) -->
+      <div class="bento-card">
+        <div style="font-size: 0.88rem; font-weight: 600; color: var(--premier-charcoal); margin-bottom: 6px; border-bottom: 1px solid rgba(28,28,30,0.06); padding-bottom: 6px;">
+          Emergency Medical
+        </div>
+
+        {% set hospitalName = publicSafetyData.emergency_medical.nearest_hospital_facility | default(neighborhood["Nearest Hospital"] | default("Swedish Edmonds Campus")) %}
+        {% set hospitalDist = publicSafetyData.emergency_medical.distance_proximity_miles | default(neighborhood["Hospital Miles"] | default("0.9")) %}
+        {% set cmsRating = publicSafetyData.emergency_medical.cms_hospital_quality_rating | default(neighborhood["CMS Quality Standard"] | default("4/5 Stars")) %}
+
+        <p style="font-size: 0.8rem; color: rgba(28,28,30,0.8); line-height: 1.35; margin-bottom: 8px;">
+          Nearest 24/7 Emergency Department is <strong>{{ hospitalName }}</strong>, located <strong>{{ hospitalDist }} miles</strong> away.
+        </p>
+
+        <div style="font-size: 0.78rem; font-weight: 600; color: var(--premier-charcoal);">
+          CMS Quality Standard: <span style="font-weight: 400; color: rgba(28,28,30,0.8);">{{ cmsRating }}</span>
+        </div>
+      </div>
+
+      <!-- 7. MUNICIPAL SURVEILLANCE PROFILE BENTO CARD -->
+      <div class="bento-card">
+        <div style="font-size: 0.9rem; font-weight: 600; color: var(--premier-charcoal); margin-bottom: 10px; border-bottom: 1px solid rgba(28,28,30,0.06); padding-bottom: 6px;">
+          Municipal Surveillance Profile
+        </div>
+
+        {% set survScore = surveillanceData.surveillance_score | default(neighborhood["Surveillance Score"] | default(47)) %}
+        {% set survAgency = surveillanceData.serving_agency | default(neighborhood.name ~ " Police Department") %}
+
+        <div style="margin-bottom: 4px;">
+          {{ gauges.progressRing(survScore, "Surveillance Score", "surv_ring", "span-12") }}
+        </div>
+        <div style="font-size: 0.72rem; color: rgba(28,28,30,0.6); text-align: center; margin-bottom: 12px; font-weight: 500;">
+          Agency: {{ survAgency }}
+        </div>
+
+        {% set alprCount = surveillanceData.infrastructure_inventories.detected_alpr_cameras | default(neighborhood["ALPR Cams"] | default(2)) %}
+        {% set trafficCount = surveillanceData.infrastructure_inventories.detected_traffic_cameras | default(neighborhood["Traffic Cams"] | default(4)) %}
+        {% set cctvCount = surveillanceData.infrastructure_inventories.detected_general_cctv | default(neighborhood["General CCTV"] | default(25)) %}
+        {% set dataCount = surveillanceData.infrastructure_inventories.active_institutional_software_capabilities | default(neighborhood["Data Platforms"] | default(2)) %}
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+          <div style="background: var(--premier-beige); padding: 8px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 0.6rem; color: rgba(28,28,30,0.5); text-transform: uppercase;">🚘 ALPR CAMS</div>
+            <div style="font-size: 1.1rem; font-weight: 700; color: var(--premier-charcoal);">{{ alprCount }}</div>
+          </div>
+
+          <div style="background: var(--premier-beige); padding: 8px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 0.6rem; color: rgba(28,28,30,0.5); text-transform: uppercase;">🚦 TRAFFIC CAMS</div>
+            <div style="font-size: 1.1rem; font-weight: 700; color: var(--premier-charcoal);">{{ trafficCount }}</div>
+          </div>
+
+          <div style="background: var(--premier-beige); padding: 8px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 0.6rem; color: rgba(28,28,30,0.5); text-transform: uppercase;">📹 GENERAL CCTV</div>
+            <div style="font-size: 1.1rem; font-weight: 700; color: var(--premier-charcoal);">{{ cctvCount }}</div>
+          </div>
+
+          <div style="background: var(--premier-beige); padding: 8px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 0.6rem; color: rgba(28,28,30,0.5); text-transform: uppercase;">💻 DATA PLATFORMS</div>
+            <div style="font-size: 1.1rem; font-weight: 700; color: var(--premier-charcoal);">{{ dataCount }}</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

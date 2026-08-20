@@ -1,0 +1,436 @@
+---
+layout: base.njk
+pagination:
+  data: city_data
+  size: 1
+  alias: neighborhood
+permalink: "/neighborhood/{{ neighborhood.slug }}/weather/"
+eleventyComputed:
+  title: "{{ neighborhood.name }} Weather, Live Radar, Tides & River Gauges | MySeattleSearch"
+  description: "Live weather radar, 7-day local forecast, NOAA marine tides, USGS river streamflow gauges, and air quality telemetry for {{ neighborhood.name }}, Washington."
+---
+
+{% import "components/cards.njk" as cards %}
+{% import "components/gauges.njk" as gauges %}
+{% import "components/media.njk" as media %}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+<style>
+  .weather-forecast-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+  }
+  @media (max-width: 768px) {
+    .weather-forecast-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  .forecast-day-card {
+    background: var(--premier-beige);
+    padding: 12px 8px;
+    border-radius: 10px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .map-layer-pill {
+    background: var(--premier-beige);
+    border: 1px solid rgba(28,28,30,0.12);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--premier-charcoal);
+    transition: all 0.2s ease;
+  }
+  .map-layer-pill.active {
+    background: var(--alpine-blue);
+    color: #FFFFFF;
+    border-color: var(--alpine-blue);
+  }
+</style>
+
+{# Data Loaders #}
+{% set cityWeather = neighborhood.slug | getCityWeather %}
+{% set fullWeather = neighborhood.slug | getCityFullWeather %}
+{% set transitLive = neighborhood.slug | getTransitLive %}
+{% set marketStats = neighborhood.slug | getMarketStats %}
+{% set topGame = "" | getTopSportsGame %}
+
+{% set climateData = neighborhood.name | getClimateComfort %}
+{% set riverGauges = "" | getRegionalWaterGauges %}
+
+<!-- HERO CAROUSEL -->
+{{ media.heroCarousel(neighborhood.name, "Weather & Marine Radar", neighborhood.heroImages, neighborhood.county) }}
+
+<!-- FULL-WIDTH AT-A-GLANCE TELEMETRY BAR -->
+{{ gauges.glanceBarFull(cityWeather, transitLive, marketStats, topGame, neighborhood) }}
+
+<div class="bento-grid">
+
+  <!-- Left Main Column: Weather Stream (span-8) -->
+  <div class="span-8" style="display: flex; flex-direction: column; gap: 24px;">
+
+    <!-- 1. CURRENT WEATHER & 7-DAY FORECAST -->
+    <div class="bento-card">
+      <div class="bento-card-header">
+        <span>{{ neighborhood.name | upper }} WEATHER & 7-DAY FORECAST</span>
+        <span style="font-size: 0.68rem; opacity: 0.9;">NOAA Feed</span>
+      </div>
+
+      {% set curr = fullWeather.current if fullWeather else {} %}
+      {% set fc7 = fullWeather.forecast_7_day if fullWeather else {} %}
+
+      <!-- Current Conditions Banner -->
+      <div style="display: flex; align-items: center; justify-content: space-between; background: var(--premier-beige); padding: 16px 20px; border-radius: 12px; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="font-size: 2.8rem;">
+            {% set code = curr.weather_code | default(0) %}
+            {% if code in [61, 63, 65, 80, 81, 82] %}🌧️{% elif code in [51, 53, 55] %}🌦️{% elif code in [1, 2] %}⛅{% elif code == 3 %}☁️{% elif code in [45, 48] %}🌫️{% elif code in [71, 73, 75] %}❄️{% else %}☀️{% endif %}
+          </div>
+          <div>
+            <div style="font-size: 2.2rem; font-weight: 700; color: var(--premier-charcoal); line-height: 1;">
+              {{ curr.temp_f | default(cityWeather.temp) | round }}°F
+            </div>
+            <div style="font-size: 0.85rem; font-weight: 600; color: var(--alpine-blue); margin-top: 4px;">
+              {{ cityWeather.condition | default("Sunny") }} in {{ neighborhood.name }}
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 20px; font-size: 0.8rem; color: var(--premier-charcoal);">
+          <div>
+            <div style="font-size: 0.62rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">Humidity</div>
+            <div style="font-weight: 600; font-size: 1.05rem;">{{ curr.humidity_pct | default(55) }}%</div>
+          </div>
+          <div style="border-left: 1px solid rgba(28,28,30,0.1); padding-left: 16px;">
+            <div style="font-size: 0.62rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">Wind Speed</div>
+            <div style="font-weight: 600; font-size: 1.05rem;">{{ curr.wind_speed_mph | default(7.2) }} mph</div>
+          </div>
+          <div style="border-left: 1px solid rgba(28,28,30,0.1); padding-left: 16px;">
+            <div style="font-size: 0.62rem; text-transform: uppercase; color: rgba(28,28,30,0.5);">High / Low</div>
+            <div style="font-weight: 600; font-size: 1.05rem;">
+              {{ cityWeather.temp_high | default(79) }}° / {{ cityWeather.temp_low | default(54) }}°
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7-Day Local Forecast -->
+      <div style="font-size: 0.85rem; font-weight: 600; color: var(--premier-charcoal); margin-bottom: 10px;">
+        7-Day Local Forecast
+      </div>
+
+      <div class="weather-forecast-grid">
+        {% if fc7 and fc7.dates and fc7.dates.length > 0 %}
+          {% for dateStr in fc7.dates %}
+            {% set idx = loop.index0 %}
+            <div class="forecast-day-card">
+              <div style="font-size: 0.72rem; font-weight: 700; color: var(--premier-charcoal); margin-bottom: 4px;">
+                {{ dateStr | formatForecastDate }}
+              </div>
+              <div style="font-size: 1.4rem; margin: 4px 0;">
+                {% set pProb = fc7.precip_prob_max[idx] | default(0) %}
+                {% if pProb > 40 %}🌧️{% elif pProb > 15 %}⛅{% else %}☀️{% endif %}
+              </div>
+              <div style="font-size: 0.88rem; font-weight: 700; color: var(--premier-charcoal);">
+                {{ fc7.temp_max[idx] | round }}°
+              </div>
+              <div style="font-size: 0.72rem; color: rgba(28,28,30,0.5);">
+                {{ fc7.temp_min[idx] | round }}°
+              </div>
+              <div style="font-size: 0.62rem; color: var(--alpine-blue); font-weight: 600; margin-top: 6px;">
+                💧 {{ pProb }}%
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div style="font-size: 0.8rem; color: rgba(28,28,30,0.5); grid-column: span 7; text-align: center; padding: 12px;">
+            7-day forecast data syncing for {{ neighborhood.name }}.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- 2. INTERACTIVE LIVE WEATHER RADAR & MAP -->
+    <div class="bento-card" style="padding: 0; overflow: hidden; border-radius: 12px; border: 1px solid rgba(28,28,30,0.1);">
+      <div class="bento-card-header" style="margin: 0; border-radius: 0; padding: 12px 18px; width: 100%; box-sizing: border-box; background: var(--alpine-blue); color: #FFFFFF; display: flex; justify-content: space-between; align-items: center;">
+        <span>{{ neighborhood.name | upper }} LIVE WEATHER RADAR & MAP</span>
+        <span style="font-size: 0.68rem; opacity: 0.9;">Real-Time Radar</span>
+      </div>
+
+      <!-- Map Layer Pill Controls -->
+      <div style="padding: 10px 16px; background: #FFFFFF; border-bottom: 1px solid rgba(28,28,30,0.08); display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <span style="font-size: 0.72rem; font-weight: 600; color: rgba(28,28,30,0.5); margin-right: 4px;">LAYERS:</span>
+        <button id="pill-radar" class="map-layer-pill active" onclick="toggleRadarLayer(this)">🌧️ Live Radar</button>
+        <button id="pill-tides" class="map-layer-pill" onclick="toggleTidesLayer(this)">🌊 Tide Stations</button>
+        <button id="pill-clouds" class="map-layer-pill" onclick="toggleCloudsLayer(this)">☁️ Satellite Clouds</button>
+      </div>
+
+      <!-- Edge-to-Edge Map Canvas -->
+      <div id="weather-interactive-map" style="width: 100%; height: 420px; z-index: 1;"></div>
+    </div>
+
+    <!-- 3. REGIONAL HYDROLOGICAL WATER GAUGES -->
+    <div class="bento-card">
+      <div class="bento-card-header">
+        <span>REGIONAL RIVER & WATER GAUGES</span>
+        <span style="font-size: 0.68rem; opacity: 0.9;">USGS Live Stream</span>
+      </div>
+
+      <p style="font-size: 0.8rem; color: rgba(28,28,30,0.7); margin-bottom: 14px; line-height: 1.35;">
+        Real-time hydrological streamflow discharge and gage height telemetry from USGS water monitoring stations across King and Snohomish county river basins.
+      </p>
+
+      {% if riverGauges and riverGauges.length > 0 %}
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; box-sizing: border-box;">
+          {% for gauge in riverGauges %}
+            <div style="background: var(--premier-beige); padding: 10px 12px; border-radius: 10px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; box-sizing: border-box;">
+              <div style="font-size: 0.7rem; font-weight: 700; color: var(--premier-charcoal); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ gauge.site_name }}">
+                {{ gauge.site_name }}
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 4px; min-width: 0;">
+                <span style="font-size: 1.05rem; font-weight: 700; color: var(--alpine-blue); white-space: nowrap;">
+                  {{ gauge.reading }} <span style="font-size: 0.65rem; font-weight: 500;">{{ gauge.unit }}</span>
+                </span>
+                <span style="font-size: 0.6rem; color: rgba(28,28,30,0.55); font-weight: 500; white-space: nowrap; text-align: right; flex-shrink: 0;">
+                  {{ gauge.reading_time | formatGaugeTime }}
+                </span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div style="font-size: 0.85rem; color: rgba(28,28,30,0.5); text-align: center; padding: 12px 0;">
+          Hydrological streamflow data currently syncing.
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- Right Sidebar Column: Directory, Climate, Sun Arc, AQI, and Marine Tides (span-4) -->
+  <div class="span-4" style="display: flex; flex-direction: column; gap: 24px;">
+
+    <!-- 1. DIRECTORY NAVIGATION CARD -->
+    <div class="bento-card bento-card--action">
+      <div class="bento-card-header bento-card-header--action">
+        <span>{{ neighborhood.name | upper }} DIRECTORY</span>
+      </div>
+      <ul class="subpage-list">
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/"><span>← Main Community Hub</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/transit-commute/"><span>Transit & Commute</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/news-events/"><span>News & Events</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/municipal/"><span>Municipal Services</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/emergency-safety/"><span>Emergency & Safety</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/elections/"><span>Elections & Voting</span> <span>→</span></a></li>
+        <li><a href="/neighborhood/{{ neighborhood.slug }}/data/"><span>Data & Statistics</span> <span>→</span></a></li>
+      </ul>
+    </div>
+
+    <!-- 2. CLIMATE COMFORT INDEX SCORE -->
+    <div class="bento-card">
+      <div style="font-size: 0.9rem; font-weight: 600; color: var(--premier-charcoal); margin-bottom: 8px; border-bottom: 1px solid rgba(28,28,30,0.06); padding-bottom: 6px;">
+        Climate Comfort Profile
+      </div>
+
+      {% set rawComfort = climateData.comfort_index_score | default(8.1) %}
+      {% set normComfort = (rawComfort * 10) | round %}
+
+      <div style="margin-bottom: 4px;">
+        {{ gauges.progressRing(normComfort, "Climate Comfort Score", "climate_comfort_ring", "span-12") }}
+      </div>
+      <div style="font-size: 0.72rem; color: rgba(28,28,30,0.6); text-align: center; margin-bottom: 10px; font-weight: 500;">
+        Station: {{ climateData.assigned_weather_station | default("NOAA Station") }}
+      </div>
+      <p style="font-size: 0.78rem; color: rgba(28,28,30,0.75); line-height: 1.35; margin: 0;">
+        {{ climateData.microclimate_summary }}
+      </p>
+    </div>
+
+    <!-- 3. SUNRISE & SUNSET TRACKER ARC -->
+    {% set daylightPct = cityWeather.daylight_pct | default(0.86) %}
+    {{ gauges.sunRing(cityWeather.sunrise | default("6:07 AM"), cityWeather.sunset | default("8:17 PM"), false, daylightPct, "span-12") }}
+
+    <!-- 4. AIR QUALITY INDEX (AQI) PROGRESS RING CARD -->
+    {% set aqiVal = fullWeather.air_quality.us_aqi | default(cityWeather.aqi | default(61)) %}
+    {% set aqiLabel = fullWeather.air_quality.status_label | default(cityWeather.aqi_label | default("Moderate")) %}
+    
+    <div class="bento-card">
+      <div style="font-size: 0.9rem; font-weight: 600; color: var(--premier-charcoal); margin-bottom: 8px; border-bottom: 1px solid rgba(28,28,30,0.06); padding-bottom: 6px;">
+        Air Quality Index (AQI)
+      </div>
+
+      <div style="margin-bottom: 8px;">
+        {{ gauges.progressRing(aqiVal, aqiLabel, "aqi_ring", "span-12") }}
+      </div>
+
+      <div style="font-size: 0.7rem; color: rgba(28,28,30,0.6); text-align: center;">
+        PM2.5: {{ fullWeather.air_quality.pm2_5 | default(16.8) }} µg/m³ • {{ fullWeather.air_quality.reporting_area | default("Puget Sound Basin") }}
+      </div>
+    </div>
+
+    <!-- 5. NOAA MARINE TIDES WIDGET BENTO CARD (EDGE-TO-EDGE WAVE GRAPHIC) -->
+    {% set tidesObj = fullWeather.marine_tides if fullWeather else null %}
+    {% set refStation = tidesObj.reference_station | default(neighborhood.name) if tidesObj else neighborhood.name %}
+    
+    {% set highPred = null %}
+    {% set lowPred = null %}
+    {% if tidesObj and tidesObj.today_predictions %}
+      {% for p in tidesObj.today_predictions %}
+        {% if p.type == "High" and not highPred %}{% set highPred = p %}{% endif %}
+        {% if p.type == "Low" and not lowPred %}{% set lowPred = p %}{% endif %}
+      {% endfor %}
+    {% endif %}
+
+    {% set hTime = highPred.time | formatTideTime if highPred else "9:02 AM" %}
+    {% set hFt = (highPred.height_ft | string ~ " ft") if highPred else "9.1 ft" %}
+    {% set lTime = lowPred.time | formatTideTime if lowPred else "2:55 AM" %}
+    {% set lFt = (lowPred.height_ft | string ~ " ft") if lowPred else "1.9 ft" %}
+
+    <div class="bento-card" style="padding: 0; overflow: hidden; border-radius: 12px; border: 1px solid rgba(28,28,30,0.1);">
+      <!-- Header Bar -->
+      <div class="bento-card-header" style="margin: 0; border-radius: 0; padding: 12px 18px; width: 100%; box-sizing: border-box; background: var(--alpine-blue); color: #FFFFFF; display: flex; justify-content: space-between; align-items: center;">
+        <span>NOAA MARINE TIDES</span>
+        <span style="font-size: 0.68rem; opacity: 0.9;">{{ refStation | upper }}</span>
+      </div>
+
+      <!-- Edge-to-Edge Inner Container -->
+      <div style="background: #EFE9E0; display: flex; flex-direction: column; width: 100%; box-sizing: border-box;">
+        
+        <!-- Row 1: Next High Tide -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 16px 10px 16px; font-size: 0.82rem; font-weight: 700; color: var(--premier-charcoal);">
+          <span>NEXT HIGH {{ hTime }}</span>
+          <span>{{ hFt }}</span>
+        </div>
+
+        <!-- Row 2: Full Width Wave Transition SVG -->
+        <div style="width: 100%; height: 14px; overflow: hidden; line-height: 0; margin-bottom: -1px;">
+          <svg viewBox="0 0 120 14" preserveAspectRatio="none" style="width: 100%; height: 14px; display: block;">
+            <path d="M0,4 C30,12 60,0 90,8 C105,12 120,2 120,2 L120,14 L0,14 Z" fill="#6B889B"/>
+          </svg>
+        </div>
+
+        <!-- Row 3: Solid Water Block (Text Centered Safely Below Wave Crest) -->
+        <div style="background: #6B889B; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; font-weight: 600; color: #FFFFFF; width: 100%; box-sizing: border-box;">
+          <span>Reference Station: {{ refStation }}</span>
+          <span style="color: #6EE7B7; font-weight: 700;">▲ Tide Rising</span>
+        </div>
+
+        <!-- Row 4: Sandy Bottom Low Tide Base -->
+        <div style="background: #E1D4B8; padding: 12px 16px 14px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; font-weight: 700; color: var(--premier-charcoal); border-top: 2px solid #C8B89C; width: 100%; box-sizing: border-box;">
+          <span>NEXT LOW {{ lTime }}</span>
+          <span>{{ lFt }}</span>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Leaflet Interactive Map Initialization Script -->
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const cityLat = {{ fullWeather.latitude | default(47.756) }};
+    const cityLng = {{ fullWeather.longitude | default(-122.345) }};
+
+    const weatherMap = L.map('weather-interactive-map', {
+      center: [cityLat, cityLng],
+      zoom: 10,
+      scrollWheelZoom: false
+    });
+
+    // Base Street Map Layer
+    const baseMapLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(weatherMap);
+
+    // Live NEXRAD Precipitation Radar Layer
+    const radarLayer = L.tileLayer('https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png', {
+      opacity: 0.75,
+      attribution: '&copy; IEM NEXRAD'
+    }).addTo(weatherMap);
+
+    // Satellite Infrared Cloud Cover Layer
+    const cloudLayer = L.tileLayer('https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/GOES-EAST-VIS-0/{z}/{x}/{y}.png', {
+      opacity: 0.55,
+      attribution: '&copy; GOES Satellite'
+    });
+
+    // Puget Sound Tide Monitoring Stations Layer
+    const tideStationsGroup = L.layerGroup();
+    const tideStations = [
+      { name: "Seattle Tide Station", lat: 47.6026, lng: -122.3393 },
+      { name: "Edmonds Tide Station", lat: 47.8133, lng: -122.3833 },
+      { name: "Everett Tide Station", lat: 48.0033, lng: -122.2217 },
+      { name: "Des Moines Tide Station", lat: 47.4033, lng: -122.3300 },
+      { name: "Tacoma Tide Station", lat: 47.2683, lng: -122.4117 }
+    ];
+
+    tideStations.forEach(st => {
+      L.circleMarker([st.lat, st.lng], {
+        radius: 6,
+        fillColor: '#007AFF',
+        color: '#FFFFFF',
+        weight: 2,
+        fillOpacity: 0.9
+      }).bindPopup(`<strong>🌊 ${st.name}</strong><br>NOAA CO-OPS Reference Point`).addTo(tideStationsGroup);
+    });
+
+    // City Marker
+    L.circleMarker([cityLat, cityLng], {
+      radius: 8,
+      fillColor: '#C13030',
+      color: '#FFFFFF',
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.95
+    }).addTo(weatherMap).bindPopup("<strong>{{ neighborhood.name }}</strong><br>Live Telemetry Station");
+
+    // Global Layer References for Controls
+    window.weatherRadarMapObj = weatherMap;
+    window.radarTileLayerRef = radarLayer;
+    window.cloudTileLayerRef = cloudLayer;
+    window.tideStationsGroupRef = tideStationsGroup;
+  });
+
+  function toggleRadarLayer(btn) {
+    btn.classList.toggle('active');
+    if (window.radarTileLayerRef) {
+      if (btn.classList.contains('active')) {
+        window.weatherRadarMapObj.addLayer(window.radarTileLayerRef);
+      } else {
+        window.weatherRadarMapObj.removeLayer(window.radarTileLayerRef);
+      }
+    }
+  }
+
+  function toggleTidesLayer(btn) {
+    btn.classList.toggle('active');
+    if (window.tideStationsGroupRef) {
+      if (btn.classList.contains('active')) {
+        window.weatherRadarMapObj.addLayer(window.tideStationsGroupRef);
+      } else {
+        window.weatherRadarMapObj.removeLayer(window.tideStationsGroupRef);
+      }
+    }
+  }
+
+  function toggleCloudsLayer(btn) {
+    btn.classList.toggle('active');
+    if (window.cloudTileLayerRef) {
+      if (btn.classList.contains('active')) {
+        window.weatherRadarMapObj.addLayer(window.cloudTileLayerRef);
+      } else {
+        window.weatherRadarMapObj.removeLayer(window.cloudTileLayerRef);
+      }
+    }
+  }
+</script>

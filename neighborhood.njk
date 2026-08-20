@@ -24,7 +24,7 @@ eleventyComputed:
 {% set editorialParagraphs = neighborhood.slug | getEditorialParagraphs %}
 {% set cityEventList = neighborhood.slug | getCityEvents %}
 
-<!-- NO SUBTITLE PASSING ON MAIN HUB PAGE -->
+<!-- HERO CAROUSEL (NO SUBTITLE ON MAIN HUB) -->
 {{ media.heroCarousel(neighborhood.name, "", neighborhood.heroImages, neighborhood.county) }}
 
 <!-- FULL-WIDTH SINGLE AT-A-GLANCE BAR WITH 6 RICH VISUAL SLOTS -->
@@ -35,7 +35,7 @@ eleventyComputed:
   <!-- Left Main Column (span-8) -->
   <div class="span-8" style="display: flex; flex-direction: column; gap: 24px;">
     
-    <!-- EXPLORE DIRECTORY (2-COLUMN GRID OF ORIGINAL PILL BUTTONS) -->
+    <!-- EXPLORE DIRECTORY (2-COLUMN GRID OF PILL BUTTONS) -->
     <div class="bento-card bento-card--action">
       <div class="bento-card-header bento-card-header--action">
         <span>EXPLORE {{ neighborhood.name | upper }}</span>
@@ -59,7 +59,7 @@ eleventyComputed:
       
       {% if regionalArticles and regionalArticles.length > 0 %}
         {% for article in regionalArticles %}
-          <div class="news-item" {% if loop.last %}style="border:none; padding:0; margin:0;"{% endif %}>
+          <div class="news-item" {% if loop.last %}style="border:none; padding-bottom:0; margin-bottom:0;"{% endif %}>
             <div class="news-source">{{ article.source | default("Local Feed") }}</div>
             <h4 class="news-headline">{{ article.title }}</h4>
             <p class="news-summary">{{ article.summary }}</p>
@@ -69,9 +69,15 @@ eleventyComputed:
             </div>
           </div>
         {% endfor %}
+        <div style="display: flex; justify-content: flex-end; margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(28,28,30,0.06);">
+          <a href="/neighborhood/{{ neighborhood.slug }}/news-events/" class="link-arrow" style="font-weight: 600;">See All {{ neighborhood.name }} News & Events</a>
+        </div>
       {% else %}
         <div style="font-size: 0.85rem; color: rgba(28,28,30,0.5); padding: 12px 0;">
           No regional news articles currently available.
+        </div>
+        <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+          <a href="/neighborhood/{{ neighborhood.slug }}/news-events/" class="link-arrow">Browse News & Events Archive</a>
         </div>
       {% endif %}
     </div>
@@ -151,9 +157,15 @@ eleventyComputed:
               <div style="font-size: 0.78rem; color: rgba(28,28,30,0.6);">{{ ev.date }}{% if ev.time_location %} • {{ ev.time_location }}{% endif %}</div>
             </div>
           {% endfor %}
+          <div style="display: flex; justify-content: flex-end; margin-top: 4px; padding-top: 8px; border-top: 1px solid rgba(28,28,30,0.06);">
+            <a href="/neighborhood/{{ neighborhood.slug }}/news-events/" class="link-arrow" style="font-size: 0.82rem;">See All Events</a>
+          </div>
         {% else %}
           <div style="font-size: 0.85rem; color: rgba(28,28,30,0.5); padding: 4px 0;">
             No upcoming events currently scheduled.
+          </div>
+          <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+            <a href="/neighborhood/{{ neighborhood.slug }}/news-events/" class="link-arrow" style="font-size: 0.82rem;">View Full Calendar</a>
           </div>
         {% endif %}
       </div>

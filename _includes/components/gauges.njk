@@ -49,17 +49,21 @@
     </div>
   </a>
 
-  <!-- Slot 2: Sunrise & Sunset Ring (Clean Inline AM/PM Format) -->
+  <!-- Slot 2: Sunrise & Sunset Ring (Dynamic Daylight Progress Tracker) -->
   <a href="/neighborhood/{{ neighborhood.slug | default('seattle') }}/weather/" class="glance-slot">
     <div class="glance-widget-content">
       <div class="glance-label">Sunrise & Sunset</div>
+      {% set dayProgressPct = dayProgressPct | default(0.55) %}
+      {% set rotAngle = (dayProgressPct - 0.5) * 180 %}
       <div style="position: relative; width: 52px; height: 52px; margin: 2px auto;">
         <svg width="52" height="52" viewBox="0 0 100 100">
           <path d="M 12 50 A 38 38 0 0 1 88 50" fill="none" stroke="#FFCC00" stroke-width="6" stroke-linecap="round"/>
           <path d="M 88 50 A 38 38 0 0 1 12 50" fill="none" stroke="#1C1C1E" stroke-width="6" stroke-linecap="round"/>
           <polygon points="12,38 6,52 18,52" fill="#1C1C1E"/>
           <polygon points="88,62 82,47 94,47" fill="#FFCC00"/>
-          <circle cx="50" cy="12" r="5" fill="#FFFFFF" stroke="#1C1C1E" stroke-width="1.8"/>
+          <g transform="rotate({{ rotAngle }} 50 50)">
+            <circle cx="50" cy="12" r="5" fill="#FFCC00" stroke="#1C1C1E" stroke-width="1.8"/>
+          </g>
         </svg>
       </div>
       
@@ -108,7 +112,7 @@
     </div>
   </a>
 
-  <!-- Slot 5: Real Estate Market -->
+  <!-- Slot 5: Real Estate Market (Dynamic Months Supply Calibration) -->
   <a href="/neighborhood/{{ neighborhood.slug | default('seattle') }}/data/" class="glance-slot">
     <div class="glance-widget-content">
       <div class="glance-label">Real Estate Market</div>
@@ -125,10 +129,12 @@
             </linearGradient>
           </defs>
           <path d="M 12 52 A 42 42 0 0 1 96 52" fill="none" stroke="url(#glanceSpeedoGrad)" stroke-width="10" stroke-linecap="round"/>
-          {% set status = marketStats.market_label | default("Seller's Market") %}
-          {% set needleAngle = 65 %}
-          {% if "Buyer" in status %}{% set needleAngle = -62 %}{% endif %}
-          {% if "Balanced" in status %}{% set needleAngle = 0 %}{% endif %}
+          
+          {% set moisVal = marketStats.months_supply | default(1.8) | float %}
+          {% set needleAngle = -90 + ((moisVal / 6.0) * 180) %}
+          {% if needleAngle > 85 %}{% set needleAngle = 85 %}{% endif %}
+          {% if needleAngle < -85 %}{% set needleAngle = -85 %}{% endif %}
+
           <g transform="translate(54,52) rotate({{ needleAngle }})">
             <line x1="0" y1="0" x2="0" y2="-44" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round"/>
             <line x1="0" y1="0" x2="0" y2="-44" stroke="#1C1C1E" stroke-width="2.5" stroke-linecap="round"/>
@@ -233,7 +239,7 @@
 {% endmacro %}
 
 {# Slot 5: Micro Market Hotness Speedometer Widget #}
-{% macro marketGaugeMicro(statusText="Seller's Market", label="Real Estate Market") %}
+{% macro marketGaugeMicro(statusText="Seller's Market", label="Real Estate Market", monthsSupply=1.8) %}
 <div style="display: flex; align-items: center; gap: 8px;">
   <svg width="34" height="22" viewBox="0 0 46 28">
     <defs>
@@ -247,8 +253,18 @@
       </linearGradient>
     </defs>
     <path d="M 5 26 A 18 18 0 0 1 41 26" fill="none" stroke="url(#speedometerGradientElectricGlance)" stroke-width="4.5" stroke-linecap="round"/>
-    <line x1="23" y1="26" x2="33" y2="10" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
-    <line x1="23" y1="26" x2="33" y2="10" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round"/>
+    
+    {% set moisVal = monthsSupply | default(1.8) | float %}
+    {% if "Buyer" in statusText and monthsSupply == 1.8 %}{% set moisVal = 4.8 %}{% endif %}
+    {% if "Balanced" in statusText and monthsSupply == 1.8 %}{% set moisVal = 3.0 %}{% endif %}
+    {% set needleAngle = -90 + ((moisVal / 6.0) * 180) %}
+    {% if needleAngle > 85 %}{% set needleAngle = 85 %}{% endif %}
+    {% if needleAngle < -85 %}{% set needleAngle = -85 %}{% endif %}
+
+    <g transform="translate(23,26) rotate({{ needleAngle }})">
+      <line x1="0" y1="0" x2="0" y2="-18" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+      <line x1="0" y1="0" x2="0" y2="-18" stroke="#1C1C1E" stroke-width="1.8" stroke-linecap="round"/>
+    </g>
   </svg>
   <div>
     <div class="glance-label">{{ label }}</div>
@@ -336,7 +352,7 @@
 {% endmacro %}
 
 {# Element 07: 24-Hour Sunrise / Sunset Ring Card #}
-{% macro sunRing(sunrise="6:08 AM", sunset="8:18 PM", isNight=false, dayProgressPct=0.45, span="span-2") %}
+{% macro sunRing(sunrise="6:08 AM", sunset="8:18 PM", isNight=false, dayProgressPct=0.55, span="span-2") %}
 <div class="bento-card {{ span }}">
   <div class="flex-between">
     <span class="bento-card-body" style="font-weight: 500; font-size: 0.72rem; color: var(--premier-charcoal); white-space: nowrap;">Sunrise & Sunset</span>
@@ -350,8 +366,8 @@
       <polygon points="12,38 6,52 18,52" fill="#1C1C1E"/>
       <polygon points="88,62 82,47 94,47" fill="#FFCC00"/>
 
+      {% set rotAngle = (dayProgressPct - 0.5) * 180 %}
       {% if not isNight %}
-        {% set rotAngle = (dayProgressPct - 0.5) * 180 %}
         <g transform="rotate({{ rotAngle }} 50 50)">
           <circle cx="50" cy="12" r="5" fill="#FFCC00" stroke="#1C1C1E" stroke-width="1"/>
           <line x1="50" y1="4" x2="50" y2="1.5" stroke="#FFCC00" stroke-width="1.5" stroke-linecap="round"/>
@@ -360,7 +376,6 @@
           <line x1="58" y1="12" x2="60.5" y2="12" stroke="#FFCC00" stroke-width="1.5" stroke-linecap="round"/>
         </g>
       {% else %}
-        {% set rotAngle = (dayProgressPct - 0.5) * 180 %}
         <g transform="rotate({{ rotAngle }} 50 50)">
           <circle cx="50" cy="88" r="5" fill="#FFFFFF" stroke="#1C1C1E" stroke-width="1.5"/>
         </g>
@@ -407,8 +422,8 @@
 </div>
 {% endmacro %}
 
-{# Element 09: Market Hotness Speedometer Card #}
-{% macro marketGauge(statusText="Seller's Market", label="Real Estate Market", span="span-2") %}
+{# Element 09: Market Hotness Speedometer Card (Calibrated Months Supply Angle) #}
+{% macro marketGauge(statusText="Seller's Market", label="Real Estate Market", monthsSupply=1.8, span="span-2") %}
 <div class="bento-card {{ span }}">
   <div class="flex-between">
     <span class="bento-card-body" style="font-weight: 500; font-size: 0.72rem; color: var(--premier-charcoal); white-space: nowrap;">{{ label }}</span>
@@ -429,9 +444,13 @@
 
       <path d="M 12 52 A 42 42 0 0 1 96 52" fill="none" stroke="url(#speedometerGradientElectricCard)" stroke-width="10" stroke-linecap="round"/>
       
-      {% set needleAngle = 65 %}
-      {% if "Buyer" in statusText %}{% set needleAngle = -62 %}{% endif %}
-      {% if "Balanced" in statusText %}{% set needleAngle = 0 %}{% endif %}
+      {% set moisVal = monthsSupply | default(1.8) | float %}
+      {% if "Buyer" in statusText and monthsSupply == 1.8 %}{% set moisVal = 4.8 %}{% endif %}
+      {% if "Balanced" in statusText and monthsSupply == 1.8 %}{% set moisVal = 3.0 %}{% endif %}
+      {% set needleAngle = -90 + ((moisVal / 6.0) * 180) %}
+      {% if needleAngle > 85 %}{% set needleAngle = 85 %}{% endif %}
+      {% if needleAngle < -85 %}{% set needleAngle = -85 %}{% endif %}
+
       <g transform="translate(54,52) rotate({{ needleAngle }})">
         <line x1="0" y1="0" x2="0" y2="-44" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round"/>
         <line x1="0" y1="0" x2="0" y2="-44" stroke="#1C1C1E" stroke-width="2.5" stroke-linecap="round"/>
