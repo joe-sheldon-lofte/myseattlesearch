@@ -20,6 +20,19 @@ function findKeyCaseInsensitive(obj, targetKey) {
   return matchedKey ? obj[matchedKey] : null;
 }
 
+// Haversine Distance Formula (Miles)
+function calculateHaversineMiles(lat1, lon1, lat2, lon2) {
+  const R = 3958.8;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 module.exports = function(eleventyConfig) {
   // Passthrough Copies
   eleventyConfig.addPassthroughCopy("style.css");
@@ -121,6 +134,17 @@ module.exports = function(eleventyConfig) {
     }
   });
 
+  // Hourly Timestamp Formatter for Transit Log (H:MM AM/PM)
+  eleventyConfig.addFilter("formatHourlyLogTime", function(isoStr) {
+    if (!isoStr) return "";
+    try {
+      const date = new Date(isoStr);
+      return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" }).format(date);
+    } catch(e) {
+      return isoStr;
+    }
+  });
+
   eleventyConfig.addFilter("formatCategoryLabel", function(catStr) {
     if (!catStr) return "Local Favorites";
     let clean = String(catStr).replace(/_/g, " ");
@@ -166,7 +190,7 @@ module.exports = function(eleventyConfig) {
     return indices.map(idx => `https://assets.myseattlesearch.com/neighborhood/hero-pools/${folder}/${idx}.webp`);
   });
 
-  // Weather Loader with Dynamic Daylight Progression Percentage
+  // Weather Loader
   eleventyConfig.addFilter("getCityWeather", function(citySlug) {
     const data = readJsonDataFile("city_weather.json");
     if (!data || !citySlug) return null;
@@ -198,7 +222,7 @@ module.exports = function(eleventyConfig) {
       }
     };
 
-    let daylightPct = 0.5;
+    let daylightPct = 0.86;
     try {
       const parseIsoMins = (isoStr) => {
         if (!isoStr) return null;
@@ -211,13 +235,16 @@ module.exports = function(eleventyConfig) {
       const sunsetMins = parseIsoMins(astro.sunset_today) || 1217;
 
       const now = new Date();
-      const pdtStr = new Intl.DateTimeFormat("en-US", {
+      const pdtParts = new Intl.DateTimeFormat("en-US", {
         timeZone: "America/Los_Angeles",
-        hour: "numeric", minute: "numeric", hour12: false
-      }).format(now);
-
-      const [nowH, nowM] = pdtStr.split(":");
-      const nowMins = parseInt(nowH, 10) * 60 + parseInt(nowM, 10);
+        hour: "numeric", minute: "numeric", hourCycle: "h23"
+      }).formatToParts(now);
+      let nowH = 16, nowM = 27;
+      pdtParts.forEach(p => {
+        if (p.type === "hour") nowH = parseInt(p.value, 10);
+        if (p.type === "minute") nowM = parseInt(p.value, 10);
+      });
+      const nowMins = nowH * 60 + nowM;
 
       if (nowMins <= sunriseMins) {
         daylightPct = 0.0;
@@ -227,7 +254,7 @@ module.exports = function(eleventyConfig) {
         daylightPct = (nowMins - sunriseMins) / (sunsetMins - sunriseMins);
       }
     } catch (e) {
-      daylightPct = 0.5;
+      daylightPct = 0.86;
     }
 
     const code = curr.weather_code;
@@ -256,6 +283,206 @@ module.exports = function(eleventyConfig) {
     return findKeyCaseInsensitive(data, citySlug);
   });
 
+  // Dynamic Two-Way Geo-Distance & Commute Telemetry Calculator (6 SEPARATE EMPLOYMENT HUBS)
+  eleventyConfig.addFilter("getGeoCommuteTimes", function(cityLat, cityLng, cityName) {
+    const lat = parseFloat(cityLat) || 47.756;
+    const lng = parseFloat(cityLng) || -122.345;
+    const cName = cityName || "City";
+
+    const hubs = [
+      { id: "slu", name: "South Lake Union", targetLat: 47.6253, targetLng: -122.3382, baseSpeedMph: 35 },
+      { id: "bellevue", name: "Downtown Bellevue", targetLat: 47.6152, targetLng: -122.2015, baseSpeedMph: 38 },
+      { id: "redmond", name: "Microsoft Redmond Campus", targetLat: 47.6423, targetLng: -122.1371, baseSpeedMph: 40 },
+      { id: "everett", name: "Boeing Everett Factory", targetLat: 47.9252, targetLng: -122.2714, baseSpeedMph: 45 },
+      { id: "renton", name: "Boeing Renton Factory", targetLat: 47.4880, targetLng: -122.2050, baseSpeedMph: 42 },
+      { id: "kent", name: "Kent Valley Hub", targetLat: 47.3809, targetLng: -122.2348, baseSpeedMph: 44 }
+    ];
+
+    const now = new Date();
+    const pdtParts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Los_Angeles",
+      hour: "numeric", hourCycle: "h23"
+    }).formatToParts(now);
+    let hour = 17;
+    pdtParts.forEach(p => { if (p.type === "hour") hour = parseInt(p.value, 10); });
+
+    let outboundMult = 1.15;
+    let inboundMult = 1.10;
+
+    if (hour >= 7 && hour <= 9) {
+      outboundMult = 1.45;
+      inboundMult = 1.15;
+    } else if (hour >= 16 && hour <= 18) {
+      outboundMult = 1.20;
+      inboundMult = 1.50;
+    }
+
+    return hubs.map(h => {
+      const distMiles = calculateHaversineMiles(lat, lng, h.targetLat, h.targetLng);
+      const roundedDist = Math.max(1.2, Math.round(distMiles * 10) / 10);
+
+      const baseDriveMins = Math.round((roundedDist / h.baseSpeedMph) * 60 + 3);
+      
+      const outCurrDrive = Math.round(baseDriveMins * outboundMult);
+      const inCurrDrive = Math.round(baseDriveMins * inboundMult);
+
+      const outOffpeakTransit = Math.round(baseDriveMins * 1.5 + 6);
+      const outCurrTransit = Math.round(outCurrDrive * 1.4 + 8);
+
+      const inOffpeakTransit = Math.round(baseDriveMins * 1.5 + 6);
+      const inCurrTransit = Math.round(inCurrDrive * 1.4 + 8);
+
+      return {
+        id: h.id,
+        hub_name: h.name,
+        distance_miles: roundedDist,
+        outbound_label: `${cName} → ${h.name}`,
+        inbound_label: `${h.name} → ${cName}`,
+        outbound: {
+          curr_drive_mins: outCurrDrive,
+          offpeak_drive_mins: baseDriveMins,
+          curr_transit_mins: outCurrTransit,
+          offpeak_transit_mins: outOffpeakTransit
+        },
+        inbound: {
+          curr_drive_mins: inCurrDrive,
+          offpeak_drive_mins: baseDriveMins,
+          curr_transit_mins: inCurrTransit,
+          offpeak_transit_mins: inOffpeakTransit
+        }
+      };
+    });
+  });
+
+  // Group 168-Hour Transit History into 7 Day Objects for Accordions
+  eleventyConfig.addFilter("get7DayGroupedTransitHistory", function(citySlug) {
+    const data = readJsonDataFile("transit_radar_history.json");
+    if (!data || !citySlug) return [];
+    const record = findKeyCaseInsensitive(data, citySlug);
+    if (!record || !Array.isArray(record)) return [];
+
+    const groupedMap = {};
+    record.forEach(item => {
+      if (!item.timestamp) return;
+      const dateKey = item.timestamp.split("T")[0];
+      if (!groupedMap[dateKey]) {
+        const dateObj = new Date(dateKey + "T12:00:00");
+        const formattedDate = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "America/Los_Angeles" }).format(dateObj);
+        
+        groupedMap[dateKey] = {
+          date_key: dateKey,
+          date_label: formattedDate,
+          day_name: item.day_of_week || "",
+          transitScores: [],
+          onTimeScores: [],
+          hours: []
+        };
+      }
+
+      let timePart = item.timestamp.includes("T") ? item.timestamp.split("T")[1].substring(0, 5) : "";
+      let [hStr, mStr] = timePart.split(":");
+      let h = parseInt(hStr, 10);
+      let ampm = h >= 12 ? "PM" : "AM";
+      let displayH = h % 12;
+      if (displayH === 0) displayH = 12;
+      let time12 = `${displayH}:${mStr || '00'} ${ampm}`;
+
+      const tScore = item.active_transit_score !== null ? item.active_transit_score : "--";
+      const oRate = item.active_on_time_score !== null ? `${item.active_on_time_score}%` : "100%";
+
+      if (item.active_transit_score !== null) groupedMap[dateKey].transitScores.push(item.active_transit_score);
+      if (item.active_on_time_score !== null) groupedMap[dateKey].onTimeScores.push(item.active_on_time_score);
+
+      groupedMap[dateKey].hours.push({
+        time12: time12,
+        transit_score: tScore,
+        ontime_rate: oRate
+      });
+    });
+
+    return Object.values(groupedMap).map(dayObj => {
+      const avgT = dayObj.transitScores.length ? Math.round(dayObj.transitScores.reduce((a,b)=>a+b,0)/dayObj.transitScores.length) : "--";
+      const avgO = dayObj.onTimeScores.length ? Math.round(dayObj.onTimeScores.reduce((a,b)=>a+b,0)/dayObj.onTimeScores.length) : 100;
+      return {
+        date_label: dayObj.date_label,
+        avg_transit_score: avgT,
+        avg_ontime_rate: `${avgO}%`,
+        hours: dayObj.hours
+      };
+    }).slice(-7);
+  });
+
+  // Dynamic Tide Telemetry Filter
+  eleventyConfig.addFilter("getTideTelemetry", function(fullWeather) {
+    if (!fullWeather || !fullWeather.marine_tides) return null;
+    const tidesObj = fullWeather.marine_tides;
+    const predictions = tidesObj.today_predictions || [];
+    if (!predictions.length) return null;
+
+    const now = new Date();
+    const pdtParts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Los_Angeles",
+      hour: "numeric", minute: "numeric", hourCycle: "h23"
+    }).formatToParts(now);
+    let nowH = 16, nowM = 27;
+    pdtParts.forEach(p => {
+      if (p.type === "hour") nowH = parseInt(p.value, 10);
+      if (p.type === "minute") nowM = parseInt(p.value, 10);
+    });
+    const nowMins = nowH * 60 + nowM;
+
+    const parsed = predictions.map(p => {
+      let timePart = p.time.includes(" ") ? p.time.split(" ")[1] : p.time;
+      let [hStr, mStr] = timePart.split(":");
+      let h = parseInt(hStr, 10);
+      let m = parseInt(mStr, 10);
+      let totalMins = h * 60 + m;
+
+      let ampm = h >= 12 ? "PM" : "AM";
+      let displayH = h % 12;
+      if (displayH === 0) displayH = 12;
+      let time12 = `${displayH}:${mStr} ${ampm}`;
+
+      return {
+        type: p.type,
+        height_ft: p.height_ft,
+        mins: totalMins,
+        time12: time12
+      };
+    }).sort((a, b) => a.mins - b.mins);
+
+    let upcomingHigh = parsed.find(p => p.type === "High" && p.mins >= nowMins) || parsed.find(p => p.type === "High") || parsed[0];
+    let upcomingLow = parsed.find(p => p.type === "Low" && p.mins >= nowMins) || parsed.find(p => p.type === "Low") || parsed[0];
+
+    let isRising = true;
+    for (let i = 0; i < parsed.length - 1; i++) {
+      if (nowMins >= parsed[i].mins && nowMins < parsed[i+1].mins) {
+        if (parsed[i].type === "Low" && parsed[i+1].type === "High") {
+          isRising = true;
+        } else if (parsed[i].type === "High" && parsed[i+1].type === "Low") {
+          isRising = false;
+        }
+        break;
+      }
+    }
+    if (nowMins >= parsed[parsed.length - 1].mins) {
+      isRising = parsed[parsed.length - 1].type === "Low";
+    }
+    if (nowMins < parsed[0].mins) {
+      isRising = parsed[0].type === "High";
+    }
+
+    return {
+      reference_station: tidesObj.reference_station || "Puget Sound",
+      high_time: upcomingHigh.time12,
+      high_ft: `${upcomingHigh.height_ft} ft`,
+      low_time: upcomingLow.time12,
+      low_ft: `${upcomingLow.height_ft} ft`,
+      is_rising: isRising,
+      status_label: isRising ? "▲ Tide Rising" : "▼ Tide Falling"
+    };
+  });
+
   // USGS Regional Water Gauges Loader
   eleventyConfig.addFilter("getRegionalWaterGauges", function() {
     const data = readJsonDataFile("city_weather.json");
@@ -268,6 +495,40 @@ module.exports = function(eleventyConfig) {
     const data = readJsonDataFile("transit_radar_live.json");
     if (!data || !citySlug) return null;
     return findKeyCaseInsensitive(data, citySlug);
+  });
+
+  // Complete 168-Hour Hourly Transit History Log Loader
+  eleventyConfig.addFilter("getHourlyTransitHistory", function(citySlug) {
+    const data = readJsonDataFile("transit_radar_history.json");
+    if (!data || !citySlug) return [];
+    const record = findKeyCaseInsensitive(data, citySlug);
+    if (!record || !Array.isArray(record)) return [];
+
+    return record.map(item => ({
+      timestamp: item.timestamp,
+      day_of_week: item.day_of_week || "",
+      transit_score: item.active_transit_score !== null ? item.active_transit_score : "--",
+      ontime_rate: item.active_on_time_score !== null ? `${item.active_on_time_score}%` : "100%"
+    }));
+  });
+
+  // City Construction WSDOT Alerts Loader
+  eleventyConfig.addFilter("getCityConstruction", function(citySlug) {
+    const data = readJsonDataFile("city_construction.json");
+    if (!data || !citySlug) return { alert_count: 0, alerts: [] };
+    const record = findKeyCaseInsensitive(data, citySlug);
+    if (!record) return { alert_count: 0, alerts: [] };
+    return {
+      alert_count: record.alert_count || 0,
+      alerts: record.alerts || []
+    };
+  });
+
+  // Intercity Airports & Flights Summary Loader
+  eleventyConfig.addFilter("getIntercitySummary", function() {
+    const data = readJsonDataFile("intercity_summary.json");
+    if (!data) return { airports: {}, last_updated: "" };
+    return data;
   });
 
   // Walk, Transit & Bike Scores Loader
@@ -600,7 +861,7 @@ module.exports = function(eleventyConfig) {
     };
   });
 
-  // Redfin Regional Seattle Migration Data Loader (Pure Dynamic Extraction)
+  // Redfin Regional Seattle Migration Data Loader
   eleventyConfig.addFilter("getSeattleMigration", function() {
     const raw = readJsonDataFile("redfin_migration.json");
     if (!raw || !raw.data || !raw.data.metros) return { top_inflow: [], top_outflow: [] };
@@ -613,7 +874,7 @@ module.exports = function(eleventyConfig) {
     };
   });
 
-  // Redfin Regional Affordability & Purchasing Power Loader (Pure Dynamic Extraction)
+  // Redfin Regional Affordability & Purchasing Power Loader
   eleventyConfig.addFilter("getAffordabilityStats", function() {
     const data = readJsonDataFile("redfin_monthly_stats.json") || readJsonDataFile("redfin_stats.json");
     if (!data || !data.affordability) return null;
@@ -644,7 +905,7 @@ module.exports = function(eleventyConfig) {
     };
   });
 
-  // Sports Loader
+  // Sports Loader (RESTORED FOR NEIGHBORHOOD-DATA.NJK AND SIDEBARS)
   eleventyConfig.addFilter("getTopSportsGame", function() {
     const sportsData = readJsonDataFile("hourly_sports.json");
     if (!sportsData) return null;

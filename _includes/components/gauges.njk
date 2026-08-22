@@ -53,8 +53,11 @@
   <a href="/neighborhood/{{ neighborhood.slug | default('seattle') }}/weather/" class="glance-slot">
     <div class="glance-widget-content">
       <div class="glance-label">Sunrise & Sunset</div>
-      {% set dayProgressPct = dayProgressPct | default(0.55) %}
-      {% set rotAngle = (dayProgressPct - 0.5) * 180 %}
+      {% set daylightPct = cityWeather.daylight_pct if (cityWeather and cityWeather.daylight_pct != null) else 0.86 %}
+      {% set rotAngle = (daylightPct - 0.5) * 180 %}
+      {% if rotAngle > 88 %}{% set rotAngle = 88 %}{% endif %}
+      {% if rotAngle < -88 %}{% set rotAngle = -88 %}{% endif %}
+
       <div style="position: relative; width: 52px; height: 52px; margin: 2px auto;">
         <svg width="52" height="52" viewBox="0 0 100 100">
           <path d="M 12 50 A 38 38 0 0 1 88 50" fill="none" stroke="#FFCC00" stroke-width="6" stroke-linecap="round"/>
@@ -68,8 +71,8 @@
       </div>
       
       <div class="sun-times-row" style="font-size: 0.7rem; font-weight: 500; color: var(--premier-charcoal); width: 100%; max-width: 130px; margin: 4px auto 0 auto; display: flex; justify-content: space-between; white-space: nowrap;">
-        <span>{{ cityWeather.sunrise | default("6:08 AM") }}</span>
-        <span>{{ cityWeather.sunset | default("8:18 PM") }}</span>
+        <span>{{ cityWeather.sunrise | default("6:07 AM") }}</span>
+        <span>{{ cityWeather.sunset | default("8:17 PM") }}</span>
       </div>
     </div>
   </a>
@@ -112,7 +115,7 @@
     </div>
   </a>
 
-  <!-- Slot 5: Real Estate Market (Dynamic Months Supply Calibration) -->
+  <!-- Slot 5: Real Estate Market (Calibrated Thresholds) -->
   <a href="/neighborhood/{{ neighborhood.slug | default('seattle') }}/data/" class="glance-slot">
     <div class="glance-widget-content">
       <div class="glance-label">Real Estate Market</div>
@@ -143,7 +146,13 @@
         </svg>
       </div>
       <div class="glance-subval" style="font-weight: 500; color: var(--premier-charcoal);">
-        {{ marketStats.market_label | default("Seller's Market") }}
+        {% if moisVal < 2.0 %}
+          Seller's Market
+        {% elif moisVal <= 4.0 %}
+          Balanced Market
+        {% else %}
+          Buyer's Market
+        {% endif %}
       </div>
     </div>
   </a>
@@ -255,8 +264,6 @@
     <path d="M 5 26 A 18 18 0 0 1 41 26" fill="none" stroke="url(#speedometerGradientElectricGlance)" stroke-width="4.5" stroke-linecap="round"/>
     
     {% set moisVal = monthsSupply | default(1.8) | float %}
-    {% if "Buyer" in statusText and monthsSupply == 1.8 %}{% set moisVal = 4.8 %}{% endif %}
-    {% if "Balanced" in statusText and monthsSupply == 1.8 %}{% set moisVal = 3.0 %}{% endif %}
     {% set needleAngle = -90 + ((moisVal / 6.0) * 180) %}
     {% if needleAngle > 85 %}{% set needleAngle = 85 %}{% endif %}
     {% if needleAngle < -85 %}{% set needleAngle = -85 %}{% endif %}
@@ -268,7 +275,9 @@
   </svg>
   <div>
     <div class="glance-label">{{ label }}</div>
-    <div class="glance-value">{{ statusText }}</div>
+    <div class="glance-value">
+      {% if moisVal < 2.0 %}Seller's Market{% elif moisVal <= 4.0 %}Balanced Market{% else %}Buyer's Market{% endif %}
+    </div>
   </div>
 </div>
 {% endmacro %}
@@ -352,7 +361,7 @@
 {% endmacro %}
 
 {# Element 07: 24-Hour Sunrise / Sunset Ring Card #}
-{% macro sunRing(sunrise="6:08 AM", sunset="8:18 PM", isNight=false, dayProgressPct=0.55, span="span-2") %}
+{% macro sunRing(sunrise="6:08 AM", sunset="8:18 PM", isNight=false, dayProgressPct=0.86, span="span-2") %}
 <div class="bento-card {{ span }}">
   <div class="flex-between">
     <span class="bento-card-body" style="font-weight: 500; font-size: 0.72rem; color: var(--premier-charcoal); white-space: nowrap;">Sunrise & Sunset</span>
@@ -370,10 +379,6 @@
       {% if not isNight %}
         <g transform="rotate({{ rotAngle }} 50 50)">
           <circle cx="50" cy="12" r="5" fill="#FFCC00" stroke="#1C1C1E" stroke-width="1"/>
-          <line x1="50" y1="4" x2="50" y2="1.5" stroke="#FFCC00" stroke-width="1.5" stroke-linecap="round"/>
-          <line x1="50" y1="20" x2="50" y2="22.5" stroke="#FFCC00" stroke-width="1.5" stroke-linecap="round"/>
-          <line x1="42" y1="12" x2="39.5" y2="12" stroke="#FFCC00" stroke-width="1.5" stroke-linecap="round"/>
-          <line x1="58" y1="12" x2="60.5" y2="12" stroke="#FFCC00" stroke-width="1.5" stroke-linecap="round"/>
         </g>
       {% else %}
         <g transform="rotate({{ rotAngle }} 50 50)">
@@ -422,7 +427,7 @@
 </div>
 {% endmacro %}
 
-{# Element 09: Market Hotness Speedometer Card (Calibrated Months Supply Angle) #}
+{# Element 09: Market Hotness Speedometer Card (0-2.0: Seller's, 2.0-4.0: Balanced, >4.0: Buyer's) #}
 {% macro marketGauge(statusText="Seller's Market", label="Real Estate Market", monthsSupply=1.8, span="span-2") %}
 <div class="bento-card {{ span }}">
   <div class="flex-between">
@@ -445,8 +450,6 @@
       <path d="M 12 52 A 42 42 0 0 1 96 52" fill="none" stroke="url(#speedometerGradientElectricCard)" stroke-width="10" stroke-linecap="round"/>
       
       {% set moisVal = monthsSupply | default(1.8) | float %}
-      {% if "Buyer" in statusText and monthsSupply == 1.8 %}{% set moisVal = 4.8 %}{% endif %}
-      {% if "Balanced" in statusText and monthsSupply == 1.8 %}{% set moisVal = 3.0 %}{% endif %}
       {% set needleAngle = -90 + ((moisVal / 6.0) * 180) %}
       {% if needleAngle > 85 %}{% set needleAngle = 85 %}{% endif %}
       {% if needleAngle < -85 %}{% set needleAngle = -85 %}{% endif %}
@@ -460,7 +463,9 @@
   </div>
 
   <div style="text-align: center;">
-    <span style="font-size: 0.82rem; font-weight: 500; color: var(--premier-charcoal); display: block; line-height: 1.1;">{{ statusText }}</span>
+    <span style="font-size: 0.82rem; font-weight: 500; color: var(--premier-charcoal); display: block; line-height: 1.1;">
+      {% if moisVal < 2.0 %}Seller's Market{% elif moisVal <= 4.0 %}Balanced Market{% else %}Buyer's Market{% endif %}
+    </span>
   </div>
 </div>
 {% endmacro %}

@@ -275,23 +275,15 @@ eleventyComputed:
       </div>
     </div>
 
-    <!-- 5. NOAA MARINE TIDES WIDGET BENTO CARD (EDGE-TO-EDGE WAVE GRAPHIC) -->
-    {% set tidesObj = fullWeather.marine_tides if fullWeather else null %}
-    {% set refStation = tidesObj.reference_station | default(neighborhood.name) if tidesObj else neighborhood.name %}
-    
-    {% set highPred = null %}
-    {% set lowPred = null %}
-    {% if tidesObj and tidesObj.today_predictions %}
-      {% for p in tidesObj.today_predictions %}
-        {% if p.type == "High" and not highPred %}{% set highPred = p %}{% endif %}
-        {% if p.type == "Low" and not lowPred %}{% set lowPred = p %}{% endif %}
-      {% endfor %}
-    {% endif %}
-
-    {% set hTime = highPred.time | formatTideTime if highPred else "9:02 AM" %}
-    {% set hFt = (highPred.height_ft | string ~ " ft") if highPred else "9.1 ft" %}
-    {% set lTime = lowPred.time | formatTideTime if lowPred else "2:55 AM" %}
-    {% set lFt = (lowPred.height_ft | string ~ " ft") if lowPred else "1.9 ft" %}
+    <!-- 5. NOAA MARINE TIDES WIDGET BENTO CARD (DYNAMIC RISING / FALLING TELEMETRY) -->
+    {% set tideData = fullWeather | getTideTelemetry %}
+    {% set refStation = tideData.reference_station if tideData else (neighborhood.name) %}
+    {% set hTime = tideData.high_time if tideData else "9:02 AM" %}
+    {% set hFt = tideData.high_ft if tideData else "9.1 ft" %}
+    {% set lTime = tideData.low_time if tideData else "2:55 AM" %}
+    {% set lFt = tideData.low_ft if tideData else "1.9 ft" %}
+    {% set tideStatus = tideData.status_label if tideData else "▲ Tide Rising" %}
+    {% set isRising = tideData.is_rising if tideData else true %}
 
     <div class="bento-card" style="padding: 0; overflow: hidden; border-radius: 12px; border: 1px solid rgba(28,28,30,0.1);">
       <!-- Header Bar -->
@@ -301,7 +293,7 @@ eleventyComputed:
       </div>
 
       <!-- Edge-to-Edge Inner Container -->
-      <div style="background: #EFE9E0; display: flex; flex-direction: column; width: 100%; box-sizing: border-box;">
+      <div style="background: var(--premier-beige); display: flex; flex-direction: column; width: 100%; box-sizing: border-box;">
         
         <!-- Row 1: Next High Tide -->
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 16px 10px 16px; font-size: 0.82rem; font-weight: 700; color: var(--premier-charcoal);">
@@ -319,7 +311,7 @@ eleventyComputed:
         <!-- Row 3: Solid Water Block (Text Centered Safely Below Wave Crest) -->
         <div style="background: #6B889B; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; font-weight: 600; color: #FFFFFF; width: 100%; box-sizing: border-box;">
           <span>Reference Station: {{ refStation }}</span>
-          <span style="color: #6EE7B7; font-weight: 700;">▲ Tide Rising</span>
+          <span style="color: {% if isRising %}#6EE7B7{% else %}#FDE047{% endif %}; font-weight: 700;">{{ tideStatus }}</span>
         </div>
 
         <!-- Row 4: Sandy Bottom Low Tide Base -->
