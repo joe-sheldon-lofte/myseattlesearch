@@ -1,0 +1,411 @@
+---
+layout: base.njk
+pagination:
+  data: city_data
+  size: 1
+  alias: neighborhood
+permalink: "/neighborhood/{{ neighborhood.slug }}/municipal/"
+eleventyComputed:
+  title: "{{ neighborhood.name }} Municipal Services, City Council & Public Safety | MySeattleSearch"
+  description: "Official municipal directory, city council video streams, agendas, public safety infrastructure, school district stats, and surveillance telemetry for {{ neighborhood.name }}, Washington."
+---
+
+{% import "components/cards.njk" as cards %}
+{% import "components/gauges.njk" as gauges %}
+{% import "components/media.njk" as media %}
+{% import "components/boards.njk" as boards %}
+
+{# Load Telemetry & Data Sources #}
+{% set cityWeather = neighborhood.slug | getCityWeather %}
+{% set transitLive = neighborhood.slug | getTransitLive %}
+{% set marketStats = neighborhood.slug | getMarketStats %}
+{% set topGame = "" | getTopSportsGame %}
+{% set publicSafetyData = neighborhood.name | getPublicSafetyData %}
+{% set surveillanceData = neighborhood.name | getSurveillanceData %}
+{% set schoolData = neighborhood.name | getSchoolData %}
+{% set crimeData = neighborhood.name | getCrimeData %}
+{% set cityEventList = neighborhood.slug | getCityEvents(15) %}
+{% set districtName = neighborhood["School District"] | default(neighborhood.name ~ " School District") %}
+
+<!-- HERO CAROUSEL -->
+{{ media.heroCarousel(neighborhood.name, "Municipal Services & Civic Intelligence", neighborhood.heroImages, neighborhood.county) }}
+
+<!-- AT-A-GLANCE TELEMETRY BAR (EXACT MATCH FROM NEIGHBORHOOD.NJK) -->
+{{ gauges.glanceBarFull(cityWeather, transitLive, marketStats, topGame, neighborhood) }}
+
+<div class="bento-grid">
+
+  <!-- Left Main Column: City Webpages, Broadcasts & Civic Calendar (span-8) -->
+  <div class="span-8 bento-stack">
+
+    <!-- 1. CITY WEBPAGES -->
+    <div class="bento-card bento-card--action">
+      <div class="bento-card-header bento-card-header--action">
+        <span>CITY WEBPAGES</span>
+      </div>
+      
+      <p class="bento-card-body-lg">
+        Direct access to official municipal portals, planning departments, law enforcement contacts, and local school district directories serving {{ neighborhood.name }}.
+      </p>
+
+      <ul class="subpage-grid-2col">
+        {% if neighborhood["City Website"] %}
+          <li>
+            <a href="{{ neighborhood['City Website'] }}" target="_blank" rel="noopener">
+              <span>City Website</span> <span class="link-arrow"></span>
+            </a>
+          </li>
+        {% endif %}
+
+        {% if neighborhood["Permit URL"] %}
+          <li>
+            <a href="{{ neighborhood['Permit URL'] }}" target="_blank" rel="noopener">
+              <span>City Building Permits</span> <span class="link-arrow"></span>
+            </a>
+          </li>
+        {% endif %}
+
+        {% if neighborhood["Police URL"] or neighborhood["Police Department Crime Page"] %}
+          <li>
+            <a href="{{ neighborhood['Police URL'] | default(neighborhood['Police Department Crime Page']) }}" target="_blank" rel="noopener">
+              <span>Police Department</span> <span class="link-arrow"></span>
+            </a>
+          </li>
+        {% endif %}
+
+        {% if neighborhood["Crisis URL"] %}
+          <li>
+            <a href="{{ neighborhood['Crisis URL'] }}" target="_blank" rel="noopener">
+              <span>Crisis Services</span> <span class="link-arrow"></span>
+            </a>
+          </li>
+        {% endif %}
+
+        <li>
+          <a href="/neighborhood/school/{{ districtName | slugify }}/">
+            <span>School District Page</span> <span class="link-arrow"></span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 2. CITY COUNCIL & MUNICIPAL BROADCAST CENTER -->
+    <div class="bento-card">
+      <div class="bento-card-header">
+        <span>MUNICIPAL BROADCASTS & COUNCIL FEEDS</span>
+      </div>
+
+      <p class="bento-card-body-lg">
+        Live broadcasts, recorded video archives, and official agenda portals for {{ neighborhood.name }} city council meetings, commissions, and public hearings.
+      </p>
+
+      <div>
+        {# Filter active feeds matching this city #}
+        {% set cityFeeds = [] %}
+        {% if municipal_feeds and municipal_feeds.length > 0 %}
+          {% for item in municipal_feeds %}
+            {% if item.City and item.City | lower == neighborhood.name | lower and item.Active == "Yes" %}
+              {% set cityFeeds = (cityFeeds.push(item), cityFeeds) %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+
+        {% if cityFeeds and cityFeeds.length > 0 %}
+          {% for feed in cityFeeds %}
+            <div class="feed-item-card">
+              
+              <div class="feed-item-header">
+                <div>
+                  <span class="feed-category-tag">
+                    {{ feed.Category | default("Municipal Feed") }} • {{ feed.Scope | default("City") | upper }}
+                  </span>
+                  <h4 class="feed-title">
+                    {{ feed["Feed Name"] }}
+                  </h4>
+                </div>
+                
+                <span class="feed-format-badge">
+                  {{ feed["Feed Format"] | upper }}
+                </span>
+              </div>
+
+              {% if feed["Schedule Text"] %}
+                <div class="feed-schedule">
+                  📅 {{ feed["Schedule Text"] }}
+                </div>
+              {% endif %}
+
+              {% if feed["Public Description"] %}
+                <p class="feed-desc">
+                  {{ feed["Public Description"] }}
+                </p>
+              {% endif %}
+
+              <div class="feed-actions">
+                {% if feed["Feed Format"] == "youtube_channel" and feed["Source Identifier"] %}
+                  <a href="https://www.youtube.com/channel/{{ feed['Source Identifier'] }}" target="_blank" rel="noopener" class="pill-button">
+                    ▶ Open YouTube Channel
+                  </a>
+                {% endif %}
+
+                {% if feed["Agenda RSS URL"] %}
+                  <a href="{{ feed['Agenda RSS URL'] }}" target="_blank" rel="noopener" class="link-arrow">View Agenda / RSS Feed</a>
+                {% endif %}
+
+                {% if feed["Fallback Portal URL"] %}
+                  <a href="{{ feed['Fallback Portal URL'] }}" target="_blank" rel="noopener" class="link-arrow">Access Meeting Portal</a>
+                {% endif %}
+              </div>
+
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="feed-item-card">
+            <div class="feed-category-tag">Official Meeting Portal</div>
+            <p class="feed-desc">
+              Stream feeds for {{ neighborhood.name }} city council meetings are managed directly through the official city clerk portal.
+            </p>
+            {% if neighborhood["City Website"] %}
+              <div class="card-footer-right">
+                <a href="{{ neighborhood['City Website'] }}" target="_blank" rel="noopener" class="link-arrow">Visit {{ neighborhood.name }} Official Portal</a>
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <!-- 3. CIVIC CALENDAR & PUBLIC HEARINGS -->
+    <div class="bento-card">
+      <div class="bento-card-header">
+        <span>CIVIC CALENDAR & PUBLIC MEETINGS</span>
+      </div>
+
+      <div>
+        {% if cityEventList and cityEventList.length > 0 %}
+          {% for ev in cityEventList %}
+            <div class="event-row-item">
+              <div class="event-row-type">
+                {{ ev.type | default("Municipal Meeting") }}
+              </div>
+              <div class="event-row-title">
+                {% if ev.link and ev.link != '#' %}
+                  <a href="{{ ev.link }}" target="_blank" rel="noopener">{{ ev.title }}</a>
+                {% else %}
+                  {{ ev.title }}
+                {% endif %}
+              </div>
+              <div class="event-row-meta">
+                {{ ev.date }}{% if ev.time_location %} • {{ ev.time_location }}{% endif %}
+              </div>
+            </div>
+          {% endfor %}
+          <div class="card-footer-right">
+            <a href="/neighborhood/{{ neighborhood.slug }}/news-events/" class="link-arrow">View All Events & Agendas</a>
+          </div>
+        {% else %}
+          <div class="feed-desc">
+            No upcoming municipal meetings currently scheduled in the automated feed.
+          </div>
+          <div class="card-footer-right">
+            <a href="/neighborhood/{{ neighborhood.slug }}/news-events/" class="link-arrow">Browse News & Events Archive</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right Sidebar Column: Directory, Safety, Medical & Surveillance (span-4) -->
+  <div class="span-4 bento-stack">
+
+    <!-- 1. DIRECTORY CARD -->
+    <div class="bento-card bento-card--action">
+      <div class="bento-card-header bento-card-header--action">
+        <span>{{ neighborhood.name | upper }} DIRECTORY</span>
+      </div>
+
+      <ul class="sidebar-dir-list">
+        <li>
+          <a href="/neighborhood/{{ neighborhood.slug }}/" class="sidebar-dir-link sidebar-dir-link--back">
+            <span>← Main Community Hub</span>
+          </a>
+        </li>
+        <li>
+          <a href="/neighborhood/{{ neighborhood.slug }}/weather/" class="sidebar-dir-link">
+            <span>Weather & Radar</span> <span class="link-arrow"></span>
+          </a>
+        </li>
+        <li>
+          <a href="/neighborhood/{{ neighborhood.slug }}/transit-commute/" class="sidebar-dir-link">
+            <span>Transit & Commute</span> <span class="link-arrow"></span>
+          </a>
+        </li>
+        <li>
+          <a href="/neighborhood/{{ neighborhood.slug }}/news-events/" class="sidebar-dir-link">
+            <span>News & Events</span> <span class="link-arrow"></span>
+          </a>
+        </li>
+        <li>
+          <a href="/neighborhood/{{ neighborhood.slug }}/municipal/" class="sidebar-dir-link">
+            <span>Municipal Services</span> <span class="link-arrow"></span>
+          </a>
+        </li>
+        <li>
+          <a href="/neighborhood/{{ neighborhood.slug }}/emergency-safety/" class="sidebar-dir-link">
+            <span>Emergency & Safety</span> <span class="link-arrow"></span>
+          </a>
+        </li>
+        <li>
+          <a href="/neighborhood/{{ neighborhood.slug }}/elections/" class="sidebar-dir-link">
+            <span>Elections & Voting</span> <span class="link-arrow"></span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 2. CRIME & PUBLIC SAFETY -->
+    <div class="bento-card">
+      <div class="bento-card-header">
+        <span>CRIME & PUBLIC SAFETY</span>
+      </div>
+
+      {% set policeAgency = crimeData.serving_agency | default(neighborhood.name ~ " Police Department") %}
+      {% set violentRate = crimeData.violent_crime_per_1k | default(neighborhood["Violent Crime"] | default("20.2")) %}
+      {% set propertyRate = crimeData.property_crime_per_1k | default(neighborhood["Property Crime"] | default("55.99")) %}
+
+      <div class="public-safety-block">
+        <div class="public-safety-title">
+          {{ policeAgency }}
+        </div>
+
+        <div class="pill-grid-2col">
+          <div class="metric-pill">
+            <div class="metric-pill-label">💥 VIOLENT CRIME</div>
+            <div class="metric-pill-value">{{ violentRate }}</div>
+            <div class="metric-pill-subtext">per 1,000 residents</div>
+          </div>
+
+          <div class="metric-pill">
+            <div class="metric-pill-label">🏡 PROPERTY CRIME</div>
+            <div class="metric-pill-value">{{ propertyRate }}</div>
+            <div class="metric-pill-subtext">per 1,000 residents</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-footer-right">
+        <a href="{{ neighborhood['Police Department Crime Page'] | default('/neighborhood/' ~ neighborhood.slug ~ '/emergency-safety/') }}" target="_blank" rel="noopener" class="link-arrow">
+          View Crime Maps
+        </a>
+      </div>
+    </div>
+
+    <!-- 3. FIRE & RISK PROTECTION -->
+    <div class="bento-card">
+      <div class="bento-card-header">
+        <span>FIRE & RISK PROTECTION</span>
+      </div>
+
+      {% set fireAgency = publicSafetyData.fire_service.agency_name | default(neighborhood.name ~ " Fire Department") %}
+      {% set wsrbClass = publicSafetyData.fire_service.wsrb_protection_class | default(neighborhood["WSRB Rating"] | default(4)) %}
+
+      <div class="public-safety-block">
+        <div class="public-safety-title">
+          {{ fireAgency }}
+        </div>
+        <div class="public-safety-row">
+          <span class="wsrb-badge">
+            WSRB Protection Class: {{ wsrbClass }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. EMERGENCY MEDICAL -->
+    <div class="bento-card">
+      <div class="bento-card-header">
+        <span>EMERGENCY MEDICAL</span>
+      </div>
+
+      {% set hospitalName = publicSafetyData.emergency_medical.nearest_hospital_facility | default(neighborhood["Nearest Hospital"] | default("Regional Medical Center")) %}
+      {% set hospitalDist = publicSafetyData.emergency_medical.distance_proximity_miles | default(neighborhood["Hospital Miles"] | default("0.3")) %}
+      {% set cmsRating = publicSafetyData.emergency_medical.cms_hospital_quality_rating | default(neighborhood["CMS Quality Standard"] | default("3/5 Stars")) %}
+
+      <div class="public-safety-block">
+        <p class="bento-card-body-lg">
+          Nearest 24/7 Emergency Department is <strong>{{ hospitalName }}</strong>, located <strong>{{ hospitalDist }} miles</strong> away.
+        </p>
+        <div class="public-safety-subtext">
+          CMS Quality Standard: <span class="star-rating-gold">⭐⭐⭐</span> ({{ cmsRating }})
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. SURVEILLANCE SCORE (BOTTOM SIDEBAR) -->
+    <div class="bento-card">
+      <div class="bento-card-header">
+        <span>SURVEILLANCE SCORE</span>
+      </div>
+
+      {% set survScore = surveillanceData.surveillance_score | default(neighborhood["Surveillance Score"] | default(80)) %}
+      {% set survAgency = surveillanceData.serving_agency | default(neighborhood.name ~ " Police Department") %}
+      {% set alprCount = surveillanceData.infrastructure_inventories.detected_alpr_cameras | default(neighborhood["ALPR Cams"] | default(22)) %}
+      {% set trafficCount = surveillanceData.infrastructure_inventories.detected_traffic_cameras | default(neighborhood["Traffic Cams"] | default(44)) %}
+      {% set cctvCount = surveillanceData.infrastructure_inventories.detected_general_cctv | default(neighborhood["General CCTV"] | default(269)) %}
+      {% set dataCount = surveillanceData.infrastructure_inventories.active_institutional_software_capabilities | default(neighborhood["Data Platforms"] | default(4)) %}
+
+      <div class="inner-white-card">
+        <div class="inner-card-header">
+          <span class="inner-card-title">Surveillance Score</span>
+          <button class="info-trigger" title="More Info" data-descriptor-key="surveillance_score">
+            <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="5" y1="1" x2="5" y2="9"></line>
+              <line x1="1" y1="5" x2="9" y2="5"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="gauge-center-stack">
+          <svg width="68" height="68" viewBox="0 0 42 42">
+            <circle cx="21" cy="21" r="15.915" fill="none" stroke="rgba(28, 28, 30, 0.15)" stroke-width="3.8"/>
+            <circle cx="21" cy="21" r="15.915" fill="none" stroke="var(--alpine-blue)" stroke-width="3.8"
+                    stroke-dasharray="100" stroke-dashoffset="{{ 100 - survScore }}" stroke-linecap="round"
+                    transform="rotate(-90 21 21)"/>
+            <text x="21" y="25" text-anchor="middle" font-size="11" font-weight="500" fill="var(--premier-charcoal)">{{ survScore }}</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="agency-subtext">
+        Agency: {{ survAgency }}
+      </div>
+
+      <div class="pill-grid-2col">
+        <div class="metric-pill">
+          <div class="metric-pill-label">🚘 ALPR CAMS</div>
+          <div class="metric-pill-value">{{ alprCount }}</div>
+        </div>
+
+        <div class="metric-pill">
+          <div class="metric-pill-label">🚦 TRAFFIC CAMS</div>
+          <div class="metric-pill-value">{{ trafficCount }}</div>
+        </div>
+
+        <div class="metric-pill">
+          <div class="metric-pill-label">📹 GENERAL CCTV</div>
+          <div class="metric-pill-value">{{ cctvCount }}</div>
+        </div>
+
+        <div class="metric-pill">
+          <div class="metric-pill-label">💻 DATA PLATFORMS</div>
+          <div class="metric-pill-value">{{ dataCount }}</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

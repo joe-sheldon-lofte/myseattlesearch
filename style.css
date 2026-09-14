@@ -309,7 +309,7 @@ body {
 .catalog-container {
   max-width: 1200px;
   margin: 64px auto 0 auto;
-  padding: 40px 20px 32px 20px; /* Reduced bottom padding from 160px to 32px */
+  padding: 40px 20px 32px 20px;
 }
 
 .catalog-header {
@@ -374,6 +374,12 @@ body {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   gap: 20px;
+}
+
+.bento-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .bento-card {
@@ -464,7 +470,7 @@ body {
 }
 
 .bento-card-body-lg {
-  margin: 0;
+  margin: 0 0 14px 0;
   font-size: 0.88rem;
   color: rgba(28, 28, 30, 0.7);
   line-height: 1.4;
@@ -646,6 +652,35 @@ body {
 .subpage-grid-2col li a span:last-child {
   color: var(--alpine-blue);
   font-weight: 600;
+}
+
+/* Sidebar Directory List (Zero Hover Movement & Uniform First Link) */
+.sidebar-dir-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-dir-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--premier-beige);
+  color: var(--premier-charcoal);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.88rem;
+  border: 1px solid rgba(28, 28, 30, 0.04);
+}
+
+.sidebar-dir-link--back {
+  background: var(--premier-beige);
+  font-weight: 500;
 }
 
 /* Sidebar Yelp Compact Horizontal List with Pop-out Hover */
@@ -1396,13 +1431,26 @@ body {
 
 .tray-pill {
   background: #FFFFFF;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: var(--radius-pill);
   padding: 8px 18px;
   font-size: 0.85rem;
   font-weight: 500;
   color: var(--premier-charcoal);
   text-decoration: none;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.tray-pill:hover {
+  border-color: var(--alpine-blue);
+  color: var(--premier-charcoal);
+  background: #FFFFFF;
 }
 
 .tray-search-box {
@@ -1416,7 +1464,20 @@ body {
   font-size: 0.85rem;
   color: rgba(28, 28, 30, 0.5);
   cursor: pointer;
-  width: 180px;
+  flex: 1;
+  max-width: 320px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.tray-search-box:hover {
+  border-color: var(--alpine-blue);
+  color: var(--premier-charcoal);
+  background: #FFFFFF;
+}
+
+@media (max-width: 600px) {
+  .tray-search-box { max-width: 140px; }
 }
 
 .tray-contact-mobile { display: none; }
@@ -1432,8 +1493,8 @@ body {
    ========================================================================== */
 
 .integrated-footer {
-  margin-top: 24px; /* Reduced top margin from 60px to 24px */
-  padding: 20px 20px 100px 20px; /* Added 100px bottom padding so fixed tray never obscures copyright text */
+  margin-top: 24px;
+  padding: 20px 20px 100px 20px;
   background: transparent;
 }
 
@@ -1497,64 +1558,11 @@ body {
     align-items: center;
   }
 }
+
 /* ==========================================================================
    9. MAC SPOTLIGHT SEARCH MODAL & TRAY EXPANSION
    ========================================================================== */
 
-/* Tray Action Pills (Text, Chat, Book) */
-.tray-pill {
-  background: #FFFFFF;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: var(--radius-pill);
-  padding: 8px 18px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--premier-charcoal);
-  text-decoration: none;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-.tray-pill:hover {
-  border-color: var(--alpine-blue);
-  color: var(--premier-charcoal);
-  background: #FFFFFF;
-}
-
-/* Expand Search Trigger Box on Desktop */
-.tray-search-box {
-  background: #FFFFFF;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: var(--radius-pill);
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
-  color: rgba(28, 28, 30, 0.5);
-  cursor: pointer;
-  flex: 1;
-  max-width: 320px;
-  transition: all 0.2s ease;
-  user-select: none;
-}
-
-.tray-search-box:hover {
-  border-color: var(--alpine-blue);
-  color: var(--premier-charcoal);
-  background: #FFFFFF;
-}
-
-@media (max-width: 600px) {
-  .tray-search-box { max-width: 140px; }
-}
-
-/* Spotlight Frosted Backdrop */
 .spotlight-modal-overlay {
   position: fixed;
   inset: 0;
@@ -1572,7 +1580,6 @@ body {
   opacity: 1;
 }
 
-/* Spotlight Container Pinned at 15vh */
 .spotlight-modal-container {
   position: fixed;
   top: 15vh;
@@ -1600,7 +1607,6 @@ body {
   padding-bottom: 4px;
 }
 
-/* Elegant Light Title Header */
 .spotlight-modal-title {
   font-size: 1.05rem;
   font-weight: 400;
@@ -1699,4 +1705,294 @@ body {
   color: rgba(28, 28, 30, 0.5) !important;
   font-weight: 400 !important;
   padding: 8px 0 !important;
+}
+
+/* ==========================================================================
+   10. CIVIC & MUNICIPAL COMPONENT STYLES
+   ========================================================================== */
+
+/* Inner White Cards for Score Gauges */
+.inner-white-card {
+  background: #FFFFFF;
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid rgba(28, 28, 30, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  margin-top: 10px;
+  margin-bottom: 12px;
+}
+
+.inner-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.inner-card-title {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--premier-charcoal);
+}
+
+.gauge-center-stack {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 0;
+}
+
+/* Metric Pills 2x2 Grid */
+.pill-grid-2col {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.metric-pill {
+  background: var(--premier-beige);
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+  border: 1px solid rgba(28, 28, 30, 0.04);
+}
+
+.metric-pill-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgba(28, 28, 30, 0.6);
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.metric-pill-value {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--premier-charcoal);
+  margin-top: 2px;
+}
+
+.metric-pill-subtext {
+  font-size: 0.7rem;
+  color: rgba(28, 28, 30, 0.55);
+}
+
+/* Proficiency Progress Bars */
+.proficiency-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.proficiency-row-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--premier-charcoal);
+  margin-bottom: 4px;
+}
+
+.proficiency-bar-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(28, 28, 30, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.proficiency-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.proficiency-bar-fill--red {
+  background: var(--pnw-red);
+}
+
+.proficiency-bar-fill--blue {
+  background: var(--alpine-blue);
+}
+
+.baseline-note {
+  font-size: 0.74rem;
+  color: rgba(28, 28, 30, 0.55);
+  margin-top: 8px;
+  line-height: 1.35;
+}
+
+.agency-subtext {
+  font-size: 0.8rem;
+  color: rgba(28, 28, 30, 0.65);
+  text-align: center;
+  margin-top: 4px;
+}
+
+.star-rating-gold {
+  color: #FFCC00;
+  font-size: 0.9rem;
+}
+
+/* Public Safety Blocks */
+.public-safety-block {
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(28, 28, 30, 0.06);
+}
+
+.public-safety-block:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.public-safety-title {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--premier-charcoal);
+}
+
+.public-safety-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  font-size: 0.8rem;
+}
+
+.wsrb-badge {
+  background: rgba(30, 77, 107, 0.1);
+  color: var(--alpine-blue);
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+}
+
+.public-safety-subtext {
+  font-size: 0.78rem;
+  color: rgba(28, 28, 30, 0.6);
+  margin-top: 2px;
+}
+
+/* Feeds Architecture */
+.feed-item-card {
+  background: var(--premier-beige);
+  border-radius: 12px;
+  padding: 14px;
+  border: 1px solid rgba(28, 28, 30, 0.06);
+  margin-bottom: 12px;
+}
+
+.feed-item-card:last-child {
+  margin-bottom: 0;
+}
+
+.feed-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.feed-category-tag {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--alpine-blue);
+  letter-spacing: 0.04em;
+}
+
+.feed-title {
+  font-size: 0.98rem;
+  font-weight: 500;
+  margin: 2px 0 0 0;
+  color: var(--premier-charcoal);
+}
+
+.feed-format-badge {
+  background: rgba(30, 77, 107, 0.1);
+  color: var(--alpine-blue);
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.feed-schedule {
+  font-size: 0.78rem;
+  color: rgba(28, 28, 30, 0.7);
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.feed-desc {
+  font-size: 0.84rem;
+  color: rgba(28, 28, 30, 0.8);
+  margin: 0 0 10px 0;
+  line-height: 1.4;
+}
+
+.feed-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid rgba(28, 28, 30, 0.06);
+}
+
+/* Event List Rows */
+.event-row-item {
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(28, 28, 30, 0.06);
+}
+
+.event-row-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.event-row-type {
+  font-size: 0.72rem;
+  color: var(--alpine-blue);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.event-row-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 2px 0;
+  color: var(--premier-charcoal);
+}
+
+.event-row-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.event-row-meta {
+  font-size: 0.78rem;
+  color: rgba(28, 28, 30, 0.6);
+}
+
+.card-footer-right {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(28, 28, 30, 0.06);
 }
