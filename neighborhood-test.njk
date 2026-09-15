@@ -1,0 +1,481 @@
+---
+permalink: /neighborhood-test/
+title: Neighborhood Design Test V4
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shoreline | Neighborhood Intelligence V4</title>
+  <style>
+    /* --- MYSEATTLESEARCH V4 DESIGN SYSTEM (EMBEDDED STANDALONE) --- */
+    :root {
+      --premier-beige: #F7F5F0;
+      --premier-charcoal: #1C1C1E;
+      --alpine-blue: #1E4D6B;
+      --pnw-red: #D9232A;
+      --card-white: #FFFFFF;
+      --glass-bg: rgba(255, 255, 255, 0.75);
+      --glass-border: rgba(0, 0, 0, 0.08);
+      --shadow-bento: 0 8px 24px rgba(0, 0, 0, 0.06);
+      --shadow-tray: 0 16px 36px rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: var(--premier-beige);
+      color: var(--premier-charcoal);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      font-weight: 400;
+      line-height: 1.5;
+      margin: 0;
+      padding: 0 0 120px 0;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* --- FULL-WIDTH VERTICAL SECTION STACK --- */
+    .v4-stack {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .v4-section {
+      width: 100%;
+      padding: 3.5rem 0;
+      border-bottom: 1px solid var(--glass-border);
+      position: relative;
+    }
+
+    .v4-section-header {
+      padding: 0 2.5rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .v4-section-title {
+      font-size: 1.3rem;
+      font-weight: 500;
+      letter-spacing: -0.015em;
+      color: var(--premier-charcoal);
+      margin: 0;
+    }
+
+    /* --- HERO SECTION WITH AUTOMATED CAROUSEL STRIP --- */
+    .v4-hero {
+      position: relative;
+      width: 100%;
+      height: 60vh;
+      min-height: 440px;
+      overflow: hidden;
+      background-color: var(--premier-charcoal);
+    }
+
+    .v4-hero-strip {
+      display: flex;
+      width: 200%;
+      height: 100%;
+      animation: heroPhotoScroll 45s linear infinite;
+    }
+
+    .v4-hero-photo {
+      width: 20%;
+      height: 100%;
+      object-fit: cover;
+      filter: brightness(0.85);
+    }
+
+    @keyframes heroPhotoScroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* --- LIQUID GLASS HERO OVERLAY CARD --- */
+    .v4-hero-glass-card {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 2.5rem 3.5rem;
+      text-align: center;
+      box-shadow: var(--shadow-bento);
+      width: min(90%, 540px);
+    }
+
+    .v4-hero-welcome {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--alpine-blue);
+      margin-bottom: 0.4rem;
+      font-weight: 500;
+    }
+
+    .v4-hero-city {
+      font-size: 2.85rem;
+      font-weight: 500;
+      letter-spacing: -0.03em;
+      margin: 0 0 0.4rem 0;
+      color: var(--premier-charcoal);
+      line-height: 1.1;
+    }
+
+    .v4-hero-sub {
+      font-size: 1rem;
+      color: rgba(28, 28, 30, 0.7);
+      margin: 0;
+      font-weight: 400;
+    }
+
+    /* --- EDGE-TO-EDGE INFINITE CAROUSEL --- */
+    .v4-carousel-wrapper {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      mask-image: linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%);
+    }
+
+    .v4-carousel-track {
+      display: flex;
+      gap: 1.25rem;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      padding: 0.5rem 2.5rem 1.5rem 2.5rem;
+      scrollbar-width: none;
+    }
+
+    .v4-carousel-track::-webkit-scrollbar {
+      display: none;
+    }
+
+    .v4-card-pill {
+      flex: 0 0 auto;
+      background-color: var(--card-white);
+      border-radius: 18px;
+      padding: 1.25rem 1.75rem;
+      min-width: 210px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-bento);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+    }
+
+    .v4-card-pill:hover {
+      border-color: var(--alpine-blue);
+      transform: translateY(-2px);
+    }
+
+    .v4-card-label {
+      font-size: 0.8rem;
+      color: rgba(28, 28, 30, 0.55);
+      margin-bottom: 0.35rem;
+      font-weight: 400;
+      display: block;
+    }
+
+    .v4-card-value {
+      font-size: 1.25rem;
+      font-weight: 500;
+      color: var(--premier-charcoal);
+      letter-spacing: -0.01em;
+    }
+
+    /* --- WEATHER CAROUSEL SPECIFICS --- */
+    .v4-weather-card {
+      min-width: 140px;
+      text-align: center;
+      align-items: center;
+    }
+
+    .v4-weather-icon {
+      font-size: 1.5rem;
+      margin: 0.3rem 0;
+      display: block;
+    }
+
+    /* --- ACCORDION COMPONENT --- */
+    .v4-accordion {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 2.5rem;
+    }
+
+    .v4-accordion-item {
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .v4-accordion-trigger {
+      width: 100%;
+      padding: 1.3rem 0;
+      background: none;
+      border: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      text-align: left;
+      font-size: 1.1rem;
+      font-weight: 400;
+      color: var(--premier-charcoal);
+      font-family: inherit;
+    }
+
+    .v4-accordion-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--glass-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      color: var(--alpine-blue);
+      background: var(--card-white);
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .v4-accordion-trigger:hover .v4-accordion-icon {
+      background: var(--alpine-blue);
+      color: var(--card-white);
+    }
+
+    /* --- FLOATING LIQUID GLASS ACTION TRAY --- */
+    .v4-bottom-tray {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: 40px;
+      padding: 0.4rem 0.6rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      box-shadow: var(--shadow-tray);
+      z-index: 1000;
+    }
+
+    .v4-tray-btn {
+      background: transparent;
+      border: none;
+      padding: 0.6rem 1.25rem;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--premier-charcoal);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: inherit;
+      transition: background-color 0.2s ease;
+    }
+
+    .v4-tray-btn:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .v4-tray-btn-primary {
+      background-color: var(--alpine-blue);
+      color: var(--card-white);
+    }
+
+    .v4-tray-btn-primary:hover {
+      background-color: #163850;
+    }
+
+    /* --- MOBILE REFLOW --- */
+    @media (max-width: 768px) {
+      .v4-hero-glass-card {
+        padding: 2rem;
+        width: 88%;
+      }
+      .v4-hero-city {
+        font-size: 2.2rem;
+      }
+      .v4-section-header,
+      .v4-accordion {
+        padding: 0 1.5rem;
+      }
+      .v4-carousel-track {
+        padding: 0.5rem 1.5rem 1.5rem 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="v4-stack">
+
+  <!-- HERO SECTION WITH SLIDING BACKGROUND STRIP -->
+  <section class="v4-hero">
+    <div class="v4-hero-strip">
+      <img src="https://images.unsplash.com/photo-1502175353174-a7a70e73b362?auto=format&fit=crop&w=1000&q=80" alt="Shoreline 1" class="v4-hero-photo">
+      <img src="https://images.unsplash.com/photo-1542224566-6e85f2e6772f?auto=format&fit=crop&w=1000&q=80" alt="Shoreline 2" class="v4-hero-photo">
+      <img src="https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1000&q=80" alt="Shoreline 3" class="v4-hero-photo">
+      <img src="https://images.unsplash.com/photo-1511497584788-8767611136f6?auto=format&fit=crop&w=1000&q=80" alt="Shoreline 4" class="v4-hero-photo">
+      <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1000&q=80" alt="Shoreline 5" class="v4-hero-photo">
+      <!-- Continuous loop set -->
+      <img src="https://images.unsplash.com/photo-1502175353174-a7a70e73b362?auto=format&fit=crop&w=1000&q=80" alt="Shoreline 1" class="v4-hero-photo">
+      <img src="https://images.unsplash.com/photo-1542224566-6e85f2e6772f?auto=format&fit=crop&w=1000&q=80" alt="Shoreline 2" class="v4-hero-photo">
+      <img src="https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1000&q=80" alt="Shoreline 3" class="v4-hero-photo">
+      <img src="https://images.unsplash.com/photo-1511497584788-8767611136f6?auto=format&fit=crop&w=1000&q=80" alt="Shoreline 4" class="v4-hero-photo">
+      <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1000&q=80" alt="Shoreline 5" class="v4-hero-photo">
+    </div>
+
+    <div class="v4-hero-glass-card">
+      <div class="v4-hero-welcome">Welcome, Neighbor</div>
+      <h1 class="v4-hero-city">Shoreline</h1>
+      <p class="v4-hero-sub">Real Estate Intelligence & Municipal Metrics</p>
+    </div>
+  </section>
+
+  <!-- SECTION 1: AT-A-GLANCE METRICS CAROUSEL -->
+  <section id="section-glance" class="v4-section">
+    <div class="v4-section-header">
+      <h2 class="v4-section-title">At a Glance</h2>
+    </div>
+    <div class="v4-carousel-wrapper">
+      <div class="v4-carousel-track">
+        <div class="v4-card-pill">
+          <span class="v4-card-label">Median Home Price</span>
+          <span class="v4-card-value">$845,000</span>
+        </div>
+        <div class="v4-card-pill">
+          <span class="v4-card-label">Sunrise / Sunset</span>
+          <span class="v4-card-value">6:42 AM / 7:18 PM</span>
+        </div>
+        <div class="v4-card-pill">
+          <span class="v4-card-label">Walk Score</span>
+          <span class="v4-card-value">78 / 100</span>
+        </div>
+        <div class="v4-card-pill">
+          <span class="v4-card-label">Transit Score</span>
+          <span class="v4-card-value">62 / 100</span>
+        </div>
+        <div class="v4-card-pill">
+          <span class="v4-card-label">EV Charging Index</span>
+          <span class="v4-card-value">91 / 100</span>
+        </div>
+        <div class="v4-card-pill">
+          <span class="v4-card-label">Top Public School</span>
+          <span class="v4-card-value">8 / 10 Rating</span>
+        </div>
+        <div class="v4-card-pill">
+          <span class="v4-card-label">Seattle Commute</span>
+          <span class="v4-card-value">22 Mins (Link)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: 7-DAY WEATHER CAROUSEL -->
+  <section id="section-weather" class="v4-section">
+    <div class="v4-section-header">
+      <h2 class="v4-section-title">Local Forecast</h2>
+    </div>
+    <div class="v4-carousel-wrapper">
+      <div class="v4-carousel-track">
+        <div class="v4-card-pill v4-weather-card">
+          <span class="v4-card-label">Today</span>
+          <span class="v4-weather-icon">☀️</span>
+          <span class="v4-card-value">68° / 52°</span>
+        </div>
+        <div class="v4-card-pill v4-weather-card">
+          <span class="v4-card-label">Tomorrow</span>
+          <span class="v4-weather-icon">⛅</span>
+          <span class="v4-card-value">71° / 54°</span>
+        </div>
+        <div class="v4-card-pill v4-weather-card">
+          <span class="v4-card-label">Wednesday</span>
+          <span class="v4-weather-icon">🌤️</span>
+          <span class="v4-card-value">66° / 50°</span>
+        </div>
+        <div class="v4-card-pill v4-weather-card">
+          <span class="v4-card-label">Thursday</span>
+          <span class="v4-weather-icon">🌧️</span>
+          <span class="v4-card-value">60° / 48°</span>
+        </div>
+        <div class="v4-card-pill v4-weather-card">
+          <span class="v4-card-label">Friday</span>
+          <span class="v4-weather-icon">⛅</span>
+          <span class="v4-card-value">64° / 51°</span>
+        </div>
+        <div class="v4-card-pill v4-weather-card">
+          <span class="v4-card-label">Saturday</span>
+          <span class="v4-weather-icon">☀️</span>
+          <span class="v4-card-value">73° / 55°</span>
+        </div>
+        <div class="v4-card-pill v4-weather-card">
+          <span class="v4-card-label">Sunday</span>
+          <span class="v4-weather-icon">☀️</span>
+          <span class="v4-card-value">75° / 56°</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: FAQ ACCORDION -->
+  <section id="section-faq" class="v4-section">
+    <div class="v4-section-header">
+      <h2 class="v4-section-title">Neighborhood Frequently Asked Questions</h2>
+    </div>
+    <div class="v4-accordion">
+      <div class="v4-accordion-item">
+        <button class="v4-accordion-trigger">
+          <span>What is the transit connection to Downtown Seattle?</span>
+          <span class="v4-accordion-icon">+</span>
+        </button>
+      </div>
+      <div class="v4-accordion-item">
+        <button class="v4-accordion-trigger">
+          <span>How are property tax rates calculated in this neighborhood?</span>
+          <span class="v4-accordion-icon">+</span>
+        </button>
+      </div>
+      <div class="v4-accordion-item">
+        <button class="v4-accordion-trigger">
+          <span>What local school district serves this area?</span>
+          <span class="v4-accordion-icon">+</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- FLOATING LIQUID GLASS ACTION TRAY -->
+<div class="v4-bottom-tray">
+  <button class="v4-tray-btn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+    Sections
+  </button>
+  <button class="v4-tray-btn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+    Search
+  </button>
+  <button class="v4-tray-btn v4-tray-btn-primary">
+    Contact
+  </button>
+</div>
+
+</body>
+</html>
