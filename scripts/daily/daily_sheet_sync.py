@@ -1,3 +1,4 @@
+# File: daily_sheet_sync.py
 import os
 import json
 import gspread
@@ -43,14 +44,33 @@ def harvest_city_data(client):
     except gspread.exceptions.WorksheetNotFound:
         worksheet = doc.worksheet("City Data")
         
-    records = worksheet.get_all_records()
+    # Fetch raw 2D grid matrix to prevent gspread dictionary truncation
+    all_values = worksheet.get_all_values()
+    if not all_values or len(all_values) < 2:
+        print("⚠️ CityData sheet is empty or missing data rows.")
+        return
+
+    # Extract Row 1 as column headers
+    raw_headers = all_values[0]
+    headers = [str(h).strip() for h in raw_headers]
+
+    records = []
+    for row in all_values[1:]:
+        # Pad row array if shorter than total header count to protect column alignment
+        padded_row = row + [""] * (len(headers) - len(row))
+        record = {}
+        for i, header in enumerate(headers):
+            if header:  # Map all non-empty header keys (capturing through column BJ)
+                record[header] = padded_row[i]
+        records.append(record)
+
     os.makedirs(DATA_DIR, exist_ok=True)
     out_path = os.path.join(DATA_DIR, "city_data.json")
     
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(records, f, indent=2, ensure_ascii=False)
     
-    print(f"💾 Saved {len(records)} city master records to {out_path}")
+    print(f"💾 Saved {len(records)} city master records ({len(headers)} columns) to {out_path}")
 
 def harvest_website_stats(client):
     sheet_id = os.environ.get("WEBSITE_DATA_SHEET_ID")
