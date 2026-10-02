@@ -1,3 +1,4 @@
+# File: scripts/hourly/sheets_master_sync.py
 import os
 import io
 import json
@@ -151,7 +152,6 @@ def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, fol
         file_stream = io.BytesIO(raw_bytes)
         img = Image.open(file_stream)
         
-        # Downscale large high-res images to max 1600px before WebP encoding
         max_dim = 1600
         if img.width > max_dim or img.height > max_dim:
             img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
@@ -198,7 +198,6 @@ def process_custom_upload_asset(drive_service, s3_client, r2_bucket, drive_link,
         file_stream = io.BytesIO(raw_bytes)
         img = Image.open(file_stream)
 
-        # Downscale large high-res images to max 1600px before WebP encoding
         max_dim = 1600
         if img.width > max_dim or img.height > max_dim:
             img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
@@ -337,10 +336,15 @@ def harvest_commute_and_tolls(toll_schedules_from_sheet=None):
         json.dump(output, f, indent=2, ensure_ascii=False)
 
 def main():
-    print("📊 Running Sheets Master Ingestion & Sync...")
+    print("📊 Running Consolidated Sheets Master Ingestion & Sync...")
     os.makedirs(DATA_DIR, exist_ok=True)
     editorials_dir = os.path.join(DATA_DIR, "editorials")
     os.makedirs(editorials_dir, exist_ok=True)
+
+    master_sheet_id = os.environ.get("WEBSITE_DATA_CORE_SHEET_ID") or os.environ.get("WEBSITE_DATA_SHEET_ID")
+    if not master_sheet_id:
+        print("❌ WEBSITE_DATA_CORE_SHEET_ID missing from environment.")
+        return
 
     creds_path = "credentials.json"
     if not os.path.exists(creds_path):
@@ -367,206 +371,189 @@ def main():
             region_name="auto"
         )
 
-    batch_sheet_writebacks = {}
+    batch_sheet_writebacks = {master_sheet_id: []}
 
-    master_sheet_id = os.environ.get("WEBSITE_DATA_CORE_SHEET_ID")
-    if not master_sheet_id:
-        print("❌ WEBSITE_DATA_CORE_SHEET_ID missing.")
-        return
+    # Consolidated Single Batch Call across all 20 tabs
+    all_tabs = [
+        "Market_Dashboard", "Rates", "Historical_Log", 
+        "CityData", "MunicipalFeeds", "Stats", "Team", 
+        "Disclaimers", "Events", "DPA", "Professionals", 
+        "Reviews", "ThirdPartyPrograms", "News", "Sales", 
+        "Live_Archive", "Uploads", "Sports", "TollData", "UtilityData"
+    ]
+    ranges = [f"{tab}!A:AZ" for tab in all_tabs]
 
-    batch_sheet_writebacks[master_sheet_id] = []
+    try:
+        response = sheets_service.spreadsheets().values().batchGet(
+            spreadsheetId=master_sheet_id, ranges=ranges
+        ).execute()
+        value_ranges = response.get('valueRanges', [])
+        tabs_data = dict(zip(all_tabs, value_ranges))
+    except Exception as e:
+        print(f"   ⚠️ Master Workbook batchGet notice: {e}")
+        tabs_data = {}
 
     # Module 1: Command Center Tabs
-    try:
-        cc_ranges = ["Market_Dashboard!A:Z", "Rates!A:Z", "Historical_Log!A:Z"]
-        cc_batch = sheets_service.spreadsheets().values().batchGet(
-            spreadsheetId=master_sheet_id, ranges=cc_ranges
-        ).execute().get('valueRanges', [])
+    if tabs_data.get("Market_Dashboard", {}).get('values'):
+        with open(os.path.join(DATA_DIR, "hourly_market.json"), "w", encoding="utf-8") as f:
+            json.dump(parse_sheet_values(tabs_data["Market_Dashboard"]['values']), f, indent=2, ensure_ascii=False)
 
-        if len(cc_batch) > 0 and cc_batch[0].get('values'):
-            with open(os.path.join(DATA_DIR, "hourly_market.json"), "w", encoding="utf-8") as f:
-                json.dump(parse_sheet_values(cc_batch[0]['values']), f, indent=2, ensure_ascii=False)
-        if len(cc_batch) > 1 and cc_batch[1].get('values'):
-            with open(os.path.join(DATA_DIR, "hourly_rates.json"), "w", encoding="utf-8") as f:
-                json.dump(parse_sheet_values(cc_batch[1]['values']), f, indent=2, ensure_ascii=False)
-        if len(cc_batch) > 2 and cc_batch[2].get('values'):
-            with open(os.path.join(DATA_DIR, "hourly_market_historical.json"), "w", encoding="utf-8") as f:
-                json.dump(parse_sheet_values(cc_batch[2]['values']), f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        print(f"   ⚠️ Command Center notice: {e}")
+    if tabs_data.get("Rates", {}).get('values'):
+        with open(os.path.join(DATA_DIR, "hourly_rates.json"), "w", encoding="utf-8") as f:
+            json.dump(parse_sheet_values(tabs_data["Rates"]['values']), f, indent=2, ensure_ascii=False)
 
-    # Module 1B: City Data Tabs
-    try:
-        city_ranges = ["CityData!A:AZ", "MunicipalFeeds!A:AZ"]
-        city_batch = sheets_service.spreadsheets().values().batchGet(
-            spreadsheetId=master_sheet_id, ranges=city_ranges
-        ).execute().get('valueRanges', [])
+    if tabs_data.get("Historical_Log", {}).get('values'):
+        with open(os.path.join(DATA_DIR, "hourly_market_historical.json"), "w", encoding="utf-8") as f:
+            json.dump(parse_sheet_values(tabs_data["Historical_Log"]['values']), f, indent=2, ensure_ascii=False)
 
-        # Parse CityData
-        if len(city_batch) > 0 and city_batch[0].get('values'):
-            rows = city_batch[0]['values']
-            if rows and len(rows) >= 2:
-                headers = [str(h).strip() for h in rows[0]]
-                parsed_city_data = parse_sheet_values(rows)
+    # Module 1B: City Data Tabs & Editorial Download
+    city_rows = tabs_data.get("CityData", {}).get('values', [])
+    if city_rows and len(city_rows) >= 2:
+        headers = [str(h).strip() for h in city_rows[0]]
+        parsed_city_data = parse_sheet_values(city_rows)
 
-                with open(CITY_DATA_PATH, "w", encoding="utf-8") as f:
-                    json.dump(clean_nan_tokens(parsed_city_data), f, indent=2, ensure_ascii=False)
+        with open(CITY_DATA_PATH, "w", encoding="utf-8") as f:
+            json.dump(clean_nan_tokens(parsed_city_data), f, indent=2, ensure_ascii=False)
 
-                col_status_idx = -1
-                for candidate in ["EditorialStatus", "Editorial Status", "Editorial_Status"]:
-                    if candidate in headers:
-                        col_status_idx = headers.index(candidate)
-                        break
+        col_status_idx = -1
+        for candidate in ["EditorialStatus", "Editorial Status", "Editorial_Status"]:
+            if candidate in headers:
+                col_status_idx = headers.index(candidate)
+                break
 
-                for idx, r in enumerate(rows[1:]):
-                    padded = list(r) + [""] * (len(headers) - len(r))
-                    record = dict(zip(headers, padded))
-                    row_num = idx + 2
-                    city_name = record.get("City", "").strip()
-                    if not city_name: continue
+        for idx, r in enumerate(city_rows[1:]):
+            padded = list(r) + [""] * (len(headers) - len(r))
+            record = dict(zip(headers, padded))
+            row_num = idx + 2
+            city_name = record.get("City", "").strip()
+            if not city_name: continue
 
-                    slug = slugify(city_name)
-                    doc_url = record.get("Editorial", "").strip()
-                    status = (record.get("EditorialStatus", "") or record.get("Editorial Status", "") or "").strip()
+            slug = slugify(city_name)
+            doc_url = record.get("Editorial", "").strip()
+            status = (record.get("EditorialStatus", "") or record.get("Editorial Status", "") or "").strip()
 
-                    if doc_url and is_google_drive_link(doc_url) and status.lower() == "pending":
-                        md_content = get_google_doc_as_markdown(docs_service, doc_url)
-                        if md_content and md_content.strip():
-                            with open(os.path.join(editorials_dir, f"{slug}.md"), "w", encoding="utf-8") as f_md:
-                                f_md.write(md_content)
-                            if col_status_idx != -1:
-                                batch_sheet_writebacks[master_sheet_id].append({
-                                    'range': f"CityData!{get_col_letter(col_status_idx)}{row_num}",
-                                    'values': [["Complete"]]
-                                })
+            if doc_url and is_google_drive_link(doc_url) and status.lower() == "pending":
+                md_content = get_google_doc_as_markdown(docs_service, doc_url)
+                if md_content and md_content.strip():
+                    with open(os.path.join(editorials_dir, f"{slug}.md"), "w", encoding="utf-8") as f_md:
+                        f_md.write(md_content)
+                    if col_status_idx != -1:
+                        batch_sheet_writebacks[master_sheet_id].append({
+                            'range': f"CityData!{get_col_letter(col_status_idx)}{row_num}",
+                            'values': [["Complete"]]
+                        })
 
-        # Parse MunicipalFeeds
-        if len(city_batch) > 1 and city_batch[1].get('values'):
-            muni_rows = city_batch[1]['values']
-            if muni_rows:
-                parsed_muni_feeds = parse_sheet_values(muni_rows)
-                with open(os.path.join(DATA_DIR, "municipal_feeds.json"), "w", encoding="utf-8") as f:
-                    json.dump(clean_nan_tokens(parsed_muni_feeds), f, indent=2, ensure_ascii=False)
+    # MunicipalFeeds
+    muni_rows = tabs_data.get("MunicipalFeeds", {}).get('values', [])
+    if muni_rows:
+        parsed_muni_feeds = parse_sheet_values(muni_rows)
+        with open(os.path.join(DATA_DIR, "municipal_feeds.json"), "w", encoding="utf-8") as f:
+            json.dump(clean_nan_tokens(parsed_muni_feeds), f, indent=2, ensure_ascii=False)
 
-    except Exception as e:
-        print(f"   ⚠️️ CityData / MunicipalFeeds notice: {e}")
+    # Module 2: Website Data Tabs & Tolls
+    toll_rows = tabs_data.get("TollData", {}).get('values', [])
+    harvest_commute_and_tolls(parse_sheet_values(toll_rows) if toll_rows else [])
 
-    # Module 2: Website Data Tabs & Uploads Tab Bulk Processing
-    target_tabs = ["Stats", "Team", "Disclaimers", "Events", "DPA", "Professionals", "Reviews", "ThirdPartyPrograms", "News", "Sales", "Live_Archive", "Uploads", "Sports", "TollData", "UtilityData"]
-    try:
-        web_ranges = [f"{tab}!A:AZ" for tab in target_tabs]
-        web_batch = sheets_service.spreadsheets().values().batchGet(
-            spreadsheetId=master_sheet_id, ranges=web_ranges
-        ).execute().get('valueRanges', [])
+    # Bulk Process Uploads Tab (Drive -> WebP -> R2 CDN -> Writeback)
+    upload_rows = tabs_data.get("Uploads", {}).get('values', [])
+    if upload_rows and len(upload_rows) >= 2:
+        u_headers = [str(h).strip() for h in upload_rows[0]]
 
-        tabs_data = dict(zip(target_tabs, web_batch))
+        col_u_link = -1
+        for cand in ["Link", "Drive Link", "URL"]:
+            if cand in u_headers:
+                col_u_link = u_headers.index(cand)
+                break
 
-        toll_rows = tabs_data.get("TollData", {}).get('values', [])
-        harvest_commute_and_tolls(parse_sheet_values(toll_rows) if toll_rows else [])
+        col_u_dir = -1
+        for cand in ["Directory", "Image Directory", "Folder", "Dir"]:
+            if cand in u_headers:
+                col_u_dir = u_headers.index(cand)
+                break
 
-        # Bulk Process Uploads Tab (Drive -> WebP -> R2 CDN -> Writeback)
-        upload_rows = tabs_data.get("Uploads", {}).get('values', [])
-        if upload_rows and len(upload_rows) >= 2:
-            u_headers = [str(h).strip() for h in upload_rows[0]]
+        col_u_name = -1
+        for cand in ["Name", "Asset Name", "File Name"]:
+            if cand in u_headers:
+                col_u_name = u_headers.index(cand)
+                break
 
-            col_u_link = -1
-            for cand in ["Link", "Drive Link", "URL"]:
-                if cand in u_headers:
-                    col_u_link = u_headers.index(cand)
-                    break
+        col_u_asset = -1
+        for cand in ["New Asset URL", "Asset URL", "New Asset Link", "New URL"]:
+            if cand in u_headers:
+                col_u_asset = u_headers.index(cand)
+                break
 
-            col_u_dir = -1
-            for cand in ["Directory", "Image Directory", "Folder", "Dir"]:
-                if cand in u_headers:
-                    col_u_dir = u_headers.index(cand)
-                    break
+        if col_u_asset == -1 and col_u_link != -1:
+            col_u_asset = col_u_link
 
-            col_u_name = -1
-            for cand in ["Name", "Asset Name", "File Name"]:
-                if cand in u_headers:
-                    col_u_name = u_headers.index(cand)
-                    break
+        col_u_done = -1
+        for cand in ["Done", "Status", "Complete", "Processed"]:
+            if cand in u_headers:
+                col_u_done = u_headers.index(cand)
+                break
 
-            col_u_asset = -1
-            for cand in ["New Asset URL", "Asset URL", "New Asset Link", "New URL"]:
-                if cand in u_headers:
-                    col_u_asset = u_headers.index(cand)
-                    break
+        for idx, r in enumerate(upload_rows[1:]):
+            padded = list(r) + [""] * (len(u_headers) - len(r))
+            u_rec = dict(zip(u_headers, padded))
+            row_num = idx + 2
 
-            if col_u_asset == -1 and col_u_link != -1:
-                col_u_asset = col_u_link
+            d_link = (u_rec.get("Link") or u_rec.get("Drive Link") or u_rec.get("URL") or "").strip()
+            d_dir = (u_rec.get("Directory") or u_rec.get("Image Directory") or u_rec.get("Folder") or "").strip()
+            d_name = (u_rec.get("Name") or u_rec.get("Asset Name") or u_rec.get("File Name") or "").strip()
+            d_done = (u_rec.get("Done") or u_rec.get("Status") or u_rec.get("Complete") or "").strip().lower()
 
-            col_u_done = -1
-            for cand in ["Done", "Status", "Complete", "Processed"]:
-                if cand in u_headers:
-                    col_u_done = u_headers.index(cand)
-                    break
+            if d_link and is_google_drive_link(d_link) and d_done != "yes" and s3_client:
+                new_url = process_custom_upload_asset(
+                    drive_service, s3_client, r2_bucket, d_link, d_dir, d_name
+                )
+                if new_url and new_url != d_link:
+                    if col_u_asset != -1:
+                        batch_sheet_writebacks[master_sheet_id].append({
+                            'range': f"Uploads!{get_col_letter(col_u_asset)}{row_num}",
+                            'values': [[new_url]]
+                        })
+                    if col_u_done != -1:
+                        batch_sheet_writebacks[master_sheet_id].append({
+                            'range': f"Uploads!{get_col_letter(col_u_done)}{row_num}",
+                            'values': [["Yes"]]
+                        })
 
-            for idx, r in enumerate(upload_rows[1:]):
-                padded = list(r) + [""] * (len(u_headers) - len(r))
-                u_rec = dict(zip(u_headers, padded))
-                row_num = idx + 2
+    # Simple JSON tabs export
+    for tab_name, json_name in [
+        ("Stats", "stats.json"), ("Disclaimers", "disclaimers.json"),
+        ("DPA", "dpa_programs.json"), ("Professionals", "professionals.json"), 
+        ("Reviews", "reviews.json"), ("ThirdPartyPrograms", "thirdpartyprograms.json"), 
+        ("News", "news.json"), ("Sports", "sports_teams.json"),
+        ("Uploads", "uploads.json"), ("UtilityData", "utility_data.json"),
+        ("Events", "events.json"), ("Team", "team.json")
+    ]:
+        rows = tabs_data.get(tab_name, {}).get('values', [])
+        if rows:
+            recs = parse_sheet_values(rows)
+            data_obj = recs[0] if tab_name == "Stats" else recs
+            with open(os.path.join(DATA_DIR, json_name), "w", encoding="utf-8") as f:
+                json.dump(clean_nan_tokens(data_obj), f, indent=2, ensure_ascii=False)
 
-                d_link = (u_rec.get("Link") or u_rec.get("Drive Link") or u_rec.get("URL") or "").strip()
-                d_dir = (u_rec.get("Directory") or u_rec.get("Image Directory") or u_rec.get("Folder") or "").strip()
-                d_name = (u_rec.get("Name") or u_rec.get("Asset Name") or u_rec.get("File Name") or "").strip()
-                d_done = (u_rec.get("Done") or u_rec.get("Status") or u_rec.get("Complete") or "").strip().lower()
-
-                if d_link and is_google_drive_link(d_link) and d_done != "yes" and s3_client:
-                    new_url = process_custom_upload_asset(
-                        drive_service, s3_client, r2_bucket, d_link, d_dir, d_name
-                    )
-                    if new_url and new_url != d_link:
-                        if col_u_asset != -1:
-                            batch_sheet_writebacks[master_sheet_id].append({
-                                'range': f"Uploads!{get_col_letter(col_u_asset)}{row_num}",
-                                'values': [[new_url]]
-                            })
-                        if col_u_done != -1:
-                            batch_sheet_writebacks[master_sheet_id].append({
-                                'range': f"Uploads!{get_col_letter(col_u_done)}{row_num}",
-                                'values': [["Yes"]]
-                            })
-
-        # Write out simple JSON tabs
-        for tab_name, json_name in [
-            ("Stats", "stats.json"), ("Disclaimers", "disclaimers.json"),
-            ("DPA", "dpa_programs.json"), ("Professionals", "professionals.json"), 
-            ("Reviews", "reviews.json"), ("ThirdPartyPrograms", "thirdpartyprograms.json"), 
-            ("News", "news.json"), ("Sports", "sports_teams.json"),
-            ("Uploads", "uploads.json"), ("UtilityData", "utility_data.json"),
-            ("Events", "events.json")
-        ]:
-            rows = tabs_data.get(tab_name, {}).get('values', [])
-            if rows:
-                recs = parse_sheet_values(rows)
-                data_obj = recs[0] if tab_name == "Stats" else recs
-                with open(os.path.join(DATA_DIR, json_name), "w", encoding="utf-8") as f:
-                    json.dump(clean_nan_tokens(data_obj), f, indent=2, ensure_ascii=False)
-
-        # Sales & DOM Calibration
-        sales_rows = tabs_data.get("Sales", {}).get('values', [])
-        if sales_rows:
-            headers = [h.strip() for h in sales_rows[0]]
-            compiled_sales = []
-            today_date = datetime.datetime.now().date()
-            for idx, r in enumerate(sales_rows[1:]):
-                padded = list(r) + [""] * (len(headers) - len(r))
-                row_dict = dict(zip(headers, padded))
-                if row_dict.get("Status", "").strip() != "Sold":
-                    s_date = row_dict.get("Selling Date")
-                    if s_date and str(s_date).strip():
-                        try:
-                            dt_obj = datetime.datetime.strptime(str(s_date).strip(), "%m/%d/%Y").date()
-                            row_dict["DOM"] = max(0, (today_date - dt_obj).days)
-                        except Exception:
-                            row_dict["DOM"] = "-"
-                compiled_sales.append(row_dict)
-            with open(os.path.join(DATA_DIR, "sales.json"), "w", encoding="utf-8") as f:
-                json.dump(clean_nan_tokens(compiled_sales), f, indent=4, ensure_ascii=False)
-
-    except Exception as e:
-        print(f"   ⚠️ Website Data workbook notice: {e}")
+    # Sales & DOM Calibration
+    sales_rows = tabs_data.get("Sales", {}).get('values', [])
+    if sales_rows:
+        headers = [h.strip() for h in sales_rows[0]]
+        compiled_sales = []
+        today_date = datetime.datetime.now().date()
+        for idx, r in enumerate(sales_rows[1:]):
+            padded = list(r) + [""] * (len(headers) - len(r))
+            row_dict = dict(zip(headers, padded))
+            if row_dict.get("Status", "").strip() != "Sold":
+                s_date = row_dict.get("Selling Date")
+                if s_date and str(s_date).strip():
+                    try:
+                        dt_obj = datetime.datetime.strptime(str(s_date).strip(), "%m/%d/%Y").date()
+                        row_dict["DOM"] = max(0, (today_date - dt_obj).days)
+                    except Exception:
+                        row_dict["DOM"] = "-"
+            compiled_sales.append(row_dict)
+        with open(os.path.join(DATA_DIR, "sales.json"), "w", encoding="utf-8") as f:
+            json.dump(clean_nan_tokens(compiled_sales), f, indent=4, ensure_ascii=False)
 
     # Flush Cell Writebacks
     for s_id, updates in batch_sheet_writebacks.items():
@@ -578,7 +565,7 @@ def main():
             except Exception as write_err:
                 print(f"   ⚠️ Sheet writeback notice: {write_err}")
 
-    print("✅ Sheets Master Sync complete.")
+    print("✅ Consolidated Sheets Master Sync complete.")
 
 if __name__ == "__main__":
     main()

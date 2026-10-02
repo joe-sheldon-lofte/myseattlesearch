@@ -1,3 +1,4 @@
+# File: scripts/hourly/cms_generator.py
 import os
 import json
 import re
@@ -126,7 +127,7 @@ def main():
     docs_service = build('docs', 'v1', credentials=creds)
 
     writebacks = []
-    res = sheets_service.spreadsheets().values().get(spreadsheetId=cms_sheet_id, range="Posts!A:AD").execute()
+    res = sheets_service.spreadsheets().values().get(spreadsheetId=cms_sheet_id, range="CMSPosts!A:AD").execute()
     rows = res.get('values', [])
 
     if not rows or len(rows) < 2:
@@ -181,17 +182,17 @@ def main():
         if get_v(col_map["fb_switch"]).lower() == "yes" and not get_v(col_map["fb_id"]):
             pub_id = publish_to_facebook(fb_page_id, fb_token, post_text, link=url_1)
             if pub_id and col_map["fb_id"] != -1:
-                writebacks.append({'range': f"Posts!{get_col_letter(col_map['fb_id'])}{row_num}", 'values': [[pub_id]]})
+                writebacks.append({'range': f"CMSPosts!{get_col_letter(col_map['fb_id'])}{row_num}", 'values': [[pub_id]]})
 
         if get_v(col_map["threads_switch"]).lower() == "yes" and not get_v(col_map["threads_id"]):
             pub_id = publish_to_threads(threads_user_id, threads_token, post_text)
             if pub_id and col_map["threads_id"] != -1:
-                writebacks.append({'range': f"Posts!{get_col_letter(col_map['threads_id'])}{row_num}", 'values': [[pub_id]]})
+                writebacks.append({'range': f"CMSPosts!{get_col_letter(col_map['threads_id'])}{row_num}", 'values': [[pub_id]]})
 
         if get_v(col_map["li_switch"]).lower() == "yes" and not get_v(col_map["li_id"]):
             pub_id = publish_to_linkedin(li_author, li_token, post_text, link=url_1, title=primary_text)
             if pub_id and col_map["li_id"] != -1:
-                writebacks.append({'range': f"Posts!{get_col_letter(col_map['li_id'])}{row_num}", 'values': [[pub_id]]})
+                writebacks.append({'range': f"CMSPosts!{get_col_letter(col_map['li_id'])}{row_num}", 'values': [[pub_id]]})
 
     if writebacks:
         sheets_service.spreadsheets().values().batchUpdate(
