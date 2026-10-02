@@ -40,8 +40,7 @@ jobs:
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           GA_GOOGLE_CREDENTIALS: ${{ secrets.GA_GOOGLE_CREDENTIALS }}
-          CITY_DATA_SHEET_ID: ${{ secrets.CITY_DATA_SHEET_ID }}
-          WEBSITE_DATA_SHEET_ID: ${{ secrets.WEBSITE_DATA_SHEET_ID }}
+          WEBSITE_DATA_CORE_SHEET_ID: ${{ secrets.WEBSITE_DATA_CORE_SHEET_ID }}
           WALK_SCORE_API_KEY: ${{ secrets.WALK_SCORE_API_KEY }}
           YELP_API_KEY: ${{ secrets.YELP_API_KEY }}
           WSDOT_ACCESS_CODE: ${{ secrets.WSDOT_ACCESS_CODE }}
@@ -59,10 +58,11 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/
+          git add data/ _data/
           if git diff --staged --quiet; then
             echo "No weekly data changes detected. Skipping commit."
           else
             git commit -m "chore(data): automated weekly harvest pipeline update [skip ci]"
-            git push
+            git pull origin ${{ github.ref_name }} --rebase
+            git push origin ${{ github.ref_name }}
           fi

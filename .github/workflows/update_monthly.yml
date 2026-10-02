@@ -41,8 +41,7 @@ jobs:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
           GA_GOOGLE_CREDENTIALS: ${{ secrets.GA_GOOGLE_CREDENTIALS }}
-          CITY_DATA_SHEET_ID: ${{ secrets.CITY_DATA_SHEET_ID }}
-          WEBSITE_DATA_SHEET_ID: ${{ secrets.WEBSITE_DATA_SHEET_ID }}
+          WEBSITE_DATA_CORE_SHEET_ID: ${{ secrets.WEBSITE_DATA_CORE_SHEET_ID }}
         run: python scripts/harvest_monthly.py
 
       - name: Clean Temporary Execution Keys
@@ -53,10 +52,11 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/
+          git add data/ _data/
           if git diff --staged --quiet; then
             echo "No monthly data changes detected. Skipping commit."
           else
             git commit -m "chore(data): automated monthly harvest pipeline update [skip ci]"
-            git push
+            git pull origin ${{ github.ref_name }} --rebase
+            git push origin ${{ github.ref_name }}
           fi
