@@ -15,7 +15,7 @@ if SENTRY_DSN:
         traces_sample_rate=0.0,  # Pure error monitoring (saves quota)
         environment="production"
     )
-    print("🛡️ Sentry Error Monitoring Initialized.")
+    print("🛡️️ Sentry Error Monitoring Initialized.")
 else:
     print("⚠️ SENTRY_DSN environment variable not found. Logging to terminal only.")
 
@@ -56,7 +56,6 @@ def run_subscript(script_relative_path):
     else:
         raise FileNotFoundError(f"Script not found at expected path: {primary_path}")
 
-def harvest_daily_sheet_sync(): run_subscript("daily_sheet_sync.py")
 def harvest_construction_zones(): run_subscript("construction_zones.py")
 def harvest_quizzes_processor(): run_subscript("quizzes_processor.py")
 def harvest_city_events(): run_subscript("harvest_city_events.py")
@@ -78,10 +77,9 @@ def main():
     print("       MYSEATTLESEARCH DAILY MASTER HARVESTER     ")
     print("==================================================\n")
 
-    safe_task("1. Daily Sheets Sync (CityData, Stats, TransitData)", harvest_daily_sheet_sync)
-    safe_task("2. WSDOT Active Construction & Work Zones", harvest_construction_zones)
-    safe_task("3. Daily Polymorphic Quizzes Processor", harvest_quizzes_processor)
-    safe_task("4. Municipal & City Events Harvester", harvest_city_events)
+    safe_task("1. WSDOT Active Construction & Work Zones", harvest_construction_zones)
+    safe_task("2. Daily Polymorphic Quizzes Processor", harvest_quizzes_processor)
+    safe_task("3. Municipal & City Events Harvester", harvest_city_events)
 
     print("🎉 Daily master harvesting sequence complete. Data fresh!")
 

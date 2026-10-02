@@ -1,3 +1,4 @@
+# File: scripts/weekly/infosparks_stats.py
 import os
 import json
 import io
@@ -72,11 +73,11 @@ def parse_infosparks_csv_text(csv_text):
 
 def sync_infosparks_links():
     print("📋 [Step 1] Syncing InfoSparks CSV links from Google Sheet...")
-    sheet_id = os.environ.get("CITY_DATA_SHEET_ID")
+    sheet_id = os.environ.get("WEBSITE_DATA_CORE_SHEET_ID")
     service = get_sheets_service()
 
     if not sheet_id or not service:
-        print("ℹ️ CITY_DATA_SHEET_ID or credentials missing. Skipping Google Sheet sync, using local infosparks_links.json.")
+        print("ℹ️ WEBSITE_DATA_CORE_SHEET_ID or credentials missing. Skipping Google Sheet sync, using local infosparks_links.json.")
         return
 
     try:

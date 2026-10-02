@@ -111,9 +111,9 @@ def main():
     print("📰 Starting Headless CMS & Social Media Auto-Publisher...")
     os.makedirs(POSTS_DIR, exist_ok=True)
 
-    cms_sheet_id = os.environ.get("CMS_SHEET_ID")
+    cms_sheet_id = os.environ.get("WEBSITE_DATA_CORE_SHEET_ID") or os.environ.get("CMS_SHEET_ID")
     if not cms_sheet_id:
-        print("ℹ️ CMS_SHEET_ID not set. Skipping CMS generation.")
+        print("ℹ️ WEBSITE_DATA_CORE_SHEET_ID environment variable not set. Skipping CMS generation.")
         return
 
     creds_path = "credentials.json"

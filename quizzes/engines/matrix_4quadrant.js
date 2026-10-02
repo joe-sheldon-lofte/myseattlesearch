@@ -1,3 +1,5 @@
+// File: quizzes/engines/matrix_4quadrant.js
+
 export function initializeQuizTrack(instance) {
     instance.renderQuestion = function() {
         if (this.currentStep >= this.quizData.questions.length) {
@@ -130,45 +132,38 @@ async function processCalculationsAndSubmit(instance) {
     const baseUserTags = instance.quizData.userTags || "";
     const combinedUserTags = baseUserTags ? `${baseUserTags}, ${winner}` : winner;
 
-    // Strict 34-column layout contract mapping
+    // Standardized 17-Column Inbound Ledger Contract
     const rowData = [
-        timestamp,                                         // Col A: Timestamp
-        instance.leadInfo.firstName || "",                 // Col B: First Name
-        instance.leadInfo.lastName || "",                  // Col C: Last Name
-        instance.leadInfo.email || "",                     // Col D: Email
-        instance.leadInfo.phone || "",                     // Col E: Phone
-        combinedUserTags,                                  // Col F: User Tags
-        match.heading || winner,                           // Col G: Final Outcome
-        "",                                                // Col H: Total Tally Score (blank for matrix)
-        tallies.typeA !== undefined && tallies.typeA > 0 ? tallies.typeA : "", // Col I: Score Type A
-        tallies.typeB !== undefined && tallies.typeB > 0 ? tallies.typeB : "", // Col J: Score Type B
-        tallies.typeC !== undefined && tallies.typeC > 0 ? tallies.typeC : "", // Col K: Score Type C
-        tallies.typeD !== undefined && tallies.typeD > 0 ? tallies.typeD : "", // Col L: Score Type D
-        tallies.typeE !== undefined && tallies.typeE > 0 ? tallies.typeE : "", // Col M: Score Type E
-        tallies.typeF !== undefined && tallies.typeF > 0 ? tallies.typeF : ""  // Col N: Score Type F
+        timestamp,                                         // Col A: InboundID
+        "quiz",                                            // Col B: Source
+        instance.leadInfo.firstName || "",                 // Col C: FirstName
+        instance.leadInfo.lastName || "",                  // Col D: LastName
+        instance.leadInfo.email || "",                     // Col E: Email
+        instance.leadInfo.phone || "",                     // Col F: PhoneNumber
+        "",                                                // Col G: Data
+        instance.quizData.id || "",                        // Col H: Var1 (Quiz ID)
+        match.heading || winner,                           // Col I: Var2 (Quiz Result)
+        combinedUserTags,                                  // Col J: Var3 (Tags/Key)
+        "",                                                // Col K: Var4
+        "",                                                // Col L: Var5
+        "",                                                // Col M: Image1
+        "",                                                // Col N: Image2
+        "",                                                // Col O: Image3
+        "",                                                // Col P: Image4
+        ""                                                 // Col Q: image5
     ];
-
-    // Unroll individual question numerical ratings into Cols O through AH (Q1 - Q20)
-    for (let q = 0; q < 20; q++) {
-        const val = instance.answers[q];
-        if (val !== undefined && val !== null) {
-            rowData.push(val);
-        } else {
-            rowData.push("");
-        }
-    }
 
     const payload = {
         quizId: instance.quizData.id,
+        sheetName: "Inbound",
         rowData: rowData
     };
 
     const workerGatewayUrl = "https://myseattlesearch-quiz-gateway.joe-54b.workers.dev/";
 
     try {
-        fetch(workerGatewayUrl, { 
+        await fetch(workerGatewayUrl, { 
             method: 'POST', 
-            mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify(payload) 
         });

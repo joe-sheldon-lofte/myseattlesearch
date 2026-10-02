@@ -1,3 +1,5 @@
+// File: quizzes/engines/score_tally.js
+
 export function initializeQuizTrack(instance) {
     instance.renderQuestion = function() {
         if (this.currentStep >= this.quizData.questions.length) {
@@ -87,47 +89,38 @@ async function processCalculationsAndSubmit(instance) {
     const baseUserTags = instance.quizData.userTags || "";
     const combinedUserTags = baseUserTags ? `${baseUserTags}, ${matchedKey}` : matchedKey;
 
-    // Strict 34-column layout contract mapping
+    // Standardized 17-Column Inbound Ledger Contract
     const rowData = [
-        timestamp,                                         // Col A: Timestamp
-        instance.leadInfo.firstName || "",                 // Col B: First Name
-        instance.leadInfo.lastName || "",                  // Col C: Last Name
-        instance.leadInfo.email || "",                     // Col D: Email
-        instance.leadInfo.phone || "",                     // Col E: Phone
-        combinedUserTags,                                  // Col F: User Tags
-        match.heading || matchedKey,                       // Col G: Final Outcome
-        grandTotal,                                        // Col H: Total Tally Score
-        "",                                                // Col I: Score Type A
-        "",                                                // Col J: Score Type B
-        "",                                                // Col K: Score Type C
-        "",                                                // Col L: Score Type D
-        "",                                                // Col M: Score Type E
-        ""                                                 // Col N: Score Type F
+        timestamp,                                         // Col A: InboundID
+        "quiz",                                            // Col B: Source
+        instance.leadInfo.firstName || "",                 // Col C: FirstName
+        instance.leadInfo.lastName || "",                  // Col D: LastName
+        instance.leadInfo.email || "",                     // Col E: Email
+        instance.leadInfo.phone || "",                     // Col F: PhoneNumber
+        "",                                                // Col G: Data
+        instance.quizData.id || "",                        // Col H: Var1 (Quiz ID)
+        match.heading || matchedKey,                       // Col I: Var2 (Quiz Result)
+        combinedUserTags,                                  // Col J: Var3 (Tags/Key)
+        "",                                                // Col K: Var4
+        "",                                                // Col L: Var5
+        "",                                                // Col M: Image1
+        "",                                                // Col N: Image2
+        "",                                                // Col O: Image3
+        "",                                                // Col P: Image4
+        ""                                                 // Col Q: image5
     ];
-
-    // Unroll individual question selections into Cols O through AH (Q1 - Q20)
-    for (let q = 0; q < 20; q++) {
-        const ans = instance.answers[q];
-        if (ans && ans.text !== undefined) {
-            rowData.push(`${ans.text} [${ans.points}]`);
-        } else if (ans !== undefined && ans !== null) {
-            rowData.push(ans);
-        } else {
-            rowData.push("");
-        }
-    }
 
     const payload = {
         quizId: instance.quizData.id,
+        sheetName: "Inbound",
         rowData: rowData
     };
 
     const workerGatewayUrl = "https://myseattlesearch-quiz-gateway.joe-54b.workers.dev/";
 
     try {
-        fetch(workerGatewayUrl, { 
+        await fetch(workerGatewayUrl, { 
             method: 'POST', 
-            mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify(payload) 
         });

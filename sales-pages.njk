@@ -803,27 +803,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const nameVal = document.getElementById('dlName').value.trim();
             const roleVal = document.getElementById('dlRole').value;
-            const combinedName = roleVal ? `${nameVal} (${roleVal})` : nameVal;
 
+            // 17-Column Unified Inbound Ledger Mapping
             const rowData = [
-                combinedName,
-                document.getElementById('dlEmail').value.trim(),
-                document.getElementById('dlPhone').value.trim(),
-                document.getElementById('dlOtherEmails').value.trim(),
-                "{{ listing['MLS Number'] or listing.mlsNumber }}",
-                timestamp,
-                "" // Status (Stamped "SENT" by Apps Script)
+                timestamp,                                         // Col A: InboundID
+                "listingdownloads",                                // Col B: Source
+                nameVal,                                           // Col C: FirstName
+                "",                                                // Col D: LastName
+                document.getElementById('dlEmail').value.trim(),   // Col E: Email
+                document.getElementById('dlPhone').value.trim(),   // Col F: PhoneNumber
+                "",                                                // Col G: Data
+                "{{ listing['MLS Number'] or listing.mlsNumber }}",// Col H: Var1 (MLS Number)
+                document.getElementById('dlOtherEmails').value.trim(), // Col I: Var2 (Additional Emails)
+                roleVal,                                           // Col J: Var3 (User Role)
+                "",                                                // Col K: Var4
+                "",                                                // Col L: Var5
+                "",                                                // Col M: Image1
+                "",                                                // Col N: Image2
+                "",                                                // Col O: Image3
+                "",                                                // Col P: Image4
+                ""                                                 // Col Q: image5
             ];
 
             const payload = {
-                sheetName: "Download_Reg",
+                sheetName: "Inbound",
                 rowData: rowData
             };
 
             try {
                 await fetch(workerGatewayUrl, {
                     method: 'POST',
-                    mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });

@@ -1,3 +1,4 @@
+# File: scripts/daily/quizzes_processor.py
 import os
 import io
 import json
@@ -126,9 +127,9 @@ def process_and_upload_image(drive_service, s3_client, image_url, folder_name, f
 
 def main():
     print("🎯 Starting Daily Polymorphic Quizzes Processor...")
-    quiz_sheet_id = os.environ.get("QUIZZES_SHEET_ID")
+    quiz_sheet_id = os.environ.get("WEBSITE_DATA_CORE_SHEET_ID")
     if not quiz_sheet_id:
-        print("ℹ️ QUIZZES_SHEET_ID not set in secrets. Skipping quiz harvest.")
+        print("ℹ️ WEBSITE_DATA_CORE_SHEET_ID not set in secrets. Skipping quiz harvest.")
         return
 
     sheets_service, drive_service = get_google_services()
