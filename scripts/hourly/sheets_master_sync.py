@@ -390,7 +390,7 @@ def main():
         value_ranges = response.get('valueRanges', [])
         tabs_data = dict(zip(all_tabs, value_ranges))
     except Exception as e:
-        print(f"   ⚠️ Master Workbook batchGet notice: {e}")
+        print(f"   ⚠️️ Master Workbook batchGet notice: {e}")
         tabs_data = {}
 
     # Module 1: Command Center Tabs
@@ -453,6 +453,18 @@ def main():
     # Module 2: Website Data Tabs & Tolls
     toll_rows = tabs_data.get("TollData", {}).get('values', [])
     harvest_commute_and_tolls(parse_sheet_values(toll_rows) if toll_rows else [])
+
+    # Dynamic Vertical Key-Value Parser for Stats Tab
+    stats_rows = tabs_data.get("Stats", {}).get('values', [])
+    if stats_rows and len(stats_rows) >= 2:
+        stats_dict = {}
+        for r in stats_rows[1:]:  # Skip Row 1 (headers)
+            if r and len(r) > 0 and str(r[0]).strip():
+                k = str(r[0]).strip()
+                v = str(r[1]).strip() if len(r) > 1 and r[1] is not None else ""
+                stats_dict[k] = v
+        with open(os.path.join(DATA_DIR, "stats.json"), "w", encoding="utf-8") as f:
+            json.dump(clean_nan_tokens(stats_dict), f, indent=2, ensure_ascii=False)
 
     # Bulk Process Uploads Tab (Drive -> WebP -> R2 CDN -> Writeback)
     upload_rows = tabs_data.get("Uploads", {}).get('values', [])
@@ -518,9 +530,9 @@ def main():
                             'values': [["Yes"]]
                         })
 
-    # Simple JSON tabs export
+    # Simple Array JSON tabs export
     for tab_name, json_name in [
-        ("Stats", "stats.json"), ("Disclaimers", "disclaimers.json"),
+        ("Disclaimers", "disclaimers.json"),
         ("DPA", "dpa_programs.json"), ("Professionals", "professionals.json"), 
         ("Reviews", "reviews.json"), ("ThirdPartyPrograms", "thirdpartyprograms.json"), 
         ("News", "news.json"), ("Sports", "sports_teams.json"),
@@ -530,9 +542,8 @@ def main():
         rows = tabs_data.get(tab_name, {}).get('values', [])
         if rows:
             recs = parse_sheet_values(rows)
-            data_obj = recs[0] if tab_name == "Stats" else recs
             with open(os.path.join(DATA_DIR, json_name), "w", encoding="utf-8") as f:
-                json.dump(clean_nan_tokens(data_obj), f, indent=2, ensure_ascii=False)
+                json.dump(clean_nan_tokens(recs), f, indent=2, ensure_ascii=False)
 
     # Sales & DOM Calibration
     sales_rows = tabs_data.get("Sales", {}).get('values', [])
