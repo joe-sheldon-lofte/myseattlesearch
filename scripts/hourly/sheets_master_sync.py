@@ -181,7 +181,6 @@ def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, fol
         return image_url
 
 def process_custom_upload_asset(drive_service, s3_client, r2_bucket, drive_link, target_dir, asset_name):
-    """Converts image from Drive link to WebP, downscales to 1600px max, and uploads to custom R2 directory path."""
     file_id = extract_google_id(drive_link)
     if not file_id or not s3_client or not r2_bucket:
         return drive_link
@@ -373,13 +372,14 @@ def main():
 
     batch_sheet_writebacks = {master_sheet_id: []}
 
-    # Consolidated Single Batch Call across all 20 tabs
+    # Consolidated Single Batch Call across all 21 tabs
     all_tabs = [
         "Market_Dashboard", "Rates", "Historical_Log", 
         "CityData", "MunicipalFeeds", "Stats", "Team", 
         "Disclaimers", "Events", "DPA", "Professionals", 
         "Reviews", "ThirdPartyPrograms", "News", "Sales", 
-        "Live_Archive", "Uploads", "Sports", "TollData", "UtilityData"
+        "Live_Archive", "Uploads", "Sports", "TollData", 
+        "UtilityData", "MatrixKeepAlive"
     ]
     ranges = [f"{tab}!A:AZ" for tab in all_tabs]
 
@@ -390,7 +390,7 @@ def main():
         value_ranges = response.get('valueRanges', [])
         tabs_data = dict(zip(all_tabs, value_ranges))
     except Exception as e:
-        print(f"   ⚠️️ Master Workbook batchGet notice: {e}")
+        print(f"   ⚠ Master Workbook batchGet notice: {e}")
         tabs_data = {}
 
     # Module 1: Command Center Tabs
@@ -537,11 +537,16 @@ def main():
         ("Reviews", "reviews.json"), ("ThirdPartyPrograms", "thirdpartyprograms.json"), 
         ("News", "news.json"), ("Sports", "sports_teams.json"),
         ("Uploads", "uploads.json"), ("UtilityData", "utility_data.json"),
-        ("Events", "events.json"), ("Team", "team.json")
+        ("Events", "events.json"), ("Team", "team.json"),
+        ("MatrixKeepAlive", "matrix_keep_alive.json")
     ]:
         rows = tabs_data.get(tab_name, {}).get('values', [])
         if rows:
             recs = parse_sheet_values(rows)
+            # Filter empty URLs out of MatrixKeepAlive
+            if tab_name == "MatrixKeepAlive":
+                recs = [r for r in recs if r.get("URL", "").strip()]
+            
             with open(os.path.join(DATA_DIR, json_name), "w", encoding="utf-8") as f:
                 json.dump(clean_nan_tokens(recs), f, indent=2, ensure_ascii=False)
 
