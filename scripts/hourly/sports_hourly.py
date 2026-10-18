@@ -1,3 +1,4 @@
+# File: scripts/hourly/sports_hourly.py
 import os
 import json
 import re
@@ -10,11 +11,13 @@ from datetime import datetime, timezone
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Robust Repository Root Path Resolution
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-if os.path.basename(SCRIPT_DIR) == "scripts":
-    REPO_ROOT = os.path.dirname(SCRIPT_DIR)
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+if os.path.basename(CURRENT_DIR) == "hourly":
+    REPO_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
+elif os.path.basename(CURRENT_DIR) == "scripts":
+    REPO_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 else:
-    REPO_ROOT = SCRIPT_DIR
+    REPO_ROOT = os.path.abspath(CURRENT_DIR)
 
 DATA_DIR = os.path.join(REPO_ROOT, "data")
 OUTPUT_PATH = os.path.join(DATA_DIR, "hourly_sports.json")

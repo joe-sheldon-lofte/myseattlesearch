@@ -1,3 +1,4 @@
+# File: scripts/harvest_daily.py
 import os
 import sys
 import traceback
@@ -15,7 +16,7 @@ if SENTRY_DSN:
         traces_sample_rate=0.0,  # Pure error monitoring (saves quota)
         environment="production"
     )
-    print("🛡️️ Sentry Error Monitoring Initialized.")
+    print("🛡 Sentry Error Monitoring Initialized.")
 else:
     print("⚠️ SENTRY_DSN environment variable not found. Logging to terminal only.")
 
@@ -59,6 +60,7 @@ def run_subscript(script_relative_path):
 def harvest_construction_zones(): run_subscript("construction_zones.py")
 def harvest_quizzes_processor(): run_subscript("quizzes_processor.py")
 def harvest_city_events(): run_subscript("harvest_city_events.py")
+def harvest_sports_daily(): run_subscript("sports_daily.py")
 
 # ------------------------------------------------------------------------------
 # 3. MASTER DAILY RUNNER WITH SENTRY CRON MONITORING
@@ -80,6 +82,7 @@ def main():
     safe_task("1. WSDOT Active Construction & Work Zones", harvest_construction_zones)
     safe_task("2. Daily Polymorphic Quizzes Processor", harvest_quizzes_processor)
     safe_task("3. Municipal & City Events Harvester", harvest_city_events)
+    safe_task("4. Regional Sports Standings & Records", harvest_sports_daily)
 
     print("🎉 Daily master harvesting sequence complete. Data fresh!")
 
