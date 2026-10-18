@@ -1,3 +1,4 @@
+# File: scripts/hourly/transit_intercity.py
 """
 MYSEATTLESEARCH - HOURLY GROUND TRANSIT & COMMUTE RADAR INGESTION
 File: scripts/hourly/transit_intercity.py
@@ -5,8 +6,9 @@ File: scripts/hourly/transit_intercity.py
 Purpose:
   1. Ingests live ground transit vehicles from OneBusAway (King & Snohomish agencies)
      and calculates normalized Active Transit Score (0-100) per city boundary.
-  2. Queries live OSRM route drive times between pre-baked NW and SE city coordinates,
-     compares against static baselines, and calculates Active Commute Score (0-100).
+  2. Queries Mapbox Directions API (mapbox/driving-traffic) for real-time traffic
+     duration vs. typical duration across city diagonal coordinates, and calculates
+     Active Commute Score (0-100).
   3. Outputs consolidated telemetry to data/transit_radar_live.json.
 """
 
@@ -18,8 +20,16 @@ import urllib.request
 import urllib.parse
 from datetime import datetime, timezone
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DATA_DIR = os.path.join(BASE_DIR, "data")
+# Robust Repository Root Path Resolution
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+if os.path.basename(CURRENT_DIR) == "hourly":
+    REPO_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
+elif os.path.basename(CURRENT_DIR) == "scripts":
+    REPO_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+else:
+    REPO_ROOT = os.path.abspath(CURRENT_DIR)
+
+DATA_DIR = os.path.join(REPO_ROOT, "data")
 
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 CITY_BOUNDARIES_PATH = os.path.join(DATA_DIR, "city_boundaries.json")
@@ -40,15 +50,18 @@ def slugify(text):
         res = res.replace('--', '-')
     return res.strip('-')
 
-def http_get_json(url, timeout=12):
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Accept": "application/json"}
+def http_get_json(url, timeout=10):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)",
+        "Accept": "application/json"
+    }
     req = urllib.request.Request(url, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             if resp.status == 200:
                 return json.loads(resp.read().decode("utf-8"))
     except Exception as e:
-        print(f"   ⚠️ API notice for {url}: {e}")
+        print(f"   ⚠️ API notice for {url[:70]}...: {e}")
     return None
 
 def point_in_poly(x, y, poly):
@@ -135,9 +148,8 @@ def load_transit_rules():
     
     candidates = [
         TRANSIT_DATA_PATH,
-        os.path.join(os.getcwd(), "data", "transit_data.json"),
-        os.path.join(os.getcwd(), "transit_data.json"),
-        os.path.join(BASE_DIR, "transit_data.json")
+        os.path.join(REPO_ROOT, "data", "transit_data.json"),
+        os.path.join(REPO_ROOT, "transit_data.json")
     ]
     
     target_path = next((cand for cand in candidates if os.path.exists(cand)), None)
@@ -197,34 +209,44 @@ def classify_vehicle_mode(vehicle, route_seat_map, mode_seat_map):
 
     return "bus", mode_seat_map.get("bus", 40)
 
-def fetch_live_drive_time(nw_lat, nw_lng, se_lat, se_lng):
-    """Queries OSRM for live driving duration in minutes."""
-    url = f"http://router.project-osrm.org/route/v1/driving/{nw_lng},{nw_lat};{se_lng},{se_lat}?overview=false"
-    res = http_get_json(url)
+def fetch_mapbox_drive_times(nw_lat, nw_lng, se_lat, se_lng, token):
+    """Queries Mapbox Directions (driving-traffic) for live duration and typical baseline."""
+    if not token:
+        return None, None
+        
+    url = f"https://api.mapbox.com/directions/v5/mapbox/driving-traffic/{nw_lng},{nw_lat};{se_lng},{se_lat}?overview=false&access_token={token}"
+    res = http_get_json(url, timeout=6)
+    
     if res and isinstance(res, dict) and "routes" in res and res["routes"]:
-        duration_sec = res["routes"][0].get("duration", 0)
-        return round(duration_sec / 60.0, 1)
-    return None
+        route = res["routes"][0]
+        live_sec = route.get("duration", 0)
+        typical_sec = route.get("duration_typical", live_sec)
+        
+        live_mins = round(live_sec / 60.0, 1) if live_sec else None
+        typical_mins = round(typical_sec / 60.0, 1) if typical_sec else None
+        return live_mins, typical_mins
+        
+    return None, None
 
 def calculate_active_commute_score(live_mins, base_mins):
     """Calculates Active Commute Score (0-100) based on live vs baseline ratio."""
     if not live_mins or not base_mins or base_mins <= 0:
-        return 88 # Neutral default fallback
+        return 88  # Neutral fallback when telemetry is temporarily unavailable
     
     ratio = live_mins / base_mins
     if ratio <= 1.0:
         return 100
     
-    # 1.5x scaling penalty for traffic delays
+    # Proportional congestion penalty (20% delay -> 30 pt reduction -> 70 score)
     penalty = (ratio - 1.0) * 100.0 * 1.5
     return max(0, min(100, int(round(100.0 - penalty))))
 
 def main():
-    print("🚌 Ingesting Live Ground Transit Vehicles & Active Commute Radar...")
+    print("🚌 Ingesting Live Ground Transit Vehicles & Real-Time Commute Radar...")
     
-    c_path = next((p for p in [CITY_DATA_PATH, os.path.join(os.getcwd(), "data", "city_data.json")] if os.path.exists(p)), None)
-    b_path = next((p for p in [CITY_BOUNDARIES_PATH, os.path.join(os.getcwd(), "data", "city_boundaries.json")] if os.path.exists(p)), None)
-    base_path = next((p for p in [COMMUTE_BASELINE_PATH, os.path.join(os.getcwd(), "data", "city_commute_baseline.json")] if os.path.exists(p)), None)
+    c_path = next((p for p in [CITY_DATA_PATH, os.path.join(REPO_ROOT, "data", "city_data.json")] if os.path.exists(p)), None)
+    b_path = next((p for p in [CITY_BOUNDARIES_PATH, os.path.join(REPO_ROOT, "data", "city_boundaries.json")] if os.path.exists(p)), None)
+    base_path = next((p for p in [COMMUTE_BASELINE_PATH, os.path.join(REPO_ROOT, "data", "city_commute_baseline.json")] if os.path.exists(p)), None)
 
     if not c_path or not b_path:
         print("❌ Required city_data.json or city_boundaries.json missing. Aborting.")
@@ -237,7 +259,6 @@ def main():
     with open(b_path, "r", encoding="utf-8") as f:
         boundaries_geo = json.load(f)
 
-    # Load static commute baseline coordinates if available
     commute_baselines = {}
     if base_path and os.path.exists(base_path):
         with open(base_path, "r", encoding="utf-8") as f:
@@ -261,7 +282,9 @@ def main():
         })
 
     oba_key = os.environ.get("ONEBUSAWAY_API_KEY") or os.environ.get("OBA_API_KEY") or "TEST"
+    mapbox_token = os.environ.get("MAPBOX_ACCESS_TOKEN", "").strip().strip("'").strip('"')
     
+    # 1. Harvest Active Puget Sound Public Transit Vehicles
     active_vehicles = []
     for agency_id in ONEBUSAWAY_AGENCIES:
         url = f"http://api.pugetsound.onebusaway.org/api/where/vehicles-for-agency/{agency_id}.json?key={oba_key}"
@@ -296,6 +319,7 @@ def main():
                     city_counts[slug]["counts"][mode] = city_counts[slug]["counts"].get(mode, 0) + 1
                     break
 
+    # 2. Assemble Live Telemetry & Scores Across Municipalities
     output_radar = {}
     for c_obj in city_items:
         raw_name = c_obj.get("City") or c_obj.get("name") or ""
@@ -313,16 +337,17 @@ def main():
         seats_per_1k = total_seats / (pop_val / 1000.0) if pop_val > 0 else 0.0
         active_transit_score = min(100, max(0, int(round((seats_per_1k / 50.0) * 100.0))))
 
-        # Live Commute Score Calculation
+        # Live Mapbox Congestion Drive Time vs Typical Duration
         b_info = commute_baselines.get(slug, {})
         nw_lat, nw_lng = b_info.get("nw_lat"), b_info.get("nw_lng")
         se_lat, se_lng = b_info.get("se_lat"), b_info.get("se_lng")
-        base_mins = b_info.get("baseline_drive_minutes", 10.0)
+        manual_base_mins = b_info.get("baseline_drive_minutes")
 
-        live_mins = None
-        if nw_lat and nw_lng and se_lat and se_lng:
-            live_mins = fetch_live_drive_time(nw_lat, nw_lng, se_lat, se_lng)
+        live_mins, typical_mins = None, None
+        if nw_lat and nw_lng and se_lat and se_lng and mapbox_token:
+            live_mins, typical_mins = fetch_mapbox_drive_times(nw_lat, nw_lng, se_lat, se_lng, mapbox_token)
 
+        base_mins = typical_mins or manual_base_mins or live_mins or 10.0
         active_commute_score = calculate_active_commute_score(live_mins, base_mins)
 
         counts = c_data.get("counts", {})
@@ -349,7 +374,7 @@ def main():
     with open(OUTPUT_RADAR_PATH, "w", encoding="utf-8") as f:
         json.dump(output_radar, f, indent=2, ensure_ascii=False)
 
-    print(f"💾 Saved live ground transit & active commute score for {len(output_radar)} cities ➔ {OUTPUT_RADAR_PATH}")
+    print(f"💾 Saved live ground transit & Mapbox commute score for {len(output_radar)} cities ➔ {OUTPUT_RADAR_PATH}")
 
 if __name__ == "__main__":
     main()
