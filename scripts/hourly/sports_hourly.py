@@ -29,24 +29,26 @@ HEADERS = {
     "Referer": "https://www.google.com/"
 }
 
-# 1. Washington State Locations & Distinct Identity Keywords
-WA_LOCATIONS = [
-    "seattle", "spokane", "tacoma", "everett", "tri-city", "tri cities", 
-    "wenatchee", "bellingham", "yakima", "ridgefield", "cowlitz", "walla walla", 
-    "gonzaga", "whitman", "whitworth", "ballard"
+# Explicit non-Washington exclusions to avoid false positives
+NON_WA_EXCLUSIONS = [
+    "commanders", "spirit", "wizards", "nationals", "mystics",  # Washington D.C.
+    "george washington", "washington &", "washington univ", "washington college",
+    "uconn", "northern illinois", "miami (oh)", "southeast missouri", "maine black bears"
 ]
 
-WA_SPECIFIC_NAMES = [
-    "seahawks", "mariners", "kraken", "sounders", "seawolves", "rainiers", 
-    "aquasox", "dust devils", "velocity fc", "zephyr", "thunderbirds", 
-    "silvertips", "applesox", "pippins", "black bears", "sweets", 
-    "huskies", "redhawks", "lutes"
+# Unique Washington Mascots and Club Identities
+WA_EXACT_IDENTITIES = [
+    "seahawks", "mariners", "kraken", "sounders", "seawolves", "rainiers",
+    "aquasox", "dust devils", "velocity fc", "zephyr", "thunderbirds",
+    "silvertips", "applesox", "pippins", "cowlitz black bears", "sweets",
+    "ballard fc"
 ]
 
-# Exclude Washington D.C. teams to avoid false "Washington" location matches
-DC_EXCLUSIONS = ["commanders", "spirit", "wizards", "nationals", "mystics"]
+WA_CITIES = [
+    "seattle", "spokane", "tacoma", "everett", "tri-city", "tri cities",
+    "wenatchee", "bellingham", "yakima"
+]
 
-# Modern regional and national broadcast networks
 LOCAL_NETWORKS = [
     "FOX", "CBS", "NBC", "ESPN", "KING 5", "KONG", "KSTW", "CW", "CW Seattle", 
     "93.3 KJR", "710 Seattle Sports", "NFL+", "Apple TV", "Prime Video", "Peacock", "Netflix"
@@ -58,28 +60,35 @@ def is_wa_team_name(team_name):
         return False
     t = str(team_name).lower().strip()
     
-    # Exclude Washington D.C. franchises
-    if any(dc in t for dc in DC_EXCLUSIONS):
+    if any(ex in t for ex in NON_WA_EXCLUSIONS):
         return False
         
-    # Check Washington city/region names
-    if any(loc in t for loc in WA_LOCATIONS):
+    if any(m in t for m in WA_EXACT_IDENTITIES):
         return True
         
-    # Check unique mascot names
-    if any(spec in t for spec in WA_SPECIFIC_NAMES):
+    # Collegiate Washington programs
+    if "washington huskies" in t or "uw huskies" in t or (t == "huskies" and "wash" in t):
+        return True
+    if "washington state" in t or "wsu" in t or ("cougars" in t and ("wsu" in t or "wash" in t)):
+        return True
+    if "gonzaga" in t:
+        return True
+    if "seattle u" in t or "seattle redhawks" in t or "seattle university" in t:
+        return True
+    if "eastern wash" in t or "central wash" in t or "western wash" in t:
+        return True
+    if "seattle pacific" in t or "pacific lutheran" in t or "puget sound loggers" in t or "whitman" in t or "whitworth" in t:
+        return True
+    if "seattle storm" in t or "seattle reign" in t:
         return True
         
-    # Check collegiate variants
-    if "washington state" in t or "wsu" in t or "u of washington" in t or "univ of washington" in t:
-        return True
-    if "eastern wash" in t or "central wash" in t or "western wash" in t or "seattle pacific" in t or "pacific lutheran" in t or "puget sound" in t:
+    # Geographic city match
+    if any(c in t for c in WA_CITIES):
         return True
         
     return False
 
 def is_wa_game(game):
-    """Filters events to strictly include games involving Washington teams."""
     home = game.get("home_team")
     away = game.get("away_team")
     return is_wa_team_name(home) or is_wa_team_name(away)
@@ -89,18 +98,17 @@ def parse_local_broadcast(tv_listings):
         return "Check Local Listings"
     
     us_listings = tv_listings.get("us", [])
-    for item in us_listings:
-        name = item.get("short_name") or item.get("long_name") or ""
-        if any(net.lower() in name.lower() for net in LOCAL_NETWORKS):
-            return name
+    if isinstance(us_listings, list):
+        for item in us_listings:
+            name = item.get("short_name") or item.get("long_name") or ""
+            if any(net.lower() in name.lower() for net in LOCAL_NETWORKS):
+                return name
+        if us_listings:
+            return us_listings[0].get("short_name", "National Broadcast")
             
-    if us_listings and isinstance(us_listings, list) and len(us_listings) > 0:
-        return us_listings[0].get("short_name", "National Broadcast")
-        
     return "Check Local Listings"
 
 def fetch_mlb_scores(session):
-    """Fetches live schedule and scores for MLB Mariners & MiLB WA affiliates."""
     url = "https://statsapi.mlb.com/api/v1/schedule?sportId=1,11,13,14&teamId=136,529,403,486,468"
     try:
         res = session.get(url, timeout=15, verify=False)
@@ -140,7 +148,6 @@ def fetch_mlb_scores(session):
         return []
 
 def fetch_nhl_scores(session):
-    """Fetches live NHL scores filtering for Seattle Kraken."""
     url = "https://api-web.nhle.com/v1/score/now"
     try:
         res = session.get(url, timeout=15, verify=False)
@@ -177,7 +184,6 @@ def fetch_nhl_scores(session):
         return []
 
 def fetch_whl_scores(session):
-    """Fetches WHL junior hockey schedule & scores for WA teams."""
     url = "https://lscluster.hockeytech.com/feed/?feed=modulekit&view=schedule&client_code=whl"
     try:
         res = session.get(url, timeout=15, verify=False)
@@ -190,7 +196,6 @@ def fetch_whl_scores(session):
             
         data = res.json()
         games = []
-        
         schedule = data.get("SiteKit", {}).get("Schedule", []) if isinstance(data, dict) else []
         for g in schedule:
             home_name = g.get("home_team_name", "")
@@ -218,9 +223,7 @@ def fetch_whl_scores(session):
         return []
 
 def fetch_thescore_events(session, sport_key):
-    """Fetches pro/college league events with retry logic and PNW filtering."""
     url = f"https://api.thescore.com/{sport_key}/events"
-    
     res = None
     for attempt in range(2):
         try:
@@ -238,10 +241,17 @@ def fetch_thescore_events(session, sport_key):
 
     try:
         events = res.json()
+        if not isinstance(events, list):
+            return []
+            
         games = []
         for ev in events:
-            away = ev.get("away_team", {})
-            home = ev.get("home_team", {})
+            if not isinstance(ev, dict):
+                continue
+                
+            # Defensive wrappers guarding against placeholder null objects
+            away = ev.get("away_team") or {}
+            home = ev.get("home_team") or {}
             box = ev.get("box_score") or {}
             progress = box.get("progress") or {}
             scores = box.get("score") or {}
@@ -250,6 +260,12 @@ def fetch_thescore_events(session, sport_key):
             is_live = ev_status in ["in_progress", "live"]
             is_final = ev_status in ["final", "completed"]
 
+            home_name = home.get("full_name") or home.get("name") or home.get("medium_name") or ""
+            away_name = away.get("full_name") or away.get("name") or away.get("medium_name") or ""
+
+            if not home_name and not away_name:
+                continue
+
             game_obj = {
                 "game_id": f"{sport_key}-{ev.get('id')}",
                 "league": sport_key.upper(),
@@ -257,9 +273,9 @@ def fetch_thescore_events(session, sport_key):
                 "is_live": is_live,
                 "is_final": is_final,
                 "game_date": ev.get("game_date"),
-                "home_team": home.get("full_name") or home.get("name"),
+                "home_team": home_name,
                 "home_score": scores.get("home", {}).get("score", 0) if isinstance(scores.get("home"), dict) else 0,
-                "away_team": away.get("full_name") or away.get("name"),
+                "away_team": away_name,
                 "away_score": scores.get("away", {}).get("score", 0) if isinstance(scores.get("away"), dict) else 0,
                 "clock": progress.get("clock_label") or progress.get("clock"),
                 "period": progress.get("segment_string"),
