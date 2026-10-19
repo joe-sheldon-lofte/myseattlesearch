@@ -1,3 +1,4 @@
+# File: scripts/harvest_monthly.py
 import os
 import sys
 import traceback
@@ -57,6 +58,7 @@ def harvest_census_demographics(): run_subscript("census_demographics.py")
 def harvest_osm_amenities(): run_subscript("osm_amenities.py")
 def harvest_gis_boundaries(): run_subscript("gis_boundaries.py")
 def harvest_redfin_monthly(): run_subscript("redfin_monthly_stats.py")
+def harvest_businesses(): run_subscript("harvest_businesses.py")
 
 # ------------------------------------------------------------------------------
 # 3. MASTER MONTHLY RUNNER WITH SENTRY CRON MONITORING
@@ -79,6 +81,7 @@ def main():
     safe_task("2. Municipal Amenities (OpenStreetMap Overpass)", harvest_osm_amenities)
     safe_task("3. GIS City Boundaries (WSDOT)", harvest_gis_boundaries)
     safe_task("4. Advanced Redfin Monthly Analytics & Migration", harvest_redfin_monthly)
+    safe_task("5. Google Places Local Business Spotlights", harvest_businesses)
 
     print("🎉 Monthly master harvesting sequence complete. Data fresh!")
 
