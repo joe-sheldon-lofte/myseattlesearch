@@ -18,70 +18,10 @@ OUTPUT_BOUNDARIES_JSON = os.path.join(DATA_DIR, "school_boundaries.json")
 
 HTTP_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept": "application/json, text/plain, */*",
-    "Referer": "https://gisdata.seattle.gov/",
-    "Origin": "https://gisdata.seattle.gov"
+    "Accept": "application/json, text/plain, */*"
 }
 
-# --- TIER 1 GIS CATCHMENT ENDPOINTS (LIVE ARCGIS ONLINE FEATURE SERVERS) ---
-SEATTLE_CATCHMENT_ENDPOINTS = [
-    {
-        "grade_level": "Elementary",
-        "urls": [
-            "https://services2.arcgis.com/I7NQBinfvOmxQbXs/arcgis/rest/services/sps_attendance_area_ES_2023_2024/FeatureServer/0/query",
-            "https://gisdata.seattle.gov/server/rest/services/SPS/AttendanceAreas/MapServer/0/query",
-            "https://services.arcgis.com/ZOyb2R4BAY3knLwq/arcgis/rest/services/Elementary_School_Attendance_Areas/FeatureServer/0/query"
-        ],
-        "name_fields": ["SPS_ES", "ES_ZONE", "SCHOOL", "ES_NAME", "NAME", "SPS_NAME", "SPS_SCHNAM", "SCHOOL_NAME"]
-    },
-    {
-        "grade_level": "Middle",
-        "urls": [
-            "https://services2.arcgis.com/I7NQBinfvOmxQbXs/arcgis/rest/services/sps_attendance_area_MS_2023_2024/FeatureServer/0/query",
-            "https://gisdata.seattle.gov/server/rest/services/SPS/AttendanceAreas/MapServer/1/query",
-            "https://services.arcgis.com/ZOyb2R4BAY3knLwq/arcgis/rest/services/Middle_School_Attendance_Areas/FeatureServer/0/query"
-        ],
-        "name_fields": ["SPS_MS", "MS_ZONE", "SCHOOL", "MS_NAME", "NAME", "SPS_NAME", "SPS_SCHNAM", "SCHOOL_NAME"]
-    },
-    {
-        "grade_level": "High",
-        "urls": [
-            "https://services2.arcgis.com/I7NQBinfvOmxQbXs/arcgis/rest/services/sps_attendance_area_HS_2023_2024/FeatureServer/0/query",
-            "https://gisdata.seattle.gov/server/rest/services/SPS/AttendanceAreas/MapServer/2/query",
-            "https://services.arcgis.com/ZOyb2R4BAY3knLwq/arcgis/rest/services/High_School_Attendance_Areas/FeatureServer/0/query"
-        ],
-        "name_fields": ["SPS_HS", "HS_ZONE", "SCHOOL", "HS_NAME", "NAME", "SPS_NAME", "SPS_SCHNAM", "SCHOOL_NAME"]
-    }
-]
-
-BELLEVUE_CATCHMENT_ENDPOINTS = [
-    {
-        "grade_level": "Elementary",
-        "urls": [
-            "https://services1.arcgis.com/EYzEZbDhXZjURPbP/arcgis/rest/services/Attendance_Areas_Elementary_School/FeatureServer/0/query",
-            "https://gis.bellevuewa.gov/arcgis/rest/services/Public/SchoolBoundaries/MapServer/0/query"
-        ],
-        "name_fields": ["NAME", "SCHOOL_NAME", "SCHNAME", "ATTENDANCE", "SCHOOL"]
-    },
-    {
-        "grade_level": "Middle",
-        "urls": [
-            "https://services1.arcgis.com/EYzEZbDhXZjURPbP/arcgis/rest/services/Attendance_Areas_Middle_School/FeatureServer/0/query",
-            "https://gis.bellevuewa.gov/arcgis/rest/services/Public/SchoolBoundaries/MapServer/1/query"
-        ],
-        "name_fields": ["NAME", "SCHOOL_NAME", "SCHNAME", "ATTENDANCE", "SCHOOL"]
-    },
-    {
-        "grade_level": "High",
-        "urls": [
-            "https://services1.arcgis.com/EYzEZbDhXZjURPbP/arcgis/rest/services/Attendance_Areas_High_School/FeatureServer/0/query",
-            "https://gis.bellevuewa.gov/arcgis/rest/services/Public/SchoolBoundaries/MapServer/2/query"
-        ],
-        "name_fields": ["NAME", "SCHOOL_NAME", "SCHNAME", "ATTENDANCE", "SCHOOL"]
-    }
-]
-
-# --- TIER 2 MACRO DISTRICT BOUNDARY ENDPOINTS ---
+# --- STATE OSPI DISTRICT BOUNDARY ENDPOINTS ---
 STATE_DISTRICT_ENDPOINTS = [
     "https://services8.arcgis.com/rGGrs6HCnw87OFOT/arcgis/rest/services/OSPISchoolDistricts_2025/FeatureServer/0/query",
     "https://gis.ospi.k12.wa.gov/arcgis/rest/services/Public/OSPISchoolDistricts/FeatureServer/0/query"
@@ -120,53 +60,43 @@ DISTRICT_LOOKUP_URLS = {
 }
 
 def normalize_name(text):
-    """Simplifies school and district names for robust string matching."""
+    """Simplifies district names for robust string matching."""
     if not text:
         return ""
     s = text.lower().strip()
-    s = re.sub(r"\b(zone|area|hs|es|ms|elem|middle|high|sps)\b", "", s)
     s = re.sub(r"[^\w\s]", "", s)
-    s = re.sub(r"\b(school|district|no|1|63|public|elementary|middle|high|k8|k5|k12|senior)\b", "", s)
+    s = re.sub(r"\b(school|district|dist|no|sd|k12|public|schools)\b", "", s)
     return re.sub(r"\s+", " ", s).strip()
 
-def load_ospi_metadata():
-    """Reads data/ospi_school_data.json to build lookup indexes for schools and districts."""
-    print(f"📖 Reading school & district metadata from {OSPI_DATA_JSON}...")
-    schools_by_code = {}
-    schools_by_name = {}
-    districts = {}
+def load_ospi_district_metadata():
+    """Reads data/ospi_school_data.json to build lookup indexes for school districts."""
+    print(f"📖 Reading district metadata from {OSPI_DATA_JSON}...")
+    districts_by_name = {}
+    districts_by_code = {}
 
     if not os.path.exists(OSPI_DATA_JSON):
         print(f"  ⚠️ Warning: {OSPI_DATA_JSON} not found. Matching will rely solely on GIS feature properties.")
-        return schools_by_code, schools_by_name, districts
+        return districts_by_name, districts_by_code
 
     try:
         with open(OSPI_DATA_JSON, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        schools_list = data.get("schools", [])
         districts = data.get("districts", {})
+        for dname, dinfo in districts.items():
+            norm_dname = normalize_name(dname)
+            dcode = str(dinfo.get("district_code", "")).strip()
 
-        for s in schools_list:
-            code = s.get("school_code")
-            sname = s.get("school_name", "")
-            dname = s.get("district_name", "")
+            if norm_dname:
+                districts_by_name[norm_dname] = dinfo
+            if dcode:
+                districts_by_code[dcode] = dinfo
 
-            if code:
-                schools_by_code[code] = s
-
-            clean_sname = normalize_name(sname)
-            clean_dname = normalize_name(dname)
-
-            if clean_sname:
-                schools_by_name[(clean_sname, clean_dname)] = s
-                schools_by_name[(clean_sname, "any")] = s
-
-        print(f"  ✓ Indexed {len(schools_by_code)} individual schools and {len(districts)} school districts.")
+        print(f"  ✓ Indexed {len(districts)} school districts from OSPI master data.")
     except Exception as e:
         print(f"  ❌ Error reading ospi_school_data.json: {e}")
 
-    return schools_by_code, schools_by_name, districts
+    return districts_by_name, districts_by_code
 
 def clean_coordinate_array(coords, precision=5):
     """
@@ -190,7 +120,7 @@ def extract_property(props, keys):
 
 def fetch_gis_features(url):
     """
-    Queries an Esri ArcGIS REST endpoint with robust handling for GeoJSON (f=geojson)
+    Queries an Esri ArcGIS REST endpoint with handling for GeoJSON (f=geojson)
     and Esri JSON (f=json) ring geometry conversion.
     """
     # 1. Try GeoJSON
@@ -203,7 +133,7 @@ def fetch_gis_features(url):
     }
 
     try:
-        resp = requests.get(url, headers=HTTP_HEADERS, params=params_geojson, timeout=20, verify=False)
+        resp = requests.get(url, headers=HTTP_HEADERS, params=params_geojson, timeout=25, verify=False)
         if resp.status_code == 200:
             data = resp.json()
             features = data.get("features", [])
@@ -222,7 +152,7 @@ def fetch_gis_features(url):
     }
 
     try:
-        resp = requests.get(url, headers=HTTP_HEADERS, params=params_esri, timeout=20, verify=False)
+        resp = requests.get(url, headers=HTTP_HEADERS, params=params_esri, timeout=25, verify=False)
         if resp.status_code == 200:
             data = resp.json()
             features = data.get("features", [])
@@ -254,83 +184,21 @@ def fetch_gis_features(url):
 
     return []
 
-def harvest_catchments(endpoints, district_target_name, schools_by_name):
-    """Harvests Tier 1 catchment polygons for a specific school district."""
-    catchments_map = {}
-    target_dname_norm = normalize_name(district_target_name)
-
-    for ep in endpoints:
-        grade_level = ep["grade_level"]
-        urls = ep["urls"]
-        name_fields = ep["name_fields"]
-
-        features = []
-        for u in urls:
-            features = fetch_gis_features(u)
-            if features:
-                break
-
-        print(f"  • {district_target_name} [{grade_level}]: Ingested {len(features)} boundary polygons.")
-
-        for feat in features:
-            props = feat.get("properties", {})
-            geom = feat.get("geometry", {})
-
-            if not geom or "coordinates" not in geom:
-                continue
-
-            raw_name = extract_property(props, name_fields)
-            if not raw_name:
-                continue
-
-            norm_gis_name = normalize_name(raw_name)
-            matched_school = (
-                schools_by_name.get((norm_gis_name, target_dname_norm)) or 
-                schools_by_name.get((norm_gis_name, "any"))
-            )
-
-            # Robust fallback matching using word tokens
-            if not matched_school:
-                gis_tokens = set(norm_gis_name.split())
-                for (s_key, d_key), s_data in schools_by_name.items():
-                    if d_key in [target_dname_norm, "any"]:
-                        s_tokens = set(s_key.split())
-                        if gis_tokens and s_tokens and (gis_tokens.issubset(s_tokens) or s_tokens.issubset(gis_tokens) or norm_gis_name in s_key or s_key in norm_gis_name):
-                            matched_school = s_data
-                            break
-
-            if matched_school:
-                scode = matched_school["school_code"]
-                clean_geom = {
-                    "type": geom.get("type", "Polygon"),
-                    "coordinates": clean_coordinate_array(geom.get("coordinates", []), precision=5)
-                }
-
-                catchments_map[scode] = {
-                    "school_code": scode,
-                    "school_name": matched_school["school_name"],
-                    "district_name": matched_school["district_name"],
-                    "district_code": matched_school["district_code"],
-                    "grade_level": grade_level,
-                    "tier": "Tier 1 (Exact Neighborhood Catchment)",
-                    "geometry": clean_geom
-                }
-
-    return catchments_map
-
-def harvest_district_polygons(schools_by_name):
-    """Harvests Tier 2/3 macro district perimeters from OSPI GIS."""
-    print("\n📡 Harvesting State OSPI District Boundaries (Tier 2/3 Perimeters)...")
+def harvest_district_polygons(districts_by_name, districts_by_code):
+    """Harvests regional district perimeters from OSPI GIS for King and Snohomish counties."""
+    print("📡 Ingesting Washington State OSPI District Boundaries...")
     raw_features = []
 
     for url in STATE_DISTRICT_ENDPOINTS:
+        print(f"  • Querying endpoint: {url}...")
         raw_features = fetch_gis_features(url)
         if raw_features:
-            print(f"  ✓ Ingested {len(raw_features)} state district polygon features.")
+            print(f"    ✓ Retrieved {len(raw_features)} statewide district polygon features.")
             break
 
     districts_map = {}
     name_fields = ["District_Name", "NAME", "LEANAME", "DIST_NAME", "DISTRICT", "District"]
+    code_fields = ["LEACD", "DIST_CODE", "DISTRICT_CODE", "COUNTY_DIST", "COUNTY_DISTRICT_NUMBER", "DIST_NUM", "GEOID"]
     county_fields = ["Counties", "COUNTY", "County_Name", "COUNTY_NAME"]
 
     for feat in raw_features:
@@ -341,17 +209,31 @@ def harvest_district_polygons(schools_by_name):
             continue
 
         raw_name = extract_property(props, name_fields)
+        raw_code = extract_property(props, code_fields)
         raw_county = extract_property(props, county_fields)
 
+        norm_key = normalize_name(raw_name)
+        matched_district = districts_by_code.get(raw_code) or districts_by_name.get(norm_key)
+
+        # Fallback substring and token match
+        if not matched_district and norm_key:
+            gis_tokens = set(norm_key.split())
+            for d_norm, d_info in districts_by_name.items():
+                d_tokens = set(d_norm.split())
+                if gis_tokens and d_tokens and (gis_tokens.issubset(d_tokens) or d_tokens.issubset(gis_tokens)):
+                    matched_district = d_info
+                    break
+
         is_target_county = any(c in raw_county for c in ["King", "Snohomish"])
+        if not is_target_county and matched_district:
+            matched_county = matched_district.get("county", "")
+            is_target_county = any(c in matched_county for c in ["King", "Snohomish"])
+
         if not is_target_county:
             continue
 
-        norm_key = normalize_name(raw_name)
-        matched_school = schools_by_name.get((norm_key, "any"))
-
-        dcode = matched_school["district_code"] if matched_school else str(props.get("OBJECTID", ""))
-        dname = matched_school["district_name"] if matched_school else raw_name
+        dcode = (matched_district.get("district_code") if matched_district else "") or raw_code or str(props.get("OBJECTID", ""))
+        dname = (matched_district.get("district_name") if matched_district else "") or raw_name
 
         if dcode:
             clean_geom = {
@@ -362,7 +244,7 @@ def harvest_district_polygons(schools_by_name):
             districts_map[dcode] = {
                 "district_code": dcode,
                 "district_name": dname,
-                "county": raw_county,
+                "county": raw_county or (matched_district.get("county") if matched_district else ""),
                 "state": "WA",
                 "geometry": clean_geom
             }
@@ -371,31 +253,30 @@ def harvest_district_polygons(schools_by_name):
 
 def main():
     print("==================================================")
-    print("   OSPI HYBRID SCHOOL BOUNDARY HARVESTER (V3.2)   ")
+    print("   OSPI SCHOOL DISTRICT BOUNDARY HARVESTER (V4.0) ")
     print("==================================================\n")
 
     os.makedirs(DATA_DIR, exist_ok=True)
-    schools_by_code, schools_by_name, known_districts = load_ospi_metadata()
+    districts_by_name, districts_by_code = load_ospi_district_metadata()
 
-    print("\n📡 Ingesting Tier 1 Catchment Boundaries (Seattle & Bellevue)...")
-    seattle_catchments = harvest_catchments(SEATTLE_CATCHMENT_ENDPOINTS, "Seattle School District No. 1", schools_by_name)
-    bellevue_catchments = harvest_catchments(BELLEVUE_CATCHMENT_ENDPOINTS, "Bellevue School District", schools_by_name)
+    district_boundaries = harvest_district_polygons(districts_by_name, districts_by_code)
+    print(f"\n  ✅ Successfully compiled {len(district_boundaries)} regional district perimeters.")
 
-    all_school_catchments = {**seattle_catchments, **bellevue_catchments}
-    print(f"  ✅ Successfully compiled {len(all_school_catchments)} Tier 1 school catchments.")
-
-    district_boundaries = harvest_district_polygons(schools_by_name)
-    print(f"  ✅ Successfully compiled {len(district_boundaries)} Tier 2 district perimeters.")
+    # Guardrail: Prevent overwriting existing asset if remote endpoint returns empty
+    MINIMUM_DISTRICTS_THRESHOLD = 25
+    if len(district_boundaries) < MINIMUM_DISTRICTS_THRESHOLD:
+        print(f"⚠️ Warning: Only compiled {len(district_boundaries)} district boundaries (minimum required: {MINIMUM_DISTRICTS_THRESHOLD}).")
+        print(f"⚠️ Aborting file write to preserve existing dataset at {OUTPUT_BOUNDARIES_JSON}.")
+        return
 
     master_output = {
         "metadata": {
             "generated_at": datetime.now().isoformat(),
-            "tier1_school_catchments_count": len(all_school_catchments),
-            "tier2_district_boundaries_count": len(district_boundaries),
+            "district_boundaries_count": len(district_boundaries),
             "coordinate_system": "EPSG:4326 (WGS84)",
             "precision_meters": "~1.1m"
         },
-        "school_catchments": all_school_catchments,
+        "school_catchments": {},
         "district_boundaries": district_boundaries,
         "district_lookup_urls": DISTRICT_LOOKUP_URLS
     }
@@ -404,9 +285,8 @@ def main():
         json.dump(master_output, f, indent=2, ensure_ascii=False)
 
     print(f"\n🎉 Boundary harvesting complete!")
-    print(f"  • Compiled {len(all_school_catchments)} individual neighborhood school catchments.")
     print(f"  • Compiled {len(district_boundaries)} macro school district perimeters.")
-    print(f"  • Indexing {len(DISTRICT_LOOKUP_URLS)} district boundary finder links.")
+    print(f"  • Indexed {len(DISTRICT_LOOKUP_URLS)} district boundary finder links.")
     print(f"  • Saved master spatial asset to: {OUTPUT_BOUNDARIES_JSON}")
 
 if __name__ == "__main__":
