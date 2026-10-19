@@ -1,3 +1,4 @@
+# File: scripts/harvest_quarterly.py
 import os
 import sys
 import traceback
@@ -66,12 +67,32 @@ def safe_task(task_name, func, county="Regional"):
 # ------------------------------------------------------------------------------
 # 3. MASTER RUNNER WITH SENTRY CRON MONITORING
 # ------------------------------------------------------------------------------
-# The @monitor decorator pings Sentry when the script starts and finishes.
-# If GitHub Actions fails to run it or it times out, Sentry alerts you.
 @monitor(monitor_slug="quarterly-harvest-pipeline")
 def main():
     print("==================================================")
     print("     MYSEATTLESEARCH QUARTERLY MASTER HARVESTER   ")
+    print("==================================================")
+
+    # Startup Switchboard Audit
+    switches = [
+        ("1. King Subdivisions", RUN_KING_SUBDIVISIONS),
+        ("2. Snohomish Subdivisions", RUN_SNOHOMISH_SUBDIVISIONS),
+        ("3. Compile Master Subdivisions", RUN_BUILD_MASTER_SUBDIVISIONS),
+        ("4. King Condos Harvest", RUN_KING_CONDOS_HARVEST),
+        ("5. King Condos Transform", RUN_KING_CONDOS_TRANSFORM),
+        ("6. Snohomish Condos Harvest", RUN_SNOHOMISH_CONDOS_HARVEST),
+        ("7. Snohomish Condos Transform", RUN_SNOHOMISH_CONDOS_TRANSFORM),
+        ("8. FHA Approved Condos", RUN_FHA_CONDOS_HARVEST),
+        ("9. VA Approved Condos", RUN_VA_CONDOS_HARVEST),
+        ("10. Compile Master Condos", RUN_BUILD_MASTER_CONDOS),
+        ("11. WA OSPI School Data", RUN_OSPI_SCHOOL_DATA),
+        ("12. School District GIS Boundaries", RUN_SCHOOL_BOUNDARIES)
+    ]
+
+    print("\n⚙️ Pipeline Switchboard Audit:")
+    for task_label, is_active in switches:
+        status_tag = "🟢 [ACTIVE] ➔ Queued" if is_active else "⚪ [SKIP]"
+        print(f"   • {task_label.ljust(35)}: {status_tag}")
     print("==================================================\n")
 
     # 1. King Subdivisions
@@ -151,6 +172,22 @@ def main():
         try:
             from quarterly.build_master_condos import build_master_condos
             safe_task("10. Compile Master Condos Database", build_master_condos)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+
+    # 11. OSPI School Academic Metrics
+    if RUN_OSPI_SCHOOL_DATA:
+        try:
+            from quarterly.harvest_ospi_school_data import main as harvest_ospi_school_data
+            safe_task("11. Harvest WA OSPI School Data", harvest_ospi_school_data)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+
+    # 12. School District GIS Boundaries
+    if RUN_SCHOOL_BOUNDARIES:
+        try:
+            from quarterly.harvest_school_boundaries import main as harvest_school_boundaries
+            safe_task("12. Ingest School District GIS Boundaries", harvest_school_boundaries)
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
