@@ -33,8 +33,8 @@ RUN_FHA_CONDOS_HARVEST = True
 RUN_VA_CONDOS_HARVEST = True
 RUN_BUILD_MASTER_CONDOS = True
 
-RUN_OSPI_SCHOOL_DATA = False
-RUN_SCHOOL_BOUNDARIES = False
+RUN_OSPI_SCHOOL_DATA = True
+RUN_SCHOOL_BOUNDARIES = True
 
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPTS_DIR not in sys.path:
