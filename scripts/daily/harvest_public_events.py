@@ -54,27 +54,45 @@ def clean_html(text):
     cleaned = re.sub(r'<[^>]+>', '', str(text))
     return " ".join(cleaned.split()).strip()
 
+def get_feed_limit(source_meta):
+    """
+    Extracts numerical limit from the spreadsheet row.
+    Returns an int if a valid limit exists, or None to pull all available items.
+    """
+    raw_limit = source_meta.get("Limit") or source_meta.get("Max Events") or ""
+    try:
+        val = str(raw_limit).strip()
+        if val and val.lower() != "nan":
+            parsed = int(float(val))
+            return parsed if parsed > 0 else None
+    except (ValueError, TypeError):
+        pass
+    return None
+
 def normalize_date(raw_date_str):
     if not raw_date_str:
         return None, None, None
     try:
         clean_str = str(raw_date_str).strip()
-        # Parse ISO or natural date strings
         dt = parser.parse(clean_str, tzinfos=TZINFOS)
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=PACIFIC_TZ)
         dt_pacific = dt.astimezone(PACIFIC_TZ)
         display_date = dt_pacific.strftime("%A, %b %d, %Y")
         display_time = dt_pacific.strftime("%I:%M %p").lstrip("0")
-        iso_str = dt_pacific.isoformat()
         return dt_pacific, display_date, display_time
     except Exception:
         return None, None, None
 
 def parse_ics_calendar(content, source_meta):
     events = []
+    limit = get_feed_limit(source_meta)
     blocks = re.findall(r'BEGIN:VEVENT(.*?)END:VEVENT', content, re.DOTALL)
+    
     for block in blocks:
+        if limit is not None and len(events) >= limit:
+            break
+
         summary_m = re.search(r'SUMMARY(?:;[^:]*)?:(.*)', block)
         title = summary_m.group(1).strip() if summary_m else ""
         if not title:
@@ -123,8 +141,13 @@ def parse_ics_calendar(content, source_meta):
 
 def parse_trumba_json(data, source_meta):
     events = []
+    limit = get_feed_limit(source_meta)
     items = data if isinstance(data, list) else data.get("events", [])
+    
     for item in items:
+        if limit is not None and len(events) >= limit:
+            break
+
         title = item.get("title", "").strip()
         link = item.get("permaLink") or item.get("webLink") or source_meta.get("Feed", "")
         if not title:
@@ -165,8 +188,13 @@ def parse_trumba_json(data, source_meta):
 
 def parse_squarespace_json(data, source_meta):
     events = []
+    limit = get_feed_limit(source_meta)
     items = data.get("upcoming", []) or data.get("items", []) or []
+    
     for item in items:
+        if limit is not None and len(events) >= limit:
+            break
+
         title = item.get("title", "").strip()
         if not title:
             continue
@@ -178,7 +206,6 @@ def parse_squarespace_json(data, source_meta):
         start_ts = item.get("startDate")
         end_ts = item.get("endDate")
 
-        # Millisecond timestamp conversion
         if isinstance(start_ts, (int, float)):
             dt_pacific = datetime.datetime.fromtimestamp(start_ts / 1000.0, tz=PACIFIC_TZ)
             d_date = dt_pacific.strftime("%A, %b %d, %Y")
@@ -221,8 +248,13 @@ def parse_squarespace_json(data, source_meta):
 
 def parse_live_music_project_api(data, source_meta):
     events = []
+    limit = get_feed_limit(source_meta)
     items = data if isinstance(data, list) else data.get("events", []) or data.get("results", [])
+    
     for item in items:
+        if limit is not None and len(events) >= limit:
+            break
+
         title = item.get("title", "").strip()
         link = item.get("url") or item.get("event_url") or source_meta.get("Feed", "")
         if not title:
@@ -264,13 +296,18 @@ def harvest_ticketmaster_events(api_key, source_meta):
         return []
 
     events = []
+    limit = get_feed_limit(source_meta)
+    
+    # Respect custom limit if defined; otherwise request max batch size
+    batch_size = str(min(limit, 200)) if limit is not None else "100"
+
     endpoint = "https://app.ticketmaster.com/discovery/v2/events.json"
     params = {
         "apikey": api_key,
-        "latlong": "47.6062,-122.3321",  # Seattle Central Lat/Long
+        "latlong": "47.6062,-122.3321",  # Central Seattle coordinates
         "radius": "45",
         "unit": "miles",
-        "size": "50",
+        "size": batch_size,
         "sort": "date,asc"
     }
 
@@ -280,6 +317,9 @@ def harvest_ticketmaster_events(api_key, source_meta):
             payload = res.json()
             items = payload.get("_embedded", {}).get("events", [])
             for item in items:
+                if limit is not None and len(events) >= limit:
+                    break
+
                 title = item.get("name", "").strip()
                 link = item.get("url", "")
                 if not title or not link:
@@ -328,10 +368,14 @@ def harvest_ticketmaster_events(api_key, source_meta):
 
 def parse_rss_feed(content, source_meta):
     events = []
+    limit = get_feed_limit(source_meta)
     feed = feedparser.parse(content)
     now_pacific = datetime.datetime.now(PACIFIC_TZ)
     
-    for entry in feed.entries[:25]:
+    # Process up to limit or examine all entries in the feed
+    entries = feed.entries if limit is None else feed.entries[:limit]
+    
+    for entry in entries:
         title = entry.get("title", "").strip()
         link = entry.get("link", "").strip()
         if not title or not link:
@@ -340,7 +384,7 @@ def parse_rss_feed(content, source_meta):
         raw_date = entry.get("published") or entry.get("updated")
         dt_pacific, d_date, d_time = normalize_date(raw_date)
 
-        # If publication date cannot be parsed, use tomorrow as active horizon fallback
+        # Fallback to tomorrow if the RSS feed lacks a formal publication date
         if not dt_pacific:
             dt_pacific = now_pacific + datetime.timedelta(days=1)
             d_date = dt_pacific.strftime("%A, %b %d, %Y")
@@ -450,7 +494,6 @@ def main():
     unique_events = {}
     for ev in all_harvested_events:
         dt_obj = ev.get("_dt")
-        # Filter within forward-looking window
         if dt_obj and (dt_obj < start_horizon or dt_obj > end_horizon):
             continue
 
@@ -463,7 +506,7 @@ def main():
     # Sort chronologically ascending by start date
     cleaned_list.sort(key=lambda x: x.get("_dt", now_pacific))
 
-    # Remove internal datetime sort object
+    # Clean internal datetime object
     for ev in cleaned_list:
         ev.pop("_dt", None)
 
