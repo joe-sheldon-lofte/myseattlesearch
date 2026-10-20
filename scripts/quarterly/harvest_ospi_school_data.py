@@ -27,9 +27,10 @@ HTTP_HEADERS = {
     "Accept": "application/json"
 }
 
-# State Assessment Baselines
+# Washington State Assessment Baselines (Statewide Average Met Standard)
 STATE_MATH_BASELINE = 40.0
 STATE_ELA_BASELINE = 51.0
+STATE_SCIENCE_BASELINE = 43.0
 
 def load_city_district_mappings():
     """
@@ -65,7 +66,7 @@ def load_city_district_mappings():
     return city_map
 
 def safe_float(val):
-    """Safely parses percentage strings into floats, handling '80%', '>80%', '<10%', and 'Suppressed'."""
+    """Safely extracts a numeric float from strings with percentages or comparison characters."""
     if val is None or val == "":
         return None
     s = str(val).strip().lower()
@@ -73,21 +74,52 @@ def safe_float(val):
         return None
     try:
         clean_str = s.replace("%", "").replace(">", "").replace("<", "").replace(",", "").strip()
-        v = float(clean_str)
-        return round(v, 1)
+        return float(clean_str)
     except (ValueError, TypeError):
         return None
 
-def calculate_psai_score(math_pct, ela_pct):
+def parse_percentage(val):
     """
-    Computes the Puget Sound Academic Index (PSAI) on a normalized 0-100 scale.
-    Formula: Round((Math % Met Standard + ELA % Met Standard) / 2, 1)
+    Parses and normalizes test score strings into true 0.0-100.0 percentages.
+    Converts decimal rates (e.g., 0.345 -> 34.5%) while preserving whole percentages (e.g., 57.0 -> 57.0%).
     """
-    m = safe_float(math_pct)
-    e = safe_float(ela_pct)
-    if m is None or e is None:
+    v = safe_float(val)
+    if v is None:
         return None
-    return round((m + e) / 2.0, 1)
+    if 0.0 < v <= 1.0:
+        v = v * 100.0
+    return round(v, 1)
+
+def calculate_psai_score(math_pct, ela_pct, science_pct):
+    """
+    Computes the difficulty-weighted Puget Sound Academic Index (PSAI) on a 0-100 scale,
+    dynamically anchoring only to subjects actually tested at the facility.
+    Returns: (psai_score, active_benchmark)
+    """
+    active_pairs = []
+    if math_pct is not None:
+        active_pairs.append((math_pct, STATE_MATH_BASELINE))
+    if ela_pct is not None:
+        active_pairs.append((ela_pct, STATE_ELA_BASELINE))
+    if science_pct is not None:
+        active_pairs.append((science_pct, STATE_SCIENCE_BASELINE))
+
+    if not active_pairs:
+        return None, None
+
+    # Multiplier per subject: School % / State Baseline %
+    multipliers = [score / base for score, base in active_pairs]
+    composite_ratio = sum(multipliers) / len(multipliers)
+
+    # Dynamic baseline based strictly on tested subjects (e.g., 44.7 for 3-subject, 45.5 for Math/ELA)
+    raw_active_benchmark = sum(base for _, base in active_pairs) / len(active_pairs)
+    active_benchmark = round(raw_active_benchmark, 1)
+
+    # Weighted proficiency: Composite Ratio * Active State Baseline
+    psai = round(composite_ratio * raw_active_benchmark, 1)
+    psai = min(100.0, psai)
+
+    return psai, active_benchmark
 
 def resolve_redfin_school_data(school_name, district_name, county):
     """Queries Redfin's native autocomplete API to obtain exact search URLs and cities."""
@@ -151,36 +183,31 @@ def sniff_schema_fields(sample_records):
                 return k
         return None
 
-    # Identify metadata fields
     org_level_key = match_key([r"^org.*level$", r"organizationlevel", r"org_level"]) or "organizationlevel"
     school_code_key = match_key([r"schoolcode", r"school_code", r"buildingcode", r"building_code"]) or "schoolcode"
     school_name_key = match_key([r"schoolname", r"school_name", r"buildingname", r"building_name"]) or "schoolname"
     district_name_key = match_key([r"districtname", r"district_name"]) or "districtname"
-    district_code_key = match_key([r"county_district_number", r"countydistrictnumber", r"districtcode", r"district_code"]) or "county_district_number"
+    district_code_key = match_key([r"county_district_number", r"countydistrictnumber", r"districtcode", r"district_code"]) or "districtcode"
     county_key = match_key([r"^county$", r"^countyname$", r"^county_name$"]) or "county"
     year_key = match_key([r"schoolyear", r"school_year", r"^year$"]) or "schoolyear"
     subject_key = match_key([r"testsubject", r"^subject$", r"test_subject", r"subjectname", r"contentarea"]) or "testsubject"
     student_group_key = match_key([r"^studentgroup$", r"^student_group$", r"subgroup"]) or "studentgroup"
     student_group_type_key = match_key([r"^studentgrouptype$", r"^student_group_type$"]) or "studentgrouptype"
 
-    # Identify score / percentage fields
-    # Prioritizes explicit standard percentage fields, followed by grade level consistency metrics
     score_candidates = []
     for k in all_keys:
         kl = k.lower()
         if any(x in kl for x in ["suppress", "no_score", "not_tested", "alternative", "participation"]):
             continue
-        if ("percent" in kl or "pct" in kl) and any(y in kl for y in ["standard", "consistent", "met", "proficiency", "tested"]):
+        if ("percent" in kl or "pct" in kl) and any(y in kl for y in ["tested", "standard", "consistent", "met", "proficiency"]):
             score_candidates.append(k)
 
-    # Sort candidates so the most specific standard percentage fields come first
     score_candidates.sort(key=lambda x: (
-        0 if "standard" in x.lower() else
-        1 if "consistent" in x.lower() else
-        2 if "met" in x.lower() else 3
+        0 if "tested" in x.lower() else
+        1 if "standard" in x.lower() else
+        2 if "consistent" in x.lower() else 3
     ))
 
-    # Count-based fallbacks (count meeting standard / count expected to test)
     count_met_key = match_key([r"countconsistent", r"countmetstandard", r"count_met_standard", r"countproficient"])
     count_expected_key = match_key([r"countofstudentsexpected", r"countexpectedtotest", r"count_expected", r"totaltested"])
 
@@ -208,7 +235,6 @@ def fetch_ospi_endpoint_records(endpoint):
     limit = 25000
     offset = 0
 
-    # Probe endpoint to detect exact county field naming
     county_field = "county"
     try:
         probe_resp = requests.get(f"{endpoint}?$limit=1", headers=HTTP_HEADERS, timeout=10, verify=False)
@@ -220,6 +246,9 @@ def fetch_ospi_endpoint_records(endpoint):
                     county_field = "county_name"
                 elif "countyname" in keys:
                     county_field = "countyname"
+        elif probe_resp.status_code == 403:
+            print(f"  ❌ Endpoint returned HTTP 403 (Forbidden/Archived): {endpoint}")
+            return records
     except Exception as e:
         print(f"  ⚠️ Schema probe warning on {endpoint}: {e}")
 
@@ -244,8 +273,6 @@ def fetch_ospi_endpoint_records(endpoint):
                     break
                 offset += limit
             elif resp.status_code == 400 and offset == 0:
-                # Fallback: query without $where and filter in Python if Socrata rejects county clause
-                print(f"  ⚠️ Socrata $where clause rejected. Switching to unconstrained stream filtering...")
                 params.pop("$where", None)
                 resp_fallback = requests.get(endpoint, headers=HTTP_HEADERS, params=params, timeout=30, verify=False)
                 if resp_fallback.status_code == 200:
@@ -257,7 +284,6 @@ def fetch_ospi_endpoint_records(endpoint):
                     records.extend(filtered_chunk)
                 break
             else:
-                print(f"  ❌ Endpoint returned HTTP {resp.status_code} on {endpoint}")
                 break
         except Exception as e:
             print(f"  ❌ Endpoint exception on {endpoint}: {e}")
@@ -280,7 +306,7 @@ def fetch_all_ospi_records():
     return all_records
 
 def process_ospi_data(records):
-    """Processes raw assessment records into structured school and district maps using dynamic schema mapping."""
+    """Processes raw assessment records into structured school and district maps."""
     schools_map = {}
     districts_map = {}
 
@@ -290,7 +316,6 @@ def process_ospi_data(records):
     if not records:
         return schools_map, districts_map
 
-    # 1. Dynamic Schema Sniffing
     schema = sniff_schema_fields(records)
     print("\n🔍 Dynamic Field Schema Audit:")
     print(f"   • Org Level:       '{schema['org_level']}'")
@@ -336,8 +361,7 @@ def process_ospi_data(records):
                     "district_code": dcode,
                     "county": county,
                     "city": dname,
-                    "school_type": stype,
-                    "assessment_trends": {"math": [], "ela": [], "science": []}
+                    "school_type": stype
                 }
                 school_raw_scores[scode] = {"math": {}, "ela": {}, "science": {}}
 
@@ -347,8 +371,7 @@ def process_ospi_data(records):
                     "district_name": dname,
                     "district_code": dcode,
                     "county": county,
-                    "records_count": 0,
-                    "assessment_trends": {"math": [], "ela": [], "science": []}
+                    "records_count": 0
                 }
                 district_raw_scores[dname] = {"math": {}, "ela": {}, "science": {}}
             elif dcode and not districts_map[dname]["district_code"]:
@@ -358,7 +381,6 @@ def process_ospi_data(records):
         sgroup = str(r.get(k_sgroup, "")).strip().lower()
         sgrouptype = str(r.get(k_sgrouptype, "")).strip().lower()
 
-        # Target overall cohort rows (All Students / Total)
         is_all_students = (
             sgroup in ["all students", "all", "total", ""] or 
             sgrouptype in ["all", "federal", ""] or 
@@ -368,29 +390,27 @@ def process_ospi_data(records):
         if not is_all_students:
             continue
 
-        # --- STEP 3: SCORE PARSING ---
+        # --- STEP 3: SCORE EXTRACTION & PERCENTAGE NORMALIZATION ---
         pct_met = None
         for sk in score_keys:
             val = r.get(sk)
             if val is not None and str(val).strip() != "":
-                parsed = safe_float(val)
+                parsed = parse_percentage(val)
                 if parsed is not None:
                     pct_met = parsed
                     break
 
-        # Fallback to counts if percentage is missing
         if pct_met is None and k_c_met and k_c_tot:
             c_met = safe_float(r.get(k_c_met))
             c_tot = safe_float(r.get(k_c_tot))
             if c_met is not None and c_tot is not None and c_tot > 0:
-                pct_met = round((c_met / c_tot) * 100.0, 1)
+                pct_met = parse_percentage(c_met / c_tot)
 
         if pct_met is None:
             continue
 
         matched_scores_count += 1
 
-        # Subject categorization
         subject_raw = str(r.get(k_subj, "")).strip().lower()
         subject_key = None
         if "math" in subject_raw:
@@ -405,7 +425,6 @@ def process_ospi_data(records):
 
         syear = str(r.get(k_year, "Unknown")).strip()
 
-        # Accumulate scores for averaging
         if org_level == "school" and scode in school_raw_scores:
             if syear not in school_raw_scores[scode][subject_key]:
                 school_raw_scores[scode][subject_key][syear] = []
@@ -418,29 +437,29 @@ def process_ospi_data(records):
 
     print(f"   ✓ Extracted and matched {matched_scores_count} valid student proficiency records.")
 
-    # Calculate average annual test scores for school building trends
+    # Helper function to get the latest academic year's average for a subject
+    def get_latest_subject_score(subj_years_map):
+        if not subj_years_map:
+            return None
+        sorted_years = sorted(subj_years_map.keys(), reverse=True)
+        for yr in sorted_years:
+            vals = subj_years_map[yr]
+            if vals:
+                return round(sum(vals) / len(vals), 1)
+        return None
+
+    # Attach latest scores to schools
     for scode, subjects in school_raw_scores.items():
-        for sub, years in subjects.items():
-            for yr, score_list in years.items():
-                if score_list:
-                    avg_score = round(sum(score_list) / len(score_list), 1)
-                    schools_map[scode]["assessment_trends"][sub].append({
-                        "year": yr,
-                        "pct_met_standard": avg_score
-                    })
+        schools_map[scode]["latest_math_pct"] = get_latest_subject_score(subjects["math"])
+        schools_map[scode]["latest_ela_pct"] = get_latest_subject_score(subjects["ela"])
+        schools_map[scode]["latest_science_pct"] = get_latest_subject_score(subjects["science"])
 
-    # Calculate average annual test scores for district trends
+    # Attach latest scores to districts
     for dname, subjects in district_raw_scores.items():
-        for sub, years in subjects.items():
-            for yr, score_list in years.items():
-                if score_list:
-                    avg_score = round(sum(score_list) / len(score_list), 1)
-                    districts_map[dname]["assessment_trends"][sub].append({
-                        "year": yr,
-                        "pct_met_standard": avg_score
-                    })
+        districts_map[dname]["district_math_proficiency"] = get_latest_subject_score(subjects["math"])
+        districts_map[dname]["district_ela_proficiency"] = get_latest_subject_score(subjects["ela"])
+        districts_map[dname]["district_science_proficiency"] = get_latest_subject_score(subjects["science"])
 
-    # Count active school facilities per district
     for scode, s_data in schools_map.items():
         d_name = s_data["district_name"]
         if d_name in districts_map:
@@ -450,7 +469,7 @@ def process_ospi_data(records):
 
 def main():
     print("==================================================")
-    print("     OSPI MASTER SCHOOL DATA HARVESTER (V4.5)     ")
+    print("     OSPI MASTER SCHOOL DATA HARVESTER (V4.6)     ")
     print("==================================================")
 
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -466,7 +485,7 @@ def main():
     # --- 1. COMPILE INDIVIDUAL SCHOOL BUILDING RECORDS ---
     total_schools = len(schools_map)
     print(f"\n🚀 Discovered {total_schools} unique public schools across King & Snohomish counties.")
-    print("📡 Resolving Redfin URLs & Computing 5-Year PSAI Scores...")
+    print("📡 Resolving Redfin URLs & Computing Difficulty-Weighted PSAI Scores...")
 
     compiled_schools = []
     sample_printed = False
@@ -478,19 +497,17 @@ def main():
             school_data["county"]
         )
 
-        for sub in ["math", "ela", "science"]:
-            school_data["assessment_trends"][sub].sort(key=lambda x: str(x.get("year", "")))
-            school_data["assessment_trends"][sub] = school_data["assessment_trends"][sub][-5:]
+        m_score = school_data.get("latest_math_pct")
+        e_score = school_data.get("latest_ela_pct")
+        s_score = school_data.get("latest_science_pct")
 
-        latest_math = school_data["assessment_trends"]["math"][-1]["pct_met_standard"] if school_data["assessment_trends"]["math"] else None
-        latest_ela = school_data["assessment_trends"]["ela"][-1]["pct_met_standard"] if school_data["assessment_trends"]["ela"] else None
-        psai_score = calculate_psai_score(latest_math, latest_ela)
+        psai_score, psai_benchmark = calculate_psai_score(m_score, e_score, s_score)
 
-        # Terminal diagnostic print of first verified score calculation
         if not sample_printed and psai_score is not None:
             print(f"\n📊 [Sample Verified Extraction]:")
             print(f"   • School: {school_data['school_name']} ({school_data['district_name']})")
-            print(f"   • Math Met: {latest_math}% | ELA Met: {latest_ela}% ➔ PSAI Index: {psai_score}/100\n")
+            print(f"   • Math Met: {m_score}% | ELA Met: {e_score}% | Science Met: {s_score}%")
+            print(f"   • PSAI Score: {psai_score} / 100 (Active Benchmark: {psai_benchmark} / 100)\n")
             sample_printed = True
 
         school_entry = {
@@ -504,9 +521,10 @@ def main():
             "school_type": school_data["school_type"],
             "redfin_search_url": redfin_info["redfin_url"],
             "psai_score": psai_score,
-            "latest_math_pct": latest_math,
-            "latest_ela_pct": latest_ela,
-            "assessment_trends": school_data["assessment_trends"]
+            "psai_benchmark": psai_benchmark,
+            "latest_math_pct": m_score,
+            "latest_ela_pct": e_score,
+            "latest_science_pct": s_score
         }
 
         compiled_schools.append(school_entry)
@@ -518,35 +536,39 @@ def main():
     # --- 2. COMPILE DISTRICT SUMMARIES ---
     compiled_districts = {}
     for dname, ddata in districts_map.items():
-        for sub in ["math", "ela", "science"]:
-            ddata["assessment_trends"][sub].sort(key=lambda x: str(x.get("year", "")))
-            ddata["assessment_trends"][sub] = ddata["assessment_trends"][sub][-5:]
+        m_score = ddata.get("district_math_proficiency")
+        e_score = ddata.get("district_ela_proficiency")
+        s_score = ddata.get("district_science_proficiency")
 
-        latest_math = ddata["assessment_trends"]["math"][-1]["pct_met_standard"] if ddata["assessment_trends"]["math"] else None
-        latest_ela = ddata["assessment_trends"]["ela"][-1]["pct_met_standard"] if ddata["assessment_trends"]["ela"] else None
-
-        # Fallback calculation: Aggregate individual school building scores if district summary row is absent
-        if latest_math is None or latest_ela is None:
+        # Fallback to building average if district row was absent in state stream
+        if m_score is None or e_score is None or s_score is None:
             dist_schools = [s for s in compiled_schools if s["district_name"] == dname]
             if dist_schools:
-                m_vals = [s["latest_math_pct"] for s in dist_schools if s["latest_math_pct"] is not None]
-                e_vals = [s["latest_ela_pct"] for s in dist_schools if s["latest_ela_pct"] is not None]
-                if m_vals and latest_math is None:
-                    latest_math = round(sum(m_vals) / len(m_vals), 1)
-                if e_vals and latest_ela is None:
-                    latest_ela = round(sum(e_vals) / len(e_vals), 1)
+                if m_score is None:
+                    m_vals = [s["latest_math_pct"] for s in dist_schools if s["latest_math_pct"] is not None]
+                    if m_vals:
+                        m_score = round(sum(m_vals) / len(m_vals), 1)
+                if e_score is None:
+                    e_vals = [s["latest_ela_pct"] for s in dist_schools if s["latest_ela_pct"] is not None]
+                    if e_vals:
+                        e_score = round(sum(e_vals) / len(e_vals), 1)
+                if s_score is None:
+                    s_vals = [s["latest_science_pct"] for s in dist_schools if s["latest_science_pct"] is not None]
+                    if s_vals:
+                        s_score = round(sum(s_vals) / len(s_vals), 1)
 
-        psai_score = calculate_psai_score(latest_math, latest_ela)
+        psai_score, psai_benchmark = calculate_psai_score(m_score, e_score, s_score)
 
         compiled_districts[dname] = {
             "district_name": dname,
             "district_code": ddata["district_code"],
             "county": ddata["county"],
             "records_count": ddata["records_count"],
-            "district_math_proficiency": latest_math,
-            "district_ela_proficiency": latest_ela,
+            "district_math_proficiency": m_score,
+            "district_ela_proficiency": e_score,
+            "district_science_proficiency": s_score,
             "psai_score": psai_score,
-            "assessment_trends": ddata["assessment_trends"]
+            "psai_benchmark": psai_benchmark
         }
 
     # --- 3. COMPILE CITY DISTRICT RATINGS DYNAMICALLY FROM city_data.json ---
@@ -570,13 +592,17 @@ def main():
         if matched_dists:
             math_vals = [d["district_math_proficiency"] for d in matched_dists if d["district_math_proficiency"] is not None]
             ela_vals = [d["district_ela_proficiency"] for d in matched_dists if d["district_ela_proficiency"] is not None]
+            sci_vals = [d["district_science_proficiency"] for d in matched_dists if d["district_science_proficiency"] is not None]
 
             math_prof = round(sum(math_vals) / len(math_vals), 1) if math_vals else None
             ela_prof = round(sum(ela_vals) / len(ela_vals), 1) if ela_vals else None
-            psai = calculate_psai_score(math_prof, ela_prof)
+            sci_prof = round(sum(sci_vals) / len(sci_vals), 1) if sci_vals else None
+
+            psai, psai_benchmark = calculate_psai_score(math_prof, ela_prof, sci_prof)
             actual_dname = ", ".join([d["district_name"] for d in matched_dists])
         else:
-            math_prof, ela_prof, psai = None, None, None
+            math_prof, ela_prof, sci_prof = None, None, None
+            psai, psai_benchmark = None, None
             actual_dname = meta["district_name"]
 
         status = "Active" if psai is not None else "Insufficient Data (Small Student Population)"
@@ -585,9 +611,12 @@ def main():
             "district_name": actual_dname,
             "district_math_proficiency": math_prof,
             "district_ela_proficiency": ela_prof,
-            "custom_score": psai, # Normalized 0-100 Puget Sound Academic Index
+            "district_science_proficiency": sci_prof,
+            "custom_score": psai,
+            "custom_score_benchmark": psai_benchmark,
             "state_math_baseline": STATE_MATH_BASELINE,
             "state_ela_baseline": STATE_ELA_BASELINE,
+            "state_science_baseline": STATE_SCIENCE_BASELINE,
             "status": status
         }
 
@@ -611,7 +640,7 @@ def main():
     print(f"  • Compiled {len(compiled_schools)} individual school facilities ({schools_with_scores} with active PSAI ratings).")
     print(f"  • Compiled {len(compiled_districts)} school districts.")
     print(f"  • Compiled {len(compiled_city_ratings)} city-district rating mappings.")
-    print(f"  • Saved master dataset to: {OUTPUT_JSON}")
+    print(f"  • Saved clean master dataset to: {OUTPUT_JSON}")
 
 if __name__ == "__main__":
     main()
