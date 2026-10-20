@@ -372,14 +372,15 @@ def main():
 
     batch_sheet_writebacks = {master_sheet_id: []}
 
-    # Consolidated Single Batch Call across all 21 tabs
+    # Consolidated Single Batch Call across all tabs (Including Guide modules)
     all_tabs = [
         "Market_Dashboard", "Rates", "Historical_Log", 
         "CityData", "MunicipalFeeds", "Stats", "Team", 
         "Disclaimers", "Events", "DPA", "Professionals", 
         "Reviews", "ThirdPartyPrograms", "News", "Sales", 
         "Live_Archive", "Uploads", "Sports", "TollData", 
-        "UtilityData", "MatrixKeepAlive"
+        "UtilityData", "MatrixKeepAlive", 
+        "BuyerGuide", "SellerGuide", "GuideFAQs"
     ]
     ranges = [f"{tab}!A:AZ" for tab in all_tabs]
 
@@ -538,7 +539,10 @@ def main():
         ("News", "news.json"), ("Sports", "sports_teams.json"),
         ("Uploads", "uploads.json"), ("UtilityData", "utility_data.json"),
         ("Events", "events.json"), ("Team", "team.json"),
-        ("MatrixKeepAlive", "matrix_keep_alive.json")
+        ("MatrixKeepAlive", "matrix_keep_alive.json"),
+        ("BuyerGuide", "buyer_guide.json"),
+        ("SellerGuide", "seller_guide.json"),
+        ("GuideFAQs", "guide_faqs.json")
     ]:
         rows = tabs_data.get(tab_name, {}).get('values', [])
         if rows:
