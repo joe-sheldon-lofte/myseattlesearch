@@ -372,7 +372,7 @@ def main():
 
     batch_sheet_writebacks = {master_sheet_id: []}
 
-    # Consolidated Single Batch Call across all tabs (Including Guide modules)
+    # Consolidated Single Batch Call across all tabs
     all_tabs = [
         "Market_Dashboard", "Rates", "Historical_Log", 
         "CityData", "MunicipalFeeds", "Stats", "Team", 
@@ -380,7 +380,8 @@ def main():
         "Reviews", "ThirdPartyPrograms", "News", "Sales", 
         "Live_Archive", "Uploads", "Sports", "TollData", 
         "UtilityData", "MatrixKeepAlive", 
-        "BuyerGuide", "SellerGuide", "GuideFAQs"
+        "BuyerGuide", "SellerGuide", "GuideFAQs",
+        "PublicEvents", "Translations", "SiteCredits"
     ]
     ranges = [f"{tab}!A:AZ" for tab in all_tabs]
 
@@ -459,7 +460,7 @@ def main():
     stats_rows = tabs_data.get("Stats", {}).get('values', [])
     if stats_rows and len(stats_rows) >= 2:
         stats_dict = {}
-        for r in stats_rows[1:]:  # Skip Row 1 (headers)
+        for r in stats_rows[1:]:
             if r and len(r) > 0 and str(r[0]).strip():
                 k = str(r[0]).strip()
                 v = str(r[1]).strip() if len(r) > 1 and r[1] is not None else ""
@@ -467,7 +468,7 @@ def main():
         with open(os.path.join(DATA_DIR, "stats.json"), "w", encoding="utf-8") as f:
             json.dump(clean_nan_tokens(stats_dict), f, indent=2, ensure_ascii=False)
 
-    # Bulk Process Uploads Tab (Drive -> WebP -> R2 CDN -> Writeback)
+    # Bulk Process Uploads Tab
     upload_rows = tabs_data.get("Uploads", {}).get('values', [])
     if upload_rows and len(upload_rows) >= 2:
         u_headers = [str(h).strip() for h in upload_rows[0]]
@@ -534,15 +535,23 @@ def main():
     # Simple Array JSON tabs export
     for tab_name, json_name in [
         ("Disclaimers", "disclaimers.json"),
-        ("DPA", "dpa_programs.json"), ("Professionals", "professionals.json"), 
-        ("Reviews", "reviews.json"), ("ThirdPartyPrograms", "thirdpartyprograms.json"), 
-        ("News", "news.json"), ("Sports", "sports_teams.json"),
-        ("Uploads", "uploads.json"), ("UtilityData", "utility_data.json"),
-        ("Events", "events.json"), ("Team", "team.json"),
+        ("DPA", "dpa_programs.json"), 
+        ("Professionals", "professionals.json"), 
+        ("Reviews", "reviews.json"), 
+        ("ThirdPartyPrograms", "thirdpartyprograms.json"), 
+        ("News", "news.json"), 
+        ("Sports", "sports_teams.json"),
+        ("Uploads", "uploads.json"), 
+        ("UtilityData", "utility_data.json"),
+        ("Events", "events.json"), 
+        ("Team", "team.json"),
         ("MatrixKeepAlive", "matrix_keep_alive.json"),
         ("BuyerGuide", "buyer_guide.json"),
         ("SellerGuide", "seller_guide.json"),
-        ("GuideFAQs", "guide_faqs.json")
+        ("GuideFAQs", "guide_faqs.json"),
+        ("PublicEvents", "public_events.json"),
+        ("Translations", "translations.json"),
+        ("SiteCredits", "site_credits.json")
     ]:
         rows = tabs_data.get(tab_name, {}).get('values', [])
         if rows:
