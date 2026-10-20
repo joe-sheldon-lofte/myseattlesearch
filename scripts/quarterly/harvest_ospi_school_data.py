@@ -1,6 +1,7 @@
 # File: scripts/quarterly/harvest_ospi_school_data.py
 
 import os
+import re
 import json
 import urllib.parse
 import urllib3
@@ -63,15 +64,6 @@ def load_city_district_mappings():
 
     return city_map
 
-def get_field(record, *possible_keys):
-    """Schema-agnostic field getter that extracts values across Socrata endpoint variations."""
-    for key in possible_keys:
-        if key in record and record[key] is not None:
-            val = str(record[key]).strip()
-            if val != "":
-                return val
-    return ""
-
 def safe_float(val):
     """Safely parses percentage strings into floats, handling '80%', '>80%', '<10%', and 'Suppressed'."""
     if val is None or val == "":
@@ -109,7 +101,7 @@ def resolve_redfin_school_data(school_name, district_name, county):
     resolved_info = {"redfin_url": "", "city": district_name}
 
     try:
-        resp = requests.get(endpoint, headers=HTTP_HEADERS, timeout=5, verify=False)
+        resp = requests.get(endpoint, headers=HTTP_HEADERS, timeout=4, verify=False)
         if resp.status_code == 200:
             clean_text = resp.text.replace("{}&&", "").strip()
             data = json.loads(clean_text)
@@ -139,13 +131,99 @@ def resolve_redfin_school_data(school_name, district_name, county):
 
     return resolved_info
 
+def sniff_schema_fields(sample_records):
+    """
+    Inspects sample records to dynamically identify exact Socrata field keys across schema variations.
+    """
+    if not sample_records:
+        return {}
+
+    all_keys = set()
+    for r in sample_records[:200]:
+        all_keys.update(r.keys())
+
+    def match_key(patterns, exclude=None):
+        for k in all_keys:
+            kl = k.lower()
+            if exclude and any(x in kl for x in exclude):
+                continue
+            if any(re.search(p, kl) for p in patterns):
+                return k
+        return None
+
+    # Identify metadata fields
+    org_level_key = match_key([r"^org.*level$", r"organizationlevel", r"org_level"]) or "organizationlevel"
+    school_code_key = match_key([r"schoolcode", r"school_code", r"buildingcode", r"building_code"]) or "schoolcode"
+    school_name_key = match_key([r"schoolname", r"school_name", r"buildingname", r"building_name"]) or "schoolname"
+    district_name_key = match_key([r"districtname", r"district_name"]) or "districtname"
+    district_code_key = match_key([r"county_district_number", r"countydistrictnumber", r"districtcode", r"district_code"]) or "county_district_number"
+    county_key = match_key([r"^county$", r"^countyname$", r"^county_name$"]) or "county"
+    year_key = match_key([r"schoolyear", r"school_year", r"^year$"]) or "schoolyear"
+    subject_key = match_key([r"testsubject", r"^subject$", r"test_subject", r"subjectname", r"contentarea"]) or "testsubject"
+    student_group_key = match_key([r"^studentgroup$", r"^student_group$", r"subgroup"]) or "studentgroup"
+    student_group_type_key = match_key([r"^studentgrouptype$", r"^student_group_type$"]) or "studentgrouptype"
+
+    # Identify score / percentage fields
+    # Prioritizes explicit standard percentage fields, followed by grade level consistency metrics
+    score_candidates = []
+    for k in all_keys:
+        kl = k.lower()
+        if any(x in kl for x in ["suppress", "no_score", "not_tested", "alternative", "participation"]):
+            continue
+        if ("percent" in kl or "pct" in kl) and any(y in kl for y in ["standard", "consistent", "met", "proficiency", "tested"]):
+            score_candidates.append(k)
+
+    # Sort candidates so the most specific standard percentage fields come first
+    score_candidates.sort(key=lambda x: (
+        0 if "standard" in x.lower() else
+        1 if "consistent" in x.lower() else
+        2 if "met" in x.lower() else 3
+    ))
+
+    # Count-based fallbacks (count meeting standard / count expected to test)
+    count_met_key = match_key([r"countconsistent", r"countmetstandard", r"count_met_standard", r"countproficient"])
+    count_expected_key = match_key([r"countofstudentsexpected", r"countexpectedtotest", r"count_expected", r"totaltested"])
+
+    return {
+        "org_level": org_level_key,
+        "school_code": school_code_key,
+        "school_name": school_name_key,
+        "district_name": district_name_key,
+        "district_code": district_code_key,
+        "county": county_key,
+        "year": year_key,
+        "subject": subject_key,
+        "student_group": student_group_key,
+        "student_group_type": student_group_type_key,
+        "score_candidates": score_candidates,
+        "count_met": count_met_key,
+        "count_expected": count_expected_key
+    }
+
 def fetch_ospi_endpoint_records(endpoint):
-    """Pages through a single Socrata endpoint to retrieve records for King and Snohomish counties."""
+    """
+    Pages through a Socrata endpoint with resilient county field probing.
+    """
     records = []
     limit = 25000
     offset = 0
 
-    where_clause = "county in ('King', 'Snohomish')"
+    # Probe endpoint to detect exact county field naming
+    county_field = "county"
+    try:
+        probe_resp = requests.get(f"{endpoint}?$limit=1", headers=HTTP_HEADERS, timeout=10, verify=False)
+        if probe_resp.status_code == 200:
+            sample = probe_resp.json()
+            if sample and isinstance(sample, list) and len(sample) > 0:
+                keys = sample[0].keys()
+                if "county_name" in keys:
+                    county_field = "county_name"
+                elif "countyname" in keys:
+                    county_field = "countyname"
+    except Exception as e:
+        print(f"  ⚠️ Schema probe warning on {endpoint}: {e}")
+
+    where_clause = f"{county_field} in ('King', 'Snohomish')"
 
     while True:
         params = {
@@ -165,7 +243,21 @@ def fetch_ospi_endpoint_records(endpoint):
                 if len(chunk) < limit:
                     break
                 offset += limit
+            elif resp.status_code == 400 and offset == 0:
+                # Fallback: query without $where and filter in Python if Socrata rejects county clause
+                print(f"  ⚠️ Socrata $where clause rejected. Switching to unconstrained stream filtering...")
+                params.pop("$where", None)
+                resp_fallback = requests.get(endpoint, headers=HTTP_HEADERS, params=params, timeout=30, verify=False)
+                if resp_fallback.status_code == 200:
+                    chunk = resp_fallback.json()
+                    filtered_chunk = [
+                        r for r in chunk 
+                        if str(r.get("county", r.get("county_name", r.get("countyname", "")))).lower() in ["king", "snohomish"]
+                    ]
+                    records.extend(filtered_chunk)
+                break
             else:
+                print(f"  ❌ Endpoint returned HTTP {resp.status_code} on {endpoint}")
                 break
         except Exception as e:
             print(f"  ❌ Endpoint exception on {endpoint}: {e}")
@@ -188,31 +280,58 @@ def fetch_all_ospi_records():
     return all_records
 
 def process_ospi_data(records):
-    """Processes raw assessment records into structured school and district maps."""
+    """Processes raw assessment records into structured school and district maps using dynamic schema mapping."""
     schools_map = {}
     districts_map = {}
 
     school_raw_scores = {}
     district_raw_scores = {}
 
-    for r in records:
-        org_level = str(get_field(r, "organizationlevel", "org_level", "organization_level")).lower()
-        scode = get_field(r, "schoolcode", "school_code", "buildingcode", "building_code")
-        sname = get_field(r, "schoolname", "school_name", "buildingname", "building_name")
-        dname = get_field(r, "districtname", "district_name")
-        
-        # Capture OSPI District Code across county_district_number variations
-        dcode = get_field(r, "county_district_number", "countydistrictnumber", "districtcode", "district_code")
-        county = get_field(r, "county", "countyname")
-        stype = get_field(r, "currentschooltype", "schooltype", "type") or "P"
+    if not records:
+        return schools_map, districts_map
 
-        # --- STEP 1: INITIALIZE METADATA ---
+    # 1. Dynamic Schema Sniffing
+    schema = sniff_schema_fields(records)
+    print("\n🔍 Dynamic Field Schema Audit:")
+    print(f"   • Org Level:       '{schema['org_level']}'")
+    print(f"   • School Code:     '{schema['school_code']}' | Name: '{schema['school_name']}'")
+    print(f"   • District Code:   '{schema['district_code']}' | Name: '{schema['district_name']}'")
+    print(f"   • Subject Key:     '{schema['subject']}'")
+    print(f"   • Student Group:   '{schema['student_group']}'")
+    print(f"   • Score Fields:    {schema['score_candidates'][:4]}")
+
+    k_org = schema["org_level"]
+    k_scode = schema["school_code"]
+    k_sname = schema["school_name"]
+    k_dname = schema["district_name"]
+    k_dcode = schema["district_code"]
+    k_county = schema["county"]
+    k_year = schema["year"]
+    k_subj = schema["subject"]
+    k_sgroup = schema["student_group"]
+    k_sgrouptype = schema["student_group_type"]
+    score_keys = schema["score_candidates"]
+    k_c_met = schema["count_met"]
+    k_c_tot = schema["count_expected"]
+
+    matched_scores_count = 0
+
+    for r in records:
+        org_level = str(r.get(k_org, "")).strip().lower()
+        scode = str(r.get(k_scode, "")).strip()
+        sname = str(r.get(k_sname, "")).strip()
+        dname = str(r.get(k_dname, "")).strip()
+        dcode = str(r.get(k_dcode, "")).strip()
+        county = str(r.get(k_county, "")).strip()
+        stype = str(r.get("currentschooltype", r.get("schooltype", r.get("type", "P")))).strip() or "P"
+
+        # --- STEP 1: INITIALIZE ENTITIES ---
         if org_level == "school" and scode and sname:
             if scode not in schools_map:
                 schools_map[scode] = {
                     "school_name": sname,
                     "school_code": scode,
-                    "ospi_org_id": get_field(r, "schoolorganizationid", "school_org_id", "org_id"),
+                    "ospi_org_id": str(r.get("schoolorganizationid", r.get("school_org_id", r.get("org_id", "")))).strip(),
                     "district_name": dname,
                     "district_code": dcode,
                     "county": county,
@@ -235,46 +354,44 @@ def process_ospi_data(records):
             elif dcode and not districts_map[dname]["district_code"]:
                 districts_map[dname]["district_code"] = dcode
 
-        # --- STEP 2: ACCUMULATE PROFICIENCY PERCENTAGES ---
-        sgroup_type = str(get_field(r, "studentgrouptype", "student_group_type")).lower()
-        sgroup = str(get_field(r, "studentgroup", "student_group")).lower()
+        # --- STEP 2: COHORT FILTERING ---
+        sgroup = str(r.get(k_sgroup, "")).strip().lower()
+        sgrouptype = str(r.get(k_sgrouptype, "")).strip().lower()
 
-        # Relaxed Student Group Check (Targeting overall cohort rows)
+        # Target overall cohort rows (All Students / Total)
         is_all_students = (
             sgroup in ["all students", "all", "total", ""] or 
-            sgroup_type in ["all", "federal", ""] or 
+            sgrouptype in ["all", "federal", ""] or 
             "all students" in sgroup or 
-            sgroup_type == ""
+            sgrouptype == ""
         )
         if not is_all_students:
             continue
 
-        # Extract percentage string or compute from raw student counts
-        raw_pct = get_field(
-            r, 
-            "percentconsistentgradelevelknowledgeandabove",
-            "percent_consistent_grade_level_knowledge_and_above",
-            "percentmetstandard", 
-            "percent_met_standard", 
-            "percentmet", 
-            "percent_met", 
-            "pctmetstandard", 
-            "pct_met_standard"
-        )
-        pct_met = safe_float(raw_pct)
+        # --- STEP 3: SCORE PARSING ---
+        pct_met = None
+        for sk in score_keys:
+            val = r.get(sk)
+            if val is not None and str(val).strip() != "":
+                parsed = safe_float(val)
+                if parsed is not None:
+                    pct_met = parsed
+                    break
 
-        if pct_met is None:
-            c_met = safe_float(get_field(r, "countconsistentgradelevelknowledgeandabove", "countmetstandard", "count_met_standard"))
-            c_tot = safe_float(get_field(r, "countofstudentsexpectedtotest", "countexpectedtotest", "count_expected"))
+        # Fallback to counts if percentage is missing
+        if pct_met is None and k_c_met and k_c_tot:
+            c_met = safe_float(r.get(k_c_met))
+            c_tot = safe_float(r.get(k_c_tot))
             if c_met is not None and c_tot is not None and c_tot > 0:
                 pct_met = round((c_met / c_tot) * 100.0, 1)
 
         if pct_met is None:
             continue
 
-        syear = get_field(r, "schoolyear", "school_year", "year") or "Unknown"
-        subject_raw = str(get_field(r, "testsubject", "subject", "test_subject", "subjectname")).lower()
+        matched_scores_count += 1
 
+        # Subject categorization
+        subject_raw = str(r.get(k_subj, "")).strip().lower()
         subject_key = None
         if "math" in subject_raw:
             subject_key = "math"
@@ -286,6 +403,9 @@ def process_ospi_data(records):
         if not subject_key:
             continue
 
+        syear = str(r.get(k_year, "Unknown")).strip()
+
+        # Accumulate scores for averaging
         if org_level == "school" and scode in school_raw_scores:
             if syear not in school_raw_scores[scode][subject_key]:
                 school_raw_scores[scode][subject_key][syear] = []
@@ -295,6 +415,8 @@ def process_ospi_data(records):
             if syear not in district_raw_scores[dname][subject_key]:
                 district_raw_scores[dname][subject_key][syear] = []
             district_raw_scores[dname][subject_key][syear].append(pct_met)
+
+    print(f"   ✓ Extracted and matched {matched_scores_count} valid student proficiency records.")
 
     # Calculate average annual test scores for school building trends
     for scode, subjects in school_raw_scores.items():
@@ -328,11 +450,10 @@ def process_ospi_data(records):
 
 def main():
     print("==================================================")
-    print("     OSPI MASTER SCHOOL DATA HARVESTER (V4.4)     ")
-    print("==================================================\n")
+    print("     OSPI MASTER SCHOOL DATA HARVESTER (V4.5)     ")
+    print("==================================================")
 
     os.makedirs(DATA_DIR, exist_ok=True)
-
     city_mapping = load_city_district_mappings()
 
     raw_records = fetch_all_ospi_records()
@@ -348,6 +469,8 @@ def main():
     print("📡 Resolving Redfin URLs & Computing 5-Year PSAI Scores...")
 
     compiled_schools = []
+    sample_printed = False
+
     for idx, (scode, school_data) in enumerate(schools_map.items(), 1):
         redfin_info = resolve_redfin_school_data(
             school_data["school_name"], 
@@ -362,6 +485,13 @@ def main():
         latest_math = school_data["assessment_trends"]["math"][-1]["pct_met_standard"] if school_data["assessment_trends"]["math"] else None
         latest_ela = school_data["assessment_trends"]["ela"][-1]["pct_met_standard"] if school_data["assessment_trends"]["ela"] else None
         psai_score = calculate_psai_score(latest_math, latest_ela)
+
+        # Terminal diagnostic print of first verified score calculation
+        if not sample_printed and psai_score is not None:
+            print(f"\n📊 [Sample Verified Extraction]:")
+            print(f"   • School: {school_data['school_name']} ({school_data['district_name']})")
+            print(f"   • Math Met: {latest_math}% | ELA Met: {latest_ela}% ➔ PSAI Index: {psai_score}/100\n")
+            sample_printed = True
 
         school_entry = {
             "school_name": school_data["school_name"],
@@ -380,7 +510,7 @@ def main():
         }
 
         compiled_schools.append(school_entry)
-        if idx % 50 == 0 or idx == total_schools:
+        if idx % 100 == 0 or idx == total_schools:
             print(f"  [Progress] {idx}/{total_schools} schools processed...")
 
     compiled_schools.sort(key=lambda s: (s["city"], s["district_name"], s["school_name"]))
@@ -461,7 +591,13 @@ def main():
             "status": status
         }
 
-    # --- 4. WRITE MASTER UNIFIED JSON FILE ---
+    # --- 4. ANTI-WIPEOUT GUARDRAIL & WRITE MASTER UNIFIED JSON ---
+    schools_with_scores = sum(1 for s in compiled_schools if s["psai_score"] is not None)
+    if total_schools > 0 and schools_with_scores == 0:
+        print("\n⚠️ WARNING: 0 schools computed valid PSAI scores.")
+        print("⚠️ Aborting file write to preserve existing verified data asset.")
+        return
+
     master_output = {
         "schools": compiled_schools,
         "districts": compiled_districts,
@@ -472,7 +608,7 @@ def main():
         json.dump(master_output, f, indent=2, ensure_ascii=False)
 
     print(f"\n🎉 Master harvesting complete!")
-    print(f"  • Compiled {len(compiled_schools)} individual school facilities.")
+    print(f"  • Compiled {len(compiled_schools)} individual school facilities ({schools_with_scores} with active PSAI ratings).")
     print(f"  • Compiled {len(compiled_districts)} school districts.")
     print(f"  • Compiled {len(compiled_city_ratings)} city-district rating mappings.")
     print(f"  • Saved master dataset to: {OUTPUT_JSON}")
