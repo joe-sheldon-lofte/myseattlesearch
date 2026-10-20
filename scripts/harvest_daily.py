@@ -61,6 +61,7 @@ def harvest_construction_zones(): run_subscript("construction_zones.py")
 def harvest_quizzes_processor(): run_subscript("quizzes_processor.py")
 def harvest_city_events(): run_subscript("harvest_city_events.py")
 def harvest_sports_daily(): run_subscript("sports_daily.py")
+def harvest_public_events(): run_subscript("harvest_public_events.py")
 
 # ------------------------------------------------------------------------------
 # 3. MASTER DAILY RUNNER WITH SENTRY CRON MONITORING
@@ -83,6 +84,7 @@ def main():
     safe_task("2. Daily Polymorphic Quizzes Processor", harvest_quizzes_processor)
     safe_task("3. Municipal & City Events Harvester", harvest_city_events)
     safe_task("4. Regional Sports Standings & Records", harvest_sports_daily)
+    safe_task("5. Regional Public Events Feed Aggregator", harvest_public_events)
 
     print("🎉 Daily master harvesting sequence complete. Data fresh!")
 
