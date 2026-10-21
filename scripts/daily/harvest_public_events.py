@@ -30,11 +30,19 @@ OUTPUT_PATH = os.path.join(DATA_DIR, "public_events_feed.json")
 
 PACIFIC_TZ = ZoneInfo("America/Los_Angeles")
 
-# Universal wildcard Accept header avoids HTTP 406 (Not Acceptable) rejections on feeds like Do206
+# High-fidelity browser headers to bypass Cloudflare WAF and satisfy DoStuff Media (HTTP 406) checks
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Accept": "*/*",
-    "Accept-Language": "en-US,en;q=0.9"
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,application/json,text/calendar;q=0.8,*/*;q=0.7",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Sec-Ch-Ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+    "Sec-Ch-Ua-Mobile": "?0",
+    "Sec-Ch-Ua-Platform": '"macOS"',
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1"
 }
 
 TZINFOS = {
@@ -50,13 +58,13 @@ TZINFOS = {
     "GMT": ZoneInfo("UTC")
 }
 
-# Regex to drop ticket add-ons, parking passes, and VIP club upgrades
+# Regex to filter parking vouchers, ticket add-ons, and VIP passes
 TICKETMASTER_JUNK_REGEX = re.compile(
     r'\b(parking|fast lane|club pass|vip access|amplified access|upgrade|not an event ticket|lounge access)\b',
     re.IGNORECASE
 )
 
-# Maximum music events allowed across the Ticketmaster feed to prevent small bar gig saturation
+# Prevents small bar music gigs from dominating the feed
 MAX_TICKETMASTER_MUSIC = 12
 
 def clean_html(text):
@@ -204,7 +212,7 @@ def parse_squarespace_json(data, source_meta):
     events = []
     limit = get_feed_limit(source_meta)
     
-    # Handles Squarespace collection models (/cal?format=json or /events?format=json)
+    # Resolves Squarespace list and collection formats (/cal?format=json)
     if isinstance(data, list):
         items = data
     elif isinstance(data, dict):
@@ -430,12 +438,83 @@ def harvest_ticketmaster_events(api_key, source_meta):
 
     return events
 
+def parse_bibliocommons_html_fallback(html_content, source_meta):
+    """Fallback parser for BiblioCommons (KCLS / Sno-Isle) library event schedules."""
+    events = []
+    limit = get_feed_limit(source_meta) or 25
+    now_pacific = datetime.datetime.now(PACIFIC_TZ)
+
+    # Identifies BiblioCommons event search blocks
+    raw_blocks = re.findall(
+        r'<div[^>]*class="[^"]*bc-event[^"]*"[^>]*>(.*?)</div>\s*</div>\s*</div>',
+        html_content,
+        re.DOTALL
+    ) or re.findall(r'<li[^>]*class="[^"]*event-item[^"]*"[^>]*>(.*?)</li>', html_content, re.DOTALL)
+
+    for block in raw_blocks:
+        if len(events) >= limit:
+            break
+
+        title_m = re.search(r'<a[^>]*class="[^"]*title[^"]*"[^>]*>(.*?)</a>', block, re.DOTALL) or re.search(r'<h[234][^>]*>(.*?)</h[234]>', block, re.DOTALL)
+        if not title_m:
+            continue
+        title = clean_html(title_m.group(1))
+
+        link_m = re.search(r'href="([^"]+)"', block)
+        raw_link = link_m.group(1) if link_m else ""
+        if raw_link.startswith("/"):
+            domain = "https://kcls.bibliocommons.com" if "kcls" in source_meta.get("Feed", "") else "https://sno-isle.bibliocommons.com"
+            link = f"{domain}{raw_link}"
+        else:
+            link = raw_link or source_meta.get("Feed", "")
+
+        dt_pacific = extract_date_from_text(block, now_pacific)
+        if not dt_pacific:
+            continue
+
+        d_date = dt_pacific.strftime("%A, %b %d, %Y")
+        d_time = dt_pacific.strftime("%I:%M %p").lstrip("0")
+
+        loc_m = re.search(r'<span[^>]*class="[^"]*location[^"]*"[^>]*>(.*?)</span>', block, re.DOTALL)
+        location_str = clean_html(loc_m.group(1)) if loc_m else source_meta.get("SourceName", "Library")
+
+        tags_raw = source_meta.get("Tags", "")
+        tags_array = [t.strip().lower() for t in tags_raw.split(",") if t.strip()]
+        if any(w in title.lower() for w in ["story", "toddler", "kids", "family", "lego", "craft"]):
+            tags_array.extend(["family-friendly", "all-ages"])
+
+        events.append({
+            "source_id": source_meta.get("SourceID", ""),
+            "source_name": source_meta.get("SourceName", ""),
+            "title": title,
+            "link": link,
+            "excerpt": f"Library program at {location_str}.",
+            "start_date": dt_pacific.isoformat(),
+            "end_date": dt_pacific.isoformat(),
+            "display_date": d_date,
+            "display_time": d_time,
+            "location": location_str,
+            "city": extract_city_tag(source_meta.get("Tags", "")),
+            "is_all_day": False,
+            "cost": "Free",
+            "tags": list(set(tags_array)),
+            "categories": ["Library", "Community"],
+            "_dt": dt_pacific,
+            "_venue": location_str
+        })
+    return events
+
 def parse_rss_feed(content, source_meta):
     events = []
     limit = get_feed_limit(source_meta)
+    
     feed = feedparser.parse(content)
     now_pacific = datetime.datetime.now(PACIFIC_TZ)
     
+    # Check if BiblioCommons returned an HTML page instead of parseable RSS entries
+    if "bibliocommons" in source_meta.get("Feed", "").lower() and len(feed.entries) == 0:
+        return parse_bibliocommons_html_fallback(content.decode("utf-8", errors="ignore"), source_meta)
+
     entries = feed.entries if limit is None else feed.entries[:limit]
     
     for entry in entries:
@@ -444,7 +523,6 @@ def parse_rss_feed(content, source_meta):
         if not title or not link:
             continue
 
-        # Check all event date namespaces: BiblioCommons, Dublin Core, and Modern Tribe
         raw_event_date = (
             entry.get("bc_start_date") or 
             entry.get("bc_event_date") or 
@@ -459,11 +537,10 @@ def parse_rss_feed(content, source_meta):
         if raw_event_date:
             dt_pacific, d_date, d_time = normalize_date(raw_event_date)
         else:
-            # Fallback to publication/update timestamp
             raw_pub_date = entry.get("published") or entry.get("updated")
             dt_pacific, d_date, d_time = normalize_date(raw_pub_date)
             
-            # If publication date was in the past, parse title/summary for upcoming date strings
+            # Scans text for upcoming date patterns if publication date is in the past
             if dt_pacific and dt_pacific < now_pacific:
                 text_to_search = f"{title} {entry.get('summary', '')} {entry.get('description', '')}"
                 found_dt = extract_date_from_text(text_to_search, now_pacific)
@@ -472,7 +549,6 @@ def parse_rss_feed(content, source_meta):
                     d_date = dt_pacific.strftime("%A, %b %d, %Y")
                     d_time = dt_pacific.strftime("%I:%M %p").lstrip("0")
                 else:
-                    # If this is a dedicated event calendar feed, keep it active for the upcoming weekend
                     if "/event" in source_meta.get("Feed", "").lower() or "calendar" in source_meta.get("Feed", "").lower():
                         dt_pacific = now_pacific + datetime.timedelta(days=2)
                         d_date = dt_pacific.strftime("%A, %b %d, %Y")
@@ -487,10 +563,8 @@ def parse_rss_feed(content, source_meta):
         tags_raw = source_meta.get("Tags", "")
         tags_array = [t.strip().lower() for t in tags_raw.split(",") if t.strip()]
 
-        # Extract venue location if present in BiblioCommons or Dublin Core
         location_str = entry.get("bc_location") or entry.get("location") or source_meta.get("SourceName", "")
 
-        # Auto-tag family activities based on keywords
         if any(w in (title + " " + excerpt).lower() for w in ["kids", "family", "children", "story time", "all ages", "preschool", "toddler"]):
             tags_array.extend(["family-friendly", "all-ages"])
 
@@ -602,7 +676,7 @@ def main():
             elif "LIVEMUSICPROJECT" in feed_url or "api/v1/events" in feed_url:
                 events = parse_live_music_project_api(res.json(), src)
 
-            # Protocol 6: Standard RSS / Atom Feeds
+            # Protocol 6: Standard RSS / Atom / BiblioCommons Feeds
             else:
                 events = parse_rss_feed(res.content, src)
 
@@ -617,7 +691,7 @@ def main():
         except Exception as e:
             print(f"{log_prefix} ⚠️ Parse notice: {e}")
 
-    # Step 1: Filter events within 90-day window
+    # Filter within 90-day window
     valid_window_events = []
     for ev in all_harvested_events:
         dt_obj = ev.get("_dt")
@@ -625,7 +699,7 @@ def main():
             continue
         valid_window_events.append(ev)
 
-    # Step 2: Production Deduplication (Theater/Ballet/Multi-night runs)
+    # Multi-date recurring performance deduplication
     production_registry = {}
     deduplicated_events = []
 
@@ -646,7 +720,7 @@ def main():
             if "multi-day-run" not in first_ev["tags"]:
                 first_ev["tags"].append("multi-day-run")
 
-    # Step 3: Sort chronologically ascending
+    # Chronological ascending sort
     deduplicated_events.sort(key=lambda x: x.get("_dt", now_pacific))
 
     for ev in deduplicated_events:
