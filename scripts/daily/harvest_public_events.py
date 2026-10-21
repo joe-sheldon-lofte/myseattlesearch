@@ -30,10 +30,10 @@ OUTPUT_PATH = os.path.join(DATA_DIR, "public_events_feed.json")
 
 PACIFIC_TZ = ZoneInfo("America/Los_Angeles")
 
-# Browser-mimicking headers to prevent municipal firewall blocks
+# Universal wildcard Accept header avoids HTTP 406 (Not Acceptable) rejections on feeds like Do206
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml,application/json,text/calendar;q=0.9,*/*;q=0.8",
+    "Accept": "*/*",
     "Accept-Language": "en-US,en;q=0.9"
 }
 
@@ -56,7 +56,7 @@ TICKETMASTER_JUNK_REGEX = re.compile(
     re.IGNORECASE
 )
 
-# Maximum music events allowed across the entire Ticketmaster feed to prevent bar gig bloat
+# Maximum music events allowed across the Ticketmaster feed to prevent small bar gig saturation
 MAX_TICKETMASTER_MUSIC = 12
 
 def clean_html(text):
@@ -148,7 +148,8 @@ def parse_ics_calendar(content, source_meta):
             "cost": "Free",
             "tags": [t.strip().lower() for t in source_meta.get("Tags", "").split(",") if t.strip()],
             "categories": [source_meta.get("SourceName", "")],
-            "_dt": dt_pacific
+            "_dt": dt_pacific,
+            "_venue": location or source_meta.get("SourceName", "")
         })
     return events
 
@@ -194,14 +195,27 @@ def parse_trumba_json(data, source_meta):
             "cost": "Free / Public",
             "tags": [t.strip().lower() for t in source_meta.get("Tags", "").split(",") if t.strip()],
             "categories": item.get("categoryArray", [source_meta.get("SourceName", "")]),
-            "_dt": dt_pacific
+            "_dt": dt_pacific,
+            "_venue": location or source_meta.get("SourceName", "")
         })
     return events
 
 def parse_squarespace_json(data, source_meta):
     events = []
     limit = get_feed_limit(source_meta)
-    items = data.get("upcoming", []) or data.get("items", []) or []
+    
+    # Handles Squarespace collection models (/cal?format=json or /events?format=json)
+    if isinstance(data, list):
+        items = data
+    elif isinstance(data, dict):
+        items = (
+            data.get("upcoming", []) or 
+            data.get("items", []) or 
+            (data.get("collection", {}).get("items", []) if isinstance(data.get("collection"), dict) else []) or 
+            []
+        )
+    else:
+        items = []
     
     for item in items:
         if limit is not None and len(events) >= limit:
@@ -212,7 +226,13 @@ def parse_squarespace_json(data, source_meta):
             continue
 
         url_path = item.get("fullUrl", "")
-        link = f"https://www.liveineverett.com{url_path}" if url_path.startswith("/") else url_path
+        if url_path.startswith("/"):
+            link = f"https://www.liveineverett.com{url_path}"
+        elif url_path:
+            link = url_path
+        else:
+            link = source_meta.get("Feed", "")
+
         excerpt = clean_html(item.get("excerpt") or item.get("body") or "")[:220]
 
         start_ts = item.get("startDate")
@@ -236,7 +256,16 @@ def parse_squarespace_json(data, source_meta):
             _, _, end_d_time = normalize_date(end_ts)
 
         loc_data = item.get("location", {})
-        loc_str = loc_data.get("addressTitle", "") or loc_data.get("addressLine1", "")
+        loc_str = ""
+        if isinstance(loc_data, dict):
+            loc_str = loc_data.get("addressTitle", "") or loc_data.get("addressLine1", "")
+        elif isinstance(loc_data, str):
+            loc_str = loc_data
+
+        tags_raw = source_meta.get("Tags", "")
+        tags_array = [t.strip().lower() for t in tags_raw.split(",") if t.strip()]
+        if isinstance(item.get("tags"), list):
+            tags_array.extend([slugify(t) for t in item["tags"]])
 
         events.append({
             "source_id": source_meta.get("SourceID", ""),
@@ -248,13 +277,14 @@ def parse_squarespace_json(data, source_meta):
             "end_date": dt_pacific.isoformat(),
             "display_date": d_date,
             "display_time": f"{d_time} – {end_d_time}" if end_d_time and end_d_time != d_time else d_time,
-            "location": loc_str,
+            "location": loc_str if loc_str else "Everett, WA",
             "city": "everett",
             "is_all_day": False,
             "cost": "Community",
-            "tags": [t.strip().lower() for t in source_meta.get("Tags", "").split(",") if t.strip()] + item.get("tags", []),
+            "tags": list(set(tags_array)),
             "categories": item.get("categories", ["Local Events"]),
-            "_dt": dt_pacific
+            "_dt": dt_pacific,
+            "_venue": loc_str or "Everett"
         })
     return events
 
@@ -298,7 +328,8 @@ def parse_live_music_project_api(data, source_meta):
             "cost": item.get("price") or "Ticketed",
             "tags": ["music", "concerts", "live-music", "county-king"],
             "categories": item.get("genres", ["Classical", "Live Music"]),
-            "_dt": dt_pacific
+            "_dt": dt_pacific,
+            "_venue": loc_str
         })
     return events
 
@@ -310,7 +341,6 @@ def harvest_ticketmaster_events(api_key, source_meta):
     events = []
     limit = get_feed_limit(source_meta) or 60
 
-    # Query focused cultural verticals (excludes sports and film)
     endpoint = "https://app.ticketmaster.com/discovery/v2/events.json"
     params = {
         "apikey": api_key,
@@ -338,7 +368,6 @@ def harvest_ticketmaster_events(api_key, source_meta):
                 if not title or not link:
                     continue
 
-                # Sanitation regex: drop parking, passes, and VIP add-ons
                 if TICKETMASTER_JUNK_REGEX.search(title):
                     continue
 
@@ -347,11 +376,9 @@ def harvest_ticketmaster_events(api_key, source_meta):
                 genre = classifications[0].get("genre", {}).get("name", "") if classifications else ""
                 is_family_bool = bool(classifications[0].get("family", False)) if classifications else False
 
-                # Hard filter: exclude Sports and Film listings
                 if segment in ["Sports", "Film"]:
                     continue
 
-                # Throttle Music listings to prevent small bar gig saturation
                 if segment == "Music":
                     if music_count >= MAX_TICKETMASTER_MUSIC:
                         continue
@@ -417,32 +444,36 @@ def parse_rss_feed(content, source_meta):
         if not title or not link:
             continue
 
-        # Check for dedicated event calendar XML namespaces (e.g. Modern Tribe Events Calendar)
+        # Check all event date namespaces: BiblioCommons, Dublin Core, and Modern Tribe
         raw_event_date = (
+            entry.get("bc_start_date") or 
+            entry.get("bc_event_date") or 
             entry.get("ev_startdate") or 
             entry.get("event_start_date") or 
             entry.get("start_date") or 
-            entry.get("x-trumba_dtstart")
+            entry.get("x-trumba_dtstart") or 
+            entry.get("dc_date") or 
+            entry.get("date")
         )
 
         if raw_event_date:
             dt_pacific, d_date, d_time = normalize_date(raw_event_date)
         else:
-            # Fallback: Parse publication date if present
+            # Fallback to publication/update timestamp
             raw_pub_date = entry.get("published") or entry.get("updated")
             dt_pacific, d_date, d_time = normalize_date(raw_pub_date)
             
-            # If the post was published in the past, search title/excerpt for an upcoming date
+            # If publication date was in the past, parse title/summary for upcoming date strings
             if dt_pacific and dt_pacific < now_pacific:
-                text_to_search = f"{title} {entry.get('summary', '')}"
+                text_to_search = f"{title} {entry.get('summary', '')} {entry.get('description', '')}"
                 found_dt = extract_date_from_text(text_to_search, now_pacific)
                 if found_dt:
                     dt_pacific = found_dt
                     d_date = dt_pacific.strftime("%A, %b %d, %Y")
                     d_time = dt_pacific.strftime("%I:%M %p").lstrip("0")
                 else:
-                    # If this is a dedicated upcoming events feed, keep it active for the upcoming weekend
-                    if "/event" in source_meta.get("Feed", "").lower():
+                    # If this is a dedicated event calendar feed, keep it active for the upcoming weekend
+                    if "/event" in source_meta.get("Feed", "").lower() or "calendar" in source_meta.get("Feed", "").lower():
                         dt_pacific = now_pacific + datetime.timedelta(days=2)
                         d_date = dt_pacific.strftime("%A, %b %d, %Y")
                         d_time = "Community Event"
@@ -456,8 +487,11 @@ def parse_rss_feed(content, source_meta):
         tags_raw = source_meta.get("Tags", "")
         tags_array = [t.strip().lower() for t in tags_raw.split(",") if t.strip()]
 
+        # Extract venue location if present in BiblioCommons or Dublin Core
+        location_str = entry.get("bc_location") or entry.get("location") or source_meta.get("SourceName", "")
+
         # Auto-tag family activities based on keywords
-        if any(w in (title + " " + excerpt).lower() for w in ["kids", "family", "children", "story time", "all ages", "preschool"]):
+        if any(w in (title + " " + excerpt).lower() for w in ["kids", "family", "children", "story time", "all ages", "preschool", "toddler"]):
             tags_array.extend(["family-friendly", "all-ages"])
 
         events.append({
@@ -470,19 +504,18 @@ def parse_rss_feed(content, source_meta):
             "end_date": dt_pacific.isoformat(),
             "display_date": d_date,
             "display_time": d_time,
-            "location": source_meta.get("SourceName", ""),
+            "location": location_str,
             "city": city_tag,
             "is_all_day": False,
             "cost": "Public / Community",
             "tags": list(set(tags_array)),
             "categories": [source_meta.get("SourceName", "")],
             "_dt": dt_pacific,
-            "_venue": source_meta.get("SourceName", "")
+            "_venue": location_str
         })
     return events
 
 def extract_date_from_text(text, fallback_now):
-    """Detects upcoming month and day patterns in event text (e.g., 'Oct. 24', 'November 5')."""
     match = re.search(r'\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+([0-9]{1,2})\b', text, re.IGNORECASE)
     if match:
         month_str, day_str = match.groups()
@@ -520,7 +553,6 @@ def main():
 
     all_harvested_events = []
     now_pacific = datetime.datetime.now(PACIFIC_TZ)
-    # Forward horizon: from right now out to 90 days
     start_horizon = now_pacific - datetime.timedelta(hours=2)
     end_horizon = now_pacific + datetime.timedelta(days=90)
 
@@ -563,7 +595,7 @@ def main():
                 events = parse_trumba_json(res.json(), src)
 
             # Protocol 4: Live in Everett Squarespace JSON
-            elif "LIVE IN EVERETT" in source_name.upper() or "?format=json" in feed_url:
+            elif "LIVE IN EVERETT" in source_name.upper() or "liveineverett.com" in feed_url:
                 events = parse_squarespace_json(res.json(), src)
 
             # Protocol 5: Live Music Project REST API
@@ -585,7 +617,7 @@ def main():
         except Exception as e:
             print(f"{log_prefix} ⚠️ Parse notice: {e}")
 
-    # Step 1: Filter events within the 90-day forward window
+    # Step 1: Filter events within 90-day window
     valid_window_events = []
     for ev in all_harvested_events:
         dt_obj = ev.get("_dt")
@@ -593,13 +625,11 @@ def main():
             continue
         valid_window_events.append(ev)
 
-    # Step 2: Production Deduplication (The Ballet/Theater Problem)
-    # Collapse multi-date recurring performances at the same venue into 1 listing
+    # Step 2: Production Deduplication (Theater/Ballet/Multi-night runs)
     production_registry = {}
     deduplicated_events = []
 
     for ev in valid_window_events:
-        # Generate production signature from cleaned title and venue
         base_title = re.sub(r'(\s*-\s*(matinee|evening|opening night|tour|live|tickets).*)', '', ev.get("title", ""), flags=re.I)
         prod_key = f"{slugify(base_title)}_{slugify(ev.get('_venue', ''))}"
 
@@ -619,7 +649,6 @@ def main():
     # Step 3: Sort chronologically ascending
     deduplicated_events.sort(key=lambda x: x.get("_dt", now_pacific))
 
-    # Clean internal sort helper keys
     for ev in deduplicated_events:
         ev.pop("_dt", None)
         ev.pop("_venue", None)
