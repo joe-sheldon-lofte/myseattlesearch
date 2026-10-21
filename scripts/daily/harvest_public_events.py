@@ -30,9 +30,11 @@ OUTPUT_PATH = os.path.join(DATA_DIR, "public_events_feed.json")
 
 PACIFIC_TZ = ZoneInfo("America/Los_Angeles")
 
+# Browser-mimicking headers to prevent municipal firewall blocks
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Accept": "application/rss+xml, application/xml, application/json, text/calendar, text/xml, */*"
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml,application/json,text/calendar;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9"
 }
 
 TZINFOS = {
@@ -48,17 +50,28 @@ TZINFOS = {
     "GMT": ZoneInfo("UTC")
 }
 
+# Regex to drop ticket add-ons, parking passes, and VIP club upgrades
+TICKETMASTER_JUNK_REGEX = re.compile(
+    r'\b(parking|fast lane|club pass|vip access|amplified access|upgrade|not an event ticket|lounge access)\b',
+    re.IGNORECASE
+)
+
+# Maximum music events allowed across the entire Ticketmaster feed to prevent bar gig bloat
+MAX_TICKETMASTER_MUSIC = 12
+
 def clean_html(text):
     if not text:
         return ""
     cleaned = re.sub(r'<[^>]+>', '', str(text))
     return " ".join(cleaned.split()).strip()
 
+def slugify(text):
+    if not text:
+        return ""
+    text = str(text).lower().strip()
+    return re.sub(r'[^a-z0-9]+', '-', text).strip('-')
+
 def get_feed_limit(source_meta):
-    """
-    Extracts numerical limit from the spreadsheet row.
-    Returns an int if a valid limit exists, or None to pull all available items.
-    """
     raw_limit = source_meta.get("Limit") or source_meta.get("Max Events") or ""
     try:
         val = str(raw_limit).strip()
@@ -162,7 +175,6 @@ def parse_trumba_json(data, source_meta):
             continue
 
         _, _, end_d_time = normalize_date(raw_end)
-
         location = item.get("location") or ""
         city = extract_city_tag(source_meta.get("Tags", ""))
 
@@ -296,18 +308,17 @@ def harvest_ticketmaster_events(api_key, source_meta):
         return []
 
     events = []
-    limit = get_feed_limit(source_meta)
-    
-    # Respect custom limit if defined; otherwise request max batch size
-    batch_size = str(min(limit, 200)) if limit is not None else "100"
+    limit = get_feed_limit(source_meta) or 60
 
+    # Query focused cultural verticals (excludes sports and film)
     endpoint = "https://app.ticketmaster.com/discovery/v2/events.json"
     params = {
         "apikey": api_key,
-        "latlong": "47.6062,-122.3321",  # Central Seattle coordinates
-        "radius": "45",
+        "latlong": "47.7000,-122.2500",  # Centroid: North Lake Washington / Kirkland
+        "radius": "35",
         "unit": "miles",
-        "size": batch_size,
+        "classificationName": "Arts & Theatre,Fairs & Festivals,Family,Music",
+        "size": "100",
         "sort": "date,asc"
     }
 
@@ -316,14 +327,35 @@ def harvest_ticketmaster_events(api_key, source_meta):
         if res.status_code == 200:
             payload = res.json()
             items = payload.get("_embedded", {}).get("events", [])
+            music_count = 0
+
             for item in items:
-                if limit is not None and len(events) >= limit:
+                if len(events) >= limit:
                     break
 
                 title = item.get("name", "").strip()
                 link = item.get("url", "")
                 if not title or not link:
                     continue
+
+                # Sanitation regex: drop parking, passes, and VIP add-ons
+                if TICKETMASTER_JUNK_REGEX.search(title):
+                    continue
+
+                classifications = item.get("classifications", [])
+                segment = classifications[0].get("segment", {}).get("name", "") if classifications else ""
+                genre = classifications[0].get("genre", {}).get("name", "") if classifications else ""
+                is_family_bool = bool(classifications[0].get("family", False)) if classifications else False
+
+                # Hard filter: exclude Sports and Film listings
+                if segment in ["Sports", "Film"]:
+                    continue
+
+                # Throttle Music listings to prevent small bar gig saturation
+                if segment == "Music":
+                    if music_count >= MAX_TICKETMASTER_MUSIC:
+                        continue
+                    music_count += 1
 
                 dates_data = item.get("dates", {})
                 start_data = dates_data.get("start", {})
@@ -337,16 +369,20 @@ def harvest_ticketmaster_events(api_key, source_meta):
                 loc_name = venue.get("name", "")
                 city_name = venue.get("city", {}).get("name", "Seattle").lower()
 
-                classifications = item.get("classifications", [])
-                genre = classifications[0].get("genre", {}).get("name", "") if classifications else ""
-                segment = classifications[0].get("segment", {}).get("name", "Major Events") if classifications else "Major Events"
+                tags = ["entertainment", "major-events", "tickets"]
+                if segment:
+                    tags.append(slugify(segment))
+                if genre:
+                    tags.append(slugify(genre))
+                if is_family_bool or segment.lower() == "family":
+                    tags.extend(["family-friendly", "all-ages"])
 
                 events.append({
                     "source_id": source_meta.get("SourceID", "pe-10"),
                     "source_name": "Ticketmaster Discovery",
                     "title": title,
                     "link": link,
-                    "excerpt": f"{segment} - {genre} live event at {loc_name}.",
+                    "excerpt": f"{segment} — {genre} live at {loc_name}." if genre else f"{segment} live at {loc_name}.",
                     "start_date": dt_pacific.isoformat(),
                     "end_date": dt_pacific.isoformat(),
                     "display_date": d_date,
@@ -355,9 +391,10 @@ def harvest_ticketmaster_events(api_key, source_meta):
                     "city": city_name,
                     "is_all_day": False,
                     "cost": "Ticketed",
-                    "tags": ["entertainment", "major-events", "tickets", segment.lower()],
+                    "tags": list(set(tags)),
                     "categories": [segment, genre] if genre else [segment],
-                    "_dt": dt_pacific
+                    "_dt": dt_pacific,
+                    "_venue": loc_name
                 })
         else:
             print(f"   ⚠️ Ticketmaster API notice: HTTP {res.status_code}")
@@ -372,7 +409,6 @@ def parse_rss_feed(content, source_meta):
     feed = feedparser.parse(content)
     now_pacific = datetime.datetime.now(PACIFIC_TZ)
     
-    # Process up to limit or examine all entries in the feed
     entries = feed.entries if limit is None else feed.entries[:limit]
     
     for entry in entries:
@@ -381,20 +417,48 @@ def parse_rss_feed(content, source_meta):
         if not title or not link:
             continue
 
-        raw_date = entry.get("published") or entry.get("updated")
-        dt_pacific, d_date, d_time = normalize_date(raw_date)
+        # Check for dedicated event calendar XML namespaces (e.g. Modern Tribe Events Calendar)
+        raw_event_date = (
+            entry.get("ev_startdate") or 
+            entry.get("event_start_date") or 
+            entry.get("start_date") or 
+            entry.get("x-trumba_dtstart")
+        )
 
-        # Fallback to tomorrow if the RSS feed lacks a formal publication date
+        if raw_event_date:
+            dt_pacific, d_date, d_time = normalize_date(raw_event_date)
+        else:
+            # Fallback: Parse publication date if present
+            raw_pub_date = entry.get("published") or entry.get("updated")
+            dt_pacific, d_date, d_time = normalize_date(raw_pub_date)
+            
+            # If the post was published in the past, search title/excerpt for an upcoming date
+            if dt_pacific and dt_pacific < now_pacific:
+                text_to_search = f"{title} {entry.get('summary', '')}"
+                found_dt = extract_date_from_text(text_to_search, now_pacific)
+                if found_dt:
+                    dt_pacific = found_dt
+                    d_date = dt_pacific.strftime("%A, %b %d, %Y")
+                    d_time = dt_pacific.strftime("%I:%M %p").lstrip("0")
+                else:
+                    # If this is a dedicated upcoming events feed, keep it active for the upcoming weekend
+                    if "/event" in source_meta.get("Feed", "").lower():
+                        dt_pacific = now_pacific + datetime.timedelta(days=2)
+                        d_date = dt_pacific.strftime("%A, %b %d, %Y")
+                        d_time = "Community Event"
+
         if not dt_pacific:
-            dt_pacific = now_pacific + datetime.timedelta(days=1)
-            d_date = dt_pacific.strftime("%A, %b %d, %Y")
-            d_time = "Event Scheduled"
+            continue
 
         excerpt = clean_html(entry.get("summary") or entry.get("description") or "")[:220]
         city_tag = extract_city_tag(source_meta.get("Tags", ""))
 
         tags_raw = source_meta.get("Tags", "")
         tags_array = [t.strip().lower() for t in tags_raw.split(",") if t.strip()]
+
+        # Auto-tag family activities based on keywords
+        if any(w in (title + " " + excerpt).lower() for w in ["kids", "family", "children", "story time", "all ages", "preschool"]):
+            tags_array.extend(["family-friendly", "all-ages"])
 
         events.append({
             "source_id": source_meta.get("SourceID", ""),
@@ -410,11 +474,26 @@ def parse_rss_feed(content, source_meta):
             "city": city_tag,
             "is_all_day": False,
             "cost": "Public / Community",
-            "tags": tags_array,
+            "tags": list(set(tags_array)),
             "categories": [source_meta.get("SourceName", "")],
-            "_dt": dt_pacific
+            "_dt": dt_pacific,
+            "_venue": source_meta.get("SourceName", "")
         })
     return events
+
+def extract_date_from_text(text, fallback_now):
+    """Detects upcoming month and day patterns in event text (e.g., 'Oct. 24', 'November 5')."""
+    match = re.search(r'\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+([0-9]{1,2})\b', text, re.IGNORECASE)
+    if match:
+        month_str, day_str = match.groups()
+        try:
+            date_candidate = parser.parse(f"{month_str} {day_str}, {fallback_now.year}", tzinfos=TZINFOS)
+            date_candidate = date_candidate.replace(tzinfo=PACIFIC_TZ)
+            if date_candidate >= fallback_now - datetime.timedelta(days=1):
+                return date_candidate
+        except Exception:
+            pass
+    return None
 
 def extract_city_tag(tags_string):
     if not tags_string:
@@ -426,9 +505,12 @@ def extract_city_tag(tags_string):
     return ""
 
 def main():
-    print("📅 Starting Regional Public Events Harvester...")
+    print("==================================================")
+    print("      MYSEATTLESEARCH PUBLIC EVENTS HARVESTER     ")
+    print("==================================================\n")
+
     if not os.path.exists(PUBLIC_EVENTS_CONFIG):
-        print(f"ℹ️ {PUBLIC_EVENTS_CONFIG} missing. Skipping public events harvesting.")
+        print(f"❌ Error: {PUBLIC_EVENTS_CONFIG} missing. Aborting sequence.")
         return
 
     with open(PUBLIC_EVENTS_CONFIG, "r", encoding="utf-8") as f:
@@ -438,88 +520,120 @@ def main():
 
     all_harvested_events = []
     now_pacific = datetime.datetime.now(PACIFIC_TZ)
-    # Forward-looking window: Keep events from today up to 90 days out
-    start_horizon = now_pacific - datetime.timedelta(hours=12)
+    # Forward horizon: from right now out to 90 days
+    start_horizon = now_pacific - datetime.timedelta(hours=2)
     end_horizon = now_pacific + datetime.timedelta(days=90)
 
-    for src in sources:
-        source_id = src.get("SourceID", "")
+    print(f"🔍 Processing {len(sources)} public event sources across King & Snohomish Counties...\n")
+
+    for idx, src in enumerate(sources, 1):
+        source_id = src.get("SourceID", f"pe-{idx}")
         source_name = src.get("SourceName", "Unknown Source")
         feed_url = src.get("Feed", "").strip()
         feed_type = src.get("FeedType", "RSS").upper()
+        limit = get_feed_limit(src)
+
+        limit_desc = f"(Limit: {limit})" if limit else "(All available)"
+        log_prefix = f"[{idx:02d}/{len(sources)}] {source_id.ljust(6)} {source_name[:28].ljust(28)}"
 
         if not feed_url and "TICKETMASTER" not in feed_type:
+            print(f"{log_prefix} ⚠️ Skipped: Missing feed URL")
             continue
 
         try:
             # Protocol 1: Ticketmaster Discovery API
             if "TICKETMASTER" in feed_type or "TICKETMASTER" in source_name.upper():
                 events = harvest_ticketmaster_events(tm_key, src)
+                print(f"{log_prefix} ✓ {len(events)} events harvested {limit_desc}")
                 all_harvested_events.extend(events)
                 continue
 
             res = requests.get(feed_url, headers=HEADERS, timeout=8, verify=False)
+            
             if res.status_code != 200:
+                print(f"{log_prefix} ❌ HTTP {res.status_code} ({res.reason})")
                 continue
 
             # Protocol 2: iCalendar / ICS
             if "ICAL" in feed_type or feed_url.endswith(".ics") or "iCalendar" in feed_url:
                 events = parse_ics_calendar(res.text, src)
-                all_harvested_events.extend(events)
 
             # Protocol 3: Trumba JSON
             elif "TRUMBA" in source_name.upper() or "trumba.com" in feed_url:
                 events = parse_trumba_json(res.json(), src)
-                all_harvested_events.extend(events)
 
             # Protocol 4: Live in Everett Squarespace JSON
             elif "LIVE IN EVERETT" in source_name.upper() or "?format=json" in feed_url:
                 events = parse_squarespace_json(res.json(), src)
-                all_harvested_events.extend(events)
 
             # Protocol 5: Live Music Project REST API
             elif "LIVEMUSICPROJECT" in feed_url or "api/v1/events" in feed_url:
                 events = parse_live_music_project_api(res.json(), src)
-                all_harvested_events.extend(events)
 
-            # Protocol 6: Default Standard RSS / Atom Feeds
+            # Protocol 6: Standard RSS / Atom Feeds
             else:
                 events = parse_rss_feed(res.content, src)
-                all_harvested_events.extend(events)
 
+            status_icon = "✓" if len(events) > 0 else "ℹ️"
+            print(f"{log_prefix} {status_icon} {len(events)} events harvested {limit_desc}")
+            all_harvested_events.extend(events)
+
+        except requests.exceptions.Timeout:
+            print(f"{log_prefix} ⏱️ Connection timed out (>8s)")
+        except requests.exceptions.SSLError:
+            print(f"{log_prefix} 🔒 SSL handshake failed")
         except Exception as e:
-            print(f"   ⚠️ Event feed notice on '{source_name}' ({source_id}): {e}")
+            print(f"{log_prefix} ⚠️ Parse notice: {e}")
 
-    # Deduplicate by unique title and date
-    unique_events = {}
+    # Step 1: Filter events within the 90-day forward window
+    valid_window_events = []
     for ev in all_harvested_events:
         dt_obj = ev.get("_dt")
         if dt_obj and (dt_obj < start_horizon or dt_obj > end_horizon):
             continue
+        valid_window_events.append(ev)
 
-        dedup_key = f"{slugify(ev.get('title', ''))}_{ev.get('display_date', '')}"
-        if dedup_key not in unique_events:
-            unique_events[dedup_key] = ev
+    # Step 2: Production Deduplication (The Ballet/Theater Problem)
+    # Collapse multi-date recurring performances at the same venue into 1 listing
+    production_registry = {}
+    deduplicated_events = []
 
-    cleaned_list = list(unique_events.values())
-    
-    # Sort chronologically ascending by start date
-    cleaned_list.sort(key=lambda x: x.get("_dt", now_pacific))
+    for ev in valid_window_events:
+        # Generate production signature from cleaned title and venue
+        base_title = re.sub(r'(\s*-\s*(matinee|evening|opening night|tour|live|tickets).*)', '', ev.get("title", ""), flags=re.I)
+        prod_key = f"{slugify(base_title)}_{slugify(ev.get('_venue', ''))}"
 
-    # Clean internal datetime object
-    for ev in cleaned_list:
+        if prod_key not in production_registry:
+            production_registry[prod_key] = {
+                "count": 1,
+                "first_event": ev
+            }
+            deduplicated_events.append(ev)
+        else:
+            production_registry[prod_key]["count"] += 1
+            first_ev = production_registry[prod_key]["first_event"]
+            first_ev["multi_day_run"] = True
+            if "multi-day-run" not in first_ev["tags"]:
+                first_ev["tags"].append("multi-day-run")
+
+    # Step 3: Sort chronologically ascending
+    deduplicated_events.sort(key=lambda x: x.get("_dt", now_pacific))
+
+    # Clean internal sort helper keys
+    for ev in deduplicated_events:
         ev.pop("_dt", None)
+        ev.pop("_venue", None)
 
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
-        json.dump(cleaned_list, f, indent=2, ensure_ascii=False)
+        json.dump(deduplicated_events, f, indent=2, ensure_ascii=False)
 
-    print(f"✅ Successfully compiled {len(cleaned_list)} public events across {len(sources)} sources into {OUTPUT_PATH}")
-
-def slugify(text):
-    if not text:
-        return ""
-    text = str(text).lower().strip()
-    return re.sub(r'[^a-z0-9]+', '-', text).strip('-')
+    print("\n==================================================")
+    print("PUBLIC EVENTS HARVEST COMPLETE")
+    print(f"  • Total Feeds Scanned:          {len(sources)}")
+    print(f"  • Raw Events Extracted:         {len(all_harvested_events)}")
+    print(f"  • Final Deduplicated Pipeline:  {len(deduplicated_events)}")
+    print(f"  • Feed JSON Saved:              {OUTPUT_PATH}")
+    print("==================================================")
 
 if __name__ == "__main__":
     main()
