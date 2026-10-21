@@ -13,7 +13,7 @@ SENTRY_DSN = os.getenv("SENTRY_DSN")
 if SENTRY_DSN:
     sentry_sdk.init(
         dsn=SENTRY_DSN,
-        traces_sample_rate=0.0,  # Pure error monitoring (saves quota)
+        traces_sample_rate=0.0,
         environment="production"
     )
     print("🛡 Sentry Error Monitoring Initialized.")
@@ -70,8 +70,8 @@ def harvest_public_events(): run_subscript("harvest_public_events.py")
     monitor_slug="daily-harvest-pipeline",
     monitor_config={
         "schedule": {"type": "crontab", "value": "0 6 * * *"},
-        "checkin_margin": 180,  # Allows up to 3 hours delay for GitHub queue lag
-        "max_runtime": 120,     # Allows up to 2 hours runtime
+        "checkin_margin": 180,
+        "max_runtime": 120,
         "timezone": "America/Los_Angeles"
     }
 )
