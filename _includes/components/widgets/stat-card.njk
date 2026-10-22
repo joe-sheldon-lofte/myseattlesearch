@@ -1,0 +1,21 @@
+<!-- File: _includes/components/widgets/stat-card.njk -->
+<div class="stat-card" style="background: var(--premier-charcoal, #121826); border-radius: 16px; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; transition: transform 0.2s ease;">
+  
+  {# The Primary Value (e.g., "$1.15M", "Yes", "24") #}
+  <span class="stat-value" style="font-size: 2.25rem; font-weight: 700; color: var(--card-accent-color, #38bdf8); line-height: 1.1; margin-bottom: 0.25rem;">
+    {{ value | default('--') }}
+  </span>
+  
+  {# The Secondary Label (e.g., "Median Sale Price", "FHA Approved") #}
+  <span class="stat-label" style="font-size: 0.875rem; color: var(--premier-beige, #cbd5e1); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">
+    {{ label | default('Metric') }}
+  </span>
+
+  {# Optional Third Line Context (e.g., "+2.4% this month") #}
+  {% if context_note %}
+  <span class="stat-context" style="font-size: 0.75rem; color: #10b981; margin-top: 0.5rem; font-weight: 600;">
+    {{ context_note }}
+  </span>
+  {% endif %}
+
+</div>
