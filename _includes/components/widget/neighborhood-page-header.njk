@@ -1,39 +1,45 @@
 <!-- File: _includes/components/widget/neighborhood-page-header.njk -->
-{% set city = neighborhood_city_name | default("Edmonds") %}
-{% set county = neighborhood_county_name | default("snohomish") %}
-{% set hero_pool = neighborhood_hero_images | default([
-  "https://assets.myseattlesearch.com/neighborhood/hero-pools/" + county + "/edmonds-waterfront.webp",
-  "https://assets.myseattlesearch.com/neighborhood/hero-pools/" + county + "/edmonds-downtown.webp",
-  "https://assets.myseattlesearch.com/neighborhood/hero-pools/" + county + "/edmonds-ferry.webp"
-]) %}
+{% set city_name = neighborhood_city_name | default(city.name if city and city.name else (city.City if city and city.City else "Edmonds")) %}
 
-<header class="neighborhood-hero-header" style="position: relative; width: 100%; min-height: 380px; overflow: hidden; border-radius: var(--border-radius-squircle); margin-bottom: 2.5rem; background: var(--color-surface-gray); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+{# Pulls 3 hero image URLs directly from the city data columns (with fallbacks if viewing in sandbox) #}
+{% set hero_img_1 = city['Hero Image 1'] or city['Hero 1'] or city.HeroImage1 or city.hero_image_1 or "https://assets.myseattlesearch.com/neighborhood/hero-pools/snohomish/2.webp" %}
+{% set hero_img_2 = city['Hero Image 2'] or city['Hero 2'] or city.HeroImage2 or city.hero_image_2 or "https://assets.myseattlesearch.com/neighborhood/hero-pools/snohomish/4.webp" %}
+{% set hero_img_3 = city['Hero Image 3'] or city['Hero 3'] or city.HeroImage3 or city.hero_image_3 or "https://assets.myseattlesearch.com/neighborhood/hero-pools/snohomish/6.webp" %}
+
+<header class="neighborhood-hero-header" style="position: relative; width: 100%; height: 380px; overflow: hidden; border-radius: var(--border-radius-squircle); margin-bottom: 2.5rem; background: var(--color-surface-gray); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
   
-  {# Background: Continuous Horizontal Scrolling Image Strip from Cloudflare R2 #}
-  <div class="hero-scroll-track" style="position: absolute; inset: 0; display: flex; width: max-content; overflow: hidden; pointer-events: none;" aria-hidden="true">
-    <div style="display: flex; gap: 0; min-width: 100%; animation: scrollHorizontal 45s linear infinite;">
-      {% for img in hero_pool %}
-        <div style="width: 50vw; min-width: 380px; height: 100%; flex-shrink: 0;">
-          <img src="{{ img }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover;">
-        </div>
-      {% endfor %}
-      {% for img in hero_pool %}
-        <div style="width: 50vw; min-width: 380px; height: 100%; flex-shrink: 0;">
-          <img src="{{ img }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover;">
-        </div>
-      {% endfor %}
+  {# Symmetrical 3-Image Wall: Center image locked at 50% horizontal center, flanked by left and right images #}
+  <div class="hero-image-wall" 
+       style="position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); display: flex; height: 100%; width: max-content; pointer-events: none;" 
+       aria-hidden="true">
+    
+    {# Left Image: 16:9 aspect ratio, partially clipped by container left edge #}
+    <div style="height: 100%; aspect-ratio: 16 / 9; flex: 0 0 auto; overflow: hidden;">
+      <img src="{{ hero_img_1 }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+    </div>
+    
+    {# Center Image: 16:9 aspect ratio, 100% visible and centered #}
+    <div style="height: 100%; aspect-ratio: 16 / 9; flex: 0 0 auto; overflow: hidden;">
+      <img src="{{ hero_img_2 }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+    </div>
+    
+    {# Right Image: 16:9 aspect ratio, partially clipped by container right edge #}
+    <div style="height: 100%; aspect-ratio: 16 / 9; flex: 0 0 auto; overflow: hidden;">
+      <img src="{{ hero_img_3 }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover; display: block;">
     </div>
   </div>
 
-  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.45) 100%); pointer-events: none;" aria-hidden="true"></div>
+  {# Darkening Ambient Scrim Overlay #}
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.42) 100%); pointer-events: none;" aria-hidden="true"></div>
 
-  {# Foreground: Layered Frosted Box with Squircle Corners (PUGET SOUND COMMUNITY GUIDE removed per edit) #}
-  <div class="hero-frosted-box" style="position: relative; z-index: 10; padding: 2.25rem 3rem; background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.6); border-radius: var(--border-radius-squircle); text-align: center; box-shadow: 0 12px 36px rgba(0,0,0,0.16); max-width: 90%; margin: 1.5rem;">
-    <div style="font-family: var(--font-script, cursive, serif); font-size: clamp(1.4rem, 2.5vw, 2rem); color: var(--color-secondary-default); line-height: 1.1; margin-bottom: 0.25rem;">
+  {# Foreground: Layered Frosted Box with Squircle Corners #}
+  <div class="hero-frosted-box" style="position: relative; z-index: 10; padding: 2.25rem 3.25rem; background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.6); border-radius: var(--border-radius-squircle); text-align: center; box-shadow: 0 12px 36px rgba(0,0,0,0.16); max-width: 90%; margin: 1.5rem;">
+    <div style="font-family: var(--font-script, cursive, serif); font-size: clamp(1.4rem, 2.5vw, 2.1rem); color: var(--color-secondary-default); line-height: 1.1; margin-bottom: 0.25rem;">
       Welcome to the neighborhood
     </div>
     <h1 style="font-size: clamp(2.2rem, 5vw, 3.75rem); font-weight: 800; letter-spacing: -0.03em; color: var(--color-primary-default); margin: 0; line-height: 1.05;">
-      {{ city }}
+      {{ city_name }}
     </h1>
   </div>
+
 </header>

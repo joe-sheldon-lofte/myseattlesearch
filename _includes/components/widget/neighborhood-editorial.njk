@@ -1,21 +1,9 @@
 <!-- File: _includes/components/widget/neighborhood-editorial.njk -->
 {% set city = editorial_city_name | default("Edmonds") %}
 {% set headline = editorial_headline | default("Coastal Topography, Zoning Evolution, and Market Dynamics") %}
-{% set date_str = editorial_date | default("Updated October 2026") %}
-{% set author = editorial_author | default("Joe Sheldon") %}
 
 <article class="widget-card neighborhood-editorial-card" style="padding: 2.25rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.5rem; box-sizing: border-box;">
-  
-  {# Header Row #}
-  <header style="border-bottom: 1px solid var(--color-border-light); padding-bottom: 1rem; display: flex; flex-direction: column; gap: 0.35rem;">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        LOCAL PERSPECTIVE &amp; COMMUNITY CONTEXT
-      </span>
-      <span class="text-body-secondary" style="font-size: 0.75rem;">
-        {{ date_str }} • By {{ author }}
-      </span>
-    </div>
+
 
     <h2 class="text-widget-title" style="margin: 0.25rem 0 0 0; font-size: 1.5rem; line-height: 1.25; color: var(--color-primary-default);">
       {{ headline }}
@@ -40,24 +28,5 @@
       </p>
     {% endif %}
   </div>
-
-  {# Footer with Source Attribution & Formula Tooltip per Edit #}
-  <footer style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.85rem; font-size: 0.75rem; flex-wrap: wrap; gap: 0.75rem;" class="text-body-secondary">
-    <div>
-      Source: <strong style="color: var(--color-primary-default);">Deflocked</strong> &amp; Local Municipal Records
-    </div>
-
-    {# Algorithmic Formula Info Tooltip Button per Edit #}
-    <div style="position: relative; display: inline-flex; align-items: center; gap: 0.35rem;">
-      <span style="font-size: 0.75rem;">Empirical Density Model:</span>
-      <button type="button" 
-              class="btn-info-tooltip" 
-              aria-label="View surveillance algorithm formula"
-              onclick="alert('Algorithmic Surveillance Formula:\n24.16 * LN(pop_density + 1) + 5.82\n\nSource: Deflocked Municipal Audit');"
-              style="width: 20px; height: 20px; border-radius: 50%; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); color: #86868b; font-size: 0.7rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-        ℹ
-      </button>
-    </div>
-  </footer>
 
 </article>

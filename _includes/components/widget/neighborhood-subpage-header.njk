@@ -1,0 +1,49 @@
+<!-- File: _includes/components/widget/neighborhood-subpage-header.njk -->
+{% set city_name = neighborhood_city_name | default(city.name if city and city.name else (city.City if city and city.City else "Edmonds")) %}
+{% set subpage_name = neighborhood_subpage_title | default(subpage_heading if subpage_heading else "Real Estate & Housing Data") %}
+
+{# Pulls 3 hero image URLs directly from the city data columns (with fallbacks if viewing in sandbox) #}
+{% set hero_img_1 = city['Hero Image 1'] or city['Hero 1'] or city.HeroImage1 or city.hero_image_1 or "https://assets.myseattlesearch.com/neighborhood/hero-pools/snohomish/7.webp" %}
+{% set hero_img_2 = city['Hero Image 2'] or city['Hero 2'] or city.HeroImage2 or city.hero_image_2 or "https://assets.myseattlesearch.com/neighborhood/hero-pools/snohomish/9.webp" %}
+{% set hero_img_3 = city['Hero Image 3'] or city['Hero 3'] or city.HeroImage3 or city.hero_image_3 or "https://assets.myseattlesearch.com/neighborhood/hero-pools/snohomish/11.webp" %}
+
+<header class="neighborhood-hero-header neighborhood-subpage-header" style="position: relative; width: 100%; height: 320px; overflow: hidden; border-radius: var(--border-radius-squircle); margin-bottom: 2.5rem; background: var(--color-surface-gray); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+  
+  {# Symmetrical 3-Image Wall: Center image locked at 50% horizontal center, flanked by left and right images #}
+  <div class="hero-image-wall" 
+       style="position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); display: flex; height: 100%; width: max-content; pointer-events: none;" 
+       aria-hidden="true">
+    
+    {# Left Image: 16:9 aspect ratio, partially clipped by container left edge #}
+    <div style="height: 100%; aspect-ratio: 16 / 9; flex: 0 0 auto; overflow: hidden;">
+      <img src="{{ hero_img_1 }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+    </div>
+    
+    {# Center Image: 16:9 aspect ratio, 100% visible and centered #}
+    <div style="height: 100%; aspect-ratio: 16 / 9; flex: 0 0 auto; overflow: hidden;">
+      <img src="{{ hero_img_2 }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+    </div>
+    
+    {# Right Image: 16:9 aspect ratio, partially clipped by container right edge #}
+    <div style="height: 100%; aspect-ratio: 16 / 9; flex: 0 0 auto; overflow: hidden;">
+      <img src="{{ hero_img_3 }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+    </div>
+  </div>
+
+  {# Darkening Ambient Scrim Overlay #}
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.42) 100%); pointer-events: none;" aria-hidden="true"></div>
+
+  {# Foreground: Layered Frosted Box with Squircle Corners #}
+  <div class="hero-frosted-box" style="position: relative; z-index: 10; padding: 2rem 2.75rem; background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.6); border-radius: var(--border-radius-squircle); text-align: center; box-shadow: 0 12px 36px rgba(0,0,0,0.16); max-width: 90%; margin: 1.5rem;">
+    <div style="font-family: var(--font-script, cursive, serif); font-size: clamp(1.2rem, 2vw, 1.65rem); color: var(--color-secondary-default); line-height: 1.1; margin-bottom: 0.2rem;">
+      Welcome to the neighborhood
+    </div>
+    <div style="font-size: clamp(1.8rem, 4vw, 2.75rem); font-weight: 800; letter-spacing: -0.02em; color: var(--color-primary-default); margin: 0; line-height: 1.1;">
+      {{ city_name }}
+    </div>
+    <div style="font-size: clamp(1rem, 2vw, 1.35rem); font-weight: 700; color: var(--color-secondary-default); margin-top: 0.35rem;">
+      {{ subpage_name }}
+    </div>
+  </div>
+
+</header>

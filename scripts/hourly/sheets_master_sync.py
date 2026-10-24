@@ -372,7 +372,7 @@ def main():
 
     batch_sheet_writebacks = {master_sheet_id: []}
 
-    # Consolidated Single Batch Call across all tabs
+    # Consolidated Single Batch Call across all tabs (Expanded to !A:BJ)
     all_tabs = [
         "Market_Dashboard", "Rates", "Historical_Log", 
         "CityData", "MunicipalFeeds", "Stats", "Team", 
@@ -383,7 +383,7 @@ def main():
         "BuyerGuide", "SellerGuide", "GuideFAQs",
         "PublicEvents", "Translations", "SiteCredits"
     ]
-    ranges = [f"{tab}!A:AZ" for tab in all_tabs]
+    ranges = [f"{tab}!A:BJ" for tab in all_tabs]
 
     try:
         response = sheets_service.spreadsheets().values().batchGet(
