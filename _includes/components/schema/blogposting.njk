@@ -1,0 +1,65 @@
+<!-- File: _includes/components/schema/BlogPosting.njk -->
+{% set is_debug = ('design-system' in (page.url | default('design-system'))) or schema_debug %}
+{% set post_title = schema_post_title | default(post.title if post and post.title else "Navigating Snohomish County Property Tax Reassessments: A 5-Year Empirical Review") %}
+{% set post_date = schema_post_date | default(post.date if post and post.date else "2026-10-20T08:00:00-07:00") %}
+{% set post_url = schema_post_url | default(post.url if post and post.url else "https://myseattlesearch.com/posts/snohomish-property-tax-review/") %}
+{% set post_excerpt = schema_post_excerpt | default(post.excerpt if post and post.excerpt else "Assessor data reveals how local school capital bonds, EMS renewals, and transportation levies shift residential tax burdens.") %}
+{% set post_threads_url = schema_post_threads_url | default(post.threads_url if post and post.threads_url else "https://www.threads.net/@joesheldon.re") %}
+
+{% if is_debug %}
+<div class="widget-card schema-preview-card" style="padding: 1.25rem; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; box-sizing: border-box;">
+  <div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">SCHEMA.ORG JSON-LD</span>
+      <span style="font-size: 0.7rem; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0.15rem 0.5rem; border-radius: 999px;">✅ Validated</span>
+    </div>
+    <h4 class="text-widget-title" style="margin: 0 0 0.25rem 0; font-size: 0.95rem;">BlogPosting</h4>
+    <p class="text-body-secondary" style="font-size: 0.75rem; margin: 0; line-height: 1.4;">
+      Canonical authorship declaration linking post permalinks to Joe Sheldon across syndication.
+    </p>
+  </div>
+  <details style="margin-top: 0.75rem; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem;">
+    <summary style="font-size: 0.7rem; font-weight: 700; color: var(--color-secondary-default); cursor: pointer;">Inspect JSON-LD</summary>
+    <pre style="background: var(--color-surface-gray); padding: 0.5rem; border-radius: 6px; font-size: 0.65rem; overflow-x: auto; margin-top: 0.35rem; font-family: monospace;"><code>{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "{{ post_title }}",
+  "datePublished": "{{ post_date }}",
+  "author": "Joe Sheldon"
+}</code></pre>
+  </details>
+</div>
+{% endif %}
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "{{ post_url }}"
+  },
+  "headline": {{ post_title | dump | safe }},
+  "description": {{ post_excerpt | dump | safe }},
+  "datePublished": "{{ post_date }}",
+  "dateModified": "{{ post_date }}",
+  "author": {
+    "@type": "Person",
+    "@id": "https://myseattlesearch.com/#agent",
+    "name": "Joe Sheldon",
+    "url": "https://myseattlesearch.com/about/",
+    "jobTitle": "Senior Real Estate Agent",
+    "worksFor": {
+      "@type": "RealEstateAgent",
+      "name": "Redfin"
+    }
+  },
+  "publisher": {
+    "@type": "RealEstateAgent",
+    "@id": "https://myseattlesearch.com/#agent",
+    "name": "Joe Sheldon | MySeattleSearch",
+    "url": "https://myseattlesearch.com"
+  },
+  "sameAs": "{{ post_threads_url }}"
+}
+</script>

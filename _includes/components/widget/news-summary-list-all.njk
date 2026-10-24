@@ -1,0 +1,144 @@
+<!-- File: _includes/components/widget/news-summary-list-all.njk -->
+{% set default_all_news = [
+  {
+    category: "local",
+    source: "MY EDMONDS NEWS",
+    title: "Port of Edmonds Finalizes North Marina Seawall and Promenade Restoration",
+    excerpt: "Engineering teams completed final structural inspections on the upgraded pedestrian promenade, restoring direct saltwater access ahead of the summer season.",
+    date_formatted: "Mon, Aug 17, 2026 at 06:57 PM",
+    url: "/news/edmonds/marina-restoration/"
+  },
+  {
+    category: "transit",
+    source: "SEATTLE TIMES",
+    title: "Sounder North Rail Corridor Sees 18% Inbound Commute Surge",
+    excerpt: "Regional transit data indicates increasing ridership between Edmonds, Mukilteo, and King Street Station following coordinated schedule adjustments.",
+    date_formatted: "Mon, Aug 17, 2026 at 03:15 PM",
+    url: "/news/north-sound/sounder-commute-surge/"
+  },
+  {
+    category: "real-estate",
+    source: "THE URBANIST",
+    title: "Snohomish County Advances Missing-Middle Zoning Along Transit Arterials",
+    excerpt: "New municipal code adjustments unlock duplex and fourplex residential construction within a half-mile of designated Swift Bus Rapid Transit stations.",
+    date_formatted: "Sun, Aug 16, 2026 at 11:42 AM",
+    url: "/news/snohomish-county/missing-middle-zoning/"
+  },
+  {
+    category: "real-estate",
+    source: "PUGET SOUND BUSINESS JOURNAL",
+    title: "Regional Housing Inventory Tightens as Buyer Leverage Shifts Across North Sound",
+    excerpt: "Supply constraints across Snohomish and North King counties hold active listing absorption below historical balanced levels.",
+    date_formatted: "Sat, Aug 15, 2026 at 09:20 AM",
+    url: "/news/real-estate/regional-inventory-shift/"
+  },
+  {
+    category: "sports",
+    source: "HERALD NET",
+    title: "Edmonds-Woodway High School Cross Country Team Takes First in District Invitational",
+    excerpt: "Warriors runners set three personal records at the South County regional showcase, securing automatic berths for upcoming state championships.",
+    date_formatted: "Fri, Aug 14, 2026 at 05:12 PM",
+    url: "/news/sports/ewhs-district-cross-country/"
+  },
+  {
+    category: "local",
+    source: "EDMONDS BEACON",
+    title: "City Council Authorizes Preservation Trust for Salish Crossing Open Space",
+    excerpt: "Municipal leaders voted unanimously to secure contiguous marshland parcels to protect local shoreline ecology and walking paths.",
+    date_formatted: "Fri, Aug 14, 2026 at 04:30 PM",
+    url: "/news/edmonds/salish-crossing-trust/"
+  }
+] %}
+
+<section class="widget-card news-summary-list-all-card" style="padding: 1.75rem; width: 100%;">
+  
+  {# Header Row #}
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 1rem;">
+    <div>
+      <span class="text-overline">REGIONAL NEWS WIRE</span>
+      <h3 class="text-widget-title" style="margin-top: 0.25rem;">
+        {{ all_news_heading | default("All Community & Regional Coverage") }}
+      </h3>
+    </div>
+    <div class="text-body-secondary" style="font-size: 0.8rem; font-weight: 600;">
+      Filter Wire by Category
+    </div>
+  </div>
+
+  {# Pill Filter Toggles (Vanilla JS Event Handler) #}
+  <div class="news-filter-pills" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem;" role="tablist" aria-label="Filter news by category">
+    <button type="button" class="btn-filter-pill active" data-filter="all" style="padding: 0.4rem 0.9rem; border-radius: 999px; border: 1px solid var(--color-secondary-default); background: var(--color-secondary-default); color: #FFFFFF; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">All Wire</button>
+    <button type="button" class="btn-filter-pill" data-filter="local" style="padding: 0.4rem 0.9rem; border-radius: 999px; border: 1px solid var(--color-border-light); background: var(--color-background-universal); color: var(--color-primary-default); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">Local</button>
+    <button type="button" class="btn-filter-pill" data-filter="real-estate" style="padding: 0.4rem 0.9rem; border-radius: 999px; border: 1px solid var(--color-border-light); background: var(--color-background-universal); color: var(--color-primary-default); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">Real Estate</button>
+    <button type="button" class="btn-filter-pill" data-filter="transit" style="padding: 0.4rem 0.9rem; border-radius: 999px; border: 1px solid var(--color-border-light); background: var(--color-background-universal); color: var(--color-primary-default); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">Transit</button>
+    <button type="button" class="btn-filter-pill" data-filter="sports" style="padding: 0.4rem 0.9rem; border-radius: 999px; border: 1px solid var(--color-border-light); background: var(--color-background-universal); color: var(--color-primary-default); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">Sports</button>
+  </div>
+
+  {# Full Article Feed #}
+  <div class="news-list-container" style="display: flex; flex-direction: column;">
+    {% for item in all_news_items | default(default_all_news) %}
+      <article class="news-wire-item" data-category="{{ item.category }}" style="padding: 1.25rem 0; {% if not loop.last %}border-bottom: 1px solid var(--color-border-light);{% endif %} transition: opacity 0.2s ease;">
+        
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+          <span class="text-overline" style="font-size: 0.65rem; color: var(--color-secondary-default);">{{ item.source }}</span>
+          <span style="font-size: 0.7rem; color: #86868b;">•</span>
+          <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #86868b; background: rgba(0,0,0,0.04); padding: 0.15rem 0.45rem; border-radius: 4px;">{{ item.category }}</span>
+        </div>
+
+        <h4 style="font-size: 1.1rem; font-weight: 700; line-height: 1.35; margin-bottom: 0.5rem;">
+          <a href="{{ item.url }}" style="color: var(--color-primary-default); text-decoration: none;">
+            {{ item.title }}
+          </a>
+        </h4>
+
+        {% if item.excerpt %}
+          <p class="text-body-secondary" style="font-size: 0.9rem; line-height: 1.5; margin-bottom: 0.75rem;">
+            {{ item.excerpt }}
+          </p>
+        {% endif %}
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+          <time class="text-body-secondary" style="font-size: 0.75rem; font-style: italic; color: #86868b;">
+            {{ item.date_formatted }}
+          </time>
+          <a href="{{ item.url }}" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 600; color: var(--color-secondary-default); text-decoration: none;">
+            <span>Read Story</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </div>
+
+      </article>
+    {% endfor %}
+  </div>
+
+  <script>
+    (function() {
+      const pills = document.querySelectorAll('.news-filter-pills .btn-filter-pill');
+      const items = document.querySelectorAll('.news-wire-item');
+      pills.forEach(pill => {
+        pill.addEventListener('click', function() {
+          pills.forEach(p => {
+            p.style.background = 'var(--color-background-universal)';
+            p.style.color = 'var(--color-primary-default)';
+            p.style.borderColor = 'var(--color-border-light)';
+            p.classList.remove('active');
+          });
+          this.style.background = 'var(--color-secondary-default)';
+          this.style.color = '#FFFFFF';
+          this.style.borderColor = 'var(--color-secondary-default)';
+          this.classList.add('active');
+
+          const filter = this.getAttribute('data-filter');
+          items.forEach(item => {
+            if (filter === 'all' || item.getAttribute('data-category') === filter) {
+              item.style.display = 'block';
+            } else {
+              item.style.display = 'none';
+            }
+          });
+        });
+      });
+    })();
+  </script>
+
+</section>

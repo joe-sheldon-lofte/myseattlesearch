@@ -1,0 +1,74 @@
+<!-- File: _includes/components/schema/Event.njk -->
+{% set is_debug = ('design-system' in (page.url | default('design-system'))) or schema_debug %}
+{% set event_name = schema_event_name | default(event.title if event and event.title else "First-Time Homebuyer & Down Payment Assistance Workshop") %}
+{% set event_start = schema_event_start | default(event.start_time if event and event.start_time else "2026-11-14T10:00:00-08:00") %}
+{% set event_end = schema_event_end | default(event.end_time if event and event.end_time else "2026-11-14T12:00:00-08:00") %}
+{% set event_desc = schema_event_desc | default(event.description if event and event.description else "Comprehensive homebuyer masterclass covering WSHFC state grants, competitive offer strategies, and underwriting preparation.") %}
+{% set event_loc_name = schema_event_loc_name | default(event.location_name if event and event.location_name else "Edmonds Waterfront Center") %}
+{% set event_loc_address = schema_event_loc_address | default(event.address if event and event.address else "220 Railroad Ave, Edmonds, WA 98020") %}
+{% set event_url = schema_event_url | default(event.url if event and event.url else "https://myseattlesearch.com/events/homebuyer-workshop/") %}
+
+{% if is_debug %}
+<div class="widget-card schema-preview-card" style="padding: 1.25rem; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; box-sizing: border-box;">
+  <div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">SCHEMA.ORG JSON-LD</span>
+      <span style="font-size: 0.7rem; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0.15rem 0.5rem; border-radius: 999px;">✅ Validated</span>
+    </div>
+    <h4 class="text-widget-title" style="margin: 0 0 0.25rem 0; font-size: 0.95rem;">Event</h4>
+    <p class="text-body-secondary" style="font-size: 0.75rem; margin: 0; line-height: 1.4;">
+      Powers Google "Events near me" rich snippets for local seminars and civic hearings.
+    </p>
+  </div>
+  <details style="margin-top: 0.75rem; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem;">
+    <summary style="font-size: 0.7rem; font-weight: 700; color: var(--color-secondary-default); cursor: pointer;">Inspect JSON-LD</summary>
+    <pre style="background: var(--color-surface-gray); padding: 0.5rem; border-radius: 6px; font-size: 0.65rem; overflow-x: auto; margin-top: 0.35rem; font-family: monospace;"><code>{
+  "@context": "https://schema.org",
+  "@type": "Event",
+  "name": "{{ event_name }}",
+  "startDate": "{{ event_start }}",
+  "location": "{{ event_loc_name }}"
+}</code></pre>
+  </details>
+</div>
+{% endif %}
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Event",
+  "name": {{ event_name | dump | safe }},
+  "description": {{ event_desc | dump | safe }},
+  "startDate": "{{ event_start }}",
+  "endDate": "{{ event_end }}",
+  "eventStatus": "https://schema.org/EventScheduled",
+  "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+  "location": {
+    "@type": "Place",
+    "name": {{ event_loc_name | dump | safe }},
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "{{ event_loc_address }}",
+      "addressLocality": "Edmonds",
+      "addressRegion": "WA",
+      "postalCode": "98020",
+      "addressCountry": "US"
+    }
+  },
+  "organizer": {
+    "@type": "Person",
+    "@id": "https://myseattlesearch.com/#agent",
+    "name": "Joe Sheldon",
+    "url": "https://myseattlesearch.com",
+    "telephone": "(206) 657-7493"
+  },
+  "offers": {
+    "@type": "Offer",
+    "url": "{{ event_url }}",
+    "price": "0",
+    "priceCurrency": "USD",
+    "availability": "https://schema.org/InStock",
+    "validFrom": "2026-01-01"
+  }
+}
+</script>

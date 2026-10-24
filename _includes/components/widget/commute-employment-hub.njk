@@ -1,0 +1,91 @@
+<!-- File: _includes/components/widget/commute-employment-hub.njk -->
+<div class="widget-card commute-hub-card" style="display: flex; flex-direction: column; justify-content: space-between; padding: 1.5rem; width: 100%;">
+  
+  {# Header Bar #}
+  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1.25rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+    <div>
+      <span class="text-overline">COMMUTE METRICS</span>
+      <h3 class="text-widget-title" style="margin-top: 0.25rem;">
+        {{ hub_name | default("South Lake Union") }}
+        <span class="text-body-secondary" style="font-size: 0.9rem; font-weight: 400;">| {{ hub_distance | default("14 miles") }}</span>
+      </h3>
+    </div>
+    <div style="font-size: 0.75rem; font-weight: 600; color: #86868b;">Live WSDOT Corridor</div>
+  </div>
+
+  {# Commute Grid (Direction 1 & Direction 2) #}
+  <div style="display: flex; flex-direction: column; gap: 1rem;">
+    
+    {# Direction 1: City -> Hub #}
+    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1rem;">
+      <div class="text-overline" style="font-size: 0.65rem; margin-bottom: 0.5rem; color: var(--color-secondary-default);">
+        Morning Inbound: {{ local_city | default("Local City") }} → {{ hub_name | default("South Lake Union") }}
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        {# Drive Metric #}
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; font-weight: 600; color: #6E6E73;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="16" height="16" x="4" y="4" rx="2"/><path d="M9 18v-4a3 3 0 0 1 6 0v4"/></svg>
+            <span>Drive</span>
+          </div>
+          <div class="text-data-huge" style="font-size: 1.75rem; margin-top: 0.25rem; line-height: 1;">
+            {{ inbound_drive_live | default("24 min") }}
+          </div>
+          <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.25rem;">
+            Off-peak: {{ inbound_drive_offpeak | default("18 min") }}
+          </div>
+        </div>
+        {# Transit Metric #}
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; font-weight: 600; color: #6E6E73;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="16" height="16" x="4" y="3" rx="2"/><path d="M4 11h16"/><path d="M12 3v8"/><path d="m8 19-2 3"/><path d="m18 22-2-3"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></svg>
+            <span>Transit</span>
+          </div>
+          <div class="text-data-huge" style="font-size: 1.75rem; margin-top: 0.25rem; line-height: 1; color: var(--color-primary-default);">
+            {{ inbound_transit_live | default("38 min") }}
+          </div>
+          <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.25rem;">
+            Off-peak: {{ inbound_transit_offpeak | default("32 min") }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# Direction 2: Hub -> City #}
+    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1rem;">
+      <div class="text-overline" style="font-size: 0.65rem; margin-bottom: 0.5rem; color: var(--color-secondary-default);">
+        Evening Return: {{ hub_name | default("South Lake Union") }} → {{ local_city | default("Local City") }}
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        {# Drive Metric #}
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; font-weight: 600; color: #6E6E73;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="16" height="16" x="4" y="4" rx="2"/><path d="M9 18v-4a3 3 0 0 1 6 0v4"/></svg>
+            <span>Drive</span>
+          </div>
+          <div class="text-data-huge" style="font-size: 1.75rem; margin-top: 0.25rem; line-height: 1;">
+            {{ return_drive_live | default("28 min") }}
+          </div>
+          <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.25rem;">
+            Off-peak: {{ return_drive_offpeak | default("19 min") }}
+          </div>
+        </div>
+        {# Transit Metric #}
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; font-weight: 600; color: #6E6E73;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="16" height="16" x="4" y="3" rx="2"/><path d="M4 11h16"/><path d="M12 3v8"/><path d="m8 19-2 3"/><path d="m18 22-2-3"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></svg>
+            <span>Transit</span>
+          </div>
+          <div class="text-data-huge" style="font-size: 1.75rem; margin-top: 0.25rem; line-height: 1; color: var(--color-primary-default);">
+            {{ return_transit_live | default("41 min") }}
+          </div>
+          <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.25rem;">
+            Off-peak: {{ return_transit_offpeak | default("33 min") }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>

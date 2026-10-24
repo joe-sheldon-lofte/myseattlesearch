@@ -1,0 +1,68 @@
+<!-- File: _includes/components/widget/people-directory-grid.njk -->
+{% set dir_title = directory_grid_title | default("The Core Team & Preferred Network") %}
+{% set dir_subtitle = directory_grid_subtitle | default("Experienced real estate advisors, transaction specialists, and certified regional professionals supporting your transaction.") %}
+{% set show_filter = directory_show_filter | default(true) %}
+
+<section class="widget-card people-directory-grid-card" style="padding: 2rem; width: 100%; border-radius: var(--border-radius-squircle); display: flex; flex-direction: column; gap: 1.75rem;">
+  
+  {# Header Area #}
+  <div style="text-align: center; max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 0.5rem;">
+    <span class="text-overline" style="color: var(--color-secondary-default);">
+      PUGET SOUND SPECIALIST NETWORK
+    </span>
+    <h2 class="text-page-title" style="margin: 0; font-size: 1.75rem;">
+      {{ dir_title }}
+    </h2>
+    <p class="text-body-secondary" style="font-size: 0.95rem; line-height: 1.5; margin: 0;">
+      {{ dir_subtitle }}
+    </p>
+  </div>
+
+  {# Consumer Disclosure Notice Banner #}
+  <div style="background: var(--color-surface-gray); border-left: 3px solid var(--color-secondary-default); border-radius: 8px; padding: 0.85rem 1.15rem; font-size: 0.75rem; line-height: 1.5;" class="text-body-secondary">
+    <strong>Consumer Notice:</strong> Preferred vendors and independent contractors are listed as an informational courtesy. Washington consumers retain the right to select any licensed professional, title company, or lending institution of their choice.
+  </div>
+
+  {# Category Filter Pills #}
+  {% if show_filter %}
+    <div class="directory-filter-pills" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem;" role="tablist" aria-label="Filter directory by category">
+      <button type="button" class="btn-dir-pill active" data-dir-filter="all" style="padding: 0.4rem 0.95rem; border-radius: 999px; border: 1px solid var(--color-secondary-default); background: var(--color-secondary-default); color: #FFFFFF; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">All Professionals</button>
+      <button type="button" class="btn-dir-pill" data-dir-filter="real-estate" style="padding: 0.4rem 0.95rem; border-radius: 999px; border: 1px solid var(--color-border-light); background: var(--color-background-universal); color: var(--color-primary-default); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">Real Estate</button>
+      <button type="button" class="btn-dir-pill" data-dir-filter="lending" style="padding: 0.4rem 0.95rem; border-radius: 999px; border: 1px solid var(--color-border-light); background: var(--color-background-universal); color: var(--color-primary-default); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">Lending & Finance</button>
+      <button type="button" class="btn-dir-pill" data-dir-filter="escrow" style="padding: 0.4rem 0.95rem; border-radius: 999px; border: 1px solid var(--color-border-light); background: var(--color-background-universal); color: var(--color-primary-default); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">Title & Escrow</button>
+      <button type="button" class="btn-dir-pill" data-dir-filter="trades" style="padding: 0.4rem 0.95rem; border-radius: 999px; border: 1px solid var(--color-border-light); background: var(--color-background-universal); color: var(--color-primary-default); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">Contractors & Trades</button>
+    </div>
+  {% endif %}
+
+  {# Responsive Grid Container: direct children per SOP 6 #}
+  <div class="core-four-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; align-items: stretch;">
+    {% if directory_cards_slot %}
+      {{ directory_cards_slot | safe }}
+    {% else %}
+      {% include "components/widget/people-card-primary.njk" ignore missing %}
+      {% include "components/widget/people-card-secondary.njk" ignore missing %}
+    {% endif %}
+  </div>
+
+  <script>
+    (function() {
+      const pills = document.querySelectorAll('.directory-filter-pills .btn-dir-pill');
+      if (!pills.length) return;
+      pills.forEach(pill => {
+        pill.addEventListener('click', function() {
+          pills.forEach(p => {
+            p.style.background = 'var(--color-background-universal)';
+            p.style.color = 'var(--color-primary-default)';
+            p.style.borderColor = 'var(--color-border-light)';
+            p.classList.remove('active');
+          });
+          this.style.background = 'var(--color-secondary-default)';
+          this.style.color = '#FFFFFF';
+          this.style.borderColor = 'var(--color-secondary-default)';
+          this.classList.add('active');
+        });
+      });
+    })();
+  </script>
+
+</section>

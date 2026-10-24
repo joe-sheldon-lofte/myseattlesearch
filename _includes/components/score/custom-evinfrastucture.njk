@@ -1,0 +1,79 @@
+<!-- File: _includes/components/score/custom-evinfrastucture.njk -->
+{% set val = score_ev_val | default(78) %}
+{% set score_color = "#10B981" %}
+{% set score_label = "EV Pioneer City" %}
+{% if val < 40 %}
+  {% set score_color = "var(--color-tertiary-default)" %}
+  {% set score_label = "Emerging Infrastructure" %}
+{% elif val < 75 %}
+  {% set score_color = "var(--color-secondary-default)" %}
+  {% set score_label = "Growing Network" %}
+{% endif %}
+
+<div class="widget-card score-card score-ev-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; box-sizing: border-box;">
+  
+  {# Header Row #}
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+    <div>
+      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+        CLEAN ENERGY ACCESSIBILITY
+      </span>
+      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.1rem;">
+        EV Infrastructure Rating
+      </h3>
+    </div>
+    
+    <button type="button" 
+            class="btn-info-trigger" 
+            aria-label="View EV Infrastructure methodology" 
+            onclick="document.getElementById('dialog-score-ev').showModal();"
+            style="width: 28px; height: 28px; border-radius: 50%; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; cursor: pointer; color: #86868b;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    </button>
+  </div>
+
+  {# Center Score Display: Squircle Badge #}
+  <div style="display: flex; align-items: center; gap: 1rem; margin: 1rem 0;">
+    <div style="width: 58px; height: 58px; border-radius: var(--border-radius-squircle); background: {{ score_color }}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
+      <span class="text-data-huge" style="font-size: 1.75rem; color: #FFFFFF; line-height: 1; font-weight: 800;">
+        {{ val }}
+      </span>
+    </div>
+
+    <div>
+      <div style="font-size: 0.95rem; font-weight: 800; color: {{ score_color }};">
+        {{ score_label }}
+      </div>
+      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
+        {{ score_ev_detail | default("14 Level 2 and DC Fast charging ports per 10k residents.") }}
+      </div>
+    </div>
+  </div>
+
+  {# Footer #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem;" class="text-body-secondary">
+    <span>Data Source: NREL Alternative Fuel Stations API</span>
+    <span style="font-family: monospace; font-weight: 600;">Scale 0–100</span>
+  </div>
+
+  {# Methodology Modal Dialog #}
+  <dialog id="dialog-score-ev" class="info-dialog" style="padding: 1.5rem; border-radius: var(--border-radius-squircle); border: 1px solid var(--color-border-light); max-width: 440px; background: var(--color-background-universal); box-shadow: 0 20px 48px rgba(0,0,0,0.2);">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+      <div>
+        <span class="text-overline" style="color: var(--color-secondary-default);">METHODOLOGY</span>
+        <h4 class="text-widget-title" style="margin: 0.15rem 0 0 0;">EV Infrastructure Accessibility</h4>
+      </div>
+      <button type="button" onclick="document.getElementById('dialog-score-ev').close();" style="border: none; background: var(--color-surface-gray); border-radius: 50%; width: 28px; height: 28px; cursor: pointer;">✕</button>
+    </div>
+    <p class="text-body-secondary" style="font-size: 0.85rem; line-height: 1.5; margin: 0 0 0.75rem 0;">
+      Evaluates public electric vehicle charging accessibility by weighting charger power levels per 10,000 residents against a regional benchmark of 30 weighted ports per 10k residents.
+    </p>
+    <div style="background: var(--color-surface-gray); padding: 0.65rem; border-radius: 8px; font-size: 0.75rem; font-family: monospace;">
+      Formula: MIN(100, ROUND((((L1*1)+(L2*2)+(DC*4)) / (Pop / 10000)) / 30 * 100, 0))
+    </div>
+    <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #86868b;">
+      Weights: Level 1 (1 pt), Level 2 (2 pts), DC Fast / Tesla Supercharger (4 pts)
+    </div>
+  </dialog>
+
+</div>

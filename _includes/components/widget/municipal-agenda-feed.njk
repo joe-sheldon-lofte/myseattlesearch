@@ -1,0 +1,84 @@
+<!-- File: _includes/components/widget/municipal-agenda-feed.njk -->
+{% set demo_agendas = [
+  {
+    title: "City Council Regular Business Meeting & Public Hearing on Shoreline Master Plan",
+    date: "Tue, Aug 25, 2026 at 7:00 PM",
+    body: "City Council",
+    url: "/municipal/edmonds/agenda-2026-08-25.pdf",
+    type: "PDF"
+  },
+  {
+    title: "Planning Board Study Session: Missing-Middle Housing Infill Standards",
+    date: "Wed, Aug 26, 2026 at 6:00 PM",
+    body: "Planning Board",
+    url: "/municipal/edmonds/planning-study-session-2026-08-26.html",
+    type: "HTML"
+  },
+  {
+    title: "Hearing Examiner: Variance Review for Waterfront Access Corridor Improvements",
+    date: "Thu, Aug 27, 2026 at 10:00 AM",
+    body: "Hearing Examiner",
+    url: "/municipal/edmonds/hearing-examiner-2026-08-27.pdf",
+    type: "PDF"
+  }
+] %}
+
+{% set agenda_list = municipal_agendas | default(demo_agendas) %}
+
+{% if agenda_list and agenda_list | length > 0 %}
+<section class="widget-card municipal-agenda-card" style="padding: 1.5rem; width: 100%;">
+  
+  {# Header Row #}
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+    <div>
+      <span class="text-overline">CIVIC GOVERNANCE</span>
+      <h3 class="text-widget-title" style="margin-top: 0.25rem;">
+        Upcoming Municipal Agendas
+      </h3>
+    </div>
+    <div style="font-size: 0.75rem; font-weight: 700; color: var(--color-secondary-default); background: var(--color-background-universal); border: 1px solid var(--color-border-light); padding: 0.25rem 0.6rem; border-radius: 999px;">
+      Public Records
+    </div>
+  </div>
+
+  {# Agenda List #}
+  <div style="display: flex; flex-direction: column;">
+    {% for item in agenda_list %}
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1rem 0; {% if not loop.last %}border-bottom: 1px solid var(--color-border-light);{% endif %}">
+        
+        <div style="flex-grow: 1; min-width: 0;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+            <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--color-secondary-default); background: var(--color-background-universal); border: 1px solid var(--color-border-light); padding: 0.15rem 0.45rem; border-radius: 4px;">
+              {{ item.body }}
+            </span>
+            <time class="text-body-secondary" style="font-size: 0.75rem;">{{ item.date }}</time>
+          </div>
+          
+          <h4 style="font-size: 0.95rem; font-weight: 600; line-height: 1.4; color: var(--color-primary-default); margin: 0;">
+            {{ item.title }}
+          </h4>
+        </div>
+
+        {# Right Download/Document Action Link #}
+        <div style="flex-shrink: 0;">
+          <a href="{{ item.url }}" 
+             target="_blank" 
+             rel="noopener noreferrer" 
+             aria-label="Download {{ item.title }} agenda ({{ item.type }})" 
+             style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.75rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 8px; color: var(--color-secondary-default); font-size: 0.75rem; font-weight: 700; text-decoration: none;">
+            <span>{{ item.type }}</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </a>
+        </div>
+
+      </div>
+    {% endfor %}
+  </div>
+
+  {# Municipal Disclaimer Subtext #}
+  <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem;" class="text-body-secondary">
+    Agendas sourced directly from municipal clerk portals. Subject to amendment prior to roll call.
+  </div>
+
+</section>
+{% endif %}

@@ -1,0 +1,68 @@
+<!-- File: _includes/components/widget/weather-climate-comfort-index-basic.njk -->
+<div class="widget-card climate-comfort-basic-card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; padding: 1.5rem; width: 100%;">
+  
+  {# Header Row: Category & Methodology Trigger #}
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.75rem;">
+    <div>
+      <span class="text-overline">CLIMATE COMFORT INDEX</span>
+      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
+        {{ climate_station | default("Station: North Sound & Snohomish Coast (KPAE)") }}
+      </div>
+    </div>
+    <button type="button" 
+            class="btn-info-trigger" 
+            aria-label="View Climate Comfort methodology" 
+            onclick="document.getElementById('dialog-climate-basic').showModal();">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+      </svg>
+    </button>
+  </div>
+
+  {# Center Radial / Score Display #}
+  {% set comfort_score = climate_comfort_score | default(78) %}
+  {% set comfort_stroke = "var(--color-secondary-default)" %}
+  {% if comfort_score >= 80 %}
+    {% set comfort_stroke = "#10B981" %}
+  {% elif comfort_score < 50 %}
+    {% set comfort_stroke = "var(--color-tertiary-default)" %}
+  {% endif %}
+
+  <div style="display: flex; align-items: center; gap: 1.25rem; margin: 0.75rem 0;">
+    <div style="position: relative; width: 80px; height: 80px; flex-shrink: 0;">
+      <svg width="80" height="80" viewBox="0 0 100 100" style="transform: rotate(-90deg);" aria-hidden="true">
+        <circle cx="50" cy="50" r="38" stroke="var(--color-border-light)" stroke-width="8" fill="transparent"></circle>
+        <circle cx="50" cy="50" r="38" stroke="{{ comfort_stroke }}" stroke-width="8" fill="transparent"
+                stroke-dasharray="238.7"
+                stroke-dashoffset="{{ 238.7 - (238.7 * comfort_score) / 100 }}"
+                stroke-linecap="round"
+                style="transition: stroke-dashoffset 0.6s ease;"></circle>
+      </svg>
+      <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+        <span class="text-data-huge" style="font-size: 1.6rem; color: {{ comfort_stroke }};">{{ comfort_score }}</span>
+      </div>
+    </div>
+
+    <div>
+      <div style="display: inline-block; padding: 0.2rem 0.6rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 999px; font-size: 0.75rem; font-weight: 700; color: {{ comfort_stroke }}; margin-bottom: 0.35rem;">
+        {{ climate_rating_label | default("High Seasonal Comfort") }}
+      </div>
+      <p class="text-body-secondary" style="font-size: 0.85rem; line-height: 1.45; margin: 0;">
+        {{ climate_summary_text | default("Temperate maritime climate with mild summer highs and low humidity distress.") }}
+      </p>
+    </div>
+  </div>
+
+  {# Accessible Method Dialog #}
+  <dialog id="dialog-climate-basic" class="info-dialog">
+    <button type="button" class="btn-dialog-close" aria-label="Close climate info" onclick="document.getElementById('dialog-climate-basic').close();">✕</button>
+    <div class="text-overline" style="margin-bottom: 0.5rem;">Methodology</div>
+    <h3 class="text-widget-title">Climate Comfort Index</h3>
+    <div class="text-body-secondary" style="margin-top: 1rem; line-height: 1.6;">
+      Measures annual days between 65°F and 82°F with dew points below 58°F, normalized against maritime rain frequency. Calculated from regional NOAA/ASOS weather feeds at KPAE.
+    </div>
+  </dialog>
+
+</div>

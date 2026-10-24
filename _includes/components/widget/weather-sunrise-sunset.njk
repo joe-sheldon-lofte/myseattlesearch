@@ -1,0 +1,66 @@
+<!-- File: _includes/components/widget/weather-sunrise-sunset.njk -->
+{% set progress = sun_progress_pct | default(63) %}
+{# Rotation angle: Progress 0% (Sunrise at 9:00 / left) to 100% (Sunset at 3:00 / right) translates to 0 to 180 deg #}
+{% set rotation_deg = progress * 1.8 %}
+
+<div class="widget-card weather-sun-cycle-card" style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 1.75rem; width: 100%;">
+  
+  {# Header Row #}
+  <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+    <span class="text-overline">SOLAR ORBIT CYCLE</span>
+    <span style="font-size: 0.75rem; font-weight: 700; color: #86868b;">Pacific Time</span>
+  </div>
+
+  <h3 class="text-widget-title" style="margin-bottom: 1rem;">Daylight & Sun Tracking</h3>
+
+  {# Circle Diagram: Center (100, 100), Radius 70 #}
+  <div style="position: relative; width: 220px; height: 220px; margin: 0.5rem auto;">
+    <svg viewBox="0 0 200 200" style="width: 100%; height: 100%; overflow: visible;" aria-hidden="true">
+      <defs>
+        {# Arrowhead marker for rotation indication #}
+        <marker id="arrow-sun" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#FACC15" />
+        </marker>
+        <marker id="arrow-night" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#1C1C1E" />
+        </marker>
+      </defs>
+
+      {# Top Half Arc: 9:00 (left, x=30, y=100) clockwise to 3:00 (right, x=170, y=100) — Daylight in Yellow #}
+      <path d="M 30 100 A 70 70 0 0 1 170 100" fill="none" stroke="#FACC15" stroke-width="8" stroke-linecap="round" marker-end="url(#arrow-sun)"></path>
+
+      {# Bottom Half Arc: 3:00 (right, x=170, y=100) clockwise to 9:00 (left, x=30, y=100) — Night in Dark Gray #}
+      <path d="M 170 100 A 70 70 0 0 1 30 100" fill="none" stroke="#1C1C1E" stroke-width="8" stroke-linecap="round" marker-end="url(#arrow-night)"></path>
+
+      {# Orbiting Sun Marker Pin (Base at 9:00 / x=30, y=100, rotated around center 100, 100) #}
+      <g transform="rotate({{ rotation_deg }}, 100, 100)">
+        <circle cx="30" cy="100" r="9" fill="#FFFFFF" stroke="#FACC15" stroke-width="4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.2))"></circle>
+        <circle cx="30" cy="100" r="3" fill="#F59E0B"></circle>
+      </g>
+
+      {# Horizon Baseline #}
+      <line x1="30" y1="100" x2="170" y2="100" stroke="var(--color-border-light)" stroke-width="1" stroke-dasharray="3 3"></line>
+
+      {# Center Solar Metrics #}
+      <text x="100" y="94" font-family="var(--font-default)" font-size="12" font-weight="700" fill="var(--color-primary-default)" text-anchor="middle">
+        {{ daylight_remaining | default("4h 28m Left") }}
+      </text>
+      <text x="100" y="114" font-family="var(--font-default)" font-size="9" font-weight="600" fill="#86868b" text-anchor="middle">
+        {{ progress }}% OF DAYLIGHT
+      </text>
+    </svg>
+  </div>
+
+  {# Bottom Sunrise/Sunset Time Indicators #}
+  <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.85rem;">
+    <div style="text-align: left;">
+      <div class="text-overline" style="font-size: 0.65rem; color: #F59E0B;">Sunrise (9:00 pos)</div>
+      <div style="font-weight: 700; color: var(--color-primary-default);">{{ sunrise_time | default("6:34 AM") }}</div>
+    </div>
+    <div style="text-align: right;">
+      <div class="text-overline" style="font-size: 0.65rem; color: var(--color-primary-default);">Sunset (3:00 pos)</div>
+      <div style="font-weight: 700; color: var(--color-primary-default);">{{ sunset_time | default("8:52 PM") }}</div>
+    </div>
+  </div>
+
+</div>

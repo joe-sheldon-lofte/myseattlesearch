@@ -1,0 +1,50 @@
+<!-- File: _includes/components/widget/weather-river-status.njk -->
+<div class="widget-card weather-river-status-card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; padding: 1.5rem; width: 100%;">
+  
+  {# Header Row #}
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+    <div>
+      <span class="text-overline">USGS HYDROLOGICAL SENSOR</span>
+      <h3 class="text-widget-title" style="margin-top: 0.25rem; font-size: 1.05rem; text-transform: uppercase;">
+        {{ river_station_name | default("Snohomish River at Monroe, WA") }}
+      </h3>
+    </div>
+    <div style="display: inline-block; padding: 0.25rem 0.65rem; background: rgba(16, 185, 129, 0.12); color: #059669; border-radius: 999px; font-size: 0.75rem; font-weight: 700; white-space: nowrap;">
+      {{ river_flood_status | default("Below Flood Stage") }}
+    </div>
+  </div>
+
+  {# Metrics Dual Grid: Flow Rate & Gauge Height #}
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+    
+    {# Flow Rate Tile #}
+    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1rem; text-align: center;">
+      <div class="text-overline" style="font-size: 0.65rem; color: #86868b;">Flow Discharge</div>
+      <div class="text-data-huge" style="font-size: 1.65rem; margin-top: 0.25rem; line-height: 1; color: var(--color-secondary-default);">
+        {{ river_flow_cfs | default("2,850") }}
+      </div>
+      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.25rem; font-weight: 600;">
+        ft³/s (cfs)
+      </div>
+    </div>
+
+    {# Gauge Height Tile #}
+    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1rem; text-align: center;">
+      <div class="text-overline" style="font-size: 0.65rem; color: #86868b;">Gauge Stage</div>
+      <div class="text-data-huge" style="font-size: 1.65rem; margin-top: 0.25rem; line-height: 1; color: var(--color-primary-default);">
+        {{ river_gauge_ft | default("10.42") }}
+      </div>
+      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.25rem; font-weight: 600;">
+        ft (Flood: 15.0 ft)
+      </div>
+    </div>
+
+  </div>
+
+  {# Footer Timestamp & Sensor ID #}
+  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem;" class="text-body-secondary">
+    <span>Station ID: <strong>{{ river_usgs_id | default("USGS 12150800") }}</strong></span>
+    <span>Observed: <strong>{{ river_obs_time | default("Aug 17, 5:15 PM PDT") }}</strong></span>
+  </div>
+
+</div>

@@ -1,0 +1,41 @@
+<!-- File: _includes/components/widget/neighborhood-nav-links.njk -->
+{% set city_slug = current_city_slug | default("edmonds") %}
+{% set active_tab = current_nav_tab | default("hub") %}
+{% set is_back_link = nav_is_back_mode | default(false) %}
+{% set back_label = nav_back_label | default("Neighborhood Hub") %}
+{% set back_url = nav_back_url | default("/communities/" + city_slug + "/") %}
+
+{% set default_nav_items = [
+  { id: "hub", label: "Neighborhood Hub", url: "/communities/" + city_slug + "/" },
+  { id: "weather", label: "Weather", url: "/communities/" + city_slug + "/weather/" },
+  { id: "transit", label: "Transit & Commute", url: "/communities/" + city_slug + "/transit-commute/" },
+  { id: "news", label: "News & Events", url: "/communities/" + city_slug + "/news-events/" },
+  { id: "municipal", label: "Municipal Services", url: "/communities/" + city_slug + "/municipal/" },
+  { id: "emergency", label: "Emergency & Safety", url: "/communities/" + city_slug + "/emergency-safety/" },
+  { id: "elections", label: "Elections & Voting", url: "/communities/" + city_slug + "/elections/" },
+  { id: "realestate", label: "Real Estate & Data", url: "/communities/" + city_slug + "/real-estate/" }
+] %}
+
+{% if is_back_link %}
+  {# Back Mode: Left arrow icon on the left, label on the right #}
+  <a href="{{ back_url }}" 
+     class="widget-card neighborhood-nav-link-btn" 
+     style="display: inline-flex; align-items: center; gap: 0.65rem; padding: 0.75rem 1.25rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); text-decoration: none; color: var(--color-secondary-default); font-weight: 700; font-size: 0.9rem; transition: all 0.2s ease;">
+    <span aria-hidden="true">←</span>
+    <span>{{ back_label }}</span>
+  </a>
+{% else %}
+  {# Full Navigation Options Grid / Strip #}
+  <nav class="widget-card neighborhood-nav-container" aria-label="Neighborhood Sections" style="padding: 1.25rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); box-sizing: border-box;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+      {% for item in default_nav_items %}
+        {% set is_current = (item.id == active_tab) %}
+        <a href="{{ item.url }}" 
+           style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-radius: 10px; text-decoration: none; font-size: 0.85rem; font-weight: 700; transition: all 0.15s ease; {% if is_current %}background: var(--color-secondary-default); color: #FFFFFF;{% else %}background: var(--color-surface-gray); color: var(--color-primary-default); border: 1px solid var(--color-border-light);{% endif %}">
+          <span>{{ item.label }}</span>
+          <span style="font-size: 0.9rem; opacity: {% if is_current %}1{% else %}0.6{% endif %};" aria-hidden="true">→</span>
+        </a>
+      {% endfor %}
+    </div>
+  </nav>
+{% endif %}

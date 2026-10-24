@@ -1,0 +1,49 @@
+<!-- File: _includes/components/widget/element-card-hubitem.njk -->
+{% set hub_title = card_hub_title | default("Seller Net Proceeds Modeler") %}
+{% set hub_desc = card_hub_summary | default("Calculate your exact estimated net cash in pocket after mortgage payoff, Washington graduated REET excise taxes, title, and escrow fees.") %}
+{% set hub_url = card_hub_url | default("/sellerproceeds/") %}
+{% set hub_cta = card_hub_cta | default("Calculate Net Equity") %}
+{% set hub_tag = card_hub_tag | default("SELLER TOOL") %}
+
+<div class="widget-card element-hubitem-card" 
+     style="display: flex; flex-direction: column; justify-content: space-between; padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;">
+  
+  <div>
+    {# Top Leading Icon & Tag #}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <div style="width: 40px; height: 40px; border-radius: 10px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-secondary-default);" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="16" height="20" x="4" y="2" rx="2"/>
+          <line x1="8" x2="16" y1="6" y2="6"/>
+          <line x1="16" x2="16" y1="14" y2="18"/>
+          <path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"/>
+        </svg>
+      </div>
+
+      <span class="text-overline" style="font-size: 0.65rem; color: var(--color-secondary-default); background: var(--color-surface-gray); padding: 0.2rem 0.55rem; border-radius: 999px;">
+        {{ hub_tag }}
+      </span>
+    </div>
+
+    {# Title & Body Copy #}
+    <h3 class="text-widget-title" style="font-size: 1.15rem; line-height: 1.35; margin: 0 0 0.5rem 0;">
+      <a href="{{ hub_url }}" style="color: var(--color-primary-default); text-decoration: none;">
+        {{ hub_title }}
+      </a>
+    </h3>
+
+    <p class="text-body-secondary" style="font-size: 0.85rem; line-height: 1.5; margin: 0 0 1.25rem 0;">
+      {{ hub_desc }}
+    </p>
+  </div>
+
+  {# Action Button #}
+  <div>
+    <a href="{{ hub_url }}" 
+       style="display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; width: 100%; padding: 0.7rem 1.25rem; background: var(--color-secondary-default); color: #FFFFFF; border-radius: 999px; font-size: 0.85rem; font-weight: 700; text-decoration: none; box-shadow: 0 2px 8px rgba(30, 77, 107, 0.15); transition: opacity 0.15s ease;">
+      <span>{{ hub_cta }}</span>
+      <span aria-hidden="true">→</span>
+    </a>
+  </div>
+
+</div>

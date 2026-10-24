@@ -1,0 +1,66 @@
+<!-- File: _includes/components/widget/universal-data-chart-maxfour.njk -->
+<div class="widget-card data-chart-card" style="display: flex; flex-direction: column; padding: 1.5rem; width: 100%;">
+  
+  {# Header & Legend #}
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+    <div>
+      <div class="text-overline">{{ chart_overline | default("MARKET VELOCITY") }}</div>
+      <h3 class="text-widget-title">{{ chart_title | default("90-Day Trajectory") }}</h3>
+    </div>
+    <div style="display: flex; gap: 1rem; font-size: 0.75rem; font-weight: 600;">
+      <div style="display: flex; align-items: center; gap: 0.35rem;">
+        <span style="width: 12px; height: 3px; background: var(--color-secondary-default); border-radius: 2px;"></span>
+        <span>{{ series_1_name | default("Edmonds") }}</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 0.35rem;">
+        <span style="width: 12px; height: 3px; background: var(--color-tertiary-default); border-radius: 2px;"></span>
+        <span>{{ series_2_name | default("Kirkland") }}</span>
+      </div>
+    </div>
+  </div>
+
+  {# Native SVG Chart Area (2:1 Aspect Ratio) #}
+  <div style="position: relative; width: 100%; aspect-ratio: 2 / 1; min-height: 200px;">
+    <svg viewBox="0 0 600 300" preserveAspectRatio="none" style="width: 100%; height: 100%; overflow: visible;" aria-hidden="true">
+      
+      {# Grid Lines & Y-Axis Labels #}
+      <g stroke="var(--color-border-light)" stroke-width="1" stroke-dasharray="4 4">
+        <line x1="0" y1="20" x2="600" y2="20"></line>
+        <line x1="0" y1="100" x2="600" y2="100"></line>
+        <line x1="0" y1="180" x2="600" y2="180"></line>
+        <line x1="0" y1="260" x2="600" y2="260"></line>
+      </g>
+      <g fill="#86868b" font-family="var(--font-default)" font-size="12" font-weight="500">
+        <text x="590" y="15" text-anchor="end">High</text>
+        <text x="590" y="95" text-anchor="end">Med</text>
+        <text x="590" y="175" text-anchor="end">Base</text>
+      </g>
+
+      {# X-Axis Time Steps #}
+      <g fill="#86868b" font-family="var(--font-default)" font-size="11" font-weight="600">
+        <text x="0" y="285" text-anchor="start">90d ago</text>
+        <text x="300" y="285" text-anchor="middle">45d ago</text>
+        <text x="600" y="285" text-anchor="end">Today</text>
+      </g>
+
+      {# Data Series 1 (Alpine Blue) #}
+      <polyline points="0,150 150,110 300,120 450,80 600,40" 
+                fill="none" 
+                stroke="var(--color-secondary-default)" 
+                stroke-width="3" 
+                stroke-linejoin="round" 
+                vector-effect="non-scaling-stroke"></polyline>
+      <circle cx="600" cy="40" r="5" fill="var(--color-secondary-default)" vector-effect="non-scaling-stroke"></circle>
+
+      {# Data Series 2 (Redfin Red) #}
+      <polyline points="0,220 150,200 300,180 450,190 600,140" 
+                fill="none" 
+                stroke="var(--color-tertiary-default)" 
+                stroke-width="3" 
+                stroke-linejoin="round" 
+                vector-effect="non-scaling-stroke"></polyline>
+      <circle cx="600" cy="140" r="5" fill="var(--color-tertiary-default)" vector-effect="non-scaling-stroke"></circle>
+
+    </svg>
+  </div>
+</div>

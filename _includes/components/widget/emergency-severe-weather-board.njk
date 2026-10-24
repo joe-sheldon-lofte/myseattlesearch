@@ -1,0 +1,89 @@
+<!-- File: _includes/components/widget/emergency-severe-weather-board.njk -->
+{% set demo_nws_alerts = [
+  {
+    type: "Special Weather Statement (Marine Fog)",
+    severity: "advisory",
+    agency: "National Weather Service Seattle, WA",
+    issued: "Today at 1:15 PM PDT",
+    expires: "Today at 9:00 PM PDT",
+    summary: "Dense marine fog with visibility down to one-quarter mile across northern Puget Sound and Admiralty Inlet waters.",
+    map_polygon: "47.78,-122.42;47.85,-122.45;47.83,-122.38"
+  }
+] %}
+
+{% set weather_alerts = nws_alerts | default(demo_nws_alerts) %}
+{% set alert_active = (weather_alerts and weather_alerts | length > 0) %}
+
+<section class="widget-card emergency-weather-card" style="padding: 1.5rem; width: 100%;">
+  
+  <details {% if alert_active %}open{% endif %} style="background: transparent; border: none; overflow: visible;">
+    
+    {# Dynamic Header #}
+    <summary style="list-style: none; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; gap: 0.75rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <span style="display: inline-flex; width: 28px; height: 28px; border-radius: 8px; align-items: center; justify-content: center; background: {% if alert_active %}rgba(217, 35, 42, 0.12){% else %}rgba(16, 185, 129, 0.12){% endif %};" aria-hidden="true">
+          {% if alert_active %}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-tertiary-default)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          {% else %}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          {% endif %}
+        </span>
+        <div>
+          <span class="text-overline" style="color: #86868b; font-size: 0.65rem;">NATIONAL WEATHER SERVICE FEED</span>
+          <h3 class="text-widget-title" style="margin: 0; font-size: 1.05rem;">
+            {% if alert_active %}⚠️ Weather Alert: Active ({{ weather_alerts | length }}){% else %}✅ No active severe weather alerts{% endif %}
+          </h3>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 0.75rem; font-weight: 700; color: {% if alert_active %}var(--color-tertiary-default){% else %}#059669{% endif %}; background: var(--color-background-universal); border: 1px solid var(--color-border-light); padding: 0.2rem 0.6rem; border-radius: 999px;">
+          {% if alert_active %}Advisory Active{% else %}Clear Skies / Normal{% endif %}
+        </span>
+        <span style="font-size: 0.85rem; color: #86868b;" aria-hidden="true">⌄</span>
+      </div>
+    </summary>
+
+    {# Alert Content Blocks #}
+    <div style="padding-top: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+      {% if alert_active %}
+        {% for a in weather_alerts %}
+          <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 10px; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem;">
+              <div>
+                <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--color-tertiary-default); margin: 0;">
+                  {{ a.type }}
+                </h4>
+                <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
+                  Issued by: <strong>{{ a.agency }}</strong>
+                </div>
+              </div>
+
+              <button type="button" 
+                      class="btn-weather-polygon" 
+                      onclick="const m=document.getElementById('city-interactive-map');if(m){m.scrollIntoView({behavior:'smooth'});}else{alert('Alert Polygon: {{ a.map_polygon }}');}" 
+                      style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 999px; padding: 0.2rem 0.6rem; font-size: 0.7rem; font-weight: 600; color: var(--color-secondary-default); cursor: pointer;">
+                View Alert Area on Map 📍
+              </button>
+            </div>
+
+            <p class="text-body" style="font-size: 0.85rem; line-height: 1.5; margin: 0.25rem 0;">
+              {{ a.summary }}
+            </p>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; border-top: 1px dashed var(--color-border-light); padding-top: 0.4rem;" class="text-body-secondary">
+              <span>Issued: <strong>{{ a.issued }}</strong></span>
+              <span>Expires: <strong>{{ a.expires }}</strong></span>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-body-secondary" style="font-size: 0.85rem; margin: 0; padding: 0.5rem 0;">
+          All regional meteorological sensors reporting stable baseline parameters across South Snohomish and North King counties.
+        </p>
+      {% endif %}
+    </div>
+
+  </details>
+
+</section>

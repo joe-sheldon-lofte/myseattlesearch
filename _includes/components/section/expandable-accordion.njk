@@ -1,0 +1,16 @@
+<!-- File: _includes/components/sections/expandable-accordion.njk -->
+{% macro expandableAccordion(id='accordion-block', initialText='Show More ⌄', expandedText='Show Less ⌃') %}
+<div class="expandable-wrapper" id="{{ id }}">
+  <div class="expandable-container" id="{{ id }}-inner">
+    {{ caller() }}
+    <div class="expandable-fade" aria-hidden="true"></div>
+  </div>
+  <button type="button" 
+          class="btn-expand" 
+          aria-expanded="false" 
+          aria-controls="{{ id }}-inner" 
+          onclick="const c = document.getElementById('{{ id }}-inner'); const exp = c.classList.toggle('is-expanded'); this.setAttribute('aria-expanded', exp); this.querySelector('.btn-expand-label').textContent = exp ? '{{ expandedText }}' : '{{ initialText }}';">
+    <span class="btn-expand-label">{{ initialText }}</span>
+  </button>
+</div>
+{% endmacro %}

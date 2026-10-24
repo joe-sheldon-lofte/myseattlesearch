@@ -1,0 +1,100 @@
+<!-- File: _includes/components/widget/quiz-results-view.njk -->
+{% set archetype_title = result_archetype_title | default("The Soundview Navigator") %}
+{% set archetype_subtitle = result_archetype_subtitle | default("The Maritime Community & Rail-Connected Strategist") %}
+{% set archetype_score_summary = result_archetype_summary | default("High alignment with coastal walking access, Sounder rail commuting, and mid-century architectural neighborhoods.") %}
+{% set match_city = result_match_city | default("Edmonds, WA") %}
+{% set share_url = result_share_url | default("https://myseattlesearch.com/quizzes/results/soundview-navigator/") %}
+
+<section class="widget-card quiz-results-view-card" style="padding: 2.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 2rem; box-sizing: border-box;">
+  
+  {# Hero Archetype Banner #}
+  <header style="text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 1.5rem;">
+    <span class="text-overline" style="color: var(--color-secondary-default); font-weight: 800; letter-spacing: 0.12em;">
+      RESULTS LOCKED IN • ARCHETYPE MATCH
+    </span>
+    <h1 class="text-display" style="font-size: 2.25rem; line-height: 1.2; margin: 0.25rem 0 0 0; color: var(--color-primary-default);">
+      {{ archetype_title }}
+    </h1>
+    <p class="text-body-secondary" style="font-size: 1.1rem; font-style: italic; margin: 0; color: var(--color-secondary-default);">
+      {{ archetype_subtitle }}
+    </p>
+  </header>
+
+  {# Social Share / Verification Card (Liquid Glass Summary) #}
+  <div style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 0.85rem;">
+      <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-secondary-default); flex-shrink: 0;" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="m4.93 4.93 4.24 4.24"/>
+          <path d="m14.83 9.17 4.24-4.24"/>
+          <path d="m14.83 14.83 4.24 4.24"/>
+          <path d="m9.17 14.83-4.24 4.24"/>
+          <circle cx="12" cy="12" r="4"/>
+        </svg>
+      </div>
+
+      <div>
+        <div class="text-overline" style="font-size: 0.65rem; color: #86868b;">PRIMARY REGIONAL MATCH</div>
+        <div style="font-size: 1rem; font-weight: 800; color: var(--color-primary-default);">
+          {{ match_city }}
+        </div>
+      </div>
+    </div>
+
+    <button type="button" 
+            class="btn-quiz-share" 
+            aria-label="Share your quiz results"
+            onclick="if(navigator.share){navigator.share({title:'My Neighborhood Match',text:'I matched with {{ archetype_title }} on MySeattleSearch!',url:'{{ share_url }}'})}else{navigator.clipboard.writeText('{{ share_url }}');alert('Result link copied to clipboard!');}"
+            style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1.15rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 999px; font-size: 0.8rem; font-weight: 700; color: var(--color-secondary-default); cursor: pointer; transition: all 0.2s ease;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      <span>Share Results</span>
+    </button>
+  </div>
+
+  {# Narrative Assessment #}
+  <div class="narrative-assessment text-body" style="font-size: 0.95rem; line-height: 1.7; display: flex; flex-direction: column; gap: 1.25rem;">
+    {% if result_narrative_content %}
+      {{ result_narrative_content | safe }}
+    {% else %}
+      <p>
+        Your responses indicate a strong preference for authentic community connection paired with multi-modal commuter independence. You value established tree-lined streets, salt breezes, and walkable village cores where daily essentials do not necessitate a highway drive. Rather than chasing generic square footage in distant subdivisions, you prioritize neighborhood character, local culinary independence, and public access to waterfront parks.
+      </p>
+      <p>
+        In the Puget Sound corridor, this profile aligns directly with the South Snohomish County shoreline and North King County perimeter. Communities like Edmonds and Shoreline offer the optimal intersection of quiet residential privacy and high-frequency transit spines—including the Sounder commuter rail and the Lynnwood Link Light Rail extension—allowing you to reach downtown employment hubs without compromising coastal weekend tranquility.
+      </p>
+    {% endif %}
+  </div>
+
+  {# Local Pro-Tip / Insight Box #}
+  <div class="widget-insight-box" style="background: var(--color-surface-gray); border-left: 4px solid var(--color-secondary-default); border-radius: 10px; padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.4rem;">
+    <div style="display: flex; align-items: center; gap: 0.4rem;">
+      <span style="font-size: 1rem;">💡</span>
+      <span class="text-overline" style="color: var(--color-secondary-default); font-weight: 800; font-size: 0.7rem;">
+        LOCAL PRO-TIP • REAL ESTATE MICRO-INSIGHT
+      </span>
+    </div>
+    <p class="text-body" style="font-size: 0.9rem; line-height: 1.55; margin: 0; color: var(--color-primary-default);">
+      {{ result_protip | default("When shopping the $750k–$950k starter and move-up tiers in Edmonds and Shoreline, homes situated west of Highway 99 absorb in an average of 8 days. Work with a lender who can fully underwrite your loan upfront so you can waive financing contingencies with confidence.") }}
+    </p>
+  </div>
+
+  {# Conversion Line Footer #}
+  <footer style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; padding-top: 1.25rem; border-top: 1px solid var(--color-border-light); font-size: 0.85rem;">
+    <div class="text-body-secondary">
+      Want to explore live listings matching this profile?
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <a href="tel:2066577493" 
+         style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 1.15rem; background: var(--color-secondary-default); color: #FFFFFF; border-radius: 999px; font-weight: 700; text-decoration: none;">
+        <span>Call Joe: (206) 657-7493</span>
+      </a>
+      <a href="/communities/edmonds/" 
+         style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 1rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); color: var(--color-primary-default); border-radius: 999px; font-weight: 600; text-decoration: none;">
+        <span>Explore {{ match_city }}</span>
+        <span aria-hidden="true">→</span>
+      </a>
+    </div>
+  </footer>
+
+</section>

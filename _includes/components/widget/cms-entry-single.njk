@@ -1,0 +1,101 @@
+<!-- File: _includes/components/widget/cms-entry-single.njk -->
+{% set entry_type = single_entry_type | default("ARTICLE") %}
+{% set entry_title = single_entry_title | default("Navigating Snohomish County Property Tax Reassessments: A 5-Year Empirical Review") %}
+{% set entry_excerpt = single_entry_excerpt | default("Assessor data reveals how local school capital bonds, EMS renewals, and municipal transportation levies are shifting residential tax burdens.") %}
+{% set entry_date = single_entry_date | default("October 20, 2026") %}
+{% set entry_author = single_entry_author | default("Joe Sheldon") %}
+{% set entry_back_url = single_entry_back_url | default("/notebook/") %}
+
+<article class="widget-card cms-single-entry-card" style="padding: 2.25rem; width: 100%; border-radius: var(--border-radius-squircle); display: flex; flex-direction: column; gap: 1.75rem;">
+  
+  {# Top Navigation Bar #}
+  <nav aria-label="Entry Navigation" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 1rem;">
+    <a href="{{ entry_back_url }}" class="text-action" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 700; color: var(--color-secondary-default); text-decoration: none;">
+      <span aria-hidden="true">←</span>
+      <span>Back to Notebook</span>
+    </a>
+    <span class="text-body-secondary" style="font-size: 0.75rem; font-style: italic;">
+      Viewing {{ entry_type | capitalize }} Permalink
+    </span>
+  </nav>
+
+  {# Header Area #}
+  <header style="display: flex; flex-direction: column; gap: 0.75rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <span class="text-overline" style="color: {% if entry_type == 'ARTICLE' %}var(--color-tertiary-default){% else %}var(--color-secondary-default){% endif %}; font-weight: 800;">
+        {{ entry_type }}
+      </span>
+      <span style="font-size: 0.75rem; color: #86868b;">•</span>
+      <time class="text-body-secondary" style="font-size: 0.75rem;">
+        {{ entry_date }}
+      </time>
+    </div>
+
+    <h1 class="text-widget-title" style="font-size: 1.75rem; line-height: 1.3; margin: 0; color: var(--color-primary-default);">
+      {{ entry_title }}
+    </h1>
+
+    {% if entry_excerpt %}
+      <p class="text-body-secondary" style="font-size: 1.05rem; font-style: italic; line-height: 1.55; margin: 0;">
+        {{ entry_excerpt }}
+      </p>
+    {% endif %}
+  </header>
+
+  {# Optional Featured Media Viewport #}
+  {% if single_entry_image %}
+    <div style="width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: var(--color-surface-gray); border: 1px solid var(--color-border-light);">
+      <img src="{{ single_entry_image }}" alt="{{ entry_title }}" loading="lazy" decoding="async" style="width: 100%; height: 100%; object-fit: cover;">
+    </div>
+  {% endif %}
+
+  {# Main Body Copy #}
+  <div class="cms-entry-body text-body" style="font-size: 1rem; line-height: 1.7; display: flex; flex-direction: column; gap: 1.25rem;">
+    {% if single_entry_content %}
+      {{ single_entry_content | safe }}
+    {% else %}
+      <p>
+        Every cycle, Puget Sound property owners receive updated county assessor statements that trigger immediate concerns about escalating monthly mortgage escrow impounds. Across Snohomish and North King counties, the relationship between home assessed value and actual tax liability is governed by budget-based levy formulas rather than simple percentage tax rates.
+      </p>
+      <p>
+        When a voter-approved bond or emergency medical service (EMS) levy is enacted, the taxing district collects a fixed dollar amount distributed across the aggregate taxable value of all parcels in that jurisdiction. Consequently, if your assessed value increases at the same rate as your neighbors, your tax rate remains relatively stable. Tax spikes typically occur when hyper-local commercial or transit rezoning disproportionately adjusts residential values along arterial corridors.
+      </p>
+      <p>
+        For buyers shopping starter homes or condominiums in Edmonds, Lynnwood, and Shoreline, analyzing 5-year historical levy rate trajectories provides a far more accurate financial picture than looking at a single year's MLS listing property tax disclosure.
+      </p>
+    {% endif %}
+  </div>
+
+  {# Embedded Link Preview (if provided) #}
+  {% if single_entry_preview_url %}
+    {% set link_preview_url = single_entry_preview_url %}
+    {% set link_preview_domain = single_entry_preview_domain %}
+    {% set link_preview_title = single_entry_preview_title %}
+    {% include "components/widget/cms-widget-linkpreview.njk" ignore missing %}
+  {% endif %}
+
+  {# Footer Metadata & Conversion Bar #}
+  <footer style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; padding-top: 1.25rem; border-top: 1px solid var(--color-border-light); font-size: 0.85rem;">
+    <div style="display: flex; align-items: center; gap: 0.65rem;">
+      <div style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); flex-shrink: 0;">
+        <img src="/assets/images/joe-sheldon-headshot.webp" alt="{{ entry_author }}" width="36" height="36" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
+      </div>
+      <div>
+        <span style="font-weight: 700; color: var(--color-primary-default);">By {{ entry_author }}</span>
+        <div class="text-body-secondary" style="font-size: 0.7rem;">Senior Real Estate Agent • Redfin</div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <a href="tel:2066577493" 
+         style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 1rem; background: var(--color-secondary-default); color: #FFFFFF; border-radius: 999px; font-weight: 700; text-decoration: none;">
+        <span>Call Joe: (206) 657-7493</span>
+      </a>
+      <a href="sms:+12066577493" 
+         style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.85rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); color: var(--color-primary-default); border-radius: 999px; font-weight: 600; text-decoration: none;">
+        <span>Text</span>
+      </a>
+    </div>
+  </footer>
+
+</article>

@@ -1,0 +1,58 @@
+<!-- File: _includes/components/scores/custom-score.njk -->
+<div class="widget-card custom-score-card" style="display: flex; flex-direction: column; align-items: center; text-align: center; position: relative;">
+  
+  {# Header Row: Overline Category & Accessible Info Trigger Button #}
+  <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <span class="text-overline">{{ score_category | default("Score") }}</span>
+    <button type="button" 
+            class="btn-info-trigger" 
+            aria-label="View methodology for {{ score_category | default('this score') }}" 
+            onclick="document.getElementById('dialog-{{ score_id | default('score') }}').showModal();">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+      </svg>
+    </button>
+  </div>
+
+  {# SVG Radial Ring: Circumference = 2 * PI * 36 ≈ 226.2 #}
+  <div style="position: relative; width: 100px; height: 100px; margin: 0.5rem auto;">
+    <svg width="100" height="100" viewBox="0 0 100 100" style="transform: rotate(-90deg);" aria-hidden="true">
+      <circle cx="50" cy="50" r="36" stroke="var(--color-border-light)" stroke-width="8" fill="transparent"></circle>
+      <circle cx="50" cy="50" r="36" stroke="var(--color-secondary-default)" stroke-width="8" fill="transparent"
+              stroke-dasharray="226.2"
+              stroke-dashoffset="{{ 226.2 - (226.2 * (score_value | default(0))) / 100 }}"
+              stroke-linecap="round"
+              style="transition: stroke-dashoffset 0.6s ease;"></circle>
+    </svg>
+    <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+      <span class="text-data-huge" style="font-size: 2rem;">{{ score_value | default("--") }}</span>
+    </div>
+  </div>
+
+  {# Score Label Pill #}
+  <div style="margin-top: 1rem;">
+    <span style="display: inline-block; padding: 0.25rem 0.75rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 999px; font-size: 0.8rem; font-weight: 700; color: var(--color-secondary-default);">
+      {{ score_label | default("Standard") }}
+    </span>
+  </div>
+
+  {# Subtext Details #}
+  {% if score_details %}
+  <p class="text-body-secondary" style="margin-top: 0.75rem; font-size: 0.85rem;">
+    {{ score_details }}
+  </p>
+  {% endif %}
+
+  {# Accessible Native HTML5 Popover Dialog #}
+  <dialog id="dialog-{{ score_id | default('score') }}" class="info-dialog">
+    <button type="button" class="btn-dialog-close" aria-label="Close details" onclick="document.getElementById('dialog-{{ score_id | default('score') }}').close();">✕</button>
+    <div class="text-overline" style="margin-bottom: 0.5rem;">{{ score_category | default("Methodology") }}</div>
+    <h3 class="text-widget-title">{{ tooltip_title | default(score_category) }}</h3>
+    <div class="text-body-secondary" style="margin-top: 1rem; line-height: 1.6;">
+      {{ tooltip_body | default("Data derived from municipal and regional public data feeds.") }}
+    </div>
+  </dialog>
+
+</div>

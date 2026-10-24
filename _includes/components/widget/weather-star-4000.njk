@@ -1,0 +1,50 @@
+<!-- File: _includes/components/widget/weather-star-4000.njk -->
+<div class="retro-ws4000-shell" style="background: linear-gradient(180deg, #000080 0%, #00004d 100%); color: #FFFFFF; font-family: 'Courier New', Courier, monospace; border-radius: var(--border-radius-squircle); padding: 1.5rem; position: relative; overflow: hidden; box-shadow: inset 0 0 24px rgba(0,0,0,0.6), 0 8px 32px rgba(0,0,0,0.25); border: 2px solid #38bdf8;">
+
+  {# Subtle Scanline Effect #}
+  <div style="position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15), rgba(0,0,0,0.15) 2px, transparent 2px, transparent 4px); pointer-events: none;" aria-hidden="true"></div>
+
+  {# Retro Top Title Bar #}
+  <div style="position: relative; z-index: 1; border-bottom: 2px solid #facc15; padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: baseline;">
+    <span style="color: #facc15; font-weight: 900; letter-spacing: 0.1em; font-size: 1.05rem; text-transform: uppercase;">
+      {{ ws_title | default("PUGET SOUND REGIONAL CONDITIONS") }}
+    </span>
+    <span style="color: #38bdf8; font-size: 0.85rem; font-weight: bold;">
+      {{ ws_station | default("STA: 98033") }}
+    </span>
+  </div>
+
+  {# Main Grid Display #}
+  <div style="position: relative; z-index: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin: 1.5rem 0;">
+    
+    {# Left: Major Reading #}
+    <div>
+      <div style="color: #38bdf8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Current Temperature</div>
+      <div style="font-size: 3.5rem; font-weight: 900; color: #FFFFFF; line-height: 1; text-shadow: 2px 2px #000000;">
+        {{ ws_temp | default("54°F") }}
+      </div>
+      <div style="color: #facc15; font-size: 0.95rem; margin-top: 0.5rem; font-weight: bold; text-transform: uppercase;">
+        {{ ws_condition | default("PARTLY CLOUDY") }}
+      </div>
+    </div>
+
+    {# Right: Dense Atmospheric Stats #}
+    <div style="display: flex; flex-direction: column; justify-content: center; gap: 0.35rem; font-size: 0.9rem;">
+      <div><span style="color: #38bdf8;">HUMIDITY:</span> {{ ws_humidity | default("72%") }}</div>
+      <div><span style="color: #38bdf8;">DEW POINT:</span> {{ ws_dew | default("45°F") }}</div>
+      <div><span style="color: #38bdf8;">BAROMETER:</span> {{ ws_baro | default("30.04 inR") }}</div>
+      <div><span style="color: #38bdf8;">WIND:</span> {{ ws_wind | default("NW 6 MPH") }}</div>
+      <div><span style="color: #38bdf8;">CEILING:</span> {{ ws_ceiling | default("UNLIMITED") }}</div>
+    </div>
+
+  </div>
+
+  {# Bottom Crawl Ticker #}
+  <div style="position: relative; z-index: 1; background: #000022; border-top: 2px solid #facc15; padding: 0.5rem 0.75rem; margin: 0 -1.5rem -1.5rem -1.5rem; display: flex; align-items: center; gap: 0.75rem; font-size: 0.8rem; overflow: hidden; white-space: nowrap;">
+    <span style="background: #facc15; color: #000000; padding: 0.15rem 0.4rem; font-weight: bold; border-radius: 2px;">TICKER</span>
+    <span style="color: #FFFFFF; letter-spacing: 0.05em;">
+      {{ ws_ticker | default("KINGSTON FERRIES RUNNING ON ADVERTISED SCHEDULE • HIGH TIDE 11:24 AM +8.4 FT • SUNSET 6:18 PM") }}
+    </span>
+  </div>
+
+</div>

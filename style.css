@@ -1,7 +1,7 @@
 /* File: style.css */
 
 /* ==========================================================================
-   1. GLOBAL DESIGN TOKENS (From UI Upgrade.xlsx)
+   1. GLOBAL DESIGN TOKENS
    ========================================================================== */
 :root {
   /* Brand Colors */
@@ -9,20 +9,19 @@
   --color-primary-default: #1C1C1E; /* Premier Gray (Text) */
   --color-secondary-default: #1E4D6B; /* Alpine Blue (Primary Accent) */
   --color-tertiary-default: #D9232A; /* Redfin Red (Alerts/Secondary) */
-  --color-surface-gray: #F5F5F7; /* Apple-esque light gray for cards/sections */
+  --color-surface-gray: #F5F5F7; /* Apple-esque light gray */
   --color-border-light: rgba(0, 0, 0, 0.08);
 
-  /* Typography / Font Stacks (style.font.default & style.font.script) */
+  /* Typography / Font Stacks */
   --font-default: -apple-system, BlinkMacSystemFont, "Plus Jakarta Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-script: "Dancing Script", cursive;
 
   /* Spacing & Layout */
-  --layout-max-width: 1200px; /* Constrains desktop width so it doesn't look wonky */
+  --layout-max-width: 1200px; 
   --spacing-widget-padding: 24px;
-  --border-radius-squircle: 18px; /* Apple-style rounded corners */
+  --border-radius-squircle: 18px; 
 }
 
-/* Base Reset & Application */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -36,29 +35,23 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden; /* Prevents horizontal scroll on the main body */
+  overflow-x: hidden; 
 }
 
 /* ==========================================================================
-   2. TYPOGRAPHY SYSTEM (Fluid scaling via Clamp)
+   2. TYPOGRAPHY SYSTEM 
    ========================================================================== */
-
-/* style.text.heading.display (Hero Title) */
 .text-display {
-  font-size: clamp(2.5rem, 5vw + 1rem, 4.5rem); /* Scales smoothly */
+  font-size: clamp(2.5rem, 5vw + 1rem, 4.5rem); 
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.1;
 }
-
-/* style.text.heading.page (Standard H1) */
 .text-page-title {
   font-size: clamp(2rem, 3vw + 1rem, 3rem);
   font-weight: 700;
   letter-spacing: -0.015em;
 }
-
-/* style.text.heading.section (H2) */
 .text-section-title {
   font-size: clamp(1.5rem, 2vw + 1rem, 2.25rem);
   font-weight: 600;
@@ -67,32 +60,24 @@ body {
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--color-border-light);
 }
-
-/* style.text.heading.widget (H3 Card Title) */
 .text-widget-title {
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
-
-/* style.text.data.huge (Primary Metric) */
 .text-data-huge {
   font-size: clamp(2.5rem, 4vw + 1rem, 4rem);
   font-weight: 700;
-  color: var(--color-secondary-default); /* Alpine Blue */
+  color: var(--color-secondary-default); 
   line-height: 1;
 }
-
-/* style.text.label.overline (UI Sub-label) */
 .text-overline {
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #6E6E73; /* Apple secondary text gray */
+  color: #6E6E73; 
 }
-
-/* style.text.body.primary & secondary */
 .text-body {
   font-size: 1rem;
   color: var(--color-primary-default);
@@ -103,46 +88,13 @@ body {
 }
 
 /* ==========================================================================
-   3. LAYOUT & CONTAINERS (style.layout.container.standard)
+   3. LAYOUT & CONTAINERS
    ========================================================================== */
-
-/* The primary structural wrapper to keep content centered and constrained */
 .layout-container {
   width: 100%;
   max-width: var(--layout-max-width);
   margin: 0 auto;
-  padding: 0 1.5rem; /* Safe area for mobile edges */
-}
-
-/* ==========================================================================
-   4. SECTIONS (Infinite Horizontal Scroll Rows)
-   ========================================================================== */
-
-/* 
-  section.infinite.horizontal.scroll
-  This creates the "swipeable row" of cards (like Apple's App Store or Netflix).
-  It uses full bleed on the right edge, but respects the left container padding.
-*/
-.horizontal-scroll-section {
-  display: flex;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  gap: 1.5rem;
-  padding-bottom: 1.5rem; /* Room for drop shadows */
-  
-  /* Hide scrollbar for a clean look */
-  scrollbar-width: none; 
-}
-.horizontal-scroll-section::-webkit-scrollbar {
-  display: none; 
-}
-
-/* The individual cards inside a scrolling section */
-.horizontal-scroll-item {
-  flex: 0 0 auto; /* Don't shrink, determine width based on content */
-  scroll-snap-align: start;
-  width: 280px; /* Default width for a mobile card */
+  padding: 0 1.5rem; 
 }
 
 /* Base Widget Squircle Card */
@@ -154,7 +106,127 @@ body {
   border: 1px solid var(--color-border-light);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.widget-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+
+/* ==========================================================================
+   4. SECTIONS: STATIC FLUID GRIDS (section.grid.static)
+   ========================================================================== */
+.section-grid-static {
+  display: grid;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+.grid-cols-1 { grid-template-columns: 1fr; }
+.grid-cols-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.grid-cols-3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.grid-cols-4 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+
+/* ==========================================================================
+   5. SECTIONS: HORIZONTAL SCROLL (section.infinite.horizontal.scroll)
+   ========================================================================== */
+.horizontal-scroll-section {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  gap: 1.5rem;
+  padding-bottom: 1.5rem; 
+  scrollbar-width: none; 
+}
+.horizontal-scroll-section::-webkit-scrollbar {
+  display: none; 
+}
+.horizontal-scroll-item {
+  flex: 0 0 auto; 
+  scroll-snap-align: start;
+}
+/* Variants */
+.scroll-variant-small .horizontal-scroll-item { width: 220px; }
+.scroll-variant-medium .horizontal-scroll-item { width: 320px; }
+.scroll-variant-large .horizontal-scroll-item { width: 85%; max-width: 600px; }
+
+/* ==========================================================================
+   6. SECTIONS: EXPANDABLE ACCORDION (section.expandable.accordion)
+   ========================================================================== */
+.expandable-container {
+  position: relative;
+  overflow: hidden;
+  transition: max-height 0.4s ease;
+  max-height: 240px; /* Collapsed state */
+}
+.expandable-container.is-expanded {
+  max-height: 5000px; /* Open state */
+}
+.expandable-fade {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 80px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0), var(--color-background-universal));
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.expandable-container.is-expanded .expandable-fade {
+  opacity: 0;
+}
+.btn-expand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-surface-gray);
+  color: var(--color-secondary-default);
+  border: none;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   7. SCORES & INFO POPOVERS (Native <dialog> Elements)
+   ========================================================================== */
+/* The info trigger button on the card */
+.btn-info-trigger {
+  background: none;
+  border: none;
+  color: #86868b;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: inline-flex;
+}
+.btn-info-trigger:hover { color: var(--color-secondary-default); }
+
+/* The Native Dialog Popup */
+.info-dialog {
+  margin: auto;
+  padding: 2rem;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-squircle);
+  background: var(--color-background-universal);
+  color: var(--color-primary-default);
+  max-width: 400px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  /* Triggers a smooth fade-in */
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.info-dialog[open] {
+  opacity: 1;
+  transform: translateY(0);
+}
+.info-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.btn-dialog-close {
+  position: absolute;
+  top: 1rem; right: 1rem;
+  background: var(--color-surface-gray);
+  border: none;
+  border-radius: 50%;
+  width: 32px; height: 32px;
+  cursor: pointer;
+  font-weight: bold;
 }

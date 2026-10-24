@@ -1,0 +1,73 @@
+<!-- File: _includes/components/widget/neighborhood-editorial.njk -->
+{% set ep_num = editorial_ep_number | default("EP1") %}
+{% set ep_title = editorial_title | default("Living & Investing in Edmonds: Coastal Transit, Community Character, and Market Realities") %}
+{% set ep_author = editorial_author | default("Joe Sheldon") %}
+{% set ep_date = editorial_date | default("Updated October 2026") %}
+
+<article class="widget-card neighborhood-editorial-card" style="padding: 2rem; width: 100%; border-radius: var(--border-radius-squircle); display: flex; flex-direction: column; gap: 1.5rem;">
+  
+  {# Header Row #}
+  <header style="border-bottom: 1px solid var(--color-border-light); padding-bottom: 1.25rem;">
+    <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+      <span class="text-overline" style="color: var(--color-secondary-default);">
+        NEIGHBORHOOD INSIGHTS • {{ ep_num }}
+      </span>
+      <span class="text-body-secondary" style="font-size: 0.75rem; font-family: monospace;">
+        {{ ep_date }}
+      </span>
+    </div>
+
+    <h2 class="text-widget-title" style="font-size: 1.45rem; line-height: 1.35; margin: 0; color: var(--color-primary-default);">
+      {{ ep_title }}
+    </h2>
+
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 1rem;">
+      <div style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); flex-shrink: 0;">
+        <img src="/assets/images/joe-sheldon-headshot.webp" alt="{{ ep_author }}" width="36" height="36" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
+      </div>
+      <div style="font-size: 0.85rem;">
+        <span style="font-weight: 700; color: var(--color-primary-default);">{{ ep_author }}</span>
+        <span class="text-body-secondary"> • Senior Real Estate Agent, Redfin</span>
+      </div>
+    </div>
+  </header>
+
+  {# Long-Form Continuous Reading Prose (~4 Paragraphs) #}
+  <div class="editorial-prose text-body" style="line-height: 1.7; font-size: 0.95rem; display: flex; flex-direction: column; gap: 1.25rem; color: var(--color-primary-default);">
+    {% if editorial_content %}
+      {{ editorial_content | safe }}
+    {% else %}
+      <p>
+        Edmonds occupies one of the most distinctive geographic pockets in the greater Puget Sound basin. Positioned along the saltwater shoreline of Possession Sound, the community marries historic bowl architecture and pedestrian-friendly beach access with immediate commuter transit spines. Whether taking the Sounder commuter rail south into downtown Seattle's King Street Station or utilizing the high-frequency Swift Orange bus rapid transit to connect with Link Light Rail at Lynnwood City Center, residents experience genuine multi-modal flexibility that is rare in North Sound suburban enclaves.
+      </p>
+      <p>
+        From a housing supply standpoint, the local residential landscape remains defined by intense structural scarcity. With saltwater to the west, established municipal boundaries to the north and south, and mature mid-century residential neighborhoods across the plateau, new single-family building parcels are exceptionally scarce. Consequently, buyer demand in the median entry bands between $750,000 and $1,100,000 moves at high velocity, with well-prepared, fully underwritten buyers securing preferred contingencies against multiple offer competition.
+      </p>
+      <p>
+        Meanwhile, ongoing municipal code revisions surrounding Washington's missing-middle housing legislation are opening deliberate infill opportunities near key commercial corridors like Highway 99 and the Westgate business district. For homeowners evaluating long-term equity planning, accessory dwelling units (DADUs) and low-profile duplex additions are reshaping the neighborhood preservation conversation—balancing the timeless maritime character of the Edmonds Bowl with modernized housing supply for multi-generational families.
+      </p>
+      <p>
+        Whether you are actively tracking daily closed MLS transactions, analyzing property tax stability, or planning a strategic sale to maximize your net proceeds, hyper-local data provides the competitive edge. Understanding the nuanced neighborhood micro-climates—from the salt breezes of Olympic Beach to the quiet tree-lined streets of Seaview and Meadowdale—is fundamental to making confident, well-timed real estate investments in this community.
+      </p>
+    {% endif %}
+  </div>
+
+  {# Conversion Line Footer #}
+  <footer style="margin-top: 0.5rem; padding-top: 1.25rem; border-top: 1px solid var(--color-border-light); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; font-size: 0.85rem;">
+    <div class="text-body-secondary">
+      Have questions about this neighborhood? <strong style="color: var(--color-primary-default);">Let's discuss local strategy.</strong>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <a href="tel:2066577493" 
+         style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 1rem; background: var(--color-secondary-default); color: #FFFFFF; border-radius: 999px; font-weight: 700; text-decoration: none;">
+        <span>Call Joe: (206) 657-7493</span>
+      </a>
+      <a href="sms:+12066577493" 
+         style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.85rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); color: var(--color-primary-default); border-radius: 999px; font-weight: 600; text-decoration: none;">
+        <span>Text</span>
+      </a>
+    </div>
+  </footer>
+
+</article>

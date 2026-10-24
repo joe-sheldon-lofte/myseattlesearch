@@ -1,0 +1,59 @@
+<!-- File: _includes/components/widget/sports-game-summary.njk -->
+{% set game_league = game_summary_league | default("MLB") %}
+{% set game_date = game_summary_date | default("Today, Oct 23") %}
+{% set game_status = game_summary_status | default("FINAL") %}
+{% set team_local = game_summary_team_local | default("Seattle Mariners") %}
+{% set score_local = game_summary_score_local | default("5") %}
+{% set team_away = game_summary_team_away | default("Texas Rangers") %}
+{% set score_away = game_summary_score_away | default("3") %}
+{% set venue_location = game_summary_venue | default("T-Mobile Park, Seattle, WA") %}
+{% set is_in_progress = (game_status | upper == "IN PROGRESS") %}
+
+<div class="widget-card sports-game-summary-card" style="padding: 1.25rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; gap: 0.85rem; box-sizing: border-box;">
+  
+  {# Header Row: League, Date & Status #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.5rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <span class="text-overline" style="color: var(--color-secondary-default); font-weight: 800; font-size: 0.7rem;">
+        {{ game_league }}
+      </span>
+      <span style="font-size: 0.75rem; color: #86868b;">•</span>
+      <span class="text-body-secondary" style="font-size: 0.75rem;">
+        {{ game_date }}
+      </span>
+    </div>
+
+    <span style="display: inline-block; padding: 0.2rem 0.55rem; border-radius: 999px; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.05em; {% if is_in_progress %}background: rgba(30, 77, 107, 0.12); color: var(--color-secondary-default); border: 1px solid rgba(30, 77, 107, 0.25);{% else %}background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.25);{% endif %}">
+      {{ game_status }}
+    </span>
+  </div>
+
+  {# Matchup Scores #}
+  <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+    {# Local Team Row #}
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 0.95rem; font-weight: 800; color: var(--color-primary-default);">
+        {{ team_local }}
+      </span>
+      <span class="text-data-huge" style="font-size: 1.35rem; font-weight: 800; font-family: monospace; color: var(--color-primary-default); line-height: 1;">
+        {{ score_local }}
+      </span>
+    </div>
+
+    {# Away Team Row #}
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span class="text-body-secondary" style="font-size: 0.9rem; font-weight: 600;">
+        {{ team_away }}
+      </span>
+      <span class="text-data-huge" style="font-size: 1.35rem; font-weight: 800; font-family: monospace; color: #86868b; line-height: 1;">
+        {{ score_away }}
+      </span>
+    </div>
+  </div>
+
+  {# Venue & Ballpark Footer #}
+  <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.5rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem;" class="text-body-secondary">
+    <span>📍 {{ venue_location }}</span>
+  </div>
+
+</div>

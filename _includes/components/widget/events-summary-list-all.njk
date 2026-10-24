@@ -1,0 +1,164 @@
+<!-- File: _includes/components/widget/events-summary-list-all.njk -->
+{% set default_all_events = [
+  {
+    category: "civic",
+    month: "AUG",
+    day: "20",
+    title: "Edmonds Third Thursday Art Walk",
+    venue: "Downtown Edmonds Commercial District",
+    time: "5:00 PM – 8:00 PM",
+    details: "Stroll participating galleries, design studios, and local shops featuring regional artists, live acoustic music, and local tastings.",
+    calendar_url: "webcal://myseattlesearch.com/events/edmonds-art-walk.ics"
+  },
+  {
+    category: "workshop",
+    month: "AUG",
+    day: "22",
+    title: "Homebuyer Readiness & Down Payment Assistance Strategy Workshop",
+    venue: "Lynnwood Library Meeting Room / Online Webinar",
+    time: "10:00 AM – 11:30 AM",
+    details: "Senior Real Estate Agent Joe Sheldon and lending partners present qualifying formulas for Washington State DPA programs and local inventory strategies.",
+    calendar_url: "webcal://myseattlesearch.com/events/homebuyer-workshop.ics"
+  },
+  {
+    category: "community",
+    month: "AUG",
+    day: "23",
+    title: "Edmonds Waterfront Summer Concert Series",
+    venue: "City Park Rotary Pavilion",
+    time: "3:00 PM – 5:00 PM",
+    details: "Free outdoor lawn concert featuring Puget Sound brass and jazz performers. Lawn chairs and picnic blankets encouraged.",
+    calendar_url: "webcal://myseattlesearch.com/events/summer-concert.ics"
+  },
+  {
+    category: "civic",
+    month: "AUG",
+    day: "25",
+    title: "City Council Public Hearing: Shoreline Ecology & Zoning Master Plan",
+    venue: "Edmonds Municipal Council Chambers",
+    time: "7:00 PM",
+    details: "Citizen commentary session regarding coastal resilience investments and sensitive marshland preservation standards.",
+    calendar_url: "webcal://myseattlesearch.com/events/council-hearing.ics"
+  },
+  {
+    category: "community",
+    month: "AUG",
+    day: "29",
+    title: "Salish Sea Puget Sound Tidepool Ecology Tour",
+    venue: "Olympic Beach Visitor Station",
+    time: "9:00 AM – 11:00 AM",
+    details: "Low-tide marine walk led by certified naturalists exploring Puget Sound invertebrates, eelgrass habitats, and coastal conservation.",
+    calendar_url: "webcal://myseattlesearch.com/events/ecology-tour.ics"
+  },
+  {
+    category: "sports",
+    month: "SEP",
+    day: "05",
+    title: "Sounder Commuter Rail Morning 5K Fun Run",
+    venue: "Edmonds Station Transit Plaza",
+    time: "8:30 AM",
+    details: "Annual community 5K flat course running along Railroad Avenue and Sunset Avenue with views across Possession Sound.",
+    calendar_url: "webcal://myseattlesearch.com/events/sounder-5k.ics"
+  }
+] %}
+
+<section class="widget-card events-summary-list-all-card" style="padding: 1.75rem; width: 100%;">
+  
+  {# Header Row #}
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 1rem;">
+    <div>
+      <span class="text-overline">CIVIC & COMMUNITY SCHEDULE</span>
+      <h3 class="text-widget-title" style="margin-top: 0.25rem;">
+        {{ all_events_heading | default("Full Calendar of Events & Workshops") }}
+      </h3>
+    </div>
+    <div class="text-body-secondary" style="font-size: 0.8rem; font-weight: 600;">
+      Filter by Event Type
+    </div>
+  </div>
+
+  {# Category Filter Toggles #}
+  <div class="events-filter-pills" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem;" role="tablist" aria-label="Filter events by type">
+    <button type="button" class="btn-ev-pill active" data-filter="all" style="padding: 0.4rem 0.9rem; border-radius: 999px; border: 1px solid var(--color-secondary-default); background: var(--color-secondary-default); color: #FFFFFF; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">All Events</button>
+    <button type="button" class="btn-ev-pill" data-filter="civic" style="padding: 0.4rem 0.9rem; border-radius: 999px; border: 1px solid var(--color-border-light); background: var(--color-background-universal); color: var(--color-primary-default); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">Civic</button>
+    <button type="button" class="btn-ev-pill" data-filter="workshop" style="padding: 0.4rem 0.9rem; border-radius: 999px; border: 1px solid var(--color-border-light); background: var(--color-background-universal); color: var(--color-primary-default); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">Workshops</button>
+    <button type="button" class="btn-ev-pill" data-filter="community" style="padding: 0.4rem 0.9rem; border-radius: 999px; border: 1px solid var(--color-border-light); background: var(--color-background-universal); color: var(--color-primary-default); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">Community</button>
+    <button type="button" class="btn-ev-pill" data-filter="sports" style="padding: 0.4rem 0.9rem; border-radius: 999px; border: 1px solid var(--color-border-light); background: var(--color-background-universal); color: var(--color-primary-default); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">Sports</button>
+  </div>
+
+  {# Event Items #}
+  <div class="events-list-container" style="display: flex; flex-direction: column;">
+    {% for ev in all_events_items | default(default_all_events) %}
+      <article class="event-item-row" data-category="{{ ev.category }}" style="display: flex; align-items: flex-start; gap: 1.25rem; padding: 1.25rem 0; {% if not loop.last %}border-bottom: 1px solid var(--color-border-light);{% endif %} transition: opacity 0.2s ease;">
+        
+        {# Date Badge #}
+        <div style="flex-shrink: 0; width: 62px; height: 62px; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+          <span style="font-size: 0.65rem; font-weight: 800; color: var(--color-tertiary-default); letter-spacing: 0.05em; line-height: 1;">{{ ev.month }}</span>
+          <span style="font-size: 1.4rem; font-weight: 800; color: var(--color-primary-default); line-height: 1.1; margin-top: 0.15rem;">{{ ev.day }}</span>
+        </div>
+
+        {# Event Details #}
+        <div style="flex-grow: 1; min-width: 0;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+            <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--color-secondary-default); background: rgba(30,77,107,0.08); padding: 0.15rem 0.45rem; border-radius: 4px;">{{ ev.category }}</span>
+            <span class="text-body-secondary" style="font-size: 0.75rem;">{{ ev.time }}</span>
+          </div>
+
+          <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--color-primary-default); margin-bottom: 0.35rem;">
+            {{ ev.title }}
+          </h4>
+
+          <div class="text-body-secondary" style="font-size: 0.8rem; margin-bottom: 0.5rem; font-weight: 500;">
+            📍 {{ ev.venue }}
+          </div>
+
+          {% if ev.details %}
+            <p class="text-body-secondary" style="font-size: 0.85rem; line-height: 1.5; margin-bottom: 0.75rem;">
+              {{ ev.details }}
+            </p>
+          {% endif %}
+
+          <div>
+            <a href="{{ ev.calendar_url }}" 
+               style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 600; color: var(--color-secondary-default); text-decoration: none;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><line x1="12" x2="12" y1="14" y2="18"/><line x1="10" x2="14" y1="16" y2="16"/></svg>
+              <span>Add to Calendar</span>
+            </a>
+          </div>
+        </div>
+
+      </article>
+    {% endfor %}
+  </div>
+
+  <script>
+    (function() {
+      const pills = document.querySelectorAll('.events-filter-pills .btn-ev-pill');
+      const items = document.querySelectorAll('.event-item-row');
+      pills.forEach(pill => {
+        pill.addEventListener('click', function() {
+          pills.forEach(p => {
+            p.style.background = 'var(--color-background-universal)';
+            p.style.color = 'var(--color-primary-default)';
+            p.style.borderColor = 'var(--color-border-light)';
+            p.classList.remove('active');
+          });
+          this.style.background = 'var(--color-secondary-default)';
+          this.style.color = '#FFFFFF';
+          this.style.borderColor = 'var(--color-secondary-default)';
+          this.classList.add('active');
+
+          const filter = this.getAttribute('data-filter');
+          items.forEach(item => {
+            if (filter === 'all' || item.getAttribute('data-category') === filter) {
+              item.style.display = 'flex';
+            } else {
+              item.style.display = 'none';
+            }
+          });
+        });
+      });
+    })();
+  </script>
+
+</section>

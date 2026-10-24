@@ -1,0 +1,113 @@
+<!-- File: _includes/components/widget/drawer-action-contact.njk -->
+{% set agent_phone = "(206) 657-7493" %}
+{% set agent_tel = "2066577493" %}
+{% set agent_email = "joe.sheldon@redfin.com" %}
+
+<div id="drawer-action-contact" 
+     class="action-drawer-bottom contact-drawer" 
+     role="dialog" 
+     aria-modal="true" 
+     aria-label="Contact Joe Sheldon"
+     style="position: fixed; inset: 0; z-index: 2000; display: none; align-items: flex-end; justify-content: center; pointer-events: none;">
+  
+  {# Backdrop Scrim #}
+  <div class="drawer-scrim" 
+       onclick="closeContactDrawer()" 
+       style="position: absolute; inset: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); pointer-events: auto; opacity: 0; transition: opacity 0.3s ease;"></div>
+
+  {# Slide-Up Bottom Sheet in Liquid Frosted Glass #}
+  <div class="drawer-panel" 
+       style="position: relative; z-index: 10; width: 100%; max-width: 520px; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.7); border-radius: var(--border-radius-squircle) var(--border-radius-squircle) 0 0; box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15); padding: 1.5rem 1.75rem 2.25rem 1.75rem; display: flex; flex-direction: column; gap: 1.25rem; transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: auto; box-sizing: border-box;">
+    
+    {# Drag Pill / Top Grabber #}
+    <div style="width: 36px; height: 4px; border-radius: 2px; background: #D1D5DB; margin: -0.5rem auto 0 auto;"></div>
+
+    {# Drawer Header & Close Button #}
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+      <div>
+        <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+          DIRECT AGENT LINE
+        </span>
+        <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.2rem;">
+          Connect with Joe Sheldon
+        </h3>
+      </div>
+
+      {# Close Button #}
+      <button type="button" 
+              class="btn-drawer-close" 
+              aria-label="Close contact drawer" 
+              onclick="closeContactDrawer()"
+              style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-primary-default); transition: background 0.15s ease;">
+        ✕
+      </button>
+    </div>
+
+    {# Agent Snippet #}
+    <div style="display: flex; align-items: center; gap: 0.85rem; padding: 0.5rem 0;">
+      <img src="/assets/images/joe-sheldon-headshot.webp" 
+           alt="Joe Sheldon" 
+           width="48" 
+           height="48" 
+           style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-background-universal); box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+      <div>
+        <div style="font-size: 0.95rem; font-weight: 800; color: var(--color-primary-default);">
+          Joe Sheldon
+        </div>
+        <div class="text-body-secondary" style="font-size: 0.75rem;">
+          Senior Real Estate Agent • Redfin North Sound
+        </div>
+      </div>
+    </div>
+
+    {# Full-Width Action Pill Buttons #}
+    <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+      <a href="sms:+1{{ agent_tel }}" 
+         style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.85rem 1.25rem; background: var(--color-secondary-default); color: #FFFFFF; border-radius: 999px; font-size: 0.9rem; font-weight: 700; text-decoration: none; box-shadow: 0 3px 10px rgba(30, 77, 107, 0.25);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Send a Direct Text: {{ agent_phone }}</span>
+      </a>
+
+      <a href="tel:{{ agent_tel }}" 
+         style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.85rem 1.25rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); color: var(--color-primary-default); border-radius: 999px; font-size: 0.9rem; font-weight: 700; text-decoration: none;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <span>Call (Voice): {{ agent_phone }}</span>
+      </a>
+
+      <a href="/#contact" 
+         onclick="closeContactDrawer()"
+         style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.85rem 1.25rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); color: var(--color-secondary-default); border-radius: 999px; font-size: 0.9rem; font-weight: 700; text-decoration: none;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+        <span>Book a Strategy Consultation</span>
+      </a>
+    </div>
+
+    {# Footer Microcopy #}
+    <div style="text-align: center; font-size: 0.7rem;" class="text-body-secondary">
+      Fast response typically under 15 minutes during active business hours.
+    </div>
+
+  </div>
+
+  <script>
+    function openContactDrawer() {
+      const d = document.getElementById('drawer-action-contact');
+      if (!d) return;
+      d.style.display = 'flex';
+      setTimeout(() => {
+        d.querySelector('.drawer-scrim').style.opacity = '1';
+        d.querySelector('.drawer-panel').style.transform = 'translateY(0)';
+      }, 10);
+    }
+    function closeContactDrawer() {
+      const d = document.getElementById('drawer-action-contact');
+      if (!d) return;
+      d.querySelector('.drawer-scrim').style.opacity = '0';
+      d.querySelector('.drawer-panel').style.transform = 'translateY(100%)';
+      setTimeout(() => {
+        d.style.display = 'none';
+      }, 350);
+    }
+  </script>
+
+</div>

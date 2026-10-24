@@ -1,0 +1,60 @@
+<!-- File: _includes/components/widget/municipal-link-directory.njk -->
+{% set demo_links = [
+  { label: "Official City Website", url: "https://www.edmondswa.gov", category: "Government" },
+  { label: "Police Department & Public Safety", url: "https://www.edmondswa.gov/government/departments/police", category: "Safety" },
+  { label: "Community Crime Map", url: "https://communitycrimemap.com", category: "Mapping" },
+  { label: "City Permit & Development Portal", url: "https://www.mybuildingpermit.com", category: "Services" },
+  { label: "Snohomish County Crisis & Human Services", url: "https://snohomishcountywa.gov/human-services", category: "Resources" }
+] %}
+
+{% set link_list = municipal_directory_links | default(demo_links) %}
+
+<section class="widget-card municipal-directory-card" style="padding: 1.5rem; width: 100%;">
+  
+  {# Header Row #}
+  <div style="margin-bottom: 1.25rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+    <span class="text-overline">CIVIC ACCESS & MUNICIPAL SERVICES</span>
+    <h3 class="text-widget-title" style="margin-top: 0.25rem;">Essential City Directory</h3>
+    <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
+      Verified direct access portals for municipal departments and county crisis services.
+    </div>
+  </div>
+
+  {# Vertical Stack of Squircle Link Cards #}
+  <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+    {% for item in link_list %}
+      {% if item.url %}
+        <a href="{{ item.url }}" 
+           target="_blank" 
+           rel="noopener noreferrer" 
+           style="display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1.15rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); text-decoration: none; transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;">
+          
+          <div style="display: flex; flex-direction: column; gap: 0.15rem;">
+            <span style="font-size: 0.85rem; font-weight: 700; color: var(--color-primary-default);">
+              {{ item.label }}
+            </span>
+            {% if item.category %}
+              <span class="text-overline" style="font-size: 0.65rem; color: var(--color-secondary-default);">
+                {{ item.category }}
+              </span>
+            {% endif %}
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: var(--color-surface-gray); color: var(--color-secondary-default); flex-shrink: 0;" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+
+        </a>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  {# Footer Line #}
+  <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem;" class="text-body-secondary">
+    External portal links open in a secure browser tab. Maintained per municipal domain registries.
+  </div>
+
+</section>

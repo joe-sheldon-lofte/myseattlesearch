@@ -1,0 +1,139 @@
+<!-- File: _includes/components/widget/search-modal.njk -->
+<dialog id="dialog-search-modal" 
+        class="search-modal-dialog" 
+        aria-labelledby="search-modal-title"
+        style="padding: 0; border: none; border-radius: var(--border-radius-squircle); background: transparent; max-width: 640px; width: calc(100% - 32px); box-shadow: 0 24px 64px rgba(0,0,0,0.28); margin: auto;">
+  
+  <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); overflow: hidden; display: flex; flex-direction: column; max-height: 85vh;">
+    
+    {# Header Bar #}
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--color-border-light);">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.75rem;">
+          DISCOVERY ENGINE
+        </span>
+        <h3 id="search-modal-title" class="text-widget-title" style="margin: 0; font-size: 1.15rem;">
+          Site Search
+        </h3>
+      </div>
+
+      {# Action Close Button #}
+      <button type="button" 
+              class="btn-modal-close" 
+              aria-label="Close search modal" 
+              onclick="document.getElementById('dialog-search-modal').close();"
+              style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-primary-default); font-size: 0.85rem;">
+        ✕
+      </button>
+    </div>
+
+    {# Search Input Bar #}
+    <div style="padding: 1.25rem 1.5rem 0.75rem 1.5rem; border-bottom: 1px solid var(--color-border-light);">
+      <div style="position: relative; display: flex; align-items: center;">
+        <span style="position: absolute; left: 14px; color: var(--color-secondary-default); display: flex; align-items: center;" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </span>
+
+        <input type="search" 
+               id="site-search-input" 
+               placeholder="Search neighborhoods, schools, transit, market data..." 
+               autocomplete="off"
+               oninput="handleSearchInput(this.value)"
+               style="width: 100%; padding: 0.85rem 2.75rem 0.85rem 2.75rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 999px; font-size: 0.95rem; font-weight: 600; color: var(--color-primary-default); outline: none; box-sizing: border-box;">
+
+        <button type="button" 
+                id="btn-search-clear" 
+                aria-label="Clear search input"
+                onclick="clearSearchInput()"
+                style="position: absolute; right: 12px; display: none; width: 22px; height: 22px; border-radius: 50%; background: #D1D5DB; border: none; align-items: center; justify-content: center; font-size: 0.7rem; color: #FFFFFF; cursor: pointer;">
+          ✕
+        </button>
+      </div>
+
+      {# Dynamic Results Count Indicator #}
+      <div id="search-results-summary" 
+           style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.65rem; font-size: 0.75rem;" 
+           class="text-body-secondary">
+        <span>Suggested quick searches: Edmonds, Sounder Train, PSAI Rankings, REET</span>
+        <span id="search-counter" style="font-weight: 700; color: var(--color-secondary-default);"></span>
+      </div>
+    </div>
+
+    {# Scrollable Results Feed #}
+    <div id="search-results-container" style="padding: 1rem 1.5rem 1.5rem 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; min-height: 200px;">
+      
+      {# Quick Suggestion Cards #}
+      <a href="/communities/edmonds/" style="display: flex; flex-direction: column; gap: 0.25rem; padding: 0.85rem 1rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 10px; text-decoration: none; transition: border-color 0.15s ease;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.9rem; font-weight: 800; color: var(--color-primary-default);">Edmonds Community Guide</span>
+          <span class="text-overline" style="font-size: 0.65rem; color: var(--color-secondary-default);">NEIGHBORHOOD</span>
+        </div>
+        <p class="text-body-secondary" style="font-size: 0.8rem; margin: 0; line-height: 1.4;">
+          Comprehensive real-time housing velocity, ferry departures, and waterfront district profiles.
+        </p>
+      </a>
+
+      <a href="/sellerproceeds/" style="display: flex; flex-direction: column; gap: 0.25rem; padding: 0.85rem 1rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 10px; text-decoration: none; transition: border-color 0.15s ease;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.9rem; font-weight: 800; color: var(--color-primary-default);">Seller Estimated Net Proceeds Modeler</span>
+          <span class="text-overline" style="font-size: 0.65rem; color: var(--color-secondary-default);">FINANCIAL TOOL</span>
+        </div>
+        <p class="text-body-secondary" style="font-size: 0.8rem; margin: 0; line-height: 1.4;">
+          Calculate net cash in pocket after mortgage payoff, Washington graduated REET excise, title, and escrow.
+        </p>
+      </a>
+
+      <a href="/news/" style="display: flex; flex-direction: column; gap: 0.25rem; padding: 0.85rem 1rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 10px; text-decoration: none; transition: border-color 0.15s ease;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.9rem; font-weight: 800; color: var(--color-primary-default);">Puget Sound Regional News Wire</span>
+          <span class="text-overline" style="font-size: 0.65rem; color: var(--color-secondary-default);">NEWS WIRE</span>
+        </div>
+        <p class="text-body-secondary" style="font-size: 0.8rem; margin: 0; line-height: 1.4;">
+          Latest civic, zoning, municipal, and real estate news across 31 local RSS wire feeds.
+        </p>
+      </a>
+
+    </div>
+
+    {# Footer #}
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.5rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem; background: var(--color-surface-gray);" class="text-body-secondary">
+      <span>Press <kbd style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); padding: 0.1rem 0.35rem; border-radius: 4px; font-family: monospace;">ESC</kbd> to close</span>
+      <a href="tel:2066577493" style="color: var(--color-secondary-default); font-weight: 700; text-decoration: none;">
+        Direct Line: (206) 657-7493
+      </a>
+    </div>
+
+  </div>
+
+  <style>
+    #dialog-search-modal::backdrop {
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+  </style>
+
+  <script>
+    function clearSearchInput() {
+      const input = document.getElementById('site-search-input');
+      const btn = document.getElementById('btn-search-clear');
+      if (!input) return;
+      input.value = '';
+      if (btn) btn.style.display = 'none';
+      input.focus();
+    }
+    function handleSearchInput(val) {
+      const btn = document.getElementById('btn-search-clear');
+      const counter = document.getElementById('search-counter');
+      if (btn) {
+        btn.style.display = val.trim().length > 0 ? 'inline-flex' : 'none';
+      }
+      if (counter && val.trim().length > 0) {
+        counter.textContent = 'Searching...';
+      } else if (counter) {
+        counter.textContent = '';
+      }
+    }
+  </script>
+
+</dialog>

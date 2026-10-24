@@ -1,0 +1,62 @@
+<!-- File: _includes/components/widget/weather-aqi.njk -->
+<div class="widget-card weather-aqi-card" style="display: flex; flex-direction: column; align-items: center; text-align: center; position: relative;">
+  
+  {# Header Row: Overline Category & Accessible Info Trigger #}
+  <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+    <span class="text-overline">Air Quality Index</span>
+    <button type="button" 
+            class="btn-info-trigger" 
+            aria-label="View Air Quality Index details" 
+            onclick="document.getElementById('dialog-aqi').showModal();">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+      </svg>
+    </button>
+  </div>
+
+  {# AQI Dynamic Ring Fill & Color Tiering #}
+  {% set aqi_num = aqi_value | default(24) %}
+  {% set aqi_stroke = "#10B981" %}
+  {% if aqi_num > 50 and aqi_num <= 100 %}
+    {% set aqi_stroke = "#F59E0B" %}
+  {% elif aqi_num > 100 %}
+    {% set aqi_stroke = "var(--color-tertiary-default)" %}
+  {% endif %}
+
+  <div style="position: relative; width: 100px; height: 100px; margin: 0.5rem auto;">
+    <svg width="100" height="100" viewBox="0 0 100 100" style="transform: rotate(-90deg);" aria-hidden="true">
+      <circle cx="50" cy="50" r="36" stroke="var(--color-border-light)" stroke-width="8" fill="transparent"></circle>
+      <circle cx="50" cy="50" r="36" stroke="{{ aqi_stroke }}" stroke-width="8" fill="transparent"
+              stroke-dasharray="226.2"
+              stroke-dashoffset="{{ 226.2 - (226.2 * (aqi_num if aqi_num <= 100 else 100)) / 100 }}"
+              stroke-linecap="round"
+              style="transition: stroke-dashoffset 0.6s ease;"></circle>
+    </svg>
+    <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+      <span class="text-data-huge" style="font-size: 2rem; color: {{ aqi_stroke }};">{{ aqi_num }}</span>
+    </div>
+  </div>
+
+  <div style="margin-top: 0.75rem;">
+    <span style="display: inline-block; padding: 0.25rem 0.75rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 999px; font-size: 0.8rem; font-weight: 700; color: {{ aqi_stroke }};">
+      {{ aqi_status | default("Good Air Quality") }}
+    </span>
+  </div>
+
+  <p class="text-body-secondary" style="margin-top: 0.75rem; font-size: 0.85rem;">
+    Primary Pollutant: <strong style="color: var(--color-primary-default);">{{ aqi_pollutant | default("PM2.5") }}</strong>
+  </p>
+
+  {# Native Dialog Modal for Details #}
+  <dialog id="dialog-aqi" class="info-dialog">
+    <button type="button" class="btn-dialog-close" aria-label="Close air quality info" onclick="document.getElementById('dialog-aqi').close();">✕</button>
+    <div class="text-overline" style="margin-bottom: 0.5rem;">EPA Standards</div>
+    <h3 class="text-widget-title">Air Quality Index (AQI)</h3>
+    <div class="text-body-secondary" style="margin-top: 1rem; line-height: 1.6;">
+      The Air Quality Index is an EPA-standardized scale measuring surface air cleanliness and particulate matter (PM2.5 / PM10). Scores between 0 and 50 reflect clean, optimal outdoor conditions. Data refreshed from regional Puget Sound Clean Air Agency monitoring stations.
+    </div>
+  </dialog>
+
+</div>

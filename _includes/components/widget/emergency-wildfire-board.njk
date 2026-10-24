@@ -1,0 +1,99 @@
+<!-- File: _includes/components/widget/emergency-wildfire-board.njk -->
+{% set demo_wildfires = [] %}
+
+{% set fires = regional_wildfires | default(demo_wildfires) %}
+{% set fire_count = fires | length %}
+{% set has_fires = (fire_count > 0) %}
+
+<section class="widget-card emergency-wildfire-card" style="padding: 1.5rem; width: 100%;">
+  
+  <details {% if has_fires %}open{% endif %} style="background: transparent; border: none; overflow: visible;">
+    
+    {# Dynamic Header #}
+    <summary style="list-style: none; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; gap: 0.75rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <span style="display: inline-flex; width: 28px; height: 28px; border-radius: 8px; align-items: center; justify-content: center; background: {% if has_fires %}rgba(234, 88, 12, 0.15){% else %}rgba(16, 185, 129, 0.12){% endif %};" aria-hidden="true">
+          {% if has_fires %}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#EA580C"><path d="M12 2c-.5 2.5-3 5-3 8 0 3.3 2.7 6 6 6s6-2.7 6-6c0-2-1-3.5-2-4.5.5 1.5 0 3.5-1.5 4.5-.5-2-2-3.5-2.5-5.5-.5 1-1 2-1 3-1.5-1-2-3.5-2-5.5z"/></svg>
+          {% else %}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          {% endif %}
+        </span>
+        <div>
+          <span class="text-overline" style="color: #86868b; font-size: 0.65rem;">INTERAGENCY FIRE CENTER</span>
+          <h3 class="text-widget-title" style="margin: 0; font-size: 1.05rem;">
+            {% if has_fires %}⚠️ Active Regional Wildfires: {{ fire_count }}{% else %}✅ No active regional wildfires{% endif %}
+          </h3>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 0.75rem; font-weight: 700; color: {% if has_fires %}#EA580C{% else %}#059669{% endif %}; background: var(--color-background-universal); border: 1px solid var(--color-border-light); padding: 0.2rem 0.6rem; border-radius: 999px;">
+          {% if has_fires %}{{ fire_count }} Active{% else %}Perimeter Clear{% endif %}
+        </span>
+        <span style="font-size: 0.85rem; color: #86868b;" aria-hidden="true">⌄</span>
+      </div>
+    </summary>
+
+    {# Expanded View #}
+    <div style="padding-top: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+      {% if has_fires %}
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.8rem;">
+            <thead>
+              <tr style="border-bottom: 2px solid var(--color-border-light); color: var(--color-primary-default); opacity: 0.75;">
+                <th class="text-overline" style="padding: 0.5rem 0.25rem;">Fire Complex</th>
+                <th class="text-overline" style="padding: 0.5rem 0.5rem;">Distance</th>
+                <th class="text-overline" style="padding: 0.5rem 0.5rem;">Acreage</th>
+                <th class="text-overline" style="padding: 0.5rem 0.5rem;">Containment</th>
+                <th class="text-overline" style="padding: 0.5rem 0.25rem; text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for f in fires %}
+                <tr style="border-bottom: 1px solid var(--color-border-light);">
+                  <td style="padding: 0.6rem 0.25rem; font-weight: 700; color: var(--color-primary-default);">
+                    {{ f.name }}
+                  </td>
+                  <td class="text-body-secondary" style="padding: 0.6rem 0.5rem;">
+                    {{ f.distance }}
+                  </td>
+                  <td style="padding: 0.6rem 0.5rem; font-weight: 600;">
+                    {{ f.acres }} ac
+                  </td>
+                  <td style="padding: 0.6rem 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                      <div style="flex-grow: 1; height: 6px; background: var(--color-surface-gray); border-radius: 3px; overflow: hidden; min-width: 60px;">
+                        <div style="width: {{ f.containment_pct }}%; height: 100%; background: #10B981;"></div>
+                      </div>
+                      <span style="font-size: 0.75rem; font-weight: 700; color: #10B981;">{{ f.containment_pct }}%</span>
+                    </div>
+                  </td>
+                  <td style="padding: 0.6rem 0.25rem; text-align: right;">
+                    <button type="button" 
+                            class="btn-fire-locate" 
+                            onclick="const m=document.getElementById('city-interactive-map');if(m){m.scrollIntoView({behavior:'smooth'});}else{alert('Fire Perimeter: {{ f.lat }}, {{ f.lon }}');}" 
+                            style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 999px; padding: 0.25rem 0.55rem; font-size: 0.7rem; font-weight: 600; color: var(--color-secondary-default); cursor: pointer;">
+                      Locate 📍
+                    </button>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div style="padding: 0.5rem 0; font-size: 0.85rem;" class="text-body-secondary">
+          No active brush fires, forest wildfires, or smoke complexes detected within the Puget Sound / Western Washington air quality basin.
+        </div>
+      {% endif %}
+
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.5rem; border-top: 1px solid var(--color-border-light); font-size: 0.7rem;" class="text-body-secondary">
+        <span>Source: WA DNR & InciWeb Interagency Coordination</span>
+        <span>Satellite Sensor Verification: Active</span>
+      </div>
+    </div>
+
+  </details>
+
+</section>

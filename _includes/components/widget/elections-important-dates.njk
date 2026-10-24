@@ -1,0 +1,77 @@
+<!-- File: _includes/components/widget/elections-important-dates.njk -->
+{% set demo_milestones = [
+  { label: "Military & Overseas Ballots Mailed", date: "Friday, Sep 18, 2026", status: "passed" },
+  { label: "Local General Ballots Mailed to All Voters", date: "Friday, Oct 16, 2026", status: "passed" },
+  { label: "Online & Mail Voter Registration Deadline", date: "Monday, Oct 26, 2026", status: "upcoming" },
+  { label: "In-Person Same-Day Registration Deadline", date: "Tuesday, Nov 03, 2026 (8:00 PM)", status: "pending" },
+  { label: "General Election Day (Drop Boxes Close 8:00 PM)", date: "Tuesday, Nov 03, 2026", status: "pending" }
+] %}
+
+{% set milestones = election_milestones | default(demo_milestones) %}
+
+<section class="widget-card election-dates-card" style="padding: 1.5rem; width: 100%;">
+  
+  {# Header Row #}
+  <div style="margin-bottom: 1.25rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+    <span class="text-overline">CIVIC CALENDAR & DEADLINES</span>
+    <h3 class="text-widget-title" style="margin-top: 0.25rem;">Key Election Milestones</h3>
+    <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
+      Washington State universal vote-by-mail statutory schedule (RCW 29A.04.255).
+    </div>
+  </div>
+
+  {# Vertical Milestone Tracker #}
+  <div style="display: flex; flex-direction: column; gap: 0; position: relative;">
+    {% for m in milestones %}
+      {% set is_passed = (m.status == 'passed') %}
+      {% set is_upcoming = (m.status == 'upcoming') %}
+      {% set is_pending = (m.status == 'pending') %}
+
+      <div style="display: flex; align-items: flex-start; gap: 1rem; position: relative; padding-bottom: {% if loop.last %}0{% else %}1.25rem{% endif %};">
+        
+        {# Continuous connecting vertical line #}
+        {% if not loop.last %}
+          <div style="position: absolute; left: 13px; top: 24px; bottom: 0; width: 2px; background: {% if is_passed %}#10B981{% else %}var(--color-border-light){% endif %};" aria-hidden="true"></div>
+        {% endif %}
+
+        {# Milestone Node Dot #}
+        <div style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 2; {% if is_passed %}background: rgba(16, 185, 129, 0.15); color: #059669; border: 2px solid #10B981;{% elif is_upcoming %}background: var(--color-secondary-default); color: #FFFFFF; border: 2px solid var(--color-secondary-default); box-shadow: 0 0 0 4px rgba(30, 77, 107, 0.15);{% else %}background: var(--color-surface-gray); color: #86868b; border: 2px solid var(--color-border-light);{% endif %}">
+          {% if is_passed %}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          {% elif is_upcoming %}
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #FFFFFF;"></span>
+          {% else %}
+            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #A1A1AA;"></span>
+          {% endif %}
+        </div>
+
+        {# Milestone Text Details #}
+        <div style="flex-grow: 1; {% if is_passed %}opacity: 0.65;{% endif %}">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.25rem;">
+            <h4 style="font-size: 0.9rem; {% if is_upcoming %}font-weight: 800; color: var(--color-secondary-default);{% else %}font-weight: 700; color: var(--color-primary-default);{% endif %} margin: 0;">
+              {{ m.label }}
+            </h4>
+            {% if is_upcoming %}
+              <span style="display: inline-block; padding: 0.15rem 0.5rem; background: rgba(30, 77, 107, 0.1); color: var(--color-secondary-default); border-radius: 999px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase;">
+                Next Milestone
+              </span>
+            {% endif %}
+          </div>
+          <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.2rem; font-family: monospace;">
+            {{ m.date }}
+          </div>
+        </div>
+
+      </div>
+    {% endfor %}
+  </div>
+
+  {# Footer #}
+  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem; margin-top: 1.25rem;" class="text-body-secondary">
+    <span>Ballots must be postmarked or deposited by 8:00 PM on Election Day.</span>
+    <a href="https://voter.votewa.gov" target="_blank" rel="noopener noreferrer" style="color: var(--color-secondary-default); font-weight: 700; text-decoration: none;">
+      VoteWA Portal →
+    </a>
+  </div>
+
+</section>

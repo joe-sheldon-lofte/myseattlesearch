@@ -1,0 +1,52 @@
+<!-- File: _includes/components/widget/people-card-secondary.njk -->
+{% set person_name = person_sec_name | default("Carly Ozuna") %}
+{% set person_role = person_sec_role | default("TRANSACTION COORDINATOR") %}
+{% set person_avatar = person_sec_image | default("/assets/images/placeholder-team-1.webp") %}
+{% set person_phone = person_sec_phone | default("(206) 657-7493") %}
+{% set person_tel = person_sec_tel | default("2066577493") %}
+{% set person_email = person_sec_email | default("team@myseattlesearch.com") %}
+{% set person_url = person_sec_url | default("/team/carly-ozuna/") %}
+
+<article class="widget-card people-card-secondary" style="display: flex; flex-direction: column; justify-content: space-between; padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); text-align: center; box-sizing: border-box;">
+  
+  <div style="display: flex; flex-direction: column; align-items: center;">
+    {# Standardized 150x150 Circular Avatar per SOP 6 #}
+    <div style="width: 150px; height: 150px; margin-bottom: 1rem;">
+      <img src="{{ person_avatar }}" 
+           alt="{{ person_name }}" 
+           width="150" 
+           height="150" 
+           loading="lazy" 
+           decoding="async" 
+           style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; object-position: center; border: 2px solid var(--color-border-light); box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: block;">
+    </div>
+
+    <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem; margin-bottom: 0.25rem;">
+      {{ person_role }}
+    </span>
+
+    <h4 class="text-widget-title" style="font-size: 1.15rem; margin: 0 0 0.5rem 0;">
+      {{ person_name }}
+    </h4>
+
+    <div style="display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.75rem; margin-bottom: 1rem;">
+      <a href="tel:{{ person_tel }}" style="color: var(--color-primary-default); font-weight: 700; text-decoration: none;">
+        {{ person_phone }}
+      </a>
+      {% if person_email %}
+        <a href="mailto:{{ person_email }}" class="text-body-secondary" style="text-decoration: none;">
+          {{ person_email }}
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    <a href="{{ person_url }}" 
+       style="display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; width: 100%; padding: 0.55rem 1rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); color: var(--color-primary-default); border-radius: 999px; font-size: 0.8rem; font-weight: 700; text-decoration: none; transition: background 0.15s ease;">
+      <span>View Profile</span>
+      <span aria-hidden="true">→</span>
+    </a>
+  </div>
+
+</article>

@@ -1,0 +1,45 @@
+<!-- File: _includes/components/widget/layout-hub-grid.njk -->
+{% set grid_items = hub_grid_items | default([]) %}
+{% set grid_columns = hub_grid_columns | default(3) %}
+
+<div class="widget-layout-hub-grid" style="width: 100%; box-sizing: border-box;">
+  <div class="hub-grid-container" 
+       style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; align-items: stretch; width: 100%;">
+    {% if content %}
+      {{ content | safe }}
+    {% elif hub_grid_slot %}
+      {{ hub_grid_slot | safe }}
+    {% else %}
+      {% for item in grid_items %}
+        {% set card_hub_title = item.title %}
+        {% set card_hub_summary = item.summary %}
+        {% set card_hub_url = item.url %}
+        {% set card_hub_cta = item.cta %}
+        {% set card_hub_tag = item.tag %}
+        {% include "components/widget/element-card-hubitem.njk" ignore missing %}
+      {% else %}
+        {# Fallback demo items if no items passed #}
+        {% set card_hub_title = "Seller Net Proceeds Modeler" %}
+        {% set card_hub_summary = "Model your net cash in pocket after Washington graduated REET excise taxes, title, and escrow." %}
+        {% set card_hub_url = "/sellerproceeds/" %}
+        {% set card_hub_cta = "Calculate Net Equity" %}
+        {% set card_hub_tag = "SELLER TOOL" %}
+        {% include "components/widget/element-card-hubitem.njk" ignore missing %}
+
+        {% set card_hub_title = "Rent vs. Buy 30-Year Wealth Modeler" %}
+        {% set card_hub_summary = "Compare long-term Puget Sound equity accumulation versus historical rent inflation across 30 years." %}
+        {% set card_hub_url = "/rentvsbuy/" %}
+        {% set card_hub_cta = "Compare 30-Year Wealth" %}
+        {% set card_hub_tag = "BUYER STRATEGY" %}
+        {% include "components/widget/element-card-hubitem.njk" ignore missing %}
+
+        {% set card_hub_title = "Down Payment Assistance Finder" %}
+        {% set card_hub_summary = "Explore Washington State Housing Finance Commission (WSHFC) grants and below-market loan tiers." %}
+        {% set card_hub_url = "/downpayment/" %}
+        {% set card_hub_cta = "Explore DPA Programs" %}
+        {% set card_hub_tag = "FINANCING" %}
+        {% include "components/widget/element-card-hubitem.njk" ignore missing %}
+      {% endfor %}
+    {% endif %}
+  </div>
+</div>

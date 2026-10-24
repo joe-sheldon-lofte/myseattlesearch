@@ -1,0 +1,24 @@
+<!-- File: _includes/components/graphic/map-current-neighborhood.njk -->
+<svg width="{{ graphic_width | default(24) }}" 
+     height="{{ graphic_height | default(24) }}" 
+     viewBox="0 0 24 24" 
+     fill="none" 
+     class="graphic-map-current-neighborhood {{ graphic_class | default('') }}" 
+     style="display: inline-block; vertical-align: middle;" 
+     aria-hidden="true">
+  <style>
+    @keyframes mapPulseRing {
+      0% { transform: scale(0.9); opacity: 0.9; }
+      50% { transform: scale(1.15); opacity: 0.35; }
+      100% { transform: scale(0.9); opacity: 0.9; }
+    }
+    .graphic-map-current-neighborhood .pulse-ring {
+      transform-origin: 12px 12px;
+      animation: mapPulseRing 2.4s ease-in-out infinite;
+    }
+  </style>
+  {# Outer pulsing broadcast ring #}
+  <circle class="pulse-ring" cx="12" cy="12" r="8.5" stroke="{{ marker_color | default('var(--color-secondary-default, #1E4D6B)') }}" stroke-width="2" fill="none"/>
+  {# Inner solid focal center dot #}
+  <circle cx="12" cy="12" r="4" fill="{{ marker_color | default('var(--color-secondary-default, #1E4D6B)') }}"/>
+</svg>

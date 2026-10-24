@@ -1,0 +1,66 @@
+<!-- File: _includes/components/widget/ferry-status.njk -->
+<div class="widget-card ferry-status-card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; width: 100%;">
+  
+  {# Header Row: Route & Status Pill #}
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 1rem;">
+    <div>
+      <span class="text-overline">{{ ferry_terminal_label | default("WSF ROUTE STATUS") }}</span>
+      <h3 class="text-widget-title" style="margin-top: 0.25rem; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+        <span>{{ ferry_origin | default("Edmonds") }}</span>
+        <span style="color: var(--color-secondary-default);" aria-hidden="true">⇄</span>
+        <span>{{ ferry_destination | default("Kingston") }}</span>
+      </h3>
+    </div>
+    
+    {% set status = ferry_status | default("On Time") %}
+    {% set status_bg = "rgba(16, 185, 129, 0.12)" %}
+    {% set status_color = "#059669" %}
+    {% if status != "On Time" %}
+      {% set status_bg = "rgba(245, 158, 11, 0.15)" %}
+      {% set status_color = "#D97706" %}
+    {% endif %}
+    <span style="display: inline-block; padding: 0.25rem 0.65rem; background: {{ status_bg }}; color: {{ status_color }}; border-radius: 999px; font-size: 0.75rem; font-weight: 700; white-space: nowrap;">
+      {{ status }}
+    </span>
+  </div>
+
+  {# Departure Schedule Matrix #}
+  <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem;">
+    
+    {# Outbound Direction #}
+    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div class="text-overline" style="font-size: 0.65rem;">Next from {{ ferry_origin | default("Edmonds") }}</div>
+        <div style="font-size: 1.15rem; font-weight: 700; color: var(--color-primary-default); margin-top: 0.15rem;">
+          {{ next_departure_origin | default("11:45 AM") }}
+        </div>
+      </div>
+      <div class="text-body-secondary" style="font-size: 0.75rem; text-align: right;">
+        <div>{{ vessel_origin | default("M/V Puyallup") }}</div>
+        <div style="color: var(--color-secondary-default); font-weight: 600;">{{ spaces_origin | default("82 Drive-Up Spaces") }}</div>
+      </div>
+    </div>
+
+    {# Inbound Direction #}
+    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div class="text-overline" style="font-size: 0.65rem;">Next from {{ ferry_destination | default("Kingston") }}</div>
+        <div style="font-size: 1.15rem; font-weight: 700; color: var(--color-primary-default); margin-top: 0.15rem;">
+          {{ next_departure_destination | default("12:20 PM") }}
+        </div>
+      </div>
+      <div class="text-body-secondary" style="font-size: 0.75rem; text-align: right;">
+        <div>{{ vessel_destination | default("M/V Spokane") }}</div>
+        <div style="color: var(--color-secondary-default); font-weight: 600;">{{ spaces_destination | default("64 Drive-Up Spaces") }}</div>
+      </div>
+    </div>
+
+  </div>
+
+  {# Bottom Bar: Advisory & Source #}
+  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem;" class="text-body-secondary">
+    <span>Crossing: <strong>{{ crossing_time | default("30 min") }}</strong></span>
+    <span>Source: WSDOT Ferries API</span>
+  </div>
+
+</div>

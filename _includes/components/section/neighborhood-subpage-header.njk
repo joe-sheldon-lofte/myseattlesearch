@@ -1,0 +1,65 @@
+<!-- File: _includes/components/section/neighborhood-subpage-header.njk -->
+{% set city = subpage_city_name | default("Edmonds") %}
+{% set city_slug = subpage_city_slug | default("edmonds") %}
+{% set subpage_title = subpage_heading | default("Real Estate Market Trends & Inventory") %}
+{% set county = subpage_county_name | default("Snohomish") %}
+{% set county_slug = subpage_county_slug | default("snohomish") %}
+
+<section class="section-neighborhood-subpage-header" 
+         style="position: relative; width: 100%; min-height: 260px; border-radius: var(--border-radius-squircle); overflow: hidden; background: var(--color-surface-gray); display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 2.5rem 1.5rem; margin-bottom: 2.5rem; border: 1px solid var(--color-border-light); box-sizing: border-box;">
+  
+  {# Subtle Background Pattern Overlay #}
+  <div style="position: absolute; inset: 0; background: radial-gradient(circle at 50% 30%, rgba(30, 77, 107, 0.08) 0%, transparent 70%); pointer-events: none;" aria-hidden="true"></div>
+
+  <div style="position: relative; z-index: 2; max-width: 780px; display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
+    
+    {# Breadcrumb Navigation with Schema.org BreadcrumbList Compliance #}
+    <nav aria-label="Breadcrumb" style="margin-bottom: 0.25rem;">
+      <ol itemscope itemtype="https://schema.org/BreadcrumbList" 
+          style="list-style: none; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.5rem; padding: 0; margin: 0; font-size: 0.8rem;" 
+          class="text-body-secondary">
+        <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+          <a itemprop="item" href="/" style="color: var(--color-secondary-default); text-decoration: none;">
+            <span itemprop="name">Home</span>
+          </a>
+          <meta itemprop="position" content="1" />
+        </li>
+        <li aria-hidden="true" style="opacity: 0.5;">/</li>
+        <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+          <a itemprop="item" href="/communities/" style="color: var(--color-secondary-default); text-decoration: none;">
+            <span itemprop="name">{{ county }} County</span>
+          </a>
+          <meta itemprop="position" content="2" />
+        </li>
+        <li aria-hidden="true" style="opacity: 0.5;">/</li>
+        <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+          <a itemprop="item" href="/communities/{{ city_slug }}/" style="color: var(--color-secondary-default); text-decoration: none;">
+            <span itemprop="name">{{ city }}</span>
+          </a>
+          <meta itemprop="position" content="3" />
+        </li>
+        <li aria-hidden="true" style="opacity: 0.5;">/</li>
+        <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+          <span itemprop="name" style="color: var(--color-primary-default); font-weight: 700;">{{ subpage_title }}</span>
+          <meta itemprop="position" content="4" />
+        </li>
+      </ol>
+    </nav>
+
+    {# Overline #}
+    <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.75rem; letter-spacing: 0.1em;">
+      {{ city | upper }} COMMUNITY HUB
+    </span>
+
+    {# Centered Reduced-Height Title #}
+    <h1 class="text-page-title" style="font-size: clamp(1.85rem, 4vw, 2.75rem); line-height: 1.15; margin: 0; color: var(--color-primary-default);">
+      {{ subpage_title }}
+    </h1>
+
+    <p class="text-body-secondary" style="font-size: 0.95rem; max-width: 620px; line-height: 1.5; margin: 0;">
+      {{ subpage_description | default("Real-time data feeds, localized historical benchmarks, and civic updates compiled directly from county records.") }}
+    </p>
+
+  </div>
+
+</section>

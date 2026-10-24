@@ -1,0 +1,33 @@
+<!-- File: _includes/components/widget/transit-stats-activesoundertrain.njk -->
+<div class="widget-card transit-stat-card transit-active-sounder-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 180px; padding: 1.5rem; width: 100%;">
+  
+  {# Agency Vector: Sounder Commuter Train (graphic.map.train.sounder) #}
+  <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;" aria-hidden="true">
+    <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+      <!-- Locomotive Cab Roofline: Sounder Navy #002E6D -->
+      <path d="M3 13V7a2 2 0 0 1 2-2h10l6 5v3H3z" fill="#002E6D"/>
+      <rect x="6" y="7" width="3" height="3" rx="0.5" fill="#FFFFFF" opacity="0.9"/>
+      <rect x="11" y="7" width="3" height="3" rx="0.5" fill="#FFFFFF" opacity="0.9"/>
+      <!-- Bi-Level Coach Chassis: Sounder Slate Blue #9AB6D3 -->
+      <path d="M3 13v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5H3z" fill="#9AB6D3"/>
+      <rect x="6" y="14" width="3" height="2" rx="0.5" fill="#002E6D"/>
+      <rect x="11" y="14" width="3" height="2" rx="0.5" fill="#002E6D"/>
+      <circle cx="19" cy="14.5" r="1" fill="#FFFFFF"/>
+    </svg>
+  </div>
+
+  {# Prominent Numerical Metric #}
+  <div class="text-data-huge" style="line-height: 0.95; margin-bottom: 0.35rem;">
+    {{ active_sounder_count | default("4") }}
+  </div>
+
+  {# Descriptive Label String #}
+  <div class="text-overline" style="color: var(--color-primary-default); font-size: 0.75rem; letter-spacing: 0.06em;">
+    {{ active_sounder_label | default("Active Sounder North Trains") }}
+  </div>
+
+  <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.35rem;">
+    {{ active_sounder_subtext | default("Everett ⇄ Edmonds ⇄ Seattle") }}
+  </div>
+
+</div>

@@ -1,0 +1,61 @@
+<!-- File: _includes/components/widget/cms-card-article.njk -->
+<article class="widget-card cms-article-card" style="padding: 1.75rem; width: 100%; display: flex; flex-direction: column; gap: 1.25rem;">
+  
+  {# Header Bar #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <span class="text-overline" style="color: var(--color-tertiary-default); font-weight: 800; letter-spacing: 0.08em;">ARTICLE</span>
+      <span style="font-size: 0.75rem; color: var(--color-primary-default); opacity: 0.6;">•</span>
+      <span class="text-body-secondary" style="font-size: 0.75rem; font-weight: 600;">{{ article_read_time | default("5 min read") }}</span>
+    </div>
+    <a href="{{ article_url | default('/news/real-estate/snohomish-missing-middle-analysis/') }}" class="text-action" style="font-size: 0.8rem; font-weight: 600; color: var(--color-secondary-default); text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem;">
+      <span>View Article</span>
+      <span aria-hidden="true">→</span>
+    </a>
+  </div>
+
+  {# Title & Excerpt #}
+  <div>
+    <h3 class="text-widget-title" style="font-size: 1.35rem; line-height: 1.3; margin-bottom: 0.5rem;">
+      <a href="{{ article_url | default('/news/real-estate/snohomish-missing-middle-analysis/') }}" style="color: var(--color-primary-default); text-decoration: none;">
+        {{ article_title | default("Missing-Middle Zoning Along the Swift BRT Corridor: What Buyers and Builders Must Know") }}
+      </a>
+    </h3>
+    <p class="text-body-secondary" style="font-size: 0.95rem; font-style: italic; line-height: 1.55; margin: 0;">
+      {{ article_excerpt | default("How Snohomish County's updated development code is reshaping infill housing, duplex financing models, and property tax baselines within 0.5 miles of major transit lines.") }}
+    </p>
+  </div>
+
+  {# Featured Media Viewport #}
+  {% if article_image %}
+  <div style="width: 100%; border-radius: var(--border-radius-squircle); overflow: hidden; background: var(--color-surface-gray); aspect-ratio: 16 / 9;">
+    <img src="{{ article_image }}" alt="{{ article_title | default('Article hero image') }}" loading="lazy" decoding="async" style="width: 100%; height: 100%; object-fit: cover;">
+  </div>
+  {% endif %}
+
+  {# Footer Metadata Bar #}
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.8rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <div style="width: 32px; height: 32px; border-radius: 50%; overflow: hidden; background: var(--color-surface-gray); flex-shrink: 0; border: 1px solid var(--color-border-light);">
+        <img src="/assets/images/joe-sheldon-headshot.webp" alt="Joe Sheldon" width="32" height="32" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
+      </div>
+      <div>
+        <a href="/#agent" style="color: var(--color-primary-default); font-weight: 700; text-decoration: none;">Joe Sheldon</a>
+        <div class="text-body-secondary" style="font-size: 0.7rem;">
+          Published {{ article_date | default("Aug 16, 2026") }} • Senior Real Estate Agent
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      {# Direct Telephone Consultation Trigger #}
+      <a href="tel:2066577493" 
+         aria-label="Call Joe Sheldon at (206) 657-7493"
+         style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.75rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 999px; color: var(--color-secondary-default); font-size: 0.75rem; font-weight: 700; text-decoration: none;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <span>(206) 657-7493</span>
+      </a>
+    </div>
+  </div>
+
+</article>

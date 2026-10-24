@@ -1,0 +1,27 @@
+<!-- File: _includes/components/widget/weather-current-widget.njk -->
+<div class="widget-card weather-current-widget-card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 160px;">
+  
+  {# Header Row: Location Overline & Visual Icon #}
+  <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <span class="text-overline">{{ weather_location | default("Current Weather") }}</span>
+    <div style="color: var(--color-secondary-default); display: flex; align-items: center;" aria-hidden="true">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2v2"></path>
+        <path d="m4.93 4.93 1.41 1.41"></path>
+        <path d="M20 12h2"></path>
+        <path d="m19.07 4.93-1.41 1.41"></path>
+        <path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"></path>
+        <path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"></path>
+      </svg>
+    </div>
+  </div>
+
+  {# Primary Metric & Status #}
+  <div style="margin-top: 0.75rem;">
+    <div class="text-data-huge" style="line-height: 0.95;">{{ weather_temp | default("54°") }}</div>
+    <div class="text-body-secondary" style="margin-top: 0.35rem; font-size: 0.85rem; font-weight: 500;">
+      {{ weather_condition | default("Partly Cloudy") }}
+    </div>
+  </div>
+
+</div>

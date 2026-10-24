@@ -1,0 +1,53 @@
+<!-- File: _includes/components/widget/sports-category-link.njk -->
+{% set sports_tier = sports_category_tier | default("pro") %}
+{% set tier_title = "All Pro Sports" %}
+{% set tier_url = "/sports/pro/" %}
+{% set tier_desc = "Seattle Seahawks, Mariners, Sounders FC, Kraken, Storm, & Reign FC" %}
+
+{% if sports_tier == "minor" %}
+  {% set tier_title = "All Minor League Sports" %}
+  {% set tier_url = "/sports/minor/" %}
+  {% set tier_desc = "Everett AquaSox, Tacoma Rainiers, Silvertips, & Seattle Seawolves" %}
+{% elif sports_tier == "collegiate" %}
+  {% set tier_title = "All Collegiate Sports" %}
+  {% set tier_url = "/sports/collegiate/" %}
+  {% set tier_desc = "Washington Huskies (UW), Washington State Cougars (WSU), & Redhawks" %}
+{% endif %}
+
+<a href="{{ sports_category_url | default(tier_url) }}" 
+   class="widget-card sports-category-link-card" 
+   style="display: flex; flex-direction: column; justify-content: space-between; aspect-ratio: 1 / 1; min-height: 180px; padding: 1.5rem; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); text-decoration: none; transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; box-sizing: border-box;">
+  
+  {# Top Icon & Tracking Overline #}
+  <div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+      <div style="width: 36px; height: 36px; border-radius: 10px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-secondary-default);" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M4.93 4.93 19.07 19.07"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+      </div>
+
+      <span class="text-overline" style="font-size: 0.65rem; color: var(--color-secondary-default); letter-spacing: 0.08em;">
+        REGIONAL ATHLETICS
+      </span>
+    </div>
+
+    {# Bold Category Heading #}
+    <h3 class="text-widget-title" style="font-size: 1.25rem; font-weight: 800; color: var(--color-primary-default); margin: 0 0 0.5rem 0; line-height: 1.25;">
+      {{ sports_category_title | default(tier_title) }}
+    </h3>
+
+    <p class="text-body-secondary" style="font-size: 0.8rem; line-height: 1.45; margin: 0;">
+      {{ sports_category_desc | default(tier_desc) }}
+    </p>
+  </div>
+
+  {# Bottom Action Prompt #}
+  <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.8rem; font-weight: 700; color: var(--color-secondary-default);">
+    <span>View Schedule & Rosters</span>
+    <span aria-hidden="true">→</span>
+  </div>
+
+</a>

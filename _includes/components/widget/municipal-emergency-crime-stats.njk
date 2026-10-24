@@ -1,0 +1,52 @@
+<!-- File: _includes/components/widget/municipal-emergency-crime-stats.njk -->
+<div class="widget-card crime-stats-card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; padding: 1.5rem; width: 100%;">
+  
+  {# Header Row #}
+  <div>
+    <div class="text-overline">LOCAL PUBLIC SAFETY PROFILE</div>
+    <h3 class="text-widget-title" style="margin-top: 0.25rem;">Crime & Public Safety</h3>
+    <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
+      Police Department: <strong style="color: var(--color-primary-default);">{{ police_department_name | default("Edmonds Police Department") }}</strong>
+    </div>
+  </div>
+
+  {# Dual Metric Grid: Violent vs Property Crime Rate #}
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin: 1rem 0;">
+    
+    {# Violent Crime #}
+    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 0.85rem; text-align: center;">
+      <div class="text-overline" style="font-size: 0.65rem; color: #86868b;">Violent Crime</div>
+      <div class="text-data-huge" style="font-size: 1.6rem; margin-top: 0.25rem; line-height: 1; color: var(--color-primary-default);">
+        {{ crime_violent_rate | default("1.12") }}
+      </div>
+      <div class="text-body-secondary" style="font-size: 0.7rem; margin-top: 0.25rem;">
+        per 1,000 residents
+      </div>
+    </div>
+
+    {# Property Crime #}
+    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 0.85rem; text-align: center;">
+      <div class="text-overline" style="font-size: 0.65rem; color: #86868b;">Property Crime</div>
+      <div class="text-data-huge" style="font-size: 1.6rem; margin-top: 0.25rem; line-height: 1; color: var(--color-secondary-default);">
+        {{ crime_property_rate | default("16.4") }}
+      </div>
+      <div class="text-body-secondary" style="font-size: 0.7rem; margin-top: 0.25rem;">
+        per 1,000 residents
+      </div>
+    </div>
+
+  </div>
+
+  {# Footer Link #}
+  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.8rem;">
+    <span class="text-body-secondary" style="font-size: 0.7rem;">Source: WASPC / FBI NIBRS</span>
+    <a href="{{ crime_map_url | default('https://communitycrimemap.com') }}" 
+       target="_blank" 
+       rel="noopener noreferrer" 
+       style="display: inline-flex; align-items: center; gap: 0.35rem; color: var(--color-secondary-default); font-weight: 700; text-decoration: none;">
+      <span>View crime map</span>
+      <span aria-hidden="true">→</span>
+    </a>
+  </div>
+
+</div>

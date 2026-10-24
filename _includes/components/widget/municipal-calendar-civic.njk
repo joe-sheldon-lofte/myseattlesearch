@@ -1,0 +1,73 @@
+<!-- File: _includes/components/widget/municipal-calendar-civic.njk -->
+{% set demo_civic_events = [
+  { month: "OCT", day: "27", title: "City Council Regular Business Meeting", time: "7:00 PM", url: "https://www.edmondswa.gov/government/city_council" },
+  { month: "OCT", day: "28", title: "Planning Board Study Session: Infill Housing", time: "6:00 PM", url: "https://www.edmondswa.gov" },
+  { month: "NOV", day: "03", title: "General Election Ballot Box Closing & Canvassing", time: "8:00 PM", url: "https://www.snoco.org/elections" },
+  { month: "NOV", day: "05", title: "Tree Board & Urban Forestry Public Forum", time: "6:30 PM", url: "https://www.edmondswa.gov" },
+  { month: "NOV", day: "10", title: "City Council Committee Meetings (Finance & Parks)", time: "5:30 PM", url: "https://www.edmondswa.gov/government/city_council" }
+] %}
+
+{% set events = civic_calendar_events | default(demo_civic_events) %}
+
+{% if events and events | length > 0 %}
+<section class="widget-card municipal-calendar-card" style="padding: 1.5rem; width: 100%;">
+  
+  {# Header Row #}
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+    <div>
+      <span class="text-overline">OFFICIAL PUBLIC HEARINGS & SESSIONS</span>
+      <h3 class="text-widget-title" style="margin-top: 0.25rem;">
+        {{ civic_calendar_title | default("Civic Calendar") }}
+      </h3>
+    </div>
+    <div style="font-size: 0.75rem; font-weight: 700; color: var(--color-secondary-default); background: var(--color-background-universal); border: 1px solid var(--color-border-light); padding: 0.25rem 0.65rem; border-radius: 999px;">
+      Next 5 Scheduled
+    </div>
+  </div>
+
+  {# Events List #}
+  <div style="display: flex; flex-direction: column;">
+    {% for ev in events %}
+      <a href="{{ ev.url | default('#') }}" 
+         target="_blank" 
+         rel="noopener noreferrer" 
+         style="text-decoration: none; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.85rem 0; {% if not loop.last %}border-bottom: 1px solid var(--color-border-light);{% endif %} transition: background 0.15s ease;">
+        
+        <div style="display: flex; align-items: center; gap: 1rem; min-width: 0;">
+          {# Distinct Month/Day Color Block #}
+          <div style="flex-shrink: 0; width: 52px; height: 52px; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
+            <span style="font-size: 0.65rem; font-weight: 800; color: var(--color-secondary-default); letter-spacing: 0.05em; line-height: 1;">
+              {{ ev.month }}
+            </span>
+            <span style="font-size: 1.3rem; font-weight: 800; color: var(--color-primary-default); line-height: 1.1; margin-top: 0.15rem;">
+              {{ ev.day }}
+            </span>
+          </div>
+
+          {# Body: Event Title & Time #}
+          <div style="min-width: 0;">
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--color-primary-default); margin: 0; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              {{ ev.title }}
+            </h4>
+            <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.25rem;">
+              {{ ev.time }}
+            </div>
+          </div>
+        </div>
+
+        {# Action Arrow #}
+        <div style="flex-shrink: 0; color: var(--color-secondary-default); font-size: 0.9rem;" aria-hidden="true">
+          →
+        </div>
+
+      </a>
+    {% endfor %}
+  </div>
+
+  {# Footer #}
+  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem; margin-top: 0.5rem;" class="text-body-secondary">
+    <span>Synchronized directly with municipal clerk calendar feed.</span>
+  </div>
+
+</section>
+{% endif %}

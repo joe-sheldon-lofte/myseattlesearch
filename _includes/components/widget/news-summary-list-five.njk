@@ -1,0 +1,98 @@
+<!-- File: _includes/components/widget/news-summary-list-five.njk -->
+{% set default_news = [
+  {
+    source: "MY EDMONDS NEWS",
+    title: "Port of Edmonds Finalizes North Marina Seawall and Promenade Restoration",
+    excerpt: "Engineering teams completed final structural inspections on the upgraded pedestrian promenade, restoring direct saltwater access ahead of the summer season.",
+    date_formatted: "Mon, Aug 17, 2026 at 06:57 PM",
+    url: "/news/edmonds/marina-restoration/"
+  },
+  {
+    source: "SEATTLE TIMES",
+    title: "Sounder North Rail Corridor Sees 18% Inbound Commute Surge",
+    excerpt: "Regional transit data indicates increasing ridership between Edmonds, Mukilteo, and King Street Station following coordinated schedule adjustments.",
+    date_formatted: "Mon, Aug 17, 2026 at 03:15 PM",
+    url: "/news/north-sound/sounder-commute-surge/"
+  },
+  {
+    source: "THE URBANIST",
+    title: "Snohomish County Advances Missing-Middle Zoning Along Transit Arterials",
+    excerpt: "New municipal code adjustments unlock duplex and fourplex residential construction within a half-mile of designated Swift Bus Rapid Transit stations.",
+    date_formatted: "Sun, Aug 16, 2026 at 11:42 AM",
+    url: "/news/snohomish-county/missing-middle-zoning/"
+  },
+  {
+    source: "PUGET SOUND BUSINESS JOURNAL",
+    title: "Regional Housing Inventory Tightens as Buyer Leverage Shifts Across North Sound",
+    excerpt: "Supply constraints across Snohomish and North King counties hold active listing absorption below historical balanced levels.",
+    date_formatted: "Sat, Aug 15, 2026 at 09:20 AM",
+    url: "/news/real-estate/regional-inventory-shift/"
+  },
+  {
+    source: "EDMONDS BEACON",
+    title: "City Council Authorizes Preservation Trust for Salish Crossing Open Space",
+    excerpt: "Municipal leaders voted unanimously to secure contiguous marshland parcels to protect local shoreline ecology and walking paths.",
+    date_formatted: "Fri, Aug 14, 2026 at 04:30 PM",
+    url: "/news/edmonds/salish-crossing-trust/"
+  }
+] %}
+
+<section class="widget-card news-summary-list-card" style="padding: 1.5rem; width: 100%;">
+  
+  {# Header Row #}
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+    <div>
+      <span class="text-overline">LOCAL NEWS WIRE</span>
+      <h3 class="text-widget-title" style="margin-top: 0.25rem;">
+        {{ news_heading | default("Latest Regional Coverage") }}
+      </h3>
+    </div>
+    <div style="font-size: 0.75rem; font-weight: 600; color: #86868b; text-transform: uppercase;">
+      5 Most Recent
+    </div>
+  </div>
+
+  {# News Feed List #}
+  <div style="display: flex; flex-direction: column;">
+    {% for item in news_items | default(default_news) %}
+      <article style="padding: 1.25rem 0; {% if not loop.last %}border-bottom: 1px solid var(--color-border-light);{% endif %}">
+        
+        <div class="text-overline" style="font-size: 0.65rem; color: var(--color-secondary-default); margin-bottom: 0.35rem;">
+          {{ item.source }}
+        </div>
+
+        <h4 style="font-size: 1.05rem; font-weight: 700; line-height: 1.35; margin-bottom: 0.5rem;">
+          <a href="{{ item.url }}" style="color: var(--color-primary-default); text-decoration: none;">
+            {{ item.title }}
+          </a>
+        </h4>
+
+        {% if item.excerpt %}
+          <p class="text-body-secondary" style="font-size: 0.85rem; line-height: 1.5; margin-bottom: 0.75rem;">
+            {{ item.excerpt }}
+          </p>
+        {% endif %}
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+          <time class="text-body-secondary" style="font-size: 0.75rem; font-style: italic; color: #86868b;">
+            {{ item.date_formatted }}
+          </time>
+          <a href="{{ item.url }}" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; font-weight: 600; color: var(--color-secondary-default); text-decoration: none;">
+            <span>Read Story</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </div>
+
+      </article>
+    {% endfor %}
+  </div>
+
+  {# Footer CTA Link #}
+  <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--color-border-light); text-align: center;">
+    <a href="{{ news_all_url | default('/news/') }}" style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; font-weight: 700; color: var(--color-secondary-default); text-decoration: none;">
+      <span>See all {{ city_name | default("regional") }} news</span>
+      <span aria-hidden="true">→</span>
+    </a>
+  </div>
+
+</section>

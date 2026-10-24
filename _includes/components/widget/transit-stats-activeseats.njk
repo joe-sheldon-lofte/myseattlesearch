@@ -1,0 +1,26 @@
+<!-- File: _includes/components/widget/transit-stats-activeseats.njk -->
+<div class="widget-card transit-stat-card transit-active-seats-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 180px; padding: 1.5rem; width: 100%;">
+  
+  {# Passenger Capacity Vector (graphic.transit.active.seats) #}
+  <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: var(--color-secondary-default); margin-bottom: 0.75rem;" aria-hidden="true">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="7" r="3"/>
+      <path d="M6 4v10a2 2 0 0 0 2 2h10v3"/>
+    </svg>
+  </div>
+
+  {# Prominent Numerical Metric #}
+  <div class="text-data-huge" style="line-height: 0.95; margin-bottom: 0.35rem;">
+    {{ active_seats_count | default("1,840") }}
+  </div>
+
+  {# Descriptive Label String #}
+  <div class="text-overline" style="color: var(--color-primary-default); font-size: 0.75rem; letter-spacing: 0.06em;">
+    {{ active_seats_label | default("Active In-Bounds Seats") }}
+  </div>
+
+  <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.35rem;">
+    {{ active_seats_density | default("46 seats per 1,000 residents") }}
+  </div>
+
+</div>

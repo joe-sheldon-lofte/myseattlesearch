@@ -1,0 +1,43 @@
+<!-- File: _includes/components/widget/weather-forecast-sevenday.njk -->
+<div class="widget-card weather-forecast-card">
+  <div class="text-overline" style="margin-bottom: 1rem;">7-Day Regional Outlook</div>
+  
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 0.75rem; text-align: center;">
+    {% set default_forecast = [
+      { day: "Mon", high: "58°", low: "46°", pop: "10%", type: "cloud-sun" },
+      { day: "Tue", high: "56°", low: "45°", pop: "40%", type: "rain" },
+      { day: "Wed", high: "52°", low: "42°", pop: "80%", type: "rain" },
+      { day: "Thu", high: "55°", low: "43°", pop: "20%", type: "cloud" },
+      { day: "Fri", high: "60°", low: "46°", pop: "0%", type: "sun" },
+      { day: "Sat", high: "62°", low: "48°", pop: "10%", type: "sun" },
+      { day: "Sun", high: "59°", low: "47°", pop: "30%", type: "cloud-sun" }
+    ] %}
+    
+    {% for item in forecast_days | default(default_forecast) %}
+    <div style="padding: 0.75rem 0.25rem; border-radius: 12px; background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; align-items: center; justify-content: space-between; min-height: 120px;">
+      <span class="text-overline" style="font-size: 0.7rem;">{{ item.day }}</span>
+      
+      <div style="color: var(--color-secondary-default); margin: 0.35rem 0;" aria-hidden="true">
+        {% if item.type == 'sun' %}
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
+        {% elif item.type == 'rain' %}
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path><path d="M16 14v6"></path><path d="M8 14v6"></path><path d="M12 16v6"></path></svg>
+        {% elif item.type == 'cloud' %}
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path></svg>
+        {% else %}
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="M20 12h2"></path><path d="m19.07 4.93-1.41 1.41"></path><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"></path><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"></path></svg>
+        {% endif %}
+      </div>
+
+      <div>
+        <div style="font-size: 0.95rem; font-weight: 700; color: var(--color-primary-default);">{{ item.high }}</div>
+        <div class="text-body-secondary" style="font-size: 0.75rem;">{{ item.low }}</div>
+      </div>
+
+      <div style="font-size: 0.65rem; font-weight: 600; color: var(--color-secondary-default); margin-top: 0.25rem;">
+        {{ item.pop }}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>

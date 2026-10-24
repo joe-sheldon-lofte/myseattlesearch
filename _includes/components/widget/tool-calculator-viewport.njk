@@ -1,0 +1,114 @@
+<!-- File: _includes/components/widget/tool-calculator-viewport.njk -->
+{% set form_id = calc_form_id | default("calculator-form") %}
+{% set overline_label = calc_overline | default("FINANCING & PROPERTY PARAMETERS") %}
+{% set title_label = calc_title | default("Estimate Net Proceeds & Closing Costs") %}
+{% set submit_label = calc_submit_text | default("CALCULATE ESTIMATED PROCEEDS") %}
+
+<div class="widget-card tool-calculator-viewport-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); display: flex; flex-direction: column; gap: 1.5rem;">
+  
+  {# Header Row #}
+  <div style="border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.85rem;">
+    <span class="text-overline" style="color: var(--color-secondary-default);">
+      {{ overline_label }}
+    </span>
+    <h3 class="text-widget-title" style="margin-top: 0.25rem;">
+      {{ title_label }}
+    </h3>
+  </div>
+
+  {# Form Body #}
+  <form id="{{ form_id }}" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1.25rem;">
+    
+    {# Responsive Input Grid #}
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem;">
+      
+      {# Input Field 1: Sale Price #}
+      <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+        <label for="calc-sale-price" class="text-overline" style="font-size: 0.65rem; color: #86868b;">
+          Expected Sale Price ($)
+        </label>
+        <div style="position: relative; display: flex; align-items: center;">
+          <span style="position: absolute; left: 12px; font-weight: 700; color: #86868b;" aria-hidden="true">$</span>
+          <input type="number" 
+                 id="calc-sale-price" 
+                 name="sale_price" 
+                 value="{{ calc_default_price | default(850000) }}" 
+                 placeholder="850,000"
+                 step="5000"
+                 style="width: 100%; padding: 0.75rem 0.75rem 0.75rem 1.85rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 10px; font-size: 0.95rem; font-weight: 700; color: var(--color-primary-default); font-family: monospace;">
+        </div>
+      </div>
+
+      {# Input Field 2: Existing Mortgage Balance #}
+      <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+        <label for="calc-mortgage-bal" class="text-overline" style="font-size: 0.65rem; color: #86868b;">
+          Current Mortgage Payoff ($)
+        </label>
+        <div style="position: relative; display: flex; align-items: center;">
+          <span style="position: absolute; left: 12px; font-weight: 700; color: #86868b;" aria-hidden="true">$</span>
+          <input type="number" 
+                 id="calc-mortgage-bal" 
+                 name="mortgage_balance" 
+                 value="{{ calc_default_mortgage | default(320000) }}" 
+                 placeholder="320,000"
+                 step="5000"
+                 style="width: 100%; padding: 0.75rem 0.75rem 0.75rem 1.85rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 10px; font-size: 0.95rem; font-weight: 700; color: var(--color-primary-default); font-family: monospace;">
+        </div>
+      </div>
+
+      {# Input Field 3: Property County (Select) #}
+      <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+        <label for="calc-county" class="text-overline" style="font-size: 0.65rem; color: #86868b;">
+          County Location (REET Tier)
+        </label>
+        <div style="position: relative; display: flex; align-items: center;">
+          <select id="calc-county" 
+                  name="county" 
+                  style="width: 100%; padding: 0.75rem 2rem 0.75rem 0.85rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 10px; font-size: 0.9rem; font-weight: 700; color: var(--color-primary-default); appearance: none; -webkit-appearance: none; cursor: pointer;">
+            <option value="snohomish" selected>Snohomish County (Edmonds / Lynnwood)</option>
+            <option value="king">King County (Seattle / Shoreline / Eastside)</option>
+            <option value="pierce">Pierce County (Tacoma)</option>
+          </select>
+          <span style="position: absolute; right: 12px; pointer-events: none; color: #86868b; font-size: 0.75rem;" aria-hidden="true">ˆˇ</span>
+        </div>
+      </div>
+
+    </div>
+
+    {# Interactive Range Slider (Brokerage Commission / Concessions) #}
+    <div style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1.15rem; display: flex; flex-direction: column; gap: 0.65rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span class="text-overline" style="font-size: 0.65rem; color: #86868b;">
+          Total Listing & Buyer Agent Brokerage Fee
+        </span>
+        <span id="slider-fee-val" style="font-size: 0.95rem; font-weight: 800; font-family: monospace; color: var(--color-secondary-default);">
+          4.5%
+        </span>
+      </div>
+
+      <input type="range" 
+             id="calc-commission-slider" 
+             name="commission_rate" 
+             min="3.0" 
+             max="6.0" 
+             step="0.25" 
+             value="4.5" 
+             oninput="document.getElementById('slider-fee-val').textContent = this.value + '%';"
+             style="width: 100%; accent-color: var(--color-secondary-default); cursor: pointer;">
+
+      <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #86868b;">
+        <span>3.0% (Discount / Direct)</span>
+        <span>4.5% (Redfin Full-Service Co-op)</span>
+        <span>6.0% (Traditional Max)</span>
+      </div>
+    </div>
+
+    {# Primary Action CTA Button #}
+    <button type="submit" 
+            style="width: 100%; padding: 0.95rem 1.5rem; background: var(--color-secondary-default); color: #FFFFFF; border: none; border-radius: 999px; font-size: 0.9rem; font-weight: 800; letter-spacing: 0.04em; cursor: pointer; transition: opacity 0.2s ease, transform 0.15s ease; box-shadow: 0 4px 12px rgba(30, 77, 107, 0.2);">
+      {{ submit_label }} →
+    </button>
+
+  </form>
+
+</div>

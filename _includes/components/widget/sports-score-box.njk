@@ -1,0 +1,68 @@
+<!-- File: _includes/components/widget/sports-score-box.njk -->
+{% set scorebox_league_sport = scorebox_header | default("MLB BASEBALL") %}
+{% set scorebox_status = scorebox_status_text | default("FINAL") %}
+{% set team_local_name = scorebox_local_name | default("Seattle Mariners") %}
+{% set team_local_record = scorebox_local_record | default("(85-77)") %}
+{% set team_local_score = scorebox_local_score | default("4") %}
+{% set team_opp_name = scorebox_opp_name | default("Houston Astros") %}
+{% set team_opp_record = scorebox_opp_record | default("(88-74)") %}
+{% set team_opp_score = scorebox_opp_score | default("2") %}
+{% set is_in_progress = (scorebox_status | upper == "IN PROGRESS") %}
+
+<div class="widget-card sports-score-box-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; min-height: 190px; box-sizing: border-box;">
+  
+  {# Header Bar: League/Sport ALL CAPS & Status Pill #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem; margin-bottom: 0.85rem;">
+    <span class="text-overline" style="font-size: 0.7rem; font-weight: 800; color: var(--color-secondary-default); letter-spacing: 0.08em;">
+      {{ scorebox_league_sport }}
+    </span>
+
+    <span style="display: inline-block; padding: 0.25rem 0.65rem; border-radius: 999px; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.06em; {% if is_in_progress %}background: rgba(30, 77, 107, 0.12); color: var(--color-secondary-default); border: 1px solid rgba(30, 77, 107, 0.3);{% else %}background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3);{% endif %}">
+      {{ scorebox_status | upper }}
+    </span>
+  </div>
+
+  {# Stacked Team Rows: Local on Top, Opposing on Bottom #}
+  <div style="display: flex; flex-direction: column; gap: 0.65rem; margin-bottom: 0.75rem;">
+    
+    {# Row 1: Local Team (Top Row) #}
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; background: var(--color-surface-gray); border-radius: 8px; border-left: 3px solid var(--color-secondary-default);">
+      <div style="display: flex; align-items: baseline; gap: 0.4rem; min-width: 0;">
+        <span style="font-size: 0.95rem; font-weight: 800; color: var(--color-primary-default); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          {{ team_local_name }}
+        </span>
+        <span class="text-body-secondary" style="font-size: 0.75rem; font-family: monospace;">
+          {{ team_local_record }}
+        </span>
+      </div>
+      
+      <span class="text-data-huge" style="font-size: 1.5rem; font-weight: 800; font-family: monospace; color: var(--color-primary-default); line-height: 1; margin-left: 0.75rem;">
+        {{ team_local_score }}
+      </span>
+    </div>
+
+    {# Row 2: Opposing Team (Bottom Row) #}
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 8px;">
+      <div style="display: flex; align-items: baseline; gap: 0.4rem; min-width: 0;">
+        <span class="text-body-secondary" style="font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          {{ team_opp_name }}
+        </span>
+        <span class="text-body-secondary" style="font-size: 0.75rem; font-family: monospace; opacity: 0.75;">
+          {{ team_opp_record }}
+        </span>
+      </div>
+
+      <span class="text-data-huge" style="font-size: 1.5rem; font-weight: 800; font-family: monospace; color: #86868b; line-height: 1; margin-left: 0.75rem;">
+        {{ team_opp_score }}
+      </span>
+    </div>
+
+  </div>
+
+  {# Box Score Footer #}
+  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.5rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem;" class="text-body-secondary">
+    <span>Regional Sports Feed • Real-Time Scoring</span>
+    <span style="font-weight: 600; color: var(--color-secondary-default);">Box Score Recap →</span>
+  </div>
+
+</div>

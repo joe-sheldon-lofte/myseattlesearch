@@ -1,0 +1,85 @@
+<!-- File: _includes/components/widget/emergency-power-outage-board.njk -->
+{% set demo_outages = [
+  { utility: "Snohomish County PUD", customers_affected: 42, cause: "Equipment Failure", eta: "Restored by 4:30 PM", lat: "47.810", lon: "-122.377" },
+  { utility: "Puget Sound Energy (PSE)", customers_affected: 0, cause: "None", eta: "All circuits nominal", lat: "47.790", lon: "-122.320" }
+] %}
+
+{% set outage_list = utility_outages | default(demo_outages) %}
+{% set total_affected = 0 %}
+{% for o in outage_list %}
+  {% set total_affected = total_affected + o.customers_affected %}
+{% endfor %}
+{% set has_outage = (total_affected > 0) %}
+
+<section class="widget-card emergency-power-card" style="padding: 1.5rem; width: 100%;">
+  
+  <details {% if has_outage %}open{% endif %} style="background: transparent; border: none; overflow: visible;">
+    
+    {# Dynamic Header #}
+    <summary style="list-style: none; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; gap: 0.75rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <span style="display: inline-flex; width: 28px; height: 28px; border-radius: 8px; align-items: center; justify-content: center; background: {% if has_outage %}rgba(245, 158, 11, 0.15){% else %}rgba(16, 185, 129, 0.12){% endif %};" aria-hidden="true">
+          {% if has_outage %}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7v8l9-12h-7z"/></svg>
+          {% else %}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          {% endif %}
+        </span>
+        <div>
+          <span class="text-overline" style="color: #86868b; font-size: 0.65rem;">MUNICIPAL UTILITY GRID</span>
+          <h3 class="text-widget-title" style="margin: 0; font-size: 1.05rem;">
+            {% if has_outage %}⚠️ Power Outages Detected ({{ total_affected }} Customers){% else %}✅ Power: Normal Operations{% endif %}
+          </h3>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 0.75rem; font-weight: 700; color: {% if has_outage %}#D97706{% else %}#059669{% endif %}; background: var(--color-background-universal); border: 1px solid var(--color-border-light); padding: 0.2rem 0.6rem; border-radius: 999px;">
+          {% if has_outage %}{{ total_affected }} Out{% else %}100% Operational{% endif %}
+        </span>
+        <span style="font-size: 0.85rem; color: #86868b;" aria-hidden="true">⌄</span>
+      </div>
+    </summary>
+
+    {# Expanded View #}
+    <div style="padding-top: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
+        {% for outg in outage_list %}
+          <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 10px; padding: 0.85rem; display: flex; flex-direction: column; justify-content: space-between; gap: 0.5rem;">
+            <div>
+              <div style="font-weight: 700; font-size: 0.85rem; color: var(--color-primary-default);">
+                {{ outg.utility }}
+              </div>
+              <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.2rem;">
+                Status: <strong style="color: {% if outg.customers_affected > 0 %}var(--color-tertiary-default){% else %}#10B981{% endif %};">{% if outg.customers_affected > 0 %}{{ outg.customers_affected }} customers affected{% else %}No active outages{% endif %}</strong>
+              </div>
+              {% if outg.customers_affected > 0 %}
+                <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
+                  Est. Restored: <strong>{{ outg.eta }}</strong>
+                </div>
+              {% endif %}
+            </div>
+
+            {% if outg.customers_affected > 0 %}
+              <div style="border-top: 1px solid var(--color-border-light); padding-top: 0.4rem; text-align: right;">
+                <button type="button" 
+                        class="btn-outage-locate" 
+                        onclick="const m=document.getElementById('city-interactive-map');if(m){m.scrollIntoView({behavior:'smooth'});}else{alert('Outage Cluster: {{ outg.lat }}, {{ outg.lon }}');}" 
+                        style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 999px; padding: 0.2rem 0.55rem; font-size: 0.7rem; font-weight: 600; color: var(--color-secondary-default); cursor: pointer;">
+                  Locate Outage Cluster 📍
+                </button>
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+
+      <div style="font-size: 0.7rem; color: #86868b; display: flex; justify-content: space-between; align-items: center; padding-top: 0.5rem;">
+        <span>Source: Snohomish PUD & Puget Sound Energy Outage Maps</span>
+        <span>Auto-refreshed: Hourly</span>
+      </div>
+    </div>
+
+  </details>
+
+</section>

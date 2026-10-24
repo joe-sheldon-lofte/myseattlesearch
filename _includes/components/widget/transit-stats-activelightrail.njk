@@ -1,0 +1,33 @@
+<!-- File: _includes/components/widget/transit-stats-activelightrail.njk -->
+<div class="widget-card transit-stat-card transit-active-lightrail-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 180px; padding: 1.5rem; width: 100%;">
+  
+  {# Agency Vector: Link Light Rail (graphic.map.train.linklightrail) #}
+  <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;" aria-hidden="true">
+    <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+      <!-- Aerodynamic Nose & Upper Band: Sound Transit Navy #002E6D -->
+      <path d="M3 13V8a3 3 0 0 1 3-3h9l5 4.5V13H3z" fill="#002E6D"/>
+      <path d="M6 7h3v3H6zM11 7h3v3h-3zM16 7h2.5l2 3H16z" fill="#FFFFFF" opacity="0.9"/>
+      <!-- Lower Chassis & Skirt: Sound Transit Teal #0091B3 -->
+      <path d="M3 13v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4H3z" fill="#0091B3"/>
+      <!-- Wheel Sets & Headlight -->
+      <circle cx="6" cy="19" r="1.5" fill="#1C1C1E"/>
+      <circle cx="18" cy="19" r="1.5" fill="#1C1C1E"/>
+      <circle cx="19" cy="14" r="1" fill="#FACC15"/>
+    </svg>
+  </div>
+
+  {# Prominent Numerical Metric #}
+  <div class="text-data-huge" style="line-height: 0.95; margin-bottom: 0.35rem;">
+    {{ active_lightrail_count | default("14") }}
+  </div>
+
+  {# Descriptive Label String #}
+  <div class="text-overline" style="color: var(--color-primary-default); font-size: 0.75rem; letter-spacing: 0.06em;">
+    {{ active_lightrail_label | default("Active 1 Line Trains") }}
+  </div>
+
+  <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.35rem;">
+    {{ active_lightrail_subtext | default("Lynnwood ⇄ Angle Lake Corridor") }}
+  </div>
+
+</div>

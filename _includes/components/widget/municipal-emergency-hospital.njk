@@ -1,0 +1,45 @@
+<!-- File: _includes/components/widget/municipal-emergency-hospital.njk -->
+<div class="widget-card emergency-hospital-card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; padding: 1.5rem; width: 100%;">
+  
+  {# Header Row #}
+  <div>
+    <div class="text-overline">TRAUMA & HEALTHCARE ACCESS</div>
+    <h3 class="text-widget-title" style="margin-top: 0.25rem;">Emergency Medical</h3>
+    <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
+      Regional Acute Care & 24/7 Trauma Services
+    </div>
+  </div>
+
+  {# Location & Facility Details #}
+  <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1rem; margin: 1rem 0; display: flex; flex-direction: column; gap: 0.65rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+      <div>
+        <div class="text-overline" style="font-size: 0.65rem; color: #86868b;">Nearest 24/7 Emergency Department</div>
+        <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--color-primary-default); margin: 0.15rem 0 0 0;">
+          {{ hospital_name | default("Swedish Edmonds Hospital") }}
+        </h4>
+      </div>
+      <span style="display: inline-block; padding: 0.25rem 0.65rem; background: rgba(30, 77, 107, 0.1); color: var(--color-secondary-default); border-radius: 999px; font-weight: 800; font-size: 0.8rem; white-space: nowrap;">
+        Located: {{ hospital_distance | default("1.8 miles away") }}
+      </span>
+    </div>
+
+    {# Quality Standard Badge #}
+    <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px dashed var(--color-border-light); padding-top: 0.5rem; font-size: 0.75rem;">
+      <span class="text-body-secondary">CMS Quality Standard:</span>
+      <div style="display: flex; align-items: center; gap: 0.35rem;">
+        <span style="color: #F59E0B; font-size: 0.85rem;" aria-hidden="true">★★★★☆</span>
+        <strong style="color: var(--color-primary-default);">{{ hospital_cms_rating | default("4-Star CMS Hospital Rating") }}</strong>
+      </div>
+    </div>
+  </div>
+
+  {# Footer #}
+  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.8rem;">
+    <span class="text-body-secondary" style="font-size: 0.7rem;">Level IV Trauma Center • Primary Stroke Center</span>
+    <a href="tel:911" style="color: var(--color-tertiary-default); font-weight: 700; text-decoration: none; font-size: 0.75rem;">
+      Emergency: Call 911
+    </a>
+  </div>
+
+</div>
