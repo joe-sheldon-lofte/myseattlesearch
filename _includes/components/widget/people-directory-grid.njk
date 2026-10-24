@@ -1,21 +1,14 @@
 <!-- File: _includes/components/widget/people-directory-grid.njk -->
-{% set dir_title = directory_grid_title | default("The Core Team & Preferred Network") %}
-{% set dir_subtitle = directory_grid_subtitle | default("Experienced real estate advisors, transaction specialists, and certified regional professionals supporting your transaction.") %}
+{% set dir_title = directory_grid_title | default("Joe's Recommended Professionals") %}
 {% set show_filter = directory_show_filter | default(true) %}
 
-<section class="widget-card people-directory-grid-card" style="padding: 2rem; width: 100%; border-radius: var(--border-radius-squircle); display: flex; flex-direction: column; gap: 1.75rem;">
+<section class="widget-card people-directory-grid-card" style="padding: 2rem; width: 100%; border-radius: var(--border-radius-squircle); display: flex; flex-direction: column; gap: 1.75rem; box-sizing: border-box;">
   
-  {# Header Area #}
-  <div style="text-align: center; max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 0.5rem;">
-    <span class="text-overline" style="color: var(--color-secondary-default);">
-      PUGET SOUND SPECIALIST NETWORK
-    </span>
+  {# Header Area per edit #}
+  <div style="text-align: center; max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 0.25rem;">
     <h2 class="text-page-title" style="margin: 0; font-size: 1.75rem;">
       {{ dir_title }}
     </h2>
-    <p class="text-body-secondary" style="font-size: 0.95rem; line-height: 1.5; margin: 0;">
-      {{ dir_subtitle }}
-    </p>
   </div>
 
   {# Consumer Disclosure Notice Banner #}
@@ -34,10 +27,12 @@
     </div>
   {% endif %}
 
-  {# Responsive Grid Container: direct children per SOP 6 #}
+  {# Responsive Grid Container #}
   <div class="core-four-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; align-items: stretch;">
     {% if directory_cards_slot %}
       {{ directory_cards_slot | safe }}
+    {% elif content %}
+      {{ content | safe }}
     {% else %}
       {% include "components/widget/people-card-primary.njk" ignore missing %}
       {% include "components/widget/people-card-secondary.njk" ignore missing %}

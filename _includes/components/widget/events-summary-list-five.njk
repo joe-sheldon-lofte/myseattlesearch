@@ -1,114 +1,59 @@
 <!-- File: _includes/components/widget/events-summary-list-five.njk -->
-{% set default_events = [
-  {
-    month: "AUG",
-    day: "20",
-    title: "Edmonds Third Thursday Art Walk",
-    venue: "Downtown Edmonds Commercial District",
-    time: "5:00 PM – 8:00 PM",
-    calendar_url: "webcal://myseattlesearch.com/events/edmonds-art-walk.ics"
-  },
-  {
-    month: "AUG",
-    day: "22",
-    title: "Homebuyer Readiness & Mortgage Strategy Workshop",
-    venue: "Lynnwood Library Meeting Room / Online Stream",
-    time: "10:00 AM – 11:30 AM",
-    calendar_url: "webcal://myseattlesearch.com/events/homebuyer-workshop.ics"
-  },
-  {
-    month: "AUG",
-    day: "23",
-    title: "Edmonds Waterfront Summer Concert Series",
-    venue: "City Park Rotary Pavilion",
-    time: "3:00 PM – 5:00 PM",
-    calendar_url: "webcal://myseattlesearch.com/events/summer-concert.ics"
-  },
-  {
-    month: "AUG",
-    day: "25",
-    title: "City Council Public Hearing: Shoreline Master Plan",
-    venue: "Edmonds Municipal Council Chambers",
-    time: "7:00 PM",
-    calendar_url: "webcal://myseattlesearch.com/events/council-hearing.ics"
-  },
-  {
-    month: "AUG",
-    day: "29",
-    title: "Salish Sea Puget Sound Ecology Walking Tour",
-    venue: "Olympic Beach Visitor Station",
-    time: "9:00 AM – 11:00 AM",
-    calendar_url: "webcal://myseattlesearch.com/events/ecology-tour.ics"
-  }
-] %}
+{% set city = events_city_name | default("Edmonds") %}
+{% set events_list = events_five_data | default([
+  { title: "Edmonds Waterfront Spring Clean-Up", date: "SAT, MAR 28", time: "9:00 AM - 12:00 PM", location: "Brackett's Landing North", category: "Civic" },
+  { title: "City Council Regular Business Meeting", date: "TUE, APR 07", time: "7:00 PM", location: "Council Chambers / Zoom", category: "Government" },
+  { title: "Downtown Edmonds Art Walk", date: "THU, APR 16", time: "5:00 PM - 8:00 PM", location: "Main Street Commercial Core", category: "Arts" },
+  { title: "Planning Board Comprehensive Plan Hearing", date: "WED, APR 22", time: "6:00 PM", location: "Public Safety Complex", category: "Planning" },
+  { title: "Snohomish County Fire Prevention Open House", date: "SAT, MAY 02", time: "10:00 AM - 2:00 PM", location: "South County Fire Station 17", category: "Public Safety" }
+]) %}
 
-<section class="widget-card events-summary-list-card" style="padding: 1.5rem; width: 100%;">
+<div class="widget-card events-summary-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; box-sizing: border-box;">
   
-  {# Header Row #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+  {# Header Row per edit: "COMMUNITY CALENDAR" #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
     <div>
-      <span class="text-overline">CIVIC & COMMUNITY CALENDAR</span>
-      <h3 class="text-widget-title" style="margin-top: 0.25rem;">
-        {{ events_heading | default("Upcoming Local Events") }}
+      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+        COMMUNITY CALENDAR
+      </span>
+      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
+        Upcoming {{ city }} Events
       </h3>
     </div>
-    <div style="font-size: 0.75rem; font-weight: 600; color: #86868b; text-transform: uppercase;">
-      Next 5 Scheduled
-    </div>
+    <span class="text-body-secondary" style="font-size: 0.75rem;">Top 5 Active</span>
   </div>
 
-  {# Events Feed List #}
-  <div style="display: flex; flex-direction: column;">
-    {% for ev in events_items | default(default_events) %}
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; {% if not loop.last %}border-bottom: 1px solid var(--color-border-light);{% endif %}">
-        
-        {# Left: Date Pill Badge #}
-        <div style="flex-shrink: 0; width: 56px; height: 56px; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-          <span style="font-size: 0.65rem; font-weight: 800; color: var(--color-tertiary-default); letter-spacing: 0.05em; line-height: 1;">
-            {{ ev.month }}
-          </span>
-          <span style="font-size: 1.35rem; font-weight: 800; color: var(--color-primary-default); line-height: 1.1; margin-top: 0.15rem;">
-            {{ ev.day }}
-          </span>
-        </div>
-
-        {# Middle: Details #}
-        <div style="flex-grow: 1; min-width: 0;">
-          <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--color-primary-default); margin-bottom: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-            {{ ev.title }}
-          </h4>
+  {# 5 Stacked Events #}
+  <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+    {% for item in events_list %}
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--color-surface-gray);">
+        <div style="display: flex; flex-direction: column; gap: 0.15rem;">
+          <div style="font-size: 0.85rem; font-weight: 700; color: var(--color-primary-default); line-height: 1.3;">
+            {{ item.title }}
+          </div>
           <div class="text-body-secondary" style="font-size: 0.75rem;">
-            <span>{{ ev.venue }}</span> • <span>{{ ev.time }}</span>
+            📍 {{ item.location }}
           </div>
         </div>
 
-        {# Right: 1-Click Calendar Add #}
-        <div style="flex-shrink: 0;">
-          <a href="{{ ev.calendar_url }}" 
-             title="Add to Calendar"
-             aria-label="Add {{ ev.title }} to your calendar"
-             style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 50%; color: var(--color-secondary-default); text-decoration: none; transition: background 0.2s ease;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
-              <line x1="16" x2="16" y1="2" y2="6"/>
-              <line x1="8" x2="8" y1="2" y2="6"/>
-              <line x1="3" x2="21" y1="10" y2="10"/>
-              <line x1="12" x2="12" y1="14" y2="18"/>
-              <line x1="10" x2="14" y1="16" y2="16"/>
-            </svg>
-          </a>
+        <div style="text-align: right; flex-shrink: 0;">
+          <div style="font-size: 0.75rem; font-weight: 800; font-family: monospace; color: var(--color-secondary-default);">
+            {{ item.date }}
+          </div>
+          <div class="text-body-secondary" style="font-size: 0.7rem;">
+            {{ item.time }}
+          </div>
         </div>
-
       </div>
     {% endfor %}
   </div>
 
-  {# Footer CTA Link #}
-  <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--color-border-light); text-align: center;">
-    <a href="{{ events_all_url | default('/events/') }}" style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; font-weight: 700; color: var(--color-secondary-default); text-decoration: none;">
-      <span>See all {{ city_name | default("local") }} events</span>
+  {# Footer Action Link #}
+  <div style="border-top: 1px solid var(--color-border-light); padding-top: 0.5rem; text-align: right;">
+    <a href="/events/" style="color: var(--color-secondary-default); font-size: 0.8rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem;">
+      <span>See all {{ city }} events</span>
       <span aria-hidden="true">→</span>
     </a>
   </div>
 
-</section>
+</div>

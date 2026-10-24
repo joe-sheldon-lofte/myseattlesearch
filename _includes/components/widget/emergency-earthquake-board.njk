@@ -1,97 +1,58 @@
 <!-- File: _includes/components/widget/emergency-earthquake-board.njk -->
-{% set demo_quakes = [
-  { time: "Today at 08:14 AM", mag: 1.4, depth: "18.2 km", dist: "8 mi W of Edmonds, WA", lat: "47.812", lon: "-122.540" },
-  { time: "Yesterday at 04:22 PM", mag: 2.1, depth: "12.4 km", dist: "14 mi NNW of Seattle, WA", lat: "47.780", lon: "-122.390" },
-  { time: "Oct 21 at 11:30 PM", mag: 1.2, depth: "22.0 km", dist: "4 mi E of Mountlake Terrace, WA", lat: "47.790", lon: "-122.280" },
-  { time: "Oct 21 at 02:05 PM", mag: 2.8, depth: "9.1 km", dist: "19 mi WNW of Everett, WA", lat: "48.040", lon: "-122.610" }
-] %}
+{% set city = earthquake_city_name | default("Puget Sound Region") %}
+{% set quakes = earthquake_events_data | default([
+  { mag: "2.4", depth: "18.2 km", loc: "4 km SSW of Carnation, WA", time: "4 hours ago", status: "Minor" },
+  { mag: "1.8", depth: "22.5 km", loc: "2 km ENE of Edmonds, WA", time: "18 hours ago", status: "Micro" },
+  { mag: "2.1", depth: "14.1 km", loc: "7 km WNW of Monroe, WA", time: "41 hours ago", status: "Minor" }
+]) %}
 
-{% set quakes = recent_earthquakes | default(demo_quakes) %}
-{% set recent_major = false %}
-{% for q in quakes %}
-  {% if q.mag >= 4.0 %}
-    {% set recent_major = true %}
-  {% endif %}
-{% endfor %}
-
-<section class="widget-card emergency-earthquake-card" style="padding: 1.5rem; width: 100%;">
+<div class="widget-card emergency-earthquake-board-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1rem; box-sizing: border-box;">
   
-  {# Header Row #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+  {# Header Row per edit: "72-Hour Log" (Cascadia Subduction Zone removed) #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
     <div>
-      <span class="text-overline">USGS & PACIFIC NORTHWEST SEISMIC NETWORK</span>
-      <h3 class="text-widget-title" style="margin-top: 0.25rem;">Seismic Activity Monitor</h3>
-      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
-        Regional Puget Sound Network (PNSN Real-Time Feed)
-      </div>
-    </div>
-    
-    <div style="font-size: 0.75rem; font-weight: 700; color: #86868b; background: var(--color-background-universal); border: 1px solid var(--color-border-light); padding: 0.25rem 0.65rem; border-radius: 999px;">
-      72-Hour Audit Log
-    </div>
-  </div>
-
-  {# Top Status Bar #}
-  <div style="padding: 0.75rem 1rem; border-radius: 10px; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; {% if recent_major %}background: rgba(217, 35, 42, 0.12); border: 1px solid var(--color-tertiary-default);{% else %}background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25);{% endif %}">
-    <div style="display: flex; align-items: center; gap: 0.5rem;">
-      <span style="font-size: 1rem;">{% if recent_major %}🚨{% else %}✅{% endif %}</span>
-      <span style="font-size: 0.85rem; font-weight: 700; color: {% if recent_major %}var(--color-tertiary-default){% else %}#065F46{% endif %};">
-        {% if recent_major %}Active Seismic Advisory: Significant Event Detected (M4.0+){% else %}No Recent Major Seismic Activity (M4.0+ in 72h){% endif %}
+      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+        SEISMIC ACTIVITY LOG
       </span>
+      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
+        Recent Regional Earthquakes
+      </h3>
     </div>
-    <span style="font-size: 0.7rem; font-weight: 600; color: #86868b;">Cascadia Subduction Zone</span>
+    <div style="font-size: 0.75rem; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0.2rem 0.65rem; border-radius: 999px;">
+      72-Hour Log
+    </div>
   </div>
 
-  {# Scrolling 72-Hour Table #}
-  <div style="overflow-x: auto; max-height: 280px; overflow-y: auto;">
-    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.8rem;">
-      <thead>
-        <tr style="border-bottom: 2px solid var(--color-border-light); color: var(--color-primary-default); opacity: 0.75;">
-          <th class="text-overline" style="padding: 0.5rem 0.25rem;">Date / Time</th>
-          <th class="text-overline" style="padding: 0.5rem 0.25rem; text-align: center;">Magnitude</th>
-          <th class="text-overline" style="padding: 0.5rem 0.5rem;">Epicenter & Depth</th>
-          <th class="text-overline" style="padding: 0.5rem 0.25rem; text-align: right;">Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for q in quakes %}
-          {% set mag_color = "#059669" %}
-          {% if q.mag >= 4.0 %}
-            {% set mag_color = "var(--color-tertiary-default)" %}
-          {% elif q.mag >= 2.5 %}
-            {% set mag_color = "#D97706" %}
-          {% endif %}
+  {# Seismic Events Stack #}
+  <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+    {% for q in quakes %}
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem; background: var(--color-surface-gray); border-radius: 8px;">
+        <div style="display: flex; align-items: center; gap: 0.85rem;">
+          <div style="width: 42px; height: 42px; border-radius: 8px; background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;">
+            <span style="font-size: 1rem; font-weight: 800; font-family: monospace; color: var(--color-secondary-default); line-height: 1;">M{{ q.mag }}</span>
+            <span style="font-size: 0.55rem; color: #86868b; text-transform: uppercase;">{{ q.status }}</span>
+          </div>
+          <div>
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--color-primary-default);">
+              {{ q.loc }}
+            </div>
+            <div class="text-body-secondary" style="font-size: 0.75rem;">
+              Depth: {{ q.depth }} • Felt: None
+            </div>
+          </div>
+        </div>
 
-          <tr style="border-bottom: 1px solid var(--color-border-light);">
-            <td style="padding: 0.6rem 0.25rem; white-space: nowrap; font-weight: 500; color: var(--color-primary-default);">
-              {{ q.time }}
-            </td>
-            <td style="padding: 0.6rem 0.25rem; text-align: center;">
-              <span style="display: inline-block; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 800; font-family: monospace; font-size: 0.9rem; color: {{ mag_color }}; background: var(--color-background-universal); border: 1px solid var(--color-border-light);">
-                M {{ q.mag }}
-              </span>
-            </td>
-            <td style="padding: 0.6rem 0.5rem;">
-              <div style="font-weight: 600; color: var(--color-primary-default);">{{ q.dist }}</div>
-              <div class="text-body-secondary" style="font-size: 0.7rem;">Depth: {{ q.depth }}</div>
-            </td>
-            <td style="padding: 0.6rem 0.25rem; text-align: right; white-space: nowrap;">
-              <button type="button" 
-                      class="btn-quake-locate" 
-                      onclick="const m=document.getElementById('city-interactive-map');if(m){m.scrollIntoView({behavior:'smooth'});}else{alert('Epicenter: {{ q.lat }}, {{ q.lon }}');}" 
-                      style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 999px; padding: 0.25rem 0.55rem; font-size: 0.7rem; font-weight: 600; color: var(--color-secondary-default); cursor: pointer;">
-                Locate 📍
-              </button>
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        <div style="font-family: monospace; font-size: 0.75rem; color: #86868b; text-align: right;">
+          {{ q.time }}
+        </div>
+      </div>
+    {% endfor %}
   </div>
 
-  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem; margin-top: 0.75rem;" class="text-body-secondary">
-    <span>Data Feed: USGS Earthquake Hazards Program & PNSN</span>
-    <span>Auto-refreshed: Hourly</span>
+  {# Footer #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem; font-size: 0.7rem;" class="text-body-secondary">
+    <span>Data Source: USGS / Pacific Northwest Seismic Network (PNSN)</span>
+    <span>Regional Baseline Normal</span>
   </div>
 
-</section>
+</div>

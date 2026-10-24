@@ -1,144 +1,69 @@
 <!-- File: _includes/components/widget/elections-guide-candidates.njk -->
-{% set is_active = election_cycle_active | default(true) %}
+{% set guide_title = candidates_guide_title | default("Candidates Reference Guide") %}
+{% set guide_sub = "Candidates appearing on your ballot." %}
+{% set disclaimer_text = "Candidate statements published exactly as submitted to the County." %}
 
-{% set demo_offices = [
+{% set demo_races = [
   {
-    office: "Snohomish County Council — District 3",
-    races_type: "County Legislative",
+    office: "Mayor • City of Edmonds",
     candidates: [
-      {
-        name: "Stephanie Wright",
-        party: "Prefers Democratic Party",
-        photo: "/assets/images/placeholder-candidate-1.webp",
-        statement_url: "https://voter.votewa.gov",
-        bio_excerpt: "Focusing on regional light rail transit connectivity, Snohomish County conservation trust lands, and public safety infrastructure."
-      },
-      {
-        name: "Greg Tisdel",
-        party: "Prefers Republican Party",
-        photo: "",
-        statement_url: "https://voter.votewa.gov",
-        bio_excerpt: "Advocating for municipal fiscal restraint, streamlined small business permitting, and transportation road maintenance."
-      }
+      { name: "Mike Rosen", title: "Incumbent Mayor", bio: "Focusing on municipal fiscal discipline, waterfront environmental preservation, and downtown business district support." },
+      { name: "Challenger Name", title: "Community Advocate", bio: "Advocating for missing-middle housing acceleration, pedestrian sidewalk connectivity, and climate resilience." }
     ]
   },
   {
-    office: "Edmonds City Council — Position 1",
-    races_type: "Municipal Non-Partisan",
+    office: "City Council • Position 1",
     candidates: [
-      {
-        name: "Alicia Crank",
-        party: "Non-Partisan Office",
-        photo: "/assets/images/placeholder-candidate-2.webp",
-        statement_url: "https://voter.votewa.gov",
-        bio_excerpt: "Championing downtown small business vitality, accessible waterfront public spaces, and equitable civic engagement."
-      },
-      {
-        name: "Roger Pence",
-        party: "Non-Partisan Office",
-        photo: "",
-        statement_url: "https://voter.votewa.gov",
-        bio_excerpt: "Prioritizing municipal budget stabilization, marshland ecological restoration, and pedestrian infrastructure."
-      }
+      { name: "Candidate A", title: "Business Owner", bio: "Small business advocacy, budget transparency, and public safety infrastructure prioritization." },
+      { name: "Candidate B", title: "Transit Planner", bio: "Promoting regional bus transit integration, walkability, and stormwater infrastructure investments." }
     ]
   }
 ] %}
 
-{% set offices = election_offices | default(demo_offices) %}
-
-{% if is_active and offices and offices | length > 0 %}
-<section class="widget-card election-candidates-guide-card" style="padding: 1.5rem; width: 100%;">
+<div class="widget-card elections-guide-candidates-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
   
-  {# Header Row #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
-    <div>
-      <span class="text-overline">CERTIFIED CANDIDATES REFERENCE GUIDE</span>
-      <h3 class="text-widget-title" style="margin-top: 0.25rem;">Offices & Candidate Directory</h3>
-      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
-        Official candidates appearing on the local municipal ballot per County Auditor certification.
-      </div>
-    </div>
-    
-    <div style="font-size: 0.75rem; font-weight: 700; color: var(--color-secondary-default); background: var(--color-background-universal); border: 1px solid var(--color-border-light); padding: 0.25rem 0.65rem; border-radius: 999px;">
-      {{ offices | length }} Contested Races
-    </div>
+  {# Header Row per edit: "CANDIDATES REFERENCE GUIDE" #}
+  <div style="border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+    <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+      CANDIDATES REFERENCE GUIDE
+    </span>
+    <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.25rem;">
+      {{ guide_title }}
+    </h3>
+    <p class="text-body-secondary" style="font-size: 0.85rem; line-height: 1.5; margin: 0.25rem 0 0 0;">
+      {{ guide_sub }}
+    </p>
   </div>
 
-  {# Accordion Stack of Offices #}
-  <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-    {% for off in offices %}
-      <details {% if loop.first %}open{% endif %} style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; overflow: hidden; transition: border-color 0.2s ease;">
-        
-        <summary style="list-style: none; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; cursor: pointer; user-select: none; gap: 0.75rem;">
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <span style="font-size: 0.9rem; font-weight: 700; color: var(--color-secondary-default); width: 14px; text-align: center;" aria-hidden="true">⌄</span>
-            <div>
-              <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--color-primary-default); margin: 0;">
-                {{ off.office }}
-              </h4>
-              <span class="text-overline" style="font-size: 0.65rem; color: #86868b;">{{ off.races_type }}</span>
-            </div>
-          </div>
-
-          <span style="font-size: 0.75rem; font-weight: 700; color: #86868b; background: var(--color-surface-gray); padding: 0.2rem 0.55rem; border-radius: 999px;">
-            {{ off.candidates | length }} Candidates
-          </span>
+  {# Accordion of Races #}
+  <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+    {% for race in demo_races %}
+      <details class="election-race-accordion" style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1rem 1.25rem; cursor: pointer;" {% if loop.first %}open{% endif %}>
+        <summary style="display: flex; justify-content: space-between; align-items: center; list-style: none; font-size: 0.95rem; font-weight: 800; color: var(--color-primary-default);">
+          <span>{{ race.office }}</span>
+          <span style="font-size: 0.75rem; color: var(--color-secondary-default);">▼</span>
         </summary>
 
-        {# Candidate Roster #}
-        <div style="padding: 0 1.25rem 1.25rem 1.25rem; border-top: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 0.85rem; margin-top: 0.75rem;">
-          {% for cand in off.candidates %}
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding: 0.85rem; background: var(--color-surface-gray); border-radius: 10px; border: 1px solid var(--color-border-light);">
-              
-              <div style="display: flex; align-items: center; gap: 0.85rem; min-width: 0;">
-                {% if cand.photo %}
-                  <div style="width: 44px; height: 44px; border-radius: 8px; overflow: hidden; background: #FFFFFF; flex-shrink: 0; border: 1px solid var(--color-border-light);">
-                    <img src="{{ cand.photo }}" alt="{{ cand.name }}" loading="lazy" decoding="async" style="width: 100%; height: 100%; object-fit: cover;">
-                  </div>
-                {% endif %}
-
-                <div>
-                  <div style="font-size: 0.95rem; font-weight: 800; color: var(--color-primary-default);">
-                    {{ cand.name }}
-                  </div>
-                  {% if cand.party %}
-                    <div class="text-body-secondary" style="font-size: 0.75rem; font-style: italic;">
-                      {{ cand.party }}
-                    </div>
-                  {% endif %}
-                  {% if cand.bio_excerpt %}
-                    <div class="text-body" style="font-size: 0.8rem; margin-top: 0.35rem; line-height: 1.4; max-width: 580px;">
-                      {{ cand.bio_excerpt }}
-                    </div>
-                  {% endif %}
-                </div>
+        <div style="margin-top: 1rem; border-top: 1px solid var(--color-border-light); padding-top: 0.75rem; display: flex; flex-direction: column; gap: 0.85rem;">
+          {% for cand in race.candidates %}
+            <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 8px; padding: 0.85rem;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <h5 style="margin: 0; font-size: 0.9rem; font-weight: 800; color: var(--color-primary-default);">{{ cand.name }}</h5>
+                <span class="text-overline" style="font-size: 0.6rem; color: #86868b;">{{ cand.title }}</span>
               </div>
-
-              <div style="flex-shrink: 0;">
-                <a href="{{ cand.statement_url | default('https://voter.votewa.gov') }}" 
-                   target="_blank" 
-                   rel="noopener noreferrer" 
-                   style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.85rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 999px; font-size: 0.75rem; font-weight: 700; color: var(--color-secondary-default); text-decoration: none;">
-                  <span>View Statement</span>
-                  <span aria-hidden="true">→</span>
-                </a>
-              </div>
-
+              <p class="text-body-secondary" style="font-size: 0.8rem; line-height: 1.45; margin: 0.35rem 0 0 0;">
+                {{ cand.bio }}
+              </p>
             </div>
           {% endfor %}
         </div>
-
       </details>
     {% endfor %}
   </div>
 
-  {# Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem; margin-top: 1.25rem;" class="text-body-secondary">
-    <span>Candidate statements published exactly as submitted to the County Auditor.</span>
-    <a href="https://voter.votewa.gov" target="_blank" rel="noopener noreferrer" style="color: var(--color-secondary-default); font-weight: 700; text-decoration: none;">
-      Official Voters Pamphlet →
-    </a>
+  {# Footer per edit #}
+  <div style="border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem;" class="text-body-secondary">
+    {{ disclaimer_text }}
   </div>
 
-</section>
-{% endif %}
+</div>

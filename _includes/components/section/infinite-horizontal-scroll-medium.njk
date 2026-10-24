@@ -1,52 +1,89 @@
 <!-- File: _includes/components/section/infinite-horizontal-scroll-medium.njk -->
 {% set scroll_id = scroll_medium_id | default("scroll-medium-" + (range(100, 999) | random)) %}
+{% set scroll_title = scroll_medium_title | default("Featured Local Profiles & Market Signals") %}
+{% set scroll_overline = scroll_medium_overline | default("COMMUNITY HIGHLIGHTS") %}
 
-<div id="{{ scroll_id }}" class="section-scroll-container scroll-size-medium" style="position: relative; width: 100%; margin-bottom: 2.5rem; box-sizing: border-box;">
+<section id="{{ scroll_id }}" class="section-scroll-container scroll-size-medium" style="position: relative; width: 100%; margin-bottom: 3rem; box-sizing: border-box;">
   
-  {# Left and Right Gradient Fades #}
-  <div class="scroll-fade-left" style="position: absolute; left: 0; top: 0; bottom: 0; width: 44px; background: linear-gradient(90deg, var(--color-background-universal) 0%, transparent 100%); z-index: 5; pointer-events: none;" aria-hidden="true"></div>
-  <div class="scroll-fade-right" style="position: absolute; right: 0; top: 0; bottom: 0; width: 44px; background: linear-gradient(270deg, var(--color-background-universal) 0%, transparent 100%); z-index: 5; pointer-events: none;" aria-hidden="true"></div>
+  {# Header Row #}
+  <div style="margin-bottom: 0.85rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--color-border-light);">
+    <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+      {{ scroll_overline }}
+    </span>
+    <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.25rem;">
+      {{ scroll_title }}
+    </h3>
+  </div>
 
-  {# Horizontally Scrolling Flex Track hiding scrollbar #}
-  <div class="scroll-track" 
-       tabindex="0"
-       role="region" 
-       aria-label="Horizontally scrollable real estate listings"
-       style="display: flex; gap: 1.25rem; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; scroll-snap-type: x mandatory; padding: 0.5rem 1rem; width: 100%; box-sizing: border-box;">
+  {# Track Shell with Centered Edge Navigation Arrows per style.section.scroll.buttons.medium #}
+  <div style="position: relative; width: 100%;">
     
-    {% if scroll_slot %}
-      {{ scroll_slot | safe }}
-    {% elif content %}
-      {{ content | safe }}
-    {% else %}
-      {# Default Demo Items for Medium / Real Estate Listings #}
-      <div style="flex: 0 0 auto; scroll-snap-align: start; width: 320px; max-width: 85vw;">
-        {% set business_name = "Walnut Street Coffee" %}
-        {% set business_category = "Downtown Cafe" %}
-        {% set business_rating = "4.9" %}
-        {% set business_reviews_count = "184" %}
-        {% include "components/widget/business-listing.njk" ignore missing %}
-      </div>
-      <div style="flex: 0 0 auto; scroll-snap-align: start; width: 320px; max-width: 85vw;">
-        {% set ferry_origin = "Edmonds" %}{% set ferry_destination = "Kingston" %}{% set ferry_status = "On Time" %}
-        {% include "components/widget/ferry-status.njk" ignore missing %}
-      </div>
-      <div style="flex: 0 0 auto; scroll-snap-align: start; width: 320px; max-width: 85vw;">
-        {% set airport_name = "Paine Field" %}{% set airport_code = "PAE" %}{% set airport_status = "Normal Operations" %}
-        {% include "components/widget/regional-airport-status.njk" ignore missing %}
-      </div>
-      <div style="flex: 0 0 auto; scroll-snap-align: start; width: 320px; max-width: 85vw;">
-        {% set current_months_supply = 1.8 %}
-        {% include "components/widget/realestate-market-balance-bar.njk" ignore missing %}
-      </div>
-    {% endif %}
+    {# Floating Edge Arrows #}
+    <button type="button" 
+            class="btn-scroll-arrow medium prev" 
+            aria-label="Scroll left"
+            onclick="scrollContainerLeft('{{ scroll_id }}', 340)"
+            style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); z-index: 10; width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--color-border-light); color: var(--color-primary-default); font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.12); transition: all 0.2s ease;">
+      ‹
+    </button>
 
+    <button type="button" 
+            class="btn-scroll-arrow medium next" 
+            aria-label="Scroll right"
+            onclick="scrollContainerRight('{{ scroll_id }}', 340)"
+            style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); z-index: 10; width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--color-border-light); color: var(--color-primary-default); font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.12); transition: all 0.2s ease;">
+      ›
+    </button>
+
+    {# Left and Right Gradient Fades #}
+    <div class="scroll-fade-left" style="position: absolute; left: 0; top: 0; bottom: 0; width: 48px; background: linear-gradient(90deg, var(--color-background-universal) 0%, transparent 100%); z-index: 5; pointer-events: none;" aria-hidden="true"></div>
+    <div class="scroll-fade-right" style="position: absolute; right: 0; top: 0; bottom: 0; width: 48px; background: linear-gradient(270deg, var(--color-background-universal) 0%, transparent 100%); z-index: 5; pointer-events: none;" aria-hidden="true"></div>
+
+    {# Horizontally Scrolling Flex Track #}
+    <div class="scroll-track" 
+         tabindex="0"
+         role="region" 
+         aria-label="Horizontally scrollable medium cards"
+         style="display: flex; gap: 1.25rem; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; scroll-snap-type: x mandatory; padding: 0.5rem 0.25rem; width: 100%; box-sizing: border-box;">
+      
+      {% if scroll_slot %}
+        {{ scroll_slot | safe }}
+      {% elif content %}
+        {{ content | safe }}
+      {% else %}
+        <div style="flex: 0 0 auto; scroll-snap-align: start; width: 320px; max-width: 85vw;">
+          {% set business_name = "Walnut Street Coffee" %}
+          {% set business_category = "Downtown Cafe" %}
+          {% set business_rating = "4.9" %}
+          {% set business_reviews_count = "184" %}
+          {% include "components/widget/business-listing.njk" ignore missing %}
+        </div>
+        <div style="flex: 0 0 auto; scroll-snap-align: start; width: 320px; max-width: 85vw;">
+          {% set ferry_origin = "Edmonds" %}{% set ferry_destination = "Kingston" %}{% set ferry_status = "On Time" %}
+          {% include "components/widget/ferry-status.njk" ignore missing %}
+        </div>
+        <div style="flex: 0 0 auto; scroll-snap-align: start; width: 320px; max-width: 85vw;">
+          {% set airport_name = "Paine Field" %}{% set airport_code = "PAE" %}{% set airport_status = "Normal Operations" %}
+          {% include "components/widget/regional-airport-status.njk" ignore missing %}
+        </div>
+        <div style="flex: 0 0 auto; scroll-snap-align: start; width: 320px; max-width: 85vw;">
+          {% set current_months_supply = 1.8 %}
+          {% include "components/widget/realestate-market-balance-bar.njk" ignore missing %}
+        </div>
+      {% endif %}
+
+    </div>
   </div>
 
   <style>
     #{{ scroll_id }} .scroll-track::-webkit-scrollbar {
       display: none;
     }
+    #{{ scroll_id }} .btn-scroll-arrow:hover {
+      background: var(--color-secondary-default) !important;
+      color: #FFFFFF !important;
+      border-color: var(--color-secondary-default) !important;
+    }
   </style>
 
-</div>
+</section>

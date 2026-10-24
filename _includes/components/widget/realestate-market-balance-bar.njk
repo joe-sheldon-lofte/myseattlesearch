@@ -1,44 +1,57 @@
 <!-- File: _includes/components/widget/realestate-market-balance-bar.njk -->
 {% set months_supply = current_months_supply | default(1.8) %}
-{% set pin_percentage = (months_supply / 6) * 100 %}
-{% if pin_percentage > 100 %}{% set pin_percentage = 100 %}{% endif %}
+{% set capped_supply = months_supply if months_supply <= 6.0 else 6.0 %}
+{% set marker_pos = (capped_supply / 6.0) * 100 %}
 
-{% set market_status = "Balanced" %}
-{% set status_color = "var(--color-secondary-default)" %}
-{% if months_supply < 2.0 %}
-  {% set market_status = "Seller's Market" %}
-  {% set status_color = "var(--color-tertiary-default)" %}
-{% elif months_supply >= 4.0 %}
-  {% set market_status = "Buyer's Market" %}
-  {% set status_color = "var(--color-tertiary-default)" %}
+{% set market_state = "Seller's Market" %}
+{% set state_color = "var(--color-tertiary-default, #D9232A)" %}
+{% if months_supply >= 4.0 %}
+  {% set market_state = "Buyer's Market" %}
+  {% set state_color = "var(--color-tertiary-default, #D9232A)" %}
+{% elif months_supply >= 2.0 %}
+  {% set market_state = "Balanced Market" %}
+  {% set state_color = "var(--color-secondary-default, #1E4D6B)" %}
 {% endif %}
 
-<div class="widget-card market-balance-card" style="padding: 1.5rem;">
+<div class="widget-card market-balance-bar-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
   
-  {# Header Row #}
-  <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; color: #86868b; text-transform: uppercase; margin-bottom: 1rem;">
-    <span>0 Mo (Seller's)</span>
-    <span>6+ Mo (Buyer's)</span>
+  {# Header Line #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
+    <span class="text-overline" style="color: var(--color-tertiary-default, #D9232A); font-size: 0.7rem; font-weight: 800;">
+      0 Mo (Seller's Market)
+    </span>
+    <span class="text-overline" style="color: var(--color-tertiary-default, #D9232A); font-size: 0.7rem; font-weight: 800;">
+      6 Mo (Buyer's Market)
+    </span>
   </div>
 
-  {# Segmented Bar Graphic & Pin #}
-  <div style="position: relative; width: 100%; height: 12px; border-radius: 6px; background: linear-gradient(to right, 
-        rgba(217,35,42,0.15) 0%, rgba(217,35,42,0.15) 33.33%, 
-        rgba(30,77,107,0.15) 33.33%, rgba(30,77,107,0.15) 66.66%, 
-        rgba(217,35,42,0.15) 66.66%, rgba(217,35,42,0.15) 100%); margin-bottom: 2.5rem;">
+  {# Horizontal Bar Graphic with Smooth Gradient Transitions #}
+  <div style="position: relative; width: 100%; height: 28px; border-radius: 999px; background: linear-gradient(90deg, #D9232A 0%, #D9232A 28%, #1E4D6B 35%, #1E4D6B 65%, #D9232A 72%, #D9232A 100%); box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);">
     
-    {# Absolute Positioned Marker Needle #}
-    <div style="position: absolute; top: -6px; left: {{ pin_percentage }}%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center;">
-      <div style="width: 4px; height: 24px; background: {{ status_color }}; border-radius: 2px;"></div>
-      <div style="margin-top: 0.35rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); padding: 0.2rem 0.6rem; border-radius: 12px; font-weight: 800; font-size: 0.85rem; color: {{ status_color }}; box-shadow: 0 4px 12px rgba(0,0,0,0.08); white-space: nowrap;">
-        {{ months_supply }} Mo
-      </div>
+    {# Zone Guides at 2 mo (33.3%) and 4 mo (66.6%) #}
+    <div style="position: absolute; left: 33.33%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.4); pointer-events: none;"></div>
+    <div style="position: absolute; left: 66.66%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.4); pointer-events: none;"></div>
+
+    {# Marker Indicator Overlaid on Bar #}
+    <div class="balance-marker" 
+         style="position: absolute; left: {{ marker_pos }}%; top: -6px; bottom: -6px; width: 4px; border-radius: 2px; background: #FFFFFF; box-shadow: 0 0 6px rgba(0,0,0,0.4), 0 0 0 1.5px var(--color-primary-default); transform: translateX(-50%); transition: left 0.4s ease; z-index: 5;">
+      <div style="position: absolute; top: -6px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--color-primary-default);"></div>
     </div>
   </div>
 
-  {# Footer Summary #}
-  <div style="text-align: center; font-size: 0.95rem; font-weight: 600; color: var(--color-primary-default);">
-    Current: <span style="color: {{ status_color }};">{{ months_supply }} Months Supply</span> ({{ market_status }})
+  {# Zone Labels below the bar #}
+  <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #86868b; margin-top: -0.5rem; padding: 0 4px;">
+    <span>Under 2 Mo (Inventory Scarcity)</span>
+    <span style="font-weight: 700; color: var(--color-secondary-default, #1E4D6B);">2–4 Mo (Equilibrium)</span>
+    <span>4+ Mo (Inventory Surplus)</span>
+  </div>
+
+  {# Footer Line: Centered Active State #}
+  <div style="text-align: center; border-top: 1px solid var(--color-border-light); padding-top: 0.75rem;">
+    <div class="text-body-secondary" style="font-size: 0.85rem;">
+      Current: <strong style="color: var(--color-primary-default); font-family: monospace; font-size: 1rem;">{{ months_supply }}</strong> Months Supply 
+      (<strong style="color: {{ state_color }};">{{ market_state }}</strong>)
+    </div>
   </div>
 
 </div>

@@ -1,10 +1,9 @@
 <!-- File: _includes/components/widget/image-viewport-box.njk -->
 {% set demo_images = [
-  { url: "/assets/images/placeholder-edmonds-bowl.webp", alt: "Edmonds Bowl Shoreline and Sunset Avenue" },
-  { url: "/assets/images/placeholder-edmonds-ferry.webp", alt: "Washington State Ferry Arriving at Edmonds Terminal" },
-  { url: "/assets/images/placeholder-edmonds-fountain.webp", alt: "Downtown Edmonds 5th and Main Traffic Circle Fountain" }
+  { url: "https://assets.myseattlesearch.com/neighborhood/hero-pools/snohomish/edmonds-waterfront.webp", alt: "Edmonds Waterfront" },
+  { url: "https://assets.myseattlesearch.com/neighborhood/hero-pools/snohomish/edmonds-downtown.webp", alt: "Edmonds Downtown" },
+  { url: "https://assets.myseattlesearch.com/neighborhood/hero-pools/snohomish/edmonds-ferry.webp", alt: "Edmonds Ferry" }
 ] %}
-
 {% set gallery_images = viewport_images | default(demo_images) %}
 {% set viewport_id = viewport_box_id | default("image-viewport-" + (range(100, 999) | random)) %}
 
@@ -12,70 +11,32 @@
      class="widget-card image-viewport-box-container" 
      style="position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: var(--border-radius-squircle); overflow: hidden; background: #0F172A; box-shadow: 0 10px 30px rgba(0,0,0,0.12); box-sizing: border-box;">
   
-  {# Multi-Image Horizontal Slider Strip #}
   <div class="viewport-slider" 
        tabindex="0"
-       role="region" 
-       aria-label="Image Carousel"
        style="display: flex; width: 100%; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -ms-overflow-style: none;">
     
     {% for img in gallery_images %}
-      <div class="viewport-slide" 
-           style="position: relative; flex: 0 0 100%; width: 100%; height: 100%; scroll-snap-align: start; overflow: hidden; display: flex; align-items: center; justify-content: center;">
-        
-        {# Dynamic Ambient Backlight (Blurred Color-Matched Edge Projection) #}
+      <div class="viewport-slide" style="position: relative; flex: 0 0 100%; width: 100%; height: 100%; scroll-snap-align: start; overflow: hidden; display: flex; align-items: center; justify-content: center;">
         <div style="position: absolute; inset: -20px; background-image: url('{{ img.url }}'); background-size: cover; background-position: center; filter: blur(28px) brightness(0.65); transform: scale(1.1); pointer-events: none;" aria-hidden="true"></div>
         <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.35) 100%); pointer-events: none;" aria-hidden="true"></div>
-
-        {# Centered Primary Image with object-fit: contain to preserve aspect ratio without distortion #}
-        <img src="{{ img.url }}" 
-             alt="{{ img.alt }}" 
-             loading="{% if loop.first %}eager{% else %}lazy{% endif %}" 
-             decoding="async" 
-             style="position: relative; z-index: 2; max-width: 100%; max-height: 100%; object-fit: contain; display: block; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.25);">
+        <img src="{{ img.url }}" alt="{{ img.alt }}" loading="lazy" style="position: relative; z-index: 2; max-width: 100%; max-height: 100%; object-fit: contain; display: block; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.25);">
       </div>
     {% endfor %}
   </div>
 
-  {# Hover Navigation Controls (Desktop) #}
-  <button type="button" 
-          class="viewport-nav-btn prev" 
-          aria-label="Previous photo"
-          onclick="navigateViewport('{{ viewport_id }}', -1)"
-          style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); z-index: 10; width: 38px; height: 38px; border-radius: 50%; background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.8); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default); font-size: 1.1rem; font-weight: 800; cursor: pointer; opacity: 0; transition: opacity 0.2s ease, transform 0.15s ease;">
-    ‹
-  </button>
+  <button type="button" class="viewport-nav-btn prev" onclick="navigateViewport('{{ viewport_id }}', -1)" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); z-index: 10; width: 38px; height: 38px; border-radius: 50%; background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.8); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default); font-size: 1.1rem; font-weight: 800; cursor: pointer; opacity: 0; transition: opacity 0.2s ease;">‹</button>
+  <button type="button" class="viewport-nav-btn next" onclick="navigateViewport('{{ viewport_id }}', 1)" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); z-index: 10; width: 38px; height: 38px; border-radius: 50%; background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.8); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default); font-size: 1.1rem; font-weight: 800; cursor: pointer; opacity: 0; transition: opacity 0.2s ease;">›</button>
 
-  <button type="button" 
-          class="viewport-nav-btn next" 
-          aria-label="Next photo"
-          onclick="navigateViewport('{{ viewport_id }}', 1)"
-          style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); z-index: 10; width: 38px; height: 38px; border-radius: 50%; background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.8); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default); font-size: 1.1rem; font-weight: 800; cursor: pointer; opacity: 0; transition: opacity 0.2s ease, transform 0.15s ease;">
-    ›
-  </button>
-
-  {# Frosted Glass Dot Pagination (Bottom Center) #}
-  <div class="viewport-dots" 
-       style="position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: rgba(0, 0, 0, 0.35); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 999px;">
+  <div class="viewport-dots" style="position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: rgba(0, 0, 0, 0.35); backdrop-filter: blur(8px); border-radius: 999px;">
     {% for img in gallery_images %}
-      <button type="button" 
-              class="viewport-dot-indicator {% if loop.first %}active{% endif %}" 
-              data-slide-index="{{ loop.index0 }}"
-              aria-label="Go to slide {{ loop.index }}"
-              onclick="jumpToSlide('{{ viewport_id }}', {{ loop.index0 }})"
-              style="width: 8px; height: 8px; border-radius: 50%; border: none; padding: 0; cursor: pointer; transition: all 0.25s ease; {% if loop.first %}background: #FFFFFF; transform: scale(1.25); box-shadow: 0 0 8px rgba(255,255,255,0.8);{% else %}background: rgba(255, 255, 255, 0.45);{% endif %}"></button>
+      <button type="button" onclick="jumpToSlide('{{ viewport_id }}', {{ loop.index0 }})" style="width: 8px; height: 8px; border-radius: 50%; border: none; padding: 0; cursor: pointer; transition: all 0.25s ease; {% if loop.first %}background: #FFFFFF; transform: scale(1.25);{% else %}background: rgba(255, 255, 255, 0.45);{% endif %}"></button>
     {% endfor %}
   </div>
-
+  
   <style>
-    #{{ viewport_id }}:hover .viewport-nav-btn {
-      opacity: 1 !important;
-    }
-    #{{ viewport_id }} .viewport-slider::-webkit-scrollbar {
-      display: none;
-    }
+    #{{ viewport_id }}:hover .viewport-nav-btn { opacity: 1 !important; }
+    #{{ viewport_id }} .viewport-slider::-webkit-scrollbar { display: none; }
   </style>
-
   <script>
     function navigateViewport(containerId, direction) {
       const c = document.getElementById(containerId);
@@ -92,5 +53,4 @@
       slider.scrollTo({ left: index * slideWidth, behavior: 'smooth' });
     }
   </script>
-
 </div>

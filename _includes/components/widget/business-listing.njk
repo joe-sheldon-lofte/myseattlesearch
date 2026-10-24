@@ -1,59 +1,50 @@
 <!-- File: _includes/components/widget/business-listing.njk -->
-<div class="widget-card business-listing-card" style="display: flex; flex-direction: column; overflow: hidden; padding: 0; width: 100%; border-radius: var(--border-radius-squircle);">
+{% set name = business_name | default("Walnut Street Coffee") %}
+{% set category = business_category | default("Artisan Cafe & Bakery") %}
+{% set rating = business_rating | default("4.9") %}
+{% set reviews_count = business_reviews_count | default("184") %}
+{% set address = business_address | default("410 Walnut St, Edmonds, WA 98020") %}
+{% set website = business_website | default("https://walnutstreetcoffee.com") %}
+{% set phone = business_phone | default("(425) 774-3696") %}
+{% set tel_link = business_tel | default("4257743696") %}
+
+<div class="widget-card business-listing-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; box-sizing: border-box;">
   
-  {# Squircle Hero Image Container #}
-  <div style="width: 100%; height: 160px; background: #E5E7EB; position: relative; overflow: hidden;">
-    <img src="{{ business_image | default('/assets/images/placeholder-business.webp') }}" 
-         alt="{{ business_name | default('Local Business') }}" 
-         loading="lazy" 
-         decoding="async"
-         style="width: 100%; height: 100%; object-fit: cover; object-position: center;">
-    
-    {# Category Floating Pill #}
-    <div style="position: absolute; top: 12px; left: 12px; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); padding: 0.25rem 0.65rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--color-secondary-default); box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-      {{ business_category | default("Artisan Coffee & Bakery") }}
+  {# Header Row #}
+  <div>
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem;">
+      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+        {{ category | upper }}
+      </span>
+      
+      <div style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.8rem; font-weight: 800; color: #D97706;">
+        <span>★</span>
+        <span>{{ rating }}</span>
+        <span class="text-body-secondary" style="font-weight: 500; font-size: 0.75rem;">({{ reviews_count }})</span>
+      </div>
+    </div>
+
+    <h3 class="text-widget-title" style="margin: 0 0 0.35rem 0; font-size: 1.2rem; color: var(--color-primary-default);">
+      {{ name }}
+    </h3>
+
+    {# Actual address per edit #}
+    <div class="text-body-secondary" style="font-size: 0.8rem; display: flex; align-items: center; gap: 0.35rem;">
+      <span aria-hidden="true">📍</span>
+      <span>{{ address }}</span>
     </div>
   </div>
 
-  {# Body Content #}
-  <div style="padding: 1.25rem; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between;">
-    <div>
-      <h3 class="text-widget-title" style="font-size: 1.15rem; margin-bottom: 0.35rem;">
-        {{ business_name | default("Walnut Street Coffee") }}
-      </h3>
+  {# Footer Actions #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.75rem; margin-top: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+    <a href="tel:{{ tel_link }}" style="color: var(--color-primary-default); font-size: 0.75rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem;">
+      <span>📞 {{ phone }}</span>
+    </a>
 
-      {# 5-Star Rating + Review Count #}
-      <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.5rem;">
-        <div style="display: flex; color: #F59E0B;" aria-label="5 out of 5 stars">
-          {% for i in range(0, 5) %}
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          {% endfor %}
-        </div>
-        <span style="font-size: 0.8rem; font-weight: 700; color: var(--color-primary-default);">
-          {{ business_rating | default("4.9") }}
-        </span>
-        <span class="text-body-secondary" style="font-size: 0.75rem;">
-          ({{ business_reviews_count | default("184") }})
-        </span>
-      </div>
-
-      <p class="text-body-secondary" style="font-size: 0.85rem; line-height: 1.45; margin-bottom: 1rem;">
-        {{ business_description | default("Locally roasted espresso, artisanal pastries, and covered patio seating located steps from the Kingston Ferry terminal.") }}
-      </p>
-    </div>
-
-    {# Bottom Address & Action CTA #}
-    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.8rem;">
-      <span class="text-body-secondary" style="font-size: 0.75rem;">
-        📍 {{ business_address | default("Downtown Edmonds") }}
-      </span>
-      {% if business_url %}
-        <a href="{{ business_url }}" target="_blank" rel="noopener noreferrer" style="color: var(--color-secondary-default); font-weight: 700; text-decoration: none;">
-          Visit Site →
-        </a>
-      {% endif %}
-    </div>
-
+    <a href="{{ website }}" target="_blank" rel="noopener noreferrer" style="color: var(--color-secondary-default); font-size: 0.8rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem;">
+      <span>Visit Website</span>
+      <span aria-hidden="true">↗</span>
+    </a>
   </div>
 
 </div>

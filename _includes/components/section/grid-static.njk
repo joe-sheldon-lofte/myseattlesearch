@@ -1,6 +1,67 @@
-<!-- File: _includes/components/sections/static-grid.njk -->
-{% macro staticGrid(cols='3', id='', class='') %}
-<div class="section-grid-static grid-cols-{{ cols }}{% if class %} {{ class }}{% endif %}" {% if id %}id="{{ id }}"{% endif %}>
-  {{ caller() }}
-</div>
-{% endmacro %}
+<!-- File: _includes/components/section/grid-static.njk -->
+{% set grid_title = grid_section_title | default("Community Foundation Pillars") %}
+{% set grid_overline = grid_section_overline | default("REGIONAL METRIC MATRIX") %}
+{% set grid_desc = grid_section_desc | default("Direct-child responsive grid structure ensuring seamless multi-column to single-column stacking.") %}
+
+<section class="section-grid-static" style="width: 100%; margin-bottom: 3rem; box-sizing: border-box;">
+  
+  {# Section Header #}
+  <div style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.85rem;">
+    <span class="text-overline" style="color: var(--color-secondary-default);">
+      {{ grid_overline }}
+    </span>
+    <h2 class="text-section-title" style="margin-top: 0.25rem;">
+      {{ grid_title }}
+    </h2>
+    <p class="text-body-secondary" style="font-size: 0.9rem; line-height: 1.5; margin: 0.35rem 0 0 0;">
+      {{ grid_desc }}
+    </p>
+  </div>
+
+  {# Direct-Child Grid per SOP 6 #}
+  <div class="core-four-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; align-items: stretch; width: 100%;">
+    {% if grid_items_slot %}
+      {{ grid_items_slot | safe }}
+    {% elif content %}
+      {{ content | safe }}
+    {% else %}
+      {# Sample Live Cards #}
+      <div class="widget-card" style="padding: 1.5rem; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
+        <div>
+          <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">HOUSING VELOCITY</span>
+          <h3 class="text-widget-title" style="font-size: 1.15rem; margin: 0.25rem 0 0.5rem 0;">18 Days Median</h3>
+          <p class="text-body-secondary" style="font-size: 0.85rem; line-height: 1.5; margin: 0;">Residential single-family listings absorb rapidly within core arterial zones west of Highway 99.</p>
+        </div>
+        <div style="font-size: 0.75rem; font-weight: 700; color: #10B981;">Active Seller Momentum →</div>
+      </div>
+
+      <div class="widget-card" style="padding: 1.5rem; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
+        <div>
+          <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">PUBLIC EDUCATION</span>
+          <h3 class="text-widget-title" style="font-size: 1.15rem; margin: 0.25rem 0 0.5rem 0;">PSAI Index: 84</h3>
+          <p class="text-body-secondary" style="font-size: 0.85rem; line-height: 1.5; margin: 0;">Smarter Balanced Math and ELA proficiencies track significantly above statewide baselines.</p>
+        </div>
+        <div style="font-size: 0.75rem; font-weight: 700; color: var(--color-secondary-default);">Academic Distinction →</div>
+      </div>
+
+      <div class="widget-card" style="padding: 1.5rem; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
+        <div>
+          <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">TRANSIT CONNECTIVITY</span>
+          <h3 class="text-widget-title" style="font-size: 1.15rem; margin: 0.25rem 0 0.5rem 0;">Dual Rail Corridors</h3>
+          <p class="text-body-secondary" style="font-size: 0.85rem; line-height: 1.5; margin: 0;">Immediate connectivity to Sounder commuter rail and the high-frequency 1 Line light rail spine.</p>
+        </div>
+        <div style="font-size: 0.75rem; font-weight: 700; color: var(--color-secondary-default);">28 Min to Westlake →</div>
+      </div>
+
+      <div class="widget-card" style="padding: 1.5rem; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
+        <div>
+          <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">SALTWATER MARITIME</span>
+          <h3 class="text-widget-title" style="font-size: 1.15rem; margin: 0.25rem 0 0.5rem 0;">Olympic Coastline</h3>
+          <p class="text-body-secondary" style="font-size: 0.85rem; line-height: 1.5; margin: 0;">Public walking beaches, marina slips, and scheduled Washington State Ferries sailings to Kingston.</p>
+        </div>
+        <div style="font-size: 0.75rem; font-weight: 700; color: #10B981;">Waterfront Village →</div>
+      </div>
+    {% endif %}
+  </div>
+
+</section>

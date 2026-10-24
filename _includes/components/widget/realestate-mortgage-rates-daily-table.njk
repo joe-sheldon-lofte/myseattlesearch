@@ -1,63 +1,63 @@
 <!-- File: _includes/components/widget/realestate-mortgage-rates-daily-table.njk -->
-{% set conv_rate = rate_conventional_30 | default("6.42%") %}
-{% set fha_rate = rate_fha_30 | default("5.98%") %}
-{% set va_rate = rate_va_30 | default("5.95%") %}
-{% set rate_date = rate_observation_date | default("Today") %}
+{% set rate_conv = daily_rate_conventional | default("6.84%") %}
+{% set rate_fha = daily_rate_fha | default("6.35%") %}
+{% set rate_va = daily_rate_va | default("6.38%") %}
+{% set table_title = mortgage_table_heading | default("Daily Mortgage Rates") %}
+{% set table_date = mortgage_rate_date | default("Today") %}
 
-<div class="widget-card mortgage-rates-daily-card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; padding: 1.5rem; width: 100%;">
+<div class="widget-card realestate-mortgage-rates-daily-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; box-sizing: border-box;">
   
   {# Header Row #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 1rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
     <div>
-      <span class="text-overline">PRIMARY RESIDENTIAL FINANCING</span>
-      <h3 class="text-widget-title" style="margin-top: 0.25rem;">Daily Mortgage Rate</h3>
+      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+        RESIDENTIAL FINANCING
+      </span>
+      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
+        {{ table_title }}
+      </h3>
     </div>
-    <div style="font-size: 0.75rem; font-weight: 700; color: var(--color-secondary-default); background: var(--color-background-universal); border: 1px solid var(--color-border-light); padding: 0.25rem 0.65rem; border-radius: 999px;">
-      Live Index
+    <div style="font-size: 0.75rem; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0.2rem 0.6rem; border-radius: 999px;">
+      {{ table_date }}
     </div>
   </div>
 
   {# 3 Stacked Loan Program Rows #}
-  <div style="display: flex; flex-direction: column; gap: 0.65rem; margin-bottom: 1rem;">
+  <div style="display: flex; flex-direction: column; gap: 0.65rem; margin: 0.85rem 0;">
     
-    {# 30-Year Conventional #}
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 10px;">
-      <span style="font-size: 0.85rem; font-weight: 700; color: var(--color-primary-default);">
-        30-Year Conventional
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.85rem; background: var(--color-surface-gray); border-radius: 10px;">
+      <span style="font-size: 0.9rem; font-weight: 700; color: var(--color-primary-default);">
+        30-Year Conventional Fixed
       </span>
-      <span class="text-data-huge" style="font-size: 1.25rem; font-weight: 800; color: var(--color-secondary-default); font-family: monospace;">
-        {{ conv_rate }}
-      </span>
-    </div>
-
-    {# 30-Year FHA #}
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 10px;">
-      <span style="font-size: 0.85rem; font-weight: 700; color: var(--color-primary-default);">
-        30-Year FHA
-      </span>
-      <span class="text-data-huge" style="font-size: 1.25rem; font-weight: 800; color: var(--color-primary-default); font-family: monospace;">
-        {{ fha_rate }}
+      <span class="text-data-huge" style="font-size: 1.35rem; font-family: monospace; font-weight: 800; color: var(--color-primary-default); line-height: 1;">
+        {{ rate_conv }}
       </span>
     </div>
 
-    {# 30-Year VA #}
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 10px;">
-      <span style="font-size: 0.85rem; font-weight: 700; color: var(--color-primary-default);">
-        30-Year VA
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.85rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 10px;">
+      <span style="font-size: 0.9rem; font-weight: 700; color: var(--color-primary-default);">
+        30-Year FHA Government
       </span>
-      <span class="text-data-huge" style="font-size: 1.25rem; font-weight: 800; color: #10B981; font-family: monospace;">
-        {{ va_rate }}
+      <span class="text-data-huge" style="font-size: 1.35rem; font-family: monospace; font-weight: 800; color: var(--color-secondary-default); line-height: 1;">
+        {{ rate_fha }}
+      </span>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.85rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 10px;">
+      <span style="font-size: 0.9rem; font-weight: 700; color: var(--color-primary-default);">
+        30-Year VA Military Benefit
+      </span>
+      <span class="text-data-huge" style="font-size: 1.35rem; font-family: monospace; font-weight: 800; color: var(--color-secondary-default); line-height: 1;">
+        {{ rate_va }}
       </span>
     </div>
 
   </div>
 
-  {# Footer Line #}
-  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem;" class="text-body-secondary">
-    <span>Optimal Blue Index • {{ rate_date }}</span>
-    <a href="/loancomp/" style="color: var(--color-secondary-default); font-weight: 700; text-decoration: none;">
-      Compare Strategies →
-    </a>
+  {# Footer with Source Attribution per Edit #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem;" class="text-body-secondary">
+    <span>Source: Mortgage News Daily</span>
+    <span>Based on 0.5–1.0 origination discount points</span>
   </div>
 
 </div>

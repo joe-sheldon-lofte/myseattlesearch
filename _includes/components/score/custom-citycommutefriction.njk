@@ -1,79 +1,56 @@
 <!-- File: _includes/components/score/custom-citycommutefriction.njk -->
 {% set val = score_friction_val | default(12) %}
+{% set hub_name = score_friction_hub | default("Seattle Employment Hub") %}
 {% set score_color = "#10B981" %}
 {% set score_label = "Free Flowing" %}
 {% if val >= 41 %}
   {% set score_color = "var(--color-tertiary-default)" %}
-  {% set score_label = "Heavy Congestion" %}
+  {% set score_label = "Heavy Delay" %}
 {% elif val >= 16 %}
   {% set score_color = "#D97706" %}
   {% set score_label = "Moderate Delay" %}
 {% endif %}
 
-<div class="widget-card score-card score-friction-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; box-sizing: border-box;">
+<div class="widget-card score-card score-friction-card" style="padding: 1.25rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; min-height: 160px; box-sizing: border-box;">
   
   {# Header Row #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.5rem;">
     <div>
       <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        HIGHWAY CORRIDOR DRAG
+        CORRIDOR COMMUTE FRICTION
       </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.1rem;">
-        Commute Friction Delay
-      </h3>
+      <h4 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1rem;">
+        {{ hub_name }} Delay Penalty
+      </h4>
     </div>
     
-    <button type="button" 
-            class="btn-info-trigger" 
-            aria-label="View Commute Friction methodology" 
-            onclick="document.getElementById('dialog-score-friction').showModal();"
-            style="width: 28px; height: 28px; border-radius: 50%; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; cursor: pointer; color: #86868b;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-    </button>
+    <div style="font-size: 0.7rem; font-weight: 700; color: #86868b; background: var(--color-surface-gray); padding: 0.15rem 0.5rem; border-radius: 999px;">
+      Corridor Score
+    </div>
   </div>
 
   {# Center Score Display: Squircle Badge #}
-  <div style="display: flex; align-items: center; gap: 1rem; margin: 1rem 0;">
-    <div style="width: 58px; height: 58px; border-radius: var(--border-radius-squircle); background: {{ score_color }}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
-      <span class="text-data-huge" style="font-size: 1.75rem; color: #FFFFFF; line-height: 1; font-weight: 800;">
+  <div style="display: flex; align-items: center; gap: 0.85rem; margin: 0.75rem 0;">
+    <div style="width: 48px; height: 48px; border-radius: var(--border-radius-squircle); background: {{ score_color }}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
+      <span class="text-data-huge" style="font-size: 1.4rem; color: #FFFFFF; line-height: 1; font-weight: 800;">
         +{{ val }}%
       </span>
     </div>
 
     <div>
-      <div style="font-size: 0.95rem; font-weight: 800; color: {{ score_color }};">
+      <div style="font-size: 0.9rem; font-weight: 800; color: {{ score_color }};">
         {{ score_label }}
       </div>
-      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
-        {{ score_friction_detail | default("Current peak drive duration versus free-flowing WSDOT baseline.") }}
+      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.1rem;">
+        {{ score_friction_detail | default("Live peak corridor drive time vs. WSDOT non-congested baseline.") }}
       </div>
     </div>
   </div>
 
   {# Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem;" class="text-body-secondary">
-    <span>Data Source: WSDOT Travel Times REST API</span>
-    <span style="font-family: monospace; font-weight: 600;">Delay Penalty</span>
+  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem; font-size: 0.7rem;" class="text-body-secondary">
+    <span>Data Source: WSDOT Travel Times API</span>
+    <span>Embeds inside Employment Hub</span>
   </div>
-
-  {# Methodology Modal Dialog #}
-  <dialog id="dialog-score-friction" class="info-dialog" style="padding: 1.5rem; border-radius: var(--border-radius-squircle); border: 1px solid var(--color-border-light); max-width: 440px; background: var(--color-background-universal); box-shadow: 0 20px 48px rgba(0,0,0,0.2);">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-      <div>
-        <span class="text-overline" style="color: var(--color-secondary-default);">METHODOLOGY</span>
-        <h4 class="text-widget-title" style="margin: 0.15rem 0 0 0;">City Commute Friction Score</h4>
-      </div>
-      <button type="button" onclick="document.getElementById('dialog-score-friction').close();" style="border: none; background: var(--color-surface-gray); border-radius: 50%; width: 28px; height: 28px; cursor: pointer;">✕</button>
-    </div>
-    <p class="text-body-secondary" style="font-size: 0.85rem; line-height: 1.5; margin: 0 0 0.75rem 0;">
-      Compares current peak commute travel times against non-congested baseline travel times across primary highway corridors (I-5, I-405, SR 520, SR 99) connecting the city to major employment hubs.
-    </p>
-    <div style="background: var(--color-surface-gray); padding: 0.65rem; border-radius: 8px; font-size: 0.75rem; font-family: monospace;">
-      Formula: MIN(100, MAX(0, ROUND(((live_time / baseline_time) - 1) * 100, 0)))
-    </div>
-    <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #86868b;">
-      0–15: Free Flowing • 16–40: Moderate Delay • 41+: Heavy Congestion
-    </div>
-  </dialog>
 
 </div>

@@ -6,17 +6,14 @@
 {% set entry_author = single_entry_author | default("Joe Sheldon") %}
 {% set entry_back_url = single_entry_back_url | default("/notebook/") %}
 
-<article class="widget-card cms-single-entry-card" style="padding: 2.25rem; width: 100%; border-radius: var(--border-radius-squircle); display: flex; flex-direction: column; gap: 1.75rem;">
+<article class="widget-card cms-single-entry-card" style="padding: 2.25rem; width: 100%; border-radius: var(--border-radius-squircle); display: flex; flex-direction: column; gap: 1.75rem; box-sizing: border-box;">
   
-  {# Top Navigation Bar #}
-  <nav aria-label="Entry Navigation" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 1rem;">
+  {# Top Navigation Bar (Viewing Article Permalink removed per edit) #}
+  <nav aria-label="Entry Navigation" style="display: flex; justify-content: flex-start; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 1rem;">
     <a href="{{ entry_back_url }}" class="text-action" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 700; color: var(--color-secondary-default); text-decoration: none;">
       <span aria-hidden="true">←</span>
       <span>Back to Notebook</span>
     </a>
-    <span class="text-body-secondary" style="font-size: 0.75rem; font-style: italic;">
-      Viewing {{ entry_type | capitalize }} Permalink
-    </span>
   </nav>
 
   {# Header Area #}
@@ -42,13 +39,6 @@
     {% endif %}
   </header>
 
-  {# Optional Featured Media Viewport #}
-  {% if single_entry_image %}
-    <div style="width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: var(--color-surface-gray); border: 1px solid var(--color-border-light);">
-      <img src="{{ single_entry_image }}" alt="{{ entry_title }}" loading="lazy" decoding="async" style="width: 100%; height: 100%; object-fit: cover;">
-    </div>
-  {% endif %}
-
   {# Main Body Copy #}
   <div class="cms-entry-body text-body" style="font-size: 1rem; line-height: 1.7; display: flex; flex-direction: column; gap: 1.25rem;">
     {% if single_entry_content %}
@@ -66,15 +56,7 @@
     {% endif %}
   </div>
 
-  {# Embedded Link Preview (if provided) #}
-  {% if single_entry_preview_url %}
-    {% set link_preview_url = single_entry_preview_url %}
-    {% set link_preview_domain = single_entry_preview_domain %}
-    {% set link_preview_title = single_entry_preview_title %}
-    {% include "components/widget/cms-widget-linkpreview.njk" ignore missing %}
-  {% endif %}
-
-  {# Footer Metadata & Conversion Bar #}
+  {# Footer Bar: Author, Reply & Share (Contact buttons removed per edit) #}
   <footer style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; padding-top: 1.25rem; border-top: 1px solid var(--color-border-light); font-size: 0.85rem;">
     <div style="display: flex; align-items: center; gap: 0.65rem;">
       <div style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); flex-shrink: 0;">
@@ -86,15 +68,19 @@
       </div>
     </div>
 
-    <div style="display: flex; align-items: center; gap: 0.75rem;">
-      <a href="tel:2066577493" 
-         style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 1rem; background: var(--color-secondary-default); color: #FFFFFF; border-radius: 999px; font-weight: 700; text-decoration: none;">
-        <span>Call Joe: (206) 657-7493</span>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <a href="/chat/?topic={{ entry_title | urlencode }}" 
+         style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 1rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 999px; font-size: 0.8rem; font-weight: 700; color: var(--color-secondary-default); text-decoration: none;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Reply</span>
       </a>
-      <a href="sms:+12066577493" 
-         style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.85rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); color: var(--color-primary-default); border-radius: 999px; font-weight: 600; text-decoration: none;">
-        <span>Text</span>
-      </a>
+
+      <button type="button" 
+              onclick="if(navigator.share){navigator.share({title:'{{ entry_title }}',url:window.location.href})}else{navigator.clipboard.writeText(window.location.href);alert('Entry link copied to clipboard!');}"
+              style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 1rem; background: var(--color-secondary-default); color: #FFFFFF; border: none; border-radius: 999px; font-size: 0.8rem; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(30, 77, 107, 0.2);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        <span>Share Entry</span>
+      </button>
     </div>
   </footer>
 

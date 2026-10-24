@@ -1,50 +1,185 @@
 <!-- File: _includes/components/widget/weather-star-4000.njk -->
-<div class="retro-ws4000-shell" style="background: linear-gradient(180deg, #000080 0%, #00004d 100%); color: #FFFFFF; font-family: 'Courier New', Courier, monospace; border-radius: var(--border-radius-squircle); padding: 1.5rem; position: relative; overflow: hidden; box-shadow: inset 0 0 24px rgba(0,0,0,0.6), 0 8px 32px rgba(0,0,0,0.25); border: 2px solid #38bdf8;">
+{% set star_city = weather_star_city | default("EDMONDS") %}
+{% set star_temp = weather_star_temp | default("72") %}
+{% set star_cond = weather_star_condition | default("SUNNY") %}
+{% set star_wind = weather_star_wind | default("NW 7 MPH") %}
+{% set star_humidity = weather_star_humidity | default("50%") %}
+{% set star_dewpoint = weather_star_dewpoint | default("52°") %}
+{% set star_pressure = weather_star_pressure | default("30.12R") %}
+{% set star_ceiling = weather_star_ceiling | default("UNLIMITED") %}
+{% set star_visib = weather_star_visib | default("10 MILES") %}
 
-  {# Subtle Scanline Effect #}
-  <div style="position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15), rgba(0,0,0,0.15) 2px, transparent 2px, transparent 4px); pointer-events: none;" aria-hidden="true"></div>
-
-  {# Retro Top Title Bar #}
-  <div style="position: relative; z-index: 1; border-bottom: 2px solid #facc15; padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: baseline;">
-    <span style="color: #facc15; font-weight: 900; letter-spacing: 0.1em; font-size: 1.05rem; text-transform: uppercase;">
-      {{ ws_title | default("PUGET SOUND REGIONAL CONDITIONS") }}
-    </span>
-    <span style="color: #38bdf8; font-size: 0.85rem; font-weight: bold;">
-      {{ ws_station | default("STA: 98033") }}
-    </span>
-  </div>
-
-  {# Main Grid Display #}
-  <div style="position: relative; z-index: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin: 1.5rem 0;">
+<div class="weather-star-4000-tv-wrapper" style="width: 100%; display: flex; justify-content: center; align-items: center; padding: 1.5rem 0; box-sizing: border-box;">
+  
+  {# Outer CRT Television Plastic Bezel Casing #}
+  <div class="crt-television-frame" 
+       style="position: relative; width: 100%; max-width: 860px; aspect-ratio: 4 / 3; background: linear-gradient(145deg, #2A2B2E 0%, #151618 100%); border-radius: 42px; padding: 28px; box-shadow: 0 30px 70px rgba(0,0,0,0.45), inset 0 2px 4px rgba(255,255,255,0.1), inset 0 -4px 8px rgba(0,0,0,0.7); border: 2px solid #3F4145; box-sizing: border-box; display: flex; flex-direction: column;">
     
-    {# Left: Major Reading #}
-    <div>
-      <div style="color: #38bdf8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Current Temperature</div>
-      <div style="font-size: 3.5rem; font-weight: 900; color: #FFFFFF; line-height: 1; text-shadow: 2px 2px #000000;">
-        {{ ws_temp | default("54°F") }}
+    {# Top TV Header & Audio Mute Pill #}
+    <div style="position: absolute; top: 8px; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 36px; z-index: 20;">
+      <div style="font-family: monospace; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.15em; color: #71717A;">
+        WEATHER STAR 4000 • CH 28
       </div>
-      <div style="color: #facc15; font-size: 0.95rem; margin-top: 0.5rem; font-weight: bold; text-transform: uppercase;">
-        {{ ws_condition | default("PARTLY CLOUDY") }}
-      </div>
+
+      <button type="button" 
+              id="ws4k-audio-btn" 
+              aria-label="Toggle Weather Star Jazz Music"
+              onclick="toggleWs4kAudio()"
+              style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.65rem; background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; color: #FFFFFF; font-size: 0.65rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">
+        <span id="ws4k-speaker-icon">🔇</span>
+        <span id="ws4k-audio-label">Jazz Music</span>
+      </button>
+
+      <audio id="ws4k-audio-stream" loop preload="none">
+        <source src="https://assets.myseattlesearch.com/audio/weather-star-smooth-jazz.mp3" type="audio/mpeg">
+      </audio>
     </div>
 
-    {# Right: Dense Atmospheric Stats #}
-    <div style="display: flex; flex-direction: column; justify-content: center; gap: 0.35rem; font-size: 0.9rem;">
-      <div><span style="color: #38bdf8;">HUMIDITY:</span> {{ ws_humidity | default("72%") }}</div>
-      <div><span style="color: #38bdf8;">DEW POINT:</span> {{ ws_dew | default("45°F") }}</div>
-      <div><span style="color: #38bdf8;">BAROMETER:</span> {{ ws_baro | default("30.04 inR") }}</div>
-      <div><span style="color: #38bdf8;">WIND:</span> {{ ws_wind | default("NW 6 MPH") }}</div>
-      <div><span style="color: #38bdf8;">CEILING:</span> {{ ws_ceiling | default("UNLIMITED") }}</div>
+    {# Curved CRT Inner Screen Bezel #}
+    <div class="crt-screen-bezel" 
+         style="position: relative; width: 100%; height: 100%; border-radius: 28px; overflow: hidden; background: #0000AA; box-shadow: inset 0 0 30px rgba(0,0,0,0.8), inset 0 0 10px rgba(0,0,0,0.9); border: 4px solid #111113; box-sizing: border-box;">
+      
+      {# Scanlines CSS Overlay #}
+      <div class="crt-scanlines" 
+           style="position: absolute; inset: 0; pointer-events: none; z-index: 10; background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.22) 0px, rgba(0, 0, 0, 0.22) 1px, transparent 1px, transparent 2px);" 
+           aria-hidden="true"></div>
+
+      {# Moving CRT Tracking Line Animation #}
+      <div class="crt-tracking-bar" 
+           style="position: absolute; left: 0; right: 0; height: 12px; background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.08) 50%, transparent 100%); pointer-events: none; z-index: 11; animation: crtTracking 6s linear infinite;" 
+           aria-hidden="true"></div>
+
+      {# Flat Deep Blue Retro Broadcast Content #}
+      <div class="ws4k-screen-content" 
+           style="position: relative; z-index: 5; width: 100%; height: 100%; padding: 24px 28px; box-sizing: border-box; color: #FFFFFF; font-family: 'Courier New', Courier, monospace; text-shadow: 0 0 4px rgba(255,255,255,0.7), 0 0 10px rgba(0,0,170,0.8); display: flex; flex-direction: column; justify-content: space-between;">
+        
+        {# Fixed Broadcast Header #}
+        <div style="border-bottom: 3px solid #FFFF00; padding-bottom: 6px; display: flex; justify-content: space-between; align-items: baseline;">
+          <div style="font-size: clamp(1rem, 2.5vw, 1.5rem); font-weight: 800; color: #FFFF00; letter-spacing: 0.06em;">
+            {{ star_city }} &amp; VICINITY
+          </div>
+          <div id="ws4k-view-title" style="font-size: clamp(0.75rem, 1.8vw, 1.1rem); font-weight: 800; color: #FFFFFF; letter-spacing: 0.08em;">
+            CURRENT CONDITIONS
+          </div>
+        </div>
+
+        {# Cycle View 1: Current Conditions (Text Only) #}
+        <div id="ws4k-view-1" class="ws4k-view" style="display: flex; flex-direction: column; justify-content: space-around; flex-grow: 1; padding: 12px 0;">
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: clamp(0.85rem, 2vw, 1.25rem); font-weight: 700;">
+            <div>TEMP: <span style="color: #FFFF00; font-size: clamp(1.4rem, 3.2vw, 2.2rem);">{{ star_temp }}°F</span></div>
+            <div>COND: <span style="color: #FFFF00;">{{ star_cond }}</span></div>
+            <div>HUMIDITY: <span style="color: #FFFF00;">{{ star_humidity }}</span></div>
+            <div>DEW POINT: <span style="color: #FFFF00;">{{ star_dewpoint }}</span></div>
+            <div>WIND: <span style="color: #FFFF00;">{{ star_wind }}</span></div>
+            <div>PRESSURE: <span style="color: #FFFF00;">{{ star_pressure }}</span></div>
+            <div>CEILING: <span style="color: #FFFF00;">{{ star_ceiling }}</span></div>
+            <div>VISIBILITY: <span style="color: #FFFF00;">{{ star_visib }}</span></div>
+          </div>
+        </div>
+
+        {# Cycle View 2: 36-Hour Forecast #}
+        <div id="ws4k-view-2" class="ws4k-view" style="display: none; flex-direction: column; justify-content: space-around; flex-grow: 1; padding: 12px 0; gap: 8px;">
+          <div style="background: rgba(0,0,0,0.25); padding: 8px 12px; border-left: 4px solid #FFFF00;">
+            <div style="color: #FFFF00; font-weight: 800; font-size: clamp(0.9rem, 2vw, 1.2rem);">TODAY...</div>
+            <div style="font-size: clamp(0.8rem, 1.6vw, 1rem); line-height: 1.3;">SUNNY AND SEASONABLE. HIGHS 70 TO 74. LIGHT VARIABLE WINDS.</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.25); padding: 8px 12px; border-left: 4px solid #FFFF00;">
+            <div style="color: #FFFF00; font-weight: 800; font-size: clamp(0.9rem, 2vw, 1.2rem);">TONIGHT...</div>
+            <div style="font-size: clamp(0.8rem, 1.6vw, 1rem); line-height: 1.3;">CLEAR TO PARTLY CLOUDY. LOWS 50 TO 54. NORTHWEST WIND 5 TO 8 MPH.</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.25); padding: 8px 12px; border-left: 4px solid #FFFF00;">
+            <div style="color: #FFFF00; font-weight: 800; font-size: clamp(0.9rem, 2vw, 1.2rem);">TOMORROW...</div>
+            <div style="font-size: clamp(0.8rem, 1.6vw, 1rem); line-height: 1.3;">PARTLY SUNNY WITH AFTERNOON CLOUDS. HIGHS IN THE UPPER 60S.</div>
+          </div>
+        </div>
+
+        {# Cycle View 3: Extended Forecast (3 Days) #}
+        <div id="ws4k-view-3" class="ws4k-view" style="display: none; flex-direction: column; justify-content: center; flex-grow: 1; padding: 12px 0;">
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center;">
+            <div style="background: rgba(0,0,0,0.25); padding: 14px 8px; border: 2px solid #FFFF00;">
+              <div style="color: #FFFF00; font-weight: 800; font-size: clamp(1rem, 2.2vw, 1.3rem);">SAT</div>
+              <div style="font-size: clamp(1.4rem, 3vw, 2rem); margin: 8px 0;">⛅</div>
+              <div style="font-size: clamp(0.75rem, 1.5vw, 0.95rem); color: #E0E7FF;">PT CLOUDY</div>
+              <div style="color: #FFFF00; font-weight: 800; margin-top: 6px; font-size: clamp(0.9rem, 1.8vw, 1.15rem);">68 / 50</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.25); padding: 14px 8px; border: 2px solid #FFFF00;">
+              <div style="color: #FFFF00; font-weight: 800; font-size: clamp(1rem, 2.2vw, 1.3rem);">SUN</div>
+              <div style="font-size: clamp(1.4rem, 3vw, 2rem); margin: 8px 0;">🌧️</div>
+              <div style="font-size: clamp(0.75rem, 1.5vw, 0.95rem); color: #E0E7FF;">RAIN</div>
+              <div style="color: #FFFF00; font-weight: 800; margin-top: 6px; font-size: clamp(0.9rem, 1.8vw, 1.15rem);">61 / 48</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.25); padding: 14px 8px; border: 2px solid #FFFF00;">
+              <div style="color: #FFFF00; font-weight: 800; font-size: clamp(1rem, 2.2vw, 1.3rem);">MON</div>
+              <div style="font-size: clamp(1.4rem, 3vw, 2rem); margin: 8px 0;">🌦️</div>
+              <div style="font-size: clamp(0.75rem, 1.5vw, 0.95rem); color: #E0E7FF;">SHOWERS</div>
+              <div style="color: #FFFF00; font-weight: 800; margin-top: 6px; font-size: clamp(0.9rem, 1.8vw, 1.15rem);">59 / 46</div>
+            </div>
+          </div>
+        </div>
+
+        {# Footer #}
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 2px solid rgba(255,255,0,0.6); padding-top: 6px; font-size: clamp(0.65rem, 1.5vw, 0.8rem);">
+          <div style="color: #FFFF00;">LOCAL ON THE 8s</div>
+          <div id="ws4k-cycle-indicator" style="letter-spacing: 0.2em; color: #FFFFFF;">● ○ ○</div>
+        </div>
+
+      </div>
+
     </div>
 
   </div>
 
-  {# Bottom Crawl Ticker #}
-  <div style="position: relative; z-index: 1; background: #000022; border-top: 2px solid #facc15; padding: 0.5rem 0.75rem; margin: 0 -1.5rem -1.5rem -1.5rem; display: flex; align-items: center; gap: 0.75rem; font-size: 0.8rem; overflow: hidden; white-space: nowrap;">
-    <span style="background: #facc15; color: #000000; padding: 0.15rem 0.4rem; font-weight: bold; border-radius: 2px;">TICKER</span>
-    <span style="color: #FFFFFF; letter-spacing: 0.05em;">
-      {{ ws_ticker | default("KINGSTON FERRIES RUNNING ON ADVERTISED SCHEDULE • HIGH TIDE 11:24 AM +8.4 FT • SUNSET 6:18 PM") }}
-    </span>
-  </div>
+  <style>
+    @keyframes crtTracking {
+      0% { top: -20px; }
+      100% { top: 100%; }
+    }
+  </style>
+
+  <script>
+    (function initWeatherStar() {
+      let currentView = 1;
+      const titles = [
+        "CURRENT CONDITIONS",
+        "36-HOUR FORECAST",
+        "EXTENDED OUTLOOK"
+      ];
+      const dots = ["● ○ ○", "○ ● ○", "○ ○ ●"];
+
+      setInterval(() => {
+        const v1 = document.getElementById('ws4k-view-1');
+        const v2 = document.getElementById('ws4k-view-2');
+        const v3 = document.getElementById('ws4k-view-3');
+        const titleEl = document.getElementById('ws4k-view-title');
+        const dotEl = document.getElementById('ws4k-cycle-indicator');
+        if (!v1 || !v2 || !v3) return;
+
+        currentView = (currentView % 3) + 1;
+
+        v1.style.display = currentView === 1 ? 'flex' : 'none';
+        v2.style.display = currentView === 2 ? 'flex' : 'none';
+        v3.style.display = currentView === 3 ? 'flex' : 'none';
+
+        if (titleEl) titleEl.textContent = titles[currentView - 1];
+        if (dotEl) dotEl.textContent = dots[currentView - 1];
+      }, 10000);
+    })();
+
+    function toggleWs4kAudio() {
+      const audio = document.getElementById('ws4k-audio-stream');
+      const icon = document.getElementById('ws4k-speaker-icon');
+      const label = document.getElementById('ws4k-audio-label');
+      if (!audio) return;
+      if (audio.paused) {
+        audio.play().catch(e => console.log('Audio autoplay prevented:', e));
+        if (icon) icon.textContent = '🔊';
+        if (label) label.textContent = 'Playing Jazz';
+      } else {
+        audio.pause();
+        if (icon) icon.textContent = '🔇';
+        if (label) label.textContent = 'Jazz Music';
+      }
+    }
+  </script>
 
 </div>

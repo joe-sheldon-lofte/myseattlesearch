@@ -8,11 +8,10 @@
 {% set person_email = person_primary_email | default("joe.sheldon@redfin.com") %}
 {% set person_license = person_primary_license | default("WA DOL #115714") %}
 {% set person_url = person_primary_url | default("/#agent") %}
-{% set is_vendor = person_is_vendor | default(false) %}
 
 <article class="widget-card people-card-primary" style="display: flex; flex-direction: column; justify-content: space-between; padding: 2rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); text-align: center; box-sizing: border-box;">
   
-  {# Header & Circular Avatar (SOP 6 Compliant) #}
+  {# Header & Circular Avatar #}
   <div style="display: flex; flex-direction: column; align-items: center;">
     <div style="position: relative; width: 150px; height: 150px; margin-bottom: 1.25rem;">
       <img src="{{ person_avatar }}" 
@@ -22,12 +21,6 @@
            loading="lazy" 
            decoding="async" 
            style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; object-position: center; border: 3px solid var(--color-background-universal); box-shadow: 0 4px 16px rgba(0,0,0,0.08); display: block;">
-      
-      {% if is_vendor %}
-        <span style="position: absolute; bottom: 4px; right: 4px; width: 28px; height: 28px; border-radius: 50%; background: #10B981; color: #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.15);" title="Verified Licensed Professional" aria-label="Verified Professional">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-        </span>
-      {% endif %}
     </div>
 
     <span class="text-overline" style="color: var(--color-secondary-default); margin-bottom: 0.35rem;">
@@ -65,11 +58,11 @@
       {% endif %}
     </div>
 
-    {# Primary Action Pill #}
+    {# Primary Action Pill per edit: "View Profile" #}
     <div style="margin-top: 0.5rem;">
       <a href="{{ person_url }}" 
          style="display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; width: 100%; padding: 0.7rem 1.25rem; background: var(--color-secondary-default); color: #FFFFFF; border-radius: 999px; font-size: 0.85rem; font-weight: 700; text-decoration: none; box-shadow: 0 2px 8px rgba(30, 77, 107, 0.15);">
-        <span>{% if is_vendor %}View Full Profile & Credentials{% else %}View Profile & Strategy{% endif %}</span>
+        <span>View Profile</span>
         <span aria-hidden="true">→</span>
       </a>
     </div>

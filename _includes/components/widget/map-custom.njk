@@ -7,77 +7,44 @@
 
 <section class="widget-card custom-map-widget-card" style="padding: 1.25rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1rem; box-sizing: border-box;">
   
-  {# Header Controls: Layer Toggles (No emojis in layer names per catalog rule) #}
+  {# Header Controls: Layer Toggles #}
   <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
     <div style="display: flex; align-items: center; gap: 0.65rem;">
       <span class="text-overline" style="font-size: 0.7rem; font-weight: 800; color: var(--color-secondary-default); letter-spacing: 0.08em;">
         LAYERS:
       </span>
-      
-      {# Interactive Pill-Style Layer Toggles #}
       <div class="map-layer-toggles" style="display: flex; flex-wrap: wrap; gap: 0.35rem;" role="toolbar" aria-label="Map Data Layers">
-        <button type="button" 
-                class="btn-layer-pill active" 
-                data-layer="transit"
-                onclick="this.classList.toggle('active');"
-                style="padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700; border: 1px solid var(--color-secondary-default); background: var(--color-secondary-default); color: #FFFFFF; cursor: pointer; transition: all 0.15s ease;">
-          Transit & Ferry
-        </button>
-        <button type="button" 
-                class="btn-layer-pill active" 
-                data-layer="schools"
-                onclick="this.classList.toggle('active');"
-                style="padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700; border: 1px solid var(--color-secondary-default); background: var(--color-secondary-default); color: #FFFFFF; cursor: pointer; transition: all 0.15s ease;">
-          Public Schools
-        </button>
-        <button type="button" 
-                class="btn-layer-pill active" 
-                data-layer="dispatch"
-                onclick="this.classList.toggle('active');"
-                style="padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700; border: 1px solid var(--color-secondary-default); background: var(--color-secondary-default); color: #FFFFFF; cursor: pointer; transition: all 0.15s ease;">
-          Live 911 Incidents
-        </button>
+        <button type="button" class="btn-layer-pill active" onclick="this.classList.toggle('active');" style="padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700; border: 1px solid var(--color-secondary-default); background: var(--color-secondary-default); color: #FFFFFF; cursor: pointer;">Transit &amp; Ferry</button>
+        <button type="button" class="btn-layer-pill active" onclick="this.classList.toggle('active');" style="padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700; border: 1px solid var(--color-secondary-default); background: var(--color-secondary-default); color: #FFFFFF; cursor: pointer;">Public Schools</button>
+        <button type="button" class="btn-layer-pill active" onclick="this.classList.toggle('active');" style="padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700; border: 1px solid var(--color-secondary-default); background: var(--color-secondary-default); color: #FFFFFF; cursor: pointer;">Live 911 Incidents</button>
       </div>
     </div>
-
-    {# City Center Pin Indicator #}
     <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; font-weight: 700; color: var(--color-primary-default);">
       <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--color-tertiary-default);"></span>
       <span>Centered: {{ city }}</span>
     </div>
   </div>
 
-  {# Map Canvas: Embedded Low-Contrast Base Map (Tall Rectangular Box) #}
+  {# Map Canvas per edit: Clean map with options array exposed #}
   <div id="{{ map_id }}" 
        class="custom-map-canvas" 
        data-lat="{{ lat }}" 
        data-lon="{{ lon }}" 
        data-zoom="{{ zoom }}"
-       data-city="{{ city }}"
+       data-theme="light-monochrome"
        style="width: 100%; min-height: 420px; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: #E2E8F0; position: relative;">
     
-    {# Fallback SVG / Canvas Representation until Leaflet binds #}
-    <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(180deg, #F1F5F9 0%, #E2E8F0 100%); text-align: center; padding: 2rem;">
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--color-secondary-default)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 0.75rem;"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>
-      <div style="font-size: 1rem; font-weight: 800; color: var(--color-primary-default);">
-        {{ city }} Interactive Geospatial Engine
-      </div>
-      <div class="text-body-secondary" style="font-size: 0.8rem; margin-top: 0.25rem;">
-        Coordinates: {{ lat }}° N, {{ lon }}° W • Zoom Level: {{ zoom }}
-      </div>
-      
-      {# Distinct Red Dot Pinpoint for City Center per catalog spec #}
+    <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(180deg, #F1F5F9 0%, #E2E8F0 100%);">
       <div style="margin-top: 1rem; display: inline-flex; align-items: center; gap: 0.5rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); padding: 0.35rem 0.85rem; border-radius: 999px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
         <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--color-tertiary-default); box-shadow: 0 0 0 3px rgba(217, 35, 42, 0.2);"></span>
-        <span style="font-size: 0.75rem; font-weight: 700; color: var(--color-primary-default);">City Center Pinpoint</span>
+        <span style="font-size: 0.75rem; font-weight: 700; color: var(--color-primary-default);">{{ city }} Center</span>
       </div>
     </div>
   </div>
 
   {# Footer #}
   <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem;" class="text-body-secondary">
-    <span>Cartography: Muted Puget Sound Vector Basemap</span>
-    <span>Layer Sync: Live GTFS-RT & CAD Feeds</span>
+    <span>Live GTFS-RT &amp; CAD Feeds</span>
   </div>
 
 </section>

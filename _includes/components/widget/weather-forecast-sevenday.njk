@@ -1,43 +1,87 @@
 <!-- File: _includes/components/widget/weather-forecast-sevenday.njk -->
-<div class="widget-card weather-forecast-card">
-  <div class="text-overline" style="margin-bottom: 1rem;">7-Day Regional Outlook</div>
+{% set demo_days = [
+  { day: "FRI", date: "OCT 23", condition: "Sunny", high: 72, low: 52, rain: "0%", uv: 4 },
+  { day: "SAT", date: "OCT 24", condition: "Partly Cloudy", high: 68, low: 50, rain: "15%", uv: 3 },
+  { day: "SUN", date: "OCT 25", condition: "Rain", high: 61, low: 48, rain: "80%", uv: 2 },
+  { day: "MON", date: "OCT 26", condition: "Showers", high: 59, low: 46, rain: "65%", uv: 2 },
+  { day: "TUE", date: "OCT 27", condition: "Partly Cloudy", high: 63, low: 49, rain: "20%", uv: 3 },
+  { day: "WED", date: "OCT 28", condition: "Sunny", high: 66, low: 51, rain: "5%", uv: 4 },
+  { day: "THU", date: "OCT 29", condition: "Sunny", high: 68, low: 52, rain: "0%", uv: 4 }
+] %}
+
+{% set forecast_days = sevenday_forecast_data | default(demo_days) %}
+{% set forecast_city = sevenday_forecast_city | default("Edmonds") %}
+
+<div class="widget-card weather-forecast-sevenday-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
   
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 0.75rem; text-align: center;">
-    {% set default_forecast = [
-      { day: "Mon", high: "58°", low: "46°", pop: "10%", type: "cloud-sun" },
-      { day: "Tue", high: "56°", low: "45°", pop: "40%", type: "rain" },
-      { day: "Wed", high: "52°", low: "42°", pop: "80%", type: "rain" },
-      { day: "Thu", high: "55°", low: "43°", pop: "20%", type: "cloud" },
-      { day: "Fri", high: "60°", low: "46°", pop: "0%", type: "sun" },
-      { day: "Sat", high: "62°", low: "48°", pop: "10%", type: "sun" },
-      { day: "Sun", high: "59°", low: "47°", pop: "30%", type: "cloud-sun" }
-    ] %}
-    
-    {% for item in forecast_days | default(default_forecast) %}
-    <div style="padding: 0.75rem 0.25rem; border-radius: 12px; background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; align-items: center; justify-content: space-between; min-height: 120px;">
-      <span class="text-overline" style="font-size: 0.7rem;">{{ item.day }}</span>
-      
-      <div style="color: var(--color-secondary-default); margin: 0.35rem 0;" aria-hidden="true">
-        {% if item.type == 'sun' %}
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
-        {% elif item.type == 'rain' %}
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path><path d="M16 14v6"></path><path d="M8 14v6"></path><path d="M12 16v6"></path></svg>
-        {% elif item.type == 'cloud' %}
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path></svg>
-        {% else %}
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="M20 12h2"></path><path d="m19.07 4.93-1.41 1.41"></path><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"></path><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"></path></svg>
-        {% endif %}
-      </div>
-
-      <div>
-        <div style="font-size: 0.95rem; font-weight: 700; color: var(--color-primary-default);">{{ item.high }}</div>
-        <div class="text-body-secondary" style="font-size: 0.75rem;">{{ item.low }}</div>
-      </div>
-
-      <div style="font-size: 0.65rem; font-weight: 600; color: var(--color-secondary-default); margin-top: 0.25rem;">
-        {{ item.pop }}
-      </div>
+  {# Header Row #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+    <div>
+      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+        7-DAY REGIONAL OUTLOOK
+      </span>
+      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
+        {{ forecast_city }} Weekly Forecast
+      </h3>
     </div>
+    <span class="text-body-secondary" style="font-size: 0.75rem;">
+      High-Resolution NOAA Model
+    </span>
+  </div>
+
+  {# 7 Chronological Day Cards #}
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.75rem; align-items: stretch;">
+    {% for d in forecast_days %}
+      <div style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1rem 0.65rem; display: flex; flex-direction: column; align-items: center; text-align: center; justify-content: space-between; gap: 0.65rem; box-sizing: border-box;">
+        
+        <div>
+          <div style="font-size: 0.85rem; font-weight: 800; color: var(--color-primary-default); line-height: 1.1;">
+            {{ d.day }}
+          </div>
+          <div class="text-body-secondary" style="font-size: 0.65rem; margin-top: 0.15rem; font-family: monospace;">
+            {{ d.date }}
+          </div>
+        </div>
+
+        {# Colorful Weather Condition Icon #}
+        <div style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            {% if 'rain' in (d.condition | lower) or 'shower' in (d.condition | lower) %}
+              <path d="M7 19a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 19H7z" fill="#E2E8F0" stroke="#94A3B8" stroke-width="1.25"/>
+              <line x1="12" y1="21" x2="10" y2="26" stroke="#38BDF8" stroke-width="2" stroke-linecap="round"/>
+              <line x1="18" y1="21" x2="16" y2="26" stroke="#38BDF8" stroke-width="2" stroke-linecap="round"/>
+            {% elif 'cloud' in (d.condition | lower) %}
+              {% if 'part' in (d.condition | lower) %}<circle cx="11" cy="11" r="5" fill="#F59E0B"/>{% endif %}
+              <path d="M8 22a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 26 22H8z" fill="#E2E8F0" stroke="#94A3B8" stroke-width="1.25"/>
+            {% else %}
+              <circle cx="16" cy="16" r="7" fill="#F59E0B"/>
+              <line x1="16" y1="4" x2="16" y2="7" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
+              <line x1="16" y1="25" x2="16" y2="28" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
+              <line x1="4" y1="16" x2="7" y2="16" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
+              <line x1="25" y1="16" x2="28" y2="16" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
+            {% endif %}
+          </svg>
+        </div>
+
+        {# High & Low #}
+        <div style="font-family: monospace; line-height: 1.2;">
+          <span style="font-size: 1rem; font-weight: 800; color: var(--color-primary-default);">{{ d.high }}°</span>
+          <span style="font-size: 0.8rem; color: #86868b; margin-left: 0.2rem;">{{ d.low }}°</span>
+        </div>
+
+        {# Rain Chance #}
+        <div style="font-size: 0.7rem; font-weight: 700; color: var(--color-secondary-default); display: inline-flex; align-items: center; gap: 0.2rem;">
+          <span aria-hidden="true">💧</span>
+          <span>{{ d.rain }}</span>
+        </div>
+
+        {# UV Index Indicator #}
+        <div style="font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 999px; {% if d.uv <= 2 %}background: rgba(16, 185, 129, 0.12); color: #059669;{% elif d.uv <= 5 %}background: rgba(245, 158, 11, 0.15); color: #D97706;{% else %}background: rgba(217, 35, 42, 0.12); color: var(--color-tertiary-default);{% endif %}">
+          UV {{ d.uv }}
+        </div>
+
+      </div>
     {% endfor %}
   </div>
+
 </div>

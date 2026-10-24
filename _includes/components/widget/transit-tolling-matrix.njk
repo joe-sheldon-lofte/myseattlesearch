@@ -1,134 +1,75 @@
 <!-- File: _includes/components/widget/transit-tolling-matrix.njk -->
-<div class="widget-card tolling-matrix-card" style="padding: 1.5rem; width: 100%;">
+{% set matrix_title = toll_matrix_title | default("Active Toll Rates") %}
+{% set matrix_overline = toll_matrix_overline | default("WSDOT GOOD TO GO! PRICING MATRIX") %}
+
+{% set toll_routes = [
+  { name: "SR 520 Floating Bridge", peak: "$4.50", offpeak: "$1.40", current: "$4.50", status: "Active Peak" },
+  { name: "I-405 Express Toll Lanes (Lynnwood ⇄ Bellevue)", peak: "$15.00", offpeak: "$1.50", current: "$7.25", status: "Dynamic Rate" },
+  { name: "SR 99 Downtown Seattle Tunnel", peak: "$2.60", offpeak: "$1.20", current: "$2.60", status: "Active Peak" },
+  { name: "SR 167 High Occupancy Toll (HOT) Lanes", peak: "$15.00", offpeak: "$1.50", current: "$5.50", status: "Dynamic Rate" },
+  { name: "Tacoma Narrows Bridge (EB)", peak: "$5.50", offpeak: "$5.50", current: "$5.50", status: "Flat Rate" }
+] %}
+
+<div class="widget-card transit-tolling-matrix-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
   
   {# Header Row #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
     <div>
-      <div class="text-overline">PUGET SOUND EXPRESS CORRIDORS</div>
-      <h3 class="text-widget-title" style="margin-top: 0.25rem;">Active Tolling & Rate Matrix</h3>
-      <p class="text-body-secondary" style="font-size: 0.85rem;">Live WSDOT electronic toll pricing across regional bridges, tunnels, and express lanes.</p>
+      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+        {{ matrix_overline }}
+      </span>
+      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
+        {{ matrix_title }}
+      </h3>
     </div>
-    <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); padding: 0.35rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; color: var(--color-secondary-default);">
-      <span style="display: inline-block; width: 8px; height: 8px; background: #10B981; border-radius: 50%;"></span>
-      <span>Live Rates Active</span>
+    <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; font-weight: 700; color: #10B981;">
+      <span style="width: 8px; height: 8px; border-radius: 50%; background: #10B981; display: inline-block;"></span>
+      <span>Live Dynamic Rates</span>
     </div>
   </div>
 
-  {# Responsive Tolling Table Styled Like Digital Toll Sign #}
+  {# Highway Toll Sign Style Matrix Table #}
   <div style="overflow-x: auto;">
-    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
       <thead>
-        <tr style="border-bottom: 2px solid var(--color-border-light);">
-          <th class="text-overline" style="padding: 0.75rem 0.5rem;">Corridor / Facility</th>
-          <th class="text-overline" style="padding: 0.75rem 0.5rem; text-align: center;">Current Rate</th>
-          <th class="text-overline" style="padding: 0.75rem 0.5rem; text-align: center;">Typical Range</th>
-          <th class="text-overline" style="padding: 0.75rem 0.5rem; text-align: right;">Pass Type</th>
+        <tr style="border-bottom: 2px solid var(--color-border-light); color: #86868b; font-size: 0.7rem;">
+          <th style="padding: 0.65rem 0.75rem;">CORRIDOR / FACILITY</th>
+          <th style="padding: 0.65rem 0.75rem; text-align: right;">CURRENT RATE</th>
+          <th style="padding: 0.65rem 0.75rem; text-align: right;">OFF-PEAK</th>
+          <th style="padding: 0.65rem 0.75rem; text-align: right;">PEAK MAX</th>
+          <th style="padding: 0.65rem 0.75rem; text-align: center;">STATUS</th>
         </tr>
       </thead>
       <tbody>
-        
-        {# SR 520 Bridge #}
-        <tr style="border-bottom: 1px solid var(--color-border-light);">
-          <td style="padding: 1rem 0.5rem;">
-            <div style="font-weight: 700; color: var(--color-primary-default);">SR 520 Floating Bridge</div>
-            <div class="text-body-secondary" style="font-size: 0.75rem;">Seattle ⇄ Medina / Bellevue</div>
-          </td>
-          <td style="padding: 1rem 0.5rem; text-align: center;">
-            <span style="display: inline-block; padding: 0.25rem 0.65rem; background: #0F172A; color: #38BDF8; font-family: monospace; font-size: 1.1rem; font-weight: 800; border-radius: 6px;">
-              $4.50
-            </span>
-          </td>
-          <td class="text-body-secondary" style="padding: 1rem 0.5rem; text-align: center; font-size: 0.8rem;">
-            $1.40 – $4.50
-          </td>
-          <td style="padding: 1rem 0.5rem; text-align: right;">
-            <div style="font-weight: 600; color: var(--color-secondary-default);">Good To Go!</div>
-            <div class="text-body-secondary" style="font-size: 0.7rem;">+$2.00 Mail</div>
-          </td>
-        </tr>
-
-        {# SR 99 Tunnel #}
-        <tr style="border-bottom: 1px solid var(--color-border-light);">
-          <td style="padding: 1rem 0.5rem;">
-            <div style="font-weight: 700; color: var(--color-primary-default);">SR 99 Tunnel</div>
-            <div class="text-body-secondary" style="font-size: 0.75rem;">Downtown Seattle Bypass</div>
-          </td>
-          <td style="padding: 1rem 0.5rem; text-align: center;">
-            <span style="display: inline-block; padding: 0.25rem 0.65rem; background: #0F172A; color: #38BDF8; font-family: monospace; font-size: 1.1rem; font-weight: 800; border-radius: 6px;">
-              $2.60
-            </span>
-          </td>
-          <td class="text-body-secondary" style="padding: 1rem 0.5rem; text-align: center; font-size: 0.8rem;">
-            $1.20 – $2.95
-          </td>
-          <td style="padding: 1rem 0.5rem; text-align: right;">
-            <div style="font-weight: 600; color: var(--color-secondary-default);">Good To Go!</div>
-            <div class="text-body-secondary" style="font-size: 0.7rem;">+$2.00 Mail</div>
-          </td>
-        </tr>
-
-        {# I-405 ETL #}
-        <tr style="border-bottom: 1px solid var(--color-border-light);">
-          <td style="padding: 1rem 0.5rem;">
-            <div style="font-weight: 700; color: var(--color-primary-default);">I-405 Express Toll Lanes</div>
-            <div class="text-body-secondary" style="font-size: 0.75rem;">Lynnwood ⇄ Bellevue / Renton</div>
-          </td>
-          <td style="padding: 1rem 0.5rem; text-align: center;">
-            <span style="display: inline-block; padding: 0.25rem 0.65rem; background: #0F172A; color: #FACC15; font-family: monospace; font-size: 1.1rem; font-weight: 800; border-radius: 6px;">
-              $10.50
-            </span>
-          </td>
-          <td class="text-body-secondary" style="padding: 1rem 0.5rem; text-align: center; font-size: 0.8rem;">
-            $1.00 – $15.00
-          </td>
-          <td style="padding: 1rem 0.5rem; text-align: right;">
-            <div style="font-weight: 600; color: var(--color-secondary-default);">FlexPass / GTG</div>
-            <div class="text-body-secondary" style="font-size: 0.7rem;">Carpool 2+/3+ Free</div>
-          </td>
-        </tr>
-
-        {# SR 167 HOT Lanes #}
-        <tr style="border-bottom: 1px solid var(--color-border-light);">
-          <td style="padding: 1rem 0.5rem;">
-            <div style="font-weight: 700; color: var(--color-primary-default);">SR 167 HOT Lanes</div>
-            <div class="text-body-secondary" style="font-size: 0.75rem;">Renton ⇄ Auburn</div>
-          </td>
-          <td style="padding: 1rem 0.5rem; text-align: center;">
-            <span style="display: inline-block; padding: 0.25rem 0.65rem; background: #0F172A; color: #38BDF8; font-family: monospace; font-size: 1.1rem; font-weight: 800; border-radius: 6px;">
-              $3.25
-            </span>
-          </td>
-          <td class="text-body-secondary" style="padding: 1rem 0.5rem; text-align: center; font-size: 0.8rem;">
-            $1.00 – $15.00
-          </td>
-          <td style="padding: 1rem 0.5rem; text-align: right;">
-            <div style="font-weight: 600; color: var(--color-secondary-default);">Good To Go!</div>
-            <div class="text-body-secondary" style="font-size: 0.7rem;">Carpool 2+ Free</div>
-          </td>
-        </tr>
-
-        {# Tacoma Narrows #}
-        <tr>
-          <td style="padding: 1rem 0.5rem;">
-            <div style="font-weight: 700; color: var(--color-primary-default);">Tacoma Narrows Bridge</div>
-            <div class="text-body-secondary" style="font-size: 0.75rem;">SR 16 Eastbound Only</div>
-          </td>
-          <td style="padding: 1rem 0.5rem; text-align: center;">
-            <span style="display: inline-block; padding: 0.25rem 0.65rem; background: #0F172A; color: #38BDF8; font-family: monospace; font-size: 1.1rem; font-weight: 800; border-radius: 6px;">
-              $4.50
-            </span>
-          </td>
-          <td class="text-body-secondary" style="padding: 1rem 0.5rem; text-align: center; font-size: 0.8rem;">
-            Fixed Rate
-          </td>
-          <td style="padding: 1rem 0.5rem; text-align: right;">
-            <div style="font-weight: 600; color: var(--color-secondary-default);">Good To Go!</div>
-            <div class="text-body-secondary" style="font-size: 0.7rem;">$6.50 Cash / Mail</div>
-          </td>
-        </tr>
-
+        {% for r in toll_routes %}
+          <tr style="border-bottom: 1px solid var(--color-border-light);">
+            <td style="padding: 0.75rem; font-weight: 700; color: var(--color-primary-default);">
+              {{ r.name }}
+            </td>
+            <td style="padding: 0.75rem; text-align: right; font-family: monospace; font-weight: 800; font-size: 1rem; color: var(--color-secondary-default);">
+              {{ r.current }}
+            </td>
+            <td style="padding: 0.75rem; text-align: right; font-family: monospace; color: #86868b;">
+              {{ r.offpeak }}
+            </td>
+            <td style="padding: 0.75rem; text-align: right; font-family: monospace; color: var(--color-tertiary-default); font-weight: 700;">
+              {{ r.peak }}
+            </td>
+            <td style="padding: 0.75rem; text-align: center;">
+              <span style="font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 999px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); color: var(--color-primary-default);">
+                {{ r.status }}
+              </span>
+            </td>
+          </tr>
+        {% endfor %}
       </tbody>
     </table>
+  </div>
+
+  {# Footer #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem;" class="text-body-secondary">
+    <span>Requires Good To Go! Pass for lowest published toll.</span>
+    <span>Source: WSDOT Toll Division</span>
   </div>
 
 </div>

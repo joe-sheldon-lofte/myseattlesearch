@@ -1,44 +1,57 @@
 <!-- File: _includes/components/widget/municipal-emergency-hospital.njk -->
-<div class="widget-card emergency-hospital-card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; padding: 1.5rem; width: 100%;">
+{% set hospital_name = emergency_hospital_name | default("Swedish Edmonds Hospital") %}
+{% set hospital_address = emergency_hospital_address | default("21601 76th Ave W, Edmonds, WA 98026") %}
+{% set hospital_dist = emergency_hospital_distance | default("1.8 Miles") %}
+{% set hospital_time = emergency_hospital_drive_time | default("5 min drive") %}
+{% set hospital_phone = emergency_hospital_phone | default("(425) 640-4000") %}
+{% set hospital_tel = emergency_hospital_tel | default("4256404000") %}
+
+<div class="widget-card municipal-emergency-hospital-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; box-sizing: border-box;">
   
   {# Header Row #}
-  <div>
-    <div class="text-overline">TRAUMA & HEALTHCARE ACCESS</div>
-    <h3 class="text-widget-title" style="margin-top: 0.25rem;">Emergency Medical</h3>
-    <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
-      Regional Acute Care & 24/7 Trauma Services
-    </div>
-  </div>
-
-  {# Location & Facility Details #}
-  <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1rem; margin: 1rem 0; display: flex; flex-direction: column; gap: 0.65rem;">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
-      <div>
-        <div class="text-overline" style="font-size: 0.65rem; color: #86868b;">Nearest 24/7 Emergency Department</div>
-        <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--color-primary-default); margin: 0.15rem 0 0 0;">
-          {{ hospital_name | default("Swedish Edmonds Hospital") }}
-        </h4>
-      </div>
-      <span style="display: inline-block; padding: 0.25rem 0.65rem; background: rgba(30, 77, 107, 0.1); color: var(--color-secondary-default); border-radius: 999px; font-weight: 800; font-size: 0.8rem; white-space: nowrap;">
-        Located: {{ hospital_distance | default("1.8 miles away") }}
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
+    <div>
+      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+        EMERGENCY MEDICAL CARE
       </span>
+      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
+        Emergency Medical
+      </h3>
+    </div>
+    <div style="font-size: 0.7rem; font-weight: 800; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0.2rem 0.55rem; border-radius: 999px;">
+      24/7 Full ER
+    </div>
+  </div>
+
+  {# Hospital Details (Trauma/Stroke designations removed per edit) #}
+  <div style="display: flex; align-items: center; gap: 1rem; padding: 0.35rem 0;">
+    <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+      {% include "components/graphic/map-emergency-hospital.njk" ignore missing %}
     </div>
 
-    {# Quality Standard Badge #}
-    <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px dashed var(--color-border-light); padding-top: 0.5rem; font-size: 0.75rem;">
-      <span class="text-body-secondary">CMS Quality Standard:</span>
-      <div style="display: flex; align-items: center; gap: 0.35rem;">
-        <span style="color: #F59E0B; font-size: 0.85rem;" aria-hidden="true">★★★★☆</span>
-        <strong style="color: var(--color-primary-default);">{{ hospital_cms_rating | default("4-Star CMS Hospital Rating") }}</strong>
+    <div>
+      <h4 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--color-primary-default);">
+        {{ hospital_name }}
+      </h4>
+      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
+        {{ hospital_address }}
+      </div>
+      <div style="font-size: 0.75rem; font-weight: 700; color: var(--color-secondary-default); margin-top: 0.2rem; font-family: monospace;">
+        {{ hospital_dist }} • {{ hospital_time }}
       </div>
     </div>
   </div>
 
-  {# Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.8rem;">
-    <span class="text-body-secondary" style="font-size: 0.7rem;">Level IV Trauma Center • Primary Stroke Center</span>
-    <a href="tel:911" style="color: var(--color-tertiary-default); font-weight: 700; text-decoration: none; font-size: 0.75rem;">
-      Emergency: Call 911
+  {# Footer Call Button #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.75rem;">
+    <div class="text-body-secondary" style="font-size: 0.75rem;">
+      In an immediate life-threatening emergency, call <strong>911</strong>.
+    </div>
+
+    <a href="tel:{{ hospital_tel }}" 
+       style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.85rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 999px; font-size: 0.75rem; font-weight: 700; color: var(--color-primary-default); text-decoration: none;">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      <span>{{ hospital_phone }}</span>
     </a>
   </div>
 

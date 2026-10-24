@@ -16,7 +16,7 @@
   <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
     <div>
       <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        SCHEDULE ADHERENCE
+        SCHEDULE RELIABILITY
       </span>
       <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.1rem;">
         Transit On-Time Rate
@@ -32,11 +32,11 @@
     </button>
   </div>
 
-  {# Center Score Display: Squircle Badge #}
+  {# Center Score Display: Squircle Badge (Number without % bleed) #}
   <div style="display: flex; align-items: center; gap: 1rem; margin: 1rem 0;">
     <div style="width: 58px; height: 58px; border-radius: var(--border-radius-squircle); background: {{ score_color }}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
-      <span class="text-data-huge" style="font-size: 1.65rem; color: #FFFFFF; line-height: 1; font-weight: 800;">
-        {{ val }}%
+      <span class="text-data-huge" style="font-size: 1.75rem; color: #FFFFFF; line-height: 1; font-weight: 800;">
+        {{ val }}
       </span>
     </div>
 
@@ -45,7 +45,7 @@
         {{ score_label }}
       </div>
       <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
-        {{ score_ontime_detail | default("Active vehicles running within -60s to +300s of published schedule.") }}
+        {{ score_ontime_detail | default("Percentage of transit vehicles inside the city that are running on time.") }}
       </div>
     </div>
   </div>

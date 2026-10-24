@@ -1,16 +1,15 @@
 <!-- File: _includes/components/widget/quiz-results-view.njk -->
 {% set archetype_title = result_archetype_title | default("The Soundview Navigator") %}
 {% set archetype_subtitle = result_archetype_subtitle | default("The Maritime Community & Rail-Connected Strategist") %}
-{% set archetype_score_summary = result_archetype_summary | default("High alignment with coastal walking access, Sounder rail commuting, and mid-century architectural neighborhoods.") %}
 {% set match_city = result_match_city | default("Edmonds, WA") %}
 {% set share_url = result_share_url | default("https://myseattlesearch.com/quizzes/results/soundview-navigator/") %}
 
 <section class="widget-card quiz-results-view-card" style="padding: 2.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 2rem; box-sizing: border-box;">
   
-  {# Hero Archetype Banner #}
+  {# Hero Archetype Banner (• ARCHETYPE MATCH removed per edit) #}
   <header style="text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 1.5rem;">
     <span class="text-overline" style="color: var(--color-secondary-default); font-weight: 800; letter-spacing: 0.12em;">
-      RESULTS LOCKED IN • ARCHETYPE MATCH
+      RESULTS LOCKED IN
     </span>
     <h1 class="text-display" style="font-size: 2.25rem; line-height: 1.2; margin: 0.25rem 0 0 0; color: var(--color-primary-default);">
       {{ archetype_title }}
@@ -20,7 +19,7 @@
     </p>
   </header>
 
-  {# Social Share / Verification Card (Liquid Glass Summary) #}
+  {# Social Share Summary Card ("YOUR RESULTS" per edit) #}
   <div style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
     <div style="display: flex; align-items: center; gap: 0.85rem;">
       <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-secondary-default); flex-shrink: 0;" aria-hidden="true">
@@ -35,7 +34,7 @@
       </div>
 
       <div>
-        <div class="text-overline" style="font-size: 0.65rem; color: #86868b;">PRIMARY REGIONAL MATCH</div>
+        <div class="text-overline" style="font-size: 0.65rem; color: #86868b;">YOUR RESULTS</div>
         <div style="font-size: 1rem; font-weight: 800; color: var(--color-primary-default);">
           {{ match_city }}
         </div>
@@ -56,6 +55,8 @@
   <div class="narrative-assessment text-body" style="font-size: 0.95rem; line-height: 1.7; display: flex; flex-direction: column; gap: 1.25rem;">
     {% if result_narrative_content %}
       {{ result_narrative_content | safe }}
+    {% elif content %}
+      {{ content | safe }}
     {% else %}
       <p>
         Your responses indicate a strong preference for authentic community connection paired with multi-modal commuter independence. You value established tree-lined streets, salt breezes, and walkable village cores where daily essentials do not necessitate a highway drive. Rather than chasing generic square footage in distant subdivisions, you prioritize neighborhood character, local culinary independence, and public access to waterfront parks.
@@ -65,36 +66,5 @@
       </p>
     {% endif %}
   </div>
-
-  {# Local Pro-Tip / Insight Box #}
-  <div class="widget-insight-box" style="background: var(--color-surface-gray); border-left: 4px solid var(--color-secondary-default); border-radius: 10px; padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.4rem;">
-    <div style="display: flex; align-items: center; gap: 0.4rem;">
-      <span style="font-size: 1rem;">💡</span>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-weight: 800; font-size: 0.7rem;">
-        LOCAL PRO-TIP • REAL ESTATE MICRO-INSIGHT
-      </span>
-    </div>
-    <p class="text-body" style="font-size: 0.9rem; line-height: 1.55; margin: 0; color: var(--color-primary-default);">
-      {{ result_protip | default("When shopping the $750k–$950k starter and move-up tiers in Edmonds and Shoreline, homes situated west of Highway 99 absorb in an average of 8 days. Work with a lender who can fully underwrite your loan upfront so you can waive financing contingencies with confidence.") }}
-    </p>
-  </div>
-
-  {# Conversion Line Footer #}
-  <footer style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; padding-top: 1.25rem; border-top: 1px solid var(--color-border-light); font-size: 0.85rem;">
-    <div class="text-body-secondary">
-      Want to explore live listings matching this profile?
-    </div>
-    <div style="display: flex; align-items: center; gap: 0.75rem;">
-      <a href="tel:2066577493" 
-         style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 1.15rem; background: var(--color-secondary-default); color: #FFFFFF; border-radius: 999px; font-weight: 700; text-decoration: none;">
-        <span>Call Joe: (206) 657-7493</span>
-      </a>
-      <a href="/communities/edmonds/" 
-         style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 1rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); color: var(--color-primary-default); border-radius: 999px; font-weight: 600; text-decoration: none;">
-        <span>Explore {{ match_city }}</span>
-        <span aria-hidden="true">→</span>
-      </a>
-    </div>
-  </footer>
 
 </section>

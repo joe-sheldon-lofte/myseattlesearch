@@ -1,72 +1,62 @@
 <!-- File: _includes/components/widget/neighborhood-editorial.njk -->
-{% set ep_num = editorial_ep_number | default("EP1") %}
-{% set ep_title = editorial_title | default("Living & Investing in Edmonds: Coastal Transit, Community Character, and Market Realities") %}
-{% set ep_author = editorial_author | default("Joe Sheldon") %}
-{% set ep_date = editorial_date | default("Updated October 2026") %}
+{% set city = editorial_city_name | default("Edmonds") %}
+{% set headline = editorial_headline | default("Coastal Topography, Zoning Evolution, and Market Dynamics") %}
+{% set date_str = editorial_date | default("Updated October 2026") %}
+{% set author = editorial_author | default("Joe Sheldon") %}
 
-<article class="widget-card neighborhood-editorial-card" style="padding: 2rem; width: 100%; border-radius: var(--border-radius-squircle); display: flex; flex-direction: column; gap: 1.5rem;">
+<article class="widget-card neighborhood-editorial-card" style="padding: 2.25rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.5rem; box-sizing: border-box;">
   
   {# Header Row #}
-  <header style="border-bottom: 1px solid var(--color-border-light); padding-bottom: 1.25rem;">
-    <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
-      <span class="text-overline" style="color: var(--color-secondary-default);">
-        NEIGHBORHOOD INSIGHTS • {{ ep_num }}
+  <header style="border-bottom: 1px solid var(--color-border-light); padding-bottom: 1rem; display: flex; flex-direction: column; gap: 0.35rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+        LOCAL PERSPECTIVE &amp; COMMUNITY CONTEXT
       </span>
-      <span class="text-body-secondary" style="font-size: 0.75rem; font-family: monospace;">
-        {{ ep_date }}
+      <span class="text-body-secondary" style="font-size: 0.75rem;">
+        {{ date_str }} • By {{ author }}
       </span>
     </div>
 
-    <h2 class="text-widget-title" style="font-size: 1.45rem; line-height: 1.35; margin: 0; color: var(--color-primary-default);">
-      {{ ep_title }}
+    <h2 class="text-widget-title" style="margin: 0.25rem 0 0 0; font-size: 1.5rem; line-height: 1.25; color: var(--color-primary-default);">
+      {{ headline }}
     </h2>
-
-    <div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 1rem;">
-      <div style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); flex-shrink: 0;">
-        <img src="/assets/images/joe-sheldon-headshot.webp" alt="{{ ep_author }}" width="36" height="36" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
-      </div>
-      <div style="font-size: 0.85rem;">
-        <span style="font-weight: 700; color: var(--color-primary-default);">{{ ep_author }}</span>
-        <span class="text-body-secondary"> • Senior Real Estate Agent, Redfin</span>
-      </div>
-    </div>
   </header>
 
-  {# Long-Form Continuous Reading Prose (~4 Paragraphs) #}
-  <div class="editorial-prose text-body" style="line-height: 1.7; font-size: 0.95rem; display: flex; flex-direction: column; gap: 1.25rem; color: var(--color-primary-default);">
+  {# Main Editorial Prose Body #}
+  <div class="editorial-body text-body" style="font-size: 1rem; line-height: 1.7; display: flex; flex-direction: column; gap: 1.25rem; color: var(--color-primary-default);">
     {% if editorial_content %}
       {{ editorial_content | safe }}
+    {% elif content %}
+      {{ content | safe }}
     {% else %}
       <p>
-        Edmonds occupies one of the most distinctive geographic pockets in the greater Puget Sound basin. Positioned along the saltwater shoreline of Possession Sound, the community marries historic bowl architecture and pedestrian-friendly beach access with immediate commuter transit spines. Whether taking the Sounder commuter rail south into downtown Seattle's King Street Station or utilizing the high-frequency Swift Orange bus rapid transit to connect with Link Light Rail at Lynnwood City Center, residents experience genuine multi-modal flexibility that is rare in North Sound suburban enclaves.
+        Positioned along the Puget Sound coastline in south Snohomish County, {{ city }} represents a unique convergence of historic maritime character and evolving modern urban accessibility. From the mid-century architectural perimeters of the Bowl to the expanding transit corridors flanking Highway 99, residential inventory here functions within a tightly constrained geographic bowl bounded by saltwater to the west and established municipal limits on all remaining fronts.
       </p>
       <p>
-        From a housing supply standpoint, the local residential landscape remains defined by intense structural scarcity. With saltwater to the west, established municipal boundaries to the north and south, and mature mid-century residential neighborhoods across the plateau, new single-family building parcels are exceptionally scarce. Consequently, buyer demand in the median entry bands between $750,000 and $1,100,000 moves at high velocity, with well-prepared, fully underwritten buyers securing preferred contingencies against multiple offer competition.
+        Recent legislative shifts—notably Washington House Bill 1110 mandating middle housing allowances—have introduced critical infill opportunities across single-family parcels within a half-mile of major transit stops. For long-term property owners, this evolution unlocks accessory dwelling unit (ADU) potential and duplex redevelopments that fundamentally bolster land equity. For prospective buyers, understanding the interplay between localized school cluster ratings, Sounder rail access, and county property tax reassessment trajectories is essential to evaluating real monthly holding costs.
       </p>
       <p>
-        Meanwhile, ongoing municipal code revisions surrounding Washington's missing-middle housing legislation are opening deliberate infill opportunities near key commercial corridors like Highway 99 and the Westgate business district. For homeowners evaluating long-term equity planning, accessory dwelling units (DADUs) and low-profile duplex additions are reshaping the neighborhood preservation conversation—balancing the timeless maritime character of the Edmonds Bowl with modernized housing supply for multi-generational families.
-      </p>
-      <p>
-        Whether you are actively tracking daily closed MLS transactions, analyzing property tax stability, or planning a strategic sale to maximize your net proceeds, hyper-local data provides the competitive edge. Understanding the nuanced neighborhood micro-climates—from the salt breezes of Olympic Beach to the quiet tree-lined streets of Seaview and Meadowdale—is fundamental to making confident, well-timed real estate investments in this community.
+        Whether assessing the stability of blufftop foundations or analyzing days-on-market velocity across distinct neighborhood micro-climates, navigating {{ city }} requires an analytical eye paired with direct, boots-on-the-ground advocacy.
       </p>
     {% endif %}
   </div>
 
-  {# Conversion Line Footer #}
-  <footer style="margin-top: 0.5rem; padding-top: 1.25rem; border-top: 1px solid var(--color-border-light); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; font-size: 0.85rem;">
-    <div class="text-body-secondary">
-      Have questions about this neighborhood? <strong style="color: var(--color-primary-default);">Let's discuss local strategy.</strong>
+  {# Footer with Source Attribution & Formula Tooltip per Edit #}
+  <footer style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.85rem; font-size: 0.75rem; flex-wrap: wrap; gap: 0.75rem;" class="text-body-secondary">
+    <div>
+      Source: <strong style="color: var(--color-primary-default);">Deflocked</strong> &amp; Local Municipal Records
     </div>
 
-    <div style="display: flex; align-items: center; gap: 0.75rem;">
-      <a href="tel:2066577493" 
-         style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 1rem; background: var(--color-secondary-default); color: #FFFFFF; border-radius: 999px; font-weight: 700; text-decoration: none;">
-        <span>Call Joe: (206) 657-7493</span>
-      </a>
-      <a href="sms:+12066577493" 
-         style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.85rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); color: var(--color-primary-default); border-radius: 999px; font-weight: 600; text-decoration: none;">
-        <span>Text</span>
-      </a>
+    {# Algorithmic Formula Info Tooltip Button per Edit #}
+    <div style="position: relative; display: inline-flex; align-items: center; gap: 0.35rem;">
+      <span style="font-size: 0.75rem;">Empirical Density Model:</span>
+      <button type="button" 
+              class="btn-info-tooltip" 
+              aria-label="View surveillance algorithm formula"
+              onclick="alert('Algorithmic Surveillance Formula:\n24.16 * LN(pop_density + 1) + 5.82\n\nSource: Deflocked Municipal Audit');"
+              style="width: 20px; height: 20px; border-radius: 50%; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); color: #86868b; font-size: 0.7rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+        ℹ
+      </button>
     </div>
   </footer>
 

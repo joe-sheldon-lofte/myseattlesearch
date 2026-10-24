@@ -1,26 +1,24 @@
 <!-- File: _includes/components/widget/transit-stats-activeseats.njk -->
-<div class="widget-card transit-stat-card transit-active-seats-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 180px; padding: 1.5rem; width: 100%;">
+{% set transit_stat_value = transit_seats_count | default("1.8k") %}
+{% set transit_stat_label = "ACTIVE IN-CITY SEATS" %}
+{% set transit_stat_overline = "PEAK TRANSIT CAPACITY" %}
+
+<div class="widget-card transit-stat-item" style="padding: 1.25rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; align-items: center; gap: 1rem; box-sizing: border-box;">
   
-  {# Passenger Capacity Vector (graphic.transit.active.seats) #}
-  <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: var(--color-secondary-default); margin-bottom: 0.75rem;" aria-hidden="true">
-    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="7" r="3"/>
-      <path d="M6 4v10a2 2 0 0 0 2 2h10v3"/>
-    </svg>
+  <div style="width: 44px; height: 44px; border-radius: 10px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--color-secondary-default);">
+    {% include "components/graphic/transit-active-seats.njk" ignore missing %}
   </div>
 
-  {# Prominent Numerical Metric #}
-  <div class="text-data-huge" style="line-height: 0.95; margin-bottom: 0.35rem;">
-    {{ active_seats_count | default("1,840") }}
-  </div>
-
-  {# Descriptive Label String #}
-  <div class="text-overline" style="color: var(--color-primary-default); font-size: 0.75rem; letter-spacing: 0.06em;">
-    {{ active_seats_label | default("Active In-Bounds Seats") }}
-  </div>
-
-  <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.35rem;">
-    {{ active_seats_density | default("46 seats per 1,000 residents") }}
+  <div style="display: flex; flex-direction: column;">
+    <span class="text-overline" style="font-size: 0.6rem; color: #86868b;">
+      {{ transit_stat_overline }}
+    </span>
+    <div class="text-data-huge" style="font-size: 1.75rem; font-weight: 800; line-height: 1.1; font-family: monospace; color: var(--color-primary-default);">
+      {{ transit_stat_value }}
+    </div>
+    <div class="text-body-secondary" style="font-size: 0.75rem; font-weight: 700; color: var(--color-secondary-default);">
+      {{ transit_stat_label }}
+    </div>
   </div>
 
 </div>

@@ -1,103 +1,49 @@
 <!-- File: _includes/components/widget/municipal-broadcast-player.njk -->
-{% set is_youtube = broadcast_is_youtube | default(true) %}
+{% set city = broadcast_city_name | default("Edmonds") %}
+{% set is_live = broadcast_is_live | default(false) %}
+{% set stream_title = broadcast_title | default("City Council Regular Business Meeting") %}
+{% set stream_date = broadcast_date | default("Tuesday, Oct 27, 2026 • 7:00 PM PDT") %}
 {% set youtube_id = broadcast_youtube_id | default("dQw4w9WgXcQ") %}
-{% set portal_url = broadcast_portal_url | default("https://www.edmondswa.gov/government/city_council/council_meeting_videos") %}
 
-<section class="widget-card municipal-broadcast-card" style="padding: 1.5rem; width: 100%;">
+<div class="widget-card municipal-broadcast-player-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
   
-  {# Header Row #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+  {# Header Row per edit: "CITY BROADCAST & ARCHIVES" (OPMA disclosure removed) #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
     <div>
-      <span class="text-overline">CIVIC BROADCAST & ARCHIVES</span>
-      <h3 class="text-widget-title" style="margin-top: 0.25rem;">City Council & Commission Video</h3>
-      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.2rem;">
-        Public hearings, regular council business, and municipal work sessions
-      </div>
-    </div>
-    
-    <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); padding: 0.35rem 0.75rem; border-radius: 999px;">
-      <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: {% if broadcast_is_live %}var(--color-tertiary-default){% else %}#10B981{% endif %};"></span>
-      <span style="font-size: 0.75rem; font-weight: 700; color: var(--color-primary-default);">
-        {% if broadcast_is_live %}LIVE BROADCAST{% else %}Recent Recorded Session{% endif %}
+      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+        CITY BROADCAST &amp; ARCHIVES
       </span>
+      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
+        {{ city }} Civic Chamber Video Stream
+      </h3>
     </div>
+
+    {% if is_live %}
+      <div style="display: flex; align-items: center; gap: 0.4rem; padding: 0.2rem 0.65rem; border-radius: 999px; background: rgba(217, 35, 42, 0.12); color: var(--color-tertiary-default); font-size: 0.7rem; font-weight: 800;">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--color-tertiary-default); animation: blink 1.5s infinite;"></span>
+        <span>BROADCASTING LIVE</span>
+      </div>
+    {% else %}
+      <span style="font-size: 0.75rem; color: #86868b; font-weight: 600;">Recorded Archive</span>
+    {% endif %}
   </div>
 
-  {% if is_youtube %}
-    {# State A: YouTube Integration (16:9 Viewport) #}
-    <div style="position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: #000000; margin-bottom: 1.25rem; box-shadow: 0 4px 16px rgba(0,0,0,0.1);">
-      <iframe id="main-council-player"
-              src="https://www.youtube-nocookie.com/embed/{{ youtube_id }}" 
-              title="{{ broadcast_title | default('City Council Broadcast') }}"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-              allowfullscreen 
-              loading="lazy"
-              style="position: absolute; inset: 0; width: 100%; height: 100%; border: none;"></iframe>
-    </div>
-
-    {# Recent Archive List #}
-    {% set demo_archives = [
-      { id: "M7lc1UVf-VE", title: "City Council Regular Business Meeting (Oct 20, 2026)", date: "Oct 20, 2026" },
-      { id: "kJQP7kiw5Fk", title: "Planning Board Study Session on Missing Middle Housing", date: "Oct 14, 2026" },
-      { id: "fJ9rUzIMcZQ", title: "Parks & Recreation Commission Public Forum", date: "Oct 07, 2026" }
-    ] %}
-    {% set archives = broadcast_archives | default(demo_archives) %}
-
-    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-      <span class="text-overline" style="font-size: 0.65rem; color: #86868b;">RECENT BROADCAST ARCHIVE</span>
-      
-      <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 180px; overflow-y: auto;">
-        {% for vid in archives %}
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.5rem 0.75rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 8px;">
-            <div style="min-width: 0;">
-              <div style="font-size: 0.8rem; font-weight: 700; color: var(--color-primary-default); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                {{ vid.title }}
-              </div>
-              <div class="text-body-secondary" style="font-size: 0.7rem;">{{ vid.date }}</div>
-            </div>
-            
-            <button type="button" 
-                    onclick="const p=document.getElementById('main-council-player');if(p){p.src='https://www.youtube-nocookie.com/embed/{{ vid.id }}?autoplay=1';p.scrollIntoView({behavior:'smooth'});}"
-                    style="flex-shrink: 0; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 999px; padding: 0.25rem 0.6rem; font-size: 0.7rem; font-weight: 600; color: var(--color-secondary-default); cursor: pointer;">
-              Play ▶
-            </button>
-          </div>
-        {% endfor %}
-      </div>
-    </div>
-
-  {% else %}
-    {# State B: External Portal Integration (Granicus / CivicPlus / PrimeGov) #}
-    <div style="padding: 2rem 1.5rem; text-align: center; background: var(--color-surface-gray); border-radius: 12px; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-      <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-secondary-default);" aria-hidden="true">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="15" x="2" y="7" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
-      </div>
-
-      <div>
-        <h4 style="font-size: 1.1rem; font-weight: 700; color: var(--color-primary-default); margin: 0 0 0.25rem 0;">
-          {{ broadcast_portal_name | default("Granicus Civic Broadcast Portal") }}
-        </h4>
-        <p class="text-body-secondary" style="font-size: 0.85rem; max-width: 520px; margin: 0 auto; line-height: 1.5;">
-          This municipality hosts live proceedings and timestamped agenda-linked video archives on their official external legislative media network.
-        </p>
-      </div>
-
-      <a href="{{ portal_url }}" 
-         target="_blank" 
-         rel="noopener noreferrer" 
-         style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.25rem; background: var(--color-secondary-default); color: #FFFFFF; border-radius: 999px; font-size: 0.85rem; font-weight: 700; text-decoration: none; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-        <span>Access City Broadcast Portal</span>
-        <span aria-hidden="true">→</span>
-      </a>
-    </div>
-  {% endif %}
-
-  {# Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem; margin-top: 1rem;" class="text-body-secondary">
-    <span>Public Meetings subject to Washington Open Public Meetings Act (OPMA).</span>
-    <a href="{{ portal_url }}" target="_blank" rel="noopener noreferrer" style="color: var(--color-secondary-default); font-weight: 600; text-decoration: none;">
-      All Video Archives →
-    </a>
+  {# 16:9 Video Embed Player #}
+  <div style="width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: #000000; position: relative;">
+    <iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;"
+            src="https://www.youtube.com/embed/{{ youtube_id }}" 
+            title="{{ city }} City Council Stream" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowfullscreen></iframe>
   </div>
 
-</section>
+  {# Stream Meta #}
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; font-size: 0.8rem;">
+    <div>
+      <strong style="color: var(--color-primary-default);">{{ stream_title }}</strong>
+      <div class="text-body-secondary" style="font-size: 0.75rem;">{{ stream_date }}</div>
+    </div>
+    <a href="#" style="color: var(--color-secondary-default); font-weight: 700; text-decoration: none;">All Past Archives →</a>
+  </div>
+
+</div>

@@ -1,16 +1,35 @@
-<!-- File: _includes/components/sections/expandable-accordion.njk -->
-{% macro expandableAccordion(id='accordion-block', initialText='Show More ⌄', expandedText='Show Less ⌃') %}
-<div class="expandable-wrapper" id="{{ id }}">
-  <div class="expandable-container" id="{{ id }}-inner">
-    {{ caller() }}
-    <div class="expandable-fade" aria-hidden="true"></div>
+<!-- File: _includes/components/section/expandable-accordion.njk -->
+{% set acc_title = accordion_section_title | default("Local Advisory & Frequently Asked Questions") %}
+{% set acc_overline = accordion_section_overline | default("KNOWLEDGE BASE & PROCESS BREAKDOWNS") %}
+{% set acc_desc = accordion_section_desc | default("Clear answers to common questions about buying, selling, and commuting across Puget Sound.") %}
+
+<section class="section-expandable-accordion" style="width: 100%; margin-bottom: 3rem; box-sizing: border-box;">
+  
+  {# Section Header #}
+  <div style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.85rem;">
+    <span class="text-overline" style="color: var(--color-secondary-default);">
+      {{ acc_overline }}
+    </span>
+    <h2 class="text-section-title" style="margin-top: 0.25rem;">
+      {{ acc_title }}
+    </h2>
+    <p class="text-body-secondary" style="font-size: 0.9rem; line-height: 1.5; margin: 0.35rem 0 0 0;">
+      {{ acc_desc }}
+    </p>
   </div>
-  <button type="button" 
-          class="btn-expand" 
-          aria-expanded="false" 
-          aria-controls="{{ id }}-inner" 
-          onclick="const c = document.getElementById('{{ id }}-inner'); const exp = c.classList.toggle('is-expanded'); this.setAttribute('aria-expanded', exp); this.querySelector('.btn-expand-label').textContent = exp ? '{{ expandedText }}' : '{{ initialText }}';">
-    <span class="btn-expand-label">{{ initialText }}</span>
-  </button>
-</div>
-{% endmacro %}
+
+  {# Accordion Body #}
+  <div class="accordion-list" style="display: flex; flex-direction: column; gap: 0.85rem;">
+    {% if accordion_items_slot %}
+      {{ accordion_items_slot | safe }}
+    {% elif content %}
+      {{ content | safe }}
+    {% else %}
+      {# Default Interactive Sample Items #}
+      <details class="accordion-card" style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.25rem 1.5rem; transition: border-color 0.2s ease; cursor: pointer;">
+        <summary style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 1rem; color: var(--color-primary-default); list-style: none;">
+          <span>How does Washington's graduated Real Estate Excise Tax (REET) impact net seller proceeds?</span>
+          <span class="acc-icon" style="font-size: 1.1rem; color: var(--color-secondary-default); transition: transform 0.2s ease;">+</span>
+        </summary>
+        <div class="acc-body text-body-secondary" style="margin-top: 0.85rem; font-size: 0.9rem; line-height: 1.6; border-top: 1px solid var(--color-border-light); padding-top: 0.75rem;">
+          In Washington State, real estate sales are taxed under a tiered

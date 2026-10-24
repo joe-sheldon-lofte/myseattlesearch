@@ -1,115 +1,57 @@
 <!-- File: _includes/components/widget/elections-guide-measures.njk -->
-{% set is_active = election_cycle_active | default(true) %}
+{% set guide_title = measures_guide_title | default("Ballot Measures & Initiatives") %}
 
 {% set demo_measures = [
   {
     code: "Proposition No. 1",
-    title: "Edmonds School District No. 15 — Replacement Educational Programs and Operations Levy",
-    jurisdiction: "Edmonds School District",
-    fiscal_impact: "Authorizes a four-year replacement levy collecting $68.5M in 2027 ($1.25/$1,000 assessed value) through 2030 to fund classroom staffing, special education, and academic operations.",
-    arg_for_url: "https://www.snoco.org/elections/prop1-for.pdf",
-    arg_against_url: "https://www.snoco.org/elections/prop1-against.pdf"
+    title: "Emergency Medical Services (EMS) Property Tax Levy Renewal",
+    summary: "Renews the regular property tax levy of $0.50 per $1,000 of assessed valuation for six consecutive years to fund emergency medical services, paramedic staffing, and rapid-response equipment.",
+    fiscal: "Estimated tax impact: $425 annually for a home assessed at $850,000."
   },
   {
-    code: "County Advisory Measure No. 2",
-    title: "Snohomish County Conservation Futures Property Tax Levy Continuation",
-    jurisdiction: "Snohomish County",
-    fiscal_impact: "Maintains existing property tax assessment of $0.0625 per $1,000 of assessed valuation dedicated exclusively to preserving farmland, open space, and salmon habitat corridors.",
-    arg_for_url: "https://www.snoco.org/elections/measure2-for.html",
-    arg_against_url: "https://www.snoco.org/elections/measure2-against.html"
+    code: "School District Capital Bond",
+    title: "Facility Modernization & Technology Capital Improvements",
+    summary: "Authorizes the issuance of general obligation bonds to replace aging middle school heating, ventilation, and seismic safety infrastructure.",
+    fiscal: "Estimated levy rate: $0.38 per $1,000 assessed valuation over 20 years."
   }
 ] %}
 
-{% set measures = election_measures | default(demo_measures) %}
-
-{% if is_active and measures and measures | length > 0 %}
-<section class="widget-card election-measures-guide-card" style="padding: 1.5rem; width: 100%;">
+<div class="widget-card elections-guide-measures-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
   
   {# Header Row #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
-    <div>
-      <span class="text-overline">LOCAL LEVIES, BONDS & INITIATIVES</span>
-      <h3 class="text-widget-title" style="margin-top: 0.25rem;">Ballot Measures Reference Guide</h3>
-      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
-        Official ballot titles, levy tax rates, and certified public arguments for and against.
-      </div>
-    </div>
-    
-    <div style="font-size: 0.75rem; font-weight: 700; color: var(--color-secondary-default); background: var(--color-background-universal); border: 1px solid var(--color-border-light); padding: 0.25rem 0.65rem; border-radius: 999px;">
-      {{ measures | length }} Certified Measures
-    </div>
+  <div style="border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+    <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+      BALLOT MEASURES REFERENCE GUIDE
+    </span>
+    <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.25rem;">
+      {{ guide_title }}
+    </h3>
   </div>
 
-  {# Measures Accordion #}
-  <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-    {% for m in measures %}
-      <details {% if loop.first %}open{% endif %} style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; overflow: hidden; transition: border-color 0.2s ease;">
-        
-        <summary style="list-style: none; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; cursor: pointer; user-select: none; gap: 0.75rem;">
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <span style="font-size: 0.9rem; font-weight: 700; color: var(--color-secondary-default); width: 14px; text-align: center;" aria-hidden="true">⌄</span>
-            <div>
-              <span class="text-overline" style="font-size: 0.65rem; color: var(--color-secondary-default);">{{ m.jurisdiction }}</span>
-              <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--color-primary-default); margin: 0.15rem 0 0 0;">
-                {{ m.code }}
-              </h4>
-            </div>
-          </div>
-
-          <span style="font-size: 0.75rem; font-weight: 700; color: #86868b; background: var(--color-surface-gray); padding: 0.2rem 0.55rem; border-radius: 999px;">
-            Ballot Measure
-          </span>
+  {# Accordion of Measures #}
+  <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+    {% for m in demo_measures %}
+      <details class="election-measure-accordion" style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1rem 1.25rem; cursor: pointer;" {% if loop.first %}open{% endif %}>
+        <summary style="display: flex; justify-content: space-between; align-items: center; list-style: none; font-size: 0.95rem; font-weight: 800; color: var(--color-primary-default);">
+          <span>{{ m.code }}: {{ m.title }}</span>
+          <span style="font-size: 0.75rem; color: var(--color-secondary-default);">▼</span>
         </summary>
 
-        {# Measure Details & Fiscal Impact #}
-        <div style="padding: 0 1.25rem 1.25rem 1.25rem; border-top: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 0.85rem; margin-top: 0.75rem;">
-          
-          <div>
-            <div class="text-overline" style="font-size: 0.65rem; color: #86868b;">BALLOT TITLE</div>
-            <p style="font-size: 0.9rem; font-weight: 700; color: var(--color-primary-default); margin: 0.25rem 0 0.5rem 0; line-height: 1.4;">
-              {{ m.title }}
-            </p>
+        <div style="margin-top: 1rem; border-top: 1px solid var(--color-border-light); padding-top: 0.75rem; display: flex; flex-direction: column; gap: 0.65rem;">
+          <p class="text-body" style="font-size: 0.85rem; line-height: 1.5; margin: 0;">
+            {{ m.summary }}
+          </p>
+          <div style="background: var(--color-background-universal); border-left: 3px solid var(--color-secondary-default); padding: 0.5rem 0.75rem; font-size: 0.75rem; border-radius: 4px;">
+            <strong>Fiscal Impact:</strong> {{ m.fiscal }}
           </div>
-
-          <div style="background: var(--color-surface-gray); border-radius: 10px; padding: 0.85rem; border: 1px solid var(--color-border-light);">
-            <div class="text-overline" style="font-size: 0.65rem; color: var(--color-secondary-default);">FISCAL IMPACT & LEVY RATE</div>
-            <p class="text-body" style="font-size: 0.85rem; margin: 0.25rem 0 0 0; line-height: 1.5;">
-              {{ m.fiscal_impact }}
-            </p>
-          </div>
-
-          {# Dual Liquid Glass Action Buttons: For and Against #}
-          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.25rem;">
-            <a href="{{ m.arg_for_url | default('#') }}" 
-               target="_blank" 
-               rel="noopener noreferrer" 
-               style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.9rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 999px; font-size: 0.75rem; font-weight: 700; color: #065F46; text-decoration: none;">
-              <span>Read Argument For</span>
-              <span aria-hidden="true">↗</span>
-            </a>
-
-            <a href="{{ m.arg_against_url | default('#') }}" 
-               target="_blank" 
-               rel="noopener noreferrer" 
-               style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.9rem; background: rgba(217, 35, 42, 0.08); border: 1px solid rgba(217, 35, 42, 0.25); border-radius: 999px; font-size: 0.75rem; font-weight: 700; color: var(--color-tertiary-default); text-decoration: none;">
-              <span>Read Argument Against</span>
-              <span aria-hidden="true">↗</span>
-            </a>
-          </div>
-
         </div>
-
       </details>
     {% endfor %}
   </div>
 
-  {# Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem; margin-top: 1.25rem;" class="text-body-secondary">
-    <span>Statutory fiscal statement prepared by Snohomish County Prosecuting Attorney.</span>
-    <a href="https://voter.votewa.gov" target="_blank" rel="noopener noreferrer" style="color: var(--color-secondary-default); font-weight: 700; text-decoration: none;">
-      Official County Explanatory Statement →
-    </a>
+  {# Footer (Prosecuting Attorney boilerplate removed per edit) #}
+  <div style="border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem;" class="text-body-secondary">
+    Official non-partisan measure summary compiled for voter reference.
   </div>
 
-</section>
-{% endif %}
+</div>

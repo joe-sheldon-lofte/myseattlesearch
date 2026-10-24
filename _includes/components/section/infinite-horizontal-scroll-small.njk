@@ -1,53 +1,109 @@
 <!-- File: _includes/components/section/infinite-horizontal-scroll-small.njk -->
 {% set scroll_id = scroll_small_id | default("scroll-small-" + (range(100, 999) | random)) %}
+{% set scroll_title = scroll_small_title | default("Real-Time Status & Transit Activity") %}
+{% set scroll_overline = scroll_small_overline | default("LIVE PULSE INDICATORS") %}
 
-<div id="{{ scroll_id }}" class="section-scroll-container scroll-size-small" style="position: relative; width: 100%; margin-bottom: 2rem; box-sizing: border-box;">
+<section id="{{ scroll_id }}" class="section-scroll-container scroll-size-small" style="position: relative; width: 100%; margin-bottom: 2.5rem; box-sizing: border-box;">
   
-  {# Left and Right Gradient Fades #}
-  <div class="scroll-fade-left" style="position: absolute; left: 0; top: 0; bottom: 0; width: 36px; background: linear-gradient(90deg, var(--color-background-universal) 0%, transparent 100%); z-index: 5; pointer-events: none;" aria-hidden="true"></div>
-  <div class="scroll-fade-right" style="position: absolute; right: 0; top: 0; bottom: 0; width: 36px; background: linear-gradient(270deg, var(--color-background-universal) 0%, transparent 100%); z-index: 5; pointer-events: none;" aria-hidden="true"></div>
+  {# Header Row with Title & Small Scroll Buttons per style.section.scroll.buttons.small #}
+  <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.85rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--color-border-light);">
+    <div>
+      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+        {{ scroll_overline }}
+      </span>
+      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
+        {{ scroll_title }}
+      </h3>
+    </div>
 
-  {# Horizontally Scrolling Flex Track hiding scrollbar #}
-  <div class="scroll-track" 
-       tabindex="0"
-       role="region" 
-       aria-label="Horizontally scrollable status items"
-       style="display: flex; gap: 0.75rem; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; scroll-snap-type: x mandatory; padding: 0.5rem 1rem; width: 100%; box-sizing: border-box;">
-    
-    {% if scroll_slot %}
-      {{ scroll_slot | safe }}
-    {% elif content %}
-      {{ content | safe }}
-    {% else %}
-      {# Default Demo Items for Status / Weather Pills #}
-      <div style="flex: 0 0 auto; scroll-snap-align: start; min-width: 140px;">
-        {% set transit_mode = "bus" %}{% set transit_stat_value = "38" %}{% set transit_stat_label = "Active Buses" %}
-        {% include "components/widget/transit-stats.njk" ignore missing %}
-      </div>
-      <div style="flex: 0 0 auto; scroll-snap-align: start; min-width: 140px;">
-        {% set transit_mode = "lightrail" %}{% set transit_stat_value = "14" %}{% set transit_stat_label = "1 Line Trains" %}
-        {% include "components/widget/transit-stats.njk" ignore missing %}
-      </div>
-      <div style="flex: 0 0 auto; scroll-snap-align: start; min-width: 140px;">
-        {% set transit_mode = "sounder" %}{% set transit_stat_value = "4" %}{% set transit_stat_label = "Sounder Trains" %}
-        {% include "components/widget/transit-stats.njk" ignore missing %}
-      </div>
-      <div style="flex: 0 0 auto; scroll-snap-align: start; min-width: 140px;">
-        {% set transit_mode = "seats" %}{% set transit_stat_value = "1.8k" %}{% set transit_stat_label = "In-Bounds Seats" %}
-        {% include "components/widget/transit-stats.njk" ignore missing %}
-      </div>
-      <div style="flex: 0 0 auto; scroll-snap-align: start; min-width: 140px;">
-        {% set current_temp = "72°" %}{% set weather_summary = "Clear Skies" %}
-        {% include "components/widget/weather-current-widget.njk" ignore missing %}
-      </div>
-    {% endif %}
+    {# Small Scroll Buttons aligned toward the right #}
+    <div class="scroll-buttons-small" style="display: flex; align-items: center; gap: 0.5rem;">
+      <button type="button" 
+              class="btn-scroll-arrow small prev" 
+              aria-label="Scroll left"
+              onclick="scrollContainerLeft('{{ scroll_id }}', 240)"
+              style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); color: var(--color-primary-default); font-size: 1rem; font-weight: 800; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s ease;">
+        ‹
+      </button>
+      <button type="button" 
+              class="btn-scroll-arrow small next" 
+              aria-label="Scroll right"
+              onclick="scrollContainerRight('{{ scroll_id }}', 240)"
+              style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); color: var(--color-primary-default); font-size: 1rem; font-weight: 800; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s ease;">
+        ›
+      </button>
+    </div>
+  </div>
 
+  {# Track Shell #}
+  <div style="position: relative; width: 100%;">
+    {# Left and Right Gradient Fades #}
+    <div class="scroll-fade-left" style="position: absolute; left: 0; top: 0; bottom: 0; width: 36px; background: linear-gradient(90deg, var(--color-background-universal) 0%, transparent 100%); z-index: 5; pointer-events: none;" aria-hidden="true"></div>
+    <div class="scroll-fade-right" style="position: absolute; right: 0; top: 0; bottom: 0; width: 36px; background: linear-gradient(270deg, var(--color-background-universal) 0%, transparent 100%); z-index: 5; pointer-events: none;" aria-hidden="true"></div>
+
+    {# Horizontally Scrolling Flex Track #}
+    <div class="scroll-track" 
+         tabindex="0"
+         role="region" 
+         aria-label="Horizontally scrollable status items"
+         style="display: flex; gap: 0.75rem; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; scroll-snap-type: x mandatory; padding: 0.5rem 0.25rem; width: 100%; box-sizing: border-box;">
+      
+      {% if scroll_slot %}
+        {{ scroll_slot | safe }}
+      {% elif content %}
+        {{ content | safe }}
+      {% else %}
+        <div style="flex: 0 0 auto; scroll-snap-align: start; min-width: 140px;">
+          {% set transit_mode = "bus" %}{% set transit_stat_value = "38" %}{% set transit_stat_label = "Active Buses" %}
+          {% include "components/widget/transit-stats.njk" ignore missing %}
+        </div>
+        <div style="flex: 0 0 auto; scroll-snap-align: start; min-width: 140px;">
+          {% set transit_mode = "lightrail" %}{% set transit_stat_value = "14" %}{% set transit_stat_label = "1 Line Trains" %}
+          {% include "components/widget/transit-stats.njk" ignore missing %}
+        </div>
+        <div style="flex: 0 0 auto; scroll-snap-align: start; min-width: 140px;">
+          {% set transit_mode = "sounder" %}{% set transit_stat_value = "4" %}{% set transit_stat_label = "Sounder Trains" %}
+          {% include "components/widget/transit-stats.njk" ignore missing %}
+        </div>
+        <div style="flex: 0 0 auto; scroll-snap-align: start; min-width: 140px;">
+          {% set transit_mode = "seats" %}{% set transit_stat_value = "1.8k" %}{% set transit_stat_label = "In-City Seats" %}
+          {% include "components/widget/transit-stats.njk" ignore missing %}
+        </div>
+        <div style="flex: 0 0 auto; scroll-snap-align: start; min-width: 140px;">
+          {% set current_temp = "72°" %}{% set weather_summary = "Clear Skies" %}
+          {% include "components/widget/weather-current-widget.njk" ignore missing %}
+        </div>
+        <div style="flex: 0 0 auto; scroll-snap-align: start; min-width: 140px;">
+          {% set aqi_val = 24 %}{% set aqi_tier_label = "Good" %}
+          {% include "components/widget/weather-aqi.njk" ignore missing %}
+        </div>
+      {% endif %}
+
+    </div>
   </div>
 
   <style>
     #{{ scroll_id }} .scroll-track::-webkit-scrollbar {
       display: none;
     }
+    #{{ scroll_id }} .btn-scroll-arrow:hover {
+      background: var(--color-secondary-default) !important;
+      color: #FFFFFF !important;
+      border-color: var(--color-secondary-default) !important;
+    }
   </style>
 
-</div>
+  <script>
+    if (typeof scrollContainerLeft === 'undefined') {
+      function scrollContainerLeft(id, amount) {
+        const c = document.getElementById(id);
+        if (c) c.querySelector('.scroll-track').scrollBy({ left: -amount, behavior: 'smooth' });
+      }
+      function scrollContainerRight(id, amount) {
+        const c = document.getElementById(id);
+        if (c) c.querySelector('.scroll-track').scrollBy({ left: amount, behavior: 'smooth' });
+      }
+    }
+  </script>
+
+</section>

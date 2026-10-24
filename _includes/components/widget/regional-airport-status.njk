@@ -1,62 +1,109 @@
-<!-- File: _includes/components/widget/regional-airport-status.njk -->
-<div class="widget-card airport-status-card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; width: 100%;">
+<!-- File: _includes/components/widget/regional-airport-board.njk -->
+{% set board_title = airport_board_title | default("Regional Flight Board") %}
+{% set board_airport = airport_board_name | default("Seattle-Tacoma (SEA) & Paine Field (PAE)") %}
+
+{% set demo_flights = [
+  { type: "dep", airport: "SEA", code: "AS 1124", airline: "Alaska", city: "San Francisco (SFO)", time: "3:45 PM", gate: "C12", status: "On Time", status_type: "good" },
+  { type: "dep", airport: "PAE", code: "AS 2042", airline: "Alaska", city: "Phoenix (PHX)", time: "4:10 PM", gate: "Gate 2", status: "Boarding", status_type: "active" },
+  { type: "dep", airport: "SEA", code: "DL 882", airline: "Delta", city: "Minneapolis (MSP)", time: "4:25 PM", gate: "A4", status: "On Time", status_type: "good" },
+  { type: "dep", airport: "SEA", code: "UA 1940", airline: "United", city: "Denver (DEN)", time: "4:40 PM", gate: "B8", status: "Delayed 15m", status_type: "warning" },
+  { type: "arr", airport: "PAE", code: "AS 2185", airline: "Alaska", city: "San Diego (SAN)", time: "3:55 PM", gate: "Gate 1", status: "Landed", status_type: "good" },
+  { type: "arr", airport: "SEA", code: "AS 340", airline: "Alaska", city: "Anchorage (ANC)", time: "4:15 PM", gate: "D3", status: "On Time", status_type: "good" }
+] %}
+
+<div class="widget-card regional-airport-board-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
   
-  {# Header Row: Airport Code & Status Badge #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 1rem;">
+  {# Header Row #}
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem; flex-wrap: wrap; gap: 0.75rem;">
     <div>
-      <span class="text-overline">{{ airport_overline | default("REGIONAL AIRPORT") }}</span>
-      <h3 class="text-widget-title" style="margin-top: 0.25rem;">
-        {{ airport_name | default("Paine Field") }}
-        <span style="color: var(--color-secondary-default); font-weight: 700;">({{ airport_code | default("PAE") }})</span>
+      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+        REGIONAL AVIATION GATEWAY
+      </span>
+      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
+        {{ board_title }}
       </h3>
-    </div>
-
-    {% set op_status = airport_status | default("Normal Operations") %}
-    {% set badge_bg = "rgba(16, 185, 129, 0.12)" %}
-    {% set badge_color = "#059669" %}
-    {% if op_status == "Minor Delays" %}
-      {% set badge_bg = "rgba(245, 158, 11, 0.15)" %}
-      {% set badge_color = "#D97706" %}
-    {% elif op_status == "Severe Delays" %}
-      {% set badge_bg = "rgba(217, 35, 42, 0.15)" %}
-      {% set badge_color = "var(--color-tertiary-default)" %}
-    {% endif %}
-    <span style="display: inline-block; padding: 0.25rem 0.65rem; background: {{ badge_bg }}; color: {{ badge_color }}; border-radius: 999px; font-size: 0.75rem; font-weight: 700; white-space: nowrap;">
-      {{ op_status }}
-    </span>
-  </div>
-
-  {# Travel Time Grid: Drive vs. Transit #}
-  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
-    
-    {# Drive Time Tile #}
-    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 0.85rem; text-align: center;">
-      <div class="text-overline" style="font-size: 0.65rem;">Drive Time</div>
-      <div class="text-data-huge" style="font-size: 1.75rem; margin-top: 0.35rem; line-height: 1;">
-        {{ airport_drive_time | default("18 min") }}
-      </div>
-      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.35rem;">
-        Via {{ airport_drive_route | default("I-5 N / SR 526") }}
+      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
+        {{ board_airport }}
       </div>
     </div>
 
-    {# Transit Time Tile #}
-    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 0.85rem; text-align: center;">
-      <div class="text-overline" style="font-size: 0.65rem;">Transit Time</div>
-      <div class="text-data-huge" style="font-size: 1.75rem; margin-top: 0.35rem; line-height: 1; color: var(--color-primary-default);">
-        {{ airport_transit_time | default("36 min") }}
-      </div>
-      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.35rem;">
-        {{ airport_transit_route | default("Swift Green Line") }}
-      </div>
+    {# Filter Buttons #}
+    <div style="display: flex; gap: 0.35rem; background: var(--color-surface-gray); padding: 0.25rem; border-radius: 999px; border: 1px solid var(--color-border-light);">
+      <button type="button" class="btn-apt-tab active" onclick="filterAirportBoard('all', this)" style="padding: 0.25rem 0.75rem; border-radius: 999px; border: none; background: var(--color-secondary-default); color: #FFFFFF; font-size: 0.7rem; font-weight: 700; cursor: pointer;">All</button>
+      <button type="button" class="btn-apt-tab" onclick="filterAirportBoard('dep', this)" style="padding: 0.25rem 0.75rem; border-radius: 999px; border: none; background: transparent; color: var(--color-primary-default); font-size: 0.7rem; font-weight: 700; cursor: pointer;">Departures</button>
+      <button type="button" class="btn-apt-tab" onclick="filterAirportBoard('arr', this)" style="padding: 0.25rem 0.75rem; border-radius: 999px; border: none; background: transparent; color: var(--color-primary-default); font-size: 0.7rem; font-weight: 700; cursor: pointer;">Arrivals</button>
     </div>
-
   </div>
 
-  {# Bottom Metadata #}
-  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem;" class="text-body-secondary">
-    <span>FAA Status: <strong>{{ faa_delay | default("No Delays") }}</strong></span>
-    <span>Security Wait: <strong>{{ security_wait | default("< 5 min") }}</strong></span>
+  {# Solari / Flight Board Table #}
+  <div style="overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+      <thead>
+        <tr style="border-bottom: 2px solid var(--color-border-light); color: #86868b; font-size: 0.65rem;">
+          <th style="padding: 0.5rem 0.75rem;">HUB</th>
+          <th style="padding: 0.5rem 0.75rem;">FLIGHT</th>
+          <th style="padding: 0.5rem 0.75rem;">DESTINATION / ORIGIN</th>
+          <th style="padding: 0.5rem 0.75rem;">TIME</th>
+          <th style="padding: 0.5rem 0.75rem; text-align: center;">GATE</th>
+          <th style="padding: 0.5rem 0.75rem; text-align: right;">STATUS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in demo_flights %}
+          <tr class="flight-row" data-type="{{ f.type }}" style="border-bottom: 1px solid var(--color-border-light);">
+            <td style="padding: 0.65rem 0.75rem; font-weight: 800; font-family: monospace; font-size: 0.8rem; color: {% if f.airport == 'PAE' %}var(--color-secondary-default){% else %}var(--color-primary-default){% endif %};">
+              {{ f.airport }}
+            </td>
+            <td style="padding: 0.65rem 0.75rem; font-weight: 700; font-family: monospace;">
+              {{ f.code }}
+            </td>
+            <td style="padding: 0.65rem 0.75rem; font-weight: 600; color: var(--color-primary-default);">
+              {{ f.city }}
+            </td>
+            <td style="padding: 0.65rem 0.75rem; font-family: monospace; font-weight: 700; color: #86868b;">
+              {{ f.time }}
+            </td>
+            <td style="padding: 0.65rem 0.75rem; text-align: center; font-family: monospace; font-weight: 700;">
+              {{ f.gate }}
+            </td>
+            <td style="padding: 0.65rem 0.75rem; text-align: right;">
+              <span style="display: inline-block; padding: 0.2rem 0.55rem; border-radius: 999px; font-size: 0.65rem; font-weight: 800; {% if f.status_type == 'good' %}background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.25);{% elif f.status_type == 'active' %}background: rgba(30, 77, 107, 0.12); color: var(--color-secondary-default); border: 1px solid rgba(30, 77, 107, 0.25);{% else %}background: rgba(245, 158, 11, 0.15); color: #D97706; border: 1px solid rgba(245, 158, 11, 0.25);{% endif %}">
+                {{ f.status }}
+              </span>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
+
+  {# Footer #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem;" class="text-body-secondary">
+    <span>Live FAA Terminal ADS-B Telemetry</span>
+    <span>Updated Hourly</span>
+  </div>
+
+  <script>
+    function filterAirportBoard(type, btn) {
+      const rows = document.querySelectorAll('.regional-airport-board-card .flight-row');
+      const tabs = document.querySelectorAll('.regional-airport-board-card .btn-apt-tab');
+      tabs.forEach(t => {
+        t.style.background = 'transparent';
+        t.style.color = 'var(--color-primary-default)';
+        t.classList.remove('active');
+      });
+      btn.style.background = 'var(--color-secondary-default)';
+      btn.style.color = '#FFFFFF';
+      btn.classList.add('active');
+
+      rows.forEach(r => {
+        if (type === 'all' || r.dataset.type === type) {
+          r.style.display = '';
+        } else {
+          r.style.display = 'none';
+        }
+      });
+    }
+  </script>
 
 </div>

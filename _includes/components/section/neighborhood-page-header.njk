@@ -1,49 +1,41 @@
 <!-- File: _includes/components/section/neighborhood-page-header.njk -->
 {% set city = section_city_name | default("Edmonds") %}
 {% set county = section_county_name | default("snohomish") %}
-{% set hero_image = section_hero_image_url | default("https://assets.myseattlesearch.com/neighborhood/hero-pools/" + county + "/edmonds-waterfront.webp") %}
-{% set tagline = section_city_tagline | default("Possession Sound Maritime Living & Historic Bowl Community") %}
+{% set hero_pool = section_hero_images | default([
+  "https://assets.myseattlesearch.com/neighborhood/hero-pools/" + county + "/edmonds-waterfront.webp",
+  "https://assets.myseattlesearch.com/neighborhood/hero-pools/" + county + "/edmonds-downtown.webp",
+  "https://assets.myseattlesearch.com/neighborhood/hero-pools/" + county + "/edmonds-ferry.webp"
+]) %}
 
-<section class="section-neighborhood-page-header" 
-         style="position: relative; width: 100%; min-height: 480px; border-radius: var(--border-radius-squircle); overflow: hidden; background: var(--color-surface-gray); display: flex; align-items: flex-end; margin-bottom: 3.5rem; box-sizing: border-box;">
+<section class="section-neighborhood-page-header" style="position: relative; width: 100%; min-height: 380px; overflow: hidden; border-radius: var(--border-radius-squircle); margin-bottom: 3.5rem; background: var(--color-surface-gray); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
   
-  {# Cloudflare R2 Full-Bleed Hero Image #}
-  <div style="position: absolute; inset: 0; z-index: 1;">
-    <img src="{{ hero_image }}" 
-         alt="{{ city }}, Washington" 
-         loading="eager" 
-         decoding="async" 
-         style="width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;">
+  {# Background: Continuous Horizontal Scrolling 3-Image Wall #}
+  <div class="hero-scroll-track" style="position: absolute; inset: 0; display: flex; width: max-content; overflow: hidden; pointer-events: none;" aria-hidden="true">
+    <div style="display: flex; gap: 0; min-width: 100%; animation: scrollHorizontal 45s linear infinite;">
+      {% for img in hero_pool %}
+        <div style="width: 50vw; min-width: 380px; height: 100%; flex-shrink: 0;">
+          <img src="{{ img }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover;">
+        </div>
+      {% endfor %}
+      {% for img in hero_pool %}
+        <div style="width: 50vw; min-width: 380px; height: 100%; flex-shrink: 0;">
+          <img src="{{ img }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover;">
+        </div>
+      {% endfor %}
+    </div>
   </div>
 
-  {# Ambient Edge Fill Gradient Overlay (Smooth Transition into White Page Content) #}
-  <div class="ambient-edge-scrim" 
-       style="position: absolute; inset: 0; z-index: 2; background: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.4) 55%, rgba(0,0,0,0.85) 90%, var(--color-background-universal) 100%); pointer-events: none;" 
-       aria-hidden="true"></div>
+  {# Darkening ambient scrim #}
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.45) 100%); pointer-events: none;" aria-hidden="true"></div>
 
-  {# Foreground Hero Content: City Name Aligned Bottom-Left #}
-  <div class="layout-container" style="position: relative; z-index: 3; width: 100%; padding: 2.5rem 2rem 2.5rem 2rem;">
-    <div style="max-width: 860px; display: flex; flex-direction: column; gap: 0.5rem;">
-      
-      <div style="display: flex; align-items: center; gap: 0.65rem;">
-        <span class="text-overline" style="color: #FFFFFF; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.12em; text-shadow: 0 1px 4px rgba(0,0,0,0.6);">
-          PUGET SOUND COMMUNITY GUIDE
-        </span>
-        <span style="color: rgba(255,255,255,0.7); font-size: 0.75rem;">•</span>
-        <span style="color: #FFFFFF; font-size: 0.75rem; font-weight: 600; text-transform: capitalize; text-shadow: 0 1px 4px rgba(0,0,0,0.6);">
-          {{ county }} County
-        </span>
-      </div>
-
-      <h1 class="text-display" style="font-size: clamp(2.5rem, 6vw, 4.25rem); font-weight: 800; line-height: 1.05; letter-spacing: -0.03em; color: #FFFFFF; margin: 0; text-shadow: 0 2px 12px rgba(0,0,0,0.5);">
-        {{ city }}
-      </h1>
-
-      <p style="font-size: clamp(1rem, 2vw, 1.25rem); font-weight: 500; color: rgba(255, 255, 255, 0.95); margin: 0.25rem 0 0 0; line-height: 1.45; text-shadow: 0 1px 6px rgba(0,0,0,0.6); max-width: 680px;">
-        {{ tagline }}
-      </p>
-
+  {# Foreground: Layered Frosted Box with Squircle Corners (PUGET SOUND label removed per edit) #}
+  <div class="hero-frosted-box" style="position: relative; z-index: 10; padding: 2.25rem 3rem; background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.6); border-radius: var(--border-radius-squircle); text-align: center; box-shadow: 0 12px 36px rgba(0,0,0,0.16); max-width: 90%; margin: 1.5rem;">
+    <div style="font-family: var(--font-script, cursive, serif); font-size: clamp(1.4rem, 2.5vw, 2rem); color: var(--color-secondary-default); line-height: 1.1; margin-bottom: 0.25rem;">
+      Welcome to the neighborhood
     </div>
+    <h1 style="font-size: clamp(2.2rem, 5vw, 3.75rem); font-weight: 800; letter-spacing: -0.03em; color: var(--color-primary-default); margin: 0; line-height: 1.05;">
+      {{ city }}
+    </h1>
   </div>
 
 </section>

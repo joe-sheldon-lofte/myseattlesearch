@@ -1,46 +1,83 @@
 <!-- File: _includes/components/section/infinite-horizontal-scroll-large.njk -->
 {% set scroll_id = scroll_large_id | default("scroll-large-" + (range(100, 999) | random)) %}
+{% set scroll_title = scroll_large_title | default("In-Depth Analysis & Market Intel") %}
+{% set scroll_overline = scroll_large_overline | default("FEATURED EDITORIAL DISPATCHES") %}
 
-<div id="{{ scroll_id }}" class="section-scroll-container scroll-size-large" style="position: relative; width: 100%; margin-bottom: 3rem; box-sizing: border-box;">
+<section id="{{ scroll_id }}" class="section-scroll-container scroll-size-large" style="position: relative; width: 100%; margin-bottom: 3.5rem; box-sizing: border-box;">
   
-  {# Left and Right Gradient Fades #}
-  <div class="scroll-fade-left" style="position: absolute; left: 0; top: 0; bottom: 0; width: 52px; background: linear-gradient(90deg, var(--color-background-universal) 0%, transparent 100%); z-index: 5; pointer-events: none;" aria-hidden="true"></div>
-  <div class="scroll-fade-right" style="position: absolute; right: 0; top: 0; bottom: 0; width: 52px; background: linear-gradient(270deg, var(--color-background-universal) 0%, transparent 100%); z-index: 5; pointer-events: none;" aria-hidden="true"></div>
+  {# Header Row #}
+  <div style="margin-bottom: 0.85rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--color-border-light);">
+    <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+      {{ scroll_overline }}
+    </span>
+    <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.35rem;">
+      {{ scroll_title }}
+    </h3>
+  </div>
 
-  {# Horizontally Scrolling Flex Track hiding scrollbar #}
-  <div class="scroll-track" 
-       tabindex="0"
-       role="region" 
-       aria-label="Horizontally scrollable featured articles and hero cards"
-       style="display: flex; gap: 1.5rem; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; scroll-snap-type: x mandatory; padding: 0.5rem 1rem; width: 100%; box-sizing: border-box;">
+  {# Track Shell with Centered Edge Navigation Arrows #}
+  <div style="position: relative; width: 100%;">
     
-    {% if scroll_slot %}
-      {{ scroll_slot | safe }}
-    {% elif content %}
-      {{ content | safe }}
-    {% else %}
-      {# Default Demo Items for Large / Hero Articles #}
-      <div style="flex: 0 0 auto; scroll-snap-align: start; width: 440px; max-width: 90vw;">
-        {% set article_title = "Missing-Middle Zoning Along the Swift BRT Corridor: What Buyers and Builders Must Know" %}
-        {% set article_excerpt = "How Snohomish County's updated development code is reshaping infill housing, duplex financing models, and property tax baselines." %}
-        {% set article_read_time = "5 min read" %}
-        {% include "components/widget/cms-card-article.njk" ignore missing %}
-      </div>
-      <div style="flex: 0 0 auto; scroll-snap-align: start; width: 440px; max-width: 90vw;">
-        {% set chart_overline = "MARKET VELOCITY" %}{% set chart_title = "90-Day Trajectory" %}
-        {% include "components/widget/universal-data-chart-maxfour.njk" ignore missing %}
-      </div>
-      <div style="flex: 0 0 auto; scroll-snap-align: start; width: 440px; max-width: 90vw;">
-        {% include "components/widget/realestate-housing-affordability-dashboard.njk" ignore missing %}
-      </div>
-    {% endif %}
+    {# Floating Edge Arrows #}
+    <button type="button" 
+            class="btn-scroll-arrow large prev" 
+            aria-label="Scroll left"
+            onclick="scrollContainerLeft('{{ scroll_id }}', 460)"
+            style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); z-index: 10; width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--color-border-light); color: var(--color-primary-default); font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 16px rgba(0,0,0,0.14); transition: all 0.2s ease;">
+      ‹
+    </button>
 
+    <button type="button" 
+            class="btn-scroll-arrow large next" 
+            aria-label="Scroll right"
+            onclick="scrollContainerRight('{{ scroll_id }}', 460)"
+            style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); z-index: 10; width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--color-border-light); color: var(--color-primary-default); font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 16px rgba(0,0,0,0.14); transition: all 0.2s ease;">
+      ›
+    </button>
+
+    {# Left and Right Gradient Fades #}
+    <div class="scroll-fade-left" style="position: absolute; left: 0; top: 0; bottom: 0; width: 56px; background: linear-gradient(90deg, var(--color-background-universal) 0%, transparent 100%); z-index: 5; pointer-events: none;" aria-hidden="true"></div>
+    <div class="scroll-fade-right" style="position: absolute; right: 0; top: 0; bottom: 0; width: 56px; background: linear-gradient(270deg, var(--color-background-universal) 0%, transparent 100%); z-index: 5; pointer-events: none;" aria-hidden="true"></div>
+
+    {# Horizontally Scrolling Flex Track #}
+    <div class="scroll-track" 
+         tabindex="0"
+         role="region" 
+         aria-label="Horizontally scrollable featured articles and hero cards"
+         style="display: flex; gap: 1.5rem; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; scroll-snap-type: x mandatory; padding: 0.5rem 0.25rem; width: 100%; box-sizing: border-box;">
+      
+      {% if scroll_slot %}
+        {{ scroll_slot | safe }}
+      {% elif content %}
+        {{ content | safe }}
+      {% else %}
+        <div style="flex: 0 0 auto; scroll-snap-align: start; width: 440px; max-width: 90vw;">
+          {% set article_title = "Missing-Middle Zoning Along the Swift BRT Corridor: What Buyers and Builders Must Know" %}
+          {% set article_excerpt = "How Snohomish County's updated development code is reshaping infill housing, duplex financing models, and property tax baselines." %}
+          {% set article_read_time = "5 min read" %}
+          {% include "components/widget/cms-card-article.njk" ignore missing %}
+        </div>
+        <div style="flex: 0 0 auto; scroll-snap-align: start; width: 440px; max-width: 90vw;">
+          {% set chart_overline = "MARKET VELOCITY" %}{% set chart_title = "90-Day Trajectory" %}
+          {% include "components/widget/universal-data-chart-maxfour.njk" ignore missing %}
+        </div>
+        <div style="flex: 0 0 auto; scroll-snap-align: start; width: 440px; max-width: 90vw;">
+          {% include "components/widget/realestate-housing-affordability-dashboard.njk" ignore missing %}
+        </div>
+      {% endif %}
+
+    </div>
   </div>
 
   <style>
     #{{ scroll_id }} .scroll-track::-webkit-scrollbar {
       display: none;
     }
+    #{{ scroll_id }} .btn-scroll-arrow:hover {
+      background: var(--color-secondary-default) !important;
+      color: #FFFFFF !important;
+      border-color: var(--color-secondary-default) !important;
+    }
   </style>
 
-</div>
+</section>

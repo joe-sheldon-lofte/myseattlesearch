@@ -10,16 +10,16 @@
   {% set score_label = "Moderate Traffic" %}
 {% endif %}
 
-<div class="widget-card score-card score-activecommute-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; box-sizing: border-box;">
+<div class="widget-card score-card score-activecommute-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; box-sizing: border-box;">
   
   {# Header Row #}
   <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
     <div>
       <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        INTRACITY TRANSIT FLOW
+        IN CITY TRAFFIC
       </span>
       <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.1rem;">
-        Active Commute Index
+        Active Commute Score
       </h3>
     </div>
     
@@ -44,9 +44,11 @@
       <div style="font-size: 0.95rem; font-weight: 800; color: {{ score_color }};">
         {{ score_label }}
       </div>
-      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
-        {{ score_activecommute_detail | default("Minimal drive-time delta between NW boundary and SE corner.") }}
-      </div>
+      {% if score_activecommute_detail %}
+        <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
+          {{ score_activecommute_detail }}
+        </div>
+      {% endif %}
     </div>
   </div>
 
@@ -61,7 +63,7 @@
     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
       <div>
         <span class="text-overline" style="color: var(--color-secondary-default);">METHODOLOGY</span>
-        <h4 class="text-widget-title" style="margin: 0.15rem 0 0 0;">Active Commute Index</h4>
+        <h4 class="text-widget-title" style="margin: 0.15rem 0 0 0;">Active Commute Score</h4>
       </div>
       <button type="button" onclick="document.getElementById('dialog-score-activecommute').close();" style="border: none; background: var(--color-surface-gray); border-radius: 50%; width: 28px; height: 28px; cursor: pointer;">✕</button>
     </div>

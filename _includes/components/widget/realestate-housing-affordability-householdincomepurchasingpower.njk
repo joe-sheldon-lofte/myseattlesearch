@@ -1,0 +1,92 @@
+<!-- File: _includes/components/widget/realestate-housing-affordability-householdincomepurchasingpower.njk -->
+{% set hh_data = household_purchasing_power_data | default([
+  { group: "Renter Households", income: 72400, inc_fmt: "$72,400", years_save: "7.8 Yrs", share: "8.2%", pct: 30 },
+  { group: "All Households (Median)", income: 104500, inc_fmt: "$104,500", years_save: "4.6 Yrs", share: "22.5%", pct: 43 },
+  { group: "Existing Homeowners", income: 148200, inc_fmt: "$148,200", years_save: "2.4 Yrs", share: "48.6%", pct: 61 }
+]) %}
+
+<div class="widget-card affordability-subpanel affordability-household-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
+  
+  {# Header #}
+  <div style="border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
+    <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+      PANEL 3 • LOCAL DEMOGRAPHIC CAPACITY
+    </span>
+    <h4 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.1rem;">
+      Household Income vs. Purchasing Power
+    </h4>
+  </div>
+
+  {# Horizontal Income Bars with 4 Vertical Qualification Overlay Lines #}
+  <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+    <div class="text-body-secondary" style="font-size: 0.7rem;">
+      Dotted qualification lines indicate minimum household income required per property tier:
+    </div>
+
+    {# Overlay Chart Canvas #}
+    <div style="position: relative; width: 100%; padding-top: 18px; padding-bottom: 22px;">
+      
+      {# Line 1: Condo ($108.5k) = 43.4% #}
+      <div style="position: absolute; left: 43.4%; top: 0; bottom: 0; width: 1px; border-left: 1.5px dashed var(--color-secondary-default, #1E4D6B); z-index: 5;" title="Condo Qualifying: $108.5k">
+        <span style="position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 0.55rem; font-weight: 800; color: var(--color-secondary-default); white-space: nowrap;">Condo ($108k)</span>
+      </div>
+
+      {# Line 2: Starter ($174.8k) = 69.9% #}
+      <div style="position: absolute; left: 69.9%; top: 0; bottom: 0; width: 1px; border-left: 1.5px dashed #D97706; z-index: 5;" title="Starter Home Qualifying: $174.8k">
+        <span style="position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 0.55rem; font-weight: 800; color: #D97706; white-space: nowrap;">Starter ($175k)</span>
+      </div>
+
+      {# Line 3: Townhouse ($190.2k) = 76% #}
+      <div style="position: absolute; left: 76%; top: 0; bottom: 0; width: 1px; border-left: 1.5px dashed #0D9488; z-index: 5;" title="Townhouse Qualifying: $190.2k">
+        <span style="position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 0.55rem; font-weight: 800; color: #0D9488; white-space: nowrap;">TH ($190k)</span>
+      </div>
+
+      {# Line 4: Single Family ($242.5k) = 97% #}
+      <div style="position: absolute; left: 97%; top: 0; bottom: 0; width: 1px; border-left: 1.5px dashed var(--color-tertiary-default, #D9232A); z-index: 5;" title="Single-Family Qualifying: $242.5k">
+        <span style="position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 0.55rem; font-weight: 800; color: var(--color-tertiary-default); white-space: nowrap;">SF ($242k)</span>
+      </div>
+
+      {# Income Bars #}
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        {% for row in hh_data %}
+          <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700;">
+              <span style="color: var(--color-primary-default);">{{ row.group }}</span>
+              <span style="font-family: monospace; color: var(--color-primary-default);">{{ row.inc_fmt }}</span>
+            </div>
+
+            <div style="width: 100%; height: 12px; border-radius: 999px; background: var(--color-surface-gray); overflow: hidden;">
+              <div style="width: {{ row.pct }}%; height: 100%; background: linear-gradient(90deg, var(--color-secondary-default, #1E4D6B) 0%, #38BDF8 100%); border-radius: 999px;"></div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+    </div>
+  </div>
+
+  {# Group Metrics Table #}
+  <div style="overflow-x: auto; margin-top: 0.25rem;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem; text-align: left;">
+      <thead>
+        <tr style="border-bottom: 2px solid var(--color-border-light); color: #86868b; font-size: 0.65rem;">
+          <th style="padding: 0.4rem 0.5rem;">HOUSEHOLD GROUP</th>
+          <th style="padding: 0.4rem 0.5rem; text-align: right;">MEDIAN INCOME</th>
+          <th style="padding: 0.4rem 0.5rem; text-align: center;">YRS TO SAVE 3.5%</th>
+          <th style="padding: 0.4rem 0.5rem; text-align: right;">AFFORDABLE LISTINGS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in hh_data %}
+          <tr style="border-bottom: 1px solid var(--color-border-light);">
+            <td style="padding: 0.5rem; font-weight: 700; color: var(--color-primary-default);">{{ row.group }}</td>
+            <td style="padding: 0.5rem; text-align: right; font-family: monospace; font-weight: 700;">{{ row.inc_fmt }}</td>
+            <td style="padding: 0.5rem; text-align: center; font-family: monospace; color: var(--color-secondary-default); font-weight: 700;">{{ row.years_save }}</td>
+            <td style="padding: 0.5rem; text-align: right; font-family: monospace; font-weight: 800; color: {% if '8' in row.share %}var(--color-tertiary-default){% else %}#10B981{% endif %};">{{ row.share }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
