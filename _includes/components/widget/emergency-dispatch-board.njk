@@ -1,60 +1,197 @@
 <!-- File: _includes/components/widget/emergency-dispatch-board.njk -->
-{% set city = dispatch_city_name | default("Edmonds") %}
-{% set incidents = dispatch_incidents_data | default([
-  { id: "CAD-2026-9041", type: "Aid Response (Medical)", time: "6m ago", loc: "76th Ave W & 212th St SW", units: "E17, M17", status: "En Route", severity: "med" },
-  { id: "CAD-2026-9038", type: "Commercial Fire Alarm", time: "18m ago", loc: "200 5th Ave S", units: "E16, L17", status: "On Scene", severity: "high" },
-  { id: "CAD-2026-9032", type: "Traffic Collision Non-Injury", time: "34m ago", loc: "SR 99 & 220th St SW", units: "E17", status: "Cleared", severity: "low" },
-  { id: "CAD-2026-9029", type: "Wires Down / Hazard", time: "52m ago", loc: "9th Ave S & Elm St", units: "E16", status: "On Scene", severity: "med" }
-]) %}
+{% set target_city = city.City | default(dispatch_city_name | default("Edmonds")) %}
+{% set board_id = "dispatch-board-" ~ (target_city | lower | replace(" ", "-")) %}
 
-<div class="widget-card emergency-dispatch-board-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1rem; box-sizing: border-box;">
+<div id="{{ board_id }}" class="widget-card emergency-dispatch-board-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1rem; box-sizing: border-box; height: 100%;">
   
-  {# Header Row (CAD Feed Sync removed per edit) #}
+  {# Header Row #}
   <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
     <div>
       <span class="text-overline" style="color: var(--color-tertiary-default, #D9232A); font-size: 0.65rem;">
         LIVE 911 INCIDENT LOG
       </span>
       <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
-        {{ city }} Active Emergency Dispatch
+        {{ target_city }} Active Emergency Dispatch
       </h3>
     </div>
-    <div style="display: flex; align-items: center; gap: 0.4rem; padding: 0.2rem 0.65rem; border-radius: 999px; background: rgba(217, 35, 42, 0.12); color: var(--color-tertiary-default, #D9232A); font-size: 0.7rem; font-weight: 800;">
-      <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--color-tertiary-default, #D9232A); display: inline-block;"></span>
-      <span>{{ incidents | length }} Active Incidents</span>
+    <div id="{{ board_id }}-badge" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.2rem 0.65rem; border-radius: 999px; background: var(--color-surface-gray); color: var(--color-primary-default); font-size: 0.7rem; font-weight: 800; transition: all 0.2s ease;">
+      <span id="{{ board_id }}-dot" style="width: 7px; height: 7px; border-radius: 50%; background: #94A3B8; display: inline-block;"></span>
+      <span id="{{ board_id }}-count">Connecting...</span>
     </div>
   </div>
 
-  {# Compact Incident Rows for Scalable Vertical Stacking #}
-  <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 480px; overflow-y: auto;">
-    {% for inc in incidents %}
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.85rem; background: var(--color-surface-gray); border-radius: 8px; border-left: 3px solid {% if inc.severity == 'high' %}var(--color-tertiary-default, #D9232A){% elif inc.severity == 'med' %}#D97706{% else %}#10B981{% endif %}; gap: 0.75rem;">
-        <div style="display: flex; flex-direction: column; gap: 0.1rem; min-width: 0;">
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <span style="font-weight: 800; font-size: 0.85rem; color: var(--color-primary-default); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-              {{ inc.type }}
-            </span>
-            <span style="font-family: monospace; font-size: 0.65rem; color: #86868b;">{{ inc.id }}</span>
-          </div>
-          <div style="font-size: 0.75rem; color: #64748B;">
-            📍 {{ inc.loc }} • <span style="font-weight: 600;">Units: {{ inc.units }}</span>
-          </div>
-        </div>
-
-        <div style="text-align: right; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem;">
-          <span style="font-size: 0.65rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 999px; {% if inc.status == 'On Scene' %}background: rgba(217, 35, 42, 0.12); color: var(--color-tertiary-default, #D9232A);{% elif inc.status == 'En Route' %}background: rgba(245, 158, 11, 0.15); color: #D97706;{% else %}background: rgba(16, 185, 129, 0.12); color: #059669;{% endif %}">
-            {{ inc.status }}
-          </span>
-          <span style="font-family: monospace; font-size: 0.65rem; color: #86868b;">{{ inc.time }}</span>
-        </div>
-      </div>
-    {% endfor %}
+  {# Incident Feed Container: Dynamic live population, zero mock data #}
+  <div id="{{ board_id }}-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 480px; overflow-y: auto; min-height: 180px;">
+    <div style="display: flex; align-items: center; justify-content: center; height: 160px; color: #86868B; font-size: 0.8rem;">
+      <span>Retrieving live emergency CAD telemetry...</span>
+    </div>
   </div>
 
   {# Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem; font-size: 0.7rem;" class="text-body-secondary">
-    <span>Source: Public 911 Dispatch Feeds</span>
-    <span>Auto-refreshes every 60s</span>
+  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem; font-size: 0.7rem; margin-top: auto;" class="text-body-secondary">
+    <span id="{{ board_id }}-agency">Source: Public 911 CAD Stream</span>
+    <span id="{{ board_id }}-updated">Auto-refreshes every 60s</span>
   </div>
 
 </div>
+
+<script>
+(function() {
+  const root = document.getElementById("{{ board_id }}");
+  if (!root) return;
+
+  const cityName = "{{ target_city }}";
+  const listEl = document.getElementById("{{ board_id }}-list");
+  const countEl = document.getElementById("{{ board_id }}-count");
+  const dotEl = document.getElementById("{{ board_id }}-dot");
+  const badgeEl = document.getElementById("{{ board_id }}-badge");
+  const agencyEl = document.getElementById("{{ board_id }}-agency");
+
+  const workerUrl = "https://myseattlesearch-dispatch.joe-54b.workers.dev/?city=" + encodeURIComponent(cityName);
+
+  function formatTimeAgo(isoString) {
+    if (!isoString) return "";
+    const elapsed = Math.floor((Date.now() - new Date(isoString).getTime()) / 60000);
+    if (elapsed < 1) return "Just now";
+    if (elapsed < 60) return elapsed + "m ago";
+    const hours = Math.floor(elapsed / 60);
+    return hours + "h ago";
+  }
+
+  function renderEmptyState(agencyName) {
+    countEl.textContent = "0 Active Incidents";
+    badgeEl.style.background = "rgba(16, 185, 129, 0.12)";
+    badgeEl.style.color = "#059669";
+    dotEl.style.background = "#10B981";
+    if (agencyName) agencyEl.textContent = "Source: " + agencyName;
+
+    listEl.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2.5rem 1rem; background: var(--color-surface-gray); border-radius: 8px; border: 1px dashed var(--color-border-light); gap: 0.5rem;">
+        <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(16, 185, 129, 0.15); display: flex; align-items: center; justify-content: center; color: #059669; font-weight: 800; font-size: 1rem;">✓</div>
+        <div style="font-weight: 700; font-size: 0.85rem; color: var(--color-primary-default);">No Active Incidents</div>
+        <div style="font-size: 0.75rem; color: #64748B; max-width: 260px;">No fire or EMS dispatches currently active in ${cityName}. All response units available.</div>
+      </div>
+    `;
+  }
+
+  async function fetchLiveDispatch() {
+    try {
+      const res = await fetch(workerUrl, { headers: { "Accept": "application/json" } });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      
+      const incidents = Array.isArray(data.incidents) ? data.incidents : [];
+      const activeIncidents = incidents.filter(i => i.is_active);
+
+      if (data.agency_name) {
+        agencyEl.textContent = "Source: " + data.agency_name;
+      }
+
+      // Broadcast telemetry to the Leaflet dispatch map
+      window.dispatchEvent(new CustomEvent("dispatch:data", {
+        detail: { city: cityName, incidents: incidents }
+      }));
+
+      if (incidents.length === 0) {
+        renderEmptyState(data.agency_name);
+        return;
+      }
+
+      // Update Active Status Badge
+      const activeCount = activeIncidents.length;
+      countEl.textContent = activeCount + " Active Incident" + (activeCount === 1 ? "" : "s");
+      
+      if (activeCount > 0) {
+        badgeEl.style.background = "rgba(217, 35, 42, 0.12)";
+        badgeEl.style.color = "var(--color-tertiary-default, #D9232A)";
+        dotEl.style.background = "var(--color-tertiary-default, #D9232A)";
+      } else {
+        badgeEl.style.background = "rgba(16, 185, 129, 0.12)";
+        badgeEl.style.color = "#059669";
+        dotEl.style.background = "#10B981";
+      }
+
+      // Render Incident Rows
+      listEl.innerHTML = incidents.map(inc => {
+        let borderAccent = "#10B981";
+        let statusBg = "rgba(16, 185, 129, 0.12)";
+        let statusColor = "#059669";
+
+        if (inc.status === "ON SCENE") {
+          borderAccent = "var(--color-tertiary-default, #D9232A)";
+          statusBg = "rgba(217, 35, 42, 0.12)";
+          statusColor = "var(--color-tertiary-default, #D9232A)";
+        } else if (inc.status === "DISPATCHED" || inc.status === "EN ROUTE") {
+          borderAccent = "#D97706";
+          statusBg = "rgba(245, 158, 11, 0.15)";
+          statusColor = "#D97706";
+        } else {
+          borderAccent = "#94A3B8";
+          statusBg = "rgba(148, 163, 184, 0.15)";
+          statusColor = "#64748B";
+        }
+
+        const unitsDisplay = Array.isArray(inc.units) && inc.units.length > 0 ? inc.units.join(", ") : "Pending";
+        const hasCoords = inc.latitude && inc.longitude;
+
+        return `
+          <div class="dispatch-incident-row" 
+               data-id="${inc.id}"
+               data-lat="${inc.latitude || ''}"
+               data-lng="${inc.longitude || ''}"
+               style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem; background: var(--color-surface-gray); border-radius: 8px; border-left: 3px solid ${borderAccent}; gap: 0.75rem; cursor: ${hasCoords ? 'pointer' : 'default'}; transition: transform 0.1s ease, box-shadow 0.1s ease;">
+            <div style="display: flex; flex-direction: column; gap: 0.15rem; min-width: 0;">
+              <div style="display: flex; align-items: center; gap: 0.45rem;">
+                <span style="font-weight: 800; font-size: 0.85rem; color: var(--color-primary-default); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  ${inc.type}
+                </span>
+                <span style="font-family: monospace; font-size: 0.65rem; color: #86868B;">${inc.id}</span>
+              </div>
+              <div style="font-size: 0.75rem; color: #64748B;">
+                📍 ${inc.address} • <span style="font-weight: 600;">Units: ${unitsDisplay}</span>
+              </div>
+            </div>
+
+            <div style="text-align: right; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem;">
+              <span style="font-size: 0.65rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 999px; background: ${statusBg}; color: ${statusColor};">
+                ${inc.status}
+              </span>
+              <span style="font-family: monospace; font-size: 0.65rem; color: #86868B;">${formatTimeAgo(inc.timestamp)}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // Attach click events for Leaflet map camera focus
+      listEl.querySelectorAll(".dispatch-incident-row").forEach(row => {
+        row.addEventListener("click", function() {
+          const lat = parseFloat(this.getAttribute("data-lat"));
+          const lng = parseFloat(this.getAttribute("data-lng"));
+          const id = this.getAttribute("data-id");
+
+          if (!isNaN(lat) && !isNaN(lng)) {
+            // Emits focus event to map-custom-dispatch
+            window.dispatchEvent(new CustomEvent("dispatch:focus", {
+              detail: { id: id, lat: lat, lng: lng }
+            }));
+
+            listEl.querySelectorAll(".dispatch-incident-row").forEach(r => r.style.outline = "none");
+            this.style.outline = "2px solid var(--color-secondary-default)";
+          }
+        });
+      });
+
+    } catch (err) {
+      countEl.textContent = "Feed Paused";
+      listEl.innerHTML = `
+        <div style="padding: 1.5rem; text-align: center; color: #86868B; font-size: 0.75rem;">
+          Dispatch connection retry in 60s...
+        </div>
+      `;
+    }
+  }
+
+  fetchLiveDispatch();
+  setInterval(fetchLiveDispatch, 60000);
+})();
+</script>

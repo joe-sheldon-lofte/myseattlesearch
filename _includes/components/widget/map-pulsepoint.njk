@@ -1,0 +1,150 @@
+<!-- File: _includes/components/widget/map-pulsepoint.njk -->
+{% set target_city = city.City | default("Shoreline") %}
+{% set city_normalized = target_city | lower | trim %}
+{% set fd_normalized = city["Fire Department Name"] | default("") | lower | trim %}
+
+{# 1. Primary Agency Resolution by City (All 38 King County PulsePoint Municipalities) #}
+{% set pulsepoint_city_map = {
+  "algona": "17D41",
+  "auburn": "17D41",
+  "beaux arts village": "17M02",
+  "bellevue": "17M02",
+  "black diamond": "17D44",
+  "bothell": "17M03",
+  "burien": "17D02",
+  "carnation": "17D10",
+  "clyde hill": "17M02",
+  "covington": "17D37",
+  "des moines": "17D39",
+  "duvall": "17D45",
+  "enumclaw": "17D28",
+  "federal way": "17D39",
+  "hunts point": "17M02",
+  "issaquah": "17D10",
+  "kenmore": "17D04",
+  "kent": "17D37",
+  "kirkland": "17M07",
+  "lake forest park": "17D04",
+  "maple valley": "17D37",
+  "medina": "17M02",
+  "mercer island": "17M09",
+  "milton": "27D22",
+  "newcastle": "17M02",
+  "normandy park": "17D02",
+  "north bend": "17D10",
+  "pacific": "17D41",
+  "redmond": "17M13",
+  "renton": "17M14",
+  "sammamish": "17D10",
+  "seatac": "17D37",
+  "shoreline": "17D04",
+  "skykomish": "17D50",
+  "snoqualmie": "17M16",
+  "tukwila": "17M17",
+  "woodinville": "17D36",
+  "yarrow point": "17M02"
+} %}
+
+{# 2. Secondary Fallback Resolution by Official Fire Department Name #}
+{% set pulsepoint_fd_map = {
+  "valley regional fire authority": "17D41",
+  "bellevue fire department": "17M02",
+  "mountain view fire & rescue": "17D44",
+  "bothell fire department": "17M03",
+  "king county fire district #2": "17D02",
+  "eastside fire & rescue": "17D10",
+  "puget sound regional fire authority": "17D37",
+  "south king fire & rescue": "17D39",
+  "duvall fire (kcfd 45)": "17D45",
+  "enumclaw fire department": "17D28",
+  "shoreline fire department": "17D04",
+  "kirkland fire department": "17M07",
+  "mercer island fire department": "17M09",
+  "east pierce fire & rescue": "27D22",
+  "redmond fire department": "17M13",
+  "renton regional fire authority": "17M14",
+  "king county fire district 50": "17D50",
+  "snoqualmie fire department": "17M16",
+  "tukwila fire department": "17M17",
+  "woodinville fire & rescue": "17D36"
+} %}
+
+{# Resolve Agency Code with fallback to Shoreline Fire (17D04) #}
+{% set active_agency_code = pulsepoint_city_map[city_normalized] | default(pulsepoint_fd_map[fd_normalized] | default("17D04")) %}
+{% set frame_id = "pulsepoint-frame-" ~ (city_normalized | replace(" ", "-")) %}
+
+<div class="widget-card pulsepoint-widget-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1rem; box-sizing: border-box;">
+
+  {# Header Bar with Native Reset Trigger #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
+    <div>
+      <span class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem;">
+        LIVE INCIDENT CONSOLE
+      </span>
+      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
+        {{ target_city }} Active Fire &amp; EMS Telemetry
+      </h3>
+    </div>
+
+    <button type="button" 
+            onclick="(function(){ const frame = document.getElementById('{{ frame_id }}'); if (frame) { const currentSrc = frame.src; frame.src = 'about:blank'; setTimeout(() => { frame.src = currentSrc; }, 50); } })()"
+            style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.75rem; font-size: 0.75rem; font-weight: 700; color: var(--color-primary-default); background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 999px; cursor: pointer; transition: background 0.15s ease;">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+      </svg>
+      <span>Reset Feed</span>
+    </button>
+  </div>
+
+  {# Option B Flush Viewport Mask: Crops both vendor red bar and white sub-header #}
+  <div class="pulsepoint-viewport-mask">
+    <iframe 
+      id="{{ frame_id }}"
+      src="https://web.pulsepoint.org/?agencies={{ active_agency_code }}&amp;embed=true" 
+      loading="lazy"
+      title="{{ target_city }} Emergency Dispatch Radar">
+    </iframe>
+  </div>
+
+  {# Footer Attribution #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem; font-size: 0.7rem;" class="text-body-secondary">
+    <span style="color: var(--color-text-secondary, var(--premier-charcoal));">Agency Feed: {{ city["Fire Department Name"] | default("King County Fire & EMS") }}</span>
+    <span style="color: var(--color-text-secondary, var(--premier-charcoal));">Auto-refreshes in real-time</span>
+  </div>
+
+</div>
+
+<style>
+  .pulsepoint-viewport-mask {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    min-height: 480px;
+    border-radius: var(--border-radius-squircle);
+    overflow: hidden;
+    background: var(--color-surface-gray);
+    border: 1px solid var(--color-border-light);
+  }
+
+  /* Desktop Option B: Flush crop at -122px positions map tools directly beneath card header */
+  .pulsepoint-viewport-mask iframe {
+    position: absolute;
+    top: -122px;
+    left: 0;
+    width: 100%;
+    height: calc(100% + 122px);
+    border: none;
+  }
+
+  /* Mobile Option B: Recalibrated -170px offset compensates for stacked vendor controls */
+  @media (max-width: 767px) {
+    .pulsepoint-viewport-mask {
+      aspect-ratio: 4 / 3;
+      min-height: 520px !important;
+    }
+    .pulsepoint-viewport-mask iframe {
+      top: -170px !important;
+      height: calc(100% + 170px) !important;
+    }
+  }
+</style>

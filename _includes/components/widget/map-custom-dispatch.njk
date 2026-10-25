@@ -1,0 +1,176 @@
+<!-- File: _includes/components/widget/widget.map.custom.dispatch.njk -->
+{% set target_city = city.City | default("Edmonds") %}
+{% set map_element_id = "map-dispatch-" ~ (target_city | lower | replace(" ", "-")) %}
+
+<div class="widget-card dispatch-map-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1rem; box-sizing: border-box; height: 100%;">
+  
+  {# Header Row #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
+    <div>
+      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+        SITUATIONAL MAP
+      </span>
+      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
+        {{ target_city }} Incident Telemetry
+      </h3>
+    </div>
+    <div style="font-size: 0.75rem; color: #64748B; font-weight: 600;">
+      Live Radar Pins
+    </div>
+  </div>
+
+  {# Map Canvas Container (Base Engine Substrate) #}
+  <div style="position: relative; width: 100%; min-height: 480px; flex-grow: 1; border-radius: 8px; overflow: hidden; background: var(--color-surface-gray); border: 1px solid var(--color-border-light);">
+    <div id="{{ map_element_id }}" 
+         class="leaflet-map-mount" 
+         data-city="{{ target_city | lower | trim }}"
+         data-lat="{{ city.Latitude | default(47.8107) }}"
+         data-lng="{{ city.Longitude | default(-122.3774) }}"
+         data-color="{{ city.PrimaryColor | default('#1E4D6B') }}"
+         style="width: 100%; height: 100%; position: absolute; inset: 0;">
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  const mountId = "{{ map_element_id }}";
+  const el = document.getElementById(mountId);
+  if (!el) return;
+
+  let mapInstance = null;
+  let incidentLayerGroup = null;
+  const markersById = new Map();
+
+  function initDispatchMap() {
+    if (typeof L === "undefined") {
+      setTimeout(initDispatchMap, 100);
+      return;
+    }
+
+    const defaultLat = parseFloat(el.getAttribute("data-lat")) || 47.8107;
+    const defaultLng = parseFloat(el.getAttribute("data-lng")) || -122.3774;
+
+    mapInstance = L.map(mountId, {
+      zoomControl: true,
+      scrollWheelZoom: false
+    }).setView([defaultLat, defaultLng], 12);
+
+    // Esri Light Gray Canvas Base
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri',
+      maxZoom: 16
+    }).addTo(mapInstance);
+
+    // Esri Reference Labels on top
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 16
+    }).addTo(mapInstance);
+
+    incidentLayerGroup = L.layerGroup().addTo(mapInstance);
+
+    // Load municipal boundary stroke
+    const cityNameLower = el.getAttribute("data-city");
+    const boundaryColor = el.getAttribute("data-color") || "#1E4D6B";
+
+    fetch('/data/city_boundaries.json')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (!data) return;
+        const feature = data.features ? data.features.find(f => (f.properties.City || f.properties.CITY_NAME || '').toLowerCase() === cityNameLower) : null;
+        if (feature) {
+          const boundaryLayer = L.geoJSON(feature, {
+            style: {
+              color: boundaryColor,
+              weight: 2.5,
+              opacity: 0.85,
+              fillColor: boundaryColor,
+              fillOpacity: 0.04
+            }
+          }).addTo(mapInstance);
+
+          mapInstance.fitBounds(boundaryLayer.getBounds(), { padding: [20, 20] });
+        }
+      })
+      .catch(() => {});
+  }
+
+  // Handle incoming incident telemetry broadcasted by board
+  window.addEventListener("dispatch:data", function(e) {
+    if (!mapInstance || !incidentLayerGroup) return;
+    incidentLayerGroup.clearLayers();
+    markersById.clear();
+
+    const incidents = e.detail.incidents || [];
+    const pointsForBounds = [];
+
+    incidents.forEach(inc => {
+      if (!inc.latitude || !inc.longitude) return;
+
+      const lat = parseFloat(inc.latitude);
+      const lng = parseFloat(inc.longitude);
+      if (isNaN(lat) || isNaN(lng)) return;
+
+      pointsForBounds.push([lat, lng]);
+
+      const isActive = inc.is_active;
+      const markerColor = isActive ? "var(--color-tertiary-default, #D9232A)" : "#64748B";
+      const pulseHtml = isActive 
+        ? `<div style="position: absolute; width: 22px; height: 22px; border-radius: 50%; background: rgba(217, 35, 42, 0.4); animation: dispatchPulse 1.8s infinite ease-out;"></div>` 
+        : ``;
+
+      const customIcon = L.divIcon({
+        className: 'dispatch-custom-marker',
+        html: `
+          <div style="position: relative; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center;">
+            ${pulseHtml}
+            <div style="width: 12px; height: 12px; border-radius: 50%; background: ${markerColor}; border: 2px solid #FFFFFF; box-shadow: 0 1px 4px rgba(0,0,0,0.3); z-index: 2;"></div>
+          </div>
+        `,
+        iconSize: [22, 22],
+        iconAnchor: [11, 11]
+      });
+
+      const marker = L.marker([lat, lng], { icon: customIcon }).addTo(incidentLayerGroup);
+      
+      const units = Array.isArray(inc.units) ? inc.units.join(", ") : "Assigned";
+      marker.bindPopup(`
+        <div style="font-family: system-ui, sans-serif; font-size: 0.75rem; padding: 0.15rem;">
+          <div style="font-weight: 800; color: #1C1C1E; font-size: 0.85rem; margin-bottom: 0.2rem;">${inc.type}</div>
+          <div style="color: #64748B; margin-bottom: 0.25rem;">📍 ${inc.address}</div>
+          <div style="display: flex; gap: 0.4rem; font-size: 0.7rem;">
+            <span style="font-weight: 700; color: ${markerColor};">${inc.status}</span>
+            <span>•</span>
+            <span style="color: #86868B;">Units: ${units}</span>
+          </div>
+        </div>
+      `);
+
+      markersById.set(inc.id, marker);
+    });
+  });
+
+  // Handle focus event when an incident row is clicked in the board
+  window.addEventListener("dispatch:focus", function(e) {
+    if (!mapInstance) return;
+    const { id, lat, lng } = e.detail;
+    
+    mapInstance.flyTo([lat, lng], 15, { animate: true, duration: 1.0 });
+
+    const marker = markersById.get(id);
+    if (marker) {
+      setTimeout(() => marker.openPopup(), 900);
+    }
+  });
+
+  document.addEventListener("DOMContentLoaded", initDispatchMap);
+})();
+</script>
+
+<style>
+@keyframes dispatchPulse {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+</style>

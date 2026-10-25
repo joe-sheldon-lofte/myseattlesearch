@@ -1,0 +1,49 @@
+<!-- File: _includes/components/section/emergency-dispatch.njk -->
+{% set dispatch_mode = city.EmergencyDispatch | default("internal") | lower | trim %}
+{% set section_city_name = city.City | default("Regional") %}
+
+<section id="emergency-dispatch" class="emergency-dispatch-section" style="width: 100%; margin: 2.5rem 0;">
+  {% if dispatch_mode == "pulsepoint" %}
+    {# 1. Third-Party Vendor Embed for King County Suburban Cities #}
+    <div class="pulsepoint-container" style="width: 100%;">
+      {% include "components/widget/widget.map.pulsepoint.njk" ignore missing %}
+    </div>
+  {% else %}
+    {# 2. Internal Direct Feeds (Seattle & Snohomish County 911) #}
+    <div class="emergency-dispatch-grid">
+      {# Position 1: Desktop Left / Mobile Top #}
+      <div class="dispatch-grid-col dispatch-col-board" style="width: 100%;">
+        {% include "components/widget/emergency-dispatch-board.njk" %}
+      </div>
+
+      {# Position 2: Desktop Right / Mobile Bottom #}
+      <div class="dispatch-grid-col dispatch-col-map" style="width: 100%;">
+        {% include "components/widget/widget.map.custom.dispatch.njk" %}
+      </div>
+    </div>
+  {% endif %}
+
+  <style>
+    .emergency-dispatch-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      align-items: stretch;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    @media (max-width: 960px) {
+      .emergency-dispatch-grid {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+      }
+      .dispatch-col-board {
+        order: 1;
+      }
+      .dispatch-col-map {
+        order: 2;
+      }
+    }
+  </style>
+</section>
