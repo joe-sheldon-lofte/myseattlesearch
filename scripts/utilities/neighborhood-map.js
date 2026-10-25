@@ -13,7 +13,20 @@ class NeighborhoodMap extends HTMLElement {
   }
 
   initLeaflet() {
-    // 1. Inject Leaflet CSS if not already present in the head
+    // 1. Scoped CSS for subdued architectural tile layer and retina markers
+    if (!document.getElementById('neighborhood-map-style')) {
+      const style = document.createElement('style');
+      style.id = 'neighborhood-map-style';
+      style.textContent = `
+        neighborhood-map .leaflet-tile-pane {
+          filter: grayscale(75%) contrast(98%) brightness(102%);
+          -webkit-filter: grayscale(75%) contrast(98%) brightness(102%);
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // 2. Inject Leaflet CSS if not already present
     if (!document.querySelector('link[href*="leaflet.css"]')) {
       const cssLink = document.createElement('link');
       cssLink.rel = 'stylesheet';
@@ -21,7 +34,7 @@ class NeighborhoodMap extends HTMLElement {
       document.head.appendChild(cssLink);
     }
 
-    // 2. Inject Leaflet JS if window.L is not available yet
+    // 3. Inject Leaflet JS if window.L is not available yet
     if (typeof window.L === 'undefined') {
       const existingScript = document.querySelector('script[src*="leaflet.js"]');
       if (existingScript) {
@@ -48,34 +61,33 @@ class NeighborhoodMap extends HTMLElement {
     this.innerHTML = '';
     this.appendChild(this._canvas);
 
-    // Initialize Leaflet locked to inner container
+    // Initialize Leaflet instance bound to container
     this._mapInstance = window.L.map(this._canvas, {
       scrollWheelZoom: false,
       zoomControl: true
     }).setView([this.lat, this.lon], this.zoom);
 
-    // Esri World Light Gray Base Layer (Subdued land, water, and road geometry)
-    window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
-      maxZoom: 16
+    // Full-granularity OpenStreetMap basemap (filtered via CSS in tile-pane)
+    window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+      maxZoom: 19
     }).addTo(this._mapInstance);
 
-    // Esri World Light Gray Reference Layer (Subdued boundaries and street labels)
-    window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 16
-    }).addTo(this._mapInstance);
-
-    // High-contrast SVG teardrop pin styled to Alpine Blue design tokens
+    // Teardrop map pin utilizing system design tokens
     const pinIcon = window.L.divIcon({
       className: 'neighborhood-map-pin',
-      html: `<div style="width: 24px; height: 24px; background: #1E4D6B; border: 2.5px solid #FFFFFF; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 10px rgba(0,0,0,0.3); box-sizing: border-box;"><div style="width: 6px; height: 6px; background: #FFFFFF; border-radius: 50%; margin: 6.5px auto;"></div></div>`,
+      html: `
+        <div style="width: 24px; height: 24px; background: var(--color-secondary-default, #1E4D6B); border: 2.5px solid var(--white, #FFFFFF); border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 10px rgba(0,0,0,0.3); box-sizing: border-box;">
+          <div style="width: 6px; height: 6px; background: var(--white, #FFFFFF); border-radius: 50%; margin: 6.5px auto;"></div>
+        </div>
+      `,
       iconSize: [24, 24],
       iconAnchor: [12, 24]
     });
 
     window.L.marker([this.lat, this.lon], { icon: pinIcon }).addTo(this._mapInstance);
 
-    // Invalidate size on load and observe fluid adjustments dynamically without rigid vertical locks
+    // Invalidate size on load and observe fluid resizing dynamically
     setTimeout(() => {
       if (this._mapInstance) this._mapInstance.invalidateSize();
     }, 250);
