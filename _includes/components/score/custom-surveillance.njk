@@ -1,5 +1,13 @@
 <!-- File: _includes/components/score/custom-surveillance.njk -->
 {% set val = score_surv_val | default(54) %}
+{% set police_agency = police_department or city_police_agency or city['Police Department'] or city.police_department or city.PoliceDept | default("Edmonds Police Department") %}
+
+{# Surveillance Device Count Placeholders #}
+{% set alpr_count = surv_alpr_count | default(14) %}
+{% set traffic_cam_count = surv_traffic_cam_count | default(8) %}
+{% set cctv_count = surv_cctv_count | default(22) %}
+{% set platform_count = surv_platform_count | default(3) %}
+
 {% set score_color = "#10B981" %}
 {% set score_label = "Minimal Monitoring" %}
 {% if val >= 80 %}
@@ -16,7 +24,7 @@
   <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
     <div>
       <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        CIVIC TRANSPARENCY
+        POLICE AGENCY: {{ police_agency | upper }}
       </span>
       <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.1rem;">
         Surveillance Score
@@ -45,7 +53,7 @@
         {{ score_label }}
       </div>
       <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
-        {{ score_surv_detail | default("ALPR Cameras • Traffic Cams • CCTV Network • Data Platforms") }}
+        {{ alpr_count }} ALPR Cameras • {{ traffic_cam_count }} Traffic Cams • {{ cctv_count }} CCTV • {{ platform_count }} Data Platforms
       </div>
     </div>
   </div>

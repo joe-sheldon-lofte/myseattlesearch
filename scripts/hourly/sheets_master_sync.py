@@ -381,9 +381,9 @@ def main():
         "Live_Archive", "Uploads", "Sports", "TollData", 
         "UtilityData", "MatrixKeepAlive", 
         "BuyerGuide", "SellerGuide", "GuideFAQs",
-        "PublicEvents", "Translations", "SiteCredits"
+        "PublicEvents", "Translations", "SiteCredits", "DispatchAgencies"
     ]
-    ranges = [f"{tab}!A:BJ" for tab in all_tabs]
+    ranges = [f"{tab}!A:BK" for tab in all_tabs]
 
     try:
         response = sheets_service.spreadsheets().values().batchGet(

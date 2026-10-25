@@ -13,25 +13,35 @@
   { name: "Kent Valley Logistics Hub", lat: 47.3809, lon: -122.2348, miles: "33 miles", drive_live: "48 min", drive_offpeak: "36 min", transit_live: "72 min", transit_offpeak: "58 min", friction: 34, friction_label: "Heavy Delay" }
 ] %}
 
+<style>
+  .commute-hubs-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  @media (min-width: 680px) {
+    .commute-hubs-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>
+
 <div class="widget-card commute-employment-hub-container" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.5rem; box-sizing: border-box;">
   
   {# Header Row per edits: Live WSDOT Corridor removed, COMMUTE TIMES overline #}
   <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
     <div>
       <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        COMMUTE TIMES
+        CURRENT ACTIVE COMMUTE TIMES
       </span>
       <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.25rem;">
         {{ city }} to Major Employment Hubs
       </h3>
     </div>
-    <div class="text-body-secondary" style="font-size: 0.75rem; font-family: monospace;">
-      Origin: {{ city }} Center ({{ city_lat }}°N, {{ city_lon }}°W)
-    </div>
   </div>
 
-  {# 2:1 Wide Rectangular Hub Cards Grid #}
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;">
+  {# 2-Column x 3-Row Employment Hub Grid #}
+  <div class="commute-hubs-grid">
     {% for hub in hubs %}
       <div style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; box-sizing: border-box;">
         
@@ -41,9 +51,6 @@
             <h4 style="margin: 0; font-size: 0.95rem; font-weight: 800; color: var(--color-primary-default);">
               {{ hub.name }}
             </h4>
-            <span class="text-body-secondary" style="font-size: 0.7rem;">
-              {{ hub.miles }} • Direct Highway Corridor
-            </span>
           </div>
 
           {# Embedded score.custom.citycommutefriction Badge #}

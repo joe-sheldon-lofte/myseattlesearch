@@ -18,9 +18,6 @@
         Electrical Power Outage Monitor
       </h3>
     </div>
-    <div style="font-size: 0.75rem; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0.2rem 0.65rem; border-radius: 999px;">
-      Grid Stable
-    </div>
   </div>
 
   {# Utility Grid Matrix including Seattle City Light per edit #}
@@ -36,7 +33,7 @@
               {{ u.name }}
             </div>
             <div class="text-body-secondary" style="font-size: 0.75rem;">
-              {{ u.active_outages }} Active Incidents • {{ u.restored_pct }} Online
+              {{ u.active_outages }} Active Incidents
             </div>
           </div>
         </div>
@@ -45,7 +42,7 @@
           <div class="text-data-huge" style="font-size: 1.15rem; font-family: monospace; font-weight: 800; color: {% if u.customers_affected > 500 %}var(--color-tertiary-default){% else %}var(--color-primary-default){% endif %};">
             {{ u.customers_affected }}
           </div>
-          <div style="font-size: 0.65rem; color: #86868b; text-transform: uppercase;">Meters Out</div>
+          <div style="font-size: 0.65rem; color: #86868b; text-transform: uppercase;">Customers Without Power</div>
         </div>
       </div>
     {% endfor %}
@@ -53,7 +50,7 @@
 
   {# Footer #}
   <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem; font-size: 0.7rem;" class="text-body-secondary">
-    <span>Direct Outage Map Telemetry (PSE, Snohomish PUD, Seattle City Light)</span>
+    <span>Source: Washington State Emergency Operations Center</span>
     <span>Updated Every 15 min</span>
   </div>
 

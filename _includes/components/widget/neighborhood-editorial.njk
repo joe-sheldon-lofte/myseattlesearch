@@ -1,31 +1,24 @@
 <!-- File: _includes/components/widget/neighborhood-editorial.njk -->
-{% set city = editorial_city_name | default("Edmonds") %}
-{% set headline = editorial_headline | default("Coastal Topography, Zoning Evolution, and Market Dynamics") %}
+{% set active_city = city or (city_data[0] if city_data else null) or (cityData[0] if cityData else null) %}
+{% set city_name = editorial_city_name or active_city.City or active_city.name %}
+{% set city_slug = (active_city.slug or city_name) | lower | replace(" ", "-") %}
+{% set headline = "About " + city_name if city_name else "About" %}
+{% set editorial_html = editorial_content or (editorials[city_slug] if editorials else null) or (editorials[city_name | lower] if editorials else null) or (editorials[city_name] if editorials else null) %}
 
 <article class="widget-card neighborhood-editorial-card" style="padding: 2.25rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.5rem; box-sizing: border-box;">
 
-
-    <h2 class="text-widget-title" style="margin: 0.25rem 0 0 0; font-size: 1.5rem; line-height: 1.25; color: var(--color-primary-default);">
+  <header style="border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.85rem;">
+    <h2 class="text-widget-title" style="margin: 0; font-size: 1.5rem; line-height: 1.25; color: var(--color-primary-default);">
       {{ headline }}
     </h2>
   </header>
 
   {# Main Editorial Prose Body #}
   <div class="editorial-body text-body" style="font-size: 1rem; line-height: 1.7; display: flex; flex-direction: column; gap: 1.25rem; color: var(--color-primary-default);">
-    {% if editorial_content %}
-      {{ editorial_content | safe }}
+    {% if editorial_html %}
+      {{ editorial_html | safe }}
     {% elif content %}
       {{ content | safe }}
-    {% else %}
-      <p>
-        Positioned along the Puget Sound coastline in south Snohomish County, {{ city }} represents a unique convergence of historic maritime character and evolving modern urban accessibility. From the mid-century architectural perimeters of the Bowl to the expanding transit corridors flanking Highway 99, residential inventory here functions within a tightly constrained geographic bowl bounded by saltwater to the west and established municipal limits on all remaining fronts.
-      </p>
-      <p>
-        Recent legislative shifts—notably Washington House Bill 1110 mandating middle housing allowances—have introduced critical infill opportunities across single-family parcels within a half-mile of major transit stops. For long-term property owners, this evolution unlocks accessory dwelling unit (ADU) potential and duplex redevelopments that fundamentally bolster land equity. For prospective buyers, understanding the interplay between localized school cluster ratings, Sounder rail access, and county property tax reassessment trajectories is essential to evaluating real monthly holding costs.
-      </p>
-      <p>
-        Whether assessing the stability of blufftop foundations or analyzing days-on-market velocity across distinct neighborhood micro-climates, navigating {{ city }} requires an analytical eye paired with direct, boots-on-the-ground advocacy.
-      </p>
     {% endif %}
   </div>
 

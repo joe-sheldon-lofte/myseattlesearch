@@ -3,6 +3,7 @@
 {% set entry_title = single_entry_title | default("Navigating Snohomish County Property Tax Reassessments: A 5-Year Empirical Review") %}
 {% set entry_excerpt = single_entry_excerpt | default("Assessor data reveals how local school capital bonds, EMS renewals, and municipal transportation levies are shifting residential tax burdens.") %}
 {% set entry_date = single_entry_date | default("October 20, 2026") %}
+{% set entry_time = single_entry_time | default("12:09PM") %}
 {% set entry_author = single_entry_author | default("Joe Sheldon") %}
 {% set entry_back_url = single_entry_back_url | default("/notebook/") %}
 
@@ -19,12 +20,8 @@
   {# Header Area #}
   <header style="display: flex; flex-direction: column; gap: 0.75rem;">
     <div style="display: flex; align-items: center; gap: 0.5rem;">
-      <span class="text-overline" style="color: {% if entry_type == 'ARTICLE' %}var(--color-tertiary-default){% else %}var(--color-secondary-default){% endif %}; font-weight: 800;">
-        {{ entry_type }}
-      </span>
-      <span style="font-size: 0.75rem; color: #86868b;">•</span>
       <time class="text-body-secondary" style="font-size: 0.75rem;">
-        {{ entry_date }}
+        {{ entry_date }} at {{ entry_time }}
       </time>
     </div>
 
@@ -79,7 +76,7 @@
               onclick="if(navigator.share){navigator.share({title:'{{ entry_title }}',url:window.location.href})}else{navigator.clipboard.writeText(window.location.href);alert('Entry link copied to clipboard!');}"
               style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 1rem; background: var(--color-secondary-default); color: #FFFFFF; border: none; border-radius: 999px; font-size: 0.8rem; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(30, 77, 107, 0.2);">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-        <span>Share Entry</span>
+        <span>Share</span>
       </button>
     </div>
   </footer>

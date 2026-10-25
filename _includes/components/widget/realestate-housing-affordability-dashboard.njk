@@ -1,6 +1,4 @@
 <!-- File: _includes/components/widget/realestate-housing-affordability-dashboard.njk -->
-{% set dash_city = affordability_city_name | default("Edmonds") %}
-
 <section class="widget-card housing-affordability-dashboard-container" style="padding: 2rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.75rem; box-sizing: border-box;">
   
   {# Dashboard Master Header #}
@@ -15,8 +13,8 @@
     </div>
   </div>
 
-  {# 3 Modular Sub-Panels in Responsive Grid #}
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; align-items: stretch;">
+  {# 3 Modular Sub-Panels in Full-Width Stacked Rows #}
+  <div style="display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">
     {% include "components/widget/realestate-housing-affordability-propertytierentryladder.njk" ignore missing %}
     {% include "components/widget/realestate-housing-affordability-downpaymenttier.njk" ignore missing %}
     {% include "components/widget/realestate-housing-affordability-householdincomepurchasingpower.njk" ignore missing %}

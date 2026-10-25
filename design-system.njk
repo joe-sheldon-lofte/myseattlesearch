@@ -17,6 +17,11 @@ permalink: "/design-system/index.html"
   {% endif %}
 {% endmacro %}
 
+{# Bind sandbox globally to Shoreline directly from live city_data without fallbacks #}
+{% set city_source = city_data or cityData %}
+{% for c in city_source %}
+  {% if (c.City | trim | lower) == "shoreline" or (c.name | trim | lower) == "shoreline" %}
+    {% set city = c %}
 <main class="layout-container" style="padding-top: 3.5rem; padding-bottom: 9rem;">
 
   <header style="margin-bottom: 4rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 2rem;">
@@ -24,7 +29,7 @@ permalink: "/design-system/index.html"
     <h1 class="text-display" style="margin-top: 0.5rem; margin-bottom: 1rem;">Full Catalog Sandbox</h1>
     <p class="text-body-secondary" style="font-size: 1.15rem; max-width: 820px; line-height: 1.55;">
       Master component verification surface testing all 185 elements from <code>UI Upgrade - Element_Catalog.csv</code>. 
-      <br><strong>Viewing Mode: Single-Column Inspection Ledger</strong> (All elements rendered at 100% width to eliminate container clipping).
+      <br><strong>Viewing Mode: Single-Column Inspection Ledger</strong> (Live City Data Context: <strong>{{ city.City }}</strong>).
     </p>
     <div style="display: flex; gap: 1.5rem; margin-top: 1.25rem; font-size: 0.8rem;" class="text-body-secondary">
       <div>Compiled: <strong style="color: var(--color-primary-default);">{% buildTime %}</strong></div>
@@ -649,14 +654,9 @@ permalink: "/design-system/index.html"
       {{ renderSlot("widget.cms.notebook.feed", c) }}
     </div>
     <div>
-      <div style="font-family: monospace; font-size: 0.75rem; color: #86868b; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.cms.card.post</div>
-      {% set c %}{% include "components/widget/cms-card-post.njk" ignore missing %}{% endset %}
-      {{ renderSlot("widget.cms.card.post", c) }}
-    </div>
-    <div>
-      <div style="font-family: monospace; font-size: 0.75rem; color: #86868b; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.cms.card.article</div>
-      {% set c %}{% include "components/widget/cms-card-article.njk" ignore missing %}{% endset %}
-      {{ renderSlot("widget.cms.card.article", c) }}
+      <div style="font-family: monospace; font-size: 0.75rem; color: #86868b; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.cms.card</div>
+      {% set c %}{% include "components/widget/cms-card.njk" ignore missing %}{% endset %}
+      {{ renderSlot("widget.cms.card", c) }}
     </div>
     <div>
       <div style="font-family: monospace; font-size: 0.75rem; color: #86868b; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.cms.widget.linkpreview</div>
@@ -861,8 +861,8 @@ permalink: "/design-system/index.html"
     </div>
     <div>
       <div style="font-family: monospace; font-size: 0.75rem; color: #86868b; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.neighborhood.subpage.header</div>
-      {% set c %}{% include "components/widget/neighborhood-subpagepage-header.njk" ignore missing %}{% endset %}
-      {{ renderSlot("widget.neighborhood.subpagepage.header", c) }}
+      {% set c %}{% include "components/widget/neighborhood-subpage-header.njk" ignore missing %}{% endset %}
+      {{ renderSlot("widget.neighborhood.subpage.header", c) }}
     </div>
     <div>
       <div style="font-family: monospace; font-size: 0.75rem; color: #86868b; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.neighborhood.nav.links</div>
@@ -972,3 +972,5 @@ permalink: "/design-system/index.html"
   </section>
 
 </main>
+  {% endif %}
+{% endfor %}

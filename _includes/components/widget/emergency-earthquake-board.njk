@@ -8,18 +8,18 @@
 
 <div class="widget-card emergency-earthquake-board-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1rem; box-sizing: border-box;">
   
-  {# Header Row per edit: "72-Hour Log" (Cascadia Subduction Zone removed) #}
+  {# Header Row per edit: "72-Hour Tracking" (Cascadia Subduction Zone removed) #}
   <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
     <div>
       <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        SEISMIC ACTIVITY LOG
+        SEISMIC ACTIVITY REPORTS
       </span>
       <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
-        Recent Regional Earthquakes
+        Recent Earthquakes
       </h3>
     </div>
     <div style="font-size: 0.75rem; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0.2rem 0.65rem; border-radius: 999px;">
-      72-Hour Log
+      72-Hour Tracking
     </div>
   </div>
 
@@ -28,9 +28,9 @@
     {% for q in quakes %}
       <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem; background: var(--color-surface-gray); border-radius: 8px;">
         <div style="display: flex; align-items: center; gap: 0.85rem;">
-          <div style="width: 42px; height: 42px; border-radius: 8px; background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;">
+          {# Widened badge (52px x 42px) to prevent M[mag] glyph clipping on rounded corners #}
+          <div style="width: 52px; height: 42px; padding: 0 4px; border-radius: 8px; background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; box-sizing: border-box;">
             <span style="font-size: 1rem; font-weight: 800; font-family: monospace; color: var(--color-secondary-default); line-height: 1;">M{{ q.mag }}</span>
-            <span style="font-size: 0.55rem; color: #86868b; text-transform: uppercase;">{{ q.status }}</span>
           </div>
           <div>
             <div style="font-size: 0.85rem; font-weight: 700; color: var(--color-primary-default);">
@@ -52,7 +52,6 @@
   {# Footer #}
   <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem; font-size: 0.7rem;" class="text-body-secondary">
     <span>Data Source: USGS / Pacific Northwest Seismic Network (PNSN)</span>
-    <span>Regional Baseline Normal</span>
   </div>
 
 </div>

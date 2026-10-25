@@ -1,31 +1,35 @@
 <!-- File: _includes/components/widget/neighborhood-page-header.njk -->
-{% set city_name = neighborhood_city_name | default(city.name if city and city.name else (city.City if city and city.City else "Edmonds")) %}
-
-{# Pulls 3 hero image URLs directly from the city data columns (with fallbacks if viewing in sandbox) #}
-{% set hero_img_1 = city['Hero Image 1'] or city['Hero 1'] or city.HeroImage1 or city.hero_image_1 or "https://assets.myseattlesearch.com/neighborhood/hero-pools/snohomish/2.webp" %}
-{% set hero_img_2 = city['Hero Image 2'] or city['Hero 2'] or city.HeroImage2 or city.hero_image_2 or "https://assets.myseattlesearch.com/neighborhood/hero-pools/snohomish/4.webp" %}
-{% set hero_img_3 = city['Hero Image 3'] or city['Hero 3'] or city.HeroImage3 or city.hero_image_3 or "https://assets.myseattlesearch.com/neighborhood/hero-pools/snohomish/6.webp" %}
+{% set city_name = neighborhood_city_name or city.City or city.name %}
+{% set hero_img_left = city.HeroImageLeft %}
+{% set hero_img_main = city.HeroImageMain %}
+{% set hero_img_right = city.HeroImageRight %}
 
 <header class="neighborhood-hero-header" style="position: relative; width: 100%; height: 380px; overflow: hidden; border-radius: var(--border-radius-squircle); margin-bottom: 2.5rem; background: var(--color-surface-gray); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
   
-  {# Symmetrical 3-Image Wall: Center image locked at 50% horizontal center, flanked by left and right images #}
+  {# Symmetrical 3-Image Triptych Wall: Center image locked at 50% horizontal center, flanked by left and right images #}
   <div class="hero-image-wall" 
        style="position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); display: flex; height: 100%; width: max-content; pointer-events: none;" 
        aria-hidden="true">
     
-    {# Left Image: 16:9 aspect ratio, partially clipped by container left edge #}
-    <div style="height: 100%; aspect-ratio: 16 / 9; flex: 0 0 auto; overflow: hidden;">
-      <img src="{{ hero_img_1 }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+    {# Left Flank Image: 16:9 aspect ratio, clipped symmetrically by container left edge #}
+    <div style="height: 100%; width: calc(380px * 16 / 9); flex: 0 0 auto; overflow: hidden;">
+      {% if hero_img_left %}
+        <img src="{{ hero_img_left }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+      {% endif %}
     </div>
     
     {# Center Image: 16:9 aspect ratio, 100% visible and centered #}
-    <div style="height: 100%; aspect-ratio: 16 / 9; flex: 0 0 auto; overflow: hidden;">
-      <img src="{{ hero_img_2 }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+    <div style="height: 100%; width: calc(380px * 16 / 9); flex: 0 0 auto; overflow: hidden;">
+      {% if hero_img_main %}
+        <img src="{{ hero_img_main }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+      {% endif %}
     </div>
     
-    {# Right Image: 16:9 aspect ratio, partially clipped by container right edge #}
-    <div style="height: 100%; aspect-ratio: 16 / 9; flex: 0 0 auto; overflow: hidden;">
-      <img src="{{ hero_img_3 }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+    {# Right Flank Image: 16:9 aspect ratio, clipped symmetrically by container right edge #}
+    <div style="height: 100%; width: calc(380px * 16 / 9); flex: 0 0 auto; overflow: hidden;">
+      {% if hero_img_right %}
+        <img src="{{ hero_img_right }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+      {% endif %}
     </div>
   </div>
 

@@ -1,0 +1,55 @@
+<!-- File: _includes/components/widget/cms-card.njk -->
+{% set card_title = article_title or post_title or title | default("Missing-Middle Infill Zoning Along the Swift BRT Corridor: What Homebuyers and Builders Must Know") %}
+{% set card_excerpt = article_excerpt or post_excerpt or excerpt | default("How Snohomish County's updated development code is reshaping infill housing, duplex financing models, and property tax baselines.") %}
+{% set card_date = article_date or post_date or date | default("Today at 10:14 AM") %}
+{% set card_author = article_author or post_author or author | default("Joe Sheldon") %}
+{% set card_url = article_url or post_url or url | default("/posts/missing-middle-zoning-snohomish/") %}
+
+<article class="widget-card cms-card-item" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; gap: 1.25rem; box-sizing: border-box; transition: transform 0.2s ease, box-shadow 0.2s ease;">
+  
+  <div>
+    {# Header Row: Title & Timestamp #}
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem;">
+      <h3 class="text-widget-title" style="margin: 0; font-size: 1.2rem; line-height: 1.35;">
+        <a href="{{ card_url }}" style="color: var(--color-primary-default); text-decoration: none;">
+          {{ card_title }}
+        </a>
+      </h3>
+      <time class="text-body-secondary" style="font-size: 0.75rem; white-space: nowrap; flex-shrink: 0; padding-top: 0.15rem;">
+        {{ card_date }}
+      </time>
+    </div>
+
+    {# Excerpt / Body #}
+    {% if card_excerpt %}
+      <p class="text-body" style="font-size: 0.95rem; line-height: 1.6; margin: 0; color: var(--color-primary-default);">
+        {{ card_excerpt }}
+      </p>
+    {% elif content %}
+      <div class="text-body" style="font-size: 0.95rem; line-height: 1.6; margin: 0; color: var(--color-primary-default);">
+        {{ content | safe }}
+      </div>
+    {% endif %}
+  </div>
+
+  {# Footer Bar: Author Attribution & Action Triggers #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.85rem; font-size: 0.8rem;" class="text-body-secondary">
+    <div>
+      <span>By </span>
+      <a href="/#agent" style="color: var(--color-primary-default); font-weight: 600; text-decoration: none;">{{ card_author }}</a>
+      <span> • Redfin Senior Agent</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <a href="/chat/?topic={{ card_title | urlencode }}" style="display: inline-flex; align-items: center; gap: 0.35rem; color: var(--color-secondary-default); text-decoration: none; font-weight: 600;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Reply</span>
+      </a>
+      <a href="{{ card_url }}" style="display: inline-flex; align-items: center; gap: 0.25rem; color: var(--color-primary-default); text-decoration: none; font-weight: 600;">
+        <span>Read</span>
+        <span aria-hidden="true">→</span>
+      </a>
+    </div>
+  </div>
+
+</article>

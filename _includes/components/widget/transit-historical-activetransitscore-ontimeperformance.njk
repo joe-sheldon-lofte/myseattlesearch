@@ -25,7 +25,7 @@
       </h3>
     </div>
     <div style="font-size: 0.75rem; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0.2rem 0.65rem; border-radius: 999px;">
-      168-Hour Audit Log
+      7-Day Audit Log
     </div>
   </div>
 
@@ -35,7 +35,7 @@
       <details class="transit-day-accordion" style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 10px; padding: 0.75rem 1rem; cursor: pointer;" {% if loop.first %}open{% endif %}>
         <summary style="display: flex; justify-content: space-between; align-items: center; list-style: none; font-size: 0.85rem; font-weight: 700;">
           <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <span style="color: var(--color-secondary-default); font-size: 0.8rem;">▶</span>
+            <span class="transit-toggle-arrow" style="color: var(--color-secondary-default); font-size: 0.8rem; display: inline-block; transition: transform 0.2s ease;">▶</span>
             <span style="color: var(--color-primary-default);">{{ day.day }}</span>
             <span class="text-body-secondary" style="font-size: 0.75rem; font-weight: 500;">{{ day.date }}</span>
           </div>
@@ -75,7 +75,7 @@
 
   <style>
     .transit-day-accordion summary::-webkit-details-marker { display: none; }
-    .transit-day-accordion[open] summary span:first-child { transform: rotate(90deg); display: inline-block; }
+    .transit-day-accordion[open] summary .transit-toggle-arrow { transform: rotate(90deg); }
   </style>
 
 </div>

@@ -1,65 +1,97 @@
 <!-- File: _includes/components/widget/universal-data-chart-maxfour.njk -->
-<div class="widget-card data-chart-card" style="display: flex; flex-direction: column; padding: 1.5rem; width: 100%;">
+{% set x_labels = chart_x_labels or chart_labels %}
+{% set y_labels = chart_y_labels %}
+
+{# Dynamic multi-series extraction (up to 4 series) from chart_series array or direct variables #}
+{% set active_series = chart_series if chart_series else [] %}
+{% if not active_series and (series_1_points or series_1_name) %}
+  {% set s1 = {'name': series_1_name, 'points': series_1_points, 'color': series_1_color or 'var(--color-secondary-default)'} %}
+  {% set s2 = {'name': series_2_name, 'points': series_2_points, 'color': series_2_color or 'var(--color-tertiary-default)'} if (series_2_points or series_2_name) else null %}
+  {% set s3 = {'name': series_3_name, 'points': series_3_points, 'color': series_3_color or '#10B981'} if (series_3_points or series_3_name) else null %}
+  {% set s4 = {'name': series_4_name, 'points': series_4_points, 'color': series_4_color or '#D97706'} if (series_4_points or series_4_name) else null %}
+  {% set active_series = [s1, s2, s3, s4] | reject('none') | list %}
+{% endif %}
+
+<div class="widget-card data-chart-card" style="display: flex; flex-direction: column; padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); box-sizing: border-box;">
   
-  {# Header & Legend #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+  {# Header & Dynamic Legend #}
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
     <div>
-      <div class="text-overline">{{ chart_overline | default("MARKET VELOCITY") }}</div>
-      <h3 class="text-widget-title">{{ chart_title | default("90-Day Trajectory") }}</h3>
+      {% if chart_overline %}
+        <div class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">{{ chart_overline }}</div>
+      {% endif %}
+      {% if chart_title %}
+        <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">{{ chart_title }}</h3>
+      {% endif %}
     </div>
-    <div style="display: flex; gap: 1rem; font-size: 0.75rem; font-weight: 600;">
-      <div style="display: flex; align-items: center; gap: 0.35rem;">
-        <span style="width: 12px; height: 3px; background: var(--color-secondary-default); border-radius: 2px;"></span>
-        <span>{{ series_1_name | default("Edmonds") }}</span>
+
+    {# Dynamic Legend Badges (renders only when series names exist) #}
+    {% if active_series and (active_series | length > 0) %}
+      <div style="display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.75rem; font-weight: 700;">
+        {% for s in active_series %}
+          {% if s.name %}
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+              <span style="width: 12px; height: 3px; background: {{ s.color or 'var(--color-secondary-default)' }}; border-radius: 2px;"></span>
+              <span style="color: var(--color-primary-default);">{{ s.name }}</span>
+            </div>
+          {% endif %}
+        {% endfor %}
       </div>
-      <div style="display: flex; align-items: center; gap: 0.35rem;">
-        <span style="width: 12px; height: 3px; background: var(--color-tertiary-default); border-radius: 2px;"></span>
-        <span>{{ series_2_name | default("Kirkland") }}</span>
-      </div>
-    </div>
+    {% endif %}
   </div>
 
   {# Native SVG Chart Area (2:1 Aspect Ratio) #}
   <div style="position: relative; width: 100%; aspect-ratio: 2 / 1; min-height: 200px;">
     <svg viewBox="0 0 600 300" preserveAspectRatio="none" style="width: 100%; height: 100%; overflow: visible;" aria-hidden="true">
       
-      {# Grid Lines & Y-Axis Labels #}
+      {# Grid Lines #}
       <g stroke="var(--color-border-light)" stroke-width="1" stroke-dasharray="4 4">
         <line x1="0" y1="20" x2="600" y2="20"></line>
         <line x1="0" y1="100" x2="600" y2="100"></line>
         <line x1="0" y1="180" x2="600" y2="180"></line>
         <line x1="0" y1="260" x2="600" y2="260"></line>
       </g>
-      <g fill="#86868b" font-family="var(--font-default)" font-size="12" font-weight="500">
-        <text x="590" y="15" text-anchor="end">High</text>
-        <text x="590" y="95" text-anchor="end">Med</text>
-        <text x="590" y="175" text-anchor="end">Base</text>
-      </g>
 
-      {# X-Axis Time Steps #}
-      <g fill="#86868b" font-family="var(--font-default)" font-size="11" font-weight="600">
-        <text x="0" y="285" text-anchor="start">90d ago</text>
-        <text x="300" y="285" text-anchor="middle">45d ago</text>
-        <text x="600" y="285" text-anchor="end">Today</text>
-      </g>
+      {# Dynamic Y-Axis Labels (renders based on live data intervals) #}
+      {% if y_labels and (y_labels | length > 0) %}
+        <g fill="#86868b" font-family="var(--font-default, -apple-system, sans-serif)" font-size="11" font-weight="600">
+          {% set total_y = y_labels | length %}
+          {% for y_text in y_labels %}
+            {% set y_pos = 20 + (loop.index0 * (240 / (total_y - 1))) if total_y > 1 else 140 %}
+            <text x="590" y="{{ y_pos - 5 }}" text-anchor="end">{{ y_text }}</text>
+          {% endfor %}
+        </g>
+      {% endif %}
 
-      {# Data Series 1 (Alpine Blue) #}
-      <polyline points="0,150 150,110 300,120 450,80 600,40" 
-                fill="none" 
-                stroke="var(--color-secondary-default)" 
-                stroke-width="3" 
-                stroke-linejoin="round" 
-                vector-effect="non-scaling-stroke"></polyline>
-      <circle cx="600" cy="40" r="5" fill="var(--color-secondary-default)" vector-effect="non-scaling-stroke"></circle>
+      {# Dynamic X-Axis Time Steps (calculated mathematically across the 600px width with no static fallbacks) #}
+      {% if x_labels and (x_labels | length > 0) %}
+        {% set total_x = x_labels | length %}
+        <g fill="#86868b" font-family="var(--font-default, -apple-system, sans-serif)" font-size="11" font-weight="600">
+          {% for label in x_labels %}
+            {% set x_pos = (loop.index0 / (total_x - 1)) * 600 if total_x > 1 else 300 %}
+            {% set anchor = "start" if loop.first else ("end" if loop.last else "middle") %}
+            <text x="{{ x_pos | round(1) }}" y="285" text-anchor="{{ anchor }}">{{ label }}</text>
+          {% endfor %}
+        </g>
+      {% endif %}
 
-      {# Data Series 2 (Redfin Red) #}
-      <polyline points="0,220 150,200 300,180 450,190 600,140" 
-                fill="none" 
-                stroke="var(--color-tertiary-default)" 
-                stroke-width="3" 
-                stroke-linejoin="round" 
-                vector-effect="non-scaling-stroke"></polyline>
-      <circle cx="600" cy="140" r="5" fill="var(--color-tertiary-default)" vector-effect="non-scaling-stroke"></circle>
+      {# Dynamic Data Series Curves (up to 4 series rendered only when data points exist) #}
+      {% if active_series and (active_series | length > 0) %}
+        {% for s in active_series %}
+          {% if s.points %}
+            {% set s_color = s.color or 'var(--color-secondary-default)' %}
+            <polyline points="{{ s.points }}" 
+                      fill="none" 
+                      stroke="{{ s_color }}" 
+                      stroke-width="3" 
+                      stroke-linejoin="round" 
+                      vector-effect="non-scaling-stroke"></polyline>
+            {% if s.last_x is defined and s.last_y is defined %}
+              <circle cx="{{ s.last_x }}" cy="{{ s.last_y }}" r="5" fill="{{ s_color }}" vector-effect="non-scaling-stroke"></circle>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
 
     </svg>
   </div>
