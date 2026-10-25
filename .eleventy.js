@@ -1,3 +1,4 @@
+// File: .eleventy.js
 const fs = require('fs');
 const path = require('path');
 
@@ -43,9 +44,10 @@ module.exports = function(eleventyConfig) {
   eleventyConfig.addPassthroughCopy("data");
   eleventyConfig.addPassthroughCopy("quizzes/assets");
   eleventyConfig.addPassthroughCopy("quizzes/engines");
+  eleventyConfig.addPassthroughCopy({ "scripts/utilities": "scripts/utilities" });
 
   // Ignores
-  eleventyConfig.ignores.add("scripts/");
+  eleventyConfig.ignores.add("scripts/*.py");
   eleventyConfig.ignores.add(".github/");
 
   // Shortcodes

@@ -551,10 +551,10 @@ def main():
         ("GuideFAQs", "guide_faqs.json"),
         ("PublicEvents", "public_events.json"),
         ("Translations", "translations.json"),
-        ("SiteCredits", "site_credits.json")
-        ("DispatchAgencies", "dispatch_agencies.json")
-        ("BoardVideoPlaylists", "board_video_playlists.json")
-        ("BoardAudioPlaylists", "board_audio_playlists.json")
+        ("SiteCredits", "site_credits.json"),
+        ("DispatchAgencies", "dispatch_agencies.json"),
+        ("BoardVideoPlaylists", "board_video_playlists.json"),
+        ("BoardAudioPlaylists", "board_audio_playlists.json"),
     ]:
         rows = tabs_data.get(tab_name, {}).get('values', [])
         if rows:
