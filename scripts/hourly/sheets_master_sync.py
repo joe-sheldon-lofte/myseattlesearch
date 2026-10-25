@@ -552,6 +552,9 @@ def main():
         ("PublicEvents", "public_events.json"),
         ("Translations", "translations.json"),
         ("SiteCredits", "site_credits.json")
+        ("DispatchAgencies", "dispatch_agencies.json")
+        ("BoardVideoPlaylists", "board_video_playlists.json")
+        ("oardAudioPlaylists", "board_audio_playlists.json")
     ]:
         rows = tabs_data.get(tab_name, {}).get('values', [])
         if rows:
