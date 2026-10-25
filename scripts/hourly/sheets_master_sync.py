@@ -381,7 +381,7 @@ def main():
         "Live_Archive", "Uploads", "Sports", "TollData", 
         "UtilityData", "MatrixKeepAlive", 
         "BuyerGuide", "SellerGuide", "GuideFAQs",
-        "PublicEvents", "Translations", "SiteCredits", "DispatchAgencies"
+        "PublicEvents", "Translations", "SiteCredits", "DispatchAgencies", "BoardVideoPlaylists", "BoardAudioPlaylists"
     ]
     ranges = [f"{tab}!A:BK" for tab in all_tabs]
 
