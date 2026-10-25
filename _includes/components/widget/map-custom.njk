@@ -1,8 +1,10 @@
 <!-- File: _includes/components/widget/map-custom.njk -->
-{% set map_lat = map_lat | default(47.7560) %}
-{% set map_lon = map_lon | default(-122.3415) %}
-{% set map_title = map_title | default("Shoreline Geography & Infrastructure") %}
-{% set map_zoom = map_zoom | default(13) %}
+{% set active_city_name = map_city or city.City or "Shoreline" %}
+{% set map_lat = map_lat or city.Latitude | default(47.7560) %}
+{% set map_lon = map_lon or city.Longitude | default(-122.3415) %}
+{% set map_accent_color = map_accent or city.PrimaryColor or "var(--color-secondary-default)" %}
+{% set map_title = map_title | default(active_city_name + " Geography & Infrastructure") %}
+{% set map_zoom = map_zoom | default(12) %}
 {% set map_aspect = map_aspect | default("16 / 10") %}
 {% set map_min_height = map_min_height | default("240px") %}
 {% set map_max_height = map_max_height | default("480px") %}
@@ -27,6 +29,8 @@
       lat="{{ map_lat }}" 
       lon="{{ map_lon }}" 
       zoom="{{ map_zoom }}"
+      active-city="{{ active_city_name }}"
+      accent-color="{{ map_accent_color }}"
       style="display: block; width: 100%; height: 100%;">
     </neighborhood-map>
   </div>

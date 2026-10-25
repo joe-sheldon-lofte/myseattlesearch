@@ -1,5 +1,5 @@
 // File: scripts/utilities/neighborhood-map.js
-let cachedCityData = null;
+let cachedBoundaryData = null;
 
 class NeighborhoodMap extends HTMLElement {
   connectedCallback() {
@@ -7,6 +7,7 @@ class NeighborhoodMap extends HTMLElement {
     this.lon = parseFloat(this.getAttribute('lon')) || -122.3415;
     this.zoom = parseInt(this.getAttribute('zoom')) || 12;
     this.activeCity = (this.getAttribute('active-city') || 'Shoreline').trim();
+    this.accentColor = this.resolveAccentColor();
 
     this.style.display = 'block';
     this.style.width = '100%';
@@ -15,8 +16,18 @@ class NeighborhoodMap extends HTMLElement {
     this.initLeaflet();
   }
 
+  resolveAccentColor() {
+    const attr = (this.getAttribute('accent-color') || '').trim();
+    if (attr && !attr.startsWith('var(')) {
+      return attr;
+    }
+    const varName = attr ? attr.replace(/^var\(\s*/, '').replace(/[\s,\)].*$/, '').trim() : '--color-secondary-default';
+    const computed = window.getComputedStyle(this).getPropertyValue(varName).trim();
+    return computed || 'var(--color-secondary-default, #1E4D6B)';
+  }
+
   initLeaflet() {
-    // 1. Scoped CSS for markers, labels, and text halos
+    // 1. Scoped CSS for active focal marker and floating badge
     if (!document.getElementById('neighborhood-map-style')) {
       const style = document.createElement('style');
       style.id = 'neighborhood-map-style';
@@ -27,14 +38,14 @@ class NeighborhoodMap extends HTMLElement {
           align-items: center;
           justify-content: flex-end;
           pointer-events: auto;
-          cursor: pointer;
+          cursor: default;
         }
         .active-city-pill {
           background: var(--color-background-universal, #FFFFFF);
           color: var(--color-primary-default, #1C1C1E);
           border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.14));
           border-radius: 999px;
-          padding: 3px 9px;
+          padding: 3px 10px;
           font-size: 11px;
           font-weight: 800;
           letter-spacing: 0.04em;
@@ -44,21 +55,19 @@ class NeighborhoodMap extends HTMLElement {
           margin-bottom: 4px;
           display: inline-flex;
           align-items: center;
-          gap: 5px;
+          gap: 6px;
           line-height: 1.2;
         }
         .active-city-pill-dot {
           width: 6px;
           height: 6px;
           border-radius: 50%;
-          background: var(--color-secondary-default, #1E4D6B);
           flex-shrink: 0;
         }
         .active-city-pin {
           width: 22px;
           height: 22px;
-          background: var(--color-secondary-default, #1E4D6B);
-          border: 2.5px solid #FFFFFF;
+          border: 2.5px solid var(--white, #FFFFFF);
           border-radius: 50% 50% 50% 0;
           transform: rotate(-45deg);
           box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
@@ -69,39 +78,15 @@ class NeighborhoodMap extends HTMLElement {
           display: block;
           width: 5px;
           height: 5px;
-          background: #FFFFFF;
+          background: var(--white, #FFFFFF);
           border-radius: 50%;
           margin: 6px auto;
-        }
-        .regional-city-marker {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          pointer-events: none;
-          white-space: nowrap;
-        }
-        .regional-city-dot {
-          width: 5px;
-          height: 5px;
-          border-radius: 50%;
-          background: #64748B;
-          border: 1px solid #FFFFFF;
-          box-shadow: 0 0 2px rgba(0, 0, 0, 0.25);
-          flex-shrink: 0;
-        }
-        .regional-city-name {
-          font-size: 10px;
-          font-weight: 700;
-          color: #334155;
-          text-shadow: 0 1px 2px #FFFFFF, 0 -1px 2px #FFFFFF, 1px 0 2px #FFFFFF, -1px 0 2px #FFFFFF, 0 0 4px #FFFFFF;
-          letter-spacing: 0.01em;
-          line-height: 1;
         }
       `;
       document.head.appendChild(style);
     }
 
-    // 2. Inject Leaflet CSS
+    // 2. Inject Leaflet CSS if not already loaded
     if (!document.querySelector('link[href*="leaflet.css"]')) {
       const cssLink = document.createElement('link');
       cssLink.rel = 'stylesheet';
@@ -125,18 +110,18 @@ class NeighborhoodMap extends HTMLElement {
     }
   }
 
-  async fetchCities() {
-    if (cachedCityData) return cachedCityData;
+  async fetchBoundaries() {
+    if (cachedBoundaryData) return cachedBoundaryData;
     try {
-      const res = await fetch('/data/city_data.json');
+      const res = await fetch('/data/city_boundaries.json');
       if (res.ok) {
-        cachedCityData = await res.json();
-        return cachedCityData;
+        cachedBoundaryData = await res.json();
+        return cachedBoundaryData;
       }
     } catch (e) {
-      console.warn('Could not load /data/city_data.json for map markers:', e);
+      console.warn('Could not load /data/city_boundaries.json:', e);
     }
-    return [];
+    return null;
   }
 
   async renderMap() {
@@ -150,73 +135,68 @@ class NeighborhoodMap extends HTMLElement {
     this.innerHTML = '';
     this.appendChild(this._canvas);
 
-    // Initialize Leaflet instance
+    // Initialize Leaflet instance locked to inner container
     this._mapInstance = window.L.map(this._canvas, {
       scrollWheelZoom: false,
       zoomControl: true
     }).setView([this.lat, this.lon], this.zoom);
 
-    // Esri World Light Gray Base Layer (Subdued, clean geography)
+    // Esri World Light Gray Base Layer (Subdued topography and water bodies)
     window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
       attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
       maxZoom: 16
     }).addTo(this._mapInstance);
 
-    // Esri World Light Gray Reference Layer (Subdued county/water lines)
+    // Esri World Light Gray Reference Layer (Subdued street labels and road numbers)
     window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 16
     }).addTo(this._mapInstance);
 
-    // Fetch and plot all 59 cities
-    const cities = await this.fetchCities();
-    const activeClean = this.activeCity.toLowerCase().replace(/[^a-z0-9]/g, '');
+    // Load and render active city boundary vector from /data/city_boundaries.json
+    const boundaries = await this.fetchBoundaries();
+    if (boundaries && boundaries.features) {
+      const activeClean = this.activeCity.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const boundaryFeature = boundaries.features.find(f => {
+        const p = f.properties || {};
+        const cName = (p.CityName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const slug = (p.slug || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const name = (p.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return cName === activeClean || slug === activeClean || name === activeClean;
+      });
 
-    cities.forEach(c => {
-      const cLat = parseFloat(c.Latitude);
-      const cLon = parseFloat(c.Longitude);
-      if (isNaN(cLat) || isNaN(cLon)) return;
-
-      const cName = c.City || '';
-      const cClean = cName.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const isActive = cClean === activeClean;
-
-      if (isActive) {
-        // Active City: Prominent Pill Badge + Alpine Blue Pin
-        const activeIcon = window.L.divIcon({
-          className: 'active-city-custom-icon',
-          html: `
-            <div class="active-city-marker-wrap">
-              <div class="active-city-pill">
-                <span class="active-city-pill-dot"></span>
-                <span>${cName}</span>
-              </div>
-              <div class="active-city-pin"></div>
-            </div>
-          `,
-          iconSize: [160, 52],
-          iconAnchor: [80, 52]
-        });
-
-        window.L.marker([cLat, cLon], { icon: activeIcon, zIndexOffset: 1000 }).addTo(this._mapInstance);
-      } else {
-        // Surrounding 58 Cities: Subtle Dot + Typographic Halo Label
-        const regionalIcon = window.L.divIcon({
-          className: 'regional-city-custom-icon',
-          html: `
-            <div class="regional-city-marker">
-              <div class="regional-city-dot"></div>
-              <div class="regional-city-name">${cName}</div>
-            </div>
-          `,
-          iconSize: [120, 16],
-          iconAnchor: [3, 8]
-        });
-
-        window.L.marker([cLat, cLon], { icon: regionalIcon, zIndexOffset: 10 }).addTo(this._mapInstance);
+      if (boundaryFeature) {
+        this._boundaryLayer = window.L.geoJSON(boundaryFeature, {
+          style: {
+            color: this.accentColor,
+            weight: 2.25,
+            opacity: 0.88,
+            lineCap: 'round',
+            lineJoin: 'round',
+            fill: false
+          }
+        }).addTo(this._mapInstance);
       }
+    }
+
+    // Active City Focal Pin with Dynamic Color Accent
+    const activeIcon = window.L.divIcon({
+      className: 'active-city-custom-icon',
+      html: `
+        <div class="active-city-marker-wrap">
+          <div class="active-city-pill">
+            <span class="active-city-pill-dot" style="background: ${this.accentColor};"></span>
+            <span>${this.activeCity}</span>
+          </div>
+          <div class="active-city-pin" style="background: ${this.accentColor};"></div>
+        </div>
+      `,
+      iconSize: [160, 52],
+      iconAnchor: [80, 52]
     });
 
-    // Invalidate size on initial mount and observe fluid resizing
+    window.L.marker([this.lat, this.lon], { icon: activeIcon, zIndexOffset: 1000 }).addTo(this._mapInstance);
+
+    // Invalidate size on initial mount and observe dynamic container resizing
     setTimeout(() => {
       if (this._mapInstance) this._mapInstance.invalidateSize();
     }, 250);

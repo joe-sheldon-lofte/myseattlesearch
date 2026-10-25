@@ -971,6 +971,56 @@ permalink: "/design-system/index.html"
     </div>
   </section>
 
+{# Test PulsePoint Embed in Section 10 of design-system.njk #}
+    <div class="widget-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1rem; box-sizing: border-box;">
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+        <div>
+          <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+            LIVE RADAR TEST
+          </span>
+          <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
+            Shoreline Fire (PulsePoint Embed)
+          </h3>
+        </div>
+
+        {# Frame Reset Button: forces an iframe refresh back to the agency root view #}
+        <button 
+          type="button" 
+          onclick="(function(){ const frame = document.getElementById('test-pulsepoint-frame'); if(frame) { const src = frame.src; frame.src = ''; setTimeout(() => { frame.src = src; }, 50); } })()"
+          style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; color: var(--color-secondary-default); background: var(--color-surface-gray); border: 1px solid var(--color-border-light); cursor: pointer; line-height: 1;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+          <span>Reset Feed</span>
+        </button>
+      </div>
+
+      {# Responsive Masking: clips header at 56px desktop / 102px mobile #}
+      <div class="pulsepoint-test-mask" style="position: relative; width: 100%; aspect-ratio: 16 / 10; min-height: 420px; border-radius: 8px; overflow: hidden; background: var(--color-surface-gray); border: 1px solid var(--color-border-light);">
+        <iframe 
+          id="test-pulsepoint-frame"
+          src="https://web.pulsepoint.org/?agencies=17D04&embed=true" 
+          style="position: absolute; top: -56px; left: 0; width: 100%; height: calc(100% + 56px); border: none;"
+          loading="lazy"
+          title="Shoreline Fire Live Dispatch">
+        </iframe>
+      </div>
+
+      <style>
+        @media (max-width: 767px) {
+          .pulsepoint-test-mask {
+            min-height: 480px !important;
+          }
+          .pulsepoint-test-mask iframe {
+            top: -102px !important;
+            height: calc(100% + 102px) !important;
+          }
+        }
+      </style>
+
+    </div>
+
 </main>
   {% endif %}
 {% endfor %}
