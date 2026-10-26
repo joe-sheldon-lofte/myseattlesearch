@@ -1,5 +1,5 @@
 <!-- File: _includes/components/widget/map-custom-dispatch.njk -->
-{% set target_city =  | default(dispatch_city_name) %}
+{% set target_city = city.City | default(dispatch_city_name) %}
 {% set map_element_id = "map-dispatch-" ~ (target_city | lower | replace(" ", "-")) %}
 
 <div class="widget-card dispatch-map-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1rem; box-sizing: border-box; height: 100%;">
@@ -14,7 +14,7 @@
         {{ target_city }} Public Dispatch
       </h3>
     </div>
-    <div style="font-size: 0.75rem; color: var(--premier-charcoal); font-weight: 600;">
+    <div style="font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; font-weight: 600;">
       Live Radar Pins
     </div>
   </div>
@@ -24,13 +24,14 @@
     <div id="{{ map_element_id }}" 
          class="leaflet-map-mount" 
          data-city="{{ target_city | lower | trim }}"
-         data-lat="{{ city.Latitude | default('') }}"
-         data-lng="{{ city.Longitude | default('') }}"
-         data-fd="{{ city['Fire Department Name'] | default('') }}"
+         data-lat="{{ city.Latitude }}"
+         data-lng="{{ city.Longitude }}"
+         data-color="var(--color-secondary-default)"
+         data-fd="{{ city['Fire Department Name'] }}"
          style="width: 100%; height: 100%; position: absolute; inset: 0;">
     </div>
   </div>
-
+  
   {# Footer Attribution #}
   <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem; font-size: 0.7rem;" class="text-body-secondary">
     <span style="color: var(--premier-charcoal);">
@@ -41,7 +42,6 @@
       <span>Auto-refreshes every 60s</span>
     </span>
   </div>
-
 </div>
 
 <script>
@@ -65,9 +65,9 @@
     const rawLng = parseFloat(el.getAttribute("data-lng"));
     const hasCoordinates = !isNaN(rawLat) && !isNaN(rawLng);
 
-    // Initial Viewport Center (Fails safely to civic boundary bounds when ready)
-    const initialLat = hasCoordinates ? rawLat : 47.7560;
-    const initialLng = hasCoordinates ? rawLng : -122.3457;
+    // Initial Viewport Center
+    const initialLat = hasCoordinates ? rawLat : 47.8209;
+    const initialLng = hasCoordinates ? rawLng : -122.3151;
 
     mapInstance = L.map(mountId, {
       zoomControl: true,
@@ -80,14 +80,14 @@
       maxZoom: 16
     }).addTo(mapInstance);
 
-    // Esri Reference Labels Top
+    // Esri Reference Labels on top
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 16
     }).addTo(mapInstance);
 
     incidentLayerGroup = L.layerGroup().addTo(mapInstance);
 
-    // Drop Municipal Centroid Marker & Tooltip
+    // Municipal Centroid Marker & Tooltip
     if (hasCoordinates) {
       const centroidIcon = L.divIcon({
         className: 'city-centroid-marker',
@@ -114,7 +114,7 @@
       });
     }
 
-    // Load Municipal Boundary Stroke (Resilient key normalization across GIS datasets)
+    // Municipal Boundary Polygon Layer
     fetch('/data/city_boundaries.json')
       .then(res => res.ok ? res.json() : null)
       .then(data => {
@@ -144,7 +144,7 @@
       })
       .catch(() => {});
 
-    // Self-fetch live telemetry if testing component standalone (board not mounted)
+    // Self-fetch live telemetry if testing component standalone
     setTimeout(() => {
       if (markersById.size === 0 && cityNameLower) {
         fetch("https://myseattlesearch-dispatch.joe-54b.workers.dev/?city=" + encodeURIComponent(cityNameLower))
@@ -207,7 +207,7 @@
           <div style="display: flex; gap: 0.4rem; font-size: 0.7rem;">
             <span style="font-weight: 700; color: ${markerColor};">${inc.status}</span>
             <span>•</span>
-            <span style="color: var(--premier-charcoal);">Units: ${units}</span>
+            <span style="color: var(--premier-charcoal); opacity: 0.7;">Units: ${units}</span>
           </div>
         </div>
       `);

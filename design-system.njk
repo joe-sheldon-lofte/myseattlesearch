@@ -583,7 +583,6 @@ permalink: "/design-system/index.html"
       <div>
         <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.transit.stats.activebuses</div>
         {% set c %}{% include "components/widget/transit-stats-activebuses.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.transit.stats-activebuses.njk" ignore missing) }}{% endset %}
         {{ renderSlot("widget.transit.stats.activebuses", c) }}
       </div>
       <div>
@@ -758,6 +757,7 @@ permalink: "/design-system/index.html"
       <div>
         <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.map.custom.dispatch</div>
         {% set c %}{% include "components/widget/map-custom-dispatch.njk" ignore missing %}{% endset %}
+        {% if c | trim | length == 0 %}{% set c %}{% include "components/widgets/map-custom-dispatch.njk" ignore missing %}{% endset %}{% endif %}
         {{ renderSlot("widget.map.custom.dispatch", c) }}
       </div>
 

@@ -3,32 +3,47 @@
 {% set city_normalized = target_city | lower | trim %}
 {% set fd_normalized = city["Fire Department Name"] | default("") | lower | trim %}
 
-{# 1. Primary Agency Resolution by City (All 38 King County PulsePoint Municipalities) #}
+{# 1. Primary Agency Resolution by City (King County, Seattle & Snohomish County) #}
 {% set pulsepoint_city_map = {
   "algona": "17D41",
+  "arlington": "31D21",
   "auburn": "17D41",
   "beaux arts village": "17M02",
   "bellevue": "17M02",
   "black diamond": "17D44",
   "bothell": "17M03",
+  "brier": "31D01",
   "burien": "17D02",
   "carnation": "17D10",
   "clyde hill": "17M02",
   "covington": "17D37",
+  "darrington": "31D21",
   "des moines": "17D39",
   "duvall": "17D45",
+  "edmonds": "31D01",
   "enumclaw": "17D28",
+  "everett": "31M01",
   "federal way": "17D39",
+  "gold bar": "31D26",
+  "granite falls": "31D07",
   "hunts point": "17M02",
+  "index": "31D28",
   "issaquah": "17D10",
   "kenmore": "17D04",
   "kent": "17D37",
   "kirkland": "17M07",
   "lake forest park": "17D04",
+  "lake stevens": "31D07",
+  "lynnwood": "31D01",
   "maple valley": "17D37",
+  "marysville": "31D12",
   "medina": "17M02",
   "mercer island": "17M09",
+  "mill creek": "31D01",
   "milton": "27D22",
+  "monroe": "31D07",
+  "mountlake terrace": "31D01",
+  "mukilteo": "31M02",
   "newcastle": "17M02",
   "normandy park": "17D02",
   "north bend": "17D10",
@@ -37,16 +52,34 @@
   "renton": "17M14",
   "sammamish": "17D10",
   "seatac": "17D37",
+  "seattle": "17M15",
   "shoreline": "17D04",
   "skykomish": "17D50",
+  "snohomish": "31D07",
   "snoqualmie": "17M16",
+  "stanwood": "31D21",
+  "sultan": "31D05",
   "tukwila": "17M17",
   "woodinville": "17D36",
+  "woodway": "31D01",
   "yarrow point": "17M02"
 } %}
 
 {# 2. Secondary Fallback Resolution by Official Fire Department Name #}
 {% set pulsepoint_fd_map = {
+  "seattle fire department": "17M15",
+  "south county fire": "31D01",
+  "south snohomish county fire & rescue": "31D01",
+  "south snohomish county fire and rescue": "31D01",
+  "everett fire department": "31M01",
+  "snohomish regional fire & rescue": "31D07",
+  "snohomish regional fire and rescue": "31D07",
+  "marysville fire district": "31D12",
+  "marysville regional fire authority": "31D12",
+  "north county fire & ems": "31D21",
+  "north county fire and ems": "31D21",
+  "mukilteo fire department": "31M02",
+  "arlington fire department": "31D21",
   "valley regional fire authority": "17D41",
   "bellevue fire department": "17M02",
   "mountain view fire & rescue": "17D44",
@@ -79,7 +112,7 @@
   <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
     <div>
       <span class="text-overline" style="color: {% if active_agency_code %}var(--card-accent-color){% else %}var(--premier-charcoal){% endif %}; font-size: 0.65rem;">
-        ACTIVE FIRE & EMS INCIDENTS
+        ACTIVE FIRE &amp; EMS INCIDENTS
       </span>
       <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
         {{ target_city }} Public Dispatch
@@ -104,7 +137,7 @@
   </div>
 
   {% if active_agency_code %}
-    {# Option B Flush Viewport Mask: Recalibrated -136px crop shears secondary navigation pills #}
+    {# Option B Flush Viewport Mask: -145px offset cleanly clears both header and sub-navigation pills #}
     <div class="pulsepoint-viewport-mask">
       <iframe 
         id="{{ frame_id }}"
@@ -132,13 +165,13 @@
   <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem; font-size: 0.7rem;" class="text-body-secondary">
     <span style="color: var(--premier-charcoal);">
       {% if active_agency_code %}
-      Agency: <strong id="{{ map_element_id }}-agency" style="color: var(--color-primary-default);">{{ city["Fire Department Name"] | default("Public CAD Feed") }}</strong>
+        Agency: <strong id="{{ frame_id }}-agency" style="color: var(--color-primary-default);">{{ city["Fire Department Name"] | default("Public CAD Feed") }}</strong>
       {% else %}
         Source: Public 911 Feeds
       {% endif %}
     </span>
     <span style="color: var(--premier-charcoal);">
-      {% if active_agency_code %}Auto-refreshes every 60s{% else %}Awaiting Configuration{% endif %}
+      {% if active_agency_code %}Auto-refreshes in real-time{% else %}Awaiting Configuration{% endif %}
     </span>
   </div>
 
@@ -156,7 +189,7 @@
     border: 1px solid var(--color-border-light);
   }
 
-  /* Desktop Option B: -145x offset cleanly removes the residual filter pill bar */
+  /* Desktop Option B: -145px offset clears vendor header controls and secondary pill bar */
   .pulsepoint-viewport-mask iframe {
     position: absolute;
     top: -145px;
