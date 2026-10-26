@@ -262,52 +262,6 @@ body {
   gap: 1rem;
 }
 
-.header-alert-indicator {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  padding: 0.45rem 0.85rem;
-  background: var(--color-background-universal);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--border-radius-squircle);
-  cursor: pointer;
-  text-decoration: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.header-alert-indicator:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-}
-
-.alert-led-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #10B981;
-  flex-shrink: 0;
-}
-
-.alert-text-stack {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.15;
-}
-
-.alert-label-top {
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 700;
-  color: #6E6E73;
-}
-
-.alert-status-bottom {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-primary-default);
-}
-
 .hamburger-btn {
   background: none;
   border: none;
@@ -425,13 +379,195 @@ body {
     grid-template-columns: 1fr;
     gap: 1.25rem;
   }
-  .header-alert-indicator {
+}
+
+/* ==========================================================================
+   9. MODULAR ALERT CENTER & LIQUID GLASS DROPDOWN
+   ========================================================================== */
+.alert-center-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.alert-center-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.45rem 0.85rem;
+  background: var(--color-background-universal);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-squircle);
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.alert-center-trigger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.alert-led-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10B981;
+  flex-shrink: 0;
+}
+
+.alert-center-trigger.has-alerts .alert-led-dot {
+  background-color: var(--color-tertiary-default);
+  box-shadow: 0 0 0 0 rgba(217, 35, 42, 0.7);
+  animation: alertPulse 2s infinite;
+}
+
+@keyframes alertPulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(217, 35, 42, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(217, 35, 42, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(217, 35, 42, 0);
+  }
+}
+
+.alert-text-stack {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.alert-label-top {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: #6E6E73;
+}
+
+.alert-status-bottom {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary-default);
+}
+
+.alert-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-squircle);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12);
+  padding: 0.5rem;
+  z-index: 1001;
+  display: none;
+}
+
+.alert-dropdown-panel.is-open {
+  display: flex;
+  flex-direction: column;
+  animation: alertFadeIn 0.2s ease forwards;
+}
+
+@keyframes alertFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.alert-categories-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.alert-category-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+}
+
+.alert-category-item:not(:last-child) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.alert-category-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #8E8E93;
+  opacity: 0.45;
+  flex-shrink: 0;
+}
+
+.alert-category-dot.is-active {
+  background-color: var(--color-tertiary-default);
+  opacity: 1;
+  animation: alertPulse 2s infinite;
+}
+
+.alert-category-dot.is-clear {
+  background-color: #10B981;
+  opacity: 1;
+}
+
+.alert-category-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: left;
+}
+
+.alert-category-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-primary-default);
+  line-height: 1.2;
+}
+
+.alert-category-status {
+  font-size: 0.72rem;
+  color: #8E8E93;
+  line-height: 1.25;
+}
+
+@media (max-width: 580px) {
+  .alert-text-stack {
     display: none;
+  }
+  .alert-center-trigger {
+    padding: 0.55rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .alert-dropdown-panel {
+    position: fixed;
+    top: 76px;
+    left: 1rem;
+    right: 1rem;
+    width: auto;
   }
 }
 
 /* ==========================================================================
-   9. MINIMALIST INTEGRATED FOOTER
+   10. MINIMALIST INTEGRATED FOOTER
    ========================================================================== */
 .integrated-footer {
   width: 100%;

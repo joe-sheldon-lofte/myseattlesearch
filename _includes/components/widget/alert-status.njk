@@ -1,34 +1,32 @@
-<!-- File: _includes/components/widget/alert-status.njk -->
-{% set has_alerts = alert_active | default(false) %}
-{% set dot_color = "#10B981" %}
-{% set status_text = alert_text | default("No Active Alerts") %}
-
-{% if has_alerts %}
-  {% set dot_color = "var(--color-tertiary-default)" %}
-  {% set status_text = alert_text | default("Active Advisory In Effect") %}
-{% endif %}
-
-<a href="{{ alert_target_url | default('#alerts') }}" 
-   class="widget-card widget-alert-status-card" 
-   aria-label="Alert Center: {{ status_text }}"
-   style="display: inline-flex; align-items: center; gap: 0.75rem; padding: 0.65rem 1rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); text-decoration: none; transition: transform 0.2s ease, box-shadow 0.2s ease;">
-  
-  {# Pulsing Status Dot #}
-  <span style="position: relative; display: flex; width: 10px; height: 10px; flex-shrink: 0;">
-    {% if has_alerts %}
-      <span style="position: absolute; inset: 0; border-radius: 50%; background: {{ dot_color }}; opacity: 0.75; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></span>
-    {% endif %}
-    <span style="position: relative; display: inline-flex; border-radius: 50%; width: 10px; height: 10px; background: {{ dot_color }};"></span>
-  </span>
-
-  {# Two-Line Indicator #}
-  <div style="display: flex; flex-direction: column; text-align: left; line-height: 1.2;">
-    <span class="text-overline" style="font-size: 0.65rem; letter-spacing: 0.08em; color: #86868b;">
-      ALERT CENTER
-    </span>
-    <span style="font-size: 0.85rem; font-weight: 700; color: var(--color-primary-default); margin-top: 1px;">
-      {{ status_text }}
-    </span>
+<div class="alert-category-item">
+    <span class="alert-category-dot"></span>
+    <div class="alert-category-content">
+      <div class="alert-category-title">Power Outages</div>
+      <div class="alert-category-status">Power Outage Alerts Not Yet Available</div>
+    </div>
   </div>
 
-</a>
+  <div class="alert-category-item">
+    <span class="alert-category-dot"></span>
+    <div class="alert-category-content">
+      <div class="alert-category-title">Earthquakes</div>
+      <div class="alert-category-status">Earthquake Alerts Not Yet Available</div>
+    </div>
+  </div>
+
+  <div class="alert-category-item">
+    <span class="alert-category-dot"></span>
+    <div class="alert-category-content">
+      <div class="alert-category-title">Wildfires</div>
+      <div class="alert-category-status">Wildfire Alerts Not Yet Available</div>
+    </div>
+  </div>
+
+  <div class="alert-category-item">
+    <span class="alert-category-dot"></span>
+    <div class="alert-category-content">
+      <div class="alert-category-title">Elections</div>
+      <div class="alert-category-status">Election Alerts Not Yet Available</div>
+    </div>
+  </div>
+</div>

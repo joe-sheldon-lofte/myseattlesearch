@@ -1,3 +1,5 @@
+<!-- File: _includes/components/header.njk -->
+```html
 <!-- Global Header -->
 <header class="global-header" id="globalHeader">
   <a href="/" class="header-brand">
@@ -5,14 +7,8 @@
   </a>
 
   <div class="header-right-controls">
-    <!-- Header Alert Center Indicator (Squircle Architecture) -->
-    <div class="header-alert-indicator" id="headerAlertIndicator">
-      <span class="alert-led-dot"></span>
-      <div class="alert-text-stack">
-        <span class="alert-label-top">Alert Center</span>
-        <span class="alert-status-bottom">No Active Alerts</span>
-      </div>
-    </div>
+    <!-- Modular Alert Center Dropdown -->
+    {% include "components/widget/alert-status.njk" ignore missing %}
 
     <!-- Apple 3-Line Hamburger Trigger -->
     <button class="hamburger-btn" aria-label="Toggle Navigation Menu" onclick="document.getElementById('menuOverlay').classList.toggle('open')">
