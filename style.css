@@ -1,5 +1,3 @@
-/* File: style.css */
-
 /* ==========================================================================
    1. GLOBAL DESIGN TOKENS
    ========================================================================== */
@@ -206,7 +204,6 @@ body {
   color: var(--color-primary-default);
   max-width: 400px;
   box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-  /* Triggers a smooth fade-in */
   opacity: 0;
   transform: translateY(10px);
   transition: opacity 0.3s ease, transform 0.3s ease;
@@ -229,4 +226,289 @@ body {
   width: 32px; height: 32px;
   cursor: pointer;
   font-weight: bold;
+}
+
+/* ==========================================================================
+   8. GLOBAL HEADER & 3-COLUMN OVERLAY MENU
+   ========================================================================== */
+.global-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--color-border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 68px;
+  padding: 0 max(1.5rem, calc((100% - var(--layout-max-width)) / 2 + 1.5rem));
+}
+
+.header-brand {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-primary-default);
+}
+
+.header-right-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-alert-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.45rem 0.85rem;
+  background: var(--color-background-universal);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-squircle);
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.header-alert-indicator:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.alert-led-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10B981;
+  flex-shrink: 0;
+}
+
+.alert-text-stack {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.alert-label-top {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: #6E6E73;
+}
+
+.alert-status-bottom {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary-default);
+}
+
+.hamburger-btn {
+  background: none;
+  border: none;
+  padding: 0.4rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+}
+
+.hamburger-line {
+  width: 22px;
+  height: 2px;
+  background-color: var(--color-primary-default);
+  border-radius: 2px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+/* 3-Column Overlay Menu Surface */
+.menu-overlay {
+  position: fixed;
+  top: 68px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--color-border-light);
+  display: none;
+  overflow-y: auto;
+  padding: 2.5rem max(1.5rem, calc((100% - var(--layout-max-width)) / 2 + 1.5rem));
+}
+
+.menu-overlay.open {
+  display: block;
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 3rem;
+  width: 100%;
+}
+
+.menu-column-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6E6E73;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.neighborhood-subregions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.subregion-block h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-secondary-default);
+  margin-bottom: 0.5rem;
+}
+
+.menu-link-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.menu-link-list a {
+  color: var(--color-primary-default);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.menu-link-list a:hover {
+  color: var(--color-secondary-default);
+}
+
+.menu-view-all {
+  margin-top: 1rem;
+}
+
+.link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-secondary-default);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+@media (max-width: 860px) {
+  .menu-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 580px) {
+  .neighborhood-subregions-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  .header-alert-indicator {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   9. MINIMALIST INTEGRATED FOOTER
+   ========================================================================== */
+.integrated-footer {
+  width: 100%;
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-surface-gray);
+  padding: 4rem max(1.5rem, calc((100% - var(--layout-max-width)) / 2 + 1.5rem)) 3.5rem;
+  color: var(--color-primary-default);
+}
+
+.footer-content-grid {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 2.5rem;
+  padding-bottom: 2.5rem;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.footer-left-anchor {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.footer-logo-redfin {
+  height: 88px;
+  width: auto;
+  display: block;
+}
+
+.footer-office-address {
+  font-size: 0.85rem;
+  color: #6E6E73;
+  line-height: 1.4;
+}
+
+.footer-right-anchor {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.footer-right-anchor a {
+  color: var(--color-primary-default);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.footer-right-anchor a:hover {
+  color: var(--color-secondary-default);
+}
+
+.footer-system-line {
+  margin-top: 2rem;
+  font-size: 0.75rem;
+  color: #6E6E73;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .footer-content-grid {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2rem;
+  }
+  .footer-right-anchor {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
 }

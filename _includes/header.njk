@@ -1,105 +1,107 @@
-<!-- File: _includes/header.njk -->
-<header class="site-header" style="position: sticky; top: 0; z-index: 1000; background: var(--color-background-universal); border-bottom: 1px solid var(--color-border-light); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
-  <div class="layout-container" style="display: flex; align-items: center; justify-content: space-between; height: 68px;">
+<!-- Global Header -->
+<header class="global-header" id="globalHeader">
+  <a href="/" class="header-brand">
+    <span>Joe Sheldon</span>
+  </a>
+
+  <div class="header-right-controls">
+    <!-- Header Alert Center Indicator (Squircle Architecture) -->
+    <div class="header-alert-indicator" id="headerAlertIndicator">
+      <span class="alert-led-dot"></span>
+      <div class="alert-text-stack">
+        <span class="alert-label-top">Alert Center</span>
+        <span class="alert-status-bottom">No Active Alerts</span>
+      </div>
+    </div>
+
+    <!-- Apple 3-Line Hamburger Trigger -->
+    <button class="hamburger-btn" aria-label="Toggle Navigation Menu" onclick="document.getElementById('menuOverlay').classList.toggle('open')">
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+    </button>
+  </div>
+</header>
+
+<!-- 3-Column Overlay Menu -->
+<div class="menu-overlay" id="menuOverlay">
+  <div class="menu-grid">
     
-    {# Brand Identity #}
-    <a href="/" style="text-decoration: none; display: flex; flex-direction: column;">
-      <span style="font-size: 1.15rem; font-weight: 800; letter-spacing: -0.02em; color: var(--color-primary-default);">
-        MySeattleSearch<span style="color: var(--color-tertiary-default);">.</span>
-      </span>
-      <span class="text-overline" style="font-size: 0.6rem; letter-spacing: 0.08em; color: var(--color-secondary-default); margin-top: -2px;">
-        Puget Sound Real Estate & Hyperlocal Data
-      </span>
-    </a>
+    <!-- Left 50%: Double-Wide 58 Neighborhood Navigation -->
+    <div>
+      <div class="menu-column-title">Explore Neighborhoods</div>
+      <div class="neighborhood-subregions-grid">
+        
+        <div class="subregion-block">
+          <h4>Eastside Hubs</h4>
+          <ul class="menu-link-list">
+            <li><a href="/neighborhood/bellevue/">Bellevue</a></li>
+            <li><a href="/neighborhood/kirkland/">Kirkland</a></li>
+            <li><a href="/neighborhood/redmond/">Redmond</a></li>
+            <li><a href="/neighborhood/issaquah/">Issaquah</a></li>
+            <li><a href="/neighborhood/mercer-island/">Mercer Island</a></li>
+          </ul>
+        </div>
 
-    {# Desktop Navigation Links #}
-    <nav class="desktop-nav" aria-label="Primary Navigation" style="display: flex; align-items: center; gap: 1.75rem;">
-      <a href="/communities/edmonds/" style="color: var(--color-primary-default); text-decoration: none; font-size: 0.85rem; font-weight: 600;">Communities</a>
-      <a href="/news/" style="color: var(--color-primary-default); text-decoration: none; font-size: 0.85rem; font-weight: 600;">News Wire</a>
-      <a href="/events/" style="color: var(--color-primary-default); text-decoration: none; font-size: 0.85rem; font-weight: 600;">Events</a>
-      <a href="/sellerproceeds/" style="color: var(--color-primary-default); text-decoration: none; font-size: 0.85rem; font-weight: 600;">Calculators</a>
-      <a href="/notebook/" style="color: var(--color-primary-default); text-decoration: none; font-size: 0.85rem; font-weight: 600;">Notebook</a>
-      <a href="/#agent" style="color: var(--color-primary-default); text-decoration: none; font-size: 0.85rem; font-weight: 600;">About Joe</a>
-    </nav>
+        <div class="subregion-block">
+          <h4>Seattle & North</h4>
+          <ul class="menu-link-list">
+            <li><a href="/neighborhood/seattle/">Seattle</a></li>
+            <li><a href="/neighborhood/shoreline/">Shoreline</a></li>
+            <li><a href="/neighborhood/bothell/">Bothell</a></li>
+            <li><a href="/neighborhood/edmonds/">Edmonds</a></li>
+            <li><a href="/neighborhood/kenmore/">Kenmore</a></li>
+          </ul>
+        </div>
 
-    {# Direct Conversion Call CTA #}
-    <div style="display: flex; align-items: center; gap: 0.75rem;">
-      <a href="tel:2066577493" 
-         aria-label="Call Joe Sheldon at (206) 657-7493"
-         style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.9rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 999px; color: var(--color-secondary-default); text-decoration: none; font-size: 0.8rem; font-weight: 700; transition: all 0.2s ease;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        <span>(206) 657-7493</span>
-      </a>
+        <div class="subregion-block">
+          <h4>Snohomish County</h4>
+          <ul class="menu-link-list">
+            <li><a href="/neighborhood/everett/">Everett</a></li>
+            <li><a href="/neighborhood/snohomish/">Snohomish</a></li>
+            <li><a href="/neighborhood/mill-creek/">Mill Creek</a></li>
+            <li><a href="/neighborhood/lake-stevens/">Lake Stevens</a></li>
+          </ul>
+        </div>
 
-      {# Mobile Hamburger Toggle Button #}
-      <button type="button" 
-              id="btn-mobile-nav-toggle" 
-              class="mobile-nav-toggle" 
-              aria-label="Toggle navigation menu" 
-              aria-expanded="false" 
-              aria-controls="mobile-nav-drawer"
-              style="display: none; background: none; border: none; padding: 0.4rem; cursor: pointer; color: var(--color-primary-default);">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
-      </button>
+        <div class="subregion-block">
+          <h4>South King & Valleys</h4>
+          <ul class="menu-link-list">
+            <li><a href="/neighborhood/renton/">Renton</a></li>
+            <li><a href="/neighborhood/kent/">Kent</a></li>
+            <li><a href="/neighborhood/auburn/">Auburn</a></li>
+            <li><a href="/neighborhood/burien/">Burien</a></li>
+          </ul>
+        </div>
+
+      </div>
+      <div class="menu-view-all">
+        <a href="/neighborhood/" class="link-arrow">View All 58 Neighborhoods →</a>
+      </div>
+    </div>
+
+    <!-- Column 2: Real Estate & Client Services -->
+    <div>
+      <div class="menu-column-title">Real Estate & Services</div>
+      <ul class="menu-link-list">
+        <li><a href="/about-joe/">About Joe</a></li>
+        <li><a href="/sellers/">Sell With Joe</a></li>
+        <li><a href="/quizzes/movedna/">MoveDNA Quiz</a></li>
+        <li><a href="/calculators/">Calculators</a></li>
+        <li><a href="/resources/">Resources</a></li>
+      </ul>
+    </div>
+
+    <!-- Column 3: Local Information & Media -->
+    <div>
+      <div class="menu-column-title">Local Information & Media</div>
+      <ul class="menu-link-list">
+        <li><a href="/neighborhood/region-sports/pro/">Regional Sports Hub</a></li>
+        <li><a href="/neighborhood/kirkland/weather/">Puget Sound Weather</a></li>
+        <li><a href="/news/">Market News Wire</a></li>
+        <li><a href="/notebook/">Social Notebook</a></li>
+      </ul>
     </div>
 
   </div>
-
-  {# Mobile Sliding Drawer #}
-  <nav id="mobile-nav-drawer" 
-       aria-label="Mobile Navigation" 
-       style="display: none; flex-direction: column; background: var(--color-background-universal); border-top: 1px solid var(--color-border-light); padding: 1.5rem; gap: 1rem;">
-    <a href="/communities/edmonds/" style="color: var(--color-primary-default); text-decoration: none; font-size: 1rem; font-weight: 600;">Communities</a>
-    <a href="/news/" style="color: var(--color-primary-default); text-decoration: none; font-size: 1rem; font-weight: 600;">News Wire</a>
-    <a href="/events/" style="color: var(--color-primary-default); text-decoration: none; font-size: 1rem; font-weight: 600;">Events</a>
-    <a href="/sellerproceeds/" style="color: var(--color-primary-default); text-decoration: none; font-size: 1rem; font-weight: 600;">Calculators</a>
-    <a href="/notebook/" style="color: var(--color-primary-default); text-decoration: none; font-size: 1rem; font-weight: 600;">Notebook</a>
-    <a href="/#agent" style="color: var(--color-primary-default); text-decoration: none; font-size: 1rem; font-weight: 600;">About Joe Sheldon</a>
-    <a href="sms:+12066577493" style="color: var(--color-secondary-default); text-decoration: none; font-size: 1rem; font-weight: 700; padding-top: 0.5rem; border-top: 1px solid var(--color-border-light);">
-      Text Joe: (206) 657-7493
-    </a>
-  </nav>
-
-  {# Responsive Header Media Query #}
-  <style>
-    @media (max-width: 860px) {
-      .desktop-nav { display: none !important; }
-      .mobile-nav-toggle { display: inline-flex !important; }
-    }
-  </style>
-
-  {# Isolated Hamburger Event Listener (SOP §2.D) #}
-  <script>
-    (function() {
-      function initMobileNav() {
-        const btn = document.getElementById('btn-mobile-nav-toggle');
-        const drawer = document.getElementById('mobile-nav-drawer');
-        if (!btn || !drawer) return;
-
-        btn.addEventListener('click', function(e) {
-          e.stopPropagation();
-          const expanded = btn.getAttribute('aria-expanded') === 'true';
-          btn.setAttribute('aria-expanded', !expanded);
-          drawer.style.display = expanded ? 'none' : 'flex';
-        });
-
-        document.addEventListener('click', function(e) {
-          if (!btn.contains(e.target) && !drawer.contains(e.target)) {
-            btn.setAttribute('aria-expanded', 'false');
-            drawer.style.display = 'none';
-          }
-        });
-      }
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initMobileNav);
-      } else {
-        initMobileNav();
-      }
-    })();
-  </script>
-</header>
+</div>

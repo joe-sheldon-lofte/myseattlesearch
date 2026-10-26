@@ -3,7 +3,11 @@ layout: base.njk
 title: "Master UI Component Sandbox | All Catalog Elements"
 permalink: "/design-system/index.html"
 ---
-<!-- File: design-system.njk -->
+
+{# Global Shell Mounting (Dual-path fallback for _includes/components/ or _includes/) #}
+{% set globalHeader %}{% include "components/header.njk" ignore missing %}{% endset %}
+{% if globalHeader | trim | length == 0 %}{% set globalHeader %}{% include "header.njk" ignore missing %}{% endset %}{% endif %}
+{{ globalHeader | safe }}
 
 {# Macro: Evaluates captured content. Renders component if file has markup, or a dashed placeholder slot if empty. #}
 {% macro renderSlot(element_name, content) %}
@@ -12,7 +16,7 @@ permalink: "/design-system/index.html"
   {% else %}
     <div class="widget-card placeholder-slot" style="border: 2px dashed rgba(0, 0, 0, 0.16); background: var(--color-surface-gray); min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 1.25rem; width: 100%; box-sizing: border-box;">
       <span class="text-overline" style="margin-bottom: 0.35rem; color: var(--premier-charcoal); opacity: 0.6; font-size: 0.7rem; word-break: break-all;">{{ element_name }}</span>
-      <span style="font-size: 0.75rem; font-weight: 700; color: var(--premier-charcoal); background: var(--color-surface-gray); padding: 0.2rem 0.65rem; border-radius: 999px;">⏳ Pending Build</span>
+      <span style="font-size: 0.75rem; font-weight: 500; color: var(--premier-charcoal); background: var(--color-surface-gray); padding: 0.2rem 0.65rem; border-radius: 9999px;">⏳ Pending Build</span>
     </div>
   {% endif %}
 {% endmacro %}
@@ -22,18 +26,18 @@ permalink: "/design-system/index.html"
 {% for c in city_source %}
   {% if (c.City | trim | lower) == "lynnwood" or (c.name | trim | lower) == "lynnwood" %}
     {% set city = c %}
-<main class="layout-container" style="padding-top: 3.5rem; padding-bottom: 9rem;">
+<main class="layout-container" style="padding-top: 3.5rem; padding-bottom: 6rem;">
 
   <header style="margin-bottom: 4rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 2rem;">
     <div class="text-overline" style="color: var(--card-accent-color);">MYSEATTLESEARCH • DESIGN SYSTEM BENCHMARK</div>
     <h1 class="text-display" style="margin-top: 0.5rem; margin-bottom: 1rem;">Full Catalog Sandbox</h1>
     <p class="text-body-secondary" style="font-size: 1.15rem; max-width: 820px; line-height: 1.55;">
-      Master component verification surface testing all 185 elements from <code>UI Upgrade - Element_Catalog.csv</code>. 
-      <br><strong>Viewing Mode: Single-Column Inspection Ledger</strong> (Live City Data Context: <strong>{{ city.City }}</strong>).
+      Master component verification surface testing all elements from <code>UI Upgrade - Element_Catalog.csv</code>. 
+      <br><strong>Viewing Mode: Single-Column Inspection Ledger</strong> (Live Neighborhood Context: <strong>{{ city.City }}</strong>).
     </p>
     <div style="display: flex; gap: 1.5rem; margin-top: 1.25rem; font-size: 0.8rem;" class="text-body-secondary">
       <div>Compiled: <strong style="color: var(--color-primary-default);">{% buildTime %}</strong></div>
-      <div>Catalog Scope: <strong style="color: var(--color-primary-default);">185 Total Items</strong></div>
+      <div>Architecture: <strong style="color: var(--color-primary-default);">Vertically Stacked Single-Column</strong></div>
     </div>
   </header>
 
@@ -62,11 +66,11 @@ permalink: "/design-system/index.html"
       <div class="widget-card" style="padding: 1.5rem;">
         <div class="text-overline" style="margin-bottom: 1rem;">Color Token Swatches</div>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; text-align: center;">
-          <div style="padding: 1rem; border-radius: var(--border-radius-squircle); background: var(--white); border: 1px solid var(--color-border-light);"><div style="font-weight: 700; font-size: 0.8rem; color: var(--premier-charcoal);">Universal White</div><div class="text-body-secondary" style="font-size: 0.7rem;">--white</div></div>
-          <div style="padding: 1rem; border-radius: var(--border-radius-squircle); background: var(--color-primary-default); color: var(--white);"><div style="font-weight: 700; font-size: 0.8rem;">Premier Charcoal</div><div style="font-size: 0.7rem; opacity: 0.8;">--premier-charcoal</div></div>
-          <div style="padding: 1rem; border-radius: var(--border-radius-squircle); background: var(--color-secondary-default); color: var(--white);"><div style="font-weight: 700; font-size: 0.8rem;">Primary Brand</div><div style="font-size: 0.7rem; opacity: 0.8;">--color-secondary-default</div></div>
-          <div style="padding: 1rem; border-radius: var(--border-radius-squircle); background: var(--card-accent-color); color: var(--white);"><div style="font-weight: 700; font-size: 0.8rem;">Card Accent</div><div style="font-size: 0.7rem; opacity: 0.8;">--card-accent-color</div></div>
-          <div style="padding: 1rem; border-radius: var(--border-radius-squircle); background: var(--color-surface-gray); border: 1px solid var(--color-border-light);"><div style="font-weight: 700; font-size: 0.8rem; color: var(--premier-charcoal);">Surface Gray</div><div class="text-body-secondary" style="font-size: 0.7rem;">--color-surface-gray</div></div>
+          <div style="padding: 1rem; border-radius: var(--border-radius-squircle); background: var(--white); border: 1px solid var(--color-border-light);"><div style="font-weight: 500; font-size: 0.8rem; color: var(--premier-charcoal);">Universal White</div><div class="text-body-secondary" style="font-size: 0.7rem;">--white</div></div>
+          <div style="padding: 1rem; border-radius: var(--border-radius-squircle); background: var(--color-primary-default); color: var(--white);"><div style="font-weight: 500; font-size: 0.8rem;">Premier Charcoal</div><div style="font-size: 0.7rem; opacity: 0.8;">--premier-charcoal</div></div>
+          <div style="padding: 1rem; border-radius: var(--border-radius-squircle); background: var(--color-secondary-default); color: var(--white);"><div style="font-weight: 500; font-size: 0.8rem;">Primary Brand</div><div style="font-size: 0.7rem; opacity: 0.8;">--color-secondary-default</div></div>
+          <div style="padding: 1rem; border-radius: var(--border-radius-squircle); background: var(--card-accent-color); color: var(--white);"><div style="font-weight: 500; font-size: 0.8rem;">Card Accent</div><div style="font-size: 0.7rem; opacity: 0.8;">--card-accent-color</div></div>
+          <div style="padding: 1rem; border-radius: var(--border-radius-squircle); background: var(--color-surface-gray); border: 1px solid var(--color-border-light);"><div style="font-weight: 500; font-size: 0.8rem; color: var(--premier-charcoal);">Surface Gray</div><div class="text-body-secondary" style="font-size: 0.7rem;">--color-surface-gray</div></div>
         </div>
       </div>
     </div>
@@ -86,7 +90,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.globe.link</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.globe.link</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -96,7 +100,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.bus</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.bus</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -106,7 +110,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.bus.communitytransit</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.bus.communitytransit</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -116,7 +120,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.bus.everetttransit</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.bus.everetttransit</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -126,7 +130,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.bus.kingcountymetro</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.bus.kingcountymetro</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -136,7 +140,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.bus.soundtransit</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.bus.soundtransit</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -146,7 +150,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.construction.zone</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.construction.zone</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -156,7 +160,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.current.neighborhood</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.current.neighborhood</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -166,7 +170,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.emergency.ambulance</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.emergency.ambulance</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -176,7 +180,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.emergency.firetruck</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.emergency.firetruck</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -186,7 +190,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.emergency.hospital</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.emergency.hospital</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -196,7 +200,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.ferry.boat</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.ferry.boat</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -206,7 +210,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.ferry.terminal</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.ferry.terminal</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -216,7 +220,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.power.outage</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.power.outage</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -226,7 +230,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.tide.station</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.tide.station</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -236,7 +240,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.train</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.train</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -246,7 +250,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.train.amtrakcascades</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.train.amtrakcascades</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -256,7 +260,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.train.linklightrail</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.train.linklightrail</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -266,7 +270,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.train.sounder</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.train.sounder</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -276,7 +280,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.trainstation</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.trainstation</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -286,7 +290,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.wildfire</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.wildfire</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -296,7 +300,7 @@ permalink: "/design-system/index.html"
           {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-default);">graphic.transit.active.seats</div>
+          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.transit.active.seats</div>
           <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
@@ -431,6 +435,7 @@ permalink: "/design-system/index.html"
       <div>
         <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.stat.card</div>
         {% set c %}{% include "components/widget/stat-card.njk" ignore missing %}{% endset %}
+        {% if c | trim | length == 0 %}{% set c %}{% include "components/widgets/stat-card.njk" ignore missing %}{% endset %}{% endif %}
         {{ renderSlot("widget.stat.card", c) }}
       </div>
       <div>
@@ -456,6 +461,7 @@ permalink: "/design-system/index.html"
       <div>
         <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.card.prose</div>
         {% set c %}{% include "components/widget/card-prose.njk" ignore missing %}{% endset %}
+        {% if c | trim | length == 0 %}{% set c %}{% include "components/widgets/widget-prose.njk" ignore missing %}{% endset %}{% endif %}
         {{ renderSlot("widget.card.prose", c) }}
       </div>
       <div>
@@ -562,7 +568,8 @@ permalink: "/design-system/index.html"
       </div>
       <div>
         <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.regional.airport.status</div>
-        {% set c %}{% include "components/widget/regional-airport-status.njk" ignore missing %}{% endset %}
+        {% set c %}{% include "components/widget/regional-airport-board.njk" ignore missing %}{% endset %}
+        {% if c | trim | length == 0 %}{% set c %}{% include "components/widget/regional-airport-status.njk" ignore missing %}{% endset %}{% endif %}
         {{ renderSlot("widget.regional.airport.status", c) }}
       </div>
       <div>
@@ -709,7 +716,8 @@ permalink: "/design-system/index.html"
       </div>
       <div>
         <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.municipal.surveillance.profile</div>
-        {% set c %}{% include "components/widget/municipal-surveillance-profile.njk" ignore missing %}{% endset %}
+        {% set c %}{% include "components/widget/municipal-surveillance.profile.njk" ignore missing %}{% endset %}
+        {% if c | trim | length == 0 %}{% set c %}{% include "components/widget/municipal-surveillance-profile.njk" ignore missing %}{% endset %}{% endif %}
         {{ renderSlot("widget.municipal.surveillance.profile", c) }}
       </div>
       <div>
@@ -741,7 +749,7 @@ permalink: "/design-system/index.html"
   </section>
 
   <!-- =========================================================================
-       10. EMERGENCY & DISPATCH BOARDS (Consolidated Verification Hub)
+       10. EMERGENCY & DISPATCH BOARDS
        ========================================================================= -->
   <section style="margin-bottom: 5.5rem;">
     <div class="text-overline">SECTION 10</div>
@@ -753,38 +761,32 @@ permalink: "/design-system/index.html"
         {% set c %}{% include "components/widget/emergency-dispatch-board.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.emergency.dispatch.board", c) }}
       </div>
-
       <div>
         <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.map.custom.dispatch</div>
         {% set c %}{% include "components/widget/map-custom-dispatch.njk" ignore missing %}{% endset %}
         {% if c | trim | length == 0 %}{% set c %}{% include "components/widgets/map-custom-dispatch.njk" ignore missing %}{% endset %}{% endif %}
         {{ renderSlot("widget.map.custom.dispatch", c) }}
       </div>
-
       <div>
         <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.map.pulsepoint</div>
         {% set c %}{% include "components/widget/map-pulsepoint.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.map.pulsepoint", c) }}
       </div>
-
       <div>
         <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.emergency.power.outage.board</div>
         {% set c %}{% include "components/widget/emergency-power-outage-board.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.emergency.power.outage.board", c) }}
       </div>
-
       <div>
         <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.emergency.severe.weather.board</div>
         {% set c %}{% include "components/widget/emergency-severe-weather-board.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.emergency.severe.weather.board", c) }}
       </div>
-
       <div>
         <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.emergency.earthquake.board</div>
         {% set c %}{% include "components/widget/emergency-earthquake-board.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.emergency.earthquake.board", c) }}
       </div>
-
       <div>
         <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.emergency.wildfire.board</div>
         {% set c %}{% include "components/widget/emergency-wildfire-board.njk" ignore missing %}{% endset %}
@@ -885,13 +887,27 @@ permalink: "/design-system/index.html"
   </section>
 
   <!-- =========================================================================
-       12. INTERACTIVE UI SHELL & DRAWERS (8 Elements)
+       12. INTERACTIVE UI SHELL & DRAWERS (Including Global Header/Footer Ledger)
        ========================================================================= -->
   <section style="margin-bottom: 5.5rem;">
     <div class="text-overline">SECTION 12</div>
     <h2 class="text-section-title" style="margin-top: 0.25rem;">Interactive UI Shell & Drawers</h2>
     
     <div style="display: flex; flex-direction: column; gap: 2.5rem; width: 100%;">
+      <div>
+        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">chrome.site.header</div>
+        {% set c %}{% include "components/header.njk" ignore missing %}{% endset %}
+        {% if c | trim | length == 0 %}{% set c %}{% include "header.njk" ignore missing %}{% endset %}{% endif %}
+        {{ renderSlot("chrome.site.header", c) }}
+      </div>
+
+      <div>
+        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">chrome.site.footer</div>
+        {% set c %}{% include "components/footer.njk" ignore missing %}{% endset %}
+        {% if c | trim | length == 0 %}{% set c %}{% include "footer.njk" ignore missing %}{% endset %}{% endif %}
+        {{ renderSlot("chrome.site.footer", c) }}
+      </div>
+
       <div>
         <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.layout.actionbar.bottom</div>
         {% set c %}{% include "components/widget/layout-actionbar-bottom.njk" ignore missing %}{% endset %}
@@ -979,3 +995,8 @@ permalink: "/design-system/index.html"
 </main>
   {% endif %}
 {% endfor %}
+
+{# Global Footer Mounting (Dual-path fallback for _includes/components/ or _includes/) #}
+{% set globalFooter %}{% include "components/footer.njk" ignore missing %}{% endset %}
+{% if globalFooter | trim | length == 0 %}{% set globalFooter %}{% include "footer.njk" ignore missing %}{% endset %}{% endif %}
+{{ globalFooter | safe }}
