@@ -1,32 +1,92 @@
-<div class="alert-category-item">
-    <span class="alert-category-dot"></span>
-    <div class="alert-category-content">
-      <div class="alert-category-title">Power Outages</div>
-      <div class="alert-category-status">Power Outage Alerts Not Yet Available</div>
-    </div>
-  </div>
+<div class="alert-center-wrapper" id="alertCenterWrapper">
+  <!-- Sits in header horizontal flow -->
+  <button type="button" 
+          class="alert-center-trigger" 
+          id="alertCenterTrigger" 
+          aria-haspopup="true" 
+          aria-expanded="false" 
+          aria-label="Alert Center: No Active Alerts">
+    <span class="alert-led-dot"></span>
+    <span class="alert-text-stack">
+      <span class="alert-label-top">Alert Center</span>
+      <span class="alert-status-bottom">No Active Alerts</span>
+    </span>
+  </button>
 
-  <div class="alert-category-item">
-    <span class="alert-category-dot"></span>
-    <div class="alert-category-content">
-      <div class="alert-category-title">Earthquakes</div>
-      <div class="alert-category-status">Earthquake Alerts Not Yet Available</div>
-    </div>
-  </div>
+  <!-- Absolutely positioned floating liquid glass panel -->
+  <div class="alert-dropdown-panel" id="alertDropdownPanel" role="region" aria-label="Alert Categories">
+    <div class="alert-categories-list">
+      
+      <div class="alert-category-item">
+        <span class="alert-category-dot"></span>
+        <div class="alert-category-content">
+          <span class="alert-category-title">Severe Weather</span>
+          <span class="alert-category-status">Severe Weather Alerts Not Yet Available</span>
+        </div>
+      </div>
 
-  <div class="alert-category-item">
-    <span class="alert-category-dot"></span>
-    <div class="alert-category-content">
-      <div class="alert-category-title">Wildfires</div>
-      <div class="alert-category-status">Wildfire Alerts Not Yet Available</div>
-    </div>
-  </div>
+      <div class="alert-category-item">
+        <span class="alert-category-dot"></span>
+        <div class="alert-category-content">
+          <span class="alert-category-title">Power Outages</span>
+          <span class="alert-category-status">Power Outage Alerts Not Yet Available</span>
+        </div>
+      </div>
 
-  <div class="alert-category-item">
-    <span class="alert-category-dot"></span>
-    <div class="alert-category-content">
-      <div class="alert-category-title">Elections</div>
-      <div class="alert-category-status">Election Alerts Not Yet Available</div>
+      <div class="alert-category-item">
+        <span class="alert-category-dot"></span>
+        <div class="alert-category-content">
+          <span class="alert-category-title">Earthquakes</span>
+          <span class="alert-category-status">Earthquake Alerts Not Yet Available</span>
+        </div>
+      </div>
+
+      <div class="alert-category-item">
+        <span class="alert-category-dot"></span>
+        <div class="alert-category-content">
+          <span class="alert-category-title">Wildfires</span>
+          <span class="alert-category-status">Wildfire Alerts Not Yet Available</span>
+        </div>
+      </div>
+
+      <div class="alert-category-item">
+        <span class="alert-category-dot"></span>
+        <div class="alert-category-content">
+          <span class="alert-category-title">Elections</span>
+          <span class="alert-category-status">Election Alerts Not Yet Available</span>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
+
+<script>
+  (function() {
+    const wrapper = document.getElementById('alertCenterWrapper');
+    const trigger = document.getElementById('alertCenterTrigger');
+    const panel = document.getElementById('alertDropdownPanel');
+    if (!wrapper || !trigger || !panel) return;
+
+    trigger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const isOpen = panel.classList.toggle('is-open');
+      trigger.setAttribute('aria-expanded', isOpen);
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!wrapper.contains(e.target)) {
+        panel.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && panel.classList.contains('is-open')) {
+        panel.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.focus();
+      }
+    });
+  })();
+</script>
