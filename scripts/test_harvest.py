@@ -61,20 +61,12 @@ def main():
     print("      MYSEATTLESEARCH TEST HARVEST RUNNER         ")
     print("==================================================\n")
 
-    # --------------------------------------------------------------------------
-    # FUTURE TEST SCRIPTS CAN BE PLACED HERE:
-    # --------------------------------------------------------------------------
-    # Example 1 (Custom Inline Test Function):
-    # def my_experimental_feature():
-    #     # Code here...
-    #     pass
-    # run_test_task("Experimental Feature Test", my_experimental_feature)
-    #
-    # Example 2 (Run a Sub-Script directly):
-    # run_test_task("Targeted Redfin Test", lambda: run_test_subscript("weekly/redfin_stats.py"))
-    # --------------------------------------------------------------------------
+    # Queue WA Covenants Ingestion Task
+    run_test_task(
+        "Ingest WA Restrictive Covenants into Cloudflare D1",
+        lambda: run_test_subscript("ingest_ccr_data.py")
+    )
 
-    print("ℹ️ No active test tasks queued. Test harness initialized cleanly.")
     print("🎉 Test suite run complete!")
 
 if __name__ == "__main__":
