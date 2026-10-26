@@ -1,5 +1,5 @@
-<!-- File: _includes/components/widget/widget.map.custom.dispatch.njk -->
-{% set target_city = city.City | default("Edmonds") %}
+<!-- File: _includes/components/widget/map-custom-dispatch.njk -->
+{% set target_city =  | default(dispatch_city_name) %}
 {% set map_element_id = "map-dispatch-" ~ (target_city | lower | replace(" ", "-")) %}
 
 <div class="widget-card dispatch-map-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1rem; box-sizing: border-box; height: 100%;">
@@ -7,28 +7,39 @@
   {# Header Row #}
   <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
     <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        SITUATIONAL MAP
+      <span class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem;">
+        ACTIVE FIRE &amp; EMS INCIDENTS
       </span>
       <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
-        {{ target_city }} Incident Telemetry
+        {{ target_city }} Public Dispatch
       </h3>
     </div>
-    <div style="font-size: 0.75rem; color: #64748B; font-weight: 600;">
+    <div style="font-size: 0.75rem; color: var(--premier-charcoal); font-weight: 600;">
       Live Radar Pins
     </div>
   </div>
 
   {# Map Canvas Container (Base Engine Substrate) #}
-  <div style="position: relative; width: 100%; min-height: 480px; flex-grow: 1; border-radius: 8px; overflow: hidden; background: var(--color-surface-gray); border: 1px solid var(--color-border-light);">
+  <div style="position: relative; width: 100%; min-height: 480px; flex-grow: 1; border-radius: var(--border-radius-squircle); overflow: hidden; background: var(--color-surface-gray); border: 1px solid var(--color-border-light);">
     <div id="{{ map_element_id }}" 
          class="leaflet-map-mount" 
          data-city="{{ target_city | lower | trim }}"
-         data-lat="{{ city.Latitude | default(47.8107) }}"
-         data-lng="{{ city.Longitude | default(-122.3774) }}"
-         data-color="{{ city.PrimaryColor | default('#1E4D6B') }}"
+         data-lat="{{ city.Latitude | default('') }}"
+         data-lng="{{ city.Longitude | default('') }}"
+         data-fd="{{ city['Fire Department Name'] | default('') }}"
          style="width: 100%; height: 100%; position: absolute; inset: 0;">
     </div>
+  </div>
+
+  {# Footer Attribution #}
+  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem; font-size: 0.7rem;" class="text-body-secondary">
+    <span style="color: var(--premier-charcoal);">
+      Agency: <strong id="{{ map_element_id }}-agency" style="color: var(--color-primary-default);">{{ city["Fire Department Name"] | default("Public CAD Feed") }}</strong>
+    </span>
+    <span style="color: var(--premier-charcoal); display: inline-flex; align-items: center; gap: 0.35rem;">
+      <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--card-accent-color); display: inline-block;"></span>
+      <span>Auto-refreshes every 60s</span>
+    </span>
   </div>
 
 </div>
@@ -39,6 +50,7 @@
   const el = document.getElementById(mountId);
   if (!el) return;
 
+  const cityNameLower = (el.getAttribute("data-city") || "").trim().toLowerCase();
   let mapInstance = null;
   let incidentLayerGroup = null;
   const markersById = new Map();
@@ -49,13 +61,18 @@
       return;
     }
 
-    const defaultLat = parseFloat(el.getAttribute("data-lat")) || 47.8107;
-    const defaultLng = parseFloat(el.getAttribute("data-lng")) || -122.3774;
+    const rawLat = parseFloat(el.getAttribute("data-lat"));
+    const rawLng = parseFloat(el.getAttribute("data-lng"));
+    const hasCoordinates = !isNaN(rawLat) && !isNaN(rawLng);
+
+    // Initial Viewport Center (Fails safely to civic boundary bounds when ready)
+    const initialLat = hasCoordinates ? rawLat : 47.7560;
+    const initialLng = hasCoordinates ? rawLng : -122.3457;
 
     mapInstance = L.map(mountId, {
       zoomControl: true,
       scrollWheelZoom: false
-    }).setView([defaultLat, defaultLng], 12);
+    }).setView([initialLat, initialLng], 12);
 
     // Esri Light Gray Canvas Base
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
@@ -63,23 +80,55 @@
       maxZoom: 16
     }).addTo(mapInstance);
 
-    // Esri Reference Labels on top
+    // Esri Reference Labels Top
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 16
     }).addTo(mapInstance);
 
     incidentLayerGroup = L.layerGroup().addTo(mapInstance);
 
-    // Load municipal boundary stroke
-    const cityNameLower = el.getAttribute("data-city");
-    const boundaryColor = el.getAttribute("data-color") || "#1E4D6B";
+    // Drop Municipal Centroid Marker & Tooltip
+    if (hasCoordinates) {
+      const centroidIcon = L.divIcon({
+        className: 'city-centroid-marker',
+        html: `
+          <div style="display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: var(--color-primary-default); border: 2px solid var(--white); box-shadow: 0 2px 6px rgba(0,0,0,0.25);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--white)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+          </div>
+        `,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
 
+      const centroidMarker = L.marker([rawLat, rawLng], { icon: centroidIcon }).addTo(mapInstance);
+      const displayTitle = cityNameLower ? cityNameLower.charAt(0).toUpperCase() + cityNameLower.slice(1) : "City Center";
+      
+      centroidMarker.bindTooltip(displayTitle, {
+        permanent: true,
+        direction: 'top',
+        offset: [0, -14],
+        className: 'city-centroid-tooltip'
+      });
+    }
+
+    // Load Municipal Boundary Stroke (Resilient key normalization across GIS datasets)
     fetch('/data/city_boundaries.json')
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        if (!data) return;
-        const feature = data.features ? data.features.find(f => (f.properties.City || f.properties.CITY_NAME || '').toLowerCase() === cityNameLower) : null;
+        if (!data || !data.features) return;
+
+        const feature = data.features.find(f => {
+          const p = f.properties || {};
+          const nameCandidate = (p.City || p.CITY || p.city || p.CITY_NAME || p.CITYNAME || p.city_name || p.NAME || p.name || p.JURISDICTION || p.jurisdiction || p.MUNI || '').toLowerCase().trim();
+          return nameCandidate === cityNameLower;
+        });
+
         if (feature) {
+          const boundaryColor = getComputedStyle(document.documentElement).getPropertyValue('--color-primary-default').trim() || 'currentColor';
+
           const boundaryLayer = L.geoJSON(feature, {
             style: {
               color: boundaryColor,
@@ -94,15 +143,31 @@
         }
       })
       .catch(() => {});
+
+    // Self-fetch live telemetry if testing component standalone (board not mounted)
+    setTimeout(() => {
+      if (markersById.size === 0 && cityNameLower) {
+        fetch("https://myseattlesearch-dispatch.joe-54b.workers.dev/?city=" + encodeURIComponent(cityNameLower))
+          .then(res => res.ok ? res.json() : null)
+          .then(data => {
+            if (data && Array.isArray(data.incidents)) {
+              renderIncidents(data.incidents);
+              if (data.agency_name) {
+                const agencyEl = document.getElementById(mountId + "-agency");
+                if (agencyEl) agencyEl.textContent = data.agency_name;
+              }
+            }
+          })
+          .catch(() => {});
+      }
+    }, 1200);
   }
 
-  // Handle incoming incident telemetry broadcasted by board
-  window.addEventListener("dispatch:data", function(e) {
+  function renderIncidents(incidents) {
     if (!mapInstance || !incidentLayerGroup) return;
     incidentLayerGroup.clearLayers();
     markersById.clear();
 
-    const incidents = e.detail.incidents || [];
     const pointsForBounds = [];
 
     incidents.forEach(inc => {
@@ -115,7 +180,7 @@
       pointsForBounds.push([lat, lng]);
 
       const isActive = inc.is_active;
-      const markerColor = isActive ? "var(--color-tertiary-default, #D9232A)" : "#64748B";
+      const markerColor = isActive ? "var(--color-tertiary-default, var(--card-accent-color))" : "var(--premier-charcoal)";
       const pulseHtml = isActive 
         ? `<div style="position: absolute; width: 22px; height: 22px; border-radius: 50%; background: rgba(217, 35, 42, 0.4); animation: dispatchPulse 1.8s infinite ease-out;"></div>` 
         : ``;
@@ -125,7 +190,7 @@
         html: `
           <div style="position: relative; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center;">
             ${pulseHtml}
-            <div style="width: 12px; height: 12px; border-radius: 50%; background: ${markerColor}; border: 2px solid #FFFFFF; box-shadow: 0 1px 4px rgba(0,0,0,0.3); z-index: 2;"></div>
+            <div style="width: 12px; height: 12px; border-radius: 50%; background: ${markerColor}; border: 2px solid var(--white); box-shadow: 0 1px 4px rgba(0,0,0,0.3); z-index: 2;"></div>
           </div>
         `,
         iconSize: [22, 22],
@@ -133,22 +198,33 @@
       });
 
       const marker = L.marker([lat, lng], { icon: customIcon }).addTo(incidentLayerGroup);
+      const units = Array.isArray(inc.units) && inc.units.length > 0 ? inc.units.join(", ") : "Assigned";
       
-      const units = Array.isArray(inc.units) ? inc.units.join(", ") : "Assigned";
       marker.bindPopup(`
-        <div style="font-family: system-ui, sans-serif; font-size: 0.75rem; padding: 0.15rem;">
-          <div style="font-weight: 800; color: #1C1C1E; font-size: 0.85rem; margin-bottom: 0.2rem;">${inc.type}</div>
-          <div style="color: #64748B; margin-bottom: 0.25rem;">📍 ${inc.address}</div>
+        <div style="font-family: system-ui, sans-serif; font-size: 0.75rem; padding: 0.2rem;">
+          <div style="font-weight: 800; color: var(--premier-charcoal); font-size: 0.85rem; margin-bottom: 0.2rem;">${inc.type}</div>
+          <div style="color: var(--premier-charcoal); margin-bottom: 0.25rem;">📍 ${inc.address}</div>
           <div style="display: flex; gap: 0.4rem; font-size: 0.7rem;">
             <span style="font-weight: 700; color: ${markerColor};">${inc.status}</span>
             <span>•</span>
-            <span style="color: #86868B;">Units: ${units}</span>
+            <span style="color: var(--premier-charcoal);">Units: ${units}</span>
           </div>
         </div>
       `);
 
       markersById.set(inc.id, marker);
     });
+  }
+
+  // Handle incoming broadcast from emergency-dispatch-board
+  window.addEventListener("dispatch:data", function(e) {
+    if (e.detail && Array.isArray(e.detail.incidents)) {
+      renderIncidents(e.detail.incidents);
+      if (e.detail.agency_name) {
+        const agencyEl = document.getElementById(mountId + "-agency");
+        if (agencyEl) agencyEl.textContent = e.detail.agency_name;
+      }
+    }
   });
 
   // Handle focus event when an incident row is clicked in the board
@@ -172,5 +248,20 @@
 @keyframes dispatchPulse {
   0% { transform: scale(0.6); opacity: 0.9; }
   100% { transform: scale(2.2); opacity: 0; }
+}
+
+.city-centroid-tooltip {
+  background: var(--color-primary-default) !important;
+  color: var(--white) !important;
+  border: 1px solid var(--color-border-light) !important;
+  border-radius: 4px !important;
+  font-weight: 700 !important;
+  font-size: 0.7rem !important;
+  padding: 2px 6px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+.city-centroid-tooltip::before {
+  border-top-color: var(--color-primary-default) !important;
 }
 </style>
