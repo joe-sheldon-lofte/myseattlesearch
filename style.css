@@ -540,3 +540,259 @@ body {
     gap: 1rem;
   }
 }
+/* ==========================================================================
+   7. UNIVERSAL SURFACES & INTERACTION PRIMITIVES
+   ========================================================================== */
+/* The Apple Card Lift */
+.widget-card-interactive {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.widget-card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* Liquid Glass (For floating action bars, dropdowns, and search trays) */
+.liquid-glass-surface {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border-light);
+}
+
+/* Recessed Well (For map canvases, code blocks, empty chart tracks) */
+.surface-well {
+  background-color: var(--color-surface-gray);
+  border-radius: 12px;
+  border: 1px solid var(--color-border-light);
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   8. UNIVERSAL MEDIA & AVATAR PRIMITIVES
+   ========================================================================== */
+.media-frame {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-surface-gray);
+  position: relative;
+}
+.media-frame-16-9 { aspect-ratio: 16 / 9; }
+.media-frame-16-10 { aspect-ratio: 16 / 10; }
+.media-frame-4-3 { aspect-ratio: 4 / 3; }
+.media-frame-1-1 { aspect-ratio: 1 / 1; }
+
+.media-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+.widget-card-interactive:hover .media-zoom {
+  transform: scale(1.03);
+}
+
+/* Curators, Agents, and Author Headshots */
+.avatar-circle {
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--color-surface-gray);
+  border: 1px solid var(--color-border-light);
+}
+.avatar-sm { width: 32px; height: 32px; }
+.avatar-md { width: 48px; height: 48px; }
+.avatar-lg { width: 64px; height: 64px; }
+
+/* ==========================================================================
+   9. UNIVERSAL DATA ATOMS (Scores, Ratings, Progress)
+   ========================================================================== */
+/* The Huge Stat Lockup (e.g., 88/100, 14 Days) */
+.stat-lockup {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  margin: 0.75rem 0 0.5rem;
+}
+.stat-denom {
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--color-secondary-muted);
+}
+
+/* Universal Rating Lockup (Businesses, Schools, Parks) */
+.rating-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #D97706; /* Warm Amber */
+}
+.rating-star { font-size: 0.85rem; line-height: 1; }
+.rating-count { font-size: 0.75rem; color: var(--color-secondary-muted); }
+
+/* Universal Linear Meter Track */
+.meter-track {
+  width: 100%;
+  height: 6px;
+  background-color: rgba(28, 28, 30, 0.06);
+  border-radius: var(--border-radius-pill);
+  overflow: hidden;
+}
+.meter-fill {
+  height: 100%;
+  background-color: var(--color-secondary-default);
+  border-radius: var(--border-radius-pill);
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.meter-fill.accent-crimson { background-color: var(--color-tertiary-default); }
+
+/* ==========================================================================
+   10. UNIVERSAL LISTS & DATA BOARDS
+   ========================================================================== */
+/* For Election Results, Dispatch Feeds, Ferry Times, and Event Lists */
+.data-list {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+.data-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-border-light);
+  gap: 1rem;
+}
+.data-list-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.data-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.data-item-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: right;
+}
+
+/* ==========================================================================
+   11. BADGES, PILLS, & STATUS INDICATORS
+   ========================================================================== */
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--border-radius-pill);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.badge-neutral { background: var(--color-surface-gray); color: var(--color-primary-default); }
+.badge-active { background: rgba(30, 77, 107, 0.1); color: var(--color-secondary-default); }
+.badge-alert { background: rgba(217, 35, 42, 0.1); color: var(--color-tertiary-default); }
+
+.status-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.led-green { background-color: var(--status-emerald); }
+.led-red { background-color: var(--pnw-red); }
+.led-gray { background-color: var(--color-secondary-muted); opacity: 0.45; }
+.led-pulse { animation: statusPulse 2s infinite; }
+
+@keyframes statusPulse {
+  0% { box-shadow: 0 0 0 0 rgba(217, 35, 42, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(217, 35, 42, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(217, 35, 42, 0); }
+}
+
+/* ==========================================================================
+   12. UNIVERSAL CARD LAYOUT WRAPPERS
+   ========================================================================== */
+.card-header-split {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.card-footer-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--color-border-light);
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+  gap: 0.5rem;
+}
+.meta-icon-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--color-secondary-muted);
+  line-height: 1.4;
+}
+
+/* Universal Action Links */
+.link-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-secondary-default);
+  text-decoration: none;
+  padding: 0.35rem 0.75rem;
+  background: var(--color-surface-gray);
+  border-radius: var(--border-radius-pill);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.link-pill:hover {
+  background: var(--color-secondary-default);
+  color: #FFFFFF;
+}
+.link-subtle {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-primary-default);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: color 0.15s ease;
+}
+.link-subtle:hover { color: var(--color-secondary-default); }
+
+/* Universal Info Trigger (The minimalist circle "+") */
+.btn-info-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border-light);
+  background: none;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--color-secondary-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+.btn-info-trigger:hover {
+  border-color: var(--color-primary-default);
+  color: var(--color-primary-default);
+}

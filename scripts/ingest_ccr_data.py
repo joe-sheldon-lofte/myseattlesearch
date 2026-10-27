@@ -69,6 +69,13 @@ def clean_text(text):
     text = text.replace("\xa0", " ").replace("Â", "")
     return re.sub(r"\s+", " ", text).strip()
 
+def sql_quote(val):
+    """Safely escapes strings for raw SQLite statements without bound parameter limits."""
+    if val is None:
+        return "''"
+    cleaned = str(val).replace("'", "''").strip()
+    return f"'{cleaned}'"
+
 def extract_field(attrs, candidate_keys, default=""):
     """Case-insensitive attribute lookup across varied ArcGIS schemas."""
     attrs_upper = {k.upper(): v for k, v in attrs.items() if v is not None}
@@ -131,8 +138,8 @@ def fetch_arcgis_parcels(session, county_name, endpoint, max_records=60000):
     offset = 0
     batch_limit = 2000
     parcels = []
-    
-    # Check schema on first record
+
+    # Schema inspection logging
     try:
         inspect_res = session.get(endpoint, params={"where": "1=1", "outFields": "*", "resultRecordCount": 1, "f": "json"}, timeout=15)
         inspect_data = inspect_res.json()
@@ -167,13 +174,15 @@ def fetch_arcgis_parcels(session, county_name, endpoint, max_records=60000):
             
         for feat in features:
             attrs = feat.get("attributes", {})
-            pin = extract_field(attrs, ["PIN", "PARCEL_ID", "PARCELID", "PARCEL", "MAJOR_MINOR", "OBJECTID"])
+            pin = extract_field(attrs, ["PIN", "PARCEL_ID", "PARCELID", "PARCEL", "PARCEL_NUM", "MAJOR_MINOR", "OBJECTID"])
             address = extract_field(attrs, ["SITUS_ADDRESS", "SITUSADDRESS", "ADDRESS", "SITE_ADDRESS", "SITEADDRESS", "ADDR", "PROPERTY_ADDRESS"])
             subdiv = extract_field(attrs, ["PLAT_NAME", "PLAT", "SUBDIVISION", "SUBDIV_NAME", "NEIGHBORHOOD"])
             status = extract_field(attrs, ["RESTRICTION_STATUS", "RESTRICTION STATUS", "STATUS"], default="Restricted")
 
             if pin:
-                clean_pin = pin.replace("-", "").strip()
+                clean_pin = str(pin).replace("-", "").strip()
+                if clean_pin.endswith(".0"):
+                    clean_pin = clean_pin[:-2]
                 if county_name == "King" and len(clean_pin) < 10:
                     clean_pin = clean_pin.zfill(10)
                 elif county_name == "Snohomish" and len(clean_pin) < 14:
@@ -184,7 +193,9 @@ def fetch_arcgis_parcels(session, county_name, endpoint, max_records=60000):
         offset += len(features)
         print(f"   Collected {len(parcels)} {county_name} parcels...")
         
-        if len(features) < batch_limit or not data.get("exceededTransferLimit", False):
+        if len(features) < batch_limit:
+            break
+        if data.get("exceededTransferLimit") is False:
             break
             
         time.sleep(0.15)
@@ -193,7 +204,7 @@ def fetch_arcgis_parcels(session, county_name, endpoint, max_records=60000):
     return parcels
 
 # ------------------------------------------------------------------------------
-# 5. D1 BATCH UPLOADERS
+# 5. D1 UPLOADERS
 # ------------------------------------------------------------------------------
 def upload_covenants_to_d1(covenants):
     if not covenants:
@@ -206,28 +217,30 @@ def upload_covenants_to_d1(covenants):
     for doc in covenants:
         try:
             execute_d1(sql, [doc["county"], doc["subdivision_name"], doc["covenant_text"], doc["document_url"]])
-        except Exception as e:
+        except Exception:
             pass
 
 def upload_parcels_to_d1(parcels, county_name):
     if not parcels:
         return
     print(f"📤 Batch-uploading {len(parcels)} {county_name} parcels into D1...")
-    chunk_size = 100
+    chunk_size = 50
     total = len(parcels)
     
     for i in range(0, total, chunk_size):
         chunk = parcels[i:i + chunk_size]
-        placeholders = ["(?, ?, ?, ?, ?)"] * len(chunk)
-        flat_params = [val for row in chunk for val in row]
+        row_values = [
+            f"({sql_quote(p[0])}, {sql_quote(p[1])}, {sql_quote(p[2])}, {sql_quote(p[3])}, {sql_quote(p[4])})"
+            for p in chunk
+        ]
         
         sql = f"""
         INSERT OR REPLACE INTO parcels (parcel_id, county, address, subdivision_name, restriction_status)
-        VALUES {','.join(placeholders)};
+        VALUES {','.join(row_values)};
         """
-        execute_d1(sql, flat_params)
+        execute_d1(sql)
         
-        if (i // chunk_size) % 25 == 0 or (i + chunk_size) >= total:
+        if (i // chunk_size) % 30 == 0 or (i + chunk_size) >= total:
             print(f"   Saved {min(i + chunk_size, total)}/{total} {county_name} parcels...")
             time.sleep(0.05)
 
@@ -238,7 +251,10 @@ def run_ingestion():
     print("🚀 Starting Unified WA Covenants & Parcels Pipeline...")
     session = create_retry_session()
 
-    # 1. Setup D1 Tables & Indexes
+    # 1. Drop existing parcels table to clear old schemas, then recreate
+    print("🔄 Ensuring clean D1 schema for 'parcels' and 'covenant_documents'...")
+    execute_d1("DROP TABLE IF EXISTS parcels;")
+    
     execute_d1("""
     CREATE TABLE IF NOT EXISTS covenant_documents (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -251,8 +267,9 @@ def run_ingestion():
         UNIQUE(county, subdivision_name)
     );
     """)
+    
     execute_d1("""
-    CREATE TABLE IF NOT EXISTS parcels (
+    CREATE TABLE parcels (
         parcel_id TEXT PRIMARY KEY,
         county TEXT NOT NULL,
         address TEXT,
@@ -260,19 +277,19 @@ def run_ingestion():
         restriction_status TEXT
     );
     """)
-    execute_d1("CREATE INDEX IF NOT EXISTS idx_parcels_address ON parcels (address);")
-    execute_d1("CREATE INDEX IF NOT EXISTS idx_parcels_subdiv ON parcels (subdivision_name);")
+    execute_d1("CREATE INDEX idx_parcels_address ON parcels (address);")
+    execute_d1("CREATE INDEX idx_parcels_subdiv ON parcels (subdivision_name);")
 
-    # 2. Harvest & Upload Covenant Documents
+    # 2. Scrape & Update Covenant Documents (~442 rows)
     king_covenants = fetch_county_subdivisions(session, "King", "https://depts.washington.edu/covenants/map_restrictions_king.shtml")
     snohomish_covenants = fetch_county_subdivisions(session, "Snohomish", "https://depts.washington.edu/covenants/map_restrictions_snohomish.shtml")
     upload_covenants_to_d1(king_covenants + snohomish_covenants)
 
-    # 3. Harvest & Upload King County Parcels
+    # 3. Harvest & Ingest King County Parcels
     king_parcels = fetch_arcgis_parcels(session, "King", KING_ARCGIS_ENDPOINT)
     upload_parcels_to_d1(king_parcels, "King")
 
-    # 4. Harvest & Upload Snohomish County Parcels
+    # 4. Harvest & Ingest Snohomish County Parcels
     snohomish_parcels = fetch_arcgis_parcels(session, "Snohomish", SNOHOMISH_ARCGIS_ENDPOINT)
     upload_parcels_to_d1(snohomish_parcels, "Snohomish")
 
