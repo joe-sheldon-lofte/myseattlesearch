@@ -1,25 +1,36 @@
 <!-- File: _includes/components/widget/municipal-surveillance.profile.njk -->
-{% set city = surveillance_city_name | default("Edmonds") %}
-{% set surv_score = surveillance_index_score | default(54) %}
+{# 
+  COMPONENT: Municipal Surveillance & Civil Liberties Profile (widget.municipal.surveillance.profile)
+  CONTRACT:
+    - surveillance_neighborhood_name / neighborhood.name / surveillance_city_name / city.City / city: String [Required]
+    - surveillance_index_score / surv_score / neighborhood.surveillance_score: Number [Required, scale 0-100]
+    - surveillance_overline_text: String [Optional, defaults to "MUNICIPAL CITIZEN MONITORING & INFRASTRUCTURE"]
+#}
 
-<div class="widget-card municipal-surveillance-profile-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
+{% set active_neighborhood = surveillance_neighborhood_name or (neighborhood.name if neighborhood else '') or surveillance_city_name or (city.City if city else '') or city %}
+{% set surv_val = surveillance_index_score if surveillance_index_score is defined else (surv_score if surv_score is defined else (neighborhood.surveillance_score if neighborhood else none)) %}
+{% set overline_label = surveillance_overline_text or "MUNICIPAL CITIZEN MONITORING & INFRASTRUCTURE" %}
+
+{% if active_neighborhood and surv_val is not none and surv_val != '' %}
+<div class="widget-card municipal-surveillance-card">
   
-  {# Header Row per edit: "MUNICIPAL CITIZEN MONITORING & INFRASTRUCTURE" #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+  {# Header Row: Civic Overline & Neighborhood Title #}
+  <div class="surveillance-header-strip">
     <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        MUNICIPAL CITIZEN MONITORING &amp; INFRASTRUCTURE
+      <span class="text-overline surveillance-overline">
+        {{ overline_label }}
       </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
-        {{ city }} Surveillance Profile
+      <h3 class="text-widget-title surveillance-headline">
+        {{ active_neighborhood }} Surveillance Profile
       </h3>
     </div>
   </div>
 
-  {# Embed Custom Surveillance Score Card #}
-  <div>
-    {% set score_surv_val = surv_score %}
+  {# Embed Custom Surveillance Score Card Chassis #}
+  <div class="surveillance-body-stage">
+    {% set score_surv_val = surv_val %}
     {% include "components/score/custom-surveillance.njk" ignore missing %}
   </div>
 
 </div>
+{% endif %}

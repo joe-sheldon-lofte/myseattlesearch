@@ -1,52 +1,76 @@
 <!-- File: _includes/components/widget/municipal-emergency-hospital.njk -->
-{% set hospital_name = emergency_hospital_name | default("Swedish Edmonds Hospital") %}
-{% set hospital_address = emergency_hospital_address | default("21601 76th Ave W, Edmonds, WA 98026") %}
-{% set hospital_dist = emergency_hospital_distance | default("1.8 Miles") %}
-{% set hospital_time = emergency_hospital_drive_time | default("5 min drive") %}
-{% set hospital_phone = emergency_hospital_phone | default("(425) 640-4000") %}
-{% set hospital_tel = emergency_hospital_tel | default("4256404000") %}
+{# 
+  COMPONENT: Emergency Medical Care & Local Hospital (widget.municipal.emergency.hospital)
+  CONTRACT:
+    - emergency_hospital_name / hospital_name / neighborhood.hospital_name: String [Required]
+    - emergency_hospital_address / hospital_address / neighborhood.hospital_address: String [Optional]
+    - emergency_hospital_distance / hospital_dist: String [Optional, e.g. "1.8 Miles"]
+    - emergency_hospital_drive_time / hospital_time: String [Optional, e.g. "5 min drive"]
+    - emergency_hospital_badge: String [Optional, defaults to "24/7 Full ER"]
+    - emergency_hospital_phone: String [Optional]
+    - emergency_hospital_tel: String [Optional]
+#}
 
-<div class="widget-card municipal-emergency-hospital-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; box-sizing: border-box;">
+{% set h_name = emergency_hospital_name or hospital_name or (neighborhood.hospital_name if neighborhood else '') %}
+{% set h_address = emergency_hospital_address or hospital_address or (neighborhood.hospital_address if neighborhood else '') %}
+{% set h_dist = emergency_hospital_distance or hospital_dist %}
+{% set h_time = emergency_hospital_drive_time or hospital_time %}
+{% set h_badge = emergency_hospital_badge or "24/7 Full ER" %}
+
+{% if h_name %}
+<div class="widget-card municipal-emergency-hospital-card">
   
-  {# Header Row #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
+  {# Header Row: Medical Overline, Title & 24/7 ER Status Badge #}
+  <div class="card-header-split hospital-header-strip">
     <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+      <span class="text-overline text-accent-alpine">
         EMERGENCY MEDICAL CARE
       </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
+      <h3 class="text-widget-title hospital-headline">
         Local Hospital
       </h3>
     </div>
-    <div style="font-size: 0.7rem; font-weight: 800; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0.2rem 0.55rem; border-radius: 999px;">
-      24/7 Full ER
-    </div>
+
+    {% if h_badge %}
+      <div class="badge-status-emerald">
+        {{ h_badge }}
+      </div>
+    {% endif %}
   </div>
 
-  {# Hospital Details (Trauma/Stroke designations removed per edit) #}
-  <div style="display: flex; align-items: center; gap: 1rem; padding: 0.35rem 0;">
-    <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+  {# Hospital Details & Graphic Icon Frame #}
+  <div class="hospital-details-row">
+    <div class="hospital-icon-frame" aria-hidden="true">
       {% include "components/graphic/map-emergency-hospital.njk" ignore missing %}
     </div>
 
-    <div>
-      <h4 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--color-primary-default);">
-        {{ hospital_name }}
+    <div class="hospital-info-stack">
+      <h4 class="hospital-name">
+        {{ h_name }}
       </h4>
-      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
-        {{ hospital_address }}
-      </div>
-      <div style="font-size: 0.75rem; font-weight: 700; color: var(--color-secondary-default); margin-top: 0.2rem; font-family: monospace;">
-        {{ hospital_dist }} • {{ hospital_time }}
-      </div>
+      
+      {% if h_address %}
+        <div class="text-body-secondary hospital-address">
+          {{ h_address }}
+        </div>
+      {% endif %}
+
+      {% if h_dist or h_time %}
+        <div class="hospital-metrics">
+          {% if h_dist %}{{ h_dist }}{% endif %}
+          {% if h_dist and h_time %} • {% endif %}
+          {% if h_time %}{{ h_time }}{% endif %}
+        </div>
+      {% endif %}
     </div>
   </div>
 
-  {# Footer Call Button #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.75rem;">
-    <div class="text-body-secondary" style="font-size: 0.75rem;">
-      In you are experiencing an emergency, call <strong>911</strong>.
+  {# Footer: 911 Emergency Protocol Notice #}
+  <div class="card-footer-strip hospital-footer-strip">
+    <div class="text-body-secondary hospital-emergency-callout">
+      In you are experiencing an emergency, call <span class="hospital-emergency-numeral">911</span>.
     </div>
   </div>
 
 </div>
+{% endif %}
