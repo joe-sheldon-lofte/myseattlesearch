@@ -1,63 +1,77 @@
 <!-- File: _includes/components/widget/elections-guide-candidates.njk -->
-{% set guide_title = candidates_guide_title | default("Candidate Reference Guide") %}
-{% set guide_sub = "Candidates appearing on your ballot." %}
-{% set disclaimer_text = "Candidate statements published exactly as submitted to the County." %}
+{# 
+  COMPONENT: Candidate Reference Guide Accordion (widget.elections.guide.candidates)
+  CONTRACT:
+    - elections_races / races: Array of Objects [Required]
+      Each race object expects:
+      - race.office / race.title: String [Required]
+      - race.candidates: Array of Objects [Required]
+        Each candidate expects:
+        - cand.name: String [Required]
+        - cand.title / cand.role: String [Optional]
+        - cand.bio / cand.statement: String [Optional]
+    - candidates_guide_title / guide_title: String [Optional, defaults to "Candidate Reference Guide"]
+    - candidates_disclaimer / disclaimer_text: String [Optional]
+#}
 
-{% set demo_races = [
-  {
-    office: "Mayor • City of Edmonds",
-    candidates: [
-      { name: "Mike Rosen", title: "Incumbent Mayor", bio: "Focusing on municipal fiscal discipline, waterfront environmental preservation, and downtown business district support." },
-      { name: "Challenger Name", title: "Community Advocate", bio: "Advocating for missing-middle housing acceleration, pedestrian sidewalk connectivity, and climate resilience." }
-    ]
-  },
-  {
-    office: "City Council • Position 1",
-    candidates: [
-      { name: "Candidate A", title: "Business Owner", bio: "Small business advocacy, budget transparency, and public safety infrastructure prioritization." },
-      { name: "Candidate B", title: "Transit Planner", bio: "Promoting regional bus transit integration, walkability, and stormwater infrastructure investments." }
-    ]
-  }
-] %}
+{% set race_list = elections_races or races %}
+{% set title = candidates_guide_title or guide_title or "Candidate Reference Guide" %}
+{% set disclaimer = candidates_disclaimer or disclaimer_text %}
 
-<div class="widget-card elections-guide-candidates-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
+{% if race_list and race_list.length > 0 %}
+<div class="widget-card elections-guide-card">
   
-  {# Header Row per edit: "CANDIDATES REFERENCE GUIDE" #}
-  <div style="border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
-    <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.25rem;">
-      {{ guide_title }}
-    </h3>
+  {# Header Row #}
+  <div class="card-header-clean">
+    <h3 class="text-widget-title">{{ title }}</h3>
   </div>
 
-  {# Accordion of Races #}
-  <div style="display: flex; flex-direction: column; gap: 0.85rem;">
-    {% for race in demo_races %}
-      <details class="election-race-accordion" style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1rem 1.25rem; cursor: pointer;" {% if loop.first %}open{% endif %}>
-        <summary style="display: flex; justify-content: space-between; align-items: center; list-style: none; font-size: 0.95rem; font-weight: 800; color: var(--color-primary-default);">
-          <span>{{ race.office }}</span>
-          <span style="font-size: 0.75rem; color: var(--color-secondary-default);">▼</span>
-        </summary>
+  {# Accordion Stack of Contested Races #}
+  <div class="election-races-stack">
+    {% for race in race_list %}
+      {% set race_office = race.office or race.title %}
+      {% if race_office and race.candidates and race.candidates.length > 0 %}
+        <details class="election-race-accordion" {% if loop.first %}open{% endif %}>
+          <summary class="accordion-summary">
+            <span class="accordion-office-title">{{ race_office }}</span>
+            <svg class="accordion-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </summary>
 
-        <div style="margin-top: 1rem; border-top: 1px solid var(--color-border-light); padding-top: 0.75rem; display: flex; flex-direction: column; gap: 0.85rem;">
-          {% for cand in race.candidates %}
-            <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 8px; padding: 0.85rem;">
-              <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                <h5 style="margin: 0; font-size: 0.9rem; font-weight: 800; color: var(--color-primary-default);">{{ cand.name }}</h5>
-                <span class="text-overline" style="font-size: 0.6rem; color: #86868b;">{{ cand.title }}</span>
-              </div>
-              <p class="text-body-secondary" style="font-size: 0.8rem; line-height: 1.45; margin: 0.35rem 0 0 0;">
-                {{ cand.bio }}
-              </p>
-            </div>
-          {% endfor %}
-        </div>
-      </details>
+          <div class="accordion-candidate-list">
+            {% for cand in race.candidates %}
+              {% if cand.name %}
+                <div class="candidate-entry-card">
+                  <div class="candidate-entry-header">
+                    <h5 class="candidate-name">{{ cand.name }}</h5>
+                    {% set role = cand.title or cand.role %}
+                    {% if role %}
+                      <span class="text-overline candidate-role-tag">{{ role }}</span>
+                    {% endif %}
+                  </div>
+                  
+                  {% set statement = cand.bio or cand.statement %}
+                  {% if statement %}
+                    <p class="text-body-secondary candidate-bio-text">
+                      {{ statement }}
+                    </p>
+                  {% endif %}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </details>
+      {% endif %}
     {% endfor %}
   </div>
 
-  {# Footer per edit #}
-  <div style="border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem;" class="text-body-secondary">
-    {{ disclaimer_text }}
-  </div>
+  {# Legal / Official Disclaimer Footer #}
+  {% if disclaimer %}
+    <div class="card-footer-strip text-body-secondary">
+      <span>{{ disclaimer }}</span>
+    </div>
+  {% endif %}
 
 </div>
+{% endif %}

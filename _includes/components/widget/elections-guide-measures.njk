@@ -1,54 +1,68 @@
 <!-- File: _includes/components/widget/elections-guide-measures.njk -->
-{% set guide_title = measures_guide_title | default("Ballot Measures & Initiatives") %}
+{# 
+  COMPONENT: Ballot Measures & Initiatives Accordion (widget.elections.guide.measures)
+  CONTRACT:
+    - elections_measures / measures: Array of Objects [Required]
+      Each measure object expects:
+      - m.code: String [Optional, e.g. "Proposition No. 1"]
+      - m.title: String [Required, e.g. "Emergency Medical Services Levy Renewal"]
+      - m.summary: String [Required]
+      - m.fiscal: String [Optional fiscal impact analysis]
+    - measures_guide_title / guide_title: String [Optional, defaults to "Ballot Measures & Initiatives"]
+    - measures_disclaimer / disclaimer_text: String [Optional]
+#}
 
-{% set demo_measures = [
-  {
-    code: "Proposition No. 1",
-    title: "Emergency Medical Services (EMS) Property Tax Levy Renewal",
-    summary: "Renews the regular property tax levy of $0.50 per $1,000 of assessed valuation for six consecutive years to fund emergency medical services, paramedic staffing, and rapid-response equipment.",
-    fiscal: "Estimated tax impact: $425 annually for a home assessed at $850,000."
-  },
-  {
-    code: "School District Capital Bond",
-    title: "Facility Modernization & Technology Capital Improvements",
-    summary: "Authorizes the issuance of general obligation bonds to replace aging middle school heating, ventilation, and seismic safety infrastructure.",
-    fiscal: "Estimated levy rate: $0.38 per $1,000 assessed valuation over 20 years."
-  }
-] %}
+{% set measure_list = elections_measures or measures %}
+{% set title = measures_guide_title or guide_title or "Ballot Measures & Initiatives" %}
+{% set disclaimer = measures_disclaimer or disclaimer_text or "Official non-partisan measure summary compiled for voter reference." %}
 
-<div class="widget-card elections-guide-measures-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
+{% if measure_list and measure_list.length > 0 %}
+<div class="widget-card elections-guide-card">
   
   {# Header Row #}
-  <div style="border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
-    <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.25rem;">
-      {{ guide_title }}
-    </h3>
+  <div class="card-header-clean">
+    <h3 class="text-widget-title">{{ title }}</h3>
   </div>
 
-  {# Accordion of Measures #}
-  <div style="display: flex; flex-direction: column; gap: 0.85rem;">
-    {% for m in demo_measures %}
-      <details class="election-measure-accordion" style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1rem 1.25rem; cursor: pointer;" {% if loop.first %}open{% endif %}>
-        <summary style="display: flex; justify-content: space-between; align-items: center; list-style: none; font-size: 0.95rem; font-weight: 800; color: var(--color-primary-default);">
-          <span>{{ m.code }}: {{ m.title }}</span>
-          <span style="font-size: 0.75rem; color: var(--color-secondary-default);">▼</span>
-        </summary>
+  {# Accordion Stack of Measures #}
+  <div class="election-races-stack">
+    {% for m in measure_list %}
+      {% if m.title %}
+        <details class="election-measure-accordion" {% if loop.first %}open{% endif %}>
+          <summary class="accordion-summary">
+            <span class="accordion-office-title">
+              {% if m.code %}{{ m.code }}: {% endif %}{{ m.title }}
+            </span>
+            <svg class="accordion-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </summary>
 
-        <div style="margin-top: 1rem; border-top: 1px solid var(--color-border-light); padding-top: 0.75rem; display: flex; flex-direction: column; gap: 0.65rem;">
-          <p class="text-body" style="font-size: 0.85rem; line-height: 1.5; margin: 0;">
-            {{ m.summary }}
-          </p>
-          <div style="background: var(--color-background-universal); border-left: 3px solid var(--color-secondary-default); padding: 0.5rem 0.75rem; font-size: 0.75rem; border-radius: 4px;">
-            <strong>Fiscal Impact:</strong> {{ m.fiscal }}
+          <div class="measure-content-body">
+            {% if m.summary %}
+              <p class="text-body measure-summary-text">
+                {{ m.summary }}
+              </p>
+            {% endif %}
+
+            {% if m.fiscal %}
+              <div class="measure-fiscal-callout">
+                <span class="fiscal-label">Fiscal Impact:</span>
+                <span class="fiscal-value text-body-secondary">{{ m.fiscal }}</span>
+              </div>
+            {% endif %}
           </div>
-        </div>
-      </details>
+        </details>
+      {% endif %}
     {% endfor %}
   </div>
 
-  {# Footer (Prosecuting Attorney boilerplate removed per edit) #}
-  <div style="border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem;" class="text-body-secondary">
-    Official non-partisan measure summary compiled for voter reference.
-  </div>
+  {# Non-partisan Disclaimer Footer #}
+  {% if disclaimer %}
+    <div class="card-footer-strip text-body-secondary">
+      <span>{{ disclaimer }}</span>
+    </div>
+  {% endif %}
 
 </div>
+{% endif %}
