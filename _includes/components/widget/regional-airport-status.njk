@@ -1,105 +1,141 @@
 <!-- File: _includes/components/widget/regional-airport-board.njk -->
-{% set board_title = airport_board_title | default("Regional Flight Board") %}
-{% set board_airport = airport_board_name | default("Seattle-Tacoma (SEA) & Paine Field (PAE)") %}
+{# 
+  COMPONENT: Regional Flight Board Telemetry (widget.regional.airport.board)
+  PURPOSE: Solari-style flight arrivals and departures across SEA and PAE.
+  CONTRACT:
+    - flight_board_items / flights / airport_flights: Array of Objects [Required]
+      Each flight expects:
+      - f.type: String [Required: "dep" or "arr"]
+      - f.airport: String [Required: e.g. "SEA", "PAE"]
+      - f.code: String [Required: e.g. "AS 1124"]
+      - f.city: String [Required: e.g. "San Francisco (SFO)"]
+      - f.time: String [Required: e.g. "3:45 PM"]
+      - f.gate: String [Optional: e.g. "C12"]
+      - f.status: String [Required: e.g. "On Time", "Boarding", "Delayed 15m"]
+      - f.status_type: String [Optional: "good", "active", "warning", "alert"]
+    - airport_board_title / board_title: String [Optional, defaults to "Regional Flight Board"]
+    - airport_board_name / board_airport: String [Optional, defaults to "Seattle-Tacoma (SEA) & Paine Field (PAE)"]
+    - airport_source_label: String [Optional, defaults to "Source: FAA and ADS-B Data"]
+#}
 
-{% set demo_flights = [
-  { type: "dep", airport: "SEA", code: "AS 1124", airline: "Alaska", city: "San Francisco (SFO)", time: "3:45 PM", gate: "C12", status: "On Time", status_type: "good" },
-  { type: "dep", airport: "PAE", code: "AS 2042", airline: "Alaska", city: "Phoenix (PHX)", time: "4:10 PM", gate: "Gate 2", status: "Boarding", status_type: "active" },
-  { type: "dep", airport: "SEA", code: "DL 882", airline: "Delta", city: "Minneapolis (MSP)", time: "4:25 PM", gate: "A4", status: "On Time", status_type: "good" },
-  { type: "dep", airport: "SEA", code: "UA 1940", airline: "United", city: "Denver (DEN)", time: "4:40 PM", gate: "B8", status: "Delayed 15m", status_type: "warning" },
-  { type: "arr", airport: "PAE", code: "AS 2185", airline: "Alaska", city: "San Diego (SAN)", time: "3:55 PM", gate: "Gate 1", status: "Landed", status_type: "good" },
-  { type: "arr", airport: "SEA", code: "AS 340", airline: "Alaska", city: "Anchorage (ANC)", time: "4:15 PM", gate: "D3", status: "On Time", status_type: "good" }
-] %}
+{% set flight_list = flight_board_items or flights or airport_flights %}
+{% set card_title = airport_board_title or board_title or "Regional Flight Board" %}
+{% set hub_caption = airport_board_name or board_airport or "Seattle-Tacoma (SEA) & Paine Field (PAE)" %}
+{% set source_text = airport_source_label or "Source: FAA and ADS-B Data" %}
 
-<div class="widget-card regional-airport-board-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
+{% if flight_list and flight_list.length > 0 %}
+<section class="widget-card regional-airport-board-card" aria-label="{{ card_title }}">
   
   {# Header Row #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem; flex-wrap: wrap; gap: 0.75rem;">
-    <div>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
-        {{ board_title }}
+  <header class="airport-board-header">
+    <div class="airport-board-title-stack">
+      <span class="text-overline text-accent-alpine">
+        TRANSIT &amp; AVIATION
+      </span>
+      <h3 class="text-widget-title airport-board-title">
+        {{ card_title }}
       </h3>
-      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
-        {{ board_airport }}
+      <div class="airport-board-subtitle">
+        {{ hub_caption }}
       </div>
     </div>
 
     {# Filter Buttons #}
-    <div style="display: flex; gap: 0.35rem; background: var(--color-surface-gray); padding: 0.25rem; border-radius: 999px; border: 1px solid var(--color-border-light);">
-      <button type="button" class="btn-apt-tab active" onclick="filterAirportBoard('all', this)" style="padding: 0.25rem 0.75rem; border-radius: 999px; border: none; background: var(--color-secondary-default); color: #FFFFFF; font-size: 0.7rem; font-weight: 700; cursor: pointer;">All</button>
-      <button type="button" class="btn-apt-tab" onclick="filterAirportBoard('dep', this)" style="padding: 0.25rem 0.75rem; border-radius: 999px; border: none; background: transparent; color: var(--color-primary-default); font-size: 0.7rem; font-weight: 700; cursor: pointer;">Departures</button>
-      <button type="button" class="btn-apt-tab" onclick="filterAirportBoard('arr', this)" style="padding: 0.25rem 0.75rem; border-radius: 999px; border: none; background: transparent; color: var(--color-primary-default); font-size: 0.7rem; font-weight: 700; cursor: pointer;">Arrivals</button>
-    </div>
-  </div>
+    <nav class="airport-board-filter-group" role="tablist" aria-label="Filter flight board">
+      <button type="button" class="btn-apt-tab is-active" data-flight-filter="all" role="tab" aria-selected="true">All</button>
+      <button type="button" class="btn-apt-tab" data-flight-filter="dep" role="tab" aria-selected="false">Departures</button>
+      <button type="button" class="btn-apt-tab" data-flight-filter="arr" role="tab" aria-selected="false">Arrivals</button>
+    </nav>
+  </header>
 
   {# Solari / Flight Board Table #}
-  <div style="overflow-x: auto;">
-    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+  <div class="airport-board-table-wrap">
+    <table class="airport-board-table">
       <thead>
-        <tr style="border-bottom: 2px solid var(--color-border-light); color: #86868b; font-size: 0.65rem;">
-          <th style="padding: 0.5rem 0.75rem;">HUB</th>
-          <th style="padding: 0.5rem 0.75rem;">FLIGHT</th>
-          <th style="padding: 0.5rem 0.75rem;">DESTINATION / ORIGIN</th>
-          <th style="padding: 0.5rem 0.75rem;">TIME</th>
-          <th style="padding: 0.5rem 0.75rem; text-align: center;">GATE</th>
-          <th style="padding: 0.5rem 0.75rem; text-align: right;">STATUS</th>
+        <tr>
+          <th>HUB</th>
+          <th>FLIGHT</th>
+          <th>DESTINATION / ORIGIN</th>
+          <th>TIME</th>
+          <th style="text-align: center;">GATE</th>
+          <th style="text-align: right;">STATUS</th>
         </tr>
       </thead>
       <tbody>
-        {% for f in demo_flights %}
-          <tr class="flight-row" data-type="{{ f.type }}" style="border-bottom: 1px solid var(--color-border-light);">
-            <td style="padding: 0.65rem 0.75rem; font-weight: 800; font-family: monospace; font-size: 0.8rem; color: {% if f.airport == 'PAE' %}var(--color-secondary-default){% else %}var(--color-primary-default){% endif %};">
-              {{ f.airport }}
-            </td>
-            <td style="padding: 0.65rem 0.75rem; font-weight: 700; font-family: monospace;">
-              {{ f.code }}
-            </td>
-            <td style="padding: 0.65rem 0.75rem; font-weight: 600; color: var(--color-primary-default);">
-              {{ f.city }}
-            </td>
-            <td style="padding: 0.65rem 0.75rem; font-family: monospace; font-weight: 700; color: #86868b;">
-              {{ f.time }}
-            </td>
-            <td style="padding: 0.65rem 0.75rem; text-align: center; font-family: monospace; font-weight: 700;">
-              {{ f.gate }}
-            </td>
-            <td style="padding: 0.65rem 0.75rem; text-align: right;">
-              <span style="display: inline-block; padding: 0.2rem 0.55rem; border-radius: 999px; font-size: 0.65rem; font-weight: 800; {% if f.status_type == 'good' %}background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.25);{% elif f.status_type == 'active' %}background: rgba(30, 77, 107, 0.12); color: var(--color-secondary-default); border: 1px solid rgba(30, 77, 107, 0.25);{% else %}background: rgba(245, 158, 11, 0.15); color: #D97706; border: 1px solid rgba(245, 158, 11, 0.25);{% endif %}">
-                {{ f.status }}
-              </span>
-            </td>
-          </tr>
+        {% for f in flight_list %}
+          {% if f.code and f.city %}
+            {% set hub_class = "hub-pae" if f.airport == "PAE" else "hub-sea" %}
+            {% set status_class = "status-good" %}
+            {% if f.status_type == "active" %}
+              {% set status_class = "status-active" %}
+            {% elif f.status_type == "warning" %}
+              {% set status_class = "status-warning" %}
+            {% elif f.status_type == "alert" %}
+              {% set status_class = "status-alert" %}
+            {% endif %}
+
+            <tr class="flight-row" data-type="{{ f.type | default('dep') }}">
+              <td class="cell-apt-hub {{ hub_class }}">
+                {{ f.airport }}
+              </td>
+              <td class="cell-apt-flight">
+                {{ f.code }}
+              </td>
+              <td class="cell-apt-destination">
+                {{ f.city }}
+              </td>
+              <td class="cell-apt-time">
+                {{ f.time }}
+              </td>
+              <td class="cell-apt-gate">
+                {{ f.gate | default("—") }}
+              </td>
+              <td class="cell-apt-status">
+                <span class="apt-status-pill {{ status_class }}">
+                  {{ f.status }}
+                </span>
+              </td>
+            </tr>
+          {% endif %}
         {% endfor %}
       </tbody>
     </table>
   </div>
 
-  {# Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem;" class="text-body-secondary">
-    <span>Source: FAA and ADS-B Data</span>
-  </div>
+  {# Footer Attribution #}
+  <footer class="airport-board-footer">
+    <span>{{ source_text }}</span>
+  </footer>
 
+  {# Scoped Zero-Hydration Filter Controller #}
   <script>
-    function filterAirportBoard(type, btn) {
-      const rows = document.querySelectorAll('.regional-airport-board-card .flight-row');
-      const tabs = document.querySelectorAll('.regional-airport-board-card .btn-apt-tab');
-      tabs.forEach(t => {
-        t.style.background = 'transparent';
-        t.style.color = 'var(--color-primary-default)';
-        t.classList.remove('active');
-      });
-      btn.style.background = 'var(--color-secondary-default)';
-      btn.style.color = '#FFFFFF';
-      btn.classList.add('active');
+    (function() {
+      const container = document.currentScript ? document.currentScript.closest('.regional-airport-board-card') : document.querySelector('.regional-airport-board-card');
+      if (!container) return;
+      const tabs = container.querySelectorAll('.btn-apt-tab');
+      const rows = container.querySelectorAll('.flight-row');
 
-      rows.forEach(r => {
-        if (type === 'all' || r.dataset.type === type) {
-          r.style.display = '';
-        } else {
-          r.style.display = 'none';
-        }
+      tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+          tabs.forEach(t => {
+            t.classList.remove('is-active');
+            t.setAttribute('aria-selected', 'false');
+          });
+          this.classList.add('is-active');
+          this.setAttribute('aria-selected', 'true');
+
+          const filter = this.getAttribute('data-flight-filter');
+          rows.forEach(r => {
+            if (filter === 'all' || r.getAttribute('data-type') === filter) {
+              r.classList.remove('is-hidden');
+            } else {
+              r.classList.add('is-hidden');
+            }
+          });
+        });
       });
-    }
+    })();
   </script>
 
-</div>
+</section>
+{% endif %}

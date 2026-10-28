@@ -1,81 +1,121 @@
 <!-- File: _includes/components/widget/region-school-ranking.njk -->
-{% set district_name = school_district_name | default("Edmonds School District No. 15") %}
-{% set psai_score = school_psai_score | default(84) %}
-{% set math_proficiency = school_math_prof | default("68.4%") %}
-{% set ela_proficiency = school_ela_prof | default("74.2%") %}
-{% set science_proficiency = school_science_prof | default("65.8%") %}
-{% set total_schools = school_total_count | default("34 Schools") %}
-{% set schools_url = school_portal_url | default("/schools/edmonds-school-district/") %}
+{# 
+  COMPONENT: Public School District Academic Benchmark (widget.region.school.ranking)
+  PURPOSE: OSPI standardized testing proficiencies (SBA Math, SBA ELA, WCAS Science) and PSAI index.
+  CONTRACT:
+    - school_district_name / district_name / district.name: String [Optional]
+    - school_psai_score / psai_score: Number [Optional, 0-100]
+    - school_math_prof / math_proficiency: String [Optional, e.g. "68.4%"]
+    - school_ela_prof / ela_proficiency: String [Optional, e.g. "74.2%"]
+    - school_science_prof / science_proficiency: String [Optional, e.g. "65.8%"]
+    - school_total_count / total_schools: String [Optional, e.g. "34 Schools"]
+    - school_portal_url / schools_url: String [Optional, link to district directory]
+    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+#}
 
-{% set psai_color = "#10B981" %}
-{% set psai_label = "PUGET SOUND ACADEMIC INDEX" %}
-{% if psai_score < 40 %}
-  {% set psai_color = "var(--color-tertiary-default)" %}
-{% elif psai_score < 55 %}
-  {% set psai_color = "#D97706" %}
-{% elif psai_score < 75 %}
-  {% set psai_color = "var(--color-secondary-default)" %}
-{% endif %}
+{% set district_name = school_district_name or district_name or (district.name if district else '') %}
+{% set psai_num = school_psai_score or psai_score %}
+{% set math_val = school_math_prof or math_proficiency %}
+{% set ela_val = school_ela_prof or ela_proficiency %}
+{% set science_val = school_science_prof or science_proficiency %}
+{% set school_count = school_total_count or total_schools %}
+{% set portal_href = school_portal_url or schools_url %}
 
-<div class="widget-card region-school-ranking-card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 240px; padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); box-sizing: border-box;">
-  
-  {# Header Row per edit: "PUGET SOUND ACADEMIC INDEX" label #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
-    <div>
-      <span class="text-overline">OSPI PUBLIC EDUCATION BENCHMARKS</span>
-      <h3 class="text-widget-title" style="margin-top: 0.25rem; font-size: 1.15rem;">School District &amp; Rankings</h3>
-      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
-        {{ district_name }}
-      </div>
-    </div>
+{% if district_name or psai_num %}
+  {% set psai_score_val = psai_num | float if psai_num else 0 %}
+  {% if psai_score_val < 40 %}
+    {% set tier_class = "psai-tier-attention" %}
+  {% elif psai_score_val < 55 %}
+    {% set tier_class = "psai-tier-moderate" %}
+  {% elif psai_score_val < 75 %}
+    {% set tier_class = "psai-tier-proficient" %}
+  {% else %}
+    {% set tier_class = "psai-tier-excellent" %}
+  {% endif %}
 
-    {# Embedded PSAI Score Badge #}
-    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem;">
-      <div style="width: 48px; height: 48px; border-radius: var(--border-radius-squircle); background: {{ psai_color }}; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-        <span style="font-size: 1.35rem; font-weight: 800; color: #FFFFFF; line-height: 1;">
-          {{ psai_score }}
+  <section class="widget-card region-school-ranking-card" aria-label="Educational benchmarks for {{ district_name | default('local school district') }}">
+    
+    {# Header Row #}
+    <header class="school-ranking-header">
+      <div class="school-district-title-stack">
+        <span class="text-overline text-accent-alpine">
+          OSPI PUBLIC EDUCATION BENCHMARKS
         </span>
+        <h3 class="text-widget-title school-district-title">
+          School District &amp; Rankings
+        </h3>
+        {% if district_name %}
+          <div class="school-district-name">
+            {{ district_name }}
+          </div>
+        {% endif %}
       </div>
-      <span class="text-overline" style="font-size: 0.6rem; color: {{ psai_color }}; text-align: right;">
-        {{ psai_label }}
+
+      {# Embedded PSAI Score Badge #}
+      {% if psai_num %}
+        <div class="school-psai-badge-col">
+          <div class="school-psai-badge {{ tier_class }}">
+            <span class="school-psai-number">
+              {{ psai_num }}
+            </span>
+          </div>
+          <span class="text-overline school-psai-label {{ tier_class }}">
+            PUGET SOUND ACADEMIC INDEX
+          </span>
+        </div>
+      {% endif %}
+    </header>
+
+    {# 3-Metric Proficiency Breakdown #}
+    {% if math_val or ela_val or science_val %}
+      <div class="school-metrics-grid">
+        {% if math_val %}
+          <div class="school-metric-card">
+            <span class="text-overline school-metric-overline">Math Prof.</span>
+            <div class="school-metric-value">
+              {{ math_val }}
+            </div>
+            <div class="school-metric-subtext">SBA Standard</div>
+          </div>
+        {% endif %}
+
+        {% if ela_val %}
+          <div class="school-metric-card">
+            <span class="text-overline school-metric-overline">ELA / Reading</span>
+            <div class="school-metric-value">
+              {{ ela_val }}
+            </div>
+            <div class="school-metric-subtext">SBA Standard</div>
+          </div>
+        {% endif %}
+
+        {% if science_val %}
+          <div class="school-metric-card">
+            <span class="text-overline school-metric-overline">Science Prof.</span>
+            <div class="school-metric-value">
+              {{ science_val }}
+            </div>
+            <div class="school-metric-subtext">WCAS Standard</div>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {# Footer Strip #}
+    <footer class="school-ranking-footer">
+      <span class="school-footer-meta">
+        {% if school_count %}{{ school_count }} • {% endif %}Source: Washington State OSPI
       </span>
-    </div>
-  </div>
+      {% if portal_href %}
+        <a href="{{ portal_href }}" class="school-schools-link">
+          <span>View local schools</span>
+          <svg class="school-link-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      {% endif %}
+    </footer>
 
-  {# 3-Metric Proficiency Breakdown #}
-  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin: 1.15rem 0;">
-    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 10px; padding: 0.75rem; text-align: center;">
-      <div class="text-overline" style="font-size: 0.6rem; color: #86868b;">Math Prof.</div>
-      <div class="text-data-huge" style="font-size: 1.35rem; margin-top: 0.25rem; line-height: 1; color: var(--color-primary-default);">
-        {{ math_proficiency }}
-      </div>
-      <div class="text-body-secondary" style="font-size: 0.65rem; margin-top: 0.2rem;">SBA Standard</div>
-    </div>
-
-    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 10px; padding: 0.75rem; text-align: center;">
-      <div class="text-overline" style="font-size: 0.6rem; color: #86868b;">ELA / Reading</div>
-      <div class="text-data-huge" style="font-size: 1.35rem; margin-top: 0.25rem; line-height: 1; color: var(--color-primary-default);">
-        {{ ela_proficiency }}
-      </div>
-      <div class="text-body-secondary" style="font-size: 0.65rem; margin-top: 0.2rem;">SBA Standard</div>
-    </div>
-
-    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 10px; padding: 0.75rem; text-align: center;">
-      <div class="text-overline" style="font-size: 0.6rem; color: #86868b;">Science Prof.</div>
-      <div class="text-data-huge" style="font-size: 1.35rem; margin-top: 0.25rem; line-height: 1; color: var(--color-primary-default);">
-        {{ science_proficiency }}
-      </div>
-      <div class="text-body-secondary" style="font-size: 0.65rem; margin-top: 0.2rem;">WCAS Standard</div>
-    </div>
-  </div>
-
-  {# Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.8rem;">
-    <span class="text-body-secondary" style="font-size: 0.7rem;">{{ total_schools }} • Source: Washington State OSPI</span>
-    <a href="{{ schools_url }}" style="color: var(--color-secondary-default); font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem;">
-      <span>View local schools</span>
-      <span aria-hidden="true">→</span>
-    </a>
-  </div>
-
-</div>
+  </section>
+{% endif %}

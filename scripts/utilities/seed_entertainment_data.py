@@ -14,10 +14,7 @@ CF_DATABASE_ID = os.getenv("CF_DATABASE_ENTERTAINMENT_ID") or os.getenv("CF_DATA
 CF_API_TOKEN = os.getenv("CF_API_TOKEN")
 
 if not all([CF_ACCOUNT_ID, CF_DATABASE_ID, CF_API_TOKEN]):
-    print("❌ [Actor Seed] Missing required Cloudflare environment variables:")
-    print(f"   CF_ACCOUNT_ID: {'✓' if CF_ACCOUNT_ID else 'MISSING'}")
-    print(f"   CF_DATABASE_ENTERTAINMENT_ID: {'✓' if CF_DATABASE_ID else 'MISSING'}")
-    print(f"   CF_API_TOKEN: {'✓' if CF_API_TOKEN else 'MISSING'}")
+    print("❌ Missing required Cloudflare environment variables.")
     sys.exit(1)
 
 D1_API_URL = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}/d1/database/{CF_DATABASE_ID}/query"
@@ -27,7 +24,6 @@ D1_HEADERS = {
 }
 
 def execute_d1_query(sql, params=None, retries=3):
-    """Executes a single SQL query against Cloudflare D1 via the REST API with retry."""
     payload = {"sql": sql}
     if params:
         payload["params"] = params
@@ -48,8 +44,7 @@ def execute_d1_query(sql, params=None, retries=3):
 
     raise RuntimeError(f"D1 Query failed permanently after {retries} attempts.")
 
-def execute_d1_batch(sql_statements, batch_size=40):
-    """Batches multiple SQL statements into single D1 calls with throttling."""
+def execute_d1_batch(sql_statements, batch_size=50):
     if not sql_statements:
         return
     for i in range(0, len(sql_statements), batch_size):
@@ -59,7 +54,6 @@ def execute_d1_batch(sql_statements, batch_size=40):
         time.sleep(0.1)
 
 def escape_sql(value):
-    """Safely escapes strings for SQL literal insertion."""
     if value is None:
         return "NULL"
     clean = str(value).replace("'", "''")
@@ -79,95 +73,87 @@ def ensure_schema():
             known_for TEXT,
             image_url TEXT
         )""",
-        "CREATE INDEX IF NOT EXISTS idx_actors_name ON actors(name)"
+        "CREATE INDEX IF NOT EXISTS idx_actors_name ON actors(name)",
+        "CREATE INDEX IF NOT EXISTS idx_actors_tmdb ON actors(tmdb_id)",
+        "CREATE INDEX IF NOT EXISTS idx_actors_imdb ON actors(imdb_id)"
     ]
-
     for stmt in schema_stmts:
         execute_d1_query(stmt)
     print("✅ Schema verified.\n")
 
 # ------------------------------------------------------------------------------
-# 3. TMDB TOP NOTABLE ACTORS HARVEST
+# 3. HARVEST ACTORS VIA WIKIDATA (WITH IMDB ID & IMAGE URL)
 # ------------------------------------------------------------------------------
-def harvest_top_actors(min_popularity=5.0):
-    print(f"🎭 Harvesting Top Notable Persons from TMDb (min_popularity >= {min_popularity})...")
+def harvest_wikidata_actors(limit=10000):
+    """
+    Pulls prominent film actors from Wikidata who have both TMDb and IMDb IDs,
+    along with their Wikimedia Commons headshots.
+    """
+    print(f"🌐 Harvesting up to {limit:,} notable actors with IMDb IDs & photos from Wikidata...")
+    wdqs_endpoint = "https://query.wikidata.org/sparql"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept-Encoding": "gzip, deflate"
+        "User-Agent": "SeattleSearchEntertainmentHub/1.0 (contact: admin@myseattlesearch.com)",
+        "Accept": "application/sparql-results+json"
     }
 
-    decompressed_data = None
-    now = datetime.datetime.now(datetime.timezone.utc)
-    for days_back in range(3):
-        date_str = (now - datetime.timedelta(days=days_back)).strftime("%m_%d_%Y")
-        url = f"https://files.tmdb.org/p/exports/person_ids_{date_str}.json.gz"
-        print(f"   Checking TMDb person export for {date_str}...")
+    # Query prominent actors ordered by sitelinks (Wikipedia notoriety)
+    sparql = f"""
+    SELECT ?person ?personLabel ?tmdbId ?imdbId ?image WHERE {{
+      ?person wdt:P106 wd:Q33999;       # Occupation: Actor
+              wdt:P4947 ?tmdbId;         # Has TMDb Person ID
+              wdt:P345 ?imdbId;          # Has IMDb ID
+              wikibase:sitelinks ?sitelinks.
+      FILTER(?sitelinks > 25)            # High cultural prominence threshold
+      OPTIONAL {{ ?person wdt:P18 ?image. }}
+      SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+    }}
+    ORDER BY DESC(?sitelinks)
+    LIMIT {limit}
+    """
 
-        try:
-            res = requests.get(url, headers=headers, timeout=45)
-            if res.status_code == 200 and len(res.content) > 1000:
-                print(f"   ✅ Found active export ({len(res.content) / 1024 / 1024:.2f} MB). Decompressing...")
-                decompressed_data = gzip.decompress(res.content).decode("utf-8")
-                break
-            else:
-                print(f"   ⚠️ Export {date_str} returned HTTP {res.status_code}")
-        except Exception as e:
-            print(f"   ⚠️ Request error for {date_str}: {e}")
+    try:
+        res = requests.get(wdqs_endpoint, params={"query": sparql}, headers=headers, timeout=60)
+        if res.status_code != 200:
+            print(f"⚠️ Wikidata returned HTTP {res.status_code}")
+            return
 
-    if not decompressed_data:
-        print("❌ Could not download TMDb person export file.\n")
-        return
+        bindings = res.json().get("results", {}).get("bindings", [])
+        print(f"✅ Received {len(bindings):,} actor profiles from Wikidata.")
 
-    statements = []
-    total_parsed = 0
-    matched_actors = 0
-
-    print("   Parsing records and filtering by popularity...")
-    for line in decompressed_data.splitlines():
-        if not line.strip():
-            continue
-        total_parsed += 1
-
-        try:
-            item = json.loads(line)
-        except Exception:
-            continue
-
-        pop = float(item.get("popularity", 0))
-        # Daily person export fields: {"id": int, "name": str, "popularity": float, "adult": bool}
-        if not item.get("adult") and pop >= min_popularity:
-            p_id = str(item["id"])
-            name = item.get("name", "Unknown")
+        statements = []
+        for row in bindings:
+            qid = row["person"]["value"].split("/")[-1]
+            name = row.get("personLabel", {}).get("value", "Unknown")
+            tmdb_id = row.get("tmdbId", {}).get("value")
+            imdb_id = row.get("imdbId", {}).get("value")
+            image_url = row.get("image", {}).get("value")
 
             statements.append(
-                f"INSERT OR IGNORE INTO actors (id, name, tmdb_id, known_for) "
-                f"VALUES ('tmdb_{p_id}', {escape_sql(name)}, {escape_sql(p_id)}, 'Popularity: {pop:.1f}')"
+                f"INSERT OR REPLACE INTO actors (id, name, imdb_id, tmdb_id, known_for, image_url) "
+                f"VALUES ({escape_sql(qid)}, {escape_sql(name)}, {escape_sql(imdb_id)}, "
+                f"{escape_sql(tmdb_id)}, 'Acting', {escape_sql(image_url)})"
             )
-            matched_actors += 1
 
-    print(f"   Parsed {total_parsed:,} total persons.")
-    print(f"   Matched {matched_actors:,} profiles meeting popularity threshold.")
+        print(f"Writing {len(statements):,} actors into D1...")
+        execute_d1_batch(statements)
+        print("✅ Finished inserting Wikidata actors into D1.\n")
 
-    if statements:
-        print(f"   Inserting {len(statements):,} actors into Cloudflare D1...")
-        execute_d1_batch(statements, batch_size=50)
-        print("✅ Finished inserting actors into D1.\n")
-    else:
-        print("⚠️ No actors matched your filter criteria.\n")
+    except Exception as e:
+        print(f"❌ Wikidata actor harvest failed: {e}\n")
 
 # ------------------------------------------------------------------------------
 # 4. MAIN CONTROLLER
 # ------------------------------------------------------------------------------
 def main():
     print("==================================================")
-    print("          SEED ENTERTAINMENT ACTORS               ")
+    print("       SEED ACTORS: IMDB + IMAGES + TMDB          ")
     print("==================================================")
     print()
-    
-    ensure_schema()
-    harvest_top_actors(min_popularity=5.0)
 
-    print("🎉 Actor ingestion complete!")
+    ensure_schema()
+    harvest_wikidata_actors(limit=10000)
+
+    print("🎉 Ingestion complete!")
 
 if __name__ == "__main__":
     main()
