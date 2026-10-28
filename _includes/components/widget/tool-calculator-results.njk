@@ -1,73 +1,96 @@
 <!-- File: _includes/components/widget/tool-calculator-results.njk -->
-{% set overline_label = calc_results_overline | default("RESULTS") %}
-{% set title_label = calc_results_title | default("Calculated Financial Summary") %}
+{# 
+  COMPONENT: Calculated Financial Summary (widget.tool.calculator.results)
+  PURPOSE: Itemized disposition settlement breakdown (Net Proceeds, Gross, Mortgage, REET, Title).
+  CONTRACT:
+    - calc_results_overline / overline_label: String [Optional, defaults to "RESULTS"]
+    - calc_results_title / title_label: String [Optional, defaults to "Calculated Financial Summary"]
+    - calc_net_cash: String [Optional, e.g. "$458,740"]
+    - calc_gross_price: String [Optional, e.g. "$850,000"]
+    - calc_mortgage_payoff: String [Optional, e.g. "$320,000"]
+    - calc_reet_tax: String [Optional, e.g. "$13,425"]
+    - calc_settlement_fees: String [Optional, e.g. "$4,845"]
+    - calc_results_slot: String (HTML safe) [Optional]
+    - content: String (HTML safe) [Optional]
+#}
 
-<div class="widget-card tool-calculator-results-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.5rem; box-sizing: border-box;">
+{% set overline = calc_results_overline or overline_label or "RESULTS" %}
+{% set title_text = calc_results_title or title_label or "Calculated Financial Summary" %}
+{% set net_val = calc_net_cash or "—" %}
+{% set gross_val = calc_gross_price or "—" %}
+{% set mortgage_val = calc_mortgage_payoff or "—" %}
+{% set reet_val = calc_reet_tax or "—" %}
+{% set fees_val = calc_settlement_fees or "—" %}
+
+<section class="widget-card tool-calculator-results-card" aria-label="{{ title_text }}">
   
-  {# Header Row per Edit: "RESULTS" overline #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.85rem;">
-    <div>
-      <span class="text-overline" style="color: var(--color-secondary-default);">
-        {{ overline_label }}
+  {# Header Row #}
+  <header class="calc-card-header">
+    <div class="calc-title-stack">
+      <span class="text-overline text-accent-alpine">
+        {{ overline }}
       </span>
-      <h3 class="text-widget-title" style="margin-top: 0.25rem;">
-        {{ title_label }}
+      <h3 class="text-widget-title calc-card-title">
+        {{ title_text }}
       </h3>
     </div>
-    <div style="font-size: 0.75rem; font-weight: 700; color: #059669; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); padding: 0.25rem 0.65rem; border-radius: 999px;">
+    <div class="calc-estimate-pill">
       Calculated Estimate
     </div>
-  </div>
+  </header>
 
-  {# Open / Customizable Results Body Section per Edit #}
-  <div class="calculator-results-body-section" style="width: 100%;">
+  {# Customizable / Bindable Results Body Section #}
+  <div class="calculator-results-body-section">
     {% if calc_results_slot %}
       {{ calc_results_slot | safe }}
     {% elif content %}
       {{ content | safe }}
     {% else %}
-      <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+      <div class="calc-results-stack">
         
         {# Primary Huge Metric Display #}
-        <div style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1.5rem; text-align: center;">
-          <div class="text-overline" style="font-size: 0.7rem; color: #86868b;">
+        <div class="calc-hero-metric-box">
+          <span class="text-overline calc-hero-metric-label">
             Estimated Net Cash in Pocket
+          </span>
+          <div class="calc-hero-metric-value" id="calc-display-net">
+            {{ net_val }}
           </div>
-          <div class="text-data-huge" style="font-size: 2.75rem; color: var(--color-secondary-default); line-height: 1.1; margin: 0.5rem 0 0.25rem 0; font-family: monospace;">
-            $458,740
-          </div>
-          <div class="text-body-secondary" style="font-size: 0.75rem;">
+          <p class="calc-hero-metric-subtext">
             Reflects mortgage payoff, Washington graduated REET, brokerage fees, and settlement costs.
-          </div>
+          </p>
         </div>
 
         {# Itemized Line-Item Breakdown #}
-        <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem;">
-          <div style="display: flex; justify-content: space-between; padding: 0.5rem 0.75rem; background: var(--color-surface-gray); border-radius: 8px;">
-            <span style="font-weight: 600; color: var(--color-primary-default);">Expected Gross Sale Price</span>
-            <span style="font-weight: 800; font-family: monospace;">+ $850,000</span>
+        <div class="calc-breakdown-list">
+          <div class="calc-breakdown-row row-gross">
+            <span class="calc-line-label">Expected Gross Sale Price</span>
+            <span class="calc-line-value value-gross">+ {{ gross_val }}</span>
           </div>
-          <div style="display: flex; justify-content: space-between; padding: 0.5rem 0.75rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 8px;">
-            <span class="text-body-secondary">Mortgage Payoff / Lien Relief</span>
-            <span style="font-weight: 700; font-family: monospace; color: var(--color-tertiary-default);">- $320,000</span>
+
+          <div class="calc-breakdown-row row-deduction">
+            <span class="calc-line-label label-muted">Mortgage Payoff / Lien Relief</span>
+            <span class="calc-line-value value-deduction">- {{ mortgage_val }}</span>
           </div>
-          <div style="display: flex; justify-content: space-between; padding: 0.5rem 0.75rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 8px;">
-            <span class="text-body-secondary">WA Graduated REET (Real Estate Excise)</span>
-            <span style="font-weight: 700; font-family: monospace; color: var(--color-tertiary-default);">- $13,425</span>
+
+          <div class="calc-breakdown-row row-deduction">
+            <span class="calc-line-label label-muted">WA Graduated REET (Real Estate Excise)</span>
+            <span class="calc-line-value value-deduction">- {{ reet_val }}</span>
           </div>
-          <div style="display: flex; justify-content: space-between; padding: 0.5rem 0.75rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 8px;">
-            <span class="text-body-secondary">Estimated Settlement &amp; Title Fees</span>
-            <span style="font-weight: 700; font-family: monospace; color: var(--color-tertiary-default);">- $4,845</span>
+
+          <div class="calc-breakdown-row row-deduction">
+            <span class="calc-line-label label-muted">Estimated Settlement &amp; Title Fees</span>
+            <span class="calc-line-value value-deduction">- {{ fees_val }}</span>
           </div>
         </div>
 
-        {# Disclaimer Box #}
-        <div style="background: var(--color-surface-gray); border-left: 3px solid var(--color-secondary-default); border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.7rem; line-height: 1.5;" class="text-body-secondary">
-          <strong>Statutory Disclaimer:</strong> Informational estimate only. Actual net proceeds will vary based on verified daily interest payoff, municipal utility prorations, and final settlement credits.
+        {# Statutory Consumer Disclaimer Box #}
+        <div class="calc-disclaimer-box">
+          <span class="calc-disclaimer-tag">Statutory Disclaimer:</span> Informational estimate only. Actual net proceeds will vary based on verified daily interest payoff, municipal utility prorations, and final settlement credits.
         </div>
 
       </div>
     {% endif %}
   </div>
 
-</div>
+</section>

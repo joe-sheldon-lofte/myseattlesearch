@@ -1,74 +1,106 @@
 <!-- File: _includes/components/widget/tool-calculator-viewport.njk -->
-{% set form_id = calc_form_id | default("calculator-form") %}
-{% set overline_label = calc_overline | default("CALCULATOR") %}
-{% set title_label = calc_title | default("Financial Modeling & Planning Parameters") %}
+{# 
+  COMPONENT: Financial Modeling & Planning Viewport (widget.tool.calculator.viewport)
+  PURPOSE: User inputs for estimated home value, mortgage balance, and REET tax jurisdiction.
+  CONTRACT:
+    - calc_form_id / form_id: String [Optional, defaults to "calculator-form"]
+    - calc_overline / overline_label: String [Optional, defaults to "CALCULATOR"]
+    - calc_title / title_label: String [Optional, defaults to "Financial Modeling & Planning Parameters"]
+    - calc_sale_price: Number or String [Optional]
+    - calc_mortgage_balance: Number or String [Optional]
+    - calc_county_code: String [Optional, e.g. "snohomish", "king", "pierce"]
+    - calc_body_slot: String (HTML safe) [Optional]
+    - content: String (HTML safe) [Optional]
+#}
 
-<div class="widget-card tool-calculator-viewport-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.5rem; box-sizing: border-box;">
+{% set fid = calc_form_id or form_id or "calculator-form" %}
+{% set overline = calc_overline or overline_label or "CALCULATOR" %}
+{% set title_text = calc_title or title_label or "Financial Modeling & Planning Parameters" %}
+
+<section class="widget-card tool-calculator-viewport-card" aria-label="{{ title_text }}">
   
-  {# Header Row per Edit #}
-  <div style="border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.85rem;">
-    <span class="text-overline" style="color: var(--color-secondary-default);">
-      {{ overline_label }}
-    </span>
-    <h3 class="text-widget-title" style="margin-top: 0.25rem;">
-      {{ title_label }}
-    </h3>
-  </div>
+  {# Header Row #}
+  <header class="calc-card-header">
+    <div class="calc-title-stack">
+      <span class="text-overline text-accent-alpine">
+        {{ overline }}
+      </span>
+      <h3 class="text-widget-title calc-card-title">
+        {{ title_text }}
+      </h3>
+    </div>
+  </header>
 
-  {# Open / Customizable Calculator Body Section per Edit #}
-  <div class="calculator-body-section" style="width: 100%;">
+  {# Customizable Calculator Form #}
+  <div class="calculator-body-section">
     {% if calc_body_slot %}
       {{ calc_body_slot | safe }}
     {% elif content %}
       {{ content | safe }}
     {% else %}
-      <form id="{{ form_id }}" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1.25rem;">
+      <form id="{{ fid }}" class="calc-form-container" onsubmit="event.preventDefault();">
         
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem;">
+        <div class="calc-fields-grid">
           
-          <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-            <label for="calc-sale-price" class="text-overline" style="font-size: 0.65rem; color: #86868b;">
+          {# Estimated Home Value #}
+          <div class="calc-field-group">
+            <label for="calc-sale-price" class="text-overline calc-field-label">
               Estimated Home Value ($)
             </label>
-            <div style="position: relative; display: flex; align-items: center;">
-              <span style="position: absolute; left: 12px; font-weight: 700; color: #86868b;" aria-hidden="true">$</span>
-              <input type="number" id="calc-sale-price" name="sale_price" value="850000" step="5000"
-                     style="width: 100%; padding: 0.75rem 0.75rem 0.75rem 1.85rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 10px; font-size: 0.95rem; font-weight: 700; color: var(--color-primary-default); font-family: monospace;">
+            <div class="calc-input-wrapper">
+              <span class="calc-currency-symbol" aria-hidden="true">$</span>
+              <input type="number" 
+                     id="calc-sale-price" 
+                     name="sale_price" 
+                     {% if calc_sale_price %}value="{{ calc_sale_price }}"{% endif %}
+                     placeholder="e.g. 850,000"
+                     step="5000"
+                     class="calc-input-number">
             </div>
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-            <label for="calc-mortgage-bal" class="text-overline" style="font-size: 0.65rem; color: #86868b;">
+          {# Current Mortgage Payoff #}
+          <div class="calc-field-group">
+            <label for="calc-mortgage-bal" class="text-overline calc-field-label">
               Current Mortgage Payoff ($)
             </label>
-            <div style="position: relative; display: flex; align-items: center;">
-              <span style="position: absolute; left: 12px; font-weight: 700; color: #86868b;" aria-hidden="true">$</span>
-              <input type="number" id="calc-mortgage-bal" name="mortgage_balance" value="320000" step="5000"
-                     style="width: 100%; padding: 0.75rem 0.75rem 0.75rem 1.85rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 10px; font-size: 0.95rem; font-weight: 700; color: var(--color-primary-default); font-family: monospace;">
+            <div class="calc-input-wrapper">
+              <span class="calc-currency-symbol" aria-hidden="true">$</span>
+              <input type="number" 
+                     id="calc-mortgage-bal" 
+                     name="mortgage_balance" 
+                     {% if calc_mortgage_balance %}value="{{ calc_mortgage_balance }}"{% endif %}
+                     placeholder="e.g. 320,000"
+                     step="5000"
+                     class="calc-input-number">
             </div>
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-            <label for="calc-county" class="text-overline" style="font-size: 0.65rem; color: #86868b;">
+          {# Jurisdiction (REET Tier) #}
+          <div class="calc-field-group">
+            <label for="calc-county" class="text-overline calc-field-label">
               Jurisdiction (REET Tier)
             </label>
-            <select id="calc-county" name="county" 
-                    style="width: 100%; padding: 0.75rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 10px; font-size: 0.9rem; font-weight: 700; color: var(--color-primary-default);">
-              <option value="snohomish" selected>Snohomish County (Edmonds / Lynnwood)</option>
-              <option value="king">King County (Seattle / Shoreline)</option>
-              <option value="pierce">Pierce County (Tacoma)</option>
+            <select id="calc-county" name="county" class="calc-select">
+              <option value="snohomish" {% if calc_county_code == 'snohomish' %}selected{% endif %}>Snohomish County (Edmonds / Lynnwood)</option>
+              <option value="king" {% if calc_county_code == 'king' %}selected{% endif %}>King County (Seattle / Shoreline)</option>
+              <option value="pierce" {% if calc_county_code == 'pierce' %}selected{% endif %}>Pierce County (Tacoma)</option>
             </select>
           </div>
 
         </div>
 
-        <button type="submit" 
-                style="width: 100%; padding: 0.85rem 1.5rem; background: var(--color-secondary-default); color: #FFFFFF; border: none; border-radius: 999px; font-size: 0.9rem; font-weight: 800; cursor: pointer;">
-          Calculate Estimate →
+        {# Action Trigger #}
+        <button type="submit" class="btn-calc-submit">
+          <span>Calculate Estimate</span>
+          <svg class="btn-calc-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
         </button>
 
       </form>
     {% endif %}
   </div>
 
-</div>
+</section>

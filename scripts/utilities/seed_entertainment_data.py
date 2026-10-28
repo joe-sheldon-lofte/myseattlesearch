@@ -84,11 +84,7 @@ def ensure_schema():
 # ------------------------------------------------------------------------------
 # 3. HARVEST ACTORS VIA WIKIDATA (WITH IMDB ID & IMAGE URL)
 # ------------------------------------------------------------------------------
-def harvest_wikidata_actors(limit=10000):
-    """
-    Pulls prominent film actors from Wikidata who have both TMDb and IMDb IDs,
-    along with their Wikimedia Commons headshots.
-    """
+def harvest_wikidata_actors(limit=8000):
     print(f"🌐 Harvesting up to {limit:,} notable actors with IMDb IDs & photos from Wikidata...")
     wdqs_endpoint = "https://query.wikidata.org/sparql"
     headers = {
@@ -96,34 +92,38 @@ def harvest_wikidata_actors(limit=10000):
         "Accept": "application/sparql-results+json"
     }
 
-    # Query prominent actors ordered by sitelinks (Wikipedia notoriety)
+    # Highly index-optimized SPARQL: joins only indexed triples and English labels
     sparql = f"""
-    SELECT ?person ?personLabel ?tmdbId ?imdbId ?image WHERE {{
-      ?person wdt:P106 wd:Q33999;       # Occupation: Actor
-              wdt:P4947 ?tmdbId;         # Has TMDb Person ID
-              wdt:P345 ?imdbId;          # Has IMDb ID
-              wikibase:sitelinks ?sitelinks.
-      FILTER(?sitelinks > 25)            # High cultural prominence threshold
-      OPTIONAL {{ ?person wdt:P18 ?image. }}
-      SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+    SELECT ?person ?name ?tmdbId ?imdbId ?image WHERE {{
+      ?person wdt:P106 wd:Q33999;     # Occupation: Actor
+              wdt:P4947 ?tmdbId;       # TMDb Person ID
+              wdt:P345 ?imdbId;        # IMDb ID (nm...)
+              wdt:P18 ?image;          # Commons portrait (filters out obscure extras)
+              rdfs:label ?name.
+      FILTER(LANG(?name) = "en")
     }}
-    ORDER BY DESC(?sitelinks)
     LIMIT {limit}
     """
 
     try:
-        res = requests.get(wdqs_endpoint, params={"query": sparql}, headers=headers, timeout=60)
+        res = requests.get(wdqs_endpoint, params={"query": sparql}, headers=headers, timeout=55)
         if res.status_code != 200:
-            print(f"⚠️ Wikidata returned HTTP {res.status_code}")
+            print(f"⚠️ Wikidata returned HTTP {res.status_code}: {res.text[:200]}")
             return
 
         bindings = res.json().get("results", {}).get("bindings", [])
         print(f"✅ Received {len(bindings):,} actor profiles from Wikidata.")
 
         statements = []
+        seen_qids = set()
+
         for row in bindings:
             qid = row["person"]["value"].split("/")[-1]
-            name = row.get("personLabel", {}).get("value", "Unknown")
+            if qid in seen_qids:
+                continue
+            seen_qids.add(qid)
+
+            name = row.get("name", {}).get("value", "Unknown")
             tmdb_id = row.get("tmdbId", {}).get("value")
             imdb_id = row.get("imdbId", {}).get("value")
             image_url = row.get("image", {}).get("value")
@@ -134,13 +134,15 @@ def harvest_wikidata_actors(limit=10000):
                 f"{escape_sql(tmdb_id)}, 'Acting', {escape_sql(image_url)})"
             )
 
-        print(f"Writing {len(statements):,} actors into D1...")
-        execute_d1_batch(statements)
-        print("✅ Finished inserting Wikidata actors into D1.\n")
+        if statements:
+            print(f"Writing {len(statements):,} actors into D1...")
+            execute_d1_batch(statements, batch_size=50)
+            print("✅ Finished inserting Wikidata actors into D1.\n")
+        else:
+            print("⚠️ No actor records to insert.")
 
     except Exception as e:
         print(f"❌ Wikidata actor harvest failed: {e}\n")
-
 # ------------------------------------------------------------------------------
 # 4. MAIN CONTROLLER
 # ------------------------------------------------------------------------------

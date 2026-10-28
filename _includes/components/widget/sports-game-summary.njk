@@ -1,59 +1,106 @@
 <!-- File: _includes/components/widget/sports-game-summary.njk -->
-{% set game_league = game_summary_league | default("MLB") %}
-{% set game_date = game_summary_date | default("Today, Oct 23") %}
-{% set game_status = game_summary_status | default("FINAL") %}
-{% set team_local = game_summary_team_local | default("Seattle Mariners") %}
-{% set score_local = game_summary_score_local | default("5") %}
-{% set team_away = game_summary_team_away | default("Texas Rangers") %}
-{% set score_away = game_summary_score_away | default("3") %}
-{% set venue_location = game_summary_venue | default("T-Mobile Park, Seattle, WA") %}
-{% set is_in_progress = (game_status | upper == "IN PROGRESS") %}
+{# 
+  COMPONENT: Live & Final Sports Game Scoreboard Tile (widget.sports.game.summary)
+  PURPOSE: Real-time scores, league status, and ballpark venue for Pacific Northwest teams.
+  CONTRACT:
+    - game_summary_team_local / team_local / local_team: String [Required]
+    - game_summary_team_away / team_away / away_team: String [Required]
+    - game_summary_score_local / score_local: String or Number [Optional]
+    - game_summary_score_away / score_away: String or Number [Optional]
+    - game_summary_league / league: String [Optional, e.g. "MLB", "NFL", "MLS", "NHL"]
+    - game_summary_date / game_date: String [Optional, e.g. "Today, Oct 23"]
+    - game_summary_status / status: String [Optional, e.g. "FINAL", "IN PROGRESS", "7:10 PM"]
+    - game_summary_venue / venue: String [Optional, e.g. "T-Mobile Park, Seattle, WA"]
+    - game_summary_url / game_url: String [Optional, link to game recap]
+#}
 
-<div class="widget-card sports-game-summary-card" style="padding: 1.25rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; gap: 0.85rem; box-sizing: border-box;">
-  
-  {# Header Row: League, Date & Status #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.5rem;">
-    <div style="display: flex; align-items: center; gap: 0.5rem;">
-      <span class="text-overline" style="color: var(--color-secondary-default); font-weight: 800; font-size: 0.7rem;">
-        {{ game_league }}
+{% set team_loc = game_summary_team_local or team_local or local_team %}
+{% set team_ext = game_summary_team_away or team_away or away_team %}
+{% set score_loc = game_summary_score_local if game_summary_score_local is defined else score_local %}
+{% set score_ext = game_summary_score_away if game_summary_score_away is defined else score_away %}
+{% set league_text = game_summary_league or league %}
+{% set date_text = game_summary_date or game_date %}
+{% set status_raw = game_summary_status or status or "FINAL" %}
+{% set venue_text = game_summary_venue or venue %}
+
+{% if team_loc and team_ext %}
+  {% set status_upper = status_raw | upper %}
+  {% set is_in_progress = (status_upper == "IN PROGRESS" or status_upper == "LIVE") %}
+  {% set is_upcoming = (":" in status_raw or "PM" in status_upper or "AM" in status_upper) %}
+
+  {% set status_class = "status-game-final" %}
+  {% if is_in_progress %}
+    {% set status_class = "status-game-live" %}
+  {% elif is_upcoming %}
+    {% set status_class = "status-game-upcoming" %}
+  {% endif %}
+
+  <article class="widget-card sports-game-summary-card" aria-label="{{ team_loc }} vs {{ team_ext }} Scoreboard">
+    
+    {# Header Row: League, Date & Status #}
+    <header class="sports-game-header">
+      <div class="sports-game-meta">
+        {% if league_text %}
+          <span class="text-overline sports-game-league">
+            {{ league_text }}
+          </span>
+        {% endif %}
+
+        {% if league_text and date_text %}
+          <span class="sports-game-dot" aria-hidden="true">•</span>
+        {% endif %}
+
+        {% if date_text %}
+          <span class="sports-game-date">
+            {{ date_text }}
+          </span>
+        {% endif %}
+      </div>
+
+      <span class="sports-game-status-pill {{ status_class }}">
+        {{ status_raw }}
       </span>
-      <span style="font-size: 0.75rem; color: #86868b;">•</span>
-      <span class="text-body-secondary" style="font-size: 0.75rem;">
-        {{ game_date }}
-      </span>
+    </header>
+
+    {# Matchup Scores #}
+    <div class="sports-game-matchup">
+      {# Local Team Row #}
+      <div class="sports-team-row">
+        <span class="sports-team-name">
+          {{ team_loc }}
+        </span>
+        {% if score_loc is not none and score_loc != '' %}
+          <span class="sports-team-score">
+            {{ score_loc }}
+          </span>
+        {% endif %}
+      </div>
+
+      {# Away Team Row #}
+      <div class="sports-team-row">
+        <span class="sports-team-name team-away">
+          {{ team_ext }}
+        </span>
+        {% if score_ext is not none and score_ext != '' %}
+          <span class="sports-team-score score-away">
+            {{ score_ext }}
+          </span>
+        {% endif %}
+      </div>
     </div>
 
-    <span style="display: inline-block; padding: 0.2rem 0.55rem; border-radius: 999px; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.05em; {% if is_in_progress %}background: rgba(30, 77, 107, 0.12); color: var(--color-secondary-default); border: 1px solid rgba(30, 77, 107, 0.25);{% else %}background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.25);{% endif %}">
-      {{ game_status }}
-    </span>
-  </div>
+    {# Venue & Ballpark Footer #}
+    {% if venue_text %}
+      <footer class="sports-game-footer">
+        <div class="sports-venue-cluster">
+          <svg class="sports-venue-pin-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+          <span>{{ venue_text }}</span>
+        </div>
+      </footer>
+    {% endif %}
 
-  {# Matchup Scores #}
-  <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-    {# Local Team Row #}
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <span style="font-size: 0.95rem; font-weight: 800; color: var(--color-primary-default);">
-        {{ team_local }}
-      </span>
-      <span class="text-data-huge" style="font-size: 1.35rem; font-weight: 800; font-family: monospace; color: var(--color-primary-default); line-height: 1;">
-        {{ score_local }}
-      </span>
-    </div>
-
-    {# Away Team Row #}
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <span class="text-body-secondary" style="font-size: 0.9rem; font-weight: 600;">
-        {{ team_away }}
-      </span>
-      <span class="text-data-huge" style="font-size: 1.35rem; font-weight: 800; font-family: monospace; color: #86868b; line-height: 1;">
-        {{ score_away }}
-      </span>
-    </div>
-  </div>
-
-  {# Venue & Ballpark Footer #}
-  <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.5rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem;" class="text-body-secondary">
-    <span>📍 {{ venue_location }}</span>
-  </div>
-
-</div>
+  </article>
+{% endif %}

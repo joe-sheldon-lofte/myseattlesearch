@@ -1,52 +1,85 @@
 <!-- File: _includes/components/widget/sports-category-link.njk -->
-{% set sports_tier = sports_category_tier | default("pro") %}
-{% set tier_title = "All Pro Sports" %}
-{% set tier_url = "/sports/pro/" %}
-{% set tier_desc = "Seattle Seahawks, Mariners, Sounders FC, Kraken, Storm, & Reign FC" %}
+{# 
+  COMPONENT: Regional Sports Category Navigation Tile (widget.sports.category.link)
+  PURPOSE: Directs to Pro, Minor League, or Collegiate sports hubs.
+  CONTRACT:
+    - sports_category_tier / sports_tier: String [Optional: "pro", "minor", "collegiate"]
+    - sports_category_title / title: String [Optional, overrides tier default]
+    - sports_category_url / url: String [Optional, overrides tier default]
+    - sports_category_desc / description: String [Optional, overrides tier default]
+    - sports_category_overline: String [Optional, defaults to "REGIONAL ATHLETICS"]
+#}
 
-{% if sports_tier == "minor" %}
+{% set tier = sports_category_tier or sports_tier or "pro" %}
+{% set custom_title = sports_category_title or title %}
+{% set custom_url = sports_category_url or url %}
+{% set custom_desc = sports_category_desc or description %}
+{% set overline_text = sports_category_overline or "REGIONAL ATHLETICS" %}
+
+{# Default Tier Data Bindings #}
+{% set tier_title = "" %}
+{% set tier_url = "" %}
+{% set tier_desc = "" %}
+
+{% if tier == "pro" %}
+  {% set tier_title = "All Pro Sports" %}
+  {% set tier_url = "/sports/pro/" %}
+  {% set tier_desc = "Seattle Seahawks, Mariners, Sounders FC, Kraken, Storm, & Reign FC" %}
+{% elif tier == "minor" %}
   {% set tier_title = "All Minor League Sports" %}
   {% set tier_url = "/sports/minor/" %}
   {% set tier_desc = "Everett AquaSox, Tacoma Rainiers, Silvertips, & Seattle Seawolves" %}
-{% elif sports_tier == "collegiate" %}
+{% elif tier == "collegiate" %}
   {% set tier_title = "All Collegiate Sports" %}
   {% set tier_url = "/sports/collegiate/" %}
   {% set tier_desc = "Washington Huskies (UW), Washington State Cougars (WSU), & Redhawks" %}
 {% endif %}
 
-<a href="{{ sports_category_url | default(tier_url) }}" 
+{% set final_title = custom_title or tier_title %}
+{% set final_url = custom_url or tier_url %}
+{% set final_desc = custom_desc or tier_desc %}
+
+{% if final_title and final_url %}
+<a href="{{ final_url }}" 
    class="widget-card sports-category-link-card" 
-   style="display: flex; flex-direction: column; justify-content: space-between; aspect-ratio: 1 / 1; min-height: 180px; padding: 1.5rem; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); text-decoration: none; transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; box-sizing: border-box;">
+   aria-label="{{ final_title }}: {{ final_desc }}">
   
-  {# Top Icon & Tracking Overline #}
-  <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-      <div style="width: 36px; height: 36px; border-radius: 10px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-secondary-default);" aria-hidden="true">
+  {# Top Header & Category Meta #}
+  <div class="sports-cat-body">
+    <div class="sports-cat-header">
+      <div class="sports-cat-icon-frame" aria-hidden="true">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/>
           <path d="M4.93 4.93 19.07 19.07"/>
-          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"/>
         </svg>
       </div>
 
-      <span class="text-overline" style="font-size: 0.65rem; color: var(--color-secondary-default); letter-spacing: 0.08em;">
-        REGIONAL ATHLETICS
+      <span class="text-overline sports-cat-overline">
+        {{ overline_text }}
       </span>
     </div>
 
-    {# Bold Category Heading #}
-    <h3 class="text-widget-title" style="font-size: 1.25rem; font-weight: 800; color: var(--color-primary-default); margin: 0 0 0.5rem 0; line-height: 1.25;">
-      {{ sports_category_title | default(tier_title) }}
+    {# Category Heading & Scope Description #}
+    <h3 class="text-widget-title sports-cat-title">
+      {{ final_title }}
     </h3>
 
-    <p class="text-body-secondary" style="font-size: 0.8rem; line-height: 1.45; margin: 0;">
-      {{ sports_category_desc | default(tier_desc) }}
-    </p>
+    {% if final_desc %}
+      <p class="text-body-secondary sports-cat-desc">
+        {{ final_desc }}
+      </p>
+    {% endif %}
   </div>
 
-  {# Bottom Action Prompt #}
-  <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.8rem; font-weight: 700; color: var(--color-secondary-default);">
-    <span aria-hidden="true">View Schedule & Rosters →</span>
+  {# Bottom Action Prompt with Stroke SVG #}
+  <div class="sports-cat-footer" aria-hidden="true">
+    <span class="sports-cat-action-label">View Schedule &amp; Rosters</span>
+    <svg class="sports-cat-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+      <polyline points="12 5 19 12 12 19"></polyline>
+    </svg>
   </div>
 
 </a>
+{% endif %}

@@ -1,21 +1,46 @@
 <!-- File: _includes/components/widgets/stat-card.njk -->
-<div class="stat-card" style="background: var(--premier-charcoal, #121826); border-radius: 16px; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; transition: transform 0.2s ease;">
-  
-  {# The Primary Value (e.g., "$1.15M", "Yes", "24") #}
-  <span class="stat-value" style="font-size: 2.25rem; font-weight: 700; color: var(--card-accent-color, #38bdf8); line-height: 1.1; margin-bottom: 0.25rem;">
-    {{ value | default('--') }}
-  </span>
-  
-  {# The Secondary Label (e.g., "Median Sale Price", "FHA Approved") #}
-  <span class="stat-label" style="font-size: 0.875rem; color: var(--premier-beige, #cbd5e1); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">
-    {{ label | default('Metric') }}
-  </span>
+{# 
+  COMPONENT: High-Density Statistical Telemetry Tile (widgets.stat.card)
+  CONTRACT:
+    - stat_value / value: String or Number [Required, e.g. "$1.15M", "24", "4.2%"]
+    - stat_label / label: String [Required, e.g. "Median Sale Price", "Days on Market"]
+    - stat_context / context_note: String [Optional, e.g. "+2.4% this month", "Active MLS Benchmark"]
+    - stat_trend / trend: String [Optional: "positive", "negative", "neutral" - defaults to auto-detection]
+#}
 
-  {# Optional Third Line Context (e.g., "+2.4% this month") #}
-  {% if context_note %}
-  <span class="stat-context" style="font-size: 0.75rem; color: #10b981; margin-top: 0.5rem; font-weight: 600;">
-    {{ context_note }}
-  </span>
+{% set stat_val = stat_value or value %}
+{% set stat_lbl = stat_label or label %}
+{% set stat_ctx = stat_context or context_note %}
+{% set stat_trnd = stat_trend or trend %}
+
+{% if stat_val and stat_lbl %}
+  {% set trend_class = "stat-context-neutral" %}
+  {% if stat_trnd == "positive" or (stat_ctx and "+" in stat_ctx) %}
+    {% set trend_class = "stat-context-positive" %}
+  {% elif stat_trnd == "negative" or (stat_ctx and "-" in stat_ctx) %}
+    {% set trend_class = "stat-context-negative" %}
+  {% elif stat_trnd == "neutral" %}
+    {% set trend_class = "stat-context-neutral" %}
   {% endif %}
 
-</div>
+  <div class="stat-card" role="region" aria-label="{{ stat_lbl }}: {{ stat_val }}">
+    
+    {# The Primary Numerical Metric #}
+    <span class="stat-value">
+      {{ stat_val }}
+    </span>
+    
+    {# The Secondary Descriptor #}
+    <span class="stat-label">
+      {{ stat_lbl }}
+    </span>
+
+    {# Optional Contextual Delta / Footnote #}
+    {% if stat_ctx %}
+      <span class="stat-context {{ trend_class }}">
+        {{ stat_ctx }}
+      </span>
+    {% endif %}
+
+  </div>
+{% endif %}

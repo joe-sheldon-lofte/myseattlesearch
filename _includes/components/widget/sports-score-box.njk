@@ -1,67 +1,113 @@
 <!-- File: _includes/components/widget/sports-score-box.njk -->
-{% set scorebox_league_sport = scorebox_header | default("MLB BASEBALL") %}
-{% set scorebox_status = scorebox_status_text | default("FINAL") %}
-{% set team_local_name = scorebox_local_name | default("Seattle Mariners") %}
-{% set team_local_record = scorebox_local_record | default("(85-77)") %}
-{% set team_local_score = scorebox_local_score | default("4") %}
-{% set team_opp_name = scorebox_opp_name | default("Houston Astros") %}
-{% set team_opp_record = scorebox_opp_record | default("(88-74)") %}
-{% set team_opp_score = scorebox_opp_score | default("2") %}
-{% set is_in_progress = (scorebox_status | upper == "IN PROGRESS") %}
+{# 
+  COMPONENT: Compact Athletic Score Box & Outcome Summary (widget.sports.score.box)
+  PURPOSE: Box score display for regional sports matchups with records and game states.
+  CONTRACT:
+    - scorebox_header / scorebox_league_sport: String [Optional, e.g. "MLB BASEBALL"]
+    - scorebox_status_text / scorebox_status: String [Optional, e.g. "FINAL", "IN PROGRESS", "7:10 PM"]
+    - scorebox_local_name / team_local_name: String [Required]
+    - scorebox_local_record / team_local_record: String [Optional, e.g. "(85-77)"]
+    - scorebox_local_score / team_local_score: String or Number [Optional]
+    - scorebox_opp_name / team_opp_name: String [Required]
+    - scorebox_opp_record / team_opp_record: String [Optional, e.g. "(88-74)"]
+    - scorebox_opp_score / team_opp_score: String or Number [Optional]
+    - scorebox_recap_url / recap_url: String [Optional, link to game details]
+#}
 
-<div class="widget-card sports-score-box-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; min-height: 190px; box-sizing: border-box;">
-  
-  {# Header Bar: League/Sport ALL CAPS & Status Pill #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem; margin-bottom: 0.85rem;">
-    <span class="text-overline" style="font-size: 0.7rem; font-weight: 800; color: var(--color-secondary-default); letter-spacing: 0.08em;">
-      {{ scorebox_league_sport }}
-    </span>
+{% set league_text = scorebox_header or scorebox_league_sport %}
+{% set status_raw = scorebox_status_text or scorebox_status or "FINAL" %}
+{% set team_local = scorebox_local_name or team_local_name %}
+{% set record_local = scorebox_local_record or team_local_record %}
+{% set score_local = scorebox_local_score if scorebox_local_score is defined else team_local_score %}
+{% set team_opp = scorebox_opp_name or team_opp_name %}
+{% set record_opp = scorebox_opp_record or team_opp_record %}
+{% set score_opp = scorebox_opp_score if scorebox_opp_score is defined else team_opp_score %}
+{% set recap_href = scorebox_recap_url or recap_url %}
 
-    <span style="display: inline-block; padding: 0.25rem 0.65rem; border-radius: 999px; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.06em; {% if is_in_progress %}background: rgba(30, 77, 107, 0.12); color: var(--color-secondary-default); border: 1px solid rgba(30, 77, 107, 0.3);{% else %}background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3);{% endif %}">
-      {{ scorebox_status | upper }}
-    </span>
-  </div>
+{% if team_local and team_opp %}
+  {% set status_upper = status_raw | upper %}
+  {% set is_live = (status_upper == "IN PROGRESS" or status_upper == "LIVE") %}
+  {% set is_scheduled = (":" in status_raw or "PM" in status_upper or "AM" in status_upper) %}
 
-  {# Stacked Team Rows: Local on Top, Opposing on Bottom #}
-  <div style="display: flex; flex-direction: column; gap: 0.65rem; margin-bottom: 0.75rem;">
+  {% set status_pill_class = "status-final" %}
+  {% if is_live %}
+    {% set status_pill_class = "status-live" %}
+  {% elif is_scheduled %}
+    {% set status_pill_class = "status-scheduled" %}
+  {% endif %}
+
+  <article class="widget-card sports-score-box-card" aria-label="{{ team_local }} vs {{ team_opp }} Score Box">
     
-    {# Row 1: Local Team (Top Row) #}
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; background: var(--color-surface-gray); border-radius: 8px; border-left: 3px solid var(--color-secondary-default);">
-      <div style="display: flex; align-items: baseline; gap: 0.4rem; min-width: 0;">
-        <span style="font-size: 0.95rem; font-weight: 800; color: var(--color-primary-default); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-          {{ team_local_name }}
-        </span>
-        <span class="text-body-secondary" style="font-size: 0.75rem; font-family: monospace;">
-          {{ team_local_record }}
-        </span>
-      </div>
+    {# Header Bar: League/Sport & Status Pill #}
+    <header class="score-box-header">
+      <span class="text-overline score-box-league">
+        {{ league_text | default("REGIONAL ATHLETICS") }}
+      </span>
+
+      <span class="score-box-status-pill {{ status_pill_class }}">
+        {{ status_raw }}
+      </span>
+    </header>
+
+    {# Stacked Team Rows: Local on Top, Opponent on Bottom #}
+    <div class="score-box-teams-stack">
       
-      <span class="text-data-huge" style="font-size: 1.5rem; font-weight: 800; font-family: monospace; color: var(--color-primary-default); line-height: 1; margin-left: 0.75rem;">
-        {{ team_local_score }}
-      </span>
-    </div>
-
-    {# Row 2: Opposing Team (Bottom Row) #}
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 8px;">
-      <div style="display: flex; align-items: baseline; gap: 0.4rem; min-width: 0;">
-        <span class="text-body-secondary" style="font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-          {{ team_opp_name }}
-        </span>
-        <span class="text-body-secondary" style="font-size: 0.75rem; font-family: monospace; opacity: 0.75;">
-          {{ team_opp_record }}
-        </span>
+      {# Row 1: Local Team #}
+      <div class="score-box-team-row row-local">
+        <div class="score-box-team-info">
+          <span class="score-box-team-name">
+            {{ team_local }}
+          </span>
+          {% if record_local %}
+            <span class="score-box-team-record">
+              {{ record_local }}
+            </span>
+          {% endif %}
+        </div>
+        
+        {% if score_local is not none and score_local != '' %}
+          <span class="score-box-score-value">
+            {{ score_local }}
+          </span>
+        {% endif %}
       </div>
 
-      <span class="text-data-huge" style="font-size: 1.5rem; font-weight: 800; font-family: monospace; color: #86868b; line-height: 1; margin-left: 0.75rem;">
-        {{ team_opp_score }}
-      </span>
+      {# Row 2: Opposing Team #}
+      <div class="score-box-team-row row-opp">
+        <div class="score-box-team-info">
+          <span class="score-box-team-name name-opp">
+            {{ team_opp }}
+          </span>
+          {% if record_opp %}
+            <span class="score-box-team-record">
+              {{ record_opp }}
+            </span>
+          {% endif %}
+        </div>
+
+        {% if score_opp is not none and score_opp != '' %}
+          <span class="score-box-score-value score-opp">
+            {{ score_opp }}
+          </span>
+        {% endif %}
+      </div>
+
     </div>
 
-  </div>
+    {# Box Score Footer #}
+    <footer class="score-box-footer">
+      {% if recap_href %}
+        <a href="{{ recap_href }}" class="score-box-recap-link">
+          <span>Score Recap</span>
+          <svg class="score-box-recap-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      {% else %}
+        <span class="text-body-secondary" style="font-size: 0.7rem;">Pacific Northwest Athletics</span>
+      {% endif %}
+    </footer>
 
-  {# Box Score Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.5rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem;" class="text-body-secondary">
-    <span style="font-weight: 600; color: var(--color-secondary-default);">Score Recap →</span>
-  </div>
-
-</div>
+  </article>
+{% endif %}
