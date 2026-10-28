@@ -1,49 +1,64 @@
 <!-- File: _includes/components/widget/neighborhood-page-header.njk -->
-{% set city_name = neighborhood_city_name or city.City or city.name %}
-{% set hero_img_left = city.HeroImageLeft %}
-{% set hero_img_main = city.HeroImageMain %}
-{% set hero_img_right = city.HeroImageRight %}
+{# 
+  COMPONENT: Neighborhood Page Header & Hero Triptych (widget.neighborhood.page.header)
+  CONTRACT:
+    - active_neighborhood / neighborhood.name / neighborhood_city_name / city.City / city.name: String [Required]
+    - hero_img_main / city.HeroImageMain: String (Image URL) [Required]
+    - hero_img_left / city.HeroImageLeft: String (Image URL) [Optional]
+    - hero_img_right / city.HeroImageRight: String (Image URL) [Optional]
+    - hero_welcome_label: String [Optional, defaults to "Welcome to the neighborhood"]
+#}
 
-<header class="neighborhood-hero-header" style="position: relative; width: 100%; height: 380px; overflow: hidden; border-radius: var(--border-radius-squircle); margin-bottom: 2.5rem; background: var(--color-surface-gray); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+{% set active_neighborhood = active_neighborhood or neighborhood_city_name or (neighborhood.name if neighborhood else '') or (city.City if city else '') or city.name %}
+{% set img_main = hero_img_main or (neighborhood.HeroImageMain if neighborhood else '') or (city.HeroImageMain if city else '') %}
+{% set img_left = hero_img_left or (neighborhood.HeroImageLeft if neighborhood else '') or (city.HeroImageLeft if city else '') %}
+{% set img_right = hero_img_right or (neighborhood.HeroImageRight if neighborhood else '') or (city.HeroImageRight if city else '') %}
+{% set welcome_text = hero_welcome_label or "Welcome to the neighborhood" %}
+
+{% if active_neighborhood %}
+<header class="neighborhood-hero-header" aria-label="Welcome banner for {{ active_neighborhood }}">
   
-  {# Symmetrical 3-Image Triptych Wall: Center image locked at 50% horizontal center, flanked by left and right images #}
-  <div class="hero-image-wall" 
-       style="position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); display: flex; height: 100%; width: max-content; pointer-events: none;" 
-       aria-hidden="true">
+  {# Symmetrical 3-Image Triptych Wall #}
+  <div class="hero-image-wall" aria-hidden="true">
     
-    {# Left Flank Image: 16:9 aspect ratio, clipped symmetrically by container left edge #}
-    <div style="height: 100%; width: calc(380px * 16 / 9); flex: 0 0 auto; overflow: hidden;">
-      {% if hero_img_left %}
-        <img src="{{ hero_img_left }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+    {# Left Flank Image #}
+    <div class="hero-image-flank">
+      {% if img_left %}
+        <img src="{{ img_left }}" alt="" loading="eager" decoding="async" class="hero-flank-img">
+      {% elif img_main %}
+        <img src="{{ img_main }}" alt="" loading="eager" decoding="async" class="hero-flank-img">
       {% endif %}
     </div>
     
-    {# Center Image: 16:9 aspect ratio, 100% visible and centered #}
-    <div style="height: 100%; width: calc(380px * 16 / 9); flex: 0 0 auto; overflow: hidden;">
-      {% if hero_img_main %}
-        <img src="{{ hero_img_main }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+    {# Center Image (Locked 50% Horizontal Center) #}
+    <div class="hero-image-flank">
+      {% if img_main %}
+        <img src="{{ img_main }}" alt="" loading="eager" decoding="async" class="hero-flank-img">
       {% endif %}
     </div>
     
-    {# Right Flank Image: 16:9 aspect ratio, clipped symmetrically by container right edge #}
-    <div style="height: 100%; width: calc(380px * 16 / 9); flex: 0 0 auto; overflow: hidden;">
-      {% if hero_img_right %}
-        <img src="{{ hero_img_right }}" alt="" loading="eager" decoding="async" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+    {# Right Flank Image #}
+    <div class="hero-image-flank">
+      {% if img_right %}
+        <img src="{{ img_right }}" alt="" loading="eager" decoding="async" class="hero-flank-img">
+      {% elif img_main %}
+        <img src="{{ img_main }}" alt="" loading="eager" decoding="async" class="hero-flank-img">
       {% endif %}
     </div>
   </div>
 
   {# Darkening Ambient Scrim Overlay #}
-  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.42) 100%); pointer-events: none;" aria-hidden="true"></div>
+  <div class="hero-scrim-overlay" aria-hidden="true"></div>
 
-  {# Foreground: Layered Frosted Box with Squircle Corners #}
-  <div class="hero-frosted-box" style="position: relative; z-index: 10; padding: 2.25rem 3.25rem; background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.6); border-radius: var(--border-radius-squircle); text-align: center; box-shadow: 0 12px 36px rgba(0,0,0,0.16); max-width: 90%; margin: 1.5rem;">
-    <div style="font-family: var(--font-script, cursive, serif); font-size: clamp(1.4rem, 2.5vw, 2.1rem); color: var(--color-secondary-default); line-height: 1.1; margin-bottom: 0.25rem;">
-      Welcome to the neighborhood
+  {# Foreground: Layered Liquid Glass Center Box #}
+  <div class="hero-frosted-box">
+    <div class="hero-script-tag">
+      {{ welcome_text }}
     </div>
-    <h1 style="font-size: clamp(2.2rem, 5vw, 3.75rem); font-weight: 800; letter-spacing: -0.03em; color: var(--color-primary-default); margin: 0; line-height: 1.05;">
-      {{ city_name }}
+    <h1 class="hero-neighborhood-title">
+      {{ active_neighborhood }}
     </h1>
   </div>
 
 </header>
+{% endif %}

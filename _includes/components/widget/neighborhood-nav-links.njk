@@ -1,26 +1,65 @@
 <!-- File: _includes/components/widget/neighborhood-nav-links.njk -->
-{% set city_slug = current_city_slug | default("edmonds") %}
-{% set active_tab = current_nav_tab | default("hub") %}
+{# 
+  COMPONENT: Neighborhood Section Navigation Buttons & Scroll Track (widget.neighborhood.nav.links)
+  MODES:
+    1. Full Sequence Strip (Default): Renders positions 1, 2, 3, 4, 5... in a horizontal scroll track.
+    2. Single Position Mode: Pass `target_position` (e.g. 1, 2, 3) to render only that specific button.
+  DATA CONTRACT:
+    - current_city_slug / neighborhood.slug / slug: String [Required]
+    - current_nav_tab / active_tab: String [Optional, e.g. "hub", "weather", "transit"]
+    - page_manifest.navigation / manifest_nav_items / nav_items: Array of Objects [Optional]
+      Each nav item expects:
+      - item.id: String [Required]
+      - item.label: String [Required]
+      - item.url: String [Required]
+      - item.position: Number [Optional, 1-8]
+    - target_position: Number [Optional, 1-8 for single button placement]
+#}
 
-{% set default_nav_items = [
-  { id: "hub", label: "Neighborhood Hub", url: "/communities/" + city_slug + "/" },
-  { id: "weather", label: "Weather", url: "/communities/" + city_slug + "/weather/" },
-  { id: "transit", label: "Transit & Commute", url: "/communities/" + city_slug + "/transit-commute/" },
-  { id: "news", label: "News & Events", url: "/communities/" + city_slug + "/news-events/" },
-  { id: "municipal", label: "Municipal Services", url: "/communities/" + city_slug + "/municipal/" },
-  { id: "emergency", label: "Emergency & Safety", url: "/communities/" + city_slug + "/emergency-safety/" },
-  { id: "elections", label: "Elections & Voting", url: "/communities/" + city_slug + "/elections/" },
-  { id: "realestate", label: "Real Estate & Data", url: "/communities/" + city_slug + "/real-estate/" }
+{% set slug = current_city_slug or (neighborhood.slug if neighborhood else '') or (city.slug if city else '') or slug %}
+{% set active_id = current_nav_tab or active_tab or "hub" %}
+
+{# Default Canonical 8-Position Neighborhood Manifest #}
+{% set fallback_items = [
+  { position: 1, id: "hub", label: "Neighborhood Hub", url: "/communities/" ~ slug ~ "/" },
+  { position: 2, id: "weather", label: "Weather", url: "/communities/" ~ slug ~ "/weather/" },
+  { position: 3, id: "transit", label: "Transit & Commute", url: "/communities/" ~ slug ~ "/transit-commute/" },
+  { position: 4, id: "news", label: "News & Events", url: "/communities/" ~ slug ~ "/news-events/" },
+  { position: 5, id: "municipal", label: "Municipal Services", url: "/communities/" ~ slug ~ "/municipal/" },
+  { position: 6, id: "emergency", label: "Emergency & Safety", url: "/communities/" ~ slug ~ "/emergency-safety/" },
+  { position: 7, id: "elections", label: "Elections & Voting", url: "/communities/" ~ slug ~ "/elections/" },
+  { position: 8, id: "realestate", label: "Real Estate & Data", url: "/communities/" ~ slug ~ "/real-estate/" }
 ] %}
 
-{# Responsive Horizontal Scroll Container per Edit #}
-<nav class="widget-card neighborhood-nav-links-scroll" aria-label="Neighborhood Sections" style="width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); padding: 0.5rem; display: flex; gap: 0.5rem; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; scroll-snap-type: x mandatory; box-sizing: border-box;">
-  {% for item in default_nav_items %}
-    {% set is_current = (item.id == active_tab) %}
-    <a href="{{ item.url }}" 
-       style="flex: 0 0 auto; scroll-snap-align: start; padding: 0.65rem 1.15rem; border-radius: 999px; text-decoration: none; font-size: 0.8rem; font-weight: 700; white-space: nowrap; transition: all 0.15s ease; {% if is_current %}background: var(--color-secondary-default); color: #FFFFFF;{% else %}background: var(--color-surface-gray); color: var(--color-primary-default); border: 1px solid var(--color-border-light);{% endif %}">
-      {{ item.label }}
-    </a>
-  {% endfor %}
-</nav>
-<style>.neighborhood-nav-links-scroll::-webkit-scrollbar { display: none; }</style>
+{% set items_raw = (page_manifest.navigation if page_manifest and page_manifest.navigation else null) or manifest_nav_items or nav_items or fallback_items %}
+
+{# Macro: Render an Individual Navigation Pill #}
+{% macro render_nav_pill(item, active_id, is_single) %}
+  {% set is_current = (item.id == active_id) %}
+  <a href="{{ item.url }}" 
+     class="neighborhood-nav-pill {% if is_single %}neighborhood-nav-single-btn{% endif %} {% if is_current %}is-active{% else %}is-inactive{% endif %}"
+     {% if is_current %}aria-current="page"{% endif %}
+     {% if item.position %}data-position="{{ item.position }}"{% endif %}>
+    {{ item.label }}
+  </a>
+{% endmacro %}
+
+{% if slug and items_raw and items_raw.length > 0 %}
+  {% if target_position %}
+    {# 1. Single Button Mode by Manifest Position #}
+    {% for item in items_raw %}
+      {% if item.position == target_position or loop.index == target_position %}
+        {{ render_nav_pill(item, active_id, true) }}
+      {% endif %}
+    {% endfor %}
+  {% else %}
+    {# 2. Full Horizontal Position Strip (1 2 3 4 5...) #}
+    <nav class="neighborhood-nav-container" aria-label="Neighborhood Sections">
+      <div class="neighborhood-nav-track">
+        {% for item in items_raw %}
+          {{ render_nav_pill(item, active_id, false) }}
+        {% endfor %}
+      </div>
+    </nav>
+  {% endif %}
+{% endif %}

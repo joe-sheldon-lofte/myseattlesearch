@@ -1,44 +1,95 @@
 <!-- File: _includes/components/widget/municipal-link-directory.njk -->
 {# 
-  COMPONENT: Universal Text-Only Link Tile & Strip (widget.universal.link.tile)
-  PURPOSE: Forecast-style clickable text buttons for municipal links, local portals, or quick resources.
-  MODES:
-    1. Single Tile Mode: Pass link_url + link_title (or url + name / label)
-    2. Batch Strip Mode: Pass link_items / municipal_directory_links (Array of link objects)
-  CONTRACT:
-    - link_url / item.url / url: String [Required for Single Mode]
-    - link_title / link_name / item.name / item.label / label: String [Required for Single Mode]
-    - link_target: String [Optional, defaults to "_blank"]
-    - link_items / municipal_directory_links / directory_links: Array of Objects [Required for Batch Mode]
+  COMPONENT: Essential Municipal & Civic Link Directory (widget.municipal.link.directory)
+  PORTALS:
+    1. City Website
+    2. Permits & Development
+    3. Police Department
+    4. Crisis Response
+  DATA CONTRACT:
+    - municipal_neighborhood_name / neighborhood.name / city.City / city: String [Required]
+    - municipal_website_url / city_website_url / link_city_website: String [Optional]
+    - municipal_permits_url / permits_url / link_permits: String [Optional]
+    - municipal_police_url / police_url / link_police: String [Optional]
+    - municipal_crisis_url / crisis_url / link_crisis: String [Optional]
+    - municipal_links: Object with { website, permits, police, crisis } [Optional]
+    - municipal_directory_links: Array of custom link objects [Optional]
+    - municipal_directory_title: String [Optional, defaults to "Essential [Neighborhood] Portals"]
 #}
 
-{% set batch_links = link_items or municipal_directory_links or directory_links %}
-{% set single_url = link_url or url or (item.url if item else '') %}
-{% set single_title = link_title or link_name or (item.label if item else '') or (item.name if item else '') or label or title %}
-{% set target_attr = link_target or "_blank" %}
+{% set active_neighborhood = municipal_neighborhood_name or (neighborhood.name if neighborhood else '') or (city.City if city else '') or city %}
+{% set card_title = municipal_directory_title or ("Essential " ~ active_neighborhood ~ " Portals" if active_neighborhood else "Essential Municipal Portals") %}
 
-{# Reusable Macro: Single Typographic Tile #}
-{% macro render_text_tile(url, title, target) %}
-  <a href="{{ url }}" 
-     class="link-tile-card"
-     {% if target == "_blank" %}target="_blank" rel="noopener noreferrer"{% endif %}>
-    <span class="link-tile-label">
-      {{ title }}
+{# 1. Resolve URLs from individual properties or nested objects #}
+{% set url_website = municipal_website_url or city_website_url or link_city_website or (municipal_links.website if municipal_links else '') or (neighborhood.website_url if neighborhood else '') %}
+{% set url_permits = municipal_permits_url or permits_url or link_permits or (municipal_links.permits if municipal_links else '') or (neighborhood.permits_url if neighborhood else '') %}
+{% set url_police = municipal_police_url or police_url or link_police or (municipal_links.police if municipal_links else '') or (neighborhood.police_url if neighborhood else '') %}
+{% set url_crisis = municipal_crisis_url or crisis_url or link_crisis or (municipal_links.crisis if municipal_links else '') or (neighborhood.crisis_url if neighborhood else '') %}
+
+{# 2. Construct the core 4-link manifest #}
+{% set default_four = [
+  { label: "City Website", url: url_website, category: "GOVERNMENT" },
+  { label: "Permits", url: url_permits, category: "SERVICES" },
+  { label: "Police Department", url: url_police, category: "PUBLIC SAFETY" },
+  { label: "Crisis Response", url: url_crisis, category: "SUPPORT" }
+] %}
+
+{% set directory_items = municipal_directory_links or default_four %}
+{% set has_links = (url_website or url_permits or url_police or url_crisis or (municipal_directory_links and municipal_directory_links.length > 0)) %}
+
+{% if active_neighborhood and has_links %}
+<section class="widget-card municipal-directory-card" aria-label="Essential civic and municipal access portals for {{ active_neighborhood }}">
+  
+  {# Header Row: Civic Overline, Neighborhood Title & Subtitle #}
+  <header class="municipal-directory-header">
+    <span class="text-overline text-accent-alpine">
+      CIVIC ACCESS &amp; MUNICIPAL SERVICES
     </span>
-  </a>
-{% endmacro %}
+    <h3 class="text-widget-title municipal-directory-title">
+      {{ card_title }}
+    </h3>
+    <p class="text-body-secondary municipal-directory-subtitle">
+      Verified direct access portals for municipal departments and regional support services.
+    </p>
+  </header>
 
-{# Output Dispatcher #}
-{% if batch_links and batch_links.length > 0 %}
-  <nav class="universal-links-strip" aria-label="Quick Links">
-    {% for item in batch_links %}
-      {% set item_url = item.url or item.link_url %}
-      {% set item_title = item.name or item.label or item.title or item.link_title %}
-      {% if item_url and item_title %}
-        {{ render_text_tile(item_url, item_title, target_attr) }}
+  {# 2x2 Bento Matrix #}
+  <div class="municipal-grid-matrix">
+    {% for item in directory_items %}
+      {% if item.url %}
+        <a href="{{ item.url }}" 
+           target="_blank" 
+           rel="noopener noreferrer" 
+           class="municipal-portal-tile"
+           aria-label="{{ item.label }}{% if item.category %} - {{ item.category }}{% endif %} (opens in a secure browser tab)">
+          
+          <div class="portal-identity-stack">
+            {% if item.category %}
+              <span class="text-overline portal-category-tag">
+                {{ item.category }}
+              </span>
+            {% endif %}
+            <span class="portal-label-text">
+              {{ item.label }}
+            </span>
+          </div>
+
+          <div class="portal-arrow-well" aria-hidden="true">
+            <svg class="portal-arrow-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="7" y1="17" x2="17" y2="7"/>
+              <polyline points="7 7 17 7 17 17"/>
+            </svg>
+          </div>
+
+        </a>
       {% endif %}
     {% endfor %}
-  </nav>
-{% elif single_url and single_title %}
-  {{ render_text_tile(single_url, single_title, target_attr) }}
+  </div>
+
+  {# Footer Disclosure Strip #}
+  <footer class="card-footer-strip municipal-directory-footer text-body-secondary">
+    <span>External portal links open in a secure browser tab. Maintained per municipal registries.</span>
+  </footer>
+
+</section>
 {% endif %}

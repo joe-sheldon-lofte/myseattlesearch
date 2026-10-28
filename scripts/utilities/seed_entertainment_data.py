@@ -1,86 +1,60 @@
-def harvest_targeted_years(years=[2021, 2016, 2013]):
-    print(f"🎬 Backfilling missed years: {years}...")
-    wdqs_endpoint = "https://query.wikidata.org/sparql"
-    headers = {
-        "User-Agent": "SeattleSearchEntertainmentBulk/1.0 (contact: admin@myseattlesearch.com)",
-        "Accept": "application/sparql-results+json"
-    }
+import os
+import gzip
+import json
+import requests
+import datetime
 
-    for yr in years:
-        print(f"   Fetching release year {yr} from Wikidata...")
-        sparql = f"""
-        SELECT ?film ?title ?year ?directorName ?duration ?genreName ?tmdbId ?imdbId WHERE {{
-          ?film wdt:P31 wd:Q11424;
-                wdt:P4947 ?tmdbId;
-                wdt:P577 ?releaseDate;
-                rdfs:label ?title.
-          FILTER(?releaseDate >= "{yr}-01-01T00:00:00Z"^^xsd:dateTime && 
-                 ?releaseDate <= "{yr}-12-31T23:59:59Z"^^xsd:dateTime)
-          FILTER(LANG(?title) = "en")
-          BIND(YEAR(?releaseDate) AS ?year)
+CF_ACCOUNT_ID = os.getenv("CF_ACCOUNT_ID")
+CF_DATABASE_ID = os.getenv("CF_DATABASE_ENTERTAINMENT_ID") or os.getenv("CF_DATABASE_ID")
+CF_API_TOKEN = os.getenv("CF_API_TOKEN")
 
-          OPTIONAL {{ 
-            ?film wdt:P57 ?director. 
-            ?director rdfs:label ?directorName. 
-            FILTER(LANG(?directorName) = "en") 
-          }}
-          OPTIONAL {{ 
-            ?film wdt:P136 ?genre. 
-            ?genre rdfs:label ?genreName. 
-            FILTER(LANG(?genreName) = "en") 
-          }}
-          OPTIONAL {{ ?film wdt:P2047 ?duration. }}
-          OPTIONAL {{ ?film wdt:P345 ?imdbId. }}
-        }}
-        LIMIT 2500
-        """
+D1_API_URL = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}/d1/database/{CF_DATABASE_ID}/query"
+D1_HEADERS = {"Authorization": f"Bearer {CF_API_TOKEN}", "Content-Type": "application/json"}
 
-        try:
-            res = requests.get(wdqs_endpoint, params={"query": sparql}, headers=headers, timeout=55)
-            if res.status_code == 200:
-                bindings = res.json().get("results", {}).get("bindings", [])
-                
-                movies_dict = {}
-                for row in bindings:
-                    qid = row["film"]["value"].split("/")[-1]
-                    if qid not in movies_dict:
-                        # Safe duration parsing
-                        raw_duration = row.get("duration", {}).get("value")
-                        duration_val = None
-                        if raw_duration:
-                            digits = "".join(ch for ch in str(raw_duration) if ch.isdigit() or ch == ".")
-                            try:
-                                duration_val = int(float(digits)) if digits else None
-                            except ValueError:
-                                duration_val = None
+def execute_d1_batch(sql_statements):
+    for i in range(0, len(sql_statements), 50):
+        chunk = sql_statements[i:i + 50]
+        combined = ";\n".join(chunk) + ";"
+        requests.post(D1_API_URL, headers=D1_HEADERS, json={"sql": combined})
 
-                        movies_dict[qid] = {
-                            "id": qid,
-                            "title": row["title"]["value"],
-                            "year": yr,
-                            "director": row.get("directorName", {}).get("value"),
-                            "runtime": duration_val,
-                            "genres": row.get("genreName", {}).get("value"),
-                            "tmdb_id": row.get("tmdbId", {}).get("value"),
-                            "imdb_id": row.get("imdbId", {}).get("value")
-                        }
+def harvest_top_actors(min_popularity=8.0):
+    # Today's TMDb date format (e.g. 10_28_2026)
+    today_str = datetime.datetime.utcnow().strftime("%m_%d_%Y")
+    url = f"http://files.tmdb.org/p/exports/person_ids_{today_str}.json.gz"
+    
+    print(f"Downloading TMDb daily person export for {today_str}...")
+    res = requests.get(url, stream=True)
+    if res.status_code != 200:
+        # Fall back to yesterday if today's 08:00 UTC export hasn't completed yet
+        yesterday_str = (datetime.datetime.utcnow() - datetime.timedelta(days=1)).strftime("%m_%d_%Y")
+        url = f"http://files.tmdb.org/p/exports/person_ids_{yesterday_str}.json.gz"
+        res = requests.get(url, stream=True)
 
-                stmts = []
-                for m in movies_dict.values():
-                    runtime_val = m["runtime"] if m["runtime"] is not None else "NULL"
-                    stmts.append(
-                        f"INSERT OR IGNORE INTO movies (id, title, release_year, director, runtime, genres, tmdb_id, imdb_id) "
-                        f"VALUES ({escape_sql(m['id'])}, {escape_sql(m['title'])}, {m['year']}, "
-                        f"{escape_sql(m['director'])}, {runtime_val}, {escape_sql(m['genres'])}, "
-                        f"{escape_sql(m['tmdb_id'])}, {escape_sql(m['imdb_id'])})"
-                    )
+    decompressed = gzip.decompress(res.content).decode("utf-8")
+    statements = []
+    count = 0
 
-                execute_d1_batch(stmts)
-                print(f"   ✓ {yr}: Successfully ingested {len(stmts)} titles.")
-                time.sleep(2.5)
-            else:
-                print(f"   ⚠️ Wikidata returned HTTP {res.status_code} for {yr}")
-        except Exception as e:
-            print(f"   ❌ Error on year {yr}: {e}")
+    for line in decompressed.splitlines():
+        if not line.strip():
+            continue
+        item = json.loads(line)
+        
+        # Filter for notable working actors
+        if (
+            not item.get("adult") 
+            and item.get("known_for_department") == "Acting" 
+            and float(item.get("popularity", 0)) >= min_popularity
+        ):
+            p_id = str(item["id"])
+            name = item["name"].replace("'", "''")
+            dept = item.get("known_for_department", "Acting")
 
-    print("✅ Targeted year recovery complete.\n")
+            statements.append(
+                f"INSERT OR IGNORE INTO actors (id, name, tmdb_id, known_for) "
+                f"VALUES ('tmdb_{p_id}', '{name}', '{p_id}', '{dept}')"
+            )
+            count += 1
+
+    print(f"Filtered {count} high-popularity actors. Inserting into D1...")
+    execute_d1_batch(statements)
+    print("✅ Actors table seeded.")

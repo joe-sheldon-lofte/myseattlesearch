@@ -1,108 +1,57 @@
-// File: _data/editorials.js
+// File: _data/editorials.js (or helper in .eleventy.js)
 const fs = require('fs');
 const path = require('path');
+const markdownIt = require('markdown-it')({ html: true, breaks: true });
 
-function slugify(text) {
-  if (!text) return '';
-  return String(text)
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/[\s_]+/g, '-')
-    .replace(/-+/g, '-');
-}
+function getActiveEpisodeNumber(neighborhoodRecord, buildDate = new Date()) {
+  const targetDate = new Date(buildDate);
+  const candidates = [];
 
-function parseDate(str) {
-  if (!str) return null;
-  const s = String(str).trim();
-  // Match YYYY-MM-DD
-  const isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if (isoMatch) {
-    return new Date(parseInt(isoMatch[1], 10), parseInt(isoMatch[2], 10) - 1, parseInt(isoMatch[3], 10));
-  }
-  const d = new Date(s);
-  return isNaN(d.getTime()) ? null : d;
-}
-
-module.exports = function() {
-  const editorialsMap = {};
-  const dataDir = path.join(__dirname, '../data');
-  const cityDataPath = path.join(dataDir, 'city_data.json');
-  const editorialsDir = path.join(dataDir, 'editorials');
-
-  if (!fs.existsSync(cityDataPath) || !fs.existsSync(editorialsDir)) {
-    return editorialsMap;
-  }
-
-  let cities = [];
-  try {
-    const raw = fs.readFileSync(cityDataPath, 'utf8');
-    cities = JSON.parse(raw);
-  } catch (err) {
-    console.error('Error reading city_data.json in _data/editorials.js:', err);
-    return editorialsMap;
-  }
-
-  const now = new Date();
-
-  cities.forEach(city => {
-    const cityName = city.City || city.name;
-    if (!cityName) return;
-
-    const slug = slugify(cityName);
-    const mdPath = path.join(editorialsDir, `${slug}.md`);
-
-    if (!fs.existsSync(mdPath)) return;
-
-    let mdContent = '';
-    try {
-      mdContent = fs.readFileSync(mdPath, 'utf8');
-    } catch (e) {
-      return;
-    }
-
-    // Inspect EPDate1 through EPDate12
-    const validEps = [];
-    for (let i = 1; i <= 12; i++) {
-      const dateVal = city[`EPDate${i}`] || city[`EP Date ${i}`] || city[`EPdate${i}`] || city[`ep_date_${i}`];
-      if (dateVal) {
-        const parsed = parseDate(dateVal);
-        if (parsed) {
-          validEps.push({ ep: i, date: parsed });
-        }
+  for (let i = 1; i <= 12; i++) {
+    // Support all core CSV/JSON date key conventions
+    const val = neighborhoodRecord[`EPDate${i}`] || 
+                neighborhoodRecord[`EP Date ${i}`] || 
+                neighborhoodRecord[`ep_date_${i}`] ||
+                neighborhoodRecord[`EP_Date_${i}`];
+    if (val) {
+      const d = new Date(val);
+      if (!isNaN(d.getTime())) {
+        candidates.push({ ep: i, date: d });
       }
     }
+  }
 
-    // Filter to dates <= current build date
-    const pastEps = validEps.filter(item => item.date <= now);
-    let activeEp = 1;
+  // Sort chronologically
+  candidates.sort((a, b) => a.date - b.date);
 
-    if (pastEps.length > 0) {
-      pastEps.sort((a, b) => a.date - b.date);
-      activeEp = pastEps[pastEps.length - 1].ep;
-    } else if (validEps.length > 0) {
-      validEps.sort((a, b) => a.date - b.date);
-      activeEp = validEps[0].ep;
-    }
+  // Find nearest recent past date (<= buildDate)
+  const past = candidates.filter(c => c.date <= targetDate);
+  if (past.length > 0) {
+    return past[past.length - 1].ep;
+  }
+  
+  // Cycle rollover fallback (e.g. early January before EP1)
+  return candidates.length > 0 ? candidates[candidates.length - 1].ep : 1;
+}
 
-    // Slice markdown between `### **EP{activeEp}**` and the next `### **EP` or EOF
-    const epRegex = new RegExp(`###\\s*\\*\\*EP${activeEp}\\*\\*([\\s\\S]*?)(?=###\\s*\\*\\*EP|$)`, 'i');
-    const match = mdContent.match(epRegex);
+function resolveNeighborhoodEditorial(neighborhoodSlug, epNumber) {
+  const filePath = path.join(process.cwd(), 'data', 'editorials', `${neighborhoodSlug}.md`);
+  if (!fs.existsSync(filePath)) return null;
 
-    if (match && match[1]) {
-      const rawText = match[1].trim();
-      const paragraphs = rawText
-        .split(/\r?\n\s*\r?\n/)
-        .map(p => p.trim())
-        .filter(p => p.length > 0 && !p.startsWith('#'));
+  const rawMd = fs.readFileSync(filePath, 'utf-8');
+  const targetMarker = `### **EP${epNumber}**`;
+  const startIndex = rawMd.indexOf(targetMarker);
+  
+  if (startIndex === -1) return null;
 
-      const html = paragraphs.map(p => `<p>${p}</p>`).join('\n');
+  // Extract from target header past the marker
+  const afterMarker = rawMd.slice(startIndex + targetMarker.length);
+  
+  // Find where the next episode begins (or end of file)
+  const nextMatch = afterMarker.match(/\n###\s+\*\*EP\d+\*\*/);
+  const epContent = nextMatch ? afterMarker.slice(0, nextMatch.index) : afterMarker;
 
-      editorialsMap[slug] = html;
-      editorialsMap[cityName.toLowerCase()] = html;
-      editorialsMap[cityName] = html;
-    }
-  });
+  return markdownIt.render(epContent.trim());
+}
 
-  return editorialsMap;
-};
+module.exports = { getActiveEpisodeNumber, resolveNeighborhoodEditorial };

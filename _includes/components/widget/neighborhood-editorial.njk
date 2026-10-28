@@ -1,25 +1,35 @@
 <!-- File: _includes/components/widget/neighborhood-editorial.njk -->
-{% set active_city = city or (city_data[0] if city_data else null) or (cityData[0] if cityData else null) %}
-{% set city_name = editorial_city_name or active_city.City or active_city.name %}
-{% set city_slug = (active_city.slug or city_name) | lower | replace(" ", "-") %}
-{% set headline = "About " + city_name if city_name else "About" %}
-{% set editorial_html = editorial_content or (editorials[city_slug] if editorials else null) or (editorials[city_name | lower] if editorials else null) or (editorials[city_name] if editorials else null) %}
+{# 
+  COMPONENT: Neighborhood Editorial & Seasonal Narrative (widget.neighborhood.editorial)
+  DATA CONTRACT:
+    - active_neighborhood / neighborhood.name / city.City / city: String [Required]
+    - editorial_content / editorial_html / content: String (HTML safe markup) [Required]
+    - editorial_headline / custom_headline: String [Optional, defaults to "About [Neighborhood]"]
+    - editorial_overline: String [Optional, defaults to "LOCAL PERSPECTIVE"]
+#}
 
-<article class="widget-card neighborhood-editorial-card" style="padding: 2.25rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.5rem; box-sizing: border-box;">
+{% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') or (city_data[0].City if city_data else '') or city %}
+{% set body_html = editorial_content or editorial_html or (editorials[active_neighborhood | lower | replace(" ", "-")] if editorials else null) or content %}
+{% set headline = editorial_headline or custom_headline or ("About " ~ active_neighborhood if active_neighborhood else "About This Neighborhood") %}
+{% set overline_label = editorial_overline or "LOCAL PERSPECTIVE" %}
 
-  <header style="border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.85rem;">
-    <h2 class="text-widget-title" style="margin: 0; font-size: 1.5rem; line-height: 1.25; color: var(--color-primary-default);">
+{% if active_neighborhood and body_html %}
+<article class="widget-card neighborhood-editorial-card" aria-label="Editorial overview for {{ active_neighborhood }}">
+
+  {# Header Row: Civic Overline & Semantic Heading #}
+  <header class="editorial-header-strip">
+    <span class="text-overline text-accent-alpine">
+      {{ overline_label }}
+    </span>
+    <h2 class="text-widget-title editorial-headline">
       {{ headline }}
     </h2>
   </header>
 
-  {# Main Editorial Prose Body #}
-  <div class="editorial-body text-body" style="font-size: 1rem; line-height: 1.7; display: flex; flex-direction: column; gap: 1.25rem; color: var(--color-primary-default);">
-    {% if editorial_html %}
-      {{ editorial_html | safe }}
-    {% elif content %}
-      {{ content | safe }}
-    {% endif %}
+  {# Main Editorial Prose Body (Zero client hydration, pure static HTML) #}
+  <div class="editorial-prose-body text-body">
+    {{ body_html | safe }}
   </div>
 
 </article>
+{% endif %}
