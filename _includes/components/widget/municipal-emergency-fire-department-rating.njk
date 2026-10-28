@@ -1,45 +1,72 @@
 <!-- File: _includes/components/widget/municipal-emergency-fire-department-rating.njk -->
-{% set wsrb_class = wsrb_rating | default(3) %}
-{% set is_exceptional = (wsrb_class <= 3) %}
+{# 
+  COMPONENT: Local Fire Protection & WSRB Insurance Rating (widget.municipal.emergency.fire.department.rating)
+  CONTRACT:
+    - wsrb_rating / wsrb_class / fire_rating / neighborhood.wsrb_rating: Number [Required, scale 1-10]
+    - fire_department_name / fire_dept / neighborhood.fire_dept: String [Optional, e.g. "South County Fire"]
+    - fire_rating_title: String [Optional, defaults to "Fire & Risk Protection"]
+    - fire_eval_agency: String [Optional, defaults to "WA Surveying & Rating Bureau"]
+#}
 
-<div class="widget-card fire-rating-card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; padding: 1.5rem; width: 100%;">
+{% set wsrb_val = wsrb_rating if wsrb_rating is defined else (wsrb_class if wsrb_class is defined else (fire_rating if fire_rating is defined else (neighborhood.wsrb_rating if neighborhood else none))) %}
+{% set dept_name = fire_department_name or fire_dept or (neighborhood.fire_dept if neighborhood else '') %}
+{% set widget_title = fire_rating_title or "Fire & Risk Protection" %}
+{% set eval_agency = fire_eval_agency or "WA Surveying & Rating Bureau" %}
+
+{% if wsrb_val is not none and wsrb_val != '' %}
+  {% set is_exceptional = (wsrb_val | int <= 3) %}
+
+<div class="widget-card fire-rating-card">
   
-  {# Header Row #}
-  <div>
-    <div class="text-overline">RISK ASSESSMENT & HAZARD MITIGATION</div>
-    <h3 class="text-widget-title" style="margin-top: 0.25rem;">Fire & Risk Protection</h3>
-    <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
-      Fire Department: <strong style="color: var(--color-primary-default);">{{ fire_department_name | default("South County Fire") }}</strong>
-    </div>
-  </div>
-
-  {# WSRB Protection Class Badge & Insurance Notice #}
-  <div style="margin: 1rem 0; display: flex; flex-direction: column; gap: 0.75rem;">
-    <div style="display: flex; align-items: center; justify-content: space-between; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 0.75rem 1rem;">
-      <span class="text-overline" style="font-size: 0.7rem; color: #86868b;">Protection Rating</span>
-      <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <span style="font-size: 0.8rem; font-weight: 700; color: var(--color-primary-default);">WSRB Protection:</span>
-        <span style="display: inline-block; padding: 0.25rem 0.65rem; border-radius: 999px; font-weight: 800; font-size: 0.85rem; {% if is_exceptional %}background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3);{% else %}background: rgba(245, 158, 11, 0.15); color: #D97706; border: 1px solid rgba(245, 158, 11, 0.3);{% endif %}">
-          Class {{ wsrb_class }}
-        </span>
-      </div>
-    </div>
-
-    {% if is_exceptional %}
-      <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 10px; padding: 0.75rem 0.85rem; font-size: 0.75rem; line-height: 1.45; color: #065F46;">
-        <strong>Insurance Impact:</strong> This city maintains an exceptional fire protection rating. This directly reduces your baseline annual homeowners insurance premiums.
-      </div>
-    {% else %}
-      <div style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 10px; padding: 0.75rem 0.85rem; font-size: 0.75rem; line-height: 1.45;" class="text-body-secondary">
-        <strong>Insurance Impact:</strong> Standard baseline rating for local municipal water supply pressure and engine company proximity.
+  {# Header Row: Risk Overline, Title, and Department Name #}
+  <div class="fire-rating-header">
+    <span class="text-overline text-accent-alpine">
+      RISK ASSESSMENT &amp; HAZARD MITIGATION
+    </span>
+    <h3 class="text-widget-title fire-rating-title">
+      {{ widget_title }}
+    </h3>
+    {% if dept_name %}
+      <div class="text-body-secondary fire-dept-lead">
+        Fire Department: <span class="fire-dept-name">{{ dept_name }}</span>
       </div>
     {% endif %}
   </div>
 
-  {# Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem;" class="text-body-secondary">
-    <span>Evaluation Agency: <strong>WA Surveying & Rating Bureau</strong></span>
-    <span>Score Range: <strong>Class 1 (Best) to 10</strong></span>
+  {# WSRB Protection Class Badge & Insurance Notice #}
+  <div class="fire-rating-body">
+    
+    {# Metric Well #}
+    <div class="fire-wsrb-well">
+      <span class="text-overline fire-wsrb-caption">
+        Protection Rating
+      </span>
+      <div class="fire-wsrb-label-group">
+        <span class="fire-wsrb-label">WSRB Protection:</span>
+        <span class="badge-wsrb-pill {% if is_exceptional %}badge-wsrb-exceptional{% else %}badge-wsrb-standard{% endif %}">
+          Class {{ wsrb_val }}
+        </span>
+      </div>
+    </div>
+
+    {# Insurance Financial Impact Advisory #}
+    {% if is_exceptional %}
+      <div class="fire-notice-box is-exceptional">
+        <span class="fire-notice-tag">Insurance Impact:</span> This neighborhood maintains an exceptional fire protection rating. This directly reduces your baseline annual homeowners insurance premiums.
+      </div>
+    {% else %}
+      <div class="fire-notice-box is-standard">
+        <span class="fire-notice-tag">Insurance Impact:</span> Standard baseline rating for local municipal water supply pressure and engine company proximity.
+      </div>
+    {% endif %}
+
+  </div>
+
+  {# Footer: Evaluation Agency & Scale Calibration #}
+  <div class="fire-rating-footer text-body-secondary">
+    <span>Evaluation Agency: <span class="fire-footer-highlight">{{ eval_agency }}</span></span>
+    <span>Score Range: <span class="fire-footer-highlight">Class 1 (Best) to 10</span></span>
   </div>
 
 </div>
+{% endif %}

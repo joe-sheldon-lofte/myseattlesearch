@@ -1,56 +1,99 @@
 <!-- File: _includes/components/widget/municipal-agenda-feed.njk -->
-{% set city = municipal_city_name | default("Edmonds") %}
-{% set agendas = municipal_agendas_data | default([
-  { body: "City Council", title: "Regular Business Meeting & Public Hearing on 2026 Comprehensive Plan", date: "Tuesday, Oct 27, 2026", time: "7:00 PM", status: "Published", url: "#" },
-  { body: "Planning Board", title: "Study Session: Missing-Middle Design Standards & Arterial Infill", date: "Wednesday, Oct 28, 2026", time: "6:00 PM", status: "Published", url: "#" },
-  { body: "Hearing Examiner", title: "Conditional Use Permit Review: Mixed-Use Infill Development", date: "Thursday, Nov 05, 2026", time: "10:00 AM", status: "Draft", url: "#" }
-]) %}
+{# 
+  COMPONENT: Municipal Agenda Feed & Public Hearings (widget.municipal.agenda.feed)
+  CONTRACT:
+    - municipal_neighborhood_name / neighborhood.name / city.City / city: String [Required]
+    - municipal_agendas_data / agendas / municipal_agendas: Array of Objects [Required]
+      Each agenda object expects:
+      - item.body: String [Required, e.g. "City Council", "Planning Board"]
+      - item.title: String [Required]
+      - item.date: String [Required, e.g. "Tuesday, Oct 27, 2026"]
+      - item.time: String [Optional, e.g. "7:00 PM"]
+      - item.url: String [Optional, link to official PDF packet]
+      - item.status: String [Optional, e.g. "Published", "Draft"]
+    - municipal_badge_label: String [Optional, defaults to "Public Meeting Documents"]
+    - municipal_disclaimer_text: String [Optional]
+#}
 
-<div class="widget-card municipal-agenda-feed-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
+{% set active_neighborhood = municipal_neighborhood_name or (neighborhood.name if neighborhood else '') or city.City or city %}
+{% set agenda_list = municipal_agendas_data or agendas or municipal_agendas %}
+{% set badge_text = municipal_badge_label or "Public Meeting Documents" %}
+{% set disclaimer_text = municipal_disclaimer_text or "Agendas sourced directly from municipal portals. Subject to change based on city policies." %}
+
+{% if active_neighborhood and agenda_list and agenda_list.length > 0 %}
+<div class="widget-card municipal-agenda-card">
   
-  {# Header Row per edit: "CITY GOVERNMENT" #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+  {# Header Row: Civic Overline, Title & Verification Badge #}
+  <div class="card-header-split municipal-header-strip">
     <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+      <span class="text-overline text-accent-alpine">
         CITY GOVERNMENT
       </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
-        {{ city }} Council &amp; Commission Agendas
+      <h3 class="text-widget-title municipal-headline">
+        {{ active_neighborhood }} Council &amp; Commission Agendas
       </h3>
     </div>
-    <div style="font-size: 0.75rem; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0.2rem 0.65rem; border-radius: 999px;">
-      Public Meeting Documents
-    </div>
+    
+    {% if badge_text %}
+      <div class="badge-status-emerald">
+        {{ badge_text }}
+      </div>
+    {% endif %}
   </div>
 
   {# Agendas Feed #}
-  <div style="display: flex; flex-direction: column; gap: 0.85rem;">
-    {% for item in agendas %}
-      <div style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 10px; padding: 1rem; display: flex; flex-direction: column; gap: 0.35rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span class="text-overline" style="font-size: 0.6rem; color: var(--color-secondary-default);">
-            {{ item.body | upper }}
-          </span>
-          <span style="font-size: 0.7rem; font-weight: 700; font-family: monospace; color: #86868b;">
-            {{ item.date }} • {{ item.time }}
-          </span>
-        </div>
+  <div class="municipal-agenda-stack">
+    {% for item in agenda_list %}
+      {% if item.title %}
+        <div class="agenda-entry-card">
+          
+          {# Item Top: Governing Body & Timestamp #}
+          <div class="agenda-entry-top">
+            {% if item.body %}
+              <span class="text-overline agenda-body-tag">
+                {{ item.body | upper }}
+              </span>
+            {% else %}
+              <span></span>
+            {% endif %}
 
-        <div style="font-size: 0.9rem; font-weight: 700; color: var(--color-primary-default); line-height: 1.35;">
-          {{ item.title }}
-        </div>
+            {% if item.date %}
+              <time class="agenda-entry-time">
+                {{ item.date }}{% if item.time %} • {{ item.time }}{% endif %}
+              </time>
+            {% endif %}
+          </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.25rem; font-size: 0.75rem;">
-          <span class="text-body-secondary">Official Clerk Packet Available</span>
-          <a href="{{ item.url }}" style="color: var(--color-secondary-default); font-weight: 700; text-decoration: none;">Download Agenda PDF →</a>
+          {# Meeting Agenda Title #}
+          <h4 class="agenda-entry-title">
+            {{ item.title }}
+          </h4>
+
+          {# Item Footer: Packet Status & Download Action #}
+          <div class="agenda-entry-footer">
+            <span class="text-body-secondary">Official Clerk Packet Available</span>
+            {% if item.url %}
+              <a href="{{ item.url }}" class="agenda-download-link" target="_blank" rel="noopener noreferrer">
+                <span>Download Agenda PDF</span>
+                <svg class="agenda-download-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </a>
+            {% endif %}
+          </div>
+
         </div>
-      </div>
+      {% endif %}
     {% endfor %}
   </div>
 
-  {# Footer per edit #}
-  <div style="border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem;" class="text-body-secondary">
-    Agendas sourced directly from municipal portals. Subject to change based on city policies.
-  </div>
+  {# Card Footer: Disclaimer #}
+  {% if disclaimer_text %}
+    <div class="card-footer-strip text-body-secondary">
+      <span>{{ disclaimer_text }}</span>
+    </div>
+  {% endif %}
 
 </div>
+{% endif %}

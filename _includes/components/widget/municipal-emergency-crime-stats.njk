@@ -1,52 +1,79 @@
 <!-- File: _includes/components/widget/municipal-emergency-crime-stats.njk -->
-<div class="widget-card crime-stats-card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; padding: 1.5rem; width: 100%;">
+{# 
+  COMPONENT: Local Public Safety Profile & Crime Rates (widget.municipal.emergency.crime.stats)
+  CONTRACT:
+    - crime_violent_rate / violent_rate: Number / String [Required, e.g. "1.12"]
+    - crime_property_rate / property_rate: Number / String [Required, e.g. "16.4"]
+    - police_department_name / neighborhood.police_dept: String [Optional]
+    - crime_map_url: String [Optional, defaults to "https://communitycrimemap.com"]
+    - crime_source_text: String [Optional, defaults to "Source: WASPC / FBI NIBRS"]
+#}
+
+{% set v_rate = crime_violent_rate if crime_violent_rate is defined else violent_rate %}
+{% set p_rate = crime_property_rate if crime_property_rate is defined else property_rate %}
+{% set dept_name = police_department_name or (neighborhood.police_dept if neighborhood else '') %}
+{% set map_href = crime_map_url or "https://communitycrimemap.com" %}
+{% set source_text = crime_source_text or "Source: WASPC / FBI NIBRS" %}
+
+{% if v_rate is defined and p_rate is defined %}
+<div class="widget-card crime-stats-card">
   
-  {# Header Row #}
-  <div>
-    <div class="text-overline">LOCAL PUBLIC SAFETY PROFILE</div>
-    <h3 class="text-widget-title" style="margin-top: 0.25rem;">Crime & Public Safety</h3>
-    <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
-      Police Department: <strong style="color: var(--color-primary-default);">{{ police_department_name | default("Edmonds Police Department") }}</strong>
-    </div>
+  {# Header Row: Civic Overline, Widget Title, and Department #}
+  <div class="crime-stats-header">
+    <span class="text-overline text-accent-alpine">
+      LOCAL PUBLIC SAFETY PROFILE
+    </span>
+    <h3 class="text-widget-title crime-stats-title">
+      Crime &amp; Public Safety
+    </h3>
+    {% if dept_name %}
+      <div class="text-body-secondary crime-stats-dept-lead">
+        Police Department: <span class="crime-dept-highlight">{{ dept_name }}</span>
+      </div>
+    {% endif %}
   </div>
 
   {# Dual Metric Grid: Violent vs Property Crime Rate #}
-  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin: 1rem 0;">
+  <div class="crime-metrics-grid">
     
-    {# Violent Crime #}
-    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 0.85rem; text-align: center;">
-      <div class="text-overline" style="font-size: 0.65rem; color: #86868b;">Violent Crime</div>
-      <div class="text-data-huge" style="font-size: 1.6rem; margin-top: 0.25rem; line-height: 1; color: var(--color-primary-default);">
-        {{ crime_violent_rate | default("1.12") }}
+    {# Violent Crime Card #}
+    <div class="crime-metric-well">
+      <span class="text-overline crime-metric-caption">Violent Crime</span>
+      <div class="crime-metric-numeral text-primary-default">
+        {{ v_rate }}
       </div>
-      <div class="text-body-secondary" style="font-size: 0.7rem; margin-top: 0.25rem;">
+      <div class="text-body-secondary crime-metric-rate-unit">
         per 1,000 residents
       </div>
     </div>
 
-    {# Property Crime #}
-    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 0.85rem; text-align: center;">
-      <div class="text-overline" style="font-size: 0.65rem; color: #86868b;">Property Crime</div>
-      <div class="text-data-huge" style="font-size: 1.6rem; margin-top: 0.25rem; line-height: 1; color: var(--color-secondary-default);">
-        {{ crime_property_rate | default("16.4") }}
+    {# Property Crime Card #}
+    <div class="crime-metric-well">
+      <span class="text-overline crime-metric-caption">Property Crime</span>
+      <div class="crime-metric-numeral text-accent-alpine">
+        {{ p_rate }}
       </div>
-      <div class="text-body-secondary" style="font-size: 0.7rem; margin-top: 0.25rem;">
+      <div class="text-body-secondary crime-metric-rate-unit">
         per 1,000 residents
       </div>
     </div>
 
   </div>
 
-  {# Footer Link #}
-  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.8rem;">
-    <span class="text-body-secondary" style="font-size: 0.7rem;">Source: WASPC / FBI NIBRS</span>
-    <a href="{{ crime_map_url | default('https://communitycrimemap.com') }}" 
+  {# Footer: Scientific Source & Crime Map Action #}
+  <div class="crime-stats-footer">
+    <span class="text-body-secondary crime-source-caption">{{ source_text }}</span>
+    <a href="{{ map_href }}" 
        target="_blank" 
        rel="noopener noreferrer" 
-       style="display: inline-flex; align-items: center; gap: 0.35rem; color: var(--color-secondary-default); font-weight: 700; text-decoration: none;">
+       class="crime-map-action-link">
       <span>View crime map</span>
-      <span aria-hidden="true">→</span>
+      <svg class="crime-map-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+        <polyline points="12 5 19 12 12 19"></polyline>
+      </svg>
     </a>
   </div>
 
 </div>
+{% endif %}

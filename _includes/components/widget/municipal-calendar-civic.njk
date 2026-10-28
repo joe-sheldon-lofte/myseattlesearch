@@ -1,52 +1,80 @@
 <!-- File: _includes/components/widget/municipal-calendar-civic.njk -->
-{% set city = civic_calendar_city | default("Edmonds") %}
-{% set civic_meetings = civic_calendar_items | default([
-  { title: "City Council Regular Meeting", date: "OCT 27", time: "7:00 PM", place: "Council Chambers / Zoom", type: "Council" },
-  { title: "Planning Board Work Session", date: "OCT 28", time: "6:00 PM", place: "Public Safety Complex", type: "Planning" },
-  { title: "Parks & Recreation Commission", date: "NOV 02", time: "5:30 PM", place: "Waterfront Center", type: "Parks" },
-  { title: "Architectural Design Board", date: "NOV 04", time: "6:00 PM", place: "Council Chambers", type: "Design" }
-]) %}
+{# 
+  COMPONENT: Civic & Municipal Calendar (widget.municipal.calendar.civic)
+  CONTRACT:
+    - civic_calendar_neighborhood_name / neighborhood.name / civic_calendar_city / city.City / city: String [Required]
+    - civic_calendar_items / civic_meetings: Array of Objects [Required]
+      Each meeting object expects:
+      - m.title: String [Required, e.g. "City Council Regular Meeting"]
+      - m.date: String [Required, e.g. "OCT 27"]
+      - m.time: String [Optional, e.g. "7:00 PM"]
+      - m.place: String [Optional, e.g. "Council Chambers / Zoom"]
+      - m.type: String [Optional, e.g. "Council", "Planning"]
+    - civic_calendar_badge_label: String [Optional, defaults to "Official Meetings"]
+    - civic_calendar_footer_text: String [Optional, defaults to "Provided directly by public city calendar feed."]
+#}
 
-<div class="widget-card municipal-calendar-civic-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
+{% set active_neighborhood = civic_calendar_neighborhood_name or (neighborhood.name if neighborhood else '') or civic_calendar_city or (city.City if city else '') or city %}
+{% set meetings_list = civic_calendar_items or civic_meetings %}
+{% set badge_label = civic_calendar_badge_label or "Official Meetings" %}
+{% set footer_text = civic_calendar_footer_text or "Provided directly by public city calendar feed." %}
+
+{% if active_neighborhood and meetings_list and meetings_list.length > 0 %}
+<div class="widget-card municipal-calendar-card">
   
-  {# Header Row per edit: "City Calendar" #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+  {# Header Row: Civic Overline, Neighborhood Title & Status Label #}
+  <div class="card-header-split calendar-header-strip">
     <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+      <span class="text-overline text-accent-alpine">
         CITY GOVERNMENT
       </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
-        {{ city }} City Calendar
+      <h3 class="text-widget-title calendar-headline">
+        {{ active_neighborhood }} City Calendar
       </h3>
     </div>
-    <span class="text-body-secondary" style="font-size: 0.75rem;">Official Meetings</span>
+    <span class="text-body-secondary calendar-header-badge">
+      {{ badge_label }}
+    </span>
   </div>
 
-  {# Calendar Entries #}
-  <div style="display: flex; flex-direction: column; gap: 0.65rem;">
-    {% for m in civic_meetings %}
-      <div style="display: flex; align-items: center; gap: 1rem; padding: 0.65rem 0.85rem; background: var(--color-surface-gray); border-radius: 10px;">
-        <div style="width: 44px; text-align: center; border-right: 1px solid var(--color-border-light); padding-right: 0.75rem; flex-shrink: 0;">
-          <div style="font-size: 0.85rem; font-weight: 800; font-family: monospace; color: var(--color-secondary-default); line-height: 1;">
-            {{ m.date }}
+  {# Calendar Entries Stack #}
+  <div class="calendar-events-stack">
+    {% for m in meetings_list %}
+      {% if m.title and m.date %}
+        <div class="calendar-event-row">
+          
+          {# Left: Monospace Date Column #}
+          <div class="calendar-date-stamp">
+            <time class="calendar-date-text">
+              {{ m.date }}
+            </time>
           </div>
-        </div>
 
-        <div style="flex-grow: 1; min-width: 0;">
-          <div style="font-size: 0.85rem; font-weight: 700; color: var(--color-primary-default); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-            {{ m.title }}
+          {# Right: Title & Location/Time Details #}
+          <div class="calendar-event-details">
+            <div class="calendar-event-title">
+              {{ m.title }}
+            </div>
+            {% if m.time or m.place %}
+              <div class="text-body-secondary calendar-event-meta">
+                {% if m.time %}{{ m.time }}{% endif %}
+                {% if m.time and m.place %} • {% endif %}
+                {% if m.place %}{{ m.place }}{% endif %}
+              </div>
+            {% endif %}
           </div>
-          <div class="text-body-secondary" style="font-size: 0.7rem;">
-            {{ m.time }} • {{ m.place }}
-          </div>
+
         </div>
-      </div>
+      {% endif %}
     {% endfor %}
   </div>
 
-  {# Footer per edit #}
-  <div style="border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem;" class="text-body-secondary">
-    Provided directly by public city calendar feed.
-  </div>
+  {# Footer: Verification Attribution #}
+  {% if footer_text %}
+    <div class="card-footer-strip text-body-secondary">
+      <span>{{ footer_text }}</span>
+    </div>
+  {% endif %}
 
 </div>
+{% endif %}

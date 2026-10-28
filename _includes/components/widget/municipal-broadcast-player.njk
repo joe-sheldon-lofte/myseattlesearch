@@ -1,49 +1,114 @@
 <!-- File: _includes/components/widget/municipal-broadcast-player.njk -->
-{% set city = broadcast_city_name | default("Edmonds") %}
-{% set is_live = broadcast_is_live | default(false) %}
-{% set stream_title = broadcast_title | default("City Council Regular Business Meeting") %}
-{% set stream_date = broadcast_date | default("Tuesday, Oct 27, 2026 • 7:00 PM PDT") %}
-{% set youtube_id = broadcast_youtube_id | default("dQw4w9WgXcQ") %}
+{# 
+  COMPONENT: Official Civic Video Stream & Broadcast Player (widget.municipal.broadcast.player)
+  CHANNELS: YouTube Live, Granicus, Legistar, Swagit, PEG Cable Portals
+  CONTRACT:
+    - municipal_neighborhood_name / neighborhood.name / city.City / city: String [Required]
+    - broadcast_title / stream_title: String [Required]
+    - broadcast_youtube_id / youtube_id: String [Optional]
+    - broadcast_embed_url / embed_url: String [Optional, for Granicus/Swagit iframes]
+    - broadcast_external_url / portal_url: String [Optional, for external Granicus/Legistar launches]
+    - broadcast_date / stream_date: String [Optional, e.g. "Tuesday, Oct 27, 2026 • 7:00 PM PDT"]
+    - broadcast_is_live / is_live: Boolean [Optional, defaults to false]
+    - broadcast_archive_url: String [Optional, defaults to "#"]
+#}
 
-<div class="widget-card municipal-broadcast-player-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
+{% set active_neighborhood = municipal_neighborhood_name or (neighborhood.name if neighborhood else '') or city.City or city %}
+{% set is_live = broadcast_is_live if broadcast_is_live is defined else (is_live if is_live is defined else false) %}
+{% set stream_name = broadcast_title or stream_title %}
+{% set stream_time = broadcast_date or stream_date %}
+{% set yt_id = broadcast_youtube_id or youtube_id %}
+{% set embed_src = broadcast_embed_url or embed_url %}
+{% set external_src = broadcast_external_url or portal_url %}
+{% set archive_href = broadcast_archive_url or "#" %}
+
+{# Render when a valid stream title exists paired with either video ID, embed URL, or external portal #}
+{% if active_neighborhood and stream_name and (yt_id or embed_src or external_src) %}
+<div class="widget-card municipal-broadcast-player-card">
   
-  {# Header Row per edit: "CITY BROADCAST & ARCHIVES" (OPMA disclosure removed) #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+  {# Header Row: Section Overline, Neighborhood Title & Live Pulse Badge #}
+  <div class="card-header-split broadcast-header-strip">
     <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+      <span class="text-overline text-accent-alpine">
         CITY BROADCAST &amp; ARCHIVES
       </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
-        {{ city }} Official Meeting Video Stream
+      <h3 class="text-widget-title broadcast-headline">
+        {{ active_neighborhood }} Official Meeting Video Stream
       </h3>
     </div>
 
     {% if is_live %}
-      <div style="display: flex; align-items: center; gap: 0.4rem; padding: 0.2rem 0.65rem; border-radius: 999px; background: rgba(217, 35, 42, 0.12); color: var(--color-tertiary-default); font-size: 0.7rem; font-weight: 800;">
-        <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--color-tertiary-default); animation: blink 1.5s infinite;"></span>
+      <div class="badge-status-live" role="status" aria-live="polite">
+        <span class="broadcast-live-dot" aria-hidden="true"></span>
         <span>BROADCASTING LIVE</span>
       </div>
     {% else %}
-      <span style="font-size: 0.75rem; color: #86868b; font-weight: 600;">CURRENT & ARCHIVE</span>
+      <span class="text-overline broadcast-dormant-badge">
+        CURRENT &amp; ARCHIVE
+      </span>
     {% endif %}
   </div>
 
-  {# 16:9 Video Embed Player #}
-  <div style="width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: #000000; position: relative;">
-    <iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;"
-            src="https://www.youtube.com/embed/{{ youtube_id }}" 
-            title="{{ city }} City Council Stream" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-            allowfullscreen></iframe>
+  {# 16:9 Video Viewport Stage #}
+  <div class="broadcast-viewport-stage">
+    {% if yt_id %}
+      {# 1. YouTube Player (Privacy-Enhanced Embed Mode) #}
+      <iframe class="broadcast-iframe"
+              src="https://www.youtube-nocookie.com/embed/{{ yt_id }}?rel=0" 
+              title="{{ active_neighborhood }} Official Council Stream" 
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowfullscreen></iframe>
+
+    {% elif embed_src %}
+      {# 2. Granicus / Swagit / Cable Direct Embed #}
+      <iframe class="broadcast-iframe"
+              src="{{ embed_src }}" 
+              title="{{ active_neighborhood }} Municipal Video Stream" 
+              loading="lazy"
+              allow="autoplay; fullscreen" 
+              allowfullscreen></iframe>
+
+    {% elif external_src %}
+      {# 3. Standby / Restricted Iframe Fallback (Direct Portal Launch) #}
+      <div class="broadcast-standby-slate">
+        <div class="broadcast-standby-icon-well" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+        </div>
+        <h4 class="broadcast-standby-title">{{ stream_name }}</h4>
+        <p class="broadcast-standby-subtext">
+          Broadcast hosted via {{ active_neighborhood }} municipal media portal. Launch viewer in high-definition stream console.
+        </p>
+        <a href="{{ external_src }}" target="_blank" rel="noopener noreferrer" class="btn-broadcast-launch">
+          <span>Launch Civic Stream</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="7" y1="17" x2="17" y2="7"/>
+            <polyline points="7 7 17 7 17 17"/>
+          </svg>
+        </a>
+      </div>
+    {% endif %}
   </div>
 
-  {# Stream Meta #}
-  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; font-size: 0.8rem;">
-    <div>
-      <strong style="color: var(--color-primary-default);">{{ stream_title }}</strong>
-      <div class="text-body-secondary" style="font-size: 0.75rem;">{{ stream_date }}</div>
+  {# Stream Meta & Archive Link #}
+  <div class="broadcast-meta-footer">
+    <div class="broadcast-meta-lead">
+      <span class="broadcast-stream-title">{{ stream_name }}</span>
+      {% if stream_time %}
+        <span class="text-body-secondary broadcast-stream-date">{{ stream_time }}</span>
+      {% endif %}
     </div>
-    <a href="#" style="color: var(--color-secondary-default); font-weight: 700; text-decoration: none;">All Past Archives →</a>
+
+    <a href="{{ archive_href }}" class="broadcast-archive-link">
+      <span>All Past Archives</span>
+      <svg class="broadcast-archive-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="5" y1="12" x2="19" y2="12"/>
+        <polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </a>
   </div>
 
 </div>
+{% endif %}
