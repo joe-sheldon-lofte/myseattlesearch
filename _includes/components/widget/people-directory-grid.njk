@@ -1,63 +1,115 @@
 <!-- File: _includes/components/widget/people-directory-grid.njk -->
-{% set dir_title = directory_grid_title | default("Joe's Recommended Professionals") %}
-{% set show_filter = directory_show_filter | default(true) %}
+{# 
+  COMPONENT: Professional Advisory & Service Directory Grid (widget.people.directory.grid)
+  CONTRACT:
+    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+    - directory_grid_title / dir_title: String [Optional, defaults to "[Neighborhood] Recommended Professionals"]
+    - directory_show_filter / show_filter: Boolean [Optional, defaults to true]
+    - directory_cards_slot: String (HTML safe markup) [Optional]
+    - content: String (HTML safe markup) [Optional]
+    - directory_professionals / professionals: Array of Objects [Optional]
+      Each professional object expects:
+      - person.name: String [Required]
+      - person.category: String [Required, e.g. "real-estate", "lending", "escrow", "trades"]
+      - person.role: String [Optional]
+      - person.image: String [Optional]
+      - person.phone: String [Optional]
+      - person.email: String [Optional]
+      - person.url: String [Optional]
+#}
 
-<section class="widget-card people-directory-grid-card" style="padding: 2rem; width: 100%; border-radius: var(--border-radius-squircle); display: flex; flex-direction: column; gap: 1.75rem; box-sizing: border-box;">
+{% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
+{% set default_title = (active_neighborhood ~ " Recommended Professionals") if active_neighborhood else "Recommended Professionals" %}
+{% set heading_text = directory_grid_title or dir_title or default_title %}
+{% set display_filters = directory_show_filter if directory_show_filter is defined else (show_filter if show_filter is defined else true) %}
+{% set items = directory_professionals or professionals %}
+{% set has_content = directory_cards_slot or content or (items and items.length > 0) %}
+
+{% if has_content %}
+<section class="widget-card people-directory-grid-card" aria-label="{{ heading_text }}">
   
-  {# Header Area per edit #}
-  <div style="text-align: center; max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 0.25rem;">
-    <h2 class="text-page-title" style="margin: 0; font-size: 1.75rem;">
-      {{ dir_title }}
+  {# Header Area #}
+  <header class="directory-header-center">
+    <span class="text-overline text-accent-alpine">
+      VERIFIED LOCAL DIRECTORY
+    </span>
+    <h2 class="text-page-title directory-page-title">
+      {{ heading_text }}
     </h2>
-  </div>
+  </header>
 
-  {# Consumer Disclosure Notice Banner #}
-  <div style="background: var(--color-surface-gray); border-left: 3px solid var(--color-secondary-default); border-radius: 8px; padding: 0.85rem 1.15rem; font-size: 0.75rem; line-height: 1.5;" class="text-body-secondary">
-    <strong>Consumer Notice:</strong> Preferred vendors and independent contractors are listed as an informational courtesy. Washington consumers retain the right to select any licensed professional, title company, or lending institution of their choice. Consumers should always verify a professional's credentials to their satisfaction.
+  {# Washington Consumer Protection & RESPA Disclosure Notice Banner #}
+  <div class="directory-disclosure-banner text-body-secondary">
+    <span class="directory-disclosure-tag">Consumer Notice:</span> Preferred vendors and independent contractors are listed as an informational courtesy. Washington consumers retain the right to select any licensed professional, title company, or lending institution of their choice. Consumers should always verify a professional's credentials to their satisfaction.
   </div>
 
   {# Category Filter Pills #}
-  {% if show_filter %}
-    <div class="directory-filter-pills" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem;" role="tablist" aria-label="Filter directory by category">
-      <button type="button" class="btn-dir-pill active" data-dir-filter="all" style="padding: 0.4rem 0.95rem; border-radius: 999px; border: 1px solid var(--color-secondary-default); background: var(--color-secondary-default); color: #FFFFFF; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">All Professionals</button>
-      <button type="button" class="btn-dir-pill" data-dir-filter="real-estate" style="padding: 0.4rem 0.95rem; border-radius: 999px; border: 1px solid var(--color-border-light); background: var(--color-background-universal); color: var(--color-primary-default); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">Real Estate</button>
-      <button type="button" class="btn-dir-pill" data-dir-filter="lending" style="padding: 0.4rem 0.95rem; border-radius: 999px; border: 1px solid var(--color-border-light); background: var(--color-background-universal); color: var(--color-primary-default); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">Lending & Finance</button>
-      <button type="button" class="btn-dir-pill" data-dir-filter="escrow" style="padding: 0.4rem 0.95rem; border-radius: 999px; border: 1px solid var(--color-border-light); background: var(--color-background-universal); color: var(--color-primary-default); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">Title & Escrow</button>
-      <button type="button" class="btn-dir-pill" data-dir-filter="trades" style="padding: 0.4rem 0.95rem; border-radius: 999px; border: 1px solid var(--color-border-light); background: var(--color-background-universal); color: var(--color-primary-default); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">Contractors & Trades</button>
-    </div>
+  {% if display_filters %}
+    <nav class="directory-filter-pills" role="tablist" aria-label="Filter directory by category">
+      <button type="button" class="btn-dir-pill is-active" data-dir-filter="all" role="tab" aria-selected="true">All Professionals</button>
+      <button type="button" class="btn-dir-pill" data-dir-filter="real-estate" role="tab" aria-selected="false">Real Estate</button>
+      <button type="button" class="btn-dir-pill" data-dir-filter="lending" role="tab" aria-selected="false">Lending &amp; Finance</button>
+      <button type="button" class="btn-dir-pill" data-dir-filter="escrow" role="tab" aria-selected="false">Title &amp; Escrow</button>
+      <button type="button" class="btn-dir-pill" data-dir-filter="trades" role="tab" aria-selected="false">Contractors &amp; Trades</button>
+    </nav>
   {% endif %}
 
-  {# Responsive Grid Container #}
-  <div class="core-four-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; align-items: stretch;">
+  {# Responsive Bento Grid Container #}
+  <div class="directory-cards-grid">
     {% if directory_cards_slot %}
       {{ directory_cards_slot | safe }}
     {% elif content %}
       {{ content | safe }}
-    {% else %}
-      {% include "components/widget/people-card-primary.njk" ignore missing %}
-      {% include "components/widget/people-card-secondary.njk" ignore missing %}
+    {% elif items and items.length > 0 %}
+      {% for person in items %}
+        {% if person.name %}
+          {% set cat_key = (person.category | lower | replace(' ', '-')) if person.category else 'all' %}
+          <div class="directory-item-slot" data-category="{{ cat_key }}">
+            {% set person_sec_name = person.name %}
+            {% set person_sec_role = person.role %}
+            {% set person_sec_image = person.image %}
+            {% set person_sec_phone = person.phone %}
+            {% set person_sec_email = person.email %}
+            {% set person_sec_url = person.url %}
+            {% include "components/widget/people-card-secondary.njk" ignore missing %}
+          </div>
+        {% endif %}
+      {% endfor %}
     {% endif %}
   </div>
 
-  <script>
-    (function() {
-      const pills = document.querySelectorAll('.directory-filter-pills .btn-dir-pill');
-      if (!pills.length) return;
-      pills.forEach(pill => {
-        pill.addEventListener('click', function() {
-          pills.forEach(p => {
-            p.style.background = 'var(--color-background-universal)';
-            p.style.color = 'var(--color-primary-default)';
-            p.style.borderColor = 'var(--color-border-light)';
-            p.classList.remove('active');
+  {# Scoped Zero-Dependency Filter Controller #}
+  {% if display_filters %}
+    <script>
+      (function() {
+        const container = document.currentScript ? document.currentScript.closest('.people-directory-grid-card') : document.querySelector('.people-directory-grid-card');
+        if (!container) return;
+        const pills = container.querySelectorAll('.btn-dir-pill');
+        const cards = container.querySelectorAll('.directory-item-slot');
+
+        pills.forEach(pill => {
+          pill.addEventListener('click', function() {
+            pills.forEach(p => {
+              p.classList.remove('is-active');
+              p.setAttribute('aria-selected', 'false');
+            });
+            this.classList.add('is-active');
+            this.setAttribute('aria-selected', 'true');
+
+            const filter = this.getAttribute('data-dir-filter');
+            cards.forEach(card => {
+              const cat = card.getAttribute('data-category');
+              if (filter === 'all' || cat === filter) {
+                card.classList.remove('is-hidden');
+              } else {
+                card.classList.add('is-hidden');
+              }
+            });
           });
-          this.style.background = 'var(--color-secondary-default)';
-          this.style.color = '#FFFFFF';
-          this.style.borderColor = 'var(--color-secondary-default)';
-          this.classList.add('active');
         });
-      });
-    })();
-  </script>
+      })();
+    </script>
+  {% endif %}
 
 </section>
+{% endif %}
