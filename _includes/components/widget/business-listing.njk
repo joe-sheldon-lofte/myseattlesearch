@@ -1,74 +1,108 @@
 <!-- File: _includes/components/widget/business-listing.njk -->
-{% set name = business_name or business.name | default("Ebony and Ivory Coffee") %}
-{% set category = business_category or business.category | default("Coffee Shop") %}
-{% set price_level = business_price_level or business.price_level | default("$") %}
-{% set rating = business_rating or business.rating | default(4.6) %}
-{% set reviews_count = business_reviews_count or business.review_count or business_review_count | default(335) %}
-{% set address = business_address or business.location | default("33930 Weyerhaeuser Way S, Federal Way, WA 98001, USA") %}
-{% set summary = business_summary or business.summary | default("Top-rated spot in Algona with 335 reviews on Google.") %}
-{% set image_url = business_image_url or business.image_url | default("https://lh3.googleusercontent.com/grass-cs/AABkmLesyvrP52nkCRp0z_Il1iVXEjZQ9mQNtjZLn2g9hcf4HCfpWn2nWeOxOSfFcjyOSye_-aEmU01_QmctL8Oj3Zc_hDVCJLMAtG4hPLH6UJtZB_t01uYlxEda_-irNZn4irjPjJB2=s4800-w800-h600") %}
-{% set url = business_url or business.url or business_website | default("https://maps.google.com/?cid=11262513479474504802&g_mp=Cilnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaE5lYXJieRACGAQgAA") %}
-{% set phone = business_phone or business.phone | default("") %}
-{% set tel_link = business_tel or business.tel %}
+{# 
+  COMPONENT: Local Business Place Card (widget.business.listing)
+  CONTRACT:
+    - business_name / business.name: String [Required]
+    - business_category / business.category: String [Optional]
+    - business_price_level / business.price_level: String [Optional]
+    - business_rating / business.rating: Number [Optional]
+    - business_reviews_count / business.review_count: Number [Optional]
+    - business_address / business.location: String [Optional]
+    - business_summary / business.summary: String [Optional]
+    - business_image_url / business.image_url: String [Optional]
+    - business_url / business.url / business_website: String [Optional]
+    - business_phone / business.phone: String [Optional]
+    - business_tel / business.tel: String [Optional]
+#}
 
-<div class="widget-card business-listing-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; gap: 0.75rem; box-sizing: border-box; transition: transform 0.2s ease, box-shadow 0.2s ease;">
+{% set name = business_name or business.name %}
+{% set category = business_category or business.category %}
+{% set price_level = business_price_level or business.price_level %}
+{% set rating = business_rating or business.rating %}
+{% set reviews_count = business_reviews_count or business.review_count or business_review_count %}
+{% set address = business_address or business.location %}
+{% set summary = business_summary or business.summary %}
+{% set image_url = business_image_url or business.image_url %}
+{% set url = business_url or business.url or business_website %}
+{% set phone = business_phone or business.phone %}
+{% set tel_link = business_tel or business.tel %}
+{% set tel_clean = tel_link or (phone | replace('-', '') | replace('(', '') | replace(')', '') | replace(' ', '')) if phone else '' %}
+
+{% if name %}
+<div class="widget-card widget-card-interactive business-listing-card">
   
-  <div>
-    {# Featured Venue Photography #}
+  <div class="card-main-content">
+    {# 1. Featured Venue Photography #}
     {% if image_url %}
-      <div style="width: 100%; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; margin-bottom: 0.85rem; background: var(--color-surface-gray);">
-        <img src="{{ image_url }}" alt="{{ name }}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+      <div class="media-frame media-frame-16-9">
+        <img src="{{ image_url }}" alt="{{ name }}" loading="lazy" class="media-cover media-zoom">
       </div>
     {% endif %}
 
-    {# Category Overline, Price Tier & Star Rating #}
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.35rem;">
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+    {# 2. Category Overline, Price Tier & Star Rating #}
+    <div class="card-header-split">
+      <span class="text-overline">
         {{ category | upper }}{% if price_level %} • {{ price_level }}{% endif %}
       </span>
       
-      <div style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.8rem; font-weight: 800; color: #D97706;">
-        <span>★</span>
-        <span>{{ rating }}</span>
-        <span class="text-body-secondary" style="font-weight: 500; font-size: 0.75rem;">({{ reviews_count }})</span>
-      </div>
+      {% if rating %}
+        <div class="rating-lockup">
+          <span class="rating-star" aria-hidden="true">★</span>
+          <span>{{ rating }}</span>
+          {% if reviews_count %}
+            <span class="rating-count">({{ reviews_count }})</span>
+          {% endif %}
+        </div>
+      {% endif %}
     </div>
 
-    {# Business Name #}
-    <h3 class="text-widget-title" style="margin: 0 0 0.35rem 0; font-size: 1.15rem; line-height: 1.35;">
-      <a href="{{ url }}" target="_blank" rel="noopener noreferrer" style="color: var(--color-primary-default); text-decoration: none;">
+    {# 3. Business Name Header #}
+    <h3 class="text-widget-title">
+      {% if url %}
+        <a href="{{ url }}" target="_blank" rel="noopener noreferrer" class="title-link">
+          {{ name }}
+        </a>
+      {% else %}
         {{ name }}
-      </a>
+      {% endif %}
     </h3>
 
-    {# Street Location #}
-    <div class="text-body-secondary" style="font-size: 0.75rem; display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.65rem;">
-      <span aria-hidden="true">📍</span>
-      <span>{{ address }}</span>
-    </div>
+    {# 4. Street Location #}
+    {% if address %}
+      <div class="meta-icon-row">
+        <span aria-hidden="true">📍</span>
+        <span>{{ address }}</span>
+      </div>
+    {% endif %}
 
-    {# Editorial Summary #}
+    {# 5. Editorial Summary #}
     {% if summary %}
-      <p class="text-body-secondary" style="font-size: 0.85rem; line-height: 1.5; margin: 0;">
+      <p class="text-body-secondary">
         {{ summary }}
       </p>
     {% endif %}
   </div>
 
-  {# Footer Actions #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.75rem; margin-top: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
-    {% if phone %}
-      <a href="tel:{{ tel_link | default(phone | replace('-', '') | replace('(', '') | replace(')', '') | replace(' ', '')) }}" style="color: var(--color-primary-default); font-size: 0.75rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem;">
-        <span>📞 {{ phone }}</span>
-      </a>
-    {% else %}
-      <span></span>
-    {% endif %}
+  {# 6. Footer Actions #}
+  {% if phone or url %}
+    <div class="card-footer-strip">
+      {% if phone %}
+        <a href="tel:{{ tel_clean }}" class="link-subtle">
+          <span aria-hidden="true">📞</span>
+          <span>{{ phone }}</span>
+        </a>
+      {% else %}
+        <span></span>
+      {% endif %}
 
-    <a href="{{ url }}" target="_blank" rel="noopener noreferrer" style="color: var(--color-secondary-default); font-size: 0.8rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem; margin-left: auto;">
-      <span>View</span>
-      <span aria-hidden="true">↗</span>
-    </a>
-  </div>
+      {% if url %}
+        <a href="{{ url }}" target="_blank" rel="noopener noreferrer" class="link-arrow">
+          <span>View</span>
+          <span aria-hidden="true">↗</span>
+        </a>
+      {% endif %}
+    </div>
+  {% endif %}
 
 </div>
+{% endif %}

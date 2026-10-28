@@ -1,0 +1,125 @@
+{# 
+  COMPONENT: Universal Custom Score Bento Chassis (widget.custom.score)
+  CONTRACT:
+    - score.id: String (e.g. "psai", "surveillance", "activecommute") [Required]
+    - score.title: String (e.g. "PSAI Academic Rating") [Required]
+    - score.overline: String (e.g. "ACADEMIC PROFICIENCY") [Required]
+    - score.value: Number (0–100) [Required]
+    - score.color_scale: "standard" | "inverse" [Optional, defaults to "standard"]
+    - score.label: String (e.g. "Academic Distinction", "High Density") [Optional]
+    - score.detail: String (e.g. "SBA Math: 68% • ELA: 74% • Science: 66%") [Optional]
+    - score.source: String (e.g. "WA OSPI Report Card") [Optional]
+    - score.scale: String [Optional, defaults to "Scale 0–100"]
+    - score.methodology: String (Methodology description for modal) [Optional]
+    - score.formula: String (Formula text for modal) [Optional]
+    - score.scale_notes: String (Scale breakdown for modal) [Optional]
+#}
+
+{% set s_id = score.id or score_id %}
+{% set s_title = score.title or score_title %}
+{% set s_overline = score.overline or score_overline %}
+{% set s_val = score.value if score.value is defined else score_val %}
+{% set s_mode = score.color_scale or score_color_scale or "standard" %}
+{% set s_label = score.label or score_label %}
+{% set s_detail = score.detail or score_detail %}
+{% set s_source = score.source or score_source %}
+{% set s_scale = score.scale or score_scale or "Scale 0–100" %}
+{% set s_methodology = score.methodology or score_methodology %}
+{% set s_formula = score.formula or score_formula %}
+{% set s_scale_notes = score.scale_notes or score_scale_notes %}
+
+{% if s_val is defined and s_val is not none %}
+  {# Centralized Threshold Engine: Adjust global score boundaries here once #}
+  {% set is_top_bracket = (s_val >= 67) %}
+  {% set is_mid_bracket = (s_val >= 34 and s_val < 67) %}
+  {% set is_low_bracket = (s_val < 34) %}
+
+  {% if s_mode == "inverse" %}
+    {# Inverse Mode: High numbers = Red, Low numbers = Green #}
+    {% set tier_badge = "score-tier-emerald" if is_low_bracket else ("score-tier-amber" if is_mid_bracket else "score-tier-crimson") %}
+    {% set tier_text  = "text-tier-emerald"  if is_low_bracket else ("text-tier-amber"  if is_mid_bracket else "text-tier-crimson") %}
+  {% else %}
+    {# Standard Mode: High numbers = Green, Low numbers = Red #}
+    {% set tier_badge = "score-tier-emerald" if is_top_bracket else ("score-tier-amber" if is_mid_bracket else "score-tier-crimson") %}
+    {% set tier_text  = "text-tier-emerald"  if is_top_bracket else ("text-tier-amber"  if is_mid_bracket else "text-tier-crimson") %}
+  {% endif %}
+
+  <div class="widget-card score-bento-card" data-score-id="{{ s_id }}">
+    
+    {# Header Row #}
+    <div class="card-header-split">
+      <div class="score-header-titles">
+        {% if s_overline %}
+          <span class="text-overline text-accent-alpine">{{ s_overline }}</span>
+        {% endif %}
+        <h3 class="text-widget-title">{{ s_title }}</h3>
+      </div>
+      
+      {% if s_methodology or s_formula %}
+        <button type="button" 
+                class="btn-info-trigger" 
+                aria-label="View {{ s_title }} methodology" 
+                onclick="document.getElementById('dialog-score-{{ s_id }}').showModal();">
+          <span aria-hidden="true">+</span>
+        </button>
+      {% endif %}
+    </div>
+
+    {# Center Score Display: Squircle Badge + Dynamic Label Stack #}
+    <div class="score-display-row">
+      <div class="score-squircle-badge {{ tier_badge }}">
+        <span class="score-digit">{{ s_val }}</span>
+      </div>
+
+      <div class="score-label-stack">
+        {% if s_label %}
+          <div class="score-state-label {{ tier_text }}">{{ s_label }}</div>
+        {% endif %}
+        {% if s_detail %}
+          <div class="text-body-secondary score-detail-text">{{ s_detail }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Footer: Attribution and Scale #}
+    <div class="card-footer-strip text-body-secondary">
+      <span>{% if s_source %}Data Source: {{ s_source }}{% endif %}</span>
+      <span class="score-scale-tag">{{ s_scale }}</span>
+    </div>
+
+    {# Accessible Methodology Modal Dialog #}
+    {% if s_methodology or s_formula %}
+      <dialog id="dialog-score-{{ s_id }}" class="info-dialog">
+        <div class="dialog-header">
+          <div>
+            <span class="text-overline text-accent-alpine">METHODOLOGY</span>
+            <h4 class="text-widget-title dialog-headline">{{ s_title }}</h4>
+          </div>
+          <button type="button" 
+                  class="btn-dialog-close" 
+                  aria-label="Close dialog"
+                  onclick="document.getElementById('dialog-score-{{ s_id }}').close();">✕</button>
+        </div>
+
+        {% if s_methodology %}
+          <p class="text-body-secondary dialog-prose">
+            {{ s_methodology }}
+          </p>
+        {% endif %}
+
+        {% if s_formula %}
+          <div class="dialog-formula-box">
+            <code>{{ s_formula }}</code>
+          </div>
+        {% endif %}
+
+        {% if s_scale_notes %}
+          <div class="text-body-secondary dialog-scale-notes">
+            {{ s_scale_notes }}
+          </div>
+        {% endif %}
+      </dialog>
+    {% endif %}
+
+  </div>
+{% endif %}

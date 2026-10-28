@@ -1,115 +1,160 @@
-<!-- File: _includes/components/widget/commute-employment-hub.njk -->
-{% set city = commute_city_name | default("Edmonds") %}
-{% set city_lat = commute_city_lat | default(47.8107) %}
-{% set city_lon = commute_city_lon | default(-122.3774) %}
+{# 
+  COMPONENT: Commute & Major Employment Hub Times (widget.commute.employment.hub)
+  CONTRACT:
+    - commute_neighborhood_name / neighborhood.name / city.City: String [Required]
+    - commute_origin_lat / city.Latitude / neighborhood.lat: Number [Optional]
+    - commute_origin_lon / city.Longitude / neighborhood.lon: Number [Optional]
+    - commute_data / commute_metrics: Object keyed by hub ID (slu, bellevue, redmond, everett, renton, kent) [Optional]
+      Each hub metric entry can provide:
+      - miles: String / Number
+      - drive_live: String (e.g. "24 min")
+      - drive_offpeak: String (e.g. "18 min")
+      - transit_live: String (e.g. "38 min")
+      - transit_offpeak: String (e.g. "32 min")
+      - return_drive_live: String [Optional]
+      - return_drive_offpeak: String [Optional]
+      - return_transit_live: String [Optional]
+      - return_transit_offpeak: String [Optional]
+      - friction: Number [Optional, e.g. 14 for +14%]
+      - friction_label: String [Optional, e.g. "Low Drag", "Moderate", "Heavy Delay"]
+#}
 
-{# Employment Hubs with Coordinates, Distance, Drive/Transit & Embedded Friction Score #}
-{% set hubs = [
-  { name: "South Lake Union (Seattle)", lat: 47.6253, lon: -122.3375, miles: "15 miles", drive_live: "24 min", drive_offpeak: "18 min", transit_live: "38 min", transit_offpeak: "32 min", friction: 14, friction_label: "Low Drag" },
-  { name: "Downtown Bellevue", lat: 47.6101, lon: -122.2015, miles: "18 miles", drive_live: "28 min", drive_offpeak: "22 min", transit_live: "46 min", transit_offpeak: "38 min", friction: 18, friction_label: "Moderate" },
-  { name: "Microsoft Redmond Campus", lat: 47.6423, lon: -122.1368, miles: "21 miles", drive_live: "32 min", drive_offpeak: "24 min", transit_live: "52 min", transit_offpeak: "44 min", friction: 22, friction_label: "Moderate" },
-  { name: "Boeing Everett Factory", lat: 47.9253, lon: -122.2715, miles: "14 miles", drive_live: "19 min", drive_offpeak: "16 min", transit_live: "36 min", transit_offpeak: "30 min", friction: 10, friction_label: "Free Flowing" },
-  { name: "Boeing Renton Factory", lat: 47.4915, lon: -122.2155, miles: "28 miles", drive_live: "42 min", drive_offpeak: "31 min", transit_live: "64 min", transit_offpeak: "52 min", friction: 32, friction_label: "Heavy Delay" },
-  { name: "Kent Valley Logistics Hub", lat: 47.3809, lon: -122.2348, miles: "33 miles", drive_live: "48 min", drive_offpeak: "36 min", transit_live: "72 min", transit_offpeak: "58 min", friction: 34, friction_label: "Heavy Delay" }
+{% set active_neighborhood = commute_neighborhood_name or (neighborhood.name if neighborhood else '') or city.City or city %}
+{% set origin_lat = commute_origin_lat or (neighborhood.lat if neighborhood else '') or city.Latitude %}
+{% set origin_lon = commute_origin_lon or (neighborhood.lon if neighborhood else '') or city.Longitude %}
+{% set telemetry = commute_data or commute_metrics or {} %}
+
+{# Canonical Regional Employment Hubs (Fixed Puget Sound Anchors) #}
+{% set canonical_hubs = [
+  { id: "slu", name: "South Lake Union (Seattle)", lat: 47.6253, lon: -122.3375 },
+  { id: "bellevue", name: "Downtown Bellevue", lat: 47.6101, lon: -122.2015 },
+  { id: "redmond", name: "Microsoft Redmond Campus", lat: 47.6423, lon: -122.1368 },
+  { id: "everett", name: "Boeing Everett Factory", lat: 47.9253, lon: -122.2715 },
+  { id: "renton", name: "Boeing Renton Factory", lat: 47.4915, lon: -122.2155 },
+  { id: "kent", name: "Kent Valley Logistics Hub", lat: 47.3809, lon: -122.2348 }
 ] %}
 
-<style>
-  .commute-hubs-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
-  }
-  @media (min-width: 680px) {
-    .commute-hubs-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-</style>
-
-<div class="widget-card commute-employment-hub-container" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.5rem; box-sizing: border-box;">
+{% if active_neighborhood %}
+<div class="widget-card commute-hub-container"
+     data-origin-neighborhood="{{ active_neighborhood }}"
+     {% if origin_lat and origin_lon %}data-origin-lat="{{ origin_lat }}" data-origin-lon="{{ origin_lon }}"{% endif %}>
   
-  {# Header Row per edits: Live WSDOT Corridor removed, COMMUTE TIMES overline #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+  {# Header Row #}
+  <div class="card-header-split">
     <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+      <span class="text-overline text-accent-alpine">
         CURRENT ACTIVE COMMUTE TIMES
       </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.25rem;">
-        {{ city }} to Major Employment Hubs
+      <h3 class="text-widget-title">
+        {{ active_neighborhood }} to Major Employment Hubs
       </h3>
     </div>
   </div>
 
-  {# 2-Column x 3-Row Employment Hub Grid #}
+  {# 2-Column Responsive Employment Hub Grid #}
   <div class="commute-hubs-grid">
-    {% for hub in hubs %}
-      <div style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; box-sizing: border-box;">
+    {% for hub in canonical_hubs %}
+      {% set m = telemetry[hub.id] %}
+      <div class="commute-hub-card"
+           data-hub-id="{{ hub.id }}"
+           data-hub-lat="{{ hub.lat }}"
+           data-hub-lon="{{ hub.lon }}">
         
-        {# Hub Header: Name & Distance #}
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.5rem;">
+        {# Hub Header: Name & Friction Indicator #}
+        <div class="commute-hub-header">
           <div>
-            <h4 style="margin: 0; font-size: 0.95rem; font-weight: 800; color: var(--color-primary-default);">
+            <h4 class="commute-hub-title">
               {{ hub.name }}
             </h4>
+            {% if m and m.miles %}
+              <span class="text-body-secondary commute-sub-metric">{{ m.miles }}</span>
+            {% endif %}
           </div>
 
-          {# Embedded score.custom.citycommutefriction Badge #}
-          <div style="display: flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.55rem; border-radius: 999px; font-size: 0.65rem; font-weight: 800; font-family: monospace; {% if hub.friction <= 15 %}background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.25);{% elif hub.friction <= 30 %}background: rgba(245, 158, 11, 0.15); color: #D97706; border: 1px solid rgba(245, 158, 11, 0.25);{% else %}background: rgba(217, 35, 42, 0.12); color: var(--color-tertiary-default); border: 1px solid rgba(217, 35, 42, 0.25);{% endif %}" title="Commute Friction Delay Penalty">
-            <span>+{{ hub.friction }}%</span>
-            <span>{{ hub.friction_label }}</span>
-          </div>
+          {% if m and m.friction is defined %}
+            {% set friction_class = "friction-low" if m.friction <= 15 else ("friction-moderate" if m.friction <= 30 else "friction-high") %}
+            <div class="commute-friction-badge {{ friction_class }}" title="Commute Friction Delay Penalty">
+              <span>+{{ m.friction }}%</span>
+              {% if m.friction_label %}
+                <span>{{ m.friction_label }}</span>
+              {% endif %}
+            </div>
+          {% endif %}
         </div>
 
-        {# Direction 1: City -> Hub #}
-        <div>
-          <div class="text-overline" style="font-size: 0.6rem; color: #86868b; margin-bottom: 0.35rem;">
-            MORNING COMMUTE: {{ city | upper }} → HUB
+        {% if m and (m.drive_live or m.transit_live) %}
+          {# Direction 1: Neighborhood -> Employment Hub #}
+          <div class="commute-leg-block">
+            <div class="text-overline commute-leg-overline">
+              MORNING COMMUTE: {{ active_neighborhood | upper }} → HUB
+            </div>
+            
+            <div class="commute-modes-grid">
+              {% if m.drive_live %}
+                <div class="commute-metric-cell">
+                  <span class="commute-metric-label">DRIVE</span>
+                  <div class="commute-metric-value">{{ m.drive_live }}</div>
+                  {% if m.drive_offpeak %}
+                    <span class="text-body-secondary commute-sub-metric">Off-peak: {{ m.drive_offpeak }}</span>
+                  {% endif %}
+                </div>
+              {% endif %}
+
+              {% if m.transit_live %}
+                <div class="commute-metric-cell">
+                  <span class="commute-metric-label text-accent-alpine">TRANSIT</span>
+                  <div class="commute-metric-value text-accent-alpine">{{ m.transit_live }}</div>
+                  {% if m.transit_offpeak %}
+                    <span class="text-body-secondary commute-sub-metric">Off-peak: {{ m.transit_offpeak }}</span>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-            <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 8px; padding: 0.65rem;">
-              <div style="font-size: 0.65rem; font-weight: 700; color: #86868b;">DRIVE</div>
-              <div style="font-size: 1.15rem; font-weight: 800; font-family: monospace; color: var(--color-primary-default);">
-                {{ hub.drive_live }}
-              </div>
-              <div class="text-body-secondary" style="font-size: 0.65rem;">Off-peak: {{ hub.drive_offpeak }}</div>
+
+          {# Direction 2: Employment Hub -> Neighborhood #}
+          <div class="commute-leg-block">
+            <div class="text-overline commute-leg-overline">
+              EVENING RETURN: HUB → {{ active_neighborhood | upper }}
             </div>
 
-            <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 8px; padding: 0.65rem;">
-              <div style="font-size: 0.65rem; font-weight: 700; color: #86868b;">TRANSIT</div>
-              <div style="font-size: 1.15rem; font-weight: 800; font-family: monospace; color: var(--color-secondary-default);">
-                {{ hub.transit_live }}
-              </div>
-              <div class="text-body-secondary" style="font-size: 0.65rem;">Off-peak: {{ hub.transit_offpeak }}</div>
-            </div>
-          </div>
-        </div>
+            {% set ret_drive = m.return_drive_live or m.drive_live %}
+            {% set ret_drive_offpeak = m.return_drive_offpeak or m.drive_offpeak %}
+            {% set ret_transit = m.return_transit_live or m.transit_live %}
+            {% set ret_transit_offpeak = m.return_transit_offpeak or m.transit_offpeak %}
 
-        {# Direction 2: Hub -> City #}
-        <div>
-          <div class="text-overline" style="font-size: 0.6rem; color: #86868b; margin-bottom: 0.35rem;">
-            EVENING RETURN: HUB → {{ city | upper }}
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-            <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 8px; padding: 0.65rem;">
-              <div style="font-size: 0.65rem; font-weight: 700; color: #86868b;">DRIVE</div>
-              <div style="font-size: 1.15rem; font-weight: 800; font-family: monospace; color: var(--color-primary-default);">
-                {{ hub.drive_live }}
-              </div>
-              <div class="text-body-secondary" style="font-size: 0.65rem;">Off-peak: {{ hub.drive_offpeak }}</div>
-            </div>
+            <div class="commute-modes-grid">
+              {% if ret_drive %}
+                <div class="commute-metric-cell">
+                  <span class="commute-metric-label">DRIVE</span>
+                  <div class="commute-metric-value">{{ ret_drive }}</div>
+                  {% if ret_drive_offpeak %}
+                    <span class="text-body-secondary commute-sub-metric">Off-peak: {{ ret_drive_offpeak }}</span>
+                  {% endif %}
+                </div>
+              {% endif %}
 
-            <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 8px; padding: 0.65rem;">
-              <div style="font-size: 0.65rem; font-weight: 700; color: #86868b;">TRANSIT</div>
-              <div style="font-size: 1.15rem; font-weight: 800; font-family: monospace; color: var(--color-secondary-default);">
-                {{ hub.transit_live }}
-              </div>
-              <div class="text-body-secondary" style="font-size: 0.65rem;">Off-peak: {{ hub.transit_offpeak }}</div>
+              {% if ret_transit %}
+                <div class="commute-metric-cell">
+                  <span class="commute-metric-label text-accent-alpine">TRANSIT</span>
+                  <div class="commute-metric-value text-accent-alpine">{{ ret_transit }}</div>
+                  {% if ret_transit_offpeak %}
+                    <span class="text-body-secondary commute-sub-metric">Off-peak: {{ ret_transit_offpeak }}</span>
+                  {% endif %}
+                </div>
+              {% endif %}
             </div>
           </div>
-        </div>
+        {% else %}
+          {# Telemetry Pending State #}
+          <div class="commute-pending-state">
+            <span class="text-body-secondary commute-sub-metric">Corridor telemetry syncing…</span>
+          </div>
+        {% endif %}
 
       </div>
     {% endfor %}
   </div>
 
 </div>
+{% endif %}

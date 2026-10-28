@@ -1,55 +1,86 @@
 <!-- File: _includes/components/widget/cms-card.njk -->
-{% set card_title = article_title or post_title or title | default("Missing-Middle Infill Zoning Along the Swift BRT Corridor: What Homebuyers and Builders Must Know") %}
-{% set card_excerpt = article_excerpt or post_excerpt or excerpt | default("How Snohomish County's updated development code is reshaping infill housing, duplex financing models, and property tax baselines.") %}
-{% set card_date = article_date or post_date or date | default("Today at 10:14 AM") %}
-{% set card_author = article_author or post_author or author | default("Joe Sheldon") %}
-{% set card_url = article_url or post_url or url | default("/posts/missing-middle-zoning-snohomish/") %}
+{# 
+  COMPONENT: Editorial & CMS Article Card (widget.cms.card)
+  CONTRACT:
+    - card_title / article_title / post_title / title / post.title: String [Required]
+    - card_url / article_url / post_url / url / post.url: String [Required]
+    - card_excerpt / article_excerpt / post_excerpt / excerpt / post.excerpt: String [Optional]
+    - content: String (Raw HTML/markdown body if excerpt absent) [Optional]
+    - card_date / article_date / post_date / date / post.date: String [Optional]
+    - card_author / article_author / post_author / author / post.author: String [Optional]
+#}
 
-<article class="widget-card cms-card-item" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; gap: 1.25rem; box-sizing: border-box; transition: transform 0.2s ease, box-shadow 0.2s ease;">
+{% set card_title = article_title or post_title or title or (post.title if post else '') %}
+{% set card_excerpt = article_excerpt or post_excerpt or excerpt or (post.excerpt if post else '') %}
+{% set card_date = article_date or post_date or date or (post.date if post else '') %}
+{% set card_author = article_author or post_author or author or (post.author if post else '') %}
+{% set card_url = article_url or post_url or url or (post.url if post else '') %}
+
+{% if card_title %}
+<article class="widget-card widget-card-interactive cms-card-item">
   
-  <div>
+  <div class="card-main-content">
     {# Header Row: Title & Timestamp #}
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem;">
-      <h3 class="text-widget-title" style="margin: 0; font-size: 1.2rem; line-height: 1.35;">
-        <a href="{{ card_url }}" style="color: var(--color-primary-default); text-decoration: none;">
+    <div class="card-header-split">
+      <h3 class="text-widget-title">
+        {% if card_url %}
+          <a href="{{ card_url }}" class="title-link">
+            {{ card_title }}
+          </a>
+        {% else %}
           {{ card_title }}
-        </a>
+        {% endif %}
       </h3>
-      <time class="text-body-secondary" style="font-size: 0.75rem; white-space: nowrap; flex-shrink: 0; padding-top: 0.15rem;">
-        {{ card_date }}
-      </time>
+
+      {% if card_date %}
+        <time class="text-body-secondary card-timestamp">
+          {{ card_date }}
+        </time>
+      {% endif %}
     </div>
 
-    {# Excerpt / Body #}
+    {# Excerpt / Rich Text Body #}
     {% if card_excerpt %}
-      <p class="text-body" style="font-size: 0.95rem; line-height: 1.6; margin: 0; color: var(--color-primary-default);">
+      <p class="text-body cms-card-excerpt">
         {{ card_excerpt }}
       </p>
     {% elif content %}
-      <div class="text-body" style="font-size: 0.95rem; line-height: 1.6; margin: 0; color: var(--color-primary-default);">
+      <div class="text-body cms-card-excerpt">
         {{ content | safe }}
       </div>
     {% endif %}
   </div>
 
   {# Footer Bar: Author Attribution & Action Triggers #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.85rem; font-size: 0.8rem;" class="text-body-secondary">
-    <div>
-      <span>By </span>
-      <a href="/#agent" style="color: var(--color-primary-default); font-weight: 600; text-decoration: none;">{{ card_author }}</a>
-      <span> • Redfin Senior Agent</span>
-    </div>
+  <div class="card-footer-strip text-body-secondary">
+    {% if card_author %}
+      <div class="cms-card-byline">
+        <span>By </span>
+        <a href="/#agent" class="link-subtle">
+          {{ card_author }}
+        </a>
+        <span> • Redfin Senior Agent</span>
+      </div>
+    {% else %}
+      <div></div>
+    {% endif %}
 
-    <div style="display: flex; align-items: center; gap: 1rem;">
-      <a href="/chat/?topic={{ card_title | urlencode }}" style="display: inline-flex; align-items: center; gap: 0.35rem; color: var(--color-secondary-default); text-decoration: none; font-weight: 600;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <div class="card-actions-group">
+      <a href="/chat/?topic={{ card_title | urlencode }}" class="link-action-reply">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
         <span>Reply</span>
       </a>
-      <a href="{{ card_url }}" style="display: inline-flex; align-items: center; gap: 0.25rem; color: var(--color-primary-default); text-decoration: none; font-weight: 600;">
-        <span>Read</span>
-        <span aria-hidden="true">→</span>
-      </a>
+
+      {% if card_url %}
+        <a href="{{ card_url }}" class="link-arrow">
+          <span>Read</span>
+          <span aria-hidden="true">→</span>
+        </a>
+      {% endif %}
     </div>
   </div>
 
 </article>
+{% endif %}

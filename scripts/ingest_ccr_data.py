@@ -30,13 +30,13 @@ D1_HEADERS = {
 }
 
 # ------------------------------------------------------------------------------
-# 2. ARCGIS FEATURESERVER ENDPOINTS
+# 2. VERIFIED UW ARCGIS FEATURESERVER ENDPOINTS
 # ------------------------------------------------------------------------------
 KING_ARCGIS_ENDPOINT = "https://services.arcgis.com/JL4BwWcjcPuWhBm9/arcgis/rest/services/King_25_07_03/FeatureServer/9/query"
 SNOHOMISH_ARCGIS_ENDPOINT = "https://services.arcgis.com/JL4BwWcjcPuWhBm9/arcgis/rest/services/Parcels_Snohomish_2_2_2025/FeatureServer/0/query"
 
 def create_retry_session():
-    """Builds a resilient HTTP session with automated exponential backoff."""
+    """Builds a resilient HTTP session that handles transient network timeouts."""
     session = requests.Session()
     retries = Retry(
         total=5,
@@ -50,7 +50,7 @@ def create_retry_session():
     return session
 
 def execute_d1(sql, params=None):
-    """Executes a SQL statement against Cloudflare D1 via the REST API."""
+    """Executes a SQL query against Cloudflare D1 via the REST API."""
     payload = {"sql": sql}
     if params:
         payload["params"] = params
@@ -70,7 +70,7 @@ def clean_text(text):
     return re.sub(r"\s+", " ", text).strip()
 
 def sql_quote(val):
-    """Safely escapes strings for raw SQLite statements without bound parameter limits."""
+    """Safely escapes strings for raw SQLite statements."""
     if val is None:
         return "''"
     cleaned = str(val).replace("'", "''").strip()
@@ -90,7 +90,7 @@ def extract_field(attrs, candidate_keys, default=""):
 # 3. HARVEST SUBDIVISION COVENANT DOCUMENTS
 # ------------------------------------------------------------------------------
 def fetch_county_subdivisions(session, county_name, url):
-    print(f"🌐 Scraping {county_name} County subdivisions from UW HTML tables...")
+    print(f"🌐 Scraping {county_name} County subdivisions from UW...")
     try:
         response = session.get(url, timeout=(10, 30))
         response.raise_for_status()
@@ -139,16 +139,6 @@ def fetch_arcgis_parcels(session, county_name, endpoint, max_records=60000):
     batch_limit = 2000
     parcels = []
 
-    # Schema inspection logging
-    try:
-        inspect_res = session.get(endpoint, params={"where": "1=1", "outFields": "*", "resultRecordCount": 1, "f": "json"}, timeout=15)
-        inspect_data = inspect_res.json()
-        feats = inspect_data.get("features", [])
-        if feats:
-            print(f"📋 Sample Fields for {county_name}: {list(feats[0].get('attributes', {}).keys())}")
-    except Exception as e:
-        print(f"⚠️ Could not inspect {county_name} schema: {e}")
-
     while offset < max_records:
         params = {
             "where": "1=1",
@@ -174,21 +164,42 @@ def fetch_arcgis_parcels(session, county_name, endpoint, max_records=60000):
             
         for feat in features:
             attrs = feat.get("attributes", {})
-            pin = extract_field(attrs, ["PIN", "PARCEL_ID", "PARCELID", "PARCEL", "PARCEL_NUM", "MAJOR_MINOR", "OBJECTID"])
-            address = extract_field(attrs, ["SITUS_ADDRESS", "SITUSADDRESS", "ADDRESS", "SITE_ADDRESS", "SITEADDRESS", "ADDR", "PROPERTY_ADDRESS"])
-            subdiv = extract_field(attrs, ["PLAT_NAME", "PLAT", "SUBDIVISION", "SUBDIV_NAME", "NEIGHBORHOOD"])
-            status = extract_field(attrs, ["RESTRICTION_STATUS", "RESTRICTION STATUS", "STATUS"], default="Restricted")
+            
+            # 1. Extract PIN
+            pin = extract_field(attrs, ["PIN", "PARCEL_ID", "PARCEL_ID_", "PARCEL_ID_W__00S", "ORIG_PARCE", "OBJECTID"])
+            
+            # 2. Extract and format Address using confirmed schema keys
+            street = extract_field(attrs, ["SITUS_ADDR", "ADDR_FULL", "PRIMARY_ADDR", "SITUSLINE1"])
+            city = extract_field(attrs, ["SITUS_CITY", "SITUSCITY", "CTYNAME", "POSTALCTYNAME"])
+            zip_code = extract_field(attrs, ["SITUS_ZIP_", "SITUSZIP", "ZIP5"])
+            
+            if street:
+                addr_parts = [street]
+                if city:
+                    addr_parts.append(city)
+                if zip_code:
+                    clean_zip = str(zip_code).split(".")[0].strip()
+                    if clean_zip:
+                        addr_parts.append(f"WA {clean_zip}")
+                full_address = ", ".join(addr_parts)
+            else:
+                full_address = ""
+
+            # 3. Extract Subdivision and Status
+            subdiv = extract_field(attrs, ["PLAT_NAME", "PLAT_NAME", "PLAT_NAM_1", "PROP_NAME", "SUB_ADDRES"])
+            status = extract_field(attrs, ["RESTRICTION_STATUS", "RESTRICTION STATUS", "RESTRICTION_TYPE", "STATUS"], default="Restricted")
 
             if pin:
                 clean_pin = str(pin).replace("-", "").strip()
                 if clean_pin.endswith(".0"):
                     clean_pin = clean_pin[:-2]
+                    
                 if county_name == "King" and len(clean_pin) < 10:
                     clean_pin = clean_pin.zfill(10)
                 elif county_name == "Snohomish" and len(clean_pin) < 14:
                     clean_pin = clean_pin.zfill(14)
 
-                parcels.append((clean_pin, county_name, address, subdiv, status))
+                parcels.append((clean_pin, county_name, full_address, subdiv, status))
 
         offset += len(features)
         print(f"   Collected {len(parcels)} {county_name} parcels...")
@@ -204,7 +215,7 @@ def fetch_arcgis_parcels(session, county_name, endpoint, max_records=60000):
     return parcels
 
 # ------------------------------------------------------------------------------
-# 5. D1 UPLOADERS
+# 5. D1 BATCH UPLOADERS
 # ------------------------------------------------------------------------------
 def upload_covenants_to_d1(covenants):
     if not covenants:
@@ -285,11 +296,11 @@ def run_ingestion():
     snohomish_covenants = fetch_county_subdivisions(session, "Snohomish", "https://depts.washington.edu/covenants/map_restrictions_snohomish.shtml")
     upload_covenants_to_d1(king_covenants + snohomish_covenants)
 
-    # 3. Harvest & Ingest King County Parcels
+    # 3. Harvest & Ingest King County Parcels (~37,000 rows)
     king_parcels = fetch_arcgis_parcels(session, "King", KING_ARCGIS_ENDPOINT)
     upload_parcels_to_d1(king_parcels, "King")
 
-    # 4. Harvest & Ingest Snohomish County Parcels
+    # 4. Harvest & Ingest Snohomish County Parcels (~7,000 rows)
     snohomish_parcels = fetch_arcgis_parcels(session, "Snohomish", SNOHOMISH_ARCGIS_ENDPOINT)
     upload_parcels_to_d1(snohomish_parcels, "Snohomish")
 

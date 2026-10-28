@@ -1,36 +1,83 @@
 <!-- File: _includes/components/widget/cms-notebook-feed.njk -->
-<div class="cms-notebook-feed-container" style="display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">
+{# 
+  COMPONENT: Social Notebook Feed & Micro-Dispatches (widget.cms.notebook.feed)
+  CONTRACT:
+    - notebook_posts / feed_items / posts: Array of Objects [Required]
+      Each post object expects:
+      - post.content / post.body: String (HTML/Markdown) [Required]
+      - post.url: String [Required]
+      - post.overline / post.category: String [Optional, e.g., "MARKET OBSERVATION"]
+      - post.date / post.timestamp: String [Optional]
+      - post.author: String [Optional, defaults to "Joe Sheldon"]
+      - post.author_role: String [Optional, defaults to "Redfin Senior Agent"]
+      - post.title: String [Optional, used for /chat/?topic= URL encoding]
+#}
 
-  {# Feed Entry: Micro-Post (Social / Short-Form) #}
-  <article class="widget-card notebook-post-card" style="padding: 1.5rem;">
-    
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
-      <span class="text-overline" style="color: var(--color-secondary-default);">MARKET OBSERVATION</span>
-      <time class="text-body-secondary" style="font-size: 0.75rem;">Today at 10:14 AM</time>
-    </div>
+{% set feed_items = notebook_posts or feed_items or posts or (([post] if post else [])) %}
 
-    <div class="text-body" style="line-height: 1.6; margin-bottom: 1.25rem;">
-      Seeing a notable uptick in verified cash-backed buyers securing contingencies along the Snohomish County line this week. If you are shopping the starter band between $650k and $800k in Edmonds or Shoreline, inventory turns over in less than 9 days on average. Have your underwriting verified upfront.
-    </div>
+{% if feed_items and feed_items.length > 0 %}
+<div class="cms-notebook-feed-container">
+  {% for item in feed_items %}
+    {% set post_content = item.content or item.body %}
+    {% set post_url = item.url %}
+    {% set post_overline = item.overline or item.category %}
+    {% set post_date = item.date or item.timestamp %}
+    {% set post_author = item.author or "Joe Sheldon" %}
+    {% set post_role = item.author_role or "Redfin Senior Agent" %}
+    {% set post_topic = item.title or post_overline or "Notebook Dispatch" %}
 
-    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.85rem; border-top: 1px solid var(--color-border-light); font-size: 0.8rem;" class="text-body-secondary">
-      <div>
-        <span>By </span>
-        <a href="/#agent" style="color: var(--color-primary-default); font-weight: 600; text-decoration: none;">Joe Sheldon</a>
-        <span> • Redfin Senior Agent</span>
-      </div>
-      <div style="display: flex; align-items: center; gap: 1rem;">
-        <a href="/chat/" style="display: inline-flex; align-items: center; gap: 0.35rem; color: var(--color-secondary-default); text-decoration: none; font-weight: 600;">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          <span>Reply</span>
-        </a>
-        <a href="{{ post_url | default('/posts/market-observation-snohomish-county/') }}" style="display: inline-flex; align-items: center; gap: 0.25rem; color: var(--color-primary-default); text-decoration: none; font-weight: 600;">
-          <span>Read</span>
-          <span aria-hidden="true">→</span>
-        </a>
-      </div>
-    </div>
+    {% if post_content %}
+      <article class="widget-card widget-card-interactive notebook-post-card">
+        
+        {# Header Row: Category Overline & Timestamp #}
+        {% if post_overline or post_date %}
+          <div class="card-header-split">
+            {% if post_overline %}
+              <span class="text-overline text-accent-alpine">{{ post_overline }}</span>
+            {% else %}
+              <span></span>
+            {% endif %}
 
-  </article>
+            {% if post_date %}
+              <time class="text-body-secondary card-timestamp">{{ post_date }}</time>
+            {% endif %}
+          </div>
+        {% endif %}
 
+        {# Micro-Post Rich Text Body #}
+        <div class="text-body notebook-post-body">
+          {{ post_content | safe }}
+        </div>
+
+        {# Footer Action Strip: Author Attribution & Interaction Cluster #}
+        <div class="card-footer-strip text-body-secondary">
+          <div class="cms-card-byline">
+            <span>By </span>
+            <a href="/#agent" class="link-subtle">{{ post_author }}</a>
+            {% if post_role %}
+              <span> • {{ post_role }}</span>
+            {% endif %}
+          </div>
+
+          <div class="card-actions-group">
+            <a href="/chat/?topic={{ post_topic | urlencode }}" class="link-action-reply">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span>Reply</span>
+            </a>
+
+            {% if post_url %}
+              <a href="{{ post_url }}" class="link-arrow">
+                <span>Read</span>
+                <span aria-hidden="true">→</span>
+              </a>
+            {% endif %}
+          </div>
+        </div>
+
+      </article>
+    {% endif %}
+  {% endfor %}
 </div>
+{% endif %}

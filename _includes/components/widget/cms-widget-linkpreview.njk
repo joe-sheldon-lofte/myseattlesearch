@@ -1,17 +1,26 @@
 <!-- File: _includes/components/widget/cms-widget-linkpreview.njk -->
-{% set preview_href = link_preview_url | default("https://electrek.co/2026/08/14/sound-transit-snohomish-ev-fleet/") %}
-{% set preview_host = link_preview_domain | default("ELECTREK.CO") %}
-{% set preview_head = link_preview_title | default("Sound Transit Accelerates EV Charging Depots Across South Snohomish County Arterials") %}
-{% set preview_desc = link_preview_snippet | default("Regional transit planners approve multi-megawatt depot charging hubs at Lynnwood and Mountlake Terrace transit centers ahead of the 2027 fleet transition.") %}
+{# 
+  COMPONENT: Rich External Link Preview Card (widget.cms.widget.linkpreview)
+  CONTRACT:
+    - link_preview_url / preview.url / url: String [Required]
+    - link_preview_title / preview.title / title: String [Required]
+    - link_preview_domain / preview.domain / domain: String [Optional, e.g. "ELECTREK.CO"]
+    - link_preview_snippet / preview.snippet / snippet / description: String [Optional]
+#}
 
-<a href="{{ preview_href }}" 
+{% set href = link_preview_url or (preview.url if preview else '') or url %}
+{% set title = link_preview_title or (preview.title if preview else '') or title %}
+{% set domain = link_preview_domain or (preview.domain if preview else '') or domain %}
+{% set snippet = link_preview_snippet or (preview.snippet if preview else '') or snippet or description %}
+
+{% if href and title %}
+<a href="{{ href }}" 
    target="_blank" 
    rel="noopener noreferrer" 
-   class="widget-card cms-link-preview-card" 
-   style="display: flex; align-items: flex-start; gap: 1rem; padding: 1.15rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); text-decoration: none; transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;">
+   class="widget-card widget-card-interactive link-preview-card">
   
-  {# Leading SVG Globe / External Link Icon #}
-  <div style="width: 36px; height: 36px; border-radius: 10px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-secondary-default); flex-shrink: 0;" aria-hidden="true">
+  {# Leading SVG Globe / External Link Icon (graphic.globe.link) #}
+  <div class="link-preview-icon" aria-hidden="true">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="10"/>
       <line x1="2" y1="12" x2="22" y2="12"/>
@@ -20,23 +29,28 @@
   </div>
 
   {# Main Preview Text Content #}
-  <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.25rem;">
-    <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
-      <span class="text-overline" style="font-size: 0.65rem; color: var(--color-secondary-default); letter-spacing: 0.08em;">
-        {{ preview_host }}
-      </span>
-      <span style="font-size: 0.75rem; color: #86868b;" aria-hidden="true">↗</span>
+  <div class="link-preview-content">
+    <div class="card-header-split">
+      {% if domain %}
+        <span class="text-overline text-accent-alpine">
+          {{ domain | upper }}
+        </span>
+      {% else %}
+        <span></span>
+      {% endif %}
+      <span class="link-external-arrow" aria-hidden="true">↗</span>
     </div>
 
-    <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--color-primary-default); line-height: 1.35; margin: 0;">
-      {{ preview_head }}
+    <h4 class="text-widget-title link-preview-headline">
+      {{ title }}
     </h4>
 
-    {% if preview_desc %}
-      <p class="text-body-secondary" style="font-size: 0.8rem; line-height: 1.45; margin: 0.2rem 0 0 0;">
-        {{ preview_desc }}
+    {% if snippet %}
+      <p class="text-body-secondary link-preview-snippet">
+        {{ snippet }}
       </p>
     {% endif %}
   </div>
 
 </a>
+{% endif %}
