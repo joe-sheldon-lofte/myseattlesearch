@@ -1,96 +1,130 @@
 <!-- File: _includes/components/widget/quiz-start-intake.njk -->
-{% set quiz_title = intake_quiz_title | default("Puget Sound Lifestyle & Neighborhood Matcher") %}
-{% set quiz_duration = intake_quiz_duration | default("3-minute psychographic test") %}
-{% set quiz_desc = intake_quiz_summary | default("Discover which North Sound or Seattle metro community aligns with your commute tolerance, architectural tastes, and lifestyle priorities.") %}
-{% set quiz_hub_url = intake_cancel_url | default("/quizzes/") %}
+{# 
+  COMPONENT: Neighborhood Lifestyle Quiz Intake Gate (widget.quiz.start.intake)
+  CONTRACT:
+    - intake_quiz_title / quiz_title / title: String [Required]
+    - intake_quiz_summary / quiz_desc / description: String [Optional]
+    - intake_quiz_duration / quiz_duration: String [Optional, e.g. "3-minute psychographic test"]
+    - intake_cancel_url / quiz_hub_url: String [Optional, defaults to "/quizzes/"]
+    - intake_action_url / form_action: String [Optional, defaults to "#"]
+#}
 
-<div class="widget-card quiz-start-intake-card" style="padding: 2.25rem; width: 100%; max-width: 680px; margin: 0 auto; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.75rem; box-sizing: border-box;">
+{% set q_title = intake_quiz_title or quiz_title or title %}
+{% set q_desc = intake_quiz_summary or quiz_desc or description %}
+{% set q_duration = intake_quiz_duration or quiz_duration %}
+{% set q_cancel = intake_cancel_url or quiz_hub_url or "/quizzes/" %}
+{% set q_action = intake_action_url or form_action or "#" %}
+
+{% if q_title %}
+<div class="widget-card quiz-start-intake-card" role="region" aria-label="Quiz Registration Intake">
   
-  {# Header & Overview #}
-  <div style="text-align: center; display: flex; flex-direction: column; gap: 0.5rem;">
-    <span class="text-overline" style="color: var(--color-secondary-default);">
-      INTERACTIVE QUIZ
-    </span>
-    <h2 class="text-page-title" style="margin: 0; font-size: 1.65rem; line-height: 1.25;">
-      {{ quiz_title }}
-    </h2>
-    <p class="text-body-secondary" style="font-size: 0.9rem; line-height: 1.5; margin: 0.5rem 0 0 0;">
-      {{ quiz_desc }}
-    </p>
-  </div>
+  {# Header & Context #}
+  <header class="quiz-intake-header">
+    <div class="quiz-intake-meta-strip">
+      <span class="text-overline quiz-intake-overline">
+        INTERACTIVE ASSESSMENT
+      </span>
+      {% if q_duration %}
+        <span class="quiz-intake-dot" aria-hidden="true">•</span>
+        <span class="quiz-duration-pill">
+          {{ q_duration }}
+        </span>
+      {% endif %}
+    </div>
 
-  {# Form Layout #}
-  <form class="quiz-intake-form" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1.25rem;">
+    <h2 class="text-page-title quiz-intake-title">
+      {{ q_title }}
+    </h2>
+
+    {% if q_desc %}
+      <p class="text-body-secondary quiz-intake-desc">
+        {{ q_desc }}
+      </p>
+    {% endif %}
+  </header>
+
+  {# Intake Form #}
+  <form class="quiz-intake-form" action="{{ q_action }}" method="POST">
     
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+    <div class="quiz-intake-fields-grid">
       
       {# First Name #}
-      <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-        <label for="intake-first-name" class="text-overline" style="font-size: 0.65rem; color: #86868b;">
+      <div class="quiz-intake-field-group">
+        <label for="intake-first-name" class="text-overline quiz-intake-label">
           First Name
         </label>
         <input type="text" 
                id="intake-first-name" 
                name="first_name" 
                required 
+               autocomplete="given-name"
                placeholder="Jane"
-               style="width: 100%; padding: 0.75rem 1rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 10px; font-size: 0.9rem; color: var(--color-primary-default); outline: none; transition: border-color 0.2s ease; box-sizing: border-box;">
+               class="quiz-intake-input">
       </div>
 
       {# Last Name #}
-      <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-        <label for="intake-last-name" class="text-overline" style="font-size: 0.65rem; color: #86868b;">
+      <div class="quiz-intake-field-group">
+        <label for="intake-last-name" class="text-overline quiz-intake-label">
           Last Name
         </label>
         <input type="text" 
                id="intake-last-name" 
                name="last_name" 
                required 
+               autocomplete="family-name"
                placeholder="Doe"
-               style="width: 100%; padding: 0.75rem 1rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 10px; font-size: 0.9rem; color: var(--color-primary-default); outline: none; transition: border-color 0.2s ease; box-sizing: border-box;">
+               class="quiz-intake-input">
       </div>
 
       {# Email Address #}
-      <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-        <label for="intake-email" class="text-overline" style="font-size: 0.65rem; color: #86868b;">
+      <div class="quiz-intake-field-group">
+        <label for="intake-email" class="text-overline quiz-intake-label">
           Email Address
         </label>
         <input type="email" 
                id="intake-email" 
                name="email" 
                required 
+               autocomplete="email"
                placeholder="jane.doe@example.com"
-               style="width: 100%; padding: 0.75rem 1rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 10px; font-size: 0.9rem; color: var(--color-primary-default); outline: none; transition: border-color 0.2s ease; box-sizing: border-box;">
+               class="quiz-intake-input">
       </div>
 
       {# Phone Number #}
-      <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-        <label for="intake-phone" class="text-overline" style="font-size: 0.65rem; color: #86868b;">
+      <div class="quiz-intake-field-group">
+        <label for="intake-phone" class="text-overline quiz-intake-label">
           Phone Number (SMS Results)
         </label>
         <input type="tel" 
                id="intake-phone" 
                name="phone" 
+               autocomplete="tel"
                placeholder="(206) 555-0199"
-               style="width: 100%; padding: 0.75rem 1rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 10px; font-size: 0.9rem; color: var(--color-primary-default); outline: none; transition: border-color 0.2s ease; box-sizing: border-box;">
+               class="quiz-intake-input">
       </div>
 
     </div>
 
     {# Actions #}
-    <div style="display: flex; flex-direction: column; align-items: center; gap: 0.85rem; margin-top: 0.5rem;">
-      <button type="submit" 
-              style="width: 100%; padding: 0.95rem 1.5rem; background: var(--color-secondary-default); color: #FFFFFF; border: none; border-radius: 999px; font-size: 0.95rem; font-weight: 800; letter-spacing: 0.04em; cursor: pointer; transition: opacity 0.2s ease; box-shadow: 0 4px 12px rgba(30, 77, 107, 0.25);">
-        Start the Quiz →
+    <div class="quiz-intake-actions">
+      <button type="submit" class="btn-quiz-start">
+        <span>Start the Quiz</span>
+        <svg class="btn-quiz-start-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
       </button>
 
-      <a href="{{ quiz_hub_url }}" 
-         class="text-action" 
-         style="color: #86868b; font-size: 0.8rem; font-weight: 600; text-decoration: none; padding: 0.35rem;">
-        ← Cancel and Go Back to Quizzes
+      <a href="{{ q_cancel }}" class="quiz-intake-cancel">
+        <svg class="quiz-intake-cancel-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        <span>Cancel and Go Back to Quizzes</span>
       </a>
     </div>
 
   </form>
 
 </div>
+{% endif %}

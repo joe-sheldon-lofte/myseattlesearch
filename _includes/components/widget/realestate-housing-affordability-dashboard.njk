@@ -1,28 +1,44 @@
 <!-- File: _includes/components/widget/realestate-housing-affordability-dashboard.njk -->
-<section class="widget-card housing-affordability-dashboard-container" style="padding: 2rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.75rem; box-sizing: border-box;">
+{# 
+  COMPONENT: Master Housing Affordability Dashboard (widget.realestate.housing.affordability.dashboard)
+  ARCHITECTURE: Solid Bento Executive Briefing coordinating 3 analytical subpanels.
+  CONTRACT:
+    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+    - affordability_heading / dashboard_title: String [Optional, defaults to "Housing Affordability"]
+    - affordability_sources_text: String [Optional, defaults to "Sources: Redfin Data Center"]
+    - property_tier_ladder_data: Array of Objects [Optional, passed to Chamber 1]
+    - downpayment_tier_matrix: Array of Objects [Optional, passed to Chamber 2]
+    - household_purchasing_power_data: Array of Objects [Optional, passed to Chamber 3]
+#}
+
+{% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
+{% set heading = affordability_heading or dashboard_title or ("Housing Affordability in " ~ active_neighborhood if active_neighborhood else "Housing Affordability") %}
+{% set sources_caption = affordability_sources_text or "Sources: Redfin Data Center" %}
+
+<section class="widget-card housing-affordability-dashboard-container" aria-label="{{ heading }}">
   
   {# Dashboard Master Header #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--color-border-light); padding-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+  <header class="affordability-master-header">
     <div>
-      <span class="text-overline" style="color: var(--color-secondary-default);">
+      <span class="text-overline text-accent-alpine">
         REGIONAL HOUSING ANALYTICS
       </span>
-      <h3 class="text-widget-title" style="margin: 0.25rem 0 0 0; font-size: 1.5rem;">
-        Housing Affordability
+      <h3 class="text-widget-title affordability-master-title">
+        {{ heading }}
       </h3>
     </div>
-  </div>
+  </header>
 
   {# 3 Modular Sub-Panels in Full-Width Stacked Rows #}
-  <div style="display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">
+  <div class="affordability-panels-stack">
     {% include "components/widget/realestate-housing-affordability-propertytierentryladder.njk" ignore missing %}
     {% include "components/widget/realestate-housing-affordability-downpaymenttier.njk" ignore missing %}
     {% include "components/widget/realestate-housing-affordability-householdincomepurchasingpower.njk" ignore missing %}
   </div>
 
   {# Dashboard Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.75rem; font-size: 0.75rem; flex-wrap: wrap; gap: 0.5rem;" class="text-body-secondary">
-    <span>Sources: Redfin Data Center</span>
-  </div>
+  <footer class="affordability-master-footer">
+    <span>{{ sources_caption }}</span>
+  </footer>
 
 </section>

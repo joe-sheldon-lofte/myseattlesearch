@@ -1,71 +1,84 @@
 <!-- File: _includes/components/widget/realestate-housing-affordability-propertytierentryladder.njk -->
-{% set tier_data = property_tier_ladder_data | default([
-  { type: "Condo / Co-op", price: 425000, price_fmt: "$425,000", income: 108500, income_fmt: "$108,500", payment: "$2,893", price_pct: 45, inc_pct: 48 },
-  { type: "Starter Home (2-3 Bed)", price: 685000, price_fmt: "$685,000", income: 174800, income_fmt: "$174,800", payment: "$4,661", price_pct: 72, inc_pct: 76 },
-  { type: "Attached Townhouse", price: 745000, price_fmt: "$745,000", income: 190200, income_fmt: "$190,200", payment: "$5,070", price_pct: 78, inc_pct: 83 },
-  { type: "Single-Family Residence", price: 950000, price_fmt: "$950,000", income: 242500, income_fmt: "$242,500", payment: "$6,467", price_pct: 100, inc_pct: 100 }
-]) %}
+{# 
+  COMPONENT: Chamber 1 - Property Tier Entry Ladder (widget.realestate.housing.affordability.propertytierentryladder)
+  CONTRACT:
+    - property_tier_ladder_data: Array of Objects [Required]
+      Each row expects:
+      - row.type: String [Required, e.g. "Condo / Co-op"]
+      - row.price_fmt: String [Required, e.g. "$425,000"]
+      - row.income_fmt: String [Required, e.g. "$108,500"]
+      - row.payment: String [Required, e.g. "$2,893"]
+      - row.price_pct: Number [Required, scale 0-100]
+      - row.inc_pct: Number [Required, scale 0-100]
+#}
 
-<div class="widget-card affordability-subpanel affordability-tier-ladder-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
+{% set tier_data = property_tier_ladder_data %}
+
+{% if tier_data and tier_data.length > 0 %}
+<div class="affordability-subpanel affordability-tier-ladder-card" aria-label="Property Tier Entry Ladder">
   
   {# Header #}
-  <div style="border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
-    <h4 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.1rem;">
+  <div class="affordability-subpanel-header">
+    <h4 class="text-widget-title affordability-subpanel-title">
       Property Tier Entry Ladder
     </h4>
   </div>
 
   {# Dual Comparison Horizontal Bar Visual #}
-  <div style="display: flex; flex-direction: column; gap: 1rem;">
-    <div style="display: flex; gap: 1rem; font-size: 0.7rem; color: #86868b;">
-      <span style="display: flex; align-items: center; gap: 0.35rem;"><span style="width: 10px; height: 10px; background: var(--color-secondary-default, #1E4D6B); border-radius: 2px;"></span> Median Sale Price</span>
-      <span style="display: flex; align-items: center; gap: 0.35rem;"><span style="width: 10px; height: 10px; background: #D97706; border-radius: 2px;"></span> Required Household Income</span>
+  <div class="tier-ladder-row">
+    <div class="affordability-legend-row">
+      <span class="affordability-legend-item">
+        <span class="legend-swatch swatch-alpine"></span> Median Sale Price
+      </span>
+      <span class="affordability-legend-item">
+        <span class="legend-swatch swatch-amber"></span> Required Household Income
+      </span>
     </div>
 
     {% for row in tier_data %}
-      <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700;">
-          <span style="color: var(--color-primary-default);">{{ row.type }}</span>
-          <span class="text-body-secondary" style="font-family: monospace;">PITI: {{ row.payment }}/mo</span>
+      <div class="tier-ladder-row">
+        <div class="tier-ladder-meta">
+          <span class="tier-label-name">{{ row.type }}</span>
+          <span class="tier-label-piti">PITI: {{ row.payment }}/mo</span>
         </div>
 
-        {# Price bar (Blue) #}
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <div style="flex-grow: 1; height: 9px; background: var(--color-surface-gray); border-radius: 999px; overflow: hidden;">
-            <div style="width: {{ row.price_pct }}%; height: 100%; background: var(--color-secondary-default, #1E4D6B); border-radius: 999px;"></div>
+        {# Price Bar (Alpine Blue) #}
+        <div class="tier-bar-row">
+          <div class="tier-bar-track">
+            <div class="tier-bar-fill tier-fill-blue" style="width: {{ row.price_pct }}%;"></div>
           </div>
-          <span style="font-family: monospace; font-size: 0.75rem; font-weight: 700; width: 75px; text-align: right; color: var(--color-secondary-default);">{{ row.price_fmt }}</span>
+          <span class="tier-bar-metric tier-metric-blue">{{ row.price_fmt }}</span>
         </div>
 
-        {# Income bar (Orange) #}
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <div style="flex-grow: 1; height: 9px; background: var(--color-surface-gray); border-radius: 999px; overflow: hidden;">
-            <div style="width: {{ row.inc_pct }}%; height: 100%; background: #D97706; border-radius: 999px;"></div>
+        {# Income Bar (Cedar Amber) #}
+        <div class="tier-bar-row">
+          <div class="tier-bar-track">
+            <div class="tier-bar-fill tier-fill-amber" style="width: {{ row.inc_pct }}%;"></div>
           </div>
-          <span style="font-family: monospace; font-size: 0.75rem; font-weight: 700; width: 75px; text-align: right; color: #D97706;">{{ row.income_fmt }}</span>
+          <span class="tier-bar-metric tier-metric-amber">{{ row.income_fmt }}</span>
         </div>
       </div>
     {% endfor %}
   </div>
 
   {# Detailed Table #}
-  <div style="overflow-x: auto; margin-top: 0.25rem;">
-    <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem; text-align: left;">
+  <div class="affordability-table-wrap">
+    <table class="affordability-table">
       <thead>
-        <tr style="border-bottom: 2px solid var(--color-border-light); color: #86868b; font-size: 0.65rem;">
-          <th style="padding: 0.4rem 0.5rem;">PROPERTY TYPE</th>
-          <th style="padding: 0.4rem 0.5rem; text-align: right;">MEDIAN PRICE</th>
-          <th style="padding: 0.4rem 0.5rem; text-align: right;">REQ. INCOME</th>
-          <th style="padding: 0.4rem 0.5rem; text-align: right;">MONTHLY PITI</th>
+        <tr>
+          <th>PROPERTY TYPE</th>
+          <th style="text-align: right;">MEDIAN PRICE</th>
+          <th style="text-align: right;">REQ. INCOME</th>
+          <th style="text-align: right;">MONTHLY PITI</th>
         </tr>
       </thead>
       <tbody>
         {% for row in tier_data %}
-          <tr style="border-bottom: 1px solid var(--color-border-light);">
-            <td style="padding: 0.5rem; font-weight: 700; color: var(--color-primary-default);">{{ row.type }}</td>
-            <td style="padding: 0.5rem; text-align: right; font-family: monospace; font-weight: 700; color: var(--color-secondary-default);">{{ row.price_fmt }}</td>
-            <td style="padding: 0.5rem; text-align: right; font-family: monospace; font-weight: 700; color: #D97706;">{{ row.income_fmt }}</td>
-            <td style="padding: 0.5rem; text-align: right; font-family: monospace; font-weight: 700; color: var(--color-primary-default);">{{ row.payment }}</td>
+          <tr>
+            <td class="table-cell-lead">{{ row.type }}</td>
+            <td class="table-cell-num cell-color-blue">{{ row.price_fmt }}</td>
+            <td class="table-cell-num cell-color-amber">{{ row.income_fmt }}</td>
+            <td class="table-cell-num">{{ row.payment }}</td>
           </tr>
         {% endfor %}
       </tbody>
@@ -73,3 +86,4 @@
   </div>
 
 </div>
+{% endif %}

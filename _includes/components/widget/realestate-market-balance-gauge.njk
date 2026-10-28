@@ -1,82 +1,101 @@
 <!-- File: _includes/components/widget/realestate-market-balance-gauge.njk -->
-{% set months_supply = current_months_supply | default(1.8) %}
-{% set capped_supply = months_supply if months_supply <= 6.0 else 6.0 %}
-{% set needle_angle = -90 + ((capped_supply / 6.0) * 180) %}
+{# 
+  COMPONENT: Real Estate Market Balance Analog Radial Gauge (widget.realestate.market.balance.gauge)
+  SPECTRUM (Red-Blue-Red Symmetrical Volatility):
+    - 0.0 to 1.9 Mo: Seller's Market (-90° to -30°, Extreme - var(--pnw-red))
+    - 2.0 to 4.0 Mo: Balanced Market (-30° to +30°, Equilibrium - var(--alpine-blue))
+    - 4.1 to 6.0+ Mo: Buyer's Market (+30° to +90°, Extreme - var(--pnw-red))
+  CONTRACT:
+    - current_months_supply / market.months_supply / neighborhood.months_supply: Number [Required]
+    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+#}
 
-{% set market_state = "Seller's Market" %}
-{% set state_color = "var(--color-tertiary-default, #D9232A)" %}
-{% if months_supply >= 4.0 %}
-  {% set market_state = "Buyer's Market" %}
-  {% set state_color = "var(--color-tertiary-default, #D9232A)" %}
-{% elif months_supply >= 2.0 %}
-  {% set market_state = "Balanced Market" %}
-  {% set state_color = "var(--color-secondary-default, #1E4D6B)" %}
+{% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
+{% set raw_supply = current_months_supply if current_months_supply is defined else ((market.months_supply if market else null) or (neighborhood.months_supply if neighborhood else null)) %}
+
+{% if raw_supply is not none and raw_supply != '' %}
+  {% set months_supply = raw_supply | float %}
+  {% set capped_supply = 6.0 if months_supply > 6.0 else (0.0 if months_supply < 0.0 else months_supply) %}
+  {% set needle_angle = -90 + ((capped_supply / 6.0) * 180) %}
+
+  {% if months_supply < 2.0 %}
+    {% set market_state = "Seller's Market" %}
+    {% set badge_class = "status-seller" %}
+  {% elif months_supply <= 4.0 %}
+    {% set market_state = "Balanced Market" %}
+    {% set badge_class = "status-balanced" %}
+  {% else %}
+    {% set market_state = "Buyer's Market" %}
+    {% set badge_class = "status-buyer" %}
+  {% endif %}
+
+  <section class="widget-card market-balance-gauge-card" aria-label="Market Absorption Gauge for {{ active_neighborhood | default('This Neighborhood') }}">
+    
+    {# Header Row #}
+    <header class="gauge-header-row">
+      <div class="gauge-header-meta">
+        <span class="text-overline text-accent-alpine">
+          INVENTORY VELOCITY
+        </span>
+        <h3 class="text-widget-title gauge-title">
+          Market Balance Gauge
+        </h3>
+      </div>
+      <div class="gauge-status-badge {{ badge_class }}">
+        {{ market_state }}
+      </div>
+    </header>
+
+    {# Semi-Circle Gauge SVG Stage #}
+    <div class="gauge-stage-wrap">
+      <svg viewBox="0 0 240 155" class="gauge-vector-stage" role="meter" aria-valuenow="{{ months_supply }}" aria-valuemin="0" aria-valuemax="6" aria-valuetext="{{ months_supply }} months supply ({{ market_state }})">
+        <defs>
+          {# Symmetrical Linear Gradient: Red (0%) -> Red (28%) -> Alpine Blue (38-62%) -> Red (72-100%) #}
+          <linearGradient id="marketBalanceGaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#D9232A" />
+            <stop offset="28%" stop-color="#D9232A" />
+            <stop offset="38%" stop-color="#1E4D6B" />
+            <stop offset="62%" stop-color="#1E4D6B" />
+            <stop offset="72%" stop-color="#D9232A" />
+            <stop offset="100%" stop-color="#D9232A" />
+          </linearGradient>
+        </defs>
+
+        {# Continuous Semi-Circle Arc: radius 90, center (120, 115) #}
+        <path d="M 30 115 A 90 90 0 0 1 210 115" class="gauge-arc-track" />
+
+        {# Zone Tick Demarcations at 2.0 mo and 4.0 mo #}
+        <line x1="77" y1="40" x2="73" y2="34" class="gauge-tick-line" aria-hidden="true" />
+        <line x1="163" y1="40" x2="167" y2="34" class="gauge-tick-line" aria-hidden="true" />
+
+        {# Needle Indicator Overlaid at Pivot Point #}
+        <g transform="translate(120, 115) rotate({{ needle_angle }})" aria-hidden="true">
+          <polygon points="-3.5,0 3.5,0 0,-85" class="gauge-needle-stem" />
+          <circle cx="0" cy="0" r="9" class="gauge-needle-pivot" />
+          <circle cx="0" cy="0" r="3.5" class="gauge-needle-center-pin" />
+        </g>
+
+        {# Centered Metric Value Readout #}
+        <text x="120" y="146" class="gauge-metric-readout">
+          {{ months_supply }} Mo
+        </text>
+      </svg>
+    </div>
+
+    {# Endpoint Labels #}
+    <footer class="gauge-endpoints-row">
+      <div class="gauge-endpoint-col align-left">
+        <span class="text-overline gauge-endpoint-seller">0 MO (SELLER'S)</span>
+      </div>
+
+      <div class="gauge-endpoint-col align-center">
+        <span class="text-overline gauge-endpoint-balanced">3.0 MO (BALANCED)</span>
+      </div>
+
+      <div class="gauge-endpoint-col align-right">
+        <span class="text-overline gauge-endpoint-buyer">6+ MO (BUYER'S)</span>
+      </div>
+    </footer>
+
+  </section>
 {% endif %}
-
-<div class="widget-card market-balance-gauge-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 1.25rem; box-sizing: border-box;">
-  
-  {# Header Row #}
-  <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
-    <div>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
-        Market Balance Gauge
-      </h3>
-    </div>
-    <div style="font-size: 0.75rem; font-weight: 700; color: {{ state_color }}; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); padding: 0.2rem 0.65rem; border-radius: 999px;">
-      {{ market_state }}
-    </div>
-  </div>
-
-  {# Semi-Circle Gauge SVG with Unified Gradient Arc #}
-  <div style="position: relative; width: 100%; max-width: 320px; aspect-ratio: 240 / 155; display: flex; align-items: center; justify-content: center;">
-    <svg viewBox="0 0 240 155" width="100%" height="100%" style="overflow: visible;">
-      <defs>
-        <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#D9232A" />
-          <stop offset="28%" stop-color="#D9232A" />
-          <stop offset="35%" stop-color="#1E4D6B" />
-          <stop offset="65%" stop-color="#1E4D6B" />
-          <stop offset="72%" stop-color="#D9232A" />
-          <stop offset="100%" stop-color="#D9232A" />
-        </linearGradient>
-      </defs>
-
-      {# Continuous Semi-Circle Arc: radius 90, center (120, 115) #}
-      <path d="M 30 115 A 90 90 0 0 1 210 115" 
-            fill="none" 
-            stroke="url(#gaugeGradient)" 
-            stroke-width="18" 
-            stroke-linecap="round"/>
-
-      {# Zone Tick Marks #}
-      <line x1="77" y1="40" x2="73" y2="34" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
-      <line x1="163" y1="40" x2="167" y2="34" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
-
-      {# Needle Indicator #}
-      <g transform="translate(120, 115) rotate({{ needle_angle }})">
-        <polygon points="-4,0 4,0 0,-85" fill="var(--color-primary-default, #1C1C1E)"/>
-        <circle cx="0" cy="0" r="10" fill="var(--color-primary-default, #1C1C1E)"/>
-        <circle cx="0" cy="0" r="4" fill="#FFFFFF"/>
-      </g>
-
-      {# Current Metric Value positioned cleanly below the needle pivot #}
-      <text x="120" y="146" text-anchor="middle" font-size="16" font-weight="800" font-family="monospace" fill="var(--color-primary-default, #1C1C1E)">{{ months_supply }} Mo</text>
-    </svg>
-  </div>
-
-  {# Endpoint Labels (0 Mo Seller's on Left, 6 Mo Buyer's on Right) #}
-  <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.75rem;">
-    <div style="display: flex; flex-direction: column; align-items: flex-start;">
-      <span class="text-overline" style="font-size: 0.65rem; color: var(--color-tertiary-default, #D9232A); font-weight: 800;">0 MO (SELLER'S)</span>
-    </div>
-
-    <div style="text-align: center;">
-      <span class="text-overline" style="font-size: 0.65rem; color: var(--color-secondary-default, #1E4D6B); font-weight: 800;">3.0 MO (BALANCED)</span>
-    </div>
-
-    <div style="display: flex; flex-direction: column; align-items: flex-end;">
-      <span class="text-overline" style="font-size: 0.65rem; color: var(--color-tertiary-default, #D9232A); font-weight: 800;">6 MO (BUYER'S)</span>
-    </div>
-  </div>
-
-</div>

@@ -1,44 +1,66 @@
 <!-- File: _includes/components/widget/realestate-housing-affordability-downpaymenttier.njk -->
-{% set dp_data = downpayment_tier_matrix | default([
-  { tier: "3.5% Down", down: "$23,975", mort: "$4,082", tax: "$645", ins: "$145", pmi: "$289", total: "$5,161", income: "$193,500", p_mort: 79, p_tax: 12, p_ins: 3, p_pmi: 6 },
-  { tier: "5.0% Down", down: "$34,250", mort: "$4,019", tax: "$645", ins: "$145", pmi: "$225", total: "$5,034", income: "$188,800", p_mort: 80, p_tax: 13, p_ins: 3, p_pmi: 4 },
-  { tier: "10.0% Down", down: "$68,500", mort: "$3,807", tax: "$645", ins: "$145", pmi: "$148", total: "$4,745", income: "$177,900", p_mort: 80, p_tax: 14, p_ins: 3, p_pmi: 3 },
-  { tier: "15.0% Down", down: "$102,750", mort: "$3,596", tax: "$645", ins: "$145", pmi: "$92", total: "$4,478", income: "$167,900", p_mort: 80, p_tax: 15, p_ins: 3, p_pmi: 2 },
-  { tier: "20.0% Down", down: "$137,000", mort: "$3,384", tax: "$645", ins: "$145", pmi: "$0", total: "$4,174", income: "$156,500", p_mort: 81, p_tax: 15, p_ins: 4, p_pmi: 0 }
-]) %}
+{# 
+  COMPONENT: Chamber 2 - Down Payment Tier & PMI Impact (widget.realestate.housing.affordability.downpaymenttier)
+  CONTRACT:
+    - downpayment_tier_matrix: Array of Objects [Required]
+      Each row expects:
+      - row.tier: String [Required, e.g. "3.5% Down"]
+      - row.down: String [Required, e.g. "$23,975"]
+      - row.mort: String [Required, e.g. "$4,082"]
+      - row.tax: String [Required, e.g. "$645"]
+      - row.ins: String [Required, e.g. "$145"]
+      - row.pmi: String [Required, e.g. "$289"]
+      - row.total: String [Required, e.g. "$5,161"]
+      - row.income: String [Required, e.g. "$193,500"]
+      - row.p_mort: Number [Required, percentage]
+      - row.p_tax: Number [Required, percentage]
+      - row.p_ins: Number [Required, percentage]
+      - row.p_pmi: Number [Required, percentage]
+#}
 
-<div class="widget-card affordability-subpanel affordability-downpayment-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
+{% set dp_data = downpayment_tier_matrix %}
+
+{% if dp_data and dp_data.length > 0 %}
+<div class="affordability-subpanel affordability-downpayment-card" aria-label="Down Payment Tier & PMI Impact">
   
   {# Header #}
-  <div style="border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
-    <h4 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.1rem;">
+  <div class="affordability-subpanel-header">
+    <h4 class="text-widget-title affordability-subpanel-title">
       Down Payment Tier &amp; PMI Impact
     </h4>
   </div>
 
   {# 100% Stacked Proportional Cost Bars #}
-  <div style="display: flex; flex-direction: column; gap: 0.85rem;">
-    <div style="display: flex; flex-wrap: wrap; gap: 0.85rem; font-size: 0.65rem; color: #86868b;">
-      <span style="display: flex; align-items: center; gap: 0.3rem;"><span style="width: 8px; height: 8px; background: var(--color-secondary-default, #1E4D6B); border-radius: 2px;"></span> P&amp;I Loan</span>
-      <span style="display: flex; align-items: center; gap: 0.3rem;"><span style="width: 8px; height: 8px; background: #0D9488; border-radius: 2px;"></span> Property Tax</span>
-      <span style="display: flex; align-items: center; gap: 0.3rem;"><span style="width: 8px; height: 8px; background: #10B981; border-radius: 2px;"></span> Hazard Ins</span>
-      <span style="display: flex; align-items: center; gap: 0.3rem;"><span style="width: 8px; height: 8px; background: #EF4444; border-radius: 2px;"></span> PMI</span>
+  <div class="dp-stacked-card">
+    <div class="affordability-legend-row">
+      <span class="affordability-legend-item">
+        <span class="legend-swatch swatch-alpine"></span> P&amp;I Loan
+      </span>
+      <span class="affordability-legend-item">
+        <span class="legend-swatch swatch-teal"></span> Property Tax
+      </span>
+      <span class="affordability-legend-item">
+        <span class="legend-swatch swatch-emerald"></span> Hazard Ins
+      </span>
+      <span class="affordability-legend-item">
+        <span class="legend-swatch swatch-crimson"></span> PMI
+      </span>
     </div>
 
     {% for row in dp_data %}
-      <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700;">
-          <span style="color: var(--color-primary-default);">{{ row.tier }} ({{ row.down }})</span>
-          <span style="font-family: monospace; color: var(--color-primary-default);">Total: {{ row.total }}/mo</span>
+      <div class="dp-stacked-card">
+        <div class="dp-meta-row">
+          <span class="dp-tier-name">{{ row.tier }} ({{ row.down }})</span>
+          <span class="dp-total-num">Total: {{ row.total }}/mo</span>
         </div>
 
         {# 100% Stacked Bar #}
-        <div style="display: flex; width: 100%; height: 11px; border-radius: 999px; overflow: hidden; background: var(--color-surface-gray);">
-          <div style="width: {{ row.p_mort }}%; height: 100%; background: var(--color-secondary-default, #1E4D6B);" title="Mortgage: {{ row.mort }}"></div>
-          <div style="width: {{ row.p_tax }}%; height: 100%; background: #0D9488;" title="Tax: {{ row.tax }}"></div>
-          <div style="width: {{ row.p_ins }}%; height: 100%; background: #10B981;" title="Insurance: {{ row.ins }}"></div>
+        <div class="dp-stacked-track">
+          <div class="dp-seg-mort" style="width: {{ row.p_mort }}%;" title="Mortgage: {{ row.mort }}"></div>
+          <div class="dp-seg-tax" style="width: {{ row.p_tax }}%;" title="Tax: {{ row.tax }}"></div>
+          <div class="dp-seg-ins" style="width: {{ row.p_ins }}%;" title="Insurance: {{ row.ins }}"></div>
           {% if row.p_pmi > 0 %}
-            <div style="width: {{ row.p_pmi }}%; height: 100%; background: #EF4444;" title="PMI: {{ row.pmi }}"></div>
+            <div class="dp-seg-pmi" style="width: {{ row.p_pmi }}%;" title="PMI: {{ row.pmi }}"></div>
           {% endif %}
         </div>
       </div>
@@ -46,31 +68,31 @@
   </div>
 
   {# Matrix Table #}
-  <div style="overflow-x: auto; margin-top: 0.25rem;">
-    <table style="width: 100%; border-collapse: collapse; font-size: 0.7rem; text-align: left;">
+  <div class="affordability-table-wrap">
+    <table class="affordability-table">
       <thead>
-        <tr style="border-bottom: 2px solid var(--color-border-light); color: #86868b; font-size: 0.65rem;">
-          <th style="padding: 0.35rem 0.4rem;">TIER</th>
-          <th style="padding: 0.35rem 0.4rem; text-align: right;">DOWN $</th>
-          <th style="padding: 0.35rem 0.4rem; text-align: right;">P&amp;I</th>
-          <th style="padding: 0.35rem 0.4rem; text-align: right;">TAX</th>
-          <th style="padding: 0.35rem 0.4rem; text-align: right;">INS</th>
-          <th style="padding: 0.35rem 0.4rem; text-align: right;">PMI</th>
-          <th style="padding: 0.35rem 0.4rem; text-align: right;">TOTAL PITI</th>
-          <th style="padding: 0.35rem 0.4rem; text-align: right;">REQ. INC</th>
+        <tr>
+          <th>TIER</th>
+          <th style="text-align: right;">DOWN $</th>
+          <th style="text-align: right;">P&amp;I</th>
+          <th style="text-align: right;">TAX</th>
+          <th style="text-align: right;">INS</th>
+          <th style="text-align: right;">PMI</th>
+          <th style="text-align: right;">TOTAL PITI</th>
+          <th style="text-align: right;">REQ. INC</th>
         </tr>
       </thead>
       <tbody>
         {% for row in dp_data %}
-          <tr style="border-bottom: 1px solid var(--color-border-light);">
-            <td style="padding: 0.45rem 0.4rem; font-weight: 700; color: var(--color-primary-default);">{{ row.tier }}</td>
-            <td style="padding: 0.45rem 0.4rem; text-align: right; font-family: monospace;">{{ row.down }}</td>
-            <td style="padding: 0.45rem 0.4rem; text-align: right; font-family: monospace;">{{ row.mort }}</td>
-            <td style="padding: 0.45rem 0.4rem; text-align: right; font-family: monospace;">{{ row.tax }}</td>
-            <td style="padding: 0.45rem 0.4rem; text-align: right; font-family: monospace;">{{ row.ins }}</td>
-            <td style="padding: 0.45rem 0.4rem; text-align: right; font-family: monospace; color: {% if row.pmi != '$0' %}#EF4444{% else %}#86868b{% endif %};">{{ row.pmi }}</td>
-            <td style="padding: 0.45rem 0.4rem; text-align: right; font-family: monospace; font-weight: 700; color: var(--color-primary-default);">{{ row.total }}</td>
-            <td style="padding: 0.45rem 0.4rem; text-align: right; font-family: monospace; font-weight: 700; color: #D97706;">{{ row.income }}</td>
+          <tr>
+            <td class="table-cell-lead">{{ row.tier }}</td>
+            <td class="table-cell-num">{{ row.down }}</td>
+            <td class="table-cell-num">{{ row.mort }}</td>
+            <td class="table-cell-num">{{ row.tax }}</td>
+            <td class="table-cell-num">{{ row.ins }}</td>
+            <td class="table-cell-num {% if row.pmi != '$0' %}cell-color-crimson{% else %}cell-color-muted{% endif %}">{{ row.pmi }}</td>
+            <td class="table-cell-num">{{ row.total }}</td>
+            <td class="table-cell-num cell-color-amber">{{ row.income }}</td>
           </tr>
         {% endfor %}
       </tbody>
@@ -78,3 +100,4 @@
   </div>
 
 </div>
+{% endif %}

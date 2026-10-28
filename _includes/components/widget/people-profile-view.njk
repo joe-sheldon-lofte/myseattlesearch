@@ -1,125 +1,148 @@
 <!-- File: _includes/components/widget/people-profile-view.njk -->
-{% set profile_name = profile_view_name | default("Joe Sheldon") %}
-{% set profile_role = profile_view_role | default("Senior Real Estate Agent") %}
-{% set profile_category = profile_view_category | default("REAL ESTATE ADVISOR") %}
-{% set profile_image = profile_view_image | default("/assets/images/joe-sheldon-headshot.webp") %}
-{% set profile_phone = profile_view_phone | default("(206) 657-7493") %}
-{% set profile_tel = profile_view_tel | default("2066577493") %}
-{% set profile_email = profile_view_email | default("joe.sheldon@redfin.com") %}
-{% set profile_website = profile_view_website | default("https://www.redfin.com/real-estate-agents/joe-sheldon") %}
-{% set profile_license = profile_view_license | default("WA DOL License #115714") %}
-{% set profile_back_url = profile_view_back_url | default("/team/") %}
+{# 
+  COMPONENT: Professional Profile View & Verified Dossier (widget.people.profile.view)
+  PURPOSE: Full two-column professional profile with contact triggers, verified credentials, and editorial narrative.
+  CONTRACT:
+    - profile_view_name / person_name / name: String [Required]
+    - profile_view_role / person_role / role: String [Optional, e.g. "Senior Real Estate Agent"]
+    - profile_view_category / person_category / category: String [Optional, e.g. "REAL ESTATE ADVISOR"]
+    - profile_view_image / person_image / image: String [Optional, headshot URL]
+    - profile_view_phone / person_phone / phone: String [Optional, e.g. "(206) 657-7493"]
+    - profile_view_tel / person_tel / tel: String [Optional, e.g. "2066577493"]
+    - profile_view_email / person_email / email: String [Optional]
+    - profile_view_website / person_website / website: String [Optional]
+    - profile_view_license / person_license / license: String [Optional, e.g. "WA DOL License #115714"]
+    - profile_view_back_url / back_url: String [Optional, defaults to "/team/"]
+    - profile_view_content / content: String (HTML safe narrative markup) [Optional]
+#}
 
-<div class="people-profile-view-container" style="display: flex; flex-direction: column; gap: 1.5rem; width: 100%; box-sizing: border-box;">
+{% set p_name = profile_view_name or person_name or name %}
+{% set p_role = profile_view_role or person_role or role %}
+{% set p_category = profile_view_category or person_category or category %}
+{% set p_image = profile_view_image or person_image or image %}
+{% set p_phone = profile_view_phone or person_phone or phone %}
+{% set p_tel = profile_view_tel or person_tel or tel or (p_phone | replace('(', '') | replace(')', '') | replace(' ', '') | replace('-', '') if p_phone else '') %}
+{% set p_email = profile_view_email or person_email or email %}
+{% set p_website = profile_view_website or person_website or website %}
+{% set p_license = profile_view_license or person_license or license %}
+{% set p_back_url = profile_view_back_url or back_url or "/team/" %}
+{% set p_content = profile_view_content or content %}
+
+{% if p_name %}
+<div class="people-profile-view-container">
   
   {# Top Navigation Bar #}
-  <nav aria-label="Profile Navigation" style="display: flex; justify-content: space-between; align-items: center;">
-    <a href="{{ profile_back_url }}" class="text-action" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 700; color: var(--color-secondary-default); text-decoration: none;">
-      <span aria-hidden="true">←</span>
+  <nav class="profile-nav-bar" aria-label="Profile Navigation">
+    <a href="{{ p_back_url }}" class="profile-back-link">
+      <svg class="profile-back-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
       <span>Back to Directory</span>
     </a>
-    <span class="text-body-secondary" style="font-size: 0.75rem;">
+    <span class="profile-nav-label">
       Professional Profile
     </span>
   </nav>
 
   {# Two-Column Responsive Layout #}
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; align-items: start;">
+  <div class="profile-stage-grid">
     
     {# Left Column: Contact & Identity Card #}
-    <aside class="widget-card" style="padding: 2rem; border-radius: var(--border-radius-squircle); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1.25rem;">
+    <aside class="widget-card profile-aside-card" aria-label="Advisor credentials for {{ p_name }}">
       
       {# Standardized 150x150 Circular Avatar per SOP 6 #}
-      <div style="position: relative; width: 150px; height: 150px;">
-        <img src="{{ profile_image }}" 
-             alt="{{ profile_name }}" 
-             width="150" 
-             height="150" 
-             loading="lazy" 
-             decoding="async" 
-             style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; object-position: center; border: 4px solid var(--color-background-universal); box-shadow: 0 4px 16px rgba(0,0,0,0.1); display: block;">
-      </div>
-
-      <div>
-        <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.7rem;">
-          {{ profile_category }}
-        </span>
-        <h1 class="text-page-title" style="font-size: 1.5rem; margin: 0.25rem 0 0.2rem 0; line-height: 1.2;">
-          {{ profile_name }}
-        </h1>
-        <div class="text-body-secondary" style="font-size: 0.85rem;">
-          {{ profile_role }}
+      {% if p_image %}
+        <div class="profile-avatar-wrapper">
+          <img src="{{ p_image }}" 
+               alt="{{ p_name }}" 
+               width="150" 
+               height="150" 
+               loading="lazy" 
+               decoding="async" 
+               class="profile-avatar-img">
         </div>
+      {% endif %}
+
+      <div class="profile-identity-stack">
+        {% if p_category %}
+          <span class="text-overline profile-category-tag">
+            {{ p_category }}
+          </span>
+        {% endif %}
+        <h1 class="text-page-title profile-name-heading">
+          {{ p_name }}
+        </h1>
+        {% if p_role %}
+          <div class="profile-role-text">
+            {{ p_role }}
+          </div>
+        {% endif %}
       </div>
 
       {# Direct Contact Action Pills #}
-      <div style="width: 100%; display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
-        <a href="tel:{{ profile_tel }}" 
-           style="display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.75rem 1.25rem; background: var(--color-secondary-default); color: #FFFFFF; border-radius: 999px; font-size: 0.85rem; font-weight: 700; text-decoration: none; box-shadow: 0 2px 8px rgba(30, 77, 107, 0.2);">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-          <span>Call: {{ profile_phone }}</span>
-        </a>
+      <div class="profile-actions-stack">
+        {% if p_tel and p_phone %}
+          <a href="tel:{{ p_tel }}" class="btn-profile-call" aria-label="Call {{ p_name }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            <span>Call: {{ p_phone }}</span>
+          </a>
+        {% endif %}
 
-        {% if profile_email %}
-          <a href="mailto:{{ profile_email }}" 
-             style="display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.7rem 1.25rem; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); color: var(--color-primary-default); border-radius: 999px; font-size: 0.85rem; font-weight: 600; text-decoration: none;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        {% if p_email %}
+          <a href="mailto:{{ p_email }}" class="btn-profile-email" aria-label="Email {{ p_name }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect width="20" height="16" x="2" y="4" rx="2"/>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+            </svg>
             <span>Email</span>
           </a>
         {% endif %}
 
-        {% if profile_website %}
-          <a href="{{ profile_website }}" 
-             target="_blank" 
-             rel="noopener noreferrer" 
-             style="display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.7rem 1.25rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); color: var(--color-secondary-default); border-radius: 999px; font-size: 0.85rem; font-weight: 700; text-decoration: none;">
+        {% if p_website %}
+          <a href="{{ p_website }}" target="_blank" rel="noopener noreferrer" class="btn-profile-website">
             <span>Visit Official Page</span>
-            <span aria-hidden="true">↗</span>
+            <svg class="btn-profile-website-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="7" y1="17" x2="17" y2="7"/>
+              <polyline points="7 7 17 7 17 17"/>
+            </svg>
           </a>
         {% endif %}
       </div>
 
-      {# Credentials Sub-card #}
-      <div style="width: 100%; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1rem; text-align: left; font-size: 0.75rem;">
-        <div class="text-overline" style="font-size: 0.65rem; color: #86868b; margin-bottom: 0.25rem;">VERIFIED CREDENTIALS</div>
-        <div style="font-weight: 700; color: var(--color-primary-default);">
-          {{ profile_license }}
+      {# Verified Credentials Sub-card #}
+      {% if p_license %}
+        <div class="profile-credentials-box">
+          <div class="text-overline credentials-overline">VERIFIED CREDENTIALS</div>
+          <div class="credentials-license-text">
+            {{ p_license }}
+          </div>
+          <div class="credentials-standing-subtext">
+            Active Washington State License • Standing Verified
+          </div>
         </div>
-        <div class="text-body-secondary" style="font-size: 0.7rem; margin-top: 0.25rem;">
-          Active Washington State License • Standing Verified
-        </div>
-      </div>
+      {% endif %}
 
     </aside>
 
-    {# Right Column: Professional Narrative per edit #}
-    <section class="widget-card" style="padding: 2.25rem; border-radius: var(--border-radius-squircle); display: flex; flex-direction: column; gap: 1.5rem;">
-      <div style="border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.85rem;">
-        <h2 class="text-widget-title" style="margin: 0; font-size: 1.4rem;">
-          Professional Profile &amp; Other Information
-        </h2>
-      </div>
+    {# Right Column: Professional Narrative #}
+    {% if p_content %}
+      <section class="widget-card profile-narrative-card" aria-label="Professional biography for {{ p_name }}">
+        <header class="profile-narrative-header">
+          <h2 class="text-widget-title profile-narrative-title">
+            Professional Profile &amp; Other Information
+          </h2>
+        </header>
 
-      <div class="text-body" style="font-size: 0.95rem; line-height: 1.7; display: flex; flex-direction: column; gap: 1.25rem;">
-        {% if profile_view_content %}
-          {{ profile_view_content | safe }}
-        {% elif content %}
-          {{ content | safe }}
-        {% else %}
-          <p>
-            Joe Sheldon serves as a Senior Real Estate Agent with Redfin, guiding residential buyers and sellers across the core North Sound communities of Snohomish and North King counties. With over a decade of local market leadership, Joe pairs transparent, high-integrity advocacy with analytical real-time data tracking across inventory absorption, commuter rail corridors, and municipal rezoning impacts.
-          </p>
-          <p>
-            Operating with a client-first, coach-in-the-game philosophy, Joe translates complex escrow contingencies, graduated Washington State Real Estate Excise Taxes (REET), and mortgage underwriting nuances into clear, actionable strategies. Whether structuring an aggressive, clean offer for a competitive Edmonds starter home or executing a high-exposure digital marketing campaign for a panoramic Sound-view estate, clients benefit from seamless end-to-end guidance backed by certified local lending and transaction coordination partners.
-          </p>
-          <p>
-            Ranked among the premier real estate professionals in Western Washington, Joe remains actively accessible to answer questions, audit prospective listing net sheets, or provide neighborhood-by-neighborhood comparative market analyses.
-          </p>
-        {% endif %}
-      </div>
-
-    </section>
+        <div class="text-body profile-prose-body">
+          {{ p_content | safe }}
+        </div>
+      </section>
+    {% endif %}
 
   </div>
 
 </div>
+{% endif %}

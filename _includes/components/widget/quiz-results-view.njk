@@ -1,70 +1,87 @@
 <!-- File: _includes/components/widget/quiz-results-view.njk -->
-{% set archetype_title = result_archetype_title | default("The Soundview Navigator") %}
-{% set archetype_subtitle = result_archetype_subtitle | default("The Maritime Community & Rail-Connected Strategist") %}
-{% set match_city = result_match_city | default("Edmonds, WA") %}
-{% set share_url = result_share_url | default("https://myseattlesearch.com/quizzes/results/soundview-navigator/") %}
+{# 
+  COMPONENT: Neighborhood Lifestyle Quiz Results & Archetype Dossier (widget.quiz.results.view)
+  CONTRACT:
+    - result_archetype_title / archetype_title / archetype_name: String [Required]
+    - result_archetype_subtitle / archetype_subtitle: String [Optional]
+    - result_match_neighborhood / match_neighborhood / result_match_city: String [Optional]
+    - result_share_url / share_url: String [Optional]
+    - result_narrative_content / content: String (HTML safe prose) [Optional]
+#}
 
-<section class="widget-card quiz-results-view-card" style="padding: 2.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 2rem; box-sizing: border-box;">
+{% set archetype = result_archetype_title or archetype_title or archetype_name %}
+{% set subtitle = result_archetype_subtitle or archetype_subtitle %}
+{% set match_neighborhood = result_match_neighborhood or match_neighborhood or result_match_city %}
+{% set share_href = result_share_url or share_url %}
+{% set narrative = result_narrative_content or content %}
+
+{% if archetype %}
+<section class="widget-card quiz-results-view-card" aria-label="Lifestyle Match Results: {{ archetype }}">
   
-  {# Hero Archetype Banner (• ARCHETYPE MATCH removed per edit) #}
-  <header style="text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 1.5rem;">
-    <span class="text-overline" style="color: var(--color-secondary-default); font-weight: 800; letter-spacing: 0.12em;">
+  {# Hero Archetype Banner #}
+  <header class="quiz-results-header">
+    <span class="text-overline quiz-results-overline">
       RESULTS LOCKED IN
     </span>
-    <h1 class="text-display" style="font-size: 2.25rem; line-height: 1.2; margin: 0.25rem 0 0 0; color: var(--color-primary-default);">
-      {{ archetype_title }}
+    <h1 class="text-display quiz-archetype-title">
+      {{ archetype }}
     </h1>
-    <p class="text-body-secondary" style="font-size: 1.1rem; font-style: italic; margin: 0; color: var(--color-secondary-default);">
-      {{ archetype_subtitle }}
-    </p>
-  </header>
-
-  {# Social Share Summary Card ("YOUR RESULTS" per edit) #}
-  <div style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-    <div style="display: flex; align-items: center; gap: 0.85rem;">
-      <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-secondary-default); flex-shrink: 0;" aria-hidden="true">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="m4.93 4.93 4.24 4.24"/>
-          <path d="m14.83 9.17 4.24-4.24"/>
-          <path d="m14.83 14.83 4.24 4.24"/>
-          <path d="m9.17 14.83-4.24 4.24"/>
-          <circle cx="12" cy="12" r="4"/>
-        </svg>
-      </div>
-
-      <div>
-        <div class="text-overline" style="font-size: 0.65rem; color: #86868b;">YOUR RESULTS</div>
-        <div style="font-size: 1rem; font-weight: 800; color: var(--color-primary-default);">
-          {{ match_city }}
-        </div>
-      </div>
-    </div>
-
-    <button type="button" 
-            class="btn-quiz-share" 
-            aria-label="Share your quiz results"
-            onclick="if(navigator.share){navigator.share({title:'My Neighborhood Match',text:'I matched with {{ archetype_title }} on MySeattleSearch!',url:'{{ share_url }}'})}else{navigator.clipboard.writeText('{{ share_url }}');alert('Result link copied to clipboard!');}"
-            style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1.15rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 999px; font-size: 0.8rem; font-weight: 700; color: var(--color-secondary-default); cursor: pointer; transition: all 0.2s ease;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-      <span>Share Results</span>
-    </button>
-  </div>
-
-  {# Narrative Assessment #}
-  <div class="narrative-assessment text-body" style="font-size: 0.95rem; line-height: 1.7; display: flex; flex-direction: column; gap: 1.25rem;">
-    {% if result_narrative_content %}
-      {{ result_narrative_content | safe }}
-    {% elif content %}
-      {{ content | safe }}
-    {% else %}
-      <p>
-        Your responses indicate a strong preference for authentic community connection paired with multi-modal commuter independence. You value established tree-lined streets, salt breezes, and walkable village cores where daily essentials do not necessitate a highway drive. Rather than chasing generic square footage in distant subdivisions, you prioritize neighborhood character, local culinary independence, and public access to waterfront parks.
-      </p>
-      <p>
-        In the Puget Sound corridor, this profile aligns directly with the South Snohomish County shoreline and North King County perimeter. Communities like Edmonds and Shoreline offer the optimal intersection of quiet residential privacy and high-frequency transit spines—including the Sounder commuter rail and the Lynnwood Link Light Rail extension—allowing you to reach downtown employment hubs without compromising coastal weekend tranquility.
+    {% if subtitle %}
+      <p class="quiz-archetype-subtitle">
+        {{ subtitle }}
       </p>
     {% endif %}
-  </div>
+  </header>
+
+  {# Social Share Summary Card #}
+  {% if match_neighborhood or share_href %}
+    <div class="quiz-match-bar">
+      <div class="quiz-match-lead">
+        <div class="quiz-match-icon-frame" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="m4.93 4.93 4.24 4.24"/>
+            <path d="m14.83 9.17 4.24-4.24"/>
+            <path d="m14.83 14.83 4.24 4.24"/>
+            <path d="m9.17 14.83-4.24 4.24"/>
+            <circle cx="12" cy="12" r="4"/>
+          </svg>
+        </div>
+
+        <div class="quiz-match-identity">
+          <span class="text-overline quiz-match-caption">YOUR NEIGHBORHOOD MATCH</span>
+          {% if match_neighborhood %}
+            <div class="quiz-match-name">
+              {{ match_neighborhood }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if share_href %}
+        <button type="button" 
+                class="btn-quiz-share" 
+                aria-label="Share your quiz results"
+                data-share-title="My Neighborhood Match: {{ archetype }}"
+                data-share-url="{{ share_href }}"
+                onclick="if(navigator.share){navigator.share({title:this.dataset.shareTitle,url:this.dataset.shareUrl})}else{navigator.clipboard.writeText(this.dataset.shareUrl);}">
+          <svg class="quiz-share-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+            <polyline points="16 6 12 2 8 6"/>
+            <line x1="12" y1="2" x2="12" y2="15"/>
+          </svg>
+          <span>Share Results</span>
+        </button>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# Narrative Assessment #}
+  {% if narrative %}
+    <div class="narrative-assessment text-body quiz-narrative-prose">
+      {{ narrative | safe }}
+    </div>
+  {% endif %}
 
 </section>
+{% endif %}
