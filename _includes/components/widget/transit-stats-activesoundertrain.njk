@@ -1,24 +1,38 @@
 <!-- File: _includes/components/widget/transit-stats-activesoundertrain.njk -->
-{% set transit_stat_value = transit_sounder_count | default("4") %}
-{% set transit_stat_label = "CURRENTLY ACTIVE IN-CITY SOUNDER TRAINS" %}
-{% set transit_stat_overline = "PASSENGER COMMUTER RAIL" %}
+{# 
+  COMPONENT: Live Transit Active Sounder Train Fleet Metric (widget.transit.stats.activesoundertrain)
+  PURPOSE: Real-time telemetry counter for active Sounder Commuter Rail trains (N Line / S Line).
+  CONTRACT:
+    - transit_sounder_count / active_sounder_count / sounder_count: Number or String [Required]
+    - transit_stat_label / sounder_label: String [Optional, defaults to "CURRENTLY ACTIVE LOCAL SOUNDER TRAINS"]
+    - transit_stat_overline / sounder_overline: String [Optional, defaults to "PASSENGER COMMUTER RAIL"]
+    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+#}
 
-<div class="widget-card transit-stat-item" style="padding: 1.25rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; align-items: center; gap: 1rem; box-sizing: border-box;">
+{% set sounder_num = transit_sounder_count if transit_sounder_count is defined else (active_sounder_count if active_sounder_count is defined else sounder_count) %}
+{% set stat_label = transit_stat_label or sounder_label or "CURRENTLY ACTIVE LOCAL SOUNDER TRAINS" %}
+{% set stat_overline = transit_stat_overline or sounder_overline or "PASSENGER COMMUTER RAIL" %}
+
+{% if sounder_num is not none and sounder_num != '' %}
+<div class="widget-card transit-stat-item-card" role="region" aria-label="{{ stat_overline }}: {{ sounder_num }} {{ stat_label }}">
   
-  <div style="width: 44px; height: 44px; border-radius: 10px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+  {# Graphic Icon Well #}
+  <div class="transit-stat-icon-frame" aria-hidden="true">
     {% include "components/graphic/map-train-sounder.njk" ignore missing %}
   </div>
 
-  <div style="display: flex; flex-direction: column;">
-    <span class="text-overline" style="font-size: 0.6rem; color: #86868b;">
-      {{ transit_stat_overline }}
+  {# Quantitative Telemetry Stack #}
+  <div class="transit-stat-content">
+    <span class="text-overline transit-stat-overline">
+      {{ stat_overline }}
     </span>
-    <div class="text-data-huge" style="font-size: 1.75rem; font-weight: 800; line-height: 1.1; font-family: monospace; color: var(--color-primary-default);">
-      {{ transit_stat_value }}
+    <div class="transit-stat-number">
+      {{ sounder_num }}
     </div>
-    <div class="text-body-secondary" style="font-size: 0.75rem; font-weight: 700; color: var(--color-secondary-default);">
-      {{ transit_stat_label }}
+    <div class="transit-stat-descriptor">
+      {{ stat_label }}
     </div>
   </div>
 
 </div>
+{% endif %}

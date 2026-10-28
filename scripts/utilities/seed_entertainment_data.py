@@ -1,9 +1,6 @@
 import os
 import sys
-import gzip
-import json
 import time
-import datetime
 import requests
 
 # ------------------------------------------------------------------------------
@@ -82,31 +79,32 @@ def ensure_schema():
     print("✅ Schema verified.\n")
 
 # ------------------------------------------------------------------------------
-# 3. HARVEST ACTORS VIA WIKIDATA (WITH IMDB ID & IMAGE URL)
+# 3. HARVEST ACTORS VIA WIKIDATA (CORRECT PROPERTY P4985)
 # ------------------------------------------------------------------------------
-def harvest_wikidata_actors(limit=8000):
-    print(f"🌐 Harvesting up to {limit:,} notable actors with IMDb IDs & photos from Wikidata...")
+def harvest_wikidata_actors(limit=10000):
+    print(f"🌐 Harvesting up to {limit:,} notable actors with IMDb, TMDb, & photos from Wikidata...")
     wdqs_endpoint = "https://query.wikidata.org/sparql"
     headers = {
         "User-Agent": "SeattleSearchEntertainmentHub/1.0 (contact: admin@myseattlesearch.com)",
         "Accept": "application/sparql-results+json"
     }
 
-    # Highly index-optimized SPARQL: joins only indexed triples and English labels
+    # P4985 = TMDb person ID, P345 = IMDb ID, P18 = image, P31 = human
     sparql = f"""
     SELECT ?person ?name ?tmdbId ?imdbId ?image WHERE {{
-      ?person wdt:P106 wd:Q33999;     # Occupation: Actor
-              wdt:P4947 ?tmdbId;       # TMDb Person ID
-              wdt:P345 ?imdbId;        # IMDb ID (nm...)
-              wdt:P18 ?image;          # Commons portrait (filters out obscure extras)
+      ?person wdt:P31 wd:Q5;            # Instance of Human
+              wdt:P4985 ?tmdbId;        # TMDb Person ID (Property P4985)
+              wdt:P345 ?imdbId;         # IMDb ID (nm...)
+              wdt:P18 ?image;           # Portrait photo
               rdfs:label ?name.
       FILTER(LANG(?name) = "en")
+      FILTER(STRSTARTS(?imdbId, "nm"))  # Verify it's an IMDb person
     }}
     LIMIT {limit}
     """
 
     try:
-        res = requests.get(wdqs_endpoint, params={"query": sparql}, headers=headers, timeout=55)
+        res = requests.get(wdqs_endpoint, params={"query": sparql}, headers=headers, timeout=60)
         if res.status_code != 200:
             print(f"⚠️ Wikidata returned HTTP {res.status_code}: {res.text[:200]}")
             return
@@ -139,10 +137,11 @@ def harvest_wikidata_actors(limit=8000):
             execute_d1_batch(statements, batch_size=50)
             print("✅ Finished inserting Wikidata actors into D1.\n")
         else:
-            print("⚠️ No actor records to insert.")
+            print("⚠️ No actor records found.")
 
     except Exception as e:
         print(f"❌ Wikidata actor harvest failed: {e}\n")
+
 # ------------------------------------------------------------------------------
 # 4. MAIN CONTROLLER
 # ------------------------------------------------------------------------------

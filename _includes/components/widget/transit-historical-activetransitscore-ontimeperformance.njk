@@ -1,81 +1,100 @@
 <!-- File: _includes/components/widget/transit-historical-activetransitscore-ontimeperformance.njk -->
-{% set hist_title = transit_hist_title | default("7-Day Transit Score & Schedule Reliability") %}
-{% set hist_overline = transit_hist_overline | default("TRANSIT RELIABILITY") %}
+{# 
+  COMPONENT: 7-Day Transit Score & Schedule Reliability Log (widget.transit.historical.activetransitscore.ontimeperformance)
+  PURPOSE: Rolling reliability log and hourly punctuality breakdown for regional transit lines.
+  CONTRACT:
+    - transit_history_days / transit_days: Array of Objects [Required]
+      Each day object expects:
+      - day.day / day.name: String [Required, e.g. "Today", "Thursday"]
+      - day.date: String [Required, e.g. "Oct 23"]
+      - day.score: Number [Required, 0-100 transit score]
+      - day.ontime: String [Required, e.g. "92%"]
+      - day.hourly: Array of Objects [Optional, hourly telemetry logs]
+        Each hourly item expects: { hour, score, ontime, status, status_type }
+    - transit_hist_title / hist_title: String [Optional, defaults to "7-Day Transit Score & Schedule Reliability"]
+    - transit_hist_overline / hist_overline: String [Optional, defaults to "TRANSIT RELIABILITY"]
+    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+#}
 
-{% set demo_days = [
-  { day: "Today", date: "Friday, Oct 23", score: 84, ontime: "92%" },
-  { day: "Thursday", date: "Oct 22", score: 82, ontime: "90%" },
-  { day: "Wednesday", date: "Oct 21", score: 85, ontime: "93%" },
-  { day: "Tuesday", date: "Oct 20", score: 79, ontime: "88%" },
-  { day: "Monday", date: "Oct 19", score: 81, ontime: "89%" },
-  { day: "Sunday", date: "Oct 18", score: 76, ontime: "94%" },
-  { day: "Saturday", date: "Oct 17", score: 77, ontime: "95%" }
-] %}
+{% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
+{% set transit_days = transit_history_days or transit_days %}
+{% set default_title = (active_neighborhood ~ " Transit Score & Schedule Reliability") if active_neighborhood else "7-Day Transit Score & Schedule Reliability" %}
+{% set card_title = transit_hist_title or hist_title or default_title %}
+{% set overline_text = transit_hist_overline or hist_overline or "TRANSIT RELIABILITY" %}
 
-<div class="widget-card transit-historical-log-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
+{% if transit_days and transit_days.length > 0 %}
+<section class="widget-card transit-historical-log-card" aria-label="{{ card_title }}">
   
   {# Header Row #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
-    <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        {{ hist_overline }}
+  <header class="transit-hist-header">
+    <div class="transit-hist-title-stack">
+      <span class="text-overline text-accent-alpine">
+        {{ overline_text }}
       </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
-        {{ hist_title }}
+      <h3 class="text-widget-title transit-hist-title">
+        {{ card_title }}
       </h3>
     </div>
-    <div style="font-size: 0.75rem; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0.2rem 0.65rem; border-radius: 999px;">
+    <div class="transit-audit-badge">
       7-Day Audit Log
     </div>
-  </div>
+  </header>
 
-  {# 7 Daily Accordion Rows #}
-  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-    {% for day in demo_days %}
-      <details class="transit-day-accordion" style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 10px; padding: 0.75rem 1rem; cursor: pointer;" {% if loop.first %}open{% endif %}>
-        <summary style="display: flex; justify-content: space-between; align-items: center; list-style: none; font-size: 0.85rem; font-weight: 700;">
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <span class="transit-toggle-arrow" style="color: var(--color-secondary-default); font-size: 0.8rem; display: inline-block; transition: transform 0.2s ease;">▶</span>
-            <span style="color: var(--color-primary-default);">{{ day.day }}</span>
-            <span class="text-body-secondary" style="font-size: 0.75rem; font-weight: 500;">{{ day.date }}</span>
-          </div>
+  {# 7 Daily Accordion Rows (Pure Zero-Hydration SSG) #}
+  <div class="transit-days-stack">
+    {% for day in transit_days %}
+      {% set day_name = day.day or day.name %}
+      {% if day_name and day.score %}
+        <details class="transit-day-accordion" {% if loop.first %}open{% endif %}>
+          <summary class="transit-day-summary">
+            <div class="transit-day-lead">
+              <svg class="transit-toggle-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+              <span class="transit-day-name">{{ day_name }}</span>
+              {% if day.date %}
+                <span class="transit-day-date">{{ day.date }}</span>
+              {% endif %}
+            </div>
 
-          <div style="display: flex; align-items: center; gap: 1rem; font-family: monospace;">
-            <span>Score: <strong style="color: var(--color-secondary-default);">{{ day.score }}</strong></span>
-            <span>On-Time: <strong style="color: #10B981;">{{ day.ontime }}</strong></span>
-          </div>
-        </summary>
+            <div class="transit-day-metrics">
+              <span><span class="metric-score-label">Score:</span> <span class="metric-score-val">{{ day.score }}</span></span>
+              {% if day.ontime %}
+                <span><span class="metric-ontime-label">On-Time:</span> <span class="metric-ontime-val">{{ day.ontime }}</span></span>
+              {% endif %}
+            </div>
+          </summary>
 
-        {# Expanded 24-Hour Table #}
-        <div style="margin-top: 0.75rem; border-top: 1px solid var(--color-border-light); padding-top: 0.75rem; overflow-x: auto;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem; text-align: left;">
-            <thead>
-              <tr style="color: #86868b; border-bottom: 1px solid var(--color-border-light);">
-                <th style="padding: 0.35rem 0.5rem;">Hour</th>
-                <th style="padding: 0.35rem 0.5rem;">Transit Score</th>
-                <th style="padding: 0.35rem 0.5rem;">On-Time Rate</th>
-                <th style="padding: 0.35rem 0.5rem;">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for h in range(6, 22) %}
-                <tr style="border-bottom: 1px solid rgba(0,0,0,0.04);">
-                  <td style="padding: 0.35rem 0.5rem; font-family: monospace; font-weight: 600;">{{ h }}:00</td>
-                  <td style="padding: 0.35rem 0.5rem; font-family: monospace; font-weight: 700; color: var(--color-secondary-default);">{{ day.score + ((h % 5) - 2) }}</td>
-                  <td style="padding: 0.35rem 0.5rem; font-family: monospace; font-weight: 700; color: #10B981;">{{ 90 + ((h % 4) - 1) }}%</td>
-                  <td style="padding: 0.35rem 0.5rem; color: #10B981; font-weight: 600;">Normal</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </details>
+          {# Expanded Hourly Performance Table (Renders when telemetry exists) #}
+          {% if day.hourly and day.hourly.length > 0 %}
+            <div class="transit-hourly-pane">
+              <table class="transit-hourly-table">
+                <thead>
+                  <tr>
+                    <th>Hour</th>
+                    <th>Transit Score</th>
+                    <th>On-Time Rate</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for h in day.hourly %}
+                    {% set status_type = h.status_type or "normal" %}
+                    <tr>
+                      <td class="cell-hour-stamp">{{ h.hour }}</td>
+                      <td class="cell-hour-score">{{ h.score }}</td>
+                      <td class="cell-hour-ontime">{{ h.ontime }}</td>
+                      <td class="cell-hour-status status-{{ status_type }}">{{ h.status | default("Normal") }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endif %}
+        </details>
+      {% endif %}
     {% endfor %}
   </div>
 
-  <style>
-    .transit-day-accordion summary::-webkit-details-marker { display: none; }
-    .transit-day-accordion[open] summary .transit-toggle-arrow { transform: rotate(90deg); }
-  </style>
-
-</div>
+</section>
+{% endif %}

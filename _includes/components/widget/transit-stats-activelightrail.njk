@@ -1,23 +1,38 @@
 <!-- File: _includes/components/widget/transit-stats-activelightrail.njk -->
-{% set transit_stat_value = transit_lightrail_count | default("14") %}
-{% set transit_stat_label = "CURRENTLY ACTIVE IN-CITY LINK LIGHT RAIL" %}
+{# 
+  COMPONENT: Live Transit Active Link Light Rail Fleet Metric (widget.transit.stats.activelightrail)
+  PURPOSE: Real-time telemetry counter for active Sound Transit 1 Line & 2 Line light rail trains.
+  CONTRACT:
+    - transit_lightrail_count / active_lightrail_count / lightrail_count: Number or String [Required]
+    - transit_stat_label / lightrail_label: String [Optional, defaults to "CURRENTLY ACTIVE LOCAL LINK LIGHT RAIL"]
+    - transit_stat_overline / lightrail_overline: String [Optional, defaults to "SOUND TRANSIT LINK LIGHT RAIL"]
+    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+#}
 
-<div class="widget-card transit-stat-item" style="padding: 1.25rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; align-items: center; gap: 1rem; box-sizing: border-box;">
+{% set rail_count = transit_lightrail_count if transit_lightrail_count is defined else (active_lightrail_count if active_lightrail_count is defined else lightrail_count) %}
+{% set stat_label = transit_stat_label or lightrail_label or "CURRENTLY ACTIVE LOCAL LINK LIGHT RAIL" %}
+{% set stat_overline = transit_stat_overline or lightrail_overline or "SOUND TRANSIT LINK LIGHT RAIL" %}
+
+{% if rail_count is not none and rail_count != '' %}
+<div class="widget-card transit-stat-item-card" role="region" aria-label="{{ stat_overline }}: {{ rail_count }} {{ stat_label }}">
   
-  <div style="width: 44px; height: 44px; border-radius: 10px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+  {# Graphic Icon Well #}
+  <div class="transit-stat-icon-frame" aria-hidden="true">
     {% include "components/graphic/map-train-linklightrail.njk" ignore missing %}
   </div>
 
-  <div style="display: flex; flex-direction: column;">
-    <span class="text-overline" style="font-size: 0.6rem; color: #86868b;">
-      {{ transit_stat_overline }}
+  {# Quantitative Telemetry Stack #}
+  <div class="transit-stat-content">
+    <span class="text-overline transit-stat-overline">
+      {{ stat_overline }}
     </span>
-    <div class="text-data-huge" style="font-size: 1.75rem; font-weight: 800; line-height: 1.1; font-family: monospace; color: var(--color-primary-default);">
-      {{ transit_stat_value }}
+    <div class="transit-stat-number">
+      {{ rail_count }}
     </div>
-    <div class="text-body-secondary" style="font-size: 0.75rem; font-weight: 700; color: var(--color-secondary-default);">
-      {{ transit_stat_label }}
+    <div class="transit-stat-descriptor">
+      {{ stat_label }}
     </div>
   </div>
 
 </div>
+{% endif %}

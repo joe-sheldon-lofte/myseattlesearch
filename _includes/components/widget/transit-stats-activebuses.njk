@@ -1,24 +1,38 @@
 <!-- File: _includes/components/widget/transit-stats-activebuses.njk -->
-{% set transit_stat_value = transit_buses_count | default("38") %}
-{% set transit_stat_label = "CURRENTLY ACTIVE IN-CITY BUSES" %}
-{% set transit_stat_overline = "LIVE BUS FLEET" %}
+{# 
+  COMPONENT: Live Transit Active Bus Fleet Metric (widget.transit.stats.activebuses)
+  PURPOSE: Real-time telemetry counter for active municipal and neighborhood bus coaches.
+  CONTRACT:
+    - transit_buses_count / active_buses_count / buses_count: Number or String [Required]
+    - transit_stat_label / buses_label: String [Optional, defaults to "CURRENTLY ACTIVE LOCAL BUSES"]
+    - transit_stat_overline / buses_overline: String [Optional, defaults to "LIVE BUS FLEET"]
+    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+#}
 
-<div class="widget-card transit-stat-item" style="padding: 1.25rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; align-items: center; gap: 1rem; box-sizing: border-box;">
+{% set bus_count = transit_buses_count if transit_buses_count is defined else (active_buses_count if active_buses_count is defined else buses_count) %}
+{% set stat_label = transit_stat_label or buses_label or "CURRENTLY ACTIVE LOCAL BUSES" %}
+{% set stat_overline = transit_stat_overline or buses_overline or "LIVE BUS FLEET" %}
+
+{% if bus_count is not none and bus_count != '' %}
+<div class="widget-card transit-stat-item-card" role="region" aria-label="{{ stat_overline }}: {{ bus_count }} {{ stat_label }}">
   
-  <div style="width: 44px; height: 44px; border-radius: 10px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+  {# Graphic Icon Well #}
+  <div class="transit-stat-icon-frame" aria-hidden="true">
     {% include "components/graphic/map-bus-soundtransit.njk" ignore missing %}
   </div>
 
-  <div style="display: flex; flex-direction: column;">
-    <span class="text-overline" style="font-size: 0.6rem; color: #86868b;">
-      {{ transit_stat_overline }}
+  {# Quantitative Telemetry Stack #}
+  <div class="transit-stat-content">
+    <span class="text-overline transit-stat-overline">
+      {{ stat_overline }}
     </span>
-    <div class="text-data-huge" style="font-size: 1.75rem; font-weight: 800; line-height: 1.1; font-family: monospace; color: var(--color-primary-default);">
-      {{ transit_stat_value }}
+    <div class="transit-stat-number">
+      {{ bus_count }}
     </div>
-    <div class="text-body-secondary" style="font-size: 0.75rem; font-weight: 700; color: var(--color-secondary-default);">
-      {{ transit_stat_label }}
+    <div class="transit-stat-descriptor">
+      {{ stat_label }}
     </div>
   </div>
 
 </div>
+{% endif %}
