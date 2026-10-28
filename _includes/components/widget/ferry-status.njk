@@ -1,66 +1,96 @@
-<!-- File: _includes/components/widget/ferry-status.njk -->
-<div class="widget-card ferry-status-card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; width: 100%;">
+<!-- File: _includes/components/widget/image-viewport-box.njk -->
+{# 
+  COMPONENT: 1:1 Aspect Image Viewport Box (widget.image.viewport.box)
+  CONTRACT:
+    - viewport_images / gallery_images: Array of Objects [Required]
+      Each image object expects:
+      - img.url: String [Required]
+      - img.alt: String [Required]
+    - viewport_box_id / viewport_id: String [Optional]
+#}
+
+{% set images = viewport_images or gallery_images %}
+{% set box_id = viewport_box_id or viewport_id or ("image-viewport-" ~ (range(1000, 9999) | random)) %}
+
+{% if images and images.length > 0 %}
+<div id="{{ box_id }}" class="widget-card image-viewport-box-container">
   
-  {# Header Row: Route & Status Pill #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 1rem;">
-    <div>
-      <span class="text-overline">{{ ferry_terminal_label | default("WSF ROUTE STATUS") }}</span>
-      <h3 class="text-widget-title" style="margin-top: 0.25rem; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-        <span>{{ ferry_origin | default("Edmonds") }}</span>
-        <span style="color: var(--color-secondary-default);" aria-hidden="true">⇄</span>
-        <span>{{ ferry_destination | default("Kingston") }}</span>
-      </h3>
-    </div>
+  {# Inner Screen Viewport #}
+  <div class="viewport-screen-frame">
     
-    {% set status = ferry_status | default("On Time") %}
-    {% set status_bg = "rgba(16, 185, 129, 0.12)" %}
-    {% set status_color = "#059669" %}
-    {% if status != "On Time" %}
-      {% set status_bg = "rgba(245, 158, 11, 0.15)" %}
-      {% set status_color = "#D97706" %}
+    {# Horizontal Swipe Slider #}
+    <div class="viewport-slider" tabindex="0">
+      {% for img in images %}
+        {% if img.url %}
+          <div class="viewport-slide">
+            {# Ambient Edge Frost Projection #}
+            <div class="viewport-ambient-backdrop" 
+                 style="background-image: url('{{ img.url }}');" 
+                 aria-hidden="true"></div>
+            <div class="viewport-gradient-scrim" aria-hidden="true"></div>
+            
+            {# Centered Primary Asset #}
+            <img src="{{ img.url }}" 
+                 alt="{{ img.alt }}" 
+                 loading="{% if loop.first %}eager{% else %}lazy{% endif %}" 
+                 decoding="async"
+                 class="viewport-primary-image">
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    {# Desktop Hover Navigation Chevrons #}
+    {% if images.length > 1 %}
+      <button type="button" 
+              class="viewport-nav-btn prev" 
+              aria-label="Previous image"
+              onclick="navigateViewport('{{ box_id }}', -1)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      
+      <button type="button" 
+              class="viewport-nav-btn next" 
+              aria-label="Next image"
+              onclick="navigateViewport('{{ box_id }}', 1)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+
+      {# Frosted Glass Dot Pagination #}
+      <div class="viewport-dots-tray">
+        {% for img in images %}
+          <button type="button" 
+                  class="viewport-dot {% if loop.first %}is-active{% endif %}"
+                  onclick="jumpToSlide('{{ box_id }}', {{ loop.index0 }})" 
+                  aria-label="Go to slide {{ loop.index }}">
+          </button>
+        {% endfor %}
+      </div>
     {% endif %}
-    <span style="display: inline-block; padding: 0.25rem 0.65rem; background: {{ status_bg }}; color: {{ status_color }}; border-radius: 999px; font-size: 0.75rem; font-weight: 700; white-space: nowrap;">
-      {{ status }}
-    </span>
-  </div>
-
-  {# Departure Schedule Matrix #}
-  <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem;">
-    
-    {# Outbound Direction #}
-    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <div class="text-overline" style="font-size: 0.65rem;">Next from {{ ferry_origin | default("Edmonds") }}</div>
-        <div style="font-size: 1.15rem; font-weight: 700; color: var(--color-primary-default); margin-top: 0.15rem;">
-          {{ next_departure_origin | default("11:45 AM") }}
-        </div>
-      </div>
-      <div class="text-body-secondary" style="font-size: 0.75rem; text-align: right;">
-        <div>{{ vessel_origin | default("M/V Puyallup") }}</div>
-        <div style="color: var(--color-secondary-default); font-weight: 600;">{{ spaces_origin | default("82 Drive-Up Spaces") }}</div>
-      </div>
-    </div>
-
-    {# Inbound Direction #}
-    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <div class="text-overline" style="font-size: 0.65rem;">Next from {{ ferry_destination | default("Kingston") }}</div>
-        <div style="font-size: 1.15rem; font-weight: 700; color: var(--color-primary-default); margin-top: 0.15rem;">
-          {{ next_departure_destination | default("12:20 PM") }}
-        </div>
-      </div>
-      <div class="text-body-secondary" style="font-size: 0.75rem; text-align: right;">
-        <div>{{ vessel_destination | default("M/V Spokane") }}</div>
-        <div style="color: var(--color-secondary-default); font-weight: 600;">{{ spaces_destination | default("64 Drive-Up Spaces") }}</div>
-      </div>
-    </div>
 
   </div>
 
-  {# Bottom Bar: Advisory & Source #}
-  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem;" class="text-body-secondary">
-    <span>Crossing: <strong>{{ crossing_time | default("30 min") }}</strong></span>
-    <span>Source: WSDOT Ferries API</span>
-  </div>
-
+  <script>
+    if (typeof navigateViewport === 'undefined') {
+      function navigateViewport(containerId, direction) {
+        const c = document.getElementById(containerId);
+        if (!c) return;
+        const slider = c.querySelector('.viewport-slider');
+        const slideWidth = slider.clientWidth;
+        slider.scrollBy({ left: direction * slideWidth, behavior: 'smooth' });
+      }
+      function jumpToSlide(containerId, index) {
+        const c = document.getElementById(containerId);
+        if (!c) return;
+        const slider = c.querySelector('.viewport-slider');
+        const slideWidth = slider.clientWidth;
+        slider.scrollTo({ left: index * slideWidth, behavior: 'smooth' });
+      }
+    }
+  </script>
 </div>
+{% endif %}
