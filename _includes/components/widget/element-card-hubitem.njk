@@ -1,49 +1,72 @@
 <!-- File: _includes/components/widget/element-card-hubitem.njk -->
-{% set hub_title = card_hub_title | default("Washington State General Election Guide") %}
-{% set hub_desc = card_hub_summary | default("Comprehensive non-partisan guide detailing candidates, local ballot initiatives, and drop box deadlines.") %}
-{% set hub_url = card_hub_url | default("/elections/") %}
-{% set hub_cta = card_hub_cta | default("Explore Voter Guide") %}
-{% set hub_tag = card_hub_tag | default("VOTER GUIDE") %}
+{# 
+  COMPONENT: Portal Hub Item Card (widget.element.card.hubitem)
+  CONTRACT:
+    - card_hub_title / hub_title / title: String [Required]
+    - card_hub_url / hub_url / url: String [Required]
+    - card_hub_summary / hub_desc / summary / desc: String [Optional]
+    - card_hub_tag / hub_tag / tag: String [Optional, e.g. "VOTER GUIDE"]
+    - card_hub_cta / hub_cta / cta: String [Optional, defaults to "Explore"]
+    - card_hub_icon: String (SVG markup) [Optional]
+#}
 
-<div class="widget-card element-hubitem-card" 
-     style="display: flex; flex-direction: column; justify-content: space-between; padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; box-sizing: border-box;">
+{% set hub_title = card_hub_title or hub_title or title %}
+{% set hub_url = card_hub_url or hub_url or url %}
+{% set hub_desc = card_hub_summary or hub_desc or summary or desc %}
+{% set hub_tag = card_hub_tag or hub_tag or tag %}
+{% set hub_cta = card_hub_cta or hub_cta or cta or "Explore" %}
+{% set hub_icon = card_hub_icon %}
+
+{% if hub_title and hub_url %}
+<div class="widget-card widget-card-interactive element-hubitem-card">
   
-  <div>
-    {# Top Leading Icon & Tag per edit: "VOTER GUIDE" #}
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-      <div style="width: 40px; height: 40px; border-radius: 10px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-secondary-default);" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect width="16" height="20" x="4" y="2" rx="2"/>
-          <line x1="8" x2="16" y1="6" y2="6"/>
-          <line x1="16" x2="16" y1="14" y2="18"/>
-          <path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"/>
-        </svg>
+  <div class="hubitem-content-body">
+    {# Top Leading Icon & Pill Tag #}
+    <div class="card-header-split hubitem-top-row">
+      <div class="hubitem-icon-frame" aria-hidden="true">
+        {% if hub_icon %}
+          {{ hub_icon | safe }}
+        {% else %}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="16" height="20" x="4" y="2" rx="2"/>
+            <line x1="8" x2="16" y1="6" y2="6"/>
+            <line x1="16" x2="16" y1="14" y2="18"/>
+            <path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"/>
+          </svg>
+        {% endif %}
       </div>
 
-      <span class="text-overline" style="font-size: 0.65rem; color: var(--color-secondary-default); background: var(--color-surface-gray); padding: 0.2rem 0.55rem; border-radius: 999px;">
-        {{ hub_tag }}
-      </span>
+      {% if hub_tag %}
+        <span class="text-overline hubitem-tag-pill">
+          {{ hub_tag }}
+        </span>
+      {% endif %}
     </div>
 
     {# Title & Body Copy #}
-    <h3 class="text-widget-title" style="font-size: 1.15rem; line-height: 1.35; margin: 0 0 0.5rem 0;">
-      <a href="{{ hub_url }}" style="color: var(--color-primary-default); text-decoration: none;">
+    <h3 class="text-widget-title hubitem-headline">
+      <a href="{{ hub_url }}" class="title-link">
         {{ hub_title }}
       </a>
     </h3>
 
-    <p class="text-body-secondary" style="font-size: 0.85rem; line-height: 1.5; margin: 0 0 1.25rem 0;">
-      {{ hub_desc }}
-    </p>
+    {% if hub_desc %}
+      <p class="text-body-secondary hubitem-desc-text">
+        {{ hub_desc }}
+      </p>
+    {% endif %}
   </div>
 
-  {# Action Button #}
-  <div>
-    <a href="{{ hub_url }}" 
-       style="display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; width: 100%; padding: 0.7rem 1.25rem; background: var(--color-secondary-default); color: #FFFFFF; border-radius: 999px; font-size: 0.85rem; font-weight: 700; text-decoration: none; box-shadow: 0 2px 8px rgba(30, 77, 107, 0.15); transition: opacity 0.15s ease;">
+  {# Bottom Action Button #}
+  <div class="hubitem-action-footer">
+    <a href="{{ hub_url }}" class="btn-hub-primary">
       <span>{{ hub_cta }}</span>
-      <span aria-hidden="true">→</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+        <polyline points="12 5 19 12 12 19"></polyline>
+      </svg>
     </a>
   </div>
 
 </div>
+{% endif %}

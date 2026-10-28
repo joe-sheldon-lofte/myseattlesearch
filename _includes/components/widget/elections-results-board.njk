@@ -1,54 +1,94 @@
 <!-- File: _includes/components/widget/elections-results-board.njk -->
-{% set board_title = election_results_title | default("Vote Tracker") %}
-{% set board_election = election_results_name | default("2026 General Election") %}
+{# 
+  COMPONENT: Live Election Results Board (widget.elections.results.board)
+  CONTRACT:
+    - election_results / results: Array of Objects [Required]
+      Each race object expects:
+      - r.office / r.title: String [Required, e.g. "City Council Pos. 1"]
+      - r.status: String [Optional, e.g. "Certified", "Leading", "Passed"]
+      - r.cand1 / r.leader_name: String [Required]
+      - r.pct1 / r.leader_pct: String [Required, e.g. "54.2%"]
+      - r.cand2 / r.trailer_name: String [Optional]
+      - r.pct2 / r.trailer_pct: String [Optional, e.g. "45.8%"]
+      - r.counted: String [Optional, e.g. "100% Counted"]
+    - election_results_title / board_title: String [Optional, defaults to "Vote Tracker"]
+    - election_results_name / board_election: String [Optional, e.g. "2026 General Election"]
+    - election_source_url: String [Optional, defaults to "https://voter.votewa.gov"]
+#}
 
-{% set results_data = [
-  { office: "Edmonds Mayor", cand1: "Mike Rosen", pct1: "54.2%", cand2: "Challenger Name", pct2: "45.8%", counted: "100% Counted", status: "Certified" },
-  { office: "City Council Pos. 1", cand1: "Candidate A", pct1: "51.8%", cand2: "Candidate B", pct2: "48.2%", counted: "100% Counted", status: "Certified" },
-  { office: "EMS Levy Renewal", cand1: "Approved", pct1: "68.4%", cand2: "Rejected", pct2: "31.6%", counted: "100% Counted", status: "Passed" }
-] %}
+{% set results_list = election_results or results %}
+{% set title = election_results_title or board_title or "Vote Tracker" %}
+{% set election_name = election_results_name or board_election %}
+{% set source_href = election_source_url or "https://voter.votewa.gov" %}
 
-<div class="widget-card elections-results-board-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
+{% if results_list and results_list.length > 0 %}
+<div class="widget-card elections-results-board-card">
   
-  {# Header Row per edit: "VOTE TRACKER" (canvassing certificates boilerplate removed) #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+  {# Header Row: Title, Sub-label & Verification Badge #}
+  <div class="card-header-split results-header-strip">
     <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        ELECTION RESULTS
-      </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.25rem;">
-        {{ board_title }}
-      </h3>
-      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
-        {{ board_election }}
-      </div>
+      <span class="text-overline text-accent-alpine">ELECTION RESULTS</span>
+      <h3 class="text-widget-title results-headline">{{ title }}</h3>
+      {% if election_name %}
+        <div class="text-body-secondary results-subhead">{{ election_name }}</div>
+      {% endif %}
     </div>
-    <div style="font-size: 0.75rem; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0.2rem 0.65rem; border-radius: 999px;">
+    
+    <div class="badge-status-emerald">
       State Verified Totals
     </div>
   </div>
 
   {# Tabulated Results Rows #}
-  <div style="display: flex; flex-direction: column; gap: 0.85rem;">
-    {% for r in results_data %}
-      <div style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 10px; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <h4 style="margin: 0; font-size: 0.95rem; font-weight: 800; color: var(--color-primary-default);">{{ r.office }}</h4>
-          <span style="font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px; background: rgba(16, 185, 129, 0.12); color: #059669;">{{ r.status }}</span>
-        </div>
+  <div class="results-race-stack">
+    {% for r in results_list %}
+      {% set office = r.office or r.title %}
+      {% set cand1_name = r.cand1 or r.leader_name %}
+      {% set cand1_pct = r.pct1 or r.leader_pct %}
+      {% set cand2_name = r.cand2 or r.trailer_name %}
+      {% set cand2_pct = r.pct2 or r.trailer_pct %}
+      {% set status_tag = r.status %}
 
-        <div style="display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-weight: 700; color: var(--color-primary-default);">{{ r.cand1 }}</span>
-            <span style="font-weight: 800; font-family: monospace; color: var(--color-secondary-default);">{{ r.pct1 }}</span>
+      {% if office and cand1_name and cand1_pct %}
+        <div class="results-race-item">
+          <div class="card-header-split results-race-header">
+            <h4 class="results-office-title">{{ office }}</h4>
+            {% if status_tag %}
+              <span class="results-status-tag">{{ status_tag }}</span>
+            {% endif %}
           </div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span class="text-body-secondary">{{ r.cand2 }}</span>
-            <span style="font-family: monospace; color: #86868b;">{{ r.pct2 }}</span>
+
+          <div class="results-tally-list">
+            {# Leader Row #}
+            <div class="results-candidate-row leader">
+              <span class="candidate-tally-name">{{ cand1_name }}</span>
+              <span class="candidate-tally-pct text-accent-alpine">{{ cand1_pct }}</span>
+            </div>
+
+            {# Challenger / Runner-up Row #}
+            {% if cand2_name and cand2_pct %}
+              <div class="results-candidate-row">
+                <span class="text-body-secondary">{{ cand2_name }}</span>
+                <span class="candidate-tally-pct text-body-secondary">{{ cand2_pct }}</span>
+              </div>
+            {% endif %}
           </div>
         </div>
-      </div>
+      {% endif %}
     {% endfor %}
   </div>
 
+  {# Footer: Verification Source Link #}
+  <div class="card-footer-strip text-body-secondary">
+    <span>Data Source: Washington Secretary of State</span>
+    <a href="{{ source_href }}" target="_blank" rel="noopener noreferrer" class="link-arrow">
+      <span>Official Canvass</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="7" y1="17" x2="17" y2="7"></line>
+        <polyline points="7 7 17 7 17 17"></polyline>
+      </svg>
+    </a>
+  </div>
+
 </div>
+{% endif %}

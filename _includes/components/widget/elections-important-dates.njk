@@ -1,54 +1,78 @@
 <!-- File: _includes/components/widget/elections-important-dates.njk -->
-{% set election_name = election_official_name | default("2026 GENERAL ELECTION") %}
+{# 
+  COMPONENT: Key Election Dates & Milestones (widget.elections.important.dates)
+  CONTRACT:
+    - election_name / election.ElectionName / election.name: String [Required]
+    - election_milestones / milestones / election.milestones: Array of Objects [Required]
+      Each milestone expects:
+      - item.date: String (e.g. "OCTOBER 16, 2026" or ISO formatted date) [Required]
+      - item.label: String (e.g. "Official Ballots Mailed to Registered Voters") [Required]
+      - item.desc: String (e.g. "Drop boxes open 24 hours daily...") [Optional]
+    - election_badge_label: String [Optional, defaults to "Washington State Schedule"]
+    - election_source_url: String [Optional, defaults to "https://voter.votewa.gov"]
+#}
 
-{% set milestones = [
-  { date: "OCTOBER 16, 2026", label: "Official Ballots Mailed to Registered Voters", desc: "Drop boxes open 24 hours daily across Snohomish and King Counties." },
-  { date: "OCTOBER 26, 2026", label: "Online & Mail Voter Registration Deadline", desc: "Last day to register or update address online before Election Day." },
-  { date: "NOVEMBER 03, 2026", label: "Election Day (Ballot Return Deadline)", desc: "Drop box return deadline: 8:00 PM PDT sharp. Mail must be postmarked today." },
-  { date: "NOVEMBER 24, 2026", label: "Official Election Certification", desc: "County canvassing board certifies final verified vote tabulation." }
-] %}
+{% set name = election_name or (election.ElectionName if election else '') or (election.name if election else '') %}
+{% set schedule_items = election_milestones or milestones or (election.milestones if election else []) %}
+{% set badge_text = election_badge_label or "Washington State Schedule" %}
+{% set source_href = election_source_url or "https://voter.votewa.gov" %}
 
-<div class="widget-card elections-important-dates-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
+{% if name and schedule_items and schedule_items.length > 0 %}
+<div class="widget-card elections-timeline-card">
   
-  {# Header Row per edit: Name of election in overline, "Key Election Dates" as title #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
+  {# Header Row: Election Overline & Status Badge #}
+  <div class="card-header-split timeline-header-strip">
     <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        {{ election_name }}
+      <span class="text-overline text-accent-alpine">
+        {{ name | upper }}
       </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
+      <h3 class="text-widget-title timeline-headline">
         Key Election Dates
       </h3>
     </div>
-    <div style="font-size: 0.75rem; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0.2rem 0.65rem; border-radius: 999px;">
-      Washington State Schedule
-    </div>
+    
+    {% if badge_text %}
+      <div class="badge-status-emerald">
+        {{ badge_text }}
+      </div>
+    {% endif %}
   </div>
 
-  {# Chronological Milestones #}
-  <div style="display: flex; flex-direction: column; gap: 0.85rem;">
-    {% for item in milestones %}
-      <div style="display: flex; align-items: flex-start; gap: 1rem; padding: 0.75rem; background: var(--color-surface-gray); border-radius: 10px;">
-        <div style="width: 10px; height: 10px; border-radius: 50%; background: var(--color-secondary-default); margin-top: 5px; flex-shrink: 0;"></div>
-        <div>
-          <div style="font-size: 0.75rem; font-weight: 800; font-family: monospace; color: var(--color-secondary-default);">
-            {{ item.date }}
+  {# Chronological Milestones Stack #}
+  <div class="timeline-milestones-stack">
+    {% for item in schedule_items %}
+      {% if item.date and item.label %}
+        <div class="timeline-milestone-item">
+          <div class="timeline-indicator-dot" aria-hidden="true"></div>
+          <div class="timeline-milestone-content">
+            <time class="timeline-date-label">
+              {{ item.date }}
+            </time>
+            <div class="timeline-entry-title">
+              {{ item.label }}
+            </div>
+            {% if item.desc %}
+              <p class="text-body-secondary timeline-entry-desc">
+                {{ item.desc }}
+              </p>
+            {% endif %}
           </div>
-          <div style="font-size: 0.9rem; font-weight: 700; color: var(--color-primary-default); margin-top: 0.15rem;">
-            {{ item.label }}
-          </div>
-          <p class="text-body-secondary" style="font-size: 0.75rem; margin: 0.2rem 0 0 0; line-height: 1.4;">
-            {{ item.desc }}
-          </p>
         </div>
-      </div>
+      {% endif %}
     {% endfor %}
   </div>
 
-  {# Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem;" class="text-body-secondary">
+  {# Footer: Verification Source Link #}
+  <div class="card-footer-strip text-body-secondary">
     <span>Source: Washington Secretary of State</span>
-    <a href="https://voter.votewa.gov" target="_blank" rel="noopener" style="color: var(--color-secondary-default); font-weight: 700; text-decoration: none;">VoteWA Portal ↗</a>
+    <a href="{{ source_href }}" target="_blank" rel="noopener noreferrer" class="link-arrow">
+      <span>VoteWA Portal</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="7" y1="17" x2="17" y2="7"></line>
+        <polyline points="7 7 17 7 17 17"></polyline>
+      </svg>
+    </a>
   </div>
 
 </div>
+{% endif %}

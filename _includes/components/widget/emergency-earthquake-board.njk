@@ -1,57 +1,87 @@
 <!-- File: _includes/components/widget/emergency-earthquake-board.njk -->
-{% set city = earthquake_city_name | default("Puget Sound Region") %}
-{% set quakes = earthquake_events_data | default([
-  { mag: "2.4", depth: "18.2 km", loc: "4 km SSW of Carnation, WA", time: "4 hours ago", status: "Minor" },
-  { mag: "1.8", depth: "22.5 km", loc: "2 km ENE of Edmonds, WA", time: "18 hours ago", status: "Micro" },
-  { mag: "2.1", depth: "14.1 km", loc: "7 km WNW of Monroe, WA", time: "41 hours ago", status: "Minor" }
-]) %}
+{# 
+  COMPONENT: Recent Earthquakes & Seismic Activity Board (widget.emergency.earthquake.board)
+  CONTRACT:
+    - earthquake_events / quakes / earthquake_events_data: Array of Objects [Required]
+      Each event object expects:
+      - q.mag: String / Number [Required, e.g. "2.4"]
+      - q.loc: String [Required, e.g. "4 km SSW of Carnation, WA"]
+      - q.depth: String [Optional, e.g. "18.2 km"]
+      - q.time: String [Required, e.g. "4 hours ago"]
+      - q.felt: String [Optional, e.g. "None" or "12 reports"]
+      - q.status: String [Optional, e.g. "Minor", "Micro", "Light"]
+    - earthquake_title: String [Optional, defaults to "Recent Earthquakes"]
+    - earthquake_badge: String [Optional, defaults to "72-Hour Tracking"]
+    - earthquake_source: String [Optional, defaults to "USGS / Pacific Northwest Seismic Network (PNSN)"]
+#}
 
-<div class="widget-card emergency-earthquake-board-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1rem; box-sizing: border-box;">
+{% set quake_list = earthquake_events or quakes or earthquake_events_data %}
+{% set title = earthquake_title or "Recent Earthquakes" %}
+{% set badge_text = earthquake_badge or "72-Hour Tracking" %}
+{% set source_text = earthquake_source or "USGS / Pacific Northwest Seismic Network (PNSN)" %}
+
+{% if quake_list and quake_list.length > 0 %}
+<div class="widget-card emergency-board-card">
   
-  {# Header Row per edit: "72-Hour Tracking" (Cascadia Subduction Zone removed) #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
+  {# Header Row: Seismic Overline, Title & 72-Hour Status Badge #}
+  <div class="card-header-split emergency-board-header">
     <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
+      <span class="text-overline text-accent-alpine">
         SEISMIC ACTIVITY REPORTS
       </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
-        Recent Earthquakes
+      <h3 class="text-widget-title emergency-board-title">
+        {{ title }}
       </h3>
     </div>
-    <div style="font-size: 0.75rem; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0.2rem 0.65rem; border-radius: 999px;">
-      72-Hour Tracking
-    </div>
+
+    {% if badge_text %}
+      <div class="badge-status-emerald">
+        {{ badge_text }}
+      </div>
+    {% endif %}
   </div>
 
   {# Seismic Events Stack #}
-  <div style="display: flex; flex-direction: column; gap: 0.65rem;">
-    {% for q in quakes %}
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem; background: var(--color-surface-gray); border-radius: 8px;">
-        <div style="display: flex; align-items: center; gap: 0.85rem;">
-          {# Widened badge (52px x 42px) to prevent M[mag] glyph clipping on rounded corners #}
-          <div style="width: 52px; height: 42px; padding: 0 4px; border-radius: 8px; background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; box-sizing: border-box;">
-            <span style="font-size: 1rem; font-weight: 800; font-family: monospace; color: var(--color-secondary-default); line-height: 1;">M{{ q.mag }}</span>
-          </div>
-          <div>
-            <div style="font-size: 0.85rem; font-weight: 700; color: var(--color-primary-default);">
-              {{ q.loc }}
+  <div class="emergency-events-stack">
+    {% for q in quake_list %}
+      {% if q.mag and q.loc %}
+        <div class="emergency-event-row">
+          <div class="emergency-event-lead">
+            
+            {# Magnitude Metric Badge (52x42 squircle with tabular monospace numeral) #}
+            <div class="emergency-metric-badge" aria-label="Magnitude {{ q.mag }}">
+              <span class="emergency-metric-value text-accent-alpine">M{{ q.mag }}</span>
             </div>
-            <div class="text-body-secondary" style="font-size: 0.75rem;">
-              Depth: {{ q.depth }} • Felt: None
-            </div>
-          </div>
-        </div>
 
-        <div style="font-family: monospace; font-size: 0.75rem; color: #86868b; text-align: right;">
-          {{ q.time }}
+            {# Incident Metadata Stack #}
+            <div class="emergency-event-content">
+              <div class="emergency-event-title">
+                {{ q.loc }}
+              </div>
+              <div class="text-body-secondary emergency-event-meta">
+                {% if q.depth %}Depth: {{ q.depth }}{% endif %}
+                {% if q.depth and q.felt %} • {% endif %}
+                {% if q.felt %}Felt: {{ q.felt }}{% elif q.status %}Class: {{ q.status }}{% endif %}
+              </div>
+            </div>
+
+          </div>
+
+          {# Right-Aligned Relative Timestamp #}
+          {% if q.time %}
+            <time class="emergency-event-time text-body-secondary">
+              {{ q.time }}
+            </time>
+          {% endif %}
         </div>
-      </div>
+      {% endif %}
     {% endfor %}
   </div>
 
-  {# Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem; font-size: 0.7rem;" class="text-body-secondary">
-    <span>Data Source: USGS / Pacific Northwest Seismic Network (PNSN)</span>
+  {# Footer: Official PNSN / USGS Scientific Attribution #}
+  <div class="card-footer-strip text-body-secondary">
+    <span>Data Source: {{ source_text }}</span>
   </div>
 
 </div>
+{% endif %}

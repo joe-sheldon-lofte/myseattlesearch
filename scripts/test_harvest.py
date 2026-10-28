@@ -61,10 +61,10 @@ def main():
     print("      MYSEATTLESEARCH TEST HARVEST RUNNER         ")
     print("==================================================\n")
 
-    # Queue WA Covenants Ingestion Task
+    # Seed Entertainment Hub Data (TVmaze + Wikidata) into Cloudflare D1
     run_test_task(
-        "Ingest WA Restrictive Covenants into Cloudflare D1",
-        lambda: run_test_subscript("ingest_ccr_data.py")
+        "Seed Entertainment Hub Database (D1)",
+        lambda: run_test_subscript(os.path.join("utilities", "seed_entertainment_data.py"))
     )
 
     print("🎉 Test suite run complete!")

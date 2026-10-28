@@ -1,16 +1,28 @@
 <!-- File: _includes/components/widget/elections-status-banner.njk -->
-{% set is_active = election_cycle_active | default(true) %}
-{% set election_name = election_title | default("Nov 3 General Election") %}
-{% set next_date = election_next_date | default("November 3, 2026") %}
+{# 
+  COMPONENT: Civic Election Status Alert Banner (widget.elections.status.banner)
+  CONTRACT:
+    - election_cycle_active / election.active: Boolean [Required]
+    - election_name / election_title / election.ElectionName: String [Optional]
+    - election_next_date / next_date / election.ElectionDate: String [Optional]
+    - election_info_url / election.url: String [Optional, defaults to "#election-guide"]
+    - election_verify_url: String [Optional, defaults to "https://voter.votewa.gov"]
+#}
 
-<div class="widget-card election-status-banner-card" 
+{% set is_active = election_cycle_active if election_cycle_active is defined else (election.active if (election and election.active is defined) else false) %}
+{% set name = election_name or election_title or (election.ElectionName if election else '') %}
+{% set target_date = election_next_date or next_date or (election.ElectionDate if election else '') %}
+{% set guide_url = election_info_url or (election.url if election else '') or "#election-guide" %}
+{% set verify_url = election_verify_url or "https://voter.votewa.gov" %}
+
+{% if name or target_date %}
+<div class="widget-card election-status-banner-card {% if is_active %}banner-state-active{% else %}banner-state-inactive{% endif %}"
      role="region" 
-     aria-label="Civic Election Cycle Status"
-     style="width: 100%; border-radius: var(--border-radius-squircle); padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; {% if is_active %}background: var(--color-secondary-default); color: #FFFFFF; border: 1px solid var(--color-secondary-default);{% else %}background: var(--color-surface-gray); color: var(--color-primary-default); border: 1px solid var(--color-border-light);{% endif %} transition: all 0.2s ease;">
+     aria-label="Civic Election Cycle Status">
   
-  <div style="display: flex; align-items: center; gap: 0.85rem;">
-    {# Ballot Box SVG Icon #}
-    <div style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; {% if is_active %}background: rgba(255, 255, 255, 0.18); color: #FFFFFF;{% else %}background: var(--color-background-universal); border: 1px solid var(--color-border-light); color: var(--color-secondary-default);{% endif %}" aria-hidden="true">
+  <div class="election-banner-lead">
+    {# Ballot Box SVG Icon Badge #}
+    <div class="election-banner-icon-badge" aria-hidden="true">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M18 12h.01M6 12h.01M12 12h.01M12 2v4M4.93 4.93l2.83 2.83M19.07 4.93l-2.83 2.83"/>
         <rect x="2" y="8" width="20" height="14" rx="2"/>
@@ -18,44 +30,48 @@
       </svg>
     </div>
 
-    <div>
-      <span class="text-overline" style="font-size: 0.65rem; letter-spacing: 0.08em; {% if is_active %}color: rgba(255, 255, 255, 0.8);{% else %}color: #86868b;{% endif %}">
+    {# Headline and Timeline Stack #}
+    <div class="election-banner-content">
+      <span class="text-overline election-banner-overline">
         WASHINGTON STATE VOTER GUIDE
       </span>
-      <h3 style="font-size: 1.1rem; font-weight: 800; margin: 0.15rem 0 0 0; line-height: 1.2;">
+      <h3 class="election-banner-title">
         {% if is_active %}
-          Upcoming Election: {{ election_name }}
+          Upcoming Election: {{ name }}
         {% else %}
           No Active Election Cycle
         {% endif %}
       </h3>
-      <div style="font-size: 0.75rem; margin-top: 0.15rem; {% if is_active %}color: rgba(255, 255, 255, 0.9);{% else %}color: #86868b;{% endif %}">
+      <div class="election-banner-subtext">
         {% if is_active %}
-          Ballot drop boxes close strictly at 8:00 PM on Election Night ({{ next_date }}).
+          Ballot drop boxes close strictly at 8:00 PM on Election Night ({{ target_date }}).
         {% else %}
-          Next scheduled election: <strong>{{ next_date }}</strong>
+          Next scheduled election: <span class="election-banner-highlight">{{ target_date }}</span>
         {% endif %}
       </div>
     </div>
   </div>
 
-  {# Action Button #}
-  <div>
+  {# Action Button Trigger #}
+  <div class="election-banner-action">
     {% if is_active %}
-      <a href="{{ election_info_url | default('#election-guide') }}" 
-         style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 1rem; background: #FFFFFF; color: var(--color-secondary-default); border-radius: 999px; font-size: 0.8rem; font-weight: 700; text-decoration: none; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+      <a href="{{ guide_url }}" class="btn-banner-action-active">
         <span>View Voter Guide</span>
-        <span aria-hidden="true">→</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
       </a>
     {% else %}
-      <a href="https://voter.votewa.gov" 
-         target="_blank" 
-         rel="noopener noreferrer" 
-         style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 1rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); color: var(--color-primary-default); border-radius: 999px; font-size: 0.8rem; font-weight: 700; text-decoration: none;">
+      <a href="{{ verify_url }}" target="_blank" rel="noopener noreferrer" class="btn-banner-action-inactive">
         <span>Verify Registration (VoteWA)</span>
-        <span aria-hidden="true">↗</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="7" y1="17" x2="17" y2="7"></line>
+          <polyline points="7 7 17 7 17 17"></polyline>
+        </svg>
       </a>
     {% endif %}
   </div>
 
 </div>
+{% endif %}
