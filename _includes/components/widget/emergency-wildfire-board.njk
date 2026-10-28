@@ -1,59 +1,105 @@
 <!-- File: _includes/components/widget/emergency-wildfire-board.njk -->
-{% set city = wildfire_city_name | default("Washington State & Cascades") %}
-{% set aqi_current = wildfire_aqi | default(24) %}
-{% set fires = wildfire_incidents_data | default([
-  { name: "Pioneer Fire (Chelan Complex)", acres: "38,400 Acres", containment: "84%", distance: "88 Miles E", smoke: "Minimal Drift" },
-  { name: "Easy Fire (North Cascades SR 20)", acres: "2,130 Acres", containment: "92%", distance: "74 Miles NE", smoke: "No Local Impact" }
-]) %}
+{# 
+  COMPONENT: Regional Wildfire Tracker & Air Quality Monitor (widget.emergency.wildfire.board)
+  CONTRACT:
+    - wildfire_incidents_data / fires / wildfire_incidents: Array of Objects [Required]
+      Each wildfire incident object expects:
+      - f.name: String [Required, e.g. "Pioneer Fire (Chelan Complex)"]
+      - f.acres: String [Optional, e.g. "38,400 Acres"]
+      - f.containment: String [Optional, e.g. "84%"]
+      - f.distance: String [Optional, e.g. "88 Miles E"]
+      - f.smoke: String [Optional, e.g. "Minimal Drift"]
+    - wildfire_aqi / aqi_current: Number [Optional, e.g. 24]
+    - wildfire_board_title: String [Optional, defaults to "Wildfire Tracker"]
+    - wildfire_board_overline: String [Optional, defaults to "REGIONAL FIRE REPORT"]
+    - wildfire_source_text: String [Optional, defaults to "Source: Washington State Emergency Operations Center & NWCC / InciWeb Interagency Data"]
+#}
 
-<div class="widget-card emergency-wildfire-board-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1rem; box-sizing: border-box;">
+{% set fire_list = wildfire_incidents_data or fires or wildfire_incidents %}
+{% set aqi_val = wildfire_aqi if wildfire_aqi is defined else aqi_current %}
+{% set board_title = wildfire_board_title or "Wildfire Tracker" %}
+{% set board_overline = wildfire_board_overline or "REGIONAL FIRE REPORT" %}
+{% set source_text = wildfire_source_text or "Source: Washington State Emergency Operations Center & NWCC / InciWeb Interagency Data" %}
+
+{% if fire_list and fire_list.length > 0 %}
+<div class="widget-card emergency-board-card">
   
-  {# Header Row (Satellite Sensor Verification removed per edit) #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
+  {# Header Row: Fire Report Overline, Title & Dynamic AQI Badge #}
+  <div class="card-header-split emergency-board-header">
     <div>
-      <span class="text-overline" style="color: #D97706; font-size: 0.65rem;">
-        REGIONAL FIRE REPORT
+      <span class="text-overline text-accent-amber">
+        {{ board_overline }}
       </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
-        Wildfire Tracker
+      <h3 class="text-widget-title emergency-board-title">
+        {{ board_title }}
       </h3>
     </div>
-    <div style="font-size: 0.75rem; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0.2rem 0.65rem; border-radius: 999px;">
-      Current AQI: {{ aqi_current }} (Good)
-    </div>
+
+    {% if aqi_val is defined and aqi_val is not none %}
+      {% if aqi_val <= 50 %}
+        {% set aqi_class = "badge-aqi-emerald" %}
+        {% set aqi_label = "Good" %}
+      {% elif aqi_val <= 100 %}
+        {% set aqi_class = "badge-aqi-amber" %}
+        {% set aqi_label = "Moderate" %}
+      {% else %}
+        {% set aqi_class = "badge-aqi-crimson" %}
+        {% set aqi_label = "Unhealthy" %}
+      {% endif %}
+      <div class="{{ aqi_class }}">
+        Current AQI: {{ aqi_val }} ({{ aqi_label }})
+      </div>
+    {% endif %}
   </div>
 
-  {# Incident Rows #}
-  <div style="display: flex; flex-direction: column; gap: 0.65rem;">
-    {% for f in fires %}
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0.95rem; background: var(--color-surface-gray); border-radius: 10px;">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <div style="width: 36px; height: 36px; border-radius: 8px; background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            {% include "components/graphic/map-wildfire.njk" ignore missing %}
-          </div>
-          <div>
-            <div style="font-size: 0.9rem; font-weight: 800; color: var(--color-primary-default);">
-              {{ f.name }}
+  {# Incident Rows Stack #}
+  <div class="emergency-events-stack">
+    {% for f in fire_list %}
+      {% if f.name %}
+        <div class="wildfire-incident-row">
+          
+          {# Left: Fire Identity & Graphic Well #}
+          <div class="wildfire-lead">
+            <div class="wildfire-icon-frame" aria-hidden="true">
+              {% include "components/graphic/map-wildfire.njk" ignore missing %}
             </div>
-            <div class="text-body-secondary" style="font-size: 0.75rem;">
-              {{ f.acres }} • {{ f.containment }} Contained
+            <div class="wildfire-identity">
+              <div class="wildfire-name">
+                {{ f.name }}
+              </div>
+              {% if f.acres or f.containment %}
+                <div class="text-body-secondary wildfire-subtext">
+                  {% if f.acres %}{{ f.acres }}{% endif %}
+                  {% if f.acres and f.containment %} • {% endif %}
+                  {% if f.containment %}{{ f.containment }} Contained{% endif %}
+                </div>
+              {% endif %}
             </div>
           </div>
-        </div>
 
-        <div style="text-align: right;">
-          <div style="font-family: monospace; font-size: 0.8rem; font-weight: 700; color: var(--color-primary-default);">
-            {{ f.distance }}
+          {# Right: Distance & Smoke Drift Telemetry #}
+          <div class="wildfire-metric-block">
+            {% if f.distance %}
+              <div class="wildfire-distance">
+                {{ f.distance }}
+              </div>
+            {% endif %}
+            {% if f.smoke %}
+              <div class="wildfire-smoke-tag text-status-emerald">
+                {{ f.smoke }}
+              </div>
+            {% endif %}
           </div>
-          <div style="font-size: 0.7rem; color: #10B981; font-weight: 600;">{{ f.smoke }}</div>
+
         </div>
-      </div>
+      {% endif %}
     {% endfor %}
   </div>
 
-  {# Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem; font-size: 0.7rem;" class="text-body-secondary">
-    <span>Source: Washington State Emergency Operations Center & NWCC / InciWeb Interagency Data</span>
+  {# Footer: Interagency Attribution #}
+  <div class="card-footer-strip text-body-secondary">
+    <span>{{ source_text }}</span>
   </div>
 
 </div>
+{% endif %}

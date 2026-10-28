@@ -1,57 +1,84 @@
 <!-- File: _includes/components/widget/emergency-power-outage-board.njk -->
-{% set city = outage_city_name | default("Snohomish & King Counties") %}
-{% set utilities = outage_utilities_data | default([
-  { name: "Snohomish County PUD", customers_affected: 42, active_outages: 3, status: "Normal Operations", restored_pct: "99.98%" },
-  { name: "Puget Sound Energy (PSE)", customers_affected: 118, active_outages: 6, status: "Normal Operations", restored_pct: "99.96%" },
-  { name: "Seattle City Light", customers_affected: 15, active_outages: 1, status: "Normal Operations", restored_pct: "99.99%" }
-]) %}
+{# 
+  COMPONENT: Electrical Power Outage Monitor (widget.emergency.power.outage.board)
+  CONTRACT:
+    - outage_utilities_data / utilities / power_outage_data: Array of Objects [Required]
+      Each utility provider object expects:
+      - u.name: String [Required, e.g. "Snohomish County PUD"]
+      - u.customers_affected: Number [Required, e.g. 42]
+      - u.active_outages: Number [Optional, e.g. 3]
+      - u.status: String [Optional, e.g. "Normal Operations"]
+      - u.restored_pct: String [Optional, e.g. "99.98%"]
+    - outage_board_title: String [Optional, defaults to "Electrical Power Outage Monitor"]
+    - outage_board_overline: String [Optional, defaults to "UTILITY STATUS"]
+    - outage_source_text: String [Optional, defaults to "Source: Washington State Emergency Operations Center"]
+    - outage_sync_interval: String [Optional, defaults to "Updated Every 15 min"]
+#}
 
-<div class="widget-card emergency-power-outage-board-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1rem; box-sizing: border-box;">
+{% set utility_list = outage_utilities_data or utilities or power_outage_data %}
+{% set board_title = outage_board_title or "Electrical Power Outage Monitor" %}
+{% set board_overline = outage_board_overline or "UTILITY STATUS" %}
+{% set source_text = outage_source_text or "Source: Washington State Emergency Operations Center" %}
+{% set sync_interval = outage_sync_interval or "Updated Every 15 min" %}
+
+{% if utility_list and utility_list.length > 0 %}
+<div class="widget-card emergency-board-card">
   
-  {# Header Row per edit: "UTILITY STATUS" #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
+  {# Header Row: Utility Status Overline & Title #}
+  <div class="card-header-clean emergency-board-header">
     <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        UTILITY STATUS
+      <span class="text-overline text-accent-alpine">
+        {{ board_overline }}
       </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
-        Electrical Power Outage Monitor
+      <h3 class="text-widget-title emergency-board-title">
+        {{ board_title }}
       </h3>
     </div>
   </div>
 
-  {# Utility Grid Matrix including Seattle City Light per edit #}
-  <div style="display: flex; flex-direction: column; gap: 0.65rem;">
-    {% for u in utilities %}
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0.95rem; background: var(--color-surface-gray); border-radius: 10px;">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <div style="width: 36px; height: 36px; border-radius: 8px; background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            {% include "components/graphic/map-power-outage.njk" ignore missing %}
-          </div>
-          <div>
-            <div style="font-size: 0.9rem; font-weight: 800; color: var(--color-primary-default);">
-              {{ u.name }}
+  {# Utility Grid Matrix #}
+  <div class="emergency-events-stack">
+    {% for u in utility_list %}
+      {% if u.name and u.customers_affected is defined %}
+        <div class="power-outage-row">
+          
+          {# Left: Provider Identity & Graphic Frame #}
+          <div class="power-outage-lead">
+            <div class="power-outage-icon-frame" aria-hidden="true">
+              {% include "components/graphic/map-power-outage.njk" ignore missing %}
             </div>
-            <div class="text-body-secondary" style="font-size: 0.75rem;">
-              {{ u.active_outages }} Active Incidents
+            <div class="power-outage-identity">
+              <div class="power-outage-name">
+                {{ u.name }}
+              </div>
+              {% if u.active_outages is defined %}
+                <div class="text-body-secondary power-outage-subtext">
+                  {{ u.active_outages }} Active Incidents
+                </div>
+              {% endif %}
             </div>
           </div>
-        </div>
 
-        <div style="text-align: right;">
-          <div class="text-data-huge" style="font-size: 1.15rem; font-family: monospace; font-weight: 800; color: {% if u.customers_affected > 500 %}var(--color-tertiary-default){% else %}var(--color-primary-default){% endif %};">
-            {{ u.customers_affected }}
+          {# Right: Customer Impact Metric with Crimson Alert Switch #}
+          <div class="power-outage-metric-block">
+            <div class="power-outage-number {% if u.customers_affected > 500 %}text-tier-crimson{% else %}text-primary-charcoal{% endif %}">
+              {{ u.customers_affected }}
+            </div>
+            <div class="text-overline power-outage-caption">
+              Customers Without Power
+            </div>
           </div>
-          <div style="font-size: 0.65rem; color: #86868b; text-transform: uppercase;">Customers Without Power</div>
+
         </div>
-      </div>
+      {% endif %}
     {% endfor %}
   </div>
 
-  {# Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem; font-size: 0.7rem;" class="text-body-secondary">
-    <span>Source: Washington State Emergency Operations Center</span>
-    <span>Updated Every 15 min</span>
+  {# Footer: Attribution & Refresh Interval #}
+  <div class="card-footer-strip text-body-secondary">
+    <span>{{ source_text }}</span>
+    <span>{{ sync_interval }}</span>
   </div>
 
 </div>
+{% endif %}
