@@ -995,8 +995,3 @@ permalink: "/design-system/index.html"
 </main>
   {% endif %}
 {% endfor %}
-
-{# Global Footer Mounting (Dual-path fallback for _includes/components/ or _includes/) #}
-{% set globalFooter %}{% include "components/footer.njk" ignore missing %}{% endset %}
-{% if globalFooter | trim | length == 0 %}{% set globalFooter %}{% include "footer.njk" ignore missing %}{% endset %}{% endif %}
-{{ globalFooter | safe }}
