@@ -1,75 +1,99 @@
 <!-- File: _includes/components/widget/transit-tolling-matrix.njk -->
-{% set matrix_title = toll_matrix_title | default("Active Toll Rates") %}
-{% set matrix_overline = toll_matrix_overline | default("WSDOT GOOD TO GO! PRICING") %}
+{# 
+  COMPONENT: Regional Highway Toll Facility & Dynamic Congestion Matrix (widget.transit.tolling.matrix)
+  PURPOSE: Real-time WSDOT Good To Go! rates across Puget Sound bridges, tunnels, and express lanes.
+  CONTRACT:
+    - toll_matrix_routes / toll_routes / wsdot_tolls: Array of Objects [Required]
+      Each route expects:
+      - r.name: String [Required, e.g. "SR 520 Floating Bridge"]
+      - r.current: String [Required, e.g. "$4.50"]
+      - r.offpeak: String [Optional, e.g. "$1.40"]
+      - r.peak: String [Optional, e.g. "$4.50"]
+      - r.status: String [Optional, e.g. "Active Peak", "Dynamic Rate", "Flat Rate"]
+    - toll_matrix_title / matrix_title: String [Optional, defaults to "Active Toll Rates"]
+    - toll_matrix_overline / matrix_overline: String [Optional, defaults to "WSDOT GOOD TO GO! PRICING"]
+    - toll_source_label: String [Optional, defaults to "Source: WSDOT Toll Division"]
+    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+#}
 
-{% set toll_routes = [
-  { name: "SR 520 Floating Bridge", peak: "$4.50", offpeak: "$1.40", current: "$4.50", status: "Active Peak" },
-  { name: "I-405 Express Toll Lanes (Lynnwood ⇄ Bellevue)", peak: "$15.00", offpeak: "$1.50", current: "$7.25", status: "Dynamic Rate" },
-  { name: "SR 99 Downtown Seattle Tunnel", peak: "$2.60", offpeak: "$1.20", current: "$2.60", status: "Active Peak" },
-  { name: "SR 167 High Occupancy Toll (HOT) Lanes", peak: "$15.00", offpeak: "$1.50", current: "$5.50", status: "Dynamic Rate" },
-  { name: "Tacoma Narrows Bridge (EB)", peak: "$5.50", offpeak: "$5.50", current: "$5.50", status: "Flat Rate" }
-] %}
+{% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
+{% set routes = toll_matrix_routes or toll_routes or wsdot_tolls %}
+{% set card_title = toll_matrix_title or matrix_title or "Active Toll Rates" %}
+{% set card_overline = toll_matrix_overline or matrix_overline or "WSDOT GOOD TO GO! PRICING" %}
+{% set source_text = toll_source_label or "Source: WSDOT Toll Division" %}
 
-<div class="widget-card transit-tolling-matrix-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
+{% if routes and routes.length > 0 %}
+<section class="widget-card transit-tolling-matrix-card" aria-label="{{ card_title }} for {{ active_neighborhood | default('Puget Sound Region') }}">
   
   {# Header Row #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
-    <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        {{ matrix_overline }}
+  <header class="toll-matrix-header">
+    <div class="toll-matrix-title-stack">
+      <span class="text-overline text-accent-alpine">
+        {{ card_overline }}
       </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
-        {{ matrix_title }}
+      <h3 class="text-widget-title toll-matrix-title">
+        {{ card_title }}
       </h3>
     </div>
-    <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; font-weight: 700; color: #10B981;">
-      <span style="width: 8px; height: 8px; border-radius: 50%; background: #10B981; display: inline-block;"></span>
+    <div class="toll-live-indicator">
+      <span class="toll-live-pulse-dot" aria-hidden="true"></span>
       <span>Live Rates</span>
     </div>
-  </div>
+  </header>
 
   {# Highway Toll Sign Style Matrix Table #}
-  <div style="overflow-x: auto;">
-    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+  <div class="toll-matrix-table-wrap">
+    <table class="toll-matrix-table">
       <thead>
-        <tr style="border-bottom: 2px solid var(--color-border-light); color: #86868b; font-size: 0.7rem;">
-          <th style="padding: 0.65rem 0.75rem;">CORRIDOR / FACILITY</th>
-          <th style="padding: 0.65rem 0.75rem; text-align: right;">CURRENT RATE</th>
-          <th style="padding: 0.65rem 0.75rem; text-align: right;">OFF-PEAK</th>
-          <th style="padding: 0.65rem 0.75rem; text-align: right;">PEAK MAX</th>
-          <th style="padding: 0.65rem 0.75rem; text-align: center;">STATUS</th>
+        <tr>
+          <th scope="col">CORRIDOR / FACILITY</th>
+          <th scope="col" style="text-align: right;">CURRENT RATE</th>
+          <th scope="col" style="text-align: right;">OFF-PEAK</th>
+          <th scope="col" style="text-align: right;">PEAK MAX</th>
+          <th scope="col" style="text-align: center;">STATUS</th>
         </tr>
       </thead>
       <tbody>
-        {% for r in toll_routes %}
-          <tr style="border-bottom: 1px solid var(--color-border-light);">
-            <td style="padding: 0.75rem; font-weight: 700; color: var(--color-primary-default);">
-              {{ r.name }}
-            </td>
-            <td style="padding: 0.75rem; text-align: right; font-family: monospace; font-weight: 800; font-size: 1rem; color: var(--color-secondary-default);">
-              {{ r.current }}
-            </td>
-            <td style="padding: 0.75rem; text-align: right; font-family: monospace; color: #86868b;">
-              {{ r.offpeak }}
-            </td>
-            <td style="padding: 0.75rem; text-align: right; font-family: monospace; color: var(--color-tertiary-default); font-weight: 700;">
-              {{ r.peak }}
-            </td>
-            <td style="padding: 0.75rem; text-align: center;">
-              <span style="font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 999px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); color: var(--color-primary-default);">
-                {{ r.status }}
-              </span>
-            </td>
-          </tr>
+        {% for r in routes %}
+          {% if r.name and r.current %}
+            {% set status_text = r.status | default("Standard") %}
+            {% set status_class = "" %}
+            {% if "Peak" in status_text %}
+              {% set status_class = "status-peak" %}
+            {% elif "Dynamic" in status_text %}
+              {% set status_class = "status-dynamic" %}
+            {% endif %}
+
+            <tr class="toll-matrix-row">
+              <th scope="row" class="cell-toll-corridor">
+                {{ r.name }}
+              </th>
+              <td class="cell-toll-current">
+                {{ r.current }}
+              </td>
+              <td class="cell-toll-offpeak">
+                {{ r.offpeak | default("—") }}
+              </td>
+              <td class="cell-toll-peak">
+                {{ r.peak | default("—") }}
+              </td>
+              <td class="cell-toll-status">
+                <span class="toll-status-pill {{ status_class }}">
+                  {{ status_text }}
+                </span>
+              </td>
+            </tr>
+          {% endif %}
         {% endfor %}
       </tbody>
     </table>
   </div>
 
-  {# Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem;" class="text-body-secondary">
+  {# Footer Disclosure Strip #}
+  <footer class="toll-matrix-footer">
     <span>Requires Good To Go! Pass for lowest published toll.</span>
-    <span>Source: WSDOT Toll Division</span>
-  </div>
+    <span>{{ source_text }}</span>
+  </footer>
 
-</div>
+</section>
+{% endif %}

@@ -1,66 +1,109 @@
 <!-- File: _includes/components/widget/weather-climate-comfort-index-full.njk -->
-<div class="widget-card climate-comfort-full-card" style="padding: 1.75rem; width: 100%;">
+{# 
+  COMPONENT: Comprehensive Climate Profile & Environmental Matrix (widget.weather.climate.comfort.index.full)
+  PURPOSE: Full environmental breakdown of summer highs, winter lows, rainfall, and sunny days.
+  CONTRACT:
+    - climate_comfort_score / full_score: Number [Optional, 0-100]
+    - climate_station_id / station_id: String [Optional, e.g. "KPAE (Paine Field Coastal Station)"]
+    - climate_full_summary / summary_narrative: String [Optional]
+    - climate_summer_high / summer_high: String [Optional, e.g. "73°F"]
+    - climate_winter_low / winter_low: String [Optional, e.g. "36°F"]
+    - climate_rainfall / annual_rain: String [Optional, e.g. "38.2 in"]
+    - climate_sunny_days / sunny_days: String or Number [Optional, e.g. "158"]
+    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+#}
+
+{% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
+{% set score_val = climate_comfort_score if climate_comfort_score is defined else full_score %}
+{% set station_label = climate_station_id or station_id %}
+{% set narrative = climate_full_summary or summary_narrative %}
+{% set summer_val = climate_summer_high or summer_high %}
+{% set winter_val = climate_winter_low or winter_low %}
+{% set rain_val = climate_rainfall or annual_rain %}
+{% set sun_val = climate_sunny_days if climate_sunny_days is defined else sunny_days %}
+
+{% if score_val or summer_val or winter_val or rain_val or sun_val %}
+<section class="widget-card climate-comfort-full-card" aria-label="Climate Profile for {{ active_neighborhood | default('This Neighborhood') }}">
   
-  {# Header #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
-    <div>
-      <h3 class="text-widget-title" style="margin-top: 0.25rem;">Climate Profile & Comfort Index</h3>
-      <div class="text-body-secondary" style="font-size: 0.8rem; margin-top: 0.2rem;">
-        Station: {{ climate_station_id | default("KPAE (Paine Field Coastal Station)") }}
-      </div>
+  {# Header Row #}
+  <header class="climate-full-header-row">
+    <div class="climate-title-stack">
+      <span class="text-overline text-accent-alpine">
+        ENVIRONMENTAL INTELLIGENCE
+      </span>
+      <h3 class="text-widget-title climate-card-title">
+        Climate Profile &amp; Comfort Index
+      </h3>
+      {% if station_label %}
+        <div class="climate-station-caption">
+          Station: {{ station_label }}
+        </div>
+      {% endif %}
     </div>
     
-    {% set full_score = climate_comfort_score | default(78) %}
-    <div style="display: flex; align-items: center; gap: 0.75rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 999px; padding: 0.35rem 0.85rem;">
-      <span class="text-overline" style="font-size: 0.65rem; color: #86868b;">Climate Comfort Score</span>
-      <span class="text-data-huge" style="font-size: 1.35rem; color: var(--color-secondary-default);">{{ full_score }}<span style="font-size: 0.8rem; color: #86868b;">/100</span></span>
-    </div>
-  </div>
+    {% if score_val %}
+      <div class="climate-score-pill-badge" aria-label="Climate Comfort Score: {{ score_val }} out of 100">
+        <span class="text-overline climate-score-pill-label">Score</span>
+        <span class="climate-score-pill-val">{{ score_val }}<span class="climate-score-pill-max">/100</span></span>
+      </div>
+    {% endif %}
+  </header>
 
-  {# Dynamic 1-Sentence Summary #}
-  <p class="text-body" style="line-height: 1.55; margin-bottom: 1.5rem; font-size: 0.95rem;">
-    {{ climate_full_summary | default("Edmonds and the South Snohomish coastal basin benefit from Puget Sound thermal regulation, generating cooler summer afternoons and preventing severe winter deep freezes.") }}
-  </p>
+  {# Dynamic 1-Sentence Narrative #}
+  {% if narrative %}
+    <p class="climate-full-narrative">
+      {{ narrative }}
+    </p>
+  {% endif %}
 
   {# 4-Metric Environmental Grid #}
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem;">
+  <div class="climate-metrics-grid">
     
     {# Metric 1: Summer High #}
-    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1rem; text-align: center;">
-      <div class="text-overline" style="font-size: 0.65rem; color: #86868b;">Summer High</div>
-      <div class="text-data-huge" style="font-size: 1.5rem; margin-top: 0.25rem; color: var(--color-primary-default);">
-        {{ climate_summer_high | default("73°F") }}
+    {% if summer_val %}
+      <div class="climate-metric-well">
+        <span class="text-overline climate-metric-overline">Summer High</span>
+        <div class="climate-metric-value">
+          {{ summer_val }}
+        </div>
+        <div class="climate-metric-subtext">Avg Jul / Aug</div>
       </div>
-      <div class="text-body-secondary" style="font-size: 0.7rem; margin-top: 0.2rem;">Avg Jul / Aug</div>
-    </div>
+    {% endif %}
 
     {# Metric 2: Winter Low #}
-    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1rem; text-align: center;">
-      <div class="text-overline" style="font-size: 0.65rem; color: #86868b;">Winter Low</div>
-      <div class="text-data-huge" style="font-size: 1.5rem; margin-top: 0.25rem; color: var(--color-secondary-default);">
-        {{ climate_winter_low | default("36°F") }}
+    {% if winter_val %}
+      <div class="climate-metric-well">
+        <span class="text-overline climate-metric-overline">Winter Low</span>
+        <div class="climate-metric-value val-winter">
+          {{ winter_val }}
+        </div>
+        <div class="climate-metric-subtext">Avg Dec / Jan</div>
       </div>
-      <div class="text-body-secondary" style="font-size: 0.7rem; margin-top: 0.2rem;">Avg Dec / Jan</div>
-    </div>
+    {% endif %}
 
     {# Metric 3: Annual Rainfall #}
-    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1rem; text-align: center;">
-      <div class="text-overline" style="font-size: 0.65rem; color: #86868b;">Annual Rain</div>
-      <div class="text-data-huge" style="font-size: 1.5rem; margin-top: 0.25rem; color: var(--color-primary-default);">
-        {{ climate_rainfall | default("38.2 in") }}
+    {% if rain_val %}
+      <div class="climate-metric-well">
+        <span class="text-overline climate-metric-overline">Annual Rain</span>
+        <div class="climate-metric-value">
+          {{ rain_val }}
+        </div>
+        <div class="climate-metric-subtext">Precip Total</div>
       </div>
-      <div class="text-body-secondary" style="font-size: 0.7rem; margin-top: 0.2rem;">152 Precip Days</div>
-    </div>
+    {% endif %}
 
     {# Metric 4: Sunny Days #}
-    <div style="background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1rem; text-align: center;">
-      <div class="text-overline" style="font-size: 0.65rem; color: #86868b;">Sunny / Fair</div>
-      <div class="text-data-huge" style="font-size: 1.5rem; margin-top: 0.25rem; color: #F59E0B;">
-        {{ climate_sunny_days | default("158") }}
+    {% if sun_val %}
+      <div class="climate-metric-well">
+        <span class="text-overline climate-metric-overline">Sunny / Fair</span>
+        <div class="climate-metric-value val-sun">
+          {{ sun_val }}
+        </div>
+        <div class="climate-metric-subtext">Clear Sun Days</div>
       </div>
-      <div class="text-body-secondary" style="font-size: 0.7rem; margin-top: 0.2rem;">Clear Sun Days</div>
-    </div>
+    {% endif %}
 
   </div>
 
-</div>
+</section>
+{% endif %}

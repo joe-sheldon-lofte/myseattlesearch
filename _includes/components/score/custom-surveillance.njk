@@ -1,87 +1,34 @@
 <!-- File: _includes/components/score/custom-surveillance.njk -->
-{% set val = score_surv_val | default(54) %}
-{% set police_agency = police_department or city_police_agency or city['Police Department'] or city.police_department or city.PoliceDept | default("Edmonds Police Department") %}
+{# 
+  COMPONENT: Municipal Surveillance Density Profile (score.custom.surveillance)
+  PURPOSE: ALPR, traffic cameras, and CCTV sensor density normalized against population.
+  MODE: Inverse (Lower density is optimal).
+#}
 
-{# Surveillance Device Count Placeholders #}
-{% set alpr_count = surv_alpr_count | default(14) %}
-{% set traffic_cam_count = surv_traffic_cam_count | default(8) %}
-{% set cctv_count = surv_cctv_count | default(22) %}
-{% set platform_count = surv_platform_count | default(3) %}
+{% set val = score_surv_val if score_surv_val is defined else (scores.surveillance if scores else null) %}
+{% set agency = police_department or (neighborhood.police_agency if neighborhood else null) or "Regional Law Enforcement" %}
 
-{% set score_color = "#10B981" %}
-{% set score_label = "Minimal Monitoring" %}
-{% if val >= 80 %}
-  {% set score_color = "var(--color-tertiary-default)" %}
-  {% set score_label = "High Density" %}
-{% elif val >= 40 %}
-  {% set score_color = "#D97706" %}
-  {% set score_label = "Moderate Density" %}
+{% if val is defined and val is not none %}
+  {% set tier_badge = "score-tier-emerald" if val < 40 else ("score-tier-amber" if val < 80 else "score-tier-crimson") %}
+  {% set tier_text = "text-tier-emerald" if val < 40 else ("text-tier-amber" if val < 80 else "text-tier-crimson") %}
+  {% set tier_label = "Minimal Monitoring" if val < 40 else ("Moderate Density" if val < 80 else "High Density") %}
+
+  {% set score = {
+    id: "surveillance",
+    title: "Surveillance Score",
+    overline: "POLICE AGENCY: " ~ (agency | upper),
+    value: val,
+    color_scale: "inverse",
+    label: tier_label,
+    tier_badge: tier_badge,
+    tier_text: tier_text,
+    detail: score_surv_detail or "Automated license plate readers (ALPR), traffic cameras, and public CCTV density.",
+    source: "Deflocked Open Surveillance Registry",
+    scale: "Scale 0–100",
+    methodology: "Quantifies municipal and police surveillance infrastructure (ALPR cameras, intersection traffic feeds, CCTV nodes) normalized against neighborhood population density.",
+    formula: "Formula: MIN(100, ROUND(24.16 * LN(device_density + 1) + 5.82, 0))",
+    scale_notes: "<40: Minimal Monitoring • 40–79: Moderate Density • 80+: High Density"
+  } %}
+
+  {% include "components/widget/custom-score.njk" %}
 {% endif %}
-
-<div class="widget-card score-card score-surveillance-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; box-sizing: border-box;">
-  
-  {# Header Row #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
-    <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        POLICE AGENCY: {{ police_agency | upper }}
-      </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.1rem;">
-        Surveillance Score
-      </h3>
-    </div>
-    
-    <button type="button" 
-            class="btn-info-trigger" 
-            aria-label="View Surveillance Score methodology" 
-            onclick="document.getElementById('dialog-score-surv').showModal();"
-            style="width: 28px; height: 28px; border-radius: 50%; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; cursor: pointer; color: #86868b;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-    </button>
-  </div>
-
-  {# Center Score Display: Squircle Badge #}
-  <div style="display: flex; align-items: center; gap: 1rem; margin: 1rem 0;">
-    <div style="width: 58px; height: 58px; border-radius: var(--border-radius-squircle); background: {{ score_color }}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
-      <span class="text-data-huge" style="font-size: 1.75rem; color: #FFFFFF; line-height: 1; font-weight: 800;">
-        {{ val }}
-      </span>
-    </div>
-
-    <div>
-      <div style="font-size: 0.95rem; font-weight: 800; color: {{ score_color }};">
-        {{ score_label }}
-      </div>
-      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
-        {{ alpr_count }} ALPR Cameras • {{ traffic_cam_count }} Traffic Cams • {{ cctv_count }} CCTV • {{ platform_count }} Data Platforms
-      </div>
-    </div>
-  </div>
-
-  {# Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem;" class="text-body-secondary">
-    <span>Data Source: Deflocked</span>
-    <span style="font-family: monospace; font-weight: 600;">Scale 0–100</span>
-  </div>
-
-  {# Methodology Modal Dialog #}
-  <dialog id="dialog-score-surv" class="info-dialog" style="padding: 1.5rem; border-radius: var(--border-radius-squircle); border: 1px solid var(--color-border-light); max-width: 440px; background: var(--color-background-universal); box-shadow: 0 20px 48px rgba(0,0,0,0.2);">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-      <div>
-        <span class="text-overline" style="color: var(--color-secondary-default);">METHODOLOGY</span>
-        <h4 class="text-widget-title" style="margin: 0.15rem 0 0 0;">Municipal Surveillance Profile</h4>
-      </div>
-      <button type="button" onclick="document.getElementById('dialog-score-surv').close();" style="border: none; background: var(--color-surface-gray); border-radius: 50%; width: 28px; height: 28px; cursor: pointer;">✕</button>
-    </div>
-    <p class="text-body-secondary" style="font-size: 0.85rem; line-height: 1.5; margin: 0 0 0.75rem 0;">
-      Quantifies local government surveillance density across automated license plate readers (ALPR), traffic cameras, CCTV networks, and predictive policing data systems normalized against population density.
-    </p>
-    <div style="background: var(--color-surface-gray); padding: 0.65rem; border-radius: 8px; font-size: 0.75rem; font-family: monospace;">
-      Formula: MIN(100, ROUND(24.16 * LN(device_density + 1) + 5.82, 0))
-    </div>
-    <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #86868b;">
-      80+: High Density • 40–79: Moderate • &lt;40: Minimal
-    </div>
-  </dialog>
-
-</div>

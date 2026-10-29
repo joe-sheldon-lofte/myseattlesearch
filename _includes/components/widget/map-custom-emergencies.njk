@@ -1,0 +1,16 @@
+<!-- File: _includes/components/widget/map-custom-emergencies.njk -->
+{# 
+  COMPONENT: Emergency Infrastructure & Evacuation Corridor Map (widget.map.custom.emergencies)
+  PURPOSE: Specialized orchestrator mapping fire/police stations, hospitals, cooling centers, and disaster routes.
+  CONTRACT:
+    - map_lat / neighborhood.latitude / city.Latitude: Number [Required]
+    - map_lon / neighborhood.longitude / city.Longitude: Number [Required]
+    - map_neighborhood / neighborhood.name / city.City: String [Optional]
+    - map_title: String [Optional, overrides default title]
+#}
+
+{% set map_layer = "emergencies" %}
+{% set map_overline = "CIVIL DEFENSE & READINESS" %}
+{% set map_accent_color = "var(--pnw-red)" %}
+
+{% include "components/widget/map-custom.njk" %}

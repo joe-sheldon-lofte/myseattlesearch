@@ -1,56 +1,34 @@
 <!-- File: _includes/components/score/custom-citycommutefriction.njk -->
-{% set val = score_friction_val | default(12) %}
-{% set hub_name = score_friction_hub | default("Seattle Employment Hub") %}
-{% set score_color = "#10B981" %}
-{% set score_label = "Free Flowing" %}
-{% if val >= 41 %}
-  {% set score_color = "var(--color-tertiary-default)" %}
-  {% set score_label = "Heavy Delay" %}
-{% elif val >= 16 %}
-  {% set score_color = "#D97706" %}
-  {% set score_label = "Moderate Delay" %}
+{# 
+  COMPONENT: Corridor Commute Friction (score.custom.citycommutefriction)
+  PURPOSE: Peak-hour travel time penalty toward primary employment hubs (Seattle / Bellevue).
+  MODE: Inverse (Lower delay penalty is optimal).
+#}
+
+{% set val = score_friction_val if score_friction_val is defined else (scores.friction if scores else null) %}
+{% set hub_name = score_friction_hub or "Regional Employment Hub" %}
+
+{% if val is defined and val is not none %}
+  {% set tier_badge = "score-tier-emerald" if val < 16 else ("score-tier-amber" if val < 41 else "score-tier-crimson") %}
+  {% set tier_text = "text-tier-emerald" if val < 16 else ("text-tier-amber" if val < 41 else "text-tier-crimson") %}
+  {% set tier_label = "Free Flowing" if val < 16 else ("Moderate Delay" if val < 41 else "Heavy Delay") %}
+
+  {% set score = {
+    id: "friction",
+    title: hub_name ~ " Delay Penalty",
+    overline: "CORRIDOR COMMUTE FRICTION",
+    value: val,
+    color_scale: "inverse",
+    label: tier_label,
+    tier_badge: tier_badge,
+    tier_text: tier_text,
+    detail: score_friction_detail or "Peak corridor travel time delay compared against WSDOT uncongested baselines.",
+    source: "WSDOT Travel Times API",
+    scale: "Delay Penalty %",
+    methodology: "Calculates the percentage increase in travel time from this neighborhood to the central business hub during peak commute hours versus posted speed limit speeds.",
+    formula: "Formula: ROUND(((Peak_Time - Freeflow_Time) / Freeflow_Time) * 100, 0)",
+    scale_notes: "0–15%: Free Flowing • 16–40%: Moderate Delay • 41%+: Heavy Delay Penalty"
+  } %}
+
+  {% include "components/widget/custom-score.njk" %}
 {% endif %}
-
-<div class="widget-card score-card score-friction-card" style="padding: 1.25rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; min-height: 160px; box-sizing: border-box;">
-  
-  {# Header Row #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.5rem;">
-    <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        CORRIDOR COMMUTE FRICTION
-      </span>
-      <h4 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1rem;">
-        {{ hub_name }} Delay Penalty
-      </h4>
-    </div>
-    
-    <div style="font-size: 0.7rem; font-weight: 700; color: #86868b; background: var(--color-surface-gray); padding: 0.15rem 0.5rem; border-radius: 999px;">
-      Corridor Score
-    </div>
-  </div>
-
-  {# Center Score Display: Squircle Badge #}
-  <div style="display: flex; align-items: center; gap: 0.85rem; margin: 0.75rem 0;">
-    <div style="width: 48px; height: 48px; border-radius: var(--border-radius-squircle); background: {{ score_color }}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
-      <span class="text-data-huge" style="font-size: 1.4rem; color: #FFFFFF; line-height: 1; font-weight: 800;">
-        +{{ val }}%
-      </span>
-    </div>
-
-    <div>
-      <div style="font-size: 0.9rem; font-weight: 800; color: {{ score_color }};">
-        {{ score_label }}
-      </div>
-      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.1rem;">
-        {{ score_friction_detail | default("Live peak corridor drive time vs. WSDOT non-congested baseline.") }}
-      </div>
-    </div>
-  </div>
-
-  {# Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem; font-size: 0.7rem;" class="text-body-secondary">
-    <span>Data Source: WSDOT Travel Times API</span>
-    <span>Scale 0-100</span>
-  </div>
-
-</div>

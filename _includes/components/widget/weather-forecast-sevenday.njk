@@ -1,87 +1,124 @@
 <!-- File: _includes/components/widget/weather-forecast-sevenday.njk -->
-{% set demo_days = [
-  { day: "FRI", date: "OCT 23", condition: "Sunny", high: 72, low: 52, rain: "0%", uv: 4 },
-  { day: "SAT", date: "OCT 24", condition: "Partly Cloudy", high: 68, low: 50, rain: "15%", uv: 3 },
-  { day: "SUN", date: "OCT 25", condition: "Rain", high: 61, low: 48, rain: "80%", uv: 2 },
-  { day: "MON", date: "OCT 26", condition: "Showers", high: 59, low: 46, rain: "65%", uv: 2 },
-  { day: "TUE", date: "OCT 27", condition: "Partly Cloudy", high: 63, low: 49, rain: "20%", uv: 3 },
-  { day: "WED", date: "OCT 28", condition: "Sunny", high: 66, low: 51, rain: "5%", uv: 4 },
-  { day: "THU", date: "OCT 29", condition: "Sunny", high: 68, low: 52, rain: "0%", uv: 4 }
-] %}
+{# 
+  COMPONENT: 7-Day Regional Weather Outlook (widget.weather.forecast.sevenday)[cite: 29]
+  PURPOSE: Chronological 7-day meteorological forecast with conditions, diurnal spread, rain %, and UV[cite: 29].
+  CONTRACT:
+    - sevenday_forecast_data / forecast_days: Array of Objects [Required][cite: 29]
+      Each day object expects:
+      - d.day: String [Required, e.g. "FRI", "SAT"][cite: 29]
+      - d.date: String [Optional, e.g. "OCT 23"][cite: 29]
+      - d.condition: String [Required, e.g. "Sunny", "Rain", "Partly Cloudy"][cite: 29]
+      - d.high: Number or String [Required, e.g. 72][cite: 29]
+      - d.low: Number or String [Required, e.g. 52][cite: 29]
+      - d.rain: String [Optional, e.g. "15%"][cite: 29]
+      - d.uv: Number [Optional, e.g. 3][cite: 29]
+    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+    - forecast_attribution_label: String [Optional, defaults to "High-Resolution NOAA Model"][cite: 29]
+#}
 
-{% set forecast_days = sevenday_forecast_data | default(demo_days) %}
-{% set forecast_city = sevenday_forecast_city | default("Edmonds") %}
+{% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
+{% set forecast_days = sevenday_forecast_data or forecast_days %}[cite: 29]
+{% set attribution_text = forecast_attribution_label or "High-Resolution NOAA Model" %}[cite: 29]
 
-<div class="widget-card weather-forecast-sevenday-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
+{% if forecast_days and forecast_days.length > 0 %}[cite: 29]
+<section class="widget-card weather-forecast-sevenday-card" aria-label="7-Day Weather Forecast for {{ active_neighborhood | default('This Neighborhood') }}">[cite: 29]
   
   {# Header Row #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
-    <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        7-DAY REGIONAL OUTLOOK
+  <header class="forecast-header-row">[cite: 29]
+    <div class="forecast-title-stack">[cite: 29]
+      <span class="text-overline text-accent-alpine">
+        7-DAY REGIONAL OUTLOOK[cite: 29]
       </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
-        {{ forecast_city }} Weekly Forecast
+      <h3 class="text-widget-title forecast-card-title">[cite: 29]
+        {{ active_neighborhood | default('Regional') }} Weekly Forecast[cite: 29]
       </h3>
     </div>
-    <span class="text-body-secondary" style="font-size: 0.75rem;">
-      High-Resolution NOAA Model
+    <span class="forecast-model-attribution">[cite: 29]
+      {{ attribution_text }}[cite: 29]
     </span>
-  </div>
+  </header>
 
   {# 7 Chronological Day Cards #}
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.75rem; align-items: stretch;">
-    {% for d in forecast_days %}
-      <div style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1rem 0.65rem; display: flex; flex-direction: column; align-items: center; text-align: center; justify-content: space-between; gap: 0.65rem; box-sizing: border-box;">
+  <div class="forecast-days-stage">[cite: 29]
+    {% for d in forecast_days %}[cite: 29]
+      {% if d.day and d.high is defined %}[cite: 29]
+        {% set cond_lower = (d.condition | default('fair')) | lower %}[cite: 29]
         
-        <div>
-          <div style="font-size: 0.85rem; font-weight: 800; color: var(--color-primary-default); line-height: 1.1;">
-            {{ d.day }}
-          </div>
-          <div class="text-body-secondary" style="font-size: 0.65rem; margin-top: 0.15rem; font-family: monospace;">
-            {{ d.date }}
-          </div>
-        </div>
+        {# UV Tier Classification #}
+        {% set uv_val = d.uv | default(0) %}[cite: 29]
+        {% set uv_class = "uv-low" %}
+        {% if uv_val > 5 %}[cite: 29]
+          {% set uv_class = "uv-high" %}
+        {% elif uv_val > 2 %}[cite: 29]
+          {% set uv_class = "uv-moderate" %}
+        {% endif %}
 
-        {# Colorful Weather Condition Icon #}
-        <div style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
-          <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-            {% if 'rain' in (d.condition | lower) or 'shower' in (d.condition | lower) %}
-              <path d="M7 19a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 19H7z" fill="#E2E8F0" stroke="#94A3B8" stroke-width="1.25"/>
-              <line x1="12" y1="21" x2="10" y2="26" stroke="#38BDF8" stroke-width="2" stroke-linecap="round"/>
-              <line x1="18" y1="21" x2="16" y2="26" stroke="#38BDF8" stroke-width="2" stroke-linecap="round"/>
-            {% elif 'cloud' in (d.condition | lower) %}
-              {% if 'part' in (d.condition | lower) %}<circle cx="11" cy="11" r="5" fill="#F59E0B"/>{% endif %}
-              <path d="M8 22a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 26 22H8z" fill="#E2E8F0" stroke="#94A3B8" stroke-width="1.25"/>
-            {% else %}
-              <circle cx="16" cy="16" r="7" fill="#F59E0B"/>
-              <line x1="16" y1="4" x2="16" y2="7" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
-              <line x1="16" y1="25" x2="16" y2="28" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
-              <line x1="4" y1="16" x2="7" y2="16" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
-              <line x1="25" y1="16" x2="28" y2="16" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
+        <article class="forecast-day-tile" aria-label="{{ d.day }}: {{ d.condition | default('Fair') }}, High {{ d.high }}°, Low {{ d.low }}°">[cite: 29]
+          
+          {# Day & Date #}
+          <div>[cite: 29]
+            <div class="forecast-day-name">[cite: 29]
+              {{ d.day }}[cite: 29]
+            </div>
+            {% if d.date %}[cite: 29]
+              <div class="forecast-day-date">[cite: 29]
+                {{ d.date }}[cite: 29]
+              </div>
             {% endif %}
-          </svg>
-        </div>
+          </div>
 
-        {# High & Low #}
-        <div style="font-family: monospace; line-height: 1.2;">
-          <span style="font-size: 1rem; font-weight: 800; color: var(--color-primary-default);">{{ d.high }}°</span>
-          <span style="font-size: 0.8rem; color: #86868b; margin-left: 0.2rem;">{{ d.low }}°</span>
-        </div>
+          {# Weather Condition Vector Well #}
+          <div class="forecast-icon-stage" aria-hidden="true">[cite: 29]
+            <svg viewBox="0 0 32 32" fill="none" class="forecast-condition-svg">[cite: 29]
+              {% if 'rain' in cond_lower or 'shower' in cond_lower or 'drizzle' in cond_lower %}[cite: 29]
+                <path d="M7 19a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 19H7z" class="weather-vector-cloud" />[cite: 29]
+                <line x1="12" y1="21" x2="10" y2="26" class="weather-vector-rain" />[cite: 29]
+                <line x1="18" y1="21" x2="16" y2="26" class="weather-vector-rain" />[cite: 29]
+              {% elif 'cloud' in cond_lower or 'overcast' in cond_lower %}[cite: 29]
+                {% if 'part' in cond_lower %}[cite: 29]
+                  <circle cx="11" cy="11" r="5" class="weather-vector-sun-core" />[cite: 29]
+                {% endif %}
+                <path d="M8 22a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 26 22H8z" class="weather-vector-cloud" />[cite: 29]
+              {% else %}
+                {# Sunny / Clear Default #}
+                <circle cx="16" cy="16" r="7" class="weather-vector-sun-core" />[cite: 29]
+                <line x1="16" y1="4" x2="16" y2="7" class="weather-vector-sun-rays" />[cite: 29]
+                <line x1="16" y1="25" x2="16" y2="28" class="weather-vector-sun-rays" />[cite: 29]
+                <line x1="4" y1="16" x2="7" y2="16" class="weather-vector-sun-rays" />[cite: 29]
+                <line x1="25" y1="16" x2="28" y2="16" class="weather-vector-sun-rays" />[cite: 29]
+              {% endif %}
+            </svg>
+          </div>
 
-        {# Rain Chance #}
-        <div style="font-size: 0.7rem; font-weight: 700; color: var(--color-secondary-default); display: inline-flex; align-items: center; gap: 0.2rem;">
-          <span aria-hidden="true">💧</span>
-          <span>{{ d.rain }}</span>
-        </div>
+          {# High & Low Temps #}
+          <div class="forecast-temp-group">[cite: 29]
+            <span class="forecast-temp-high">{{ d.high }}°</span>[cite: 29]
+            {% if d.low is not none %}[cite: 29]
+              <span class="forecast-temp-low">{{ d.low }}°</span>[cite: 29]
+            {% endif %}
+          </div>
 
-        {# UV Index Indicator #}
-        <div style="font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 999px; {% if d.uv <= 2 %}background: rgba(16, 185, 129, 0.12); color: #059669;{% elif d.uv <= 5 %}background: rgba(245, 158, 11, 0.15); color: #D97706;{% else %}background: rgba(217, 35, 42, 0.12); color: var(--color-tertiary-default);{% endif %}">
-          UV {{ d.uv }}
-        </div>
+          {# Precipitation Chance with Stroke SVG #}
+          {% if d.rain %}[cite: 29]
+            <div class="forecast-rain-pill">[cite: 29]
+              <svg class="forecast-rain-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+              </svg>
+              <span>{{ d.rain }}</span>[cite: 29]
+            </div>
+          {% endif %}
 
-      </div>
+          {# UV Index Indicator #}
+          {% if d.uv is defined %}[cite: 29]
+            <div class="forecast-uv-pill {{ uv_class }}">[cite: 29]
+              UV {{ d.uv }}[cite: 29]
+            </div>
+          {% endif %}
+
+        </article>
+      {% endif %}
     {% endfor %}
   </div>
 
-</div>
+</section>
+{% endif %}

@@ -1,61 +1,122 @@
 <!-- File: _includes/components/widget/weather-tides.njk -->
-{% set is_night = tide_is_night | default(false) %}
+{# 
+  COMPONENT: Intertidal Physical Hydrology Stratum (widget.weather.tides)[cite: 24]
+  PURPOSE: Mixed semidiurnal tidal telemetry, surface elevation, and high/low predictions[cite: 24].
+  CONTRACT:
+    - tide_current_level / current_level: String or Number [Optional, e.g. "+8.4 ft"][cite: 24]
+    - tide_high_time / high_time: String [Optional, e.g. "8:56 PM"][cite: 24]
+    - tide_high_level / high_level: String or Number [Optional, e.g. "+11.2 ft"][cite: 24]
+    - tide_low_time / low_time: String [Optional, e.g. "2:55 AM"][cite: 24]
+    - tide_low_level / low_level: String or Number [Optional, e.g. "+1.9 ft"][cite: 24]
+    - tide_station / station_name: String [Optional, e.g. "Edmonds, Possession Sound"][cite: 24]
+    - tide_trend_label / trend_label: String [Optional, e.g. "Tide Rising", "Tide Falling"][cite: 24]
+    - tide_is_night: Boolean [Optional, defaults to false][cite: 24]
+    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+#}
 
-<div class="widget-card weather-tides-card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; min-height: 240px; width: 100%; border-radius: var(--border-radius-squircle); box-sizing: border-box;">
+{% set tide_cur = tide_current_level if tide_current_level is defined else current_level %}[cite: 24]
+{% set tide_high = tide_high_level if tide_high_level is defined else high_level %}[cite: 24]
+{% set tide_low = tide_low_level if tide_low_level is defined else low_level %}[cite: 24]
+{% set high_time_str = tide_high_time or high_time %}[cite: 24]
+{% set low_time_str = tide_low_time or low_time %}[cite: 24]
+{% set station = tide_station or station_name %}[cite: 24]
+{% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
+{% set is_night = tide_is_night if tide_is_night is defined else false %}[cite: 24]
+
+{# Determine Flood vs Ebb Flow Trend #}
+{% set raw_trend = tide_trend_label or trend_label or "Tide Rising" %}[cite: 24]
+{% set is_falling = ('fall' in (raw_trend | lower)) or ('ebb' in (raw_trend | lower)) or ('down' in (raw_trend | lower)) %}
+{% set trend_text = raw_trend | replace("↑", "") | replace("↓", "") | trim %}[cite: 24]
+
+{% if tide_cur or tide_high or tide_low or station %}
+<article class="widget-card weather-tides-card" aria-label="Tidal Telemetry for {{ active_neighborhood | default(station | default('Puget Sound')) }}">[cite: 24]
   
-  {# LAYER 1: SKY LAYER (Top 25%) #}
-  <div style="flex: 1; min-height: 58px; padding: 0.75rem 1.25rem; display: flex; justify-content: space-between; align-items: center; {% if is_night %}background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%); color: #FFFFFF;{% else %}background: linear-gradient(180deg, #BAE6FD 0%, #E0F2FE 100%); color: #0369A1;{% endif %} transition: background 0.3s ease;">
-    <div style="display: flex; align-items: center; gap: 0.5rem;">
-      {% if is_night %}
-        {# Moon Icon #}
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+  {# LAYER 1: SKY STRATUM (Top 25%) #}[cite: 24]
+  <div class="tide-sky-layer {% if is_night %}tide-sky-night{% else %}tide-sky-day{% endif %}">[cite: 24]
+    <div class="tide-sky-lead">[cite: 24]
+      {% if is_night %}[cite: 24]
+        {# Moon Vector Icon #}[cite: 24]
+        <svg class="tide-celestial-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">[cite: 24]
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>[cite: 24]
+        </svg>
       {% else %}
-        {# Sun Icon #}
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        {# Sun Vector Icon #}[cite: 24]
+        <svg class="tide-celestial-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">[cite: 24]
+          <circle cx="12" cy="12" r="4"/>[cite: 24]
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>[cite: 24]
+        </svg>
       {% endif %}
-      <span class="text-overline" style="font-size: 0.7rem; letter-spacing: 0.06em;">NEXT HIGH {{ tide_high_time | default("8:56 PM") }}</span>
+      <span class="text-overline tide-sky-label">[cite: 24]
+        NEXT HIGH{% if high_time_str %} {{ high_time_str }}{% endif %}[cite: 24]
+      </span>
     </div>
-    <div style="font-size: 1.15rem; font-weight: 800; font-family: monospace;">
-      {{ tide_high_level | default("+11.2 ft") }}
-    </div>
+    {% if tide_high %}
+      <div class="tide-sky-val">[cite: 24]
+        {{ tide_high }}[cite: 24]
+      </div>
+    {% endif %}
   </div>
 
-  {# LAYER 2: WATER LAYER (Middle 50% with wavy top border) #}
-  <div style="flex: 2; min-height: 110px; background: var(--color-secondary-default); color: #FFFFFF; padding: 1rem 1.25rem; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+  {# LAYER 2: MARINE WATER STRATUM (Middle 50%) #}[cite: 24]
+  <div class="tide-water-layer">[cite: 24]
     
-    {# Wave SVG divider overlay #}
-    <div style="position: absolute; top: -1px; left: 0; right: 0; height: 10px; overflow: hidden; pointer-events: none;" aria-hidden="true">
-      <svg viewBox="0 0 1200 120" preserveAspectRatio="none" style="width: 100%; height: 100%;">
-        <path d="M0,0 C150,90 350,-40 500,40 C650,120 900,10 1200,40 L1200,0 L0,0 Z" fill="{% if is_night %}#1E293B{% else %}#E0F2FE{% endif %}"></path>
+    {# Wave SVG Divider Contour #}[cite: 24]
+    <div class="tide-wave-wrapper" aria-hidden="true">[cite: 24]
+      <svg viewBox="0 0 1200 120" preserveAspectRatio="none" class="tide-wave-svg">[cite: 24]
+        <path d="M0,0 C150,90 350,-40 500,40 C650,120 900,10 1200,40 L1200,0 L0,0 Z" 
+              class="{% if is_night %}tide-wave-fill-night{% else %}tide-wave-fill-day{% endif %}"></path>[cite: 24]
       </svg>
     </div>
 
-    {# Water Content #}
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 0.35rem;">
-      <span style="font-size: 0.85rem; font-weight: 700; letter-spacing: 0.02em;">
-        Station: {{ tide_station | default("Edmonds, Possession Sound") }}
-      </span>
-      <span style="display: inline-flex; align-items: center; gap: 0.35rem; background: rgba(255,255,255,0.18); backdrop-filter: blur(4px); padding: 0.25rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700;">
-        {{ tide_trend_label | default("Tide Rising ↑") }}
+    {# Water Stratum Content #}[cite: 24]
+    <div class="tide-water-header">[cite: 24]
+      {% if station %}
+        <span class="tide-station-name">[cite: 24]
+          Station: {{ station }}[cite: 24]
+        </span>
+      {% else %}
+        <span class="tide-station-name">
+          {{ active_neighborhood | default('Puget Sound Intertidal Station') }}
+        </span>
+      {% endif %}
+
+      <span class="tide-trend-pill">[cite: 24]
+        <span>{{ trend_text }}</span>
+        {% if is_falling %}
+          <svg class="tide-trend-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <polyline points="19 12 12 19 5 12"></polyline>
+          </svg>
+        {% else %}
+          <svg class="tide-trend-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="19" x2="12" y2="5"></line>
+            <polyline points="5 12 12 5 19 12"></polyline>
+          </svg>
+        {% endif %}
       </span>
     </div>
 
-    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-      <div style="font-size: 0.75rem; opacity: 0.85;">Current Est. Surface Level</div>
-      <div class="text-data-huge" style="font-size: 2.2rem; color: #FFFFFF; line-height: 1;">
-        {{ tide_current_level | default("+8.4 ft") }}
+    <div class="tide-water-footer">[cite: 24]
+      <div class="tide-water-caption">Current Est. Surface Level</div>[cite: 24]
+      {% if tide_cur %}
+        <div class="tide-current-figure">[cite: 24]
+          {{ tide_cur }}[cite: 24]
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# LAYER 3: SHORELINE SAND STRATUM (Bottom 25%) #}[cite: 24]
+  <div class="tide-sand-layer">[cite: 24]
+    <div class="text-overline tide-sand-label">[cite: 24]
+      NEXT LOW{% if low_time_str %} {{ low_time_str }}{% endif %}[cite: 24]
+    </div>
+    {% if tide_low %}
+      <div class="tide-sand-val">[cite: 24]
+        {{ tide_low }}[cite: 24]
       </div>
-    </div>
+    {% endif %}
   </div>
 
-  {# LAYER 3: SAND LAYER (Bottom 25%) #}
-  <div style="flex: 1; min-height: 58px; background: #EED9C4; color: var(--color-primary-default); padding: 0.75rem 1.25rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(0,0,0,0.06);">
-    <div class="text-overline" style="font-size: 0.7rem; color: #78350F; letter-spacing: 0.06em;">
-      NEXT LOW {{ tide_low_time | default("2:55 AM") }}
-    </div>
-    <div style="font-size: 1.15rem; font-weight: 800; font-family: monospace; color: #78350F;">
-      {{ tide_low_level | default("+1.9 ft") }}
-    </div>
-  </div>
-
-</div>
+</article>
+{% endif %}

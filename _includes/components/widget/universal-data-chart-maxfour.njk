@@ -1,98 +1,122 @@
 <!-- File: _includes/components/widget/universal-data-chart-maxfour.njk -->
+{# 
+  COMPONENT: Universal 4-Series Vector Trend Chart (widget.universal.data.chart.maxfour)
+  PURPOSE: Pure SSG vector line chart for real estate, financial, transit, or school benchmarks.
+  CONTRACT:
+    - chart_title / title: String [Optional]
+    - chart_overline / overline: String [Optional]
+    - chart_x_labels / chart_labels: Array of Strings [Optional]
+    - chart_y_labels: Array of Strings [Optional]
+    - chart_series: Array of Objects [Optional, up to 4 series]
+      Each series object expects: { name, points, last_x, last_y, color_class }
+    - Alternatively:
+      series_1_name, series_1_points, series_1_last_x, series_1_last_y
+      series_2_name, series_2_points, series_2_last_x, series_2_last_y
+      series_3_name, series_3_points, series_3_last_x, series_3_last_y
+      series_4_name, series_4_points, series_4_last_x, series_4_last_y
+#}
+
 {% set x_labels = chart_x_labels or chart_labels %}
 {% set y_labels = chart_y_labels %}
+{% set overline_text = chart_overline or overline %}
+{% set title_text = chart_title or title %}
 
-{# Dynamic multi-series extraction (up to 4 series) from chart_series array or direct variables #}
+{# Dynamic multi-series extraction #}
 {% set active_series = chart_series if chart_series else [] %}
-{% if not active_series and (series_1_points or series_1_name) %}
-  {% set s1 = {'name': series_1_name, 'points': series_1_points, 'color': series_1_color or 'var(--color-secondary-default)'} %}
-  {% set s2 = {'name': series_2_name, 'points': series_2_points, 'color': series_2_color or 'var(--color-tertiary-default)'} if (series_2_points or series_2_name) else null %}
-  {% set s3 = {'name': series_3_name, 'points': series_3_points, 'color': series_3_color or '#10B981'} if (series_3_points or series_3_name) else null %}
-  {% set s4 = {'name': series_4_name, 'points': series_4_points, 'color': series_4_color or '#D97706'} if (series_4_points or series_4_name) else null %}
+{% if (active_series | length == 0) and (series_1_points or series_1_name) %}
+  {% set s1 = {'name': series_1_name, 'points': series_1_points, 'last_x': series_1_last_x, 'last_y': series_1_last_y, 'color_class': 'series-1'} if (series_1_points or series_1_name) else null %}
+  {% set s2 = {'name': series_2_name, 'points': series_2_points, 'last_x': series_2_last_x, 'last_y': series_2_last_y, 'color_class': 'series-2'} if (series_2_points or series_2_name) else null %}
+  {% set s3 = {'name': series_3_name, 'points': series_3_points, 'last_x': series_3_last_x, 'last_y': series_3_last_y, 'color_class': 'series-3'} if (series_3_points or series_3_name) else null %}
+  {% set s4 = {'name': series_4_name, 'points': series_4_points, 'last_x': series_4_last_x, 'last_y': series_4_last_y, 'color_class': 'series-4'} if (series_4_points or series_4_name) else null %}
   {% set active_series = [s1, s2, s3, s4] | reject('none') | list %}
 {% endif %}
 
-<div class="widget-card data-chart-card" style="display: flex; flex-direction: column; padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); box-sizing: border-box;">
+{# Verify whether any series actually contains points to prevent empty ghost charts #}
+{% set has_valid_points = false %}
+{% for s in active_series %}
+  {% if s.points %}
+    {% set has_valid_points = true %}
+  {% endif %}
+{% endfor %}
+
+{% if has_valid_points %}
+<section class="widget-card universal-data-chart-card" aria-label="{{ title_text | default('Statistical Trend Chart') }}">
   
-  {# Header & Dynamic Legend #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
-    <div>
-      {% if chart_overline %}
-        <div class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">{{ chart_overline }}</div>
+  {# Header Strip & Dynamic Legend #}
+  <header class="chart-header-row">
+    <div class="chart-title-stack">
+      {% if overline_text %}
+        <span class="text-overline text-accent-alpine">{{ overline_text }}</span>
       {% endif %}
-      {% if chart_title %}
-        <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">{{ chart_title }}</h3>
+      {% if title_text %}
+        <h3 class="text-widget-title chart-card-title">{{ title_text }}</h3>
       {% endif %}
     </div>
 
-    {# Dynamic Legend Badges (renders only when series names exist) #}
+    {# Dynamic Legend Badges #}
     {% if active_series and (active_series | length > 0) %}
-      <div style="display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.75rem; font-weight: 700;">
+      <div class="chart-legend-cluster" aria-hidden="true">
         {% for s in active_series %}
           {% if s.name %}
-            <div style="display: flex; align-items: center; gap: 0.35rem;">
-              <span style="width: 12px; height: 3px; background: {{ s.color or 'var(--color-secondary-default)' }}; border-radius: 2px;"></span>
-              <span style="color: var(--color-primary-default);">{{ s.name }}</span>
+            {% set color_class = s.color_class | default('series-' ~ loop.index) %}
+            <div class="chart-legend-item">
+              <span class="chart-legend-swatch {{ color_class }}"></span>
+              <span class="chart-legend-name">{{ s.name }}</span>
             </div>
           {% endif %}
         {% endfor %}
       </div>
     {% endif %}
-  </div>
+  </header>
 
-  {# Native SVG Chart Area (2:1 Aspect Ratio) #}
-  <div style="position: relative; width: 100%; aspect-ratio: 2 / 1; min-height: 200px;">
-    <svg viewBox="0 0 600 300" preserveAspectRatio="none" style="width: 100%; height: 100%; overflow: visible;" aria-hidden="true">
+  {# Native SVG Chart Area (2:1 Default Aspect Ratio) #}
+  <div class="chart-canvas-wrap">
+    <svg viewBox="0 0 600 300" preserveAspectRatio="none" class="chart-svg-stage" role="img" aria-label="{{ title_text | default('Data visualization chart') }}">
       
       {# Grid Lines #}
-      <g stroke="var(--color-border-light)" stroke-width="1" stroke-dasharray="4 4">
-        <line x1="0" y1="20" x2="600" y2="20"></line>
-        <line x1="0" y1="100" x2="600" y2="100"></line>
-        <line x1="0" y1="180" x2="600" y2="180"></line>
-        <line x1="0" y1="260" x2="600" y2="260"></line>
+      <g class="chart-grid-group">
+        <line x1="0" y1="20" x2="600" y2="20" class="chart-grid-line" />
+        <line x1="0" y1="100" x2="600" y2="100" class="chart-grid-line" />
+        <line x1="0" y1="180" x2="600" y2="180" class="chart-grid-line" />
+        <line x1="0" y1="260" x2="600" y2="260" class="chart-grid-line" />
       </g>
 
-      {# Dynamic Y-Axis Labels (renders based on live data intervals) #}
+      {# Dynamic Y-Axis Labels #}
       {% if y_labels and (y_labels | length > 0) %}
-        <g fill="#86868b" font-family="var(--font-default, -apple-system, sans-serif)" font-size="11" font-weight="600">
-          {% set total_y = y_labels | length %}
+        {% set total_y = y_labels | length %}
+        <g>
           {% for y_text in y_labels %}
             {% set y_pos = 20 + (loop.index0 * (240 / (total_y - 1))) if total_y > 1 else 140 %}
-            <text x="590" y="{{ y_pos - 5 }}" text-anchor="end">{{ y_text }}</text>
+            <text x="590" y="{{ y_pos - 5 }}" text-anchor="end" class="chart-axis-label">{{ y_text }}</text>
           {% endfor %}
         </g>
       {% endif %}
 
-      {# Dynamic X-Axis Time Steps (calculated mathematically across the 600px width with no static fallbacks) #}
+      {# Dynamic X-Axis Time Steps #}
       {% if x_labels and (x_labels | length > 0) %}
         {% set total_x = x_labels | length %}
-        <g fill="#86868b" font-family="var(--font-default, -apple-system, sans-serif)" font-size="11" font-weight="600">
+        <g>
           {% for label in x_labels %}
             {% set x_pos = (loop.index0 / (total_x - 1)) * 600 if total_x > 1 else 300 %}
             {% set anchor = "start" if loop.first else ("end" if loop.last else "middle") %}
-            <text x="{{ x_pos | round(1) }}" y="285" text-anchor="{{ anchor }}">{{ label }}</text>
+            <text x="{{ x_pos | round(1) }}" y="285" text-anchor="{{ anchor }}" class="chart-axis-label">{{ label }}</text>
           {% endfor %}
         </g>
       {% endif %}
 
-      {# Dynamic Data Series Curves (up to 4 series rendered only when data points exist) #}
-      {% if active_series and (active_series | length > 0) %}
-        {% for s in active_series %}
-          {% if s.points %}
-            {% set s_color = s.color or 'var(--color-secondary-default)' %}
-            <polyline points="{{ s.points }}" 
-                      fill="none" 
-                      stroke="{{ s_color }}" 
-                      stroke-width="3" 
-                      stroke-linejoin="round" 
-                      vector-effect="non-scaling-stroke"></polyline>
-            {% if s.last_x is defined and s.last_y is defined %}
-              <circle cx="{{ s.last_x }}" cy="{{ s.last_y }}" r="5" fill="{{ s_color }}" vector-effect="non-scaling-stroke"></circle>
-            {% endif %}
+      {# Dynamic Data Series Curves (up to 4 series) #}
+      {% for s in active_series %}
+        {% if s.points %}
+          {% set color_class = s.color_class | default('series-' ~ loop.index) %}
+          <polyline points="{{ s.points }}" class="chart-series-polyline {{ color_class }}" />
+          {% if s.last_x is defined and s.last_y is defined and s.last_x != '' and s.last_y != '' %}
+            <circle cx="{{ s.last_x }}" cy="{{ s.last_y }}" r="4.5" class="chart-terminal-dot {{ color_class }}" />
           {% endif %}
-        {% endfor %}
-      {% endif %}
+        {% endif %}
+      {% endfor %}
 
     </svg>
   </div>
-</div>
+
+</section>
+{% endif %}

@@ -1,0 +1,31 @@
+<!-- File: _includes/components/score/custom-park.njk -->
+{# 
+  COMPONENT: Civic Park Access Rating (score.custom.park)
+  PURPOSE: Municipal and county parks per 1,000 residents normalized to state standards.
+#}
+
+{% set val = score_park_val if score_park_val is defined else (scores.park if scores else null) %}
+
+{% if val is defined and val is not none %}
+  {% set tier_badge = "score-tier-emerald" if val >= 80 else ("score-tier-alpine" if val >= 50 else "score-tier-crimson") %}
+  {% set tier_text = "text-tier-emerald" if val >= 80 else ("text-tier-alpine" if val >= 50 else "text-tier-crimson") %}
+  {% set tier_label = "Park-Rich Community" if val >= 80 else ("Balanced Greenspace" if val >= 50 else "Developing Park Network") %}
+
+  {% set score = {
+    id: "park",
+    title: "Park Access Rating",
+    overline: "CIVIC GREENSPACE & RECREATION",
+    value: val,
+    label: tier_label,
+    tier_badge: tier_badge,
+    tier_text: tier_text,
+    detail: score_park_detail or "Public parks and recreational acreage normalized per 1,000 residents.",
+    source: "WA Recreation & Conservation Office (RCO)",
+    scale: "Scale 0–100",
+    methodology: "Measures public municipal and county park density normalized per 1,000 residents against the Washington State outdoor recreation standard of 1.2 parks per 1,000 residents.",
+    formula: "Formula: MIN(100, ROUND((Parks / (Pop / 1000)) / 1.2 * 100, 0))",
+    scale_notes: "80+: Park-Rich Community • 50–79: Balanced Greenspace • <50: Developing Network"
+  } %}
+
+  {% include "components/widget/custom-score.njk" %}
+{% endif %}

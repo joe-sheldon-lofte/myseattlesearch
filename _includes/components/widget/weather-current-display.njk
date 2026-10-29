@@ -1,102 +1,132 @@
 <!-- File: _includes/components/widget/weather-current-display.njk -->
-{% set city = current_weather_city | default("Edmonds") %}
-{% set condition = current_weather_condition | default("Sunny") %}
-{% set temp = current_weather_temp | default(72) %}
-{% set high = current_weather_high | default(74) %}
-{% set low = current_weather_low | default(54) %}
-{% set wind = current_weather_wind | default("NW at 7.2 MPH ↖") %}
-{% set humidity = current_weather_humidity | default("50%") %}
+{# 
+  COMPONENT: Current Atmospheric Weather Conditions (widget.weather.current.display)[cite: 27]
+  PURPOSE: Real-time sky condition, temperature, diurnal high/low, wind, and humidity telemetry[cite: 27].
+  CONTRACT:
+    - current_weather_temp / weather_temp / weather.temp: Number or String [Required]
+    - current_weather_condition / weather_condition / weather.condition: String [Optional, e.g. "Partly Cloudy", "Rain", "Clear"]
+    - current_weather_high / weather_high / weather.high: Number or String [Optional]
+    - current_weather_low / weather_low / weather.low: Number or String [Optional]
+    - current_weather_wind / weather_wind / weather.wind: String [Optional, e.g. "NW at 7.2 MPH"]
+    - current_weather_humidity / weather_humidity / weather.humidity: String [Optional, e.g. "52%"]
+    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+#}
 
-{% macro weatherConditionIcon(cond_name, size=38) %}
-  {% set cond = (cond_name | default('sunny')) | lower %}
-  <svg width="{{ size }}" height="{{ size }}" viewBox="0 0 32 32" fill="none" style="display: inline-block; vertical-align: middle;" aria-hidden="true">
-    {% if 'rain' in cond or 'drizzle' in cond or 'shower' in cond %}
-      <path d="M7 19a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 19H7z" fill="#E2E8F0" stroke="#94A3B8" stroke-width="1.25"/>
-      <line x1="10" y1="22" x2="8" y2="27" stroke="#38BDF8" stroke-width="2" stroke-linecap="round"/>
-      <line x1="16" y1="22" x2="14" y2="27" stroke="#38BDF8" stroke-width="2" stroke-linecap="round"/>
-      <line x1="22" y1="22" x2="20" y2="27" stroke="#38BDF8" stroke-width="2" stroke-linecap="round"/>
-    {% elif 'cloud' in cond or 'overcast' in cond %}
-      {% if 'part' in cond %}
-        <circle cx="11" cy="11" r="5" fill="#F59E0B"/>
+{% set raw_temp = current_weather_temp if current_weather_temp is defined else (weather_temp if weather_temp is defined else (weather.temp if weather else null)) %}
+{% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
+
+{% if raw_temp is not none and raw_temp != '' %}
+  {% set condition = current_weather_condition or (weather.condition if weather else '') or "Fair" %}
+  {% set high_temp = current_weather_high if current_weather_high is defined else (weather.high if weather else null) %}
+  {% set low_temp = current_weather_low if current_weather_low is defined else (weather.low if weather else null) %}
+  {% set wind_str = current_weather_wind or (weather.wind if weather else '') %}
+  {% set humidity_str = current_weather_humidity or (weather.humidity if weather else '') %}
+
+  {# Clean wind string from any stray raw unicode arrows #}
+  {% set clean_wind = wind_str | replace("↖", "") | replace("↗", "") | replace("↘", "") | replace("↙", "") | replace("→", "") | replace("←", "") | replace("↑", "") | replace("↓", "") | trim %}
+
+  <section class="widget-card weather-current-display-card" aria-label="Current Weather for {{ active_neighborhood | default('This Neighborhood') }}: {{ raw_temp }} degrees, {{ condition }}">
+    
+    {# Header Line #}
+    <header class="weather-current-header">
+      <span class="text-overline weather-overline-tag">
+        CURRENT WEATHER
+      </span>
+      {% if active_neighborhood %}
+        <span class="weather-neighborhood-badge">
+          {{ active_neighborhood }}, WA
+        </span>
       {% endif %}
-      <path d="M8 22a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 26 22H8z" fill="#E2E8F0" stroke="#94A3B8" stroke-width="1.25"/>
-    {% elif 'snow' in cond %}
-      <path d="M7 18a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 18H7z" fill="#E2E8F0" stroke="#94A3B8" stroke-width="1.25"/>
-      <circle cx="10" cy="23" r="1.2" fill="#93C5FD"/><circle cx="16" cy="25" r="1.2" fill="#93C5FD"/><circle cx="22" cy="23" r="1.2" fill="#93C5FD"/>
-    {% elif 'thunder' in cond or 'storm' in cond %}
-      <path d="M7 17a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 17H7z" fill="#64748B"/>
-      <polygon points="17,17 12,24 15,24 13,29 20,21 16,21" fill="#FACC15"/>
-    {% else %}
-      <circle cx="16" cy="16" r="7" fill="#F59E0B"/>
-      <line x1="16" y1="4" x2="16" y2="7" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="16" y1="25" x2="16" y2="28" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="4" y1="16" x2="7" y2="16" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="25" y1="16" x2="28" y2="16" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="7.5" y1="7.5" x2="9.5" y2="9.5" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="22.5" y1="22.5" x2="24.5" y2="24.5" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="7.5" y1="24.5" x2="9.5" y2="22.5" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="22.5" y1="9.5" x2="24.5" y2="7.5" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
+    </header>
+
+    {# Sky Condition & Temperature Block #}
+    <div class="weather-main-row">
+      <div class="weather-condition-cluster">
+        <div class="weather-icon-well" aria-hidden="true">
+          {% set cond_lower = condition | lower %}
+          <svg width="36" height="36" viewBox="0 0 32 32" fill="none" class="weather-icon-svg" aria-hidden="true">
+            {% if 'rain' in cond_lower or 'drizzle' in cond_lower or 'shower' in cond_lower %}
+              <path d="M7 19a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 19H7z" class="weather-svg-cloud-body" />
+              <line x1="10" y1="22" x2="8" y2="27" class="weather-svg-rain-streak" />
+              <line x1="16" y1="22" x2="14" y2="27" class="weather-svg-rain-streak" />
+              <line x1="22" y1="22" x2="20" y2="27" class="weather-svg-rain-streak" />
+            {% elif 'cloud' in cond_lower or 'overcast' in cond_lower %}
+              {% if 'part' in cond_lower %}
+                <circle cx="11" cy="11" r="5" class="weather-svg-sun-core" />
+              {% endif %}
+              <path d="M8 22a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 26 22H8z" class="weather-svg-cloud-body" />
+            {% elif 'snow' in cond_lower or 'flurry' in cond_lower %}
+              <path d="M7 18a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 18H7z" class="weather-svg-cloud-body" />
+              <circle cx="10" cy="23" r="1.2" fill="#93C5FD" />
+              <circle cx="16" cy="25" r="1.2" fill="#93C5FD" />
+              <circle cx="22" cy="23" r="1.2" fill="#93C5FD" />
+            {% elif 'thunder' in cond_lower or 'storm' in cond_lower %}
+              <path d="M7 17a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 17H7z" fill="#64748B" />
+              <polygon points="17,17 12,24 15,24 13,29 20,21 16,21" class="weather-svg-lightning" />
+            {% else %}
+              {# Clear / Sunny Default #}
+              <circle cx="16" cy="16" r="7" class="weather-svg-sun-core" />
+              <line x1="16" y1="4" x2="16" y2="7" class="weather-svg-sun-ray" />
+              <line x1="16" y1="25" x2="16" y2="28" class="weather-svg-sun-ray" />
+              <line x1="4" y1="16" x2="7" y2="16" class="weather-svg-sun-ray" />
+              <line x1="25" y1="16" x2="28" y2="16" class="weather-svg-sun-ray" />
+              <line x1="7.5" y1="7.5" x2="9.5" y2="9.5" class="weather-svg-sun-ray" />
+              <line x1="22.5" y1="22.5" x2="24.5" y2="24.5" class="weather-svg-sun-ray" />
+              <line x1="7.5" y1="24.5" x2="9.5" y2="22.5" class="weather-svg-sun-ray" />
+              <line x1="22.5" y1="9.5" x2="24.5" y2="7.5" class="weather-svg-sun-ray" />
+            {% endif %}
+          </svg>
+        </div>
+        <div class="weather-condition-meta">
+          <div class="weather-condition-headline">
+            {{ condition }}
+          </div>
+          {% if active_neighborhood %}
+            <div class="weather-condition-subtext">
+              {{ condition }} in {{ active_neighborhood }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="weather-temp-display">
+        {{ raw_temp }}°<span class="weather-temp-unit">F</span>
+      </div>
+    </div>
+
+    {# Bottom Metrics: High/Low, Wind & Humidity #}
+    {% if high_temp or wind_str or humidity_str %}
+      <footer class="weather-metrics-footer">
+        {% if high_temp is not none and low_temp is not none %}
+          <div class="weather-metric-group">
+            <span class="weather-metric-label">HIGH / LOW</span>
+            <div class="weather-highlow-value">
+              {{ high_temp }}° <span class="weather-low-span">/ {{ low_temp }}°</span>
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="weather-vitals-cluster">
+          {% if clean_wind %}
+            <div class="weather-metric-group">
+              <span class="weather-metric-label">WIND</span>
+              <div class="weather-vital-value">
+                {{ clean_wind }}
+              </div>
+            </div>
+          {% endif %}
+
+          {% if humidity_str %}
+            <div class="weather-metric-group">
+              <span class="weather-metric-label">HUMIDITY</span>
+              <div class="weather-vital-value">
+                {{ humidity_str }}
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      </footer>
     {% endif %}
-  </svg>
-{% endmacro %}
 
-<div class="widget-card weather-current-display-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; gap: 1.25rem; box-sizing: border-box;">
-  
-  {# Header Line #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
-    <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem; letter-spacing: 0.08em;">
-      CURRENT WEATHER
-    </span>
-    <span class="text-body-secondary" style="font-size: 0.75rem; font-weight: 600;">
-      {{ city }}, WA
-    </span>
-  </div>
-
-  {# Sky Condition & Temp Block: Colorful Condition Icon on Left, Prominent Temp on Right #}
-  <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
-    <div style="display: flex; align-items: center; gap: 1rem;">
-      <div style="width: 56px; height: 56px; border-radius: 12px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-        {{ weatherConditionIcon(condition, 38) }}
-      </div>
-      <div>
-        <div style="font-size: 1.25rem; font-weight: 800; color: var(--color-primary-default); line-height: 1.2;">
-          {{ condition }}
-        </div>
-        <div class="text-body-secondary" style="font-size: 0.8rem; margin-top: 0.15rem;">
-          {{ condition }} in {{ city }}
-        </div>
-      </div>
-    </div>
-
-    <div class="text-data-huge" style="font-size: 3rem; line-height: 1; color: var(--color-primary-default); font-family: monospace; font-weight: 800;">
-      {{ temp }}°<span style="font-size: 1.5rem; font-weight: 600; color: #86868b;">F</span>
-    </div>
-  </div>
-
-  {# Bottom Metrics: High/Low on Left, Wind & Humidity on Right #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.85rem; flex-wrap: wrap; gap: 0.75rem;">
-    <div>
-      <div class="text-overline" style="font-size: 0.6rem; color: #86868b;">HIGH / LOW</div>
-      <div style="font-size: 1rem; font-weight: 800; font-family: monospace; color: var(--color-primary-default); margin-top: 0.15rem;">
-        {{ high }}° <span style="font-weight: 500; color: #86868b;">/ {{ low }}°</span>
-      </div>
-    </div>
-
-    <div style="display: flex; align-items: center; gap: 1.5rem;">
-      <div>
-        <div class="text-overline" style="font-size: 0.6rem; color: #86868b;">WIND</div>
-        <div style="font-size: 0.85rem; font-weight: 700; color: var(--color-primary-default); margin-top: 0.15rem;">
-          {{ wind }}
-        </div>
-      </div>
-
-      <div>
-        <div class="text-overline" style="font-size: 0.6rem; color: #86868b;">HUMIDITY</div>
-        <div style="font-size: 0.85rem; font-weight: 700; font-family: monospace; color: var(--color-primary-default); margin-top: 0.15rem;">
-          {{ humidity }}
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div>
+  </section>
+{% endif %}

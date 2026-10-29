@@ -1,34 +1,86 @@
 <!-- File: _includes/components/widget/transit-stats.njk -->
-<div class="widget-card transit-stat-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 180px; padding: 1.5rem; width: 100%;">
+{# 
+  COMPONENT: Vertically Centered Polymorphic Transit Metric Tile (widget.transit.stats)
+  PURPOSE: High-density numeric display for bus, rail, commuter train, or seating metrics.
+  CONTRACT:
+    - transit_stat_value / stat_value: String or Number [Required, e.g. "14", "92%", "1.8k"]
+    - transit_stat_label / stat_label: String [Required, e.g. "Active In-Service Buses"]
+    - transit_mode / mode: String [Optional: "bus", "lightrail", "sounder", "seats" - defaults to "bus"]
+    - transit_stat_context / stat_context: String [Optional, contextual footnote]
+    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+#}
+
+{% set stat_val = transit_stat_value if transit_stat_value is defined else stat_value %}
+{% set stat_lbl = transit_stat_label or stat_label %}
+{% set mode_type = transit_mode or mode or "bus" %}
+{% set stat_ctx = transit_stat_context or stat_context %}
+
+{% if stat_val and stat_lbl %}
+<article class="widget-card transit-stat-card" role="region" aria-label="{{ stat_lbl }}: {{ stat_val }}">
   
-  {# Centered Transit Icon / SVG #}
-  <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: var(--color-secondary-default); margin-bottom: 0.75rem;" aria-hidden="true">
-    {% if transit_mode == 'lightrail' %}
-      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="3" rx="2"/><path d="M4 11h16"/><path d="M12 3v8"/><path d="m8 19-2 3"/><path d="m18 22-2-3"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></svg>
-    {% elif transit_mode == 'sounder' %}
-      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>
-    {% elif transit_mode == 'seats' %}
-      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3"/><path d="M6 4v10a2 2 0 0 0 2 2h10v2"/></svg>
+  {# Centered Transit Mode Icon #}
+  <div class="transit-stat-icon-wrap" aria-hidden="true">
+    {% if mode_type == 'lightrail' %}
+      {# Sound Transit Link Light Rail (Train with Overhead Pantograph) #}
+      <svg class="transit-stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="16" height="15" x="4" y="4" rx="2"/>
+        <path d="M4 11h16"/>
+        <path d="M12 4v7"/>
+        <path d="m8 19-2 3"/>
+        <path d="m18 22-2-3"/>
+        <circle cx="8" cy="15" r="1"/>
+        <circle cx="16" cy="15" r="1"/>
+      </svg>
+    {% elif mode_type == 'sounder' %}
+      {# Sounder Commuter Heavy Rail (Locomotive Cab Profile) #}
+      <svg class="transit-stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="18" height="13" x="3" y="5" rx="2"/>
+        <path d="M3 12h18"/>
+        <circle cx="7" cy="14" r="1"/>
+        <circle cx="17" cy="14" r="1"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+        <line x1="6" y1="18" x2="4" y2="21"/>
+        <line x1="18" y1="18" x2="20" y2="21"/>
+      </svg>
+    {% elif mode_type == 'seats' %}
+      {# Transit Passenger Seating (Armchair Profile) #}
+      <svg class="transit-stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/>
+        <path d="M3 11v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H7v-2a2 2 0 0 0-4 0Z"/>
+        <path d="M5 18v3"/>
+        <path d="M19 18v3"/>
+      </svg>
     {% else %}
-      {# Default: Bus #}
-      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.2 6 18.1 6H5.9C4.8 6 3.9 6.8 3.6 7.8l-1.4 5c-.1.4-.2.8-.2 1.2 0 .4.1.8.2 1.2.3 1.1.8 2.8.8 2.8h3"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+      {# Local Bus Coach (Front Transit Grille & Headlights) #}
+      <svg class="transit-stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 6v6"/>
+        <path d="M16 6v6"/>
+        <path d="M4 12h16"/>
+        <rect width="18" height="15" x="3" y="4" rx="2"/>
+        <path d="m6 19-2 2"/>
+        <path d="m20 21-2-2"/>
+        <circle cx="7" cy="15.5" r="1"/>
+        <circle cx="17" cy="15.5" r="1"/>
+      </svg>
     {% endif %}
   </div>
 
   {# Prominent Numerical Metric #}
-  <div class="text-data-huge" style="line-height: 0.95; margin-bottom: 0.4rem;">
-    {{ transit_stat_value | default("14") }}
+  <div class="transit-stat-figure">
+    {{ stat_val }}
   </div>
 
   {# Descriptive Label String #}
-  <div class="text-overline" style="color: var(--color-primary-default); font-size: 0.75rem; letter-spacing: 0.06em;">
-    {{ transit_stat_label | default("Active In-Service Buses") }}
-  </div>
+  <span class="text-overline transit-stat-caption">
+    {{ stat_lbl }}
+  </span>
 
-  {% if transit_stat_context %}
-    <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.35rem;">
-      {{ transit_stat_context }}
+  {# Optional Contextual Subtext #}
+  {% if stat_ctx %}
+    <div class="transit-stat-context-note">
+      {{ stat_ctx }}
     </div>
   {% endif %}
 
-</div>
+</article>
+{% endif %}

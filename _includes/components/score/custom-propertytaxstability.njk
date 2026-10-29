@@ -1,79 +1,33 @@
 <!-- File: _includes/components/score/custom-propertytaxstability.njk -->
-{% set val = score_tax_val | default(28) %}
-{% set score_color = "#10B981" %}
-{% set score_label = "Highly Predictable" %}
-{% if val >= 66 %}
-  {% set score_color = "var(--color-tertiary-default)" %}
-  {% set score_label = "Accelerating Levies" %}
-{% elif val >= 36 %}
-  {% set score_color = "#D97706" %}
-  {% set score_label = "Regional Average" %}
+{# 
+  COMPONENT: Property Tax Stability Index (score.custom.propertytaxstability)
+  PURPOSE: 5-year municipal levy escalation predictability and voter bond volatility.
+  MODE: Inverse (Lower escalation is optimal).
+#}
+
+{% set val = score_tax_val if score_tax_val is defined else (scores.tax_stability if scores else null) %}
+
+{% if val is defined and val is not none %}
+  {% set tier_badge = "score-tier-emerald" if val < 36 else ("score-tier-amber" if val < 66 else "score-tier-crimson") %}
+  {% set tier_text = "text-tier-emerald" if val < 36 else ("text-tier-amber" if val < 66 else "text-tier-crimson") %}
+  {% set tier_label = "Highly Predictable" if val < 36 else ("Regional Average" if val < 66 else "Accelerating Levies") %}
+
+  {% set score = {
+    id: "tax",
+    title: "Property Tax Stability",
+    overline: "FISCAL PREDICTABILITY",
+    value: val,
+    color_scale: "inverse",
+    label: tier_label,
+    tier_badge: tier_badge,
+    tier_text: tier_text,
+    detail: score_tax_detail or "5-year cumulative property tax levy escalation and municipal bond risk.",
+    source: "County Assessor Records",
+    scale: "5-Yr Index (0–100)",
+    methodology: "Measures the 5-year escalation rate of municipal property taxes and normalizes it on a 0–100 scale. A lower score reflects a more predictable tax environment, while a higher score reflects aggressive bond-driven increases.",
+    formula: "Formula: MIN(100, MAX(0, ROUND(((tax_current - tax_5yr_ago) / tax_5yr_ago) / 0.35 * 100, 0)))",
+    scale_notes: "0–35: Highly Predictable • 36–65: Regional Average • 66–100: Rapid Escalation"
+  } %}
+
+  {% include "components/widget/custom-score.njk" %}
 {% endif %}
-
-<div class="widget-card score-card score-tax-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; box-sizing: border-box;">
-  
-  {# Header Row #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
-    <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        FISCAL PREDICTABILITY
-      </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.1rem;">
-        Property Tax Stability
-      </h3>
-    </div>
-    
-    <button type="button" 
-            class="btn-info-trigger" 
-            aria-label="View Tax Stability methodology" 
-            onclick="document.getElementById('dialog-score-tax').showModal();"
-            style="width: 28px; height: 28px; border-radius: 50%; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; cursor: pointer; color: #86868b;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-    </button>
-  </div>
-
-  {# Center Score Display: Squircle Badge #}
-  <div style="display: flex; align-items: center; gap: 1rem; margin: 1rem 0;">
-    <div style="width: 58px; height: 58px; border-radius: var(--border-radius-squircle); background: {{ score_color }}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
-      <span class="text-data-huge" style="font-size: 1.75rem; color: #FFFFFF; line-height: 1; font-weight: 800;">
-        {{ val }}
-      </span>
-    </div>
-
-    <div>
-      <div style="font-size: 0.95rem; font-weight: 800; color: {{ score_color }};">
-        {{ score_label }}
-      </div>
-      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
-        {{ score_tax_detail | default("Slow, steady 5-year levy escalation rate; low risk of unexpected voter bond spikes.") }}
-      </div>
-    </div>
-  </div>
-
-  {# Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem;" class="text-body-secondary">
-    <span>Data Source: King & Snohomish County Assessors</span>
-    <span style="font-family: monospace; font-weight: 600;">5-Year Index, Scale 0-100</span>
-  </div>
-
-  {# Methodology Modal Dialog #}
-  <dialog id="dialog-score-tax" class="info-dialog" style="padding: 1.5rem; border-radius: var(--border-radius-squircle); border: 1px solid var(--color-border-light); max-width: 440px; background: var(--color-background-universal); box-shadow: 0 20px 48px rgba(0,0,0,0.2);">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-      <div>
-        <span class="text-overline" style="color: var(--color-secondary-default);">METHODOLOGY</span>
-        <h4 class="text-widget-title" style="margin: 0.15rem 0 0 0;">Property Tax Stability Score</h4>
-      </div>
-      <button type="button" onclick="document.getElementById('dialog-score-tax').close();" style="border: none; background: var(--color-surface-gray); border-radius: 50%; width: 28px; height: 28px; cursor: pointer;">✕</button>
-    </div>
-    <p class="text-body-secondary" style="font-size: 0.85rem; line-height: 1.5; margin: 0 0 0.75rem 0;">
-      Measures the 5-year escalation rate of municipal property taxes and normalizes it on a 0–100 scale. A lower score reflects a more predictable tax environment, while a higher score reflects aggressive bond-driven increases.
-    </p>
-    <div style="background: var(--color-surface-gray); padding: 0.65rem; border-radius: 8px; font-size: 0.75rem; font-family: monospace;">
-      Formula: MIN(100, MAX(0, ROUND(((tax_2026 - tax_2021) / tax_2021) / 0.35 * 100, 0)))
-    </div>
-    <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #86868b;">
-      0–35: Highly Predictable • 36–65: Regional Average • 66–100: Rapid Escalation
-    </div>
-  </dialog>
-
-</div>

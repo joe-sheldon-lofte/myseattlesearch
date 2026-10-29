@@ -1,185 +1,294 @@
 <!-- File: _includes/components/widget/weather-star-4000.njk -->
-{% set star_city = weather_star_city | default("EDMONDS") %}
-{% set star_temp = weather_star_temp | default("72") %}
-{% set star_cond = weather_star_condition | default("SUNNY") %}
-{% set star_wind = weather_star_wind | default("NW 7 MPH") %}
-{% set star_humidity = weather_star_humidity | default("50%") %}
-{% set star_dewpoint = weather_star_dewpoint | default("52°") %}
-{% set star_pressure = weather_star_pressure | default("30.12R") %}
-{% set star_ceiling = weather_star_ceiling | default("UNLIMITED") %}
-{% set star_visib = weather_star_visib | default("10 MILES") %}
+{# 
+  COMPONENT: Retro Weather Star 4000 Broadcast Terminal (widget.weather.star.4000)[cite: 31]
+  HERITAGE: The Weather Channel "Local on the 8s" 1990 Cable Broadcast Simulator[cite: 31]
+  CONTRACT:
+    - weather_star_temp / weather.temp: Number or String [Required][cite: 31]
+    - weather_star_condition / weather.condition: String [Optional, e.g. "SUNNY", "RAIN"][cite: 31]
+    - weather_star_wind / weather.wind: String [Optional, e.g. "NW 7 MPH"][cite: 31]
+    - weather_star_humidity / weather.humidity: String [Optional, e.g. "50%"][cite: 31]
+    - weather_star_dewpoint: String [Optional, e.g. "52°"][cite: 31]
+    - weather_star_pressure: String [Optional, e.g. "30.12R"][cite: 31]
+    - weather_star_ceiling: String [Optional, e.g. "UNLIMITED"][cite: 31]
+    - weather_star_visib: String [Optional, e.g. "10 MILES"][cite: 31]
+    - weather_star_narrative_today: String [Optional, 36-hour synopsis][cite: 31]
+    - weather_star_narrative_tonight: String [Optional, 36-hour synopsis][cite: 31]
+    - weather_star_narrative_tomorrow: String [Optional, 36-hour synopsis][cite: 31]
+    - weather_star_extended_days: Array of Objects [Optional, 3-day forecast][cite: 31]
+      Each expects: { day, condition, high, low }[cite: 31]
+    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+#}
 
-<div class="weather-star-4000-tv-wrapper" style="width: 100%; display: flex; justify-content: center; align-items: center; padding: 1.5rem 0; box-sizing: border-box;">
-  
-  {# Outer CRT Television Plastic Bezel Casing #}
-  <div class="crt-television-frame" 
-       style="position: relative; width: 100%; max-width: 860px; aspect-ratio: 4 / 3; background: linear-gradient(145deg, #2A2B2E 0%, #151618 100%); border-radius: 42px; padding: 28px; box-shadow: 0 30px 70px rgba(0,0,0,0.45), inset 0 2px 4px rgba(255,255,255,0.1), inset 0 -4px 8px rgba(0,0,0,0.7); border: 2px solid #3F4145; box-sizing: border-box; display: flex; flex-direction: column;">
+{% set raw_temp = weather_star_temp if weather_star_temp is defined else (weather.temp if weather else null) %}[cite: 31]
+{% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
+
+{% if raw_temp is not none and raw_temp != '' %}
+  {% set star_neighborhood = (active_neighborhood or "Seattle") | upper %}
+  {% set star_cond = (weather_star_condition or (weather.condition if weather else "FAIR")) | upper %}[cite: 31]
+  {% set star_wind = (weather_star_wind or (weather.wind if weather else "CALM")) | upper %}[cite: 31]
+  {% set star_humidity = weather_star_humidity or (weather.humidity if weather else "—") %}[cite: 31]
+  {% set star_dewpoint = weather_star_dewpoint or "—" %}[cite: 31]
+  {% set star_pressure = weather_star_pressure or "—" %}[cite: 31]
+  {% set star_ceiling = weather_star_ceiling or "UNLIMITED" %}[cite: 31]
+  {% set star_visib = weather_star_visib or "10 MILES" %}[cite: 31]
+
+  {# 36-Hour Forecast Paragraphs #}
+  {% set nar_today = weather_star_narrative_today %}[cite: 31]
+  {% set nar_tonight = weather_star_narrative_tonight %}[cite: 31]
+  {% set nar_tomorrow = weather_star_narrative_tomorrow %}[cite: 31]
+
+  {# 3-Day Extended Forecast Array #}
+  {% set extended_forecast = weather_star_extended_days %}[cite: 31]
+
+  <div class="weather-star-4000-tv-wrapper" role="region" aria-label="Retro Weather Star 4000 Broadcast for {{ star_neighborhood }} &amp; Vicinity">[cite: 31]
     
-    {# Top TV Header & Audio Mute Pill #}
-    <div style="position: absolute; top: 8px; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 36px; z-index: 20;">
-      <div style="font-family: monospace; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.15em; color: #71717A;">
-        WEATHER STAR 4000 • CH 28
-      </div>
-
-      <button type="button" 
-              id="ws4k-audio-btn" 
-              aria-label="Toggle Weather Star Jazz Music"
-              onclick="toggleWs4kAudio()"
-              style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.65rem; background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; color: #FFFFFF; font-size: 0.65rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">
-        <span id="ws4k-speaker-icon">🔇</span>
-        <span id="ws4k-audio-label">Jazz Music</span>
-      </button>
-
-      <audio id="ws4k-audio-stream" loop preload="none">
-        <source src="https://assets.myseattlesearch.com/audio/weather-star-smooth-jazz.mp3" type="audio/mpeg">
-      </audio>
-    </div>
-
-    {# Curved CRT Inner Screen Bezel #}
-    <div class="crt-screen-bezel" 
-         style="position: relative; width: 100%; height: 100%; border-radius: 28px; overflow: hidden; background: #0000AA; box-shadow: inset 0 0 30px rgba(0,0,0,0.8), inset 0 0 10px rgba(0,0,0,0.9); border: 4px solid #111113; box-sizing: border-box;">
+    {# Outer CRT Television Molded Frame #}
+    <div class="crt-television-frame">[cite: 31]
       
-      {# Scanlines CSS Overlay #}
-      <div class="crt-scanlines" 
-           style="position: absolute; inset: 0; pointer-events: none; z-index: 10; background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.22) 0px, rgba(0, 0, 0, 0.22) 1px, transparent 1px, transparent 2px);" 
-           aria-hidden="true"></div>
+      {# Top TV Bezel Strip with Audio Controller #}
+      <div class="crt-tv-top-strip">[cite: 31]
+        <div class="crt-tv-channel-id">[cite: 31]
+          WEATHER STAR 4000 • CH 28[cite: 31]
+        </div>
 
-      {# Moving CRT Tracking Line Animation #}
-      <div class="crt-tracking-bar" 
-           style="position: absolute; left: 0; right: 0; height: 12px; background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.08) 50%, transparent 100%); pointer-events: none; z-index: 11; animation: crtTracking 6s linear infinite;" 
-           aria-hidden="true"></div>
+        {# Liquid Glass Mute/Play Button #}
+        <button type="button" 
+                class="btn-ws4k-audio" 
+                id="ws4k-audio-btn" 
+                aria-label="Toggle Weather Star Jazz Music">[cite: 31]
+          <svg class="ws4k-speaker-icon" id="ws4k-icon-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+          </svg>
+          <svg class="ws4k-speaker-icon" id="ws4k-icon-playing" style="display: none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+          <span id="ws4k-audio-label">Smooth Jazz</span>[cite: 31]
+        </button>
 
-      {# Flat Deep Blue Retro Broadcast Content #}
-      <div class="ws4k-screen-content" 
-           style="position: relative; z-index: 5; width: 100%; height: 100%; padding: 24px 28px; box-sizing: border-box; color: #FFFFFF; font-family: 'Courier New', Courier, monospace; text-shadow: 0 0 4px rgba(255,255,255,0.7), 0 0 10px rgba(0,0,170,0.8); display: flex; flex-direction: column; justify-content: space-between;">
+        <audio id="ws4k-audio-stream" loop preload="none">[cite: 31]
+          <source src="https://assets.myseattlesearch.com/audio/weather-star-smooth-jazz.mp3" type="audio/mpeg">[cite: 31]
+        </audio>
+      </div>
+
+      {# Curved CRT Inner Glass Bezel #}
+      <div class="crt-screen-bezel">[cite: 31]
         
-        {# Fixed Broadcast Header #}
-        <div style="border-bottom: 3px solid #FFFF00; padding-bottom: 6px; display: flex; justify-content: space-between; align-items: baseline;">
-          <div style="font-size: clamp(1rem, 2.5vw, 1.5rem); font-weight: 800; color: #FFFF00; letter-spacing: 0.06em;">
-            {{ star_city }} &amp; VICINITY
-          </div>
-          <div id="ws4k-view-title" style="font-size: clamp(0.75rem, 1.8vw, 1.1rem); font-weight: 800; color: #FFFFFF; letter-spacing: 0.08em;">
-            CURRENT CONDITIONS
-          </div>
-        </div>
+        {# Scanlines & Tracking Bar Overlays #}
+        <div class="crt-scanlines" aria-hidden="true"></div>[cite: 31]
+        <div class="crt-tracking-bar" aria-hidden="true"></div>[cite: 31]
 
-        {# Cycle View 1: Current Conditions (Text Only) #}
-        <div id="ws4k-view-1" class="ws4k-view" style="display: flex; flex-direction: column; justify-content: space-around; flex-grow: 1; padding: 12px 0;">
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: clamp(0.85rem, 2vw, 1.25rem); font-weight: 700;">
-            <div>TEMP: <span style="color: #FFFF00; font-size: clamp(1.4rem, 3.2vw, 2.2rem);">{{ star_temp }}°F</span></div>
-            <div>COND: <span style="color: #FFFF00;">{{ star_cond }}</span></div>
-            <div>HUMIDITY: <span style="color: #FFFF00;">{{ star_humidity }}</span></div>
-            <div>DEW POINT: <span style="color: #FFFF00;">{{ star_dewpoint }}</span></div>
-            <div>WIND: <span style="color: #FFFF00;">{{ star_wind }}</span></div>
-            <div>PRESSURE: <span style="color: #FFFF00;">{{ star_pressure }}</span></div>
-            <div>CEILING: <span style="color: #FFFF00;">{{ star_ceiling }}</span></div>
-            <div>VISIBILITY: <span style="color: #FFFF00;">{{ star_visib }}</span></div>
-          </div>
-        </div>
-
-        {# Cycle View 2: 36-Hour Forecast #}
-        <div id="ws4k-view-2" class="ws4k-view" style="display: none; flex-direction: column; justify-content: space-around; flex-grow: 1; padding: 12px 0; gap: 8px;">
-          <div style="background: rgba(0,0,0,0.25); padding: 8px 12px; border-left: 4px solid #FFFF00;">
-            <div style="color: #FFFF00; font-weight: 800; font-size: clamp(0.9rem, 2vw, 1.2rem);">TODAY...</div>
-            <div style="font-size: clamp(0.8rem, 1.6vw, 1rem); line-height: 1.3;">SUNNY AND SEASONABLE. HIGHS 70 TO 74. LIGHT VARIABLE WINDS.</div>
-          </div>
-          <div style="background: rgba(0,0,0,0.25); padding: 8px 12px; border-left: 4px solid #FFFF00;">
-            <div style="color: #FFFF00; font-weight: 800; font-size: clamp(0.9rem, 2vw, 1.2rem);">TONIGHT...</div>
-            <div style="font-size: clamp(0.8rem, 1.6vw, 1rem); line-height: 1.3;">CLEAR TO PARTLY CLOUDY. LOWS 50 TO 54. NORTHWEST WIND 5 TO 8 MPH.</div>
-          </div>
-          <div style="background: rgba(0,0,0,0.25); padding: 8px 12px; border-left: 4px solid #FFFF00;">
-            <div style="color: #FFFF00; font-weight: 800; font-size: clamp(0.9rem, 2vw, 1.2rem);">TOMORROW...</div>
-            <div style="font-size: clamp(0.8rem, 1.6vw, 1rem); line-height: 1.3;">PARTLY SUNNY WITH AFTERNOON CLOUDS. HIGHS IN THE UPPER 60S.</div>
-          </div>
-        </div>
-
-        {# Cycle View 3: Extended Forecast (3 Days) #}
-        <div id="ws4k-view-3" class="ws4k-view" style="display: none; flex-direction: column; justify-content: center; flex-grow: 1; padding: 12px 0;">
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center;">
-            <div style="background: rgba(0,0,0,0.25); padding: 14px 8px; border: 2px solid #FFFF00;">
-              <div style="color: #FFFF00; font-weight: 800; font-size: clamp(1rem, 2.2vw, 1.3rem);">SAT</div>
-              <div style="font-size: clamp(1.4rem, 3vw, 2rem); margin: 8px 0;">⛅</div>
-              <div style="font-size: clamp(0.75rem, 1.5vw, 0.95rem); color: #E0E7FF;">PT CLOUDY</div>
-              <div style="color: #FFFF00; font-weight: 800; margin-top: 6px; font-size: clamp(0.9rem, 1.8vw, 1.15rem);">68 / 50</div>
+        {# Phosphor Screen Broadcast Content #}
+        <div class="ws4k-screen-content">[cite: 31]
+          
+          {# Fixed Broadcast Header #}
+          <div class="ws4k-broadcast-header">[cite: 31]
+            <div class="ws4k-header-city">[cite: 31]
+              {{ star_neighborhood }} &amp; VICINITY[cite: 31]
             </div>
-            <div style="background: rgba(0,0,0,0.25); padding: 14px 8px; border: 2px solid #FFFF00;">
-              <div style="color: #FFFF00; font-weight: 800; font-size: clamp(1rem, 2.2vw, 1.3rem);">SUN</div>
-              <div style="font-size: clamp(1.4rem, 3vw, 2rem); margin: 8px 0;">🌧️</div>
-              <div style="font-size: clamp(0.75rem, 1.5vw, 0.95rem); color: #E0E7FF;">RAIN</div>
-              <div style="color: #FFFF00; font-weight: 800; margin-top: 6px; font-size: clamp(0.9rem, 1.8vw, 1.15rem);">61 / 48</div>
-            </div>
-            <div style="background: rgba(0,0,0,0.25); padding: 14px 8px; border: 2px solid #FFFF00;">
-              <div style="color: #FFFF00; font-weight: 800; font-size: clamp(1rem, 2.2vw, 1.3rem);">MON</div>
-              <div style="font-size: clamp(1.4rem, 3vw, 2rem); margin: 8px 0;">🌦️</div>
-              <div style="font-size: clamp(0.75rem, 1.5vw, 0.95rem); color: #E0E7FF;">SHOWERS</div>
-              <div style="color: #FFFF00; font-weight: 800; margin-top: 6px; font-size: clamp(0.9rem, 1.8vw, 1.15rem);">59 / 46</div>
+            <div class="ws4k-header-mode" id="ws4k-view-title">[cite: 31]
+              CURRENT CONDITIONS[cite: 31]
             </div>
           </div>
-        </div>
 
-        {# Footer #}
-        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 2px solid rgba(255,255,0,0.6); padding-top: 6px; font-size: clamp(0.65rem, 1.5vw, 0.8rem);">
-          <div style="color: #FFFF00;">LOCAL ON THE 8s</div>
-          <div id="ws4k-cycle-indicator" style="letter-spacing: 0.2em; color: #FFFFFF;">● ○ ○</div>
+          {# Cycle View 1: Current Meteorological Matrix #}
+          <div class="ws4k-view-pane is-active" id="ws4k-view-1">[cite: 31]
+            <div class="ws4k-conditions-grid">[cite: 31]
+              <div>TEMP: <span class="ws4k-temp-hero">{{ raw_temp }}°F</span></div>[cite: 31]
+              <div>COND: <span class="ws4k-val">{{ star_cond }}</span></div>[cite: 31]
+              <div>HUMIDITY: <span class="ws4k-val">{{ star_humidity }}</span></div>[cite: 31]
+              <div>DEW POINT: <span class="ws4k-val">{{ star_dewpoint }}</span></div>[cite: 31]
+              <div>WIND: <span class="ws4k-val">{{ star_wind }}</span></div>[cite: 31]
+              <div>PRESSURE: <span class="ws4k-val">{{ star_pressure }}</span></div>[cite: 31]
+              <div>CEILING: <span class="ws4k-val">{{ star_ceiling }}</span></div>[cite: 31]
+              <div>VISIBILITY: <span class="ws4k-val">{{ star_visib }}</span></div>[cite: 31]
+            </div>
+          </div>
+
+          {# Cycle View 2: 36-Hour Local Forecast #}
+          <div class="ws4k-view-pane" id="ws4k-view-2">[cite: 31]
+            <div class="ws4k-forecast-stack">[cite: 31]
+              {% if nar_today %}[cite: 31]
+                <div class="ws4k-forecast-card">[cite: 31]
+                  <div class="ws4k-period-title">TODAY...</div>[cite: 31]
+                  <div class="ws4k-period-text">{{ nar_today }}</div>[cite: 31]
+                </div>
+              {% else %}
+                <div class="ws4k-forecast-card">[cite: 31]
+                  <div class="ws4k-period-title">TODAY...</div>[cite: 31]
+                  <div class="ws4k-period-text">SEASONABLE WITH LOCAL MARITIME FLOW. TEMPS PEAKING NEAR NORMAL BENCHMARKS.</div>
+                </div>
+              {% endif %}
+
+              {% if nar_tonight %}[cite: 31]
+                <div class="ws4k-forecast-card">[cite: 31]
+                  <div class="ws4k-period-title">TONIGHT...</div>[cite: 31]
+                  <div class="ws4k-period-text">{{ nar_tonight }}</div>[cite: 31]
+                </div>
+              {% else %}
+                <div class="ws4k-forecast-card">[cite: 31]
+                  <div class="ws4k-period-title">TONIGHT...</div>[cite: 31]
+                  <div class="ws4k-period-text">PARTLY CLOUDY SKIES WITH MILD ONSHORE BREEZES ALONG PUGET SOUND BASIN.</div>
+                </div>
+              {% endif %}
+
+              {% if nar_tomorrow %}[cite: 31]
+                <div class="ws4k-forecast-card">[cite: 31]
+                  <div class="ws4k-period-title">TOMORROW...</div>[cite: 31]
+                  <div class="ws4k-period-text">{{ nar_tomorrow }}</div>[cite: 31]
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          {# Cycle View 3: Extended Outlook (3 Days) #}
+          <div class="ws4k-view-pane" id="ws4k-view-3">[cite: 31]
+            <div class="ws4k-extended-grid">[cite: 31]
+              {% if extended_forecast and extended_forecast.length >= 3 %}[cite: 31]
+                {% for f in extended_forecast.slice(0, 3) %}
+                  {% set f_cond = (f.condition | default('fair')) | lower %}
+                  <div class="ws4k-extended-card">[cite: 31]
+                    <div class="ws4k-day-tag">{{ f.day | upper }}</div>[cite: 31]
+                    <div class="ws4k-retro-icon" aria-hidden="true">[cite: 31]
+                      <svg viewBox="0 0 32 32" fill="none" class="ws4k-retro-svg">
+                        {% if 'rain' in f_cond or 'shower' in f_cond %}
+                          <path d="M7 19a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 19H7z" fill="#FFFFFF" />
+                          <line x1="12" y1="22" x2="10" y2="27" stroke="#FFFF00" stroke-width="2" />
+                          <line x1="18" y1="22" x2="16" y2="27" stroke="#FFFF00" stroke-width="2" />
+                        {% elif 'cloud' in f_cond %}
+                          <circle cx="11" cy="11" r="5" fill="#FFFF00" />
+                          <path d="M8 22a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 26 22H8z" fill="#FFFFFF" />
+                        {% else %}
+                          <circle cx="16" cy="16" r="7" fill="#FFFF00" />
+                          <line x1="16" y1="4" x2="16" y2="8" stroke="#FFFF00" stroke-width="2.5" />
+                          <line x1="16" y1="24" x2="16" y2="28" stroke="#FFFF00" stroke-width="2.5" />
+                          <line x1="4" y1="16" x2="8" y2="16" stroke="#FFFF00" stroke-width="2.5" />
+                          <line x1="24" y1="16" x2="28" y2="16" stroke="#FFFF00" stroke-width="2.5" />
+                        {% endif %}
+                      </svg>
+                    </div>
+                    <div class="ws4k-cond-tag">{{ (f.condition | default('FAIR')) | upper }}</div>[cite: 31]
+                    <div class="ws4k-temps-tag">{{ f.high }} / {{ f.low }}</div>[cite: 31]
+                  </div>
+                {% endfor %}
+              {% else %}
+                {# Standard Fallback Sequence #}
+                <div class="ws4k-extended-card">[cite: 31]
+                  <div class="ws4k-day-tag">DAY 1</div>
+                  <div class="ws4k-retro-icon" aria-hidden="true">[cite: 31]
+                    <svg viewBox="0 0 32 32" fill="none" class="ws4k-retro-svg">
+                      <circle cx="16" cy="16" r="7" fill="#FFFF00" />
+                      <line x1="16" y1="4" x2="16" y2="8" stroke="#FFFF00" stroke-width="2.5" />
+                      <line x1="16" y1="24" x2="16" y2="28" stroke="#FFFF00" stroke-width="2.5" />
+                      <line x1="4" y1="16" x2="8" y2="16" stroke="#FFFF00" stroke-width="2.5" />
+                      <line x1="24" y1="16" x2="28" y2="16" stroke="#FFFF00" stroke-width="2.5" />
+                    </svg>
+                  </div>
+                  <div class="ws4k-cond-tag">SEASONABLE</div>
+                  <div class="ws4k-temps-tag">— / —</div>
+                </div>
+                <div class="ws4k-extended-card">[cite: 31]
+                  <div class="ws4k-day-tag">DAY 2</div>
+                  <div class="ws4k-retro-icon" aria-hidden="true">[cite: 31]
+                    <svg viewBox="0 0 32 32" fill="none" class="ws4k-retro-svg">
+                      <circle cx="11" cy="11" r="5" fill="#FFFF00" />
+                      <path d="M8 22a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 26 22H8z" fill="#FFFFFF" />
+                    </svg>
+                  </div>
+                  <div class="ws4k-cond-tag">PT CLOUDY</div>[cite: 31]
+                  <div class="ws4k-temps-tag">— / —</div>
+                </div>
+                <div class="ws4k-extended-card">[cite: 31]
+                  <div class="ws4k-day-tag">DAY 3</div>
+                  <div class="ws4k-retro-icon" aria-hidden="true">[cite: 31]
+                    <svg viewBox="0 0 32 32" fill="none" class="ws4k-retro-svg">
+                      <path d="M7 19a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 19H7z" fill="#FFFFFF" />
+                      <line x1="12" y1="22" x2="10" y2="27" stroke="#FFFF00" stroke-width="2" />
+                      <line x1="18" y1="22" x2="16" y2="27" stroke="#FFFF00" stroke-width="2" />
+                    </svg>
+                  </div>
+                  <div class="ws4k-cond-tag">CHANCE RAIN</div>
+                  <div class="ws4k-temps-tag">— / —</div>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          {# Broadcast Footer & Dot Cycle Indicator #}
+          <div class="ws4k-broadcast-footer">[cite: 31]
+            <div class="ws4k-crawl-tag">LOCAL ON THE 8s</div>[cite: 31]
+            <div class="ws4k-dots-indicator" id="ws4k-cycle-dots" aria-live="polite">● ○ ○</div>[cite: 31]
+          </div>
+
         </div>
 
       </div>
 
     </div>
+
+    {# Scoped Zero-Global Sequencer & Audio Script #}
+    <script>
+      (function() {
+        const root = document.currentScript ? document.currentScript.closest('.weather-star-4000-tv-wrapper') : document.querySelector('.weather-star-4000-tv-wrapper');
+        if (!root) return;
+
+        let currentView = 1;
+        const titles = [
+          "CURRENT CONDITIONS",
+          "36-HOUR FORECAST",
+          "EXTENDED OUTLOOK"
+        ];
+        const dots = ["● ○ ○", "○ ● ○", "○ ○ ●"];
+
+        const v1 = root.querySelector('#ws4k-view-1');
+        const v2 = root.querySelector('#ws4k-view-2');
+        const v3 = root.querySelector('#ws4k-view-3');
+        const titleEl = root.querySelector('#ws4k-view-title');
+        const dotsEl = root.querySelector('#ws4k-cycle-dots');
+
+        // Automatic 10-Second Broadcast Carousel
+        setInterval(() => {
+          if (!v1 || !v2 || !v3) return;
+          currentView = (currentView % 3) + 1;
+
+          v1.classList.toggle('is-active', currentView === 1);
+          v2.classList.toggle('is-active', currentView === 2);
+          v3.classList.toggle('is-active', currentView === 3);
+
+          if (titleEl) titleEl.textContent = titles[currentView - 1];
+          if (dotsEl) dotsEl.textContent = dots[currentView - 1];
+        }, 10000);
+
+        // Ambient Smooth Jazz Audio Controller
+        const audioBtn = root.querySelector('#ws4k-audio-btn');
+        const audioStream = root.querySelector('#ws4k-audio-stream');
+        const iconMuted = root.querySelector('#ws4k-icon-muted');
+        const iconPlaying = root.querySelector('#ws4k-icon-playing');
+        const audioLabel = root.querySelector('#ws4k-audio-label');
+
+        if (audioBtn && audioStream) {
+          audioBtn.addEventListener('click', () => {
+            if (audioStream.paused) {
+              audioStream.play().then(() => {
+                if (iconMuted) iconMuted.style.display = 'none';
+                if (iconPlaying) iconPlaying.style.display = 'block';
+                if (audioLabel) audioLabel.textContent = 'Playing Jazz';
+              }).catch(err => {
+                console.warn('Audio playback prevented by browser policy:', err);
+              });
+            } else {
+              audioStream.pause();
+              if (iconMuted) iconMuted.style.display = 'block';
+              if (iconPlaying) iconPlaying.style.display = 'none';
+              if (audioLabel) audioLabel.textContent = 'Smooth Jazz';
+            }
+          });
+        }
+      })();
+    </script>
 
   </div>
-
-  <style>
-    @keyframes crtTracking {
-      0% { top: -20px; }
-      100% { top: 100%; }
-    }
-  </style>
-
-  <script>
-    (function initWeatherStar() {
-      let currentView = 1;
-      const titles = [
-        "CURRENT CONDITIONS",
-        "36-HOUR FORECAST",
-        "EXTENDED OUTLOOK"
-      ];
-      const dots = ["● ○ ○", "○ ● ○", "○ ○ ●"];
-
-      setInterval(() => {
-        const v1 = document.getElementById('ws4k-view-1');
-        const v2 = document.getElementById('ws4k-view-2');
-        const v3 = document.getElementById('ws4k-view-3');
-        const titleEl = document.getElementById('ws4k-view-title');
-        const dotEl = document.getElementById('ws4k-cycle-indicator');
-        if (!v1 || !v2 || !v3) return;
-
-        currentView = (currentView % 3) + 1;
-
-        v1.style.display = currentView === 1 ? 'flex' : 'none';
-        v2.style.display = currentView === 2 ? 'flex' : 'none';
-        v3.style.display = currentView === 3 ? 'flex' : 'none';
-
-        if (titleEl) titleEl.textContent = titles[currentView - 1];
-        if (dotEl) dotEl.textContent = dots[currentView - 1];
-      }, 10000);
-    })();
-
-    function toggleWs4kAudio() {
-      const audio = document.getElementById('ws4k-audio-stream');
-      const icon = document.getElementById('ws4k-speaker-icon');
-      const label = document.getElementById('ws4k-audio-label');
-      if (!audio) return;
-      if (audio.paused) {
-        audio.play().catch(e => console.log('Audio autoplay prevented:', e));
-        if (icon) icon.textContent = '🔊';
-        if (label) label.textContent = 'Playing Jazz';
-      } else {
-        audio.pause();
-        if (icon) icon.textContent = '🔇';
-        if (label) label.textContent = 'Jazz Music';
-      }
-    }
-  </script>
-
-</div>
+{% endif %}

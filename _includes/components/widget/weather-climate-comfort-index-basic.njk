@@ -1,68 +1,138 @@
 <!-- File: _includes/components/widget/weather-climate-comfort-index-basic.njk -->
-<div class="widget-card climate-comfort-basic-card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; padding: 1.5rem; width: 100%;">
-  
-  {# Header Row: Category & Methodology Trigger #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.75rem;">
-    <div>
-      <span class="text-overline">CLIMATE COMFORT INDEX</span>
-      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
-        {{ climate_station | default("Station: North Sound & Snohomish Coast (KPAE)") }}
-      </div>
-    </div>
-    <button type="button" 
-            class="btn-info-trigger" 
-            aria-label="View Climate Comfort methodology" 
-            onclick="document.getElementById('dialog-climate-basic').showModal();">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="10"></circle>
-        <line x1="12" y1="16" x2="12" y2="12"></line>
-        <line x1="12" y1="8" x2="12.01" y2="8"></line>
-      </svg>
-    </button>
-  </div>
+{# 
+  COMPONENT: Basic Climate Comfort Radial Dial (widget.weather.climate.comfort.index.basic)
+  PURPOSE: Compact dial measuring maritime temperature and humidity livability.
+  CONTRACT:
+    - climate_comfort_score / comfort_score: Number [Required, 0-100]
+    - climate_station / station_name: String [Optional, NOAA/ASOS station identifier]
+    - climate_rating_label / rating_label: String [Optional, e.g. "High Seasonal Comfort"]
+    - climate_summary_text / summary_text: String [Optional, descriptive narrative]
+    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+#}
 
-  {# Center Radial / Score Display #}
-  {% set comfort_score = climate_comfort_score | default(78) %}
-  {% set comfort_stroke = "var(--color-secondary-default)" %}
-  {% if comfort_score >= 80 %}
-    {% set comfort_stroke = "#10B981" %}
-  {% elif comfort_score < 50 %}
-    {% set comfort_stroke = "var(--color-tertiary-default)" %}
+{% set raw_score = climate_comfort_score if climate_comfort_score is defined else comfort_score %}
+{% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
+
+{% if raw_score is not none and raw_score != '' %}
+  {% set comfort_num = raw_score | int %}
+  {% set station = climate_station or station_name %}
+  
+  {# Color Tiering Logic #}
+  {% if comfort_num >= 80 %}
+    {% set tier_class = "comfort-tier-high" %}
+    {% set default_rating = "High Seasonal Comfort" %}
+  {% elif comfort_num >= 50 %}
+    {% set tier_class = "comfort-tier-moderate" %}
+    {% set default_rating = "Moderate Comfort" %}
+  {% else %}
+    {% set tier_class = "comfort-tier-low" %}
+    {% set default_rating = "Elevated Seasonal Distress" %}
   {% endif %}
 
-  <div style="display: flex; align-items: center; gap: 1.25rem; margin: 0.75rem 0;">
-    <div style="position: relative; width: 80px; height: 80px; flex-shrink: 0;">
-      <svg width="80" height="80" viewBox="0 0 100 100" style="transform: rotate(-90deg);" aria-hidden="true">
-        <circle cx="50" cy="50" r="38" stroke="var(--color-border-light)" stroke-width="8" fill="transparent"></circle>
-        <circle cx="50" cy="50" r="38" stroke="{{ comfort_stroke }}" stroke-width="8" fill="transparent"
-                stroke-dasharray="238.7"
-                stroke-dashoffset="{{ 238.7 - (238.7 * comfort_score) / 100 }}"
-                stroke-linecap="round"
-                style="transition: stroke-dashoffset 0.6s ease;"></circle>
-      </svg>
-      <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
-        <span class="text-data-huge" style="font-size: 1.6rem; color: {{ comfort_stroke }};">{{ comfort_score }}</span>
+  {% set rating_text = climate_rating_label or rating_label or default_rating %}
+  {% set summary_text = climate_summary_text or summary_text %}
+  {% set modal_id = "dialog-climate-basic-" ~ (active_neighborhood | slugify | default('local')) %}
+
+  {# Arc Stroke Math (Circumference 2 * PI * 38 = 238.76) #}
+  {% set capped_score = 100 if comfort_num > 100 else (0 if comfort_num < 0 else comfort_num) %}
+  {% set dash_offset = (238.7 - (238.7 * capped_score / 100)) | round(1) %}
+
+  <section class="widget-card climate-comfort-basic-card {{ tier_class }}" aria-label="Climate Comfort Index for {{ active_neighborhood | default('This Neighborhood') }}: {{ comfort_num }}/100">
+    
+    {# Header Row: Category & Methodology Trigger #}
+    <header class="climate-header-row">
+      <div class="climate-title-stack">
+        <span class="text-overline text-accent-alpine">
+          CLIMATE COMFORT INDEX
+        </span>
+        {% if station %}
+          <div class="climate-station-caption">
+            {{ station }}
+          </div>
+        {% endif %}
+      </div>
+
+      <button type="button" 
+              class="btn-climate-trigger" 
+              aria-label="View Climate Comfort methodology" 
+              onclick="document.getElementById('{{ modal_id }}').showModal();">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </button>
+    </header>
+
+    {# Center Radial / Score Display #}
+    <div class="climate-dial-lockup">
+      <div class="climate-dial-stage">
+        <svg viewBox="0 0 100 100" class="climate-dial-svg" role="meter" aria-valuenow="{{ comfort_num }}" aria-valuemin="0" aria-valuemax="100" aria-valuetext="{{ comfort_num }} out of 100 ({{ rating_text }})">
+          {# Standardized Muted Charcoal Track #}
+          <circle cx="50" cy="50" r="38" class="climate-track-circle" />
+          {# Active Segment Sweep #}
+          <circle cx="50" cy="50" r="38" class="climate-progress-arc" stroke-dashoffset="{{ dash_offset }}" />
+        </svg>
+        <div class="climate-dial-center-val">
+          <span class="climate-score-number">{{ comfort_num }}</span>
+        </div>
+      </div>
+
+      <div class="climate-dial-details">
+        <span class="climate-rating-pill">
+          {{ rating_text }}
+        </span>
+        {% if summary_text %}
+          <p class="climate-summary-snippet">
+            {{ summary_text }}
+          </p>
+        {% endif %}
       </div>
     </div>
 
-    <div>
-      <div style="display: inline-block; padding: 0.2rem 0.6rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 999px; font-size: 0.75rem; font-weight: 700; color: {{ comfort_stroke }}; margin-bottom: 0.35rem;">
-        {{ climate_rating_label | default("High Seasonal Comfort") }}
+    {# Liquid Glass Methodology Dialog #}
+    <dialog id="{{ modal_id }}" class="climate-info-dialog" aria-labelledby="{{ modal_id }}-title">
+      <div class="climate-glass-sheet">
+        <button type="button" 
+                class="btn-climate-dialog-close" 
+                aria-label="Close climate methodology" 
+                onclick="this.closest('dialog').close();">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+
+        <span class="text-overline text-accent-alpine">
+          SCIENTIFIC METHODOLOGY
+        </span>
+        <h3 id="{{ modal_id }}-title" class="climate-dialog-title">
+          Climate Comfort Index
+        </h3>
+        <div class="climate-dialog-body">
+          Measures annual days between 65°F and 82°F with dew points below 58°F, normalized against maritime rain frequency. Calculated from regional NOAA/ASOS weather observations serving {{ active_neighborhood | default('this neighborhood') }}.
+        </div>
       </div>
-      <p class="text-body-secondary" style="font-size: 0.85rem; line-height: 1.45; margin: 0;">
-        {{ climate_summary_text | default("Temperate maritime climate with mild summer highs and low humidity distress.") }}
-      </p>
-    </div>
-  </div>
+    </dialog>
 
-  {# Accessible Method Dialog #}
-  <dialog id="dialog-climate-basic" class="info-dialog">
-    <button type="button" class="btn-dialog-close" aria-label="Close climate info" onclick="document.getElementById('dialog-climate-basic').close();">✕</button>
-    <div class="text-overline" style="margin-bottom: 0.5rem;">Methodology</div>
-    <h3 class="text-widget-title">Climate Comfort Index</h3>
-    <div class="text-body-secondary" style="margin-top: 1rem; line-height: 1.6;">
-      Measures annual days between 65°F and 82°F with dew points below 58°F, normalized against maritime rain frequency. Calculated from regional NOAA/ASOS weather feeds at KPAE.
-    </div>
-  </dialog>
+  </section>
 
-</div>
+  {# Scoped Zero-Dependency Backdrop Dismissal #}
+  <script>
+    (function() {
+      const dialog = document.getElementById('{{ modal_id }}');
+      if (!dialog) return;
+      dialog.addEventListener('click', function(e) {
+        const rect = dialog.getBoundingClientRect();
+        const isInDialog = (
+          rect.top <= e.clientY &&
+          e.clientY <= rect.top + rect.height &&
+          rect.left <= e.clientX &&
+          e.clientX <= rect.left + rect.width
+        );
+        if (!isInDialog) {
+          dialog.close();
+        }
+      });
+    })();
+  </script>
+{% endif %}

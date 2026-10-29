@@ -1,79 +1,31 @@
 <!-- File: _includes/components/score/walkscore-bikescore.njk -->
-{% set val = score_bike_val | default(68) %}
-{% set score_color = "var(--color-secondary-default)" %}
-{% set score_label = "Bikeable" %}
-{% if val < 50 %}
-  {% set score_color = "#D97706" %}
-  {% set score_label = "Somewhat Bikeable" %}
-{% elif val >= 90 %}
-  {% set score_color = "#10B981" %}
-  {% set score_label = "Biker's Paradise" %}
-{% elif val >= 70 %}
-  {% set score_color = "#10B981" %}
-  {% set score_label = "Very Bikeable" %}
+{# 
+  COMPONENT: Bike Score® Cycling Infrastructure Index (score.walkscore.bikescore)
+  PURPOSE: Official Bike Score® measurement based on bike lanes, hills, and road connectivity.
+#}
+
+{% set val = score_bike_val if score_bike_val is defined else (walkscore.bike if walkscore else null) %}
+
+{% if val is defined and val is not none %}
+  {% set tier_badge = "score-tier-emerald" if val >= 90 else ("score-tier-alpine" if val >= 70 else ("score-tier-amber" if val >= 50 else "score-tier-crimson")) %}
+  {% set tier_text = "text-tier-emerald" if val >= 90 else ("text-tier-alpine" if val >= 70 else ("text-tier-amber" if val >= 50 else "text-tier-crimson")) %}
+  {% set tier_label = "Biker's Paradise" if val >= 90 else ("Very Bikeable" if val >= 70 else ("Bikeable" if val >= 50 else "Somewhat Bikeable")) %}
+
+  {% set score = {
+    id: "bikescore",
+    title: "BikeScore® Cycling Index",
+    overline: "CYCLING & MICRO-MOBILITY",
+    value: val,
+    label: tier_label,
+    tier_badge: tier_badge,
+    tier_text: tier_text,
+    detail: score_bike_detail or "Biking is convenient for daily commutes and recreational errands.",
+    source: "Walk Score® Index",
+    scale: "Scale 0–100",
+    methodology: "Evaluates bicycle friendliness by analyzing bike lane infrastructure, street topography (gradient slope penalty), road network connectivity, and destination density.",
+    formula: "Formula: Proprietary Bike Score® multi-factor topographic algorithm",
+    scale_notes: "90–100: Biker's Paradise • 70–89: Very Bikeable • 50–69: Bikeable • <50: Somewhat Bikeable"
+  } %}
+
+  {% include "components/widget/custom-score.njk" %}
 {% endif %}
-
-<div class="widget-card score-card score-bikescore-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; box-sizing: border-box;">
-  
-  {# Header Row #}
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
-    <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        BIKE INFRASTRUCTURE
-      </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.1rem;">
-        Bike Score®
-      </h3>
-    </div>
-    
-    <button type="button" 
-            class="btn-info-trigger" 
-            aria-label="View Bike Score methodology" 
-            onclick="document.getElementById('dialog-score-bike').showModal();"
-            style="width: 28px; height: 28px; border-radius: 50%; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; cursor: pointer; color: #86868b;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-    </button>
-  </div>
-
-  {# Center Score Display: Squircle Badge #}
-  <div style="display: flex; align-items: center; gap: 1rem; margin: 1rem 0;">
-    <div style="width: 58px; height: 58px; border-radius: var(--border-radius-squircle); background: {{ score_color }}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
-      <span class="text-data-huge" style="font-size: 1.75rem; color: #FFFFFF; line-height: 1; font-weight: 800;">
-        {{ val }}
-      </span>
-    </div>
-
-    <div>
-      <div style="font-size: 0.95rem; font-weight: 800; color: {{ score_color }};">
-        {{ score_label }}
-      </div>
-      <div class="text-body-secondary" style="font-size: 0.75rem; margin-top: 0.15rem;">
-        {{ score_bike_detail | default("Some dedicated bike lanes, trails, and manageable coastal topography.") }}
-      </div>
-    </div>
-  </div>
-
-  {# Footer #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem;" class="text-body-secondary">
-    <span>Data Source: Walk Score® Bike Index</span>
-    <span style="font-family: monospace; font-weight: 600;">Scale 0–100</span>
-  </div>
-
-  {# Methodology Modal Dialog #}
-  <dialog id="dialog-score-bike" class="info-dialog" style="padding: 1.5rem; border-radius: var(--border-radius-squircle); border: 1px solid var(--color-border-light); max-width: 440px; background: var(--color-background-universal); box-shadow: 0 20px 48px rgba(0,0,0,0.2);">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-      <div>
-        <span class="text-overline" style="color: var(--color-secondary-default);">METHODOLOGY</span>
-        <h4 class="text-widget-title" style="margin: 0.15rem 0 0 0;">Bike Score® Measurement</h4>
-      </div>
-      <button type="button" onclick="document.getElementById('dialog-score-bike').close();" style="border: none; background: var(--color-surface-gray); border-radius: 50%; width: 28px; height: 28px; cursor: pointer;">✕</button>
-    </div>
-    <p class="text-body-secondary" style="font-size: 0.85rem; line-height: 1.5; margin: 0 0 0.75rem 0;">
-      Measures bikeability by analyzing bike infrastructure (lanes, trails), hill topography, road connectivity, and local commuter destinations.
-    </p>
-    <div style="background: var(--color-surface-gray); padding: 0.65rem; border-radius: 8px; font-size: 0.75rem;">
-      90–100: Biker's Paradise • 70–89: Very Bikeable • 50–69: Bikeable
-    </div>
-  </dialog>
-
-</div>

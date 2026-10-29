@@ -1,0 +1,31 @@
+<!-- File: _includes/components/score/custom-shore.njk -->
+{# 
+  COMPONENT: Shoreline & Beach Access Index (score.custom.shore)
+  PURPOSE: Linear miles of public beach and shoreline normalized against neighborhood land area.
+#}
+
+{% set val = score_shore_val if score_shore_val is defined else (scores.shore if scores else null) %}
+
+{% if val is defined and val is not none %}
+  {% set tier_badge = "score-tier-emerald" if val >= 75 else ("score-tier-alpine" if val >= 40 else ("score-tier-amber" if val >= 15 else "score-tier-crimson")) %}
+  {% set tier_text = "text-tier-emerald" if val >= 75 else ("text-tier-alpine" if val >= 40 else ("text-tier-amber" if val >= 15 else "text-tier-crimson")) %}
+  {% set tier_label = "Waterfront Paradise" if val >= 75 else ("Extensive Coastline" if val >= 40 else ("Coastal Vicinity" if val >= 15 else "Inland / Non-Coastal")) %}
+
+  {% set score = {
+    id: "shore",
+    title: "Shoreline Access Index",
+    overline: "MARITIME ACCESS & SHORELINE",
+    value: val,
+    label: tier_label,
+    tier_badge: tier_badge,
+    tier_text: tier_text,
+    detail: score_shore_detail or "Public saltwater and lake shoreline miles normalized per square mile of land.",
+    source: "WA Dept of Ecology & Coastal GIS",
+    scale: "Scale 0–100",
+    methodology: "Measures public saltwater beaches and lake shorelines divided by total neighborhood land area, normalized against a Puget Sound coastal maximum benchmark of 1.5 shoreline miles per square mile.",
+    formula: "Formula: MIN(100, ROUND((Shoreline_Miles / Area_Sq_Mi) / 1.5 * 100, 0))",
+    scale_notes: "75+: Waterfront Paradise • 40–74: Extensive Coastline • 15–39: Coastal Vicinity • <15: Inland"
+  } %}
+
+  {% include "components/widget/custom-score.njk" %}
+{% endif %}

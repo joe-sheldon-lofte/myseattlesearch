@@ -1,41 +1,94 @@
 <!-- File: _includes/components/widget/map-custom.njk -->
-{% set active_city_name = map_city or city.City or "Shoreline" %}
-{% set map_lat = map_lat or city.Latitude | default(47.7560) %}
-{% set map_lon = map_lon or city.Longitude | default(-122.3415) %}
-{% set map_accent_color = map_accent or city.PrimaryColor or "var(--color-secondary-default)" %}
-{% set map_title = map_title | default(active_city_name + " Geography & Infrastructure") %}
-{% set map_zoom = map_zoom | default(12) %}
-{% set map_aspect = map_aspect | default("16 / 10") %}
-{% set map_min_height = map_min_height | default("240px") %}
-{% set map_max_height = map_max_height | default("480px") %}
+{# 
+  COMPONENT: Master Polymorphic Geographic Map Engine (widget.map.custom)[cite: 25]
+  PURPOSE: Fluid interactive vector & raster cartographic viewport across all 58 neighborhoods[cite: 25].
+  CONTRACT:
+    - map_lat / neighborhood.latitude / city.Latitude: Number [Required][cite: 25]
+    - map_lon / neighborhood.longitude / city.Longitude: Number [Required][cite: 25]
+    - map_neighborhood / neighborhood.name / city.City: String [Optional][cite: 25]
+    - map_layer / layer: String [Optional: "base", "emergencies", "transit", "weather" - defaults to "base"]
+    - map_title: String [Optional, overrides default title][cite: 25]
+    - map_overline: String [Optional, overrides default overline][cite: 25]
+    - map_zoom: Number [Optional, defaults to 12][cite: 25]
+    - map_aspect_class: String [Optional, e.g. "map-aspect-widescreen", "map-aspect-square"]
+    - map_accent_color: String [Optional, defaults to Alpine Blue][cite: 25]
+#}
 
-<div class="widget-card custom-map-card" style="padding: 1.5rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1rem; box-sizing: border-box;">
-  
-  {# Header Row #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem;">
-    <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        LOCAL OVERVIEW
-      </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.15rem;">
-        {{ map_title }}
-      </h3>
+{% set active_neighborhood = map_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
+{% set lat_val = map_lat if map_lat is defined else ((neighborhood.latitude if neighborhood else null) or (city.Latitude if city else null)) %}[cite: 25]
+{% set lon_val = map_lon if map_lon is defined else ((neighborhood.longitude if neighborhood else null) or (city.Longitude if city else null)) %}[cite: 25]
+
+{% if lat_val and lon_val %}
+  {% set layer_mode = map_layer or layer or "base" %}
+  {% set zoom_val = map_zoom | default(12) %}[cite: 25]
+  {% set accent_color = map_accent_color or "var(--alpine-blue)" %}
+  {% set aspect_modifier = map_aspect_class | default("") %}
+
+  {# Dynamic Domain Layer Labels & Badges #}
+  {% set default_overline = "LOCAL OVERVIEW" %}[cite: 25]
+  {% set default_title = (active_neighborhood ~ " Geography & Infrastructure") if active_neighborhood else "Regional Geography & Infrastructure" %}[cite: 25]
+  {% set pill_class = "layer-base" %}
+  {% set pill_label = "Base Cartography" %}
+
+  {% if layer_mode == "emergencies" %}
+    {% set default_overline = "EMERGENCY & CIVIL DEFENSE" %}
+    {% set default_title = (active_neighborhood ~ " Emergency Infrastructure & Evacuation") if active_neighborhood else "Emergency Corridors & Shelters" %}
+    {% set pill_class = "layer-emergency" %}
+    {% set pill_label = "Civil Defense Telemetry" %}
+  {% elif layer_mode == "transit" %}
+    {% set default_overline = "REGIONAL MOBILITY" %}
+    {% set default_title = (active_neighborhood ~ " Transit Corridors & Rail Lines") if active_neighborhood else "Transit Lines & Regional Corridors" %}
+    {% set pill_class = "layer-transit" %}
+    {% set pill_label = "Multi-Modal Corridors" %}
+  {% elif layer_mode == "weather" %}
+    {% set default_overline = "ATMOSPHERIC INTELLIGENCE" %}
+    {% set default_title = (active_neighborhood ~ " Microclimates & Doppler Radar") if active_neighborhood else "Regional Doppler & Sensor Network" %}
+    {% set pill_class = "layer-weather" %}
+    {% set pill_label = "Live Doppler Sweep" %}
+  {% endif %}
+
+  {% set card_overline = map_overline | default(default_overline) %}[cite: 25]
+  {% set card_title = map_title | default(default_title) %}[cite: 25]
+
+  <section class="widget-card custom-map-card" aria-label="{{ card_title }}">[cite: 25]
+    
+    {# Header Row #}
+    <header class="map-header-row">[cite: 25]
+      <div class="map-title-stack">
+        <span class="text-overline text-accent-alpine">
+          {{ card_overline }}
+        </span>
+        <h3 class="text-widget-title map-card-title">[cite: 25]
+          {{ card_title }}[cite: 25]
+        </h3>
+      </div>
+
+      <div class="map-layer-pill {{ pill_class }}">
+        <span class="map-pulse-dot" aria-hidden="true"></span>
+        <span>{{ pill_label }}</span>
+      </div>
+    </header>
+
+    {# Fluid Map Viewport Container #}
+    <div class="map-viewport-frame {{ aspect_modifier }}">[cite: 25]
+      <neighborhood-map 
+        lat="{{ lat_val }}" 
+        lon="{{ lon_val }}" 
+        zoom="{{ zoom_val }}"
+        layer="{{ layer_mode }}"
+        active-neighborhood="{{ active_neighborhood | default('Local Area') }}"
+        accent-color="{{ accent_color }}">[cite: 25]
+      </neighborhood-map>
     </div>
-  </div>
 
-  {# Fluid Map Viewport Container (Zero rigid height locks per Section 6) #}
-  <div style="width: 100%; aspect-ratio: {{ map_aspect }}; min-height: {{ map_min_height }}; max-height: {{ map_max_height }}; border-radius: 8px; overflow: hidden; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); position: relative;">
-    <neighborhood-map 
-      lat="{{ map_lat }}" 
-      lon="{{ map_lon }}" 
-      zoom="{{ map_zoom }}"
-      active-city="{{ active_city_name }}"
-      accent-color="{{ map_accent_color }}"
-      style="display: block; width: 100%; height: 100%;">
-    </neighborhood-map>
-  </div>
+    {# Footer Metadata Coordinates #}
+    <footer class="map-footer-row">
+      <span>{{ active_neighborhood | default("Puget Sound Basin") }}, WA</span>
+      <span class="map-coordinates-tag">{{ lat_val | round(4) }}° N, {{ (lon_val | abs) | round(4) }}° W</span>
+    </footer>
 
-  {# Client-side Web Component script #}
-  <script src="/scripts/utilities/neighborhood-map.js" type="module" defer></script>
-  
-</div>
+  </section>
+
+  {# Client-side Web Component Script Guard #}
+  <script type="module" src="/scripts/utilities/neighborhood-map.js" defer></script>[cite: 25]
+{% endif %}
