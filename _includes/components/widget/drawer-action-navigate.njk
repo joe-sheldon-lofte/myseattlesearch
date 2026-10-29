@@ -1,18 +1,3 @@
-<!-- File: _includes/components/widget/drawer-action-navigate.njk -->
-{# 
-  COMPONENT: Universal Page Navigation Sheet (widget.drawer.action.navigate)
-  CONTRACT:
-    - page_nav_sections / nav_sections: Array of Objects [Optional]
-      Each object expects:
-      - id: String (e.g. "market-stats")
-      - label: String (e.g. "Market Statistics")
-  BEHAVIOR:
-    Universal bottom sheet for jumping to anchor IDs.
-    Strict minimalist layout: "Navigation" header, "Return to Top" first, followed by sections.
-#}
-
-{% set sections = page_nav_sections or nav_sections or [] %}
-
 <div id="drawer-action-navigate" 
      class="action-drawer-bottom navigate-drawer" 
      role="dialog" 
@@ -22,79 +7,75 @@
   {# Backdrop Scrim #}
   <div class="drawer-scrim" onclick="closeNavigateDrawer()"></div>
 
-  {# Liquid Glass Bottom Sheet #}
-  <div class="drawer-panel liquid-glass-surface drawer-panel-tall">
-    
-    {# Sheet Grab Handle #}
+  {# Slide-Up Panel #}
+  <div class="drawer-panel">
     <div class="drawer-grab-handle" aria-hidden="true"></div>
 
-    {# Minimalist Header #}
-    <div class="card-header-split drawer-header-strip" style="align-items: center;">
-      <h3 class="text-widget-title" style="margin: 0;">Navigation</h3>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+      <h3 class="text-widget-title" style="margin: 0; font-size: 1.15rem;">On This Page</h3>
       <button type="button" 
               class="btn-drawer-close" 
               aria-label="Close navigation drawer" 
-              onclick="closeNavigateDrawer()">
-        ✕
-      </button>
+              onclick="closeNavigateDrawer()">✕</button>
     </div>
 
-    {# Scrollable List of Text-Only Anchors #}
-    <div class="navigate-section-list">
-      
-      {# Pinned Return to Top Action #}
-      <a href="#top" 
-         onclick="handleSectionJump(event, 'top')"
-         class="navigate-list-item">
-        <span class="navigate-item-label" style="color: var(--color-secondary-default);">Return to Top</span>
-        <span class="link-external-arrow" aria-hidden="true" style="color: var(--color-secondary-default);">↑</span>
+    <nav class="navigate-section-list" id="navigateSectionList">
+      <a href="#main-content" onclick="handleSectionJump(event, 'main-content')" class="navigate-list-item">
+        <span>Return to Top</span>
+        <span aria-hidden="true">&uarr;</span>
       </a>
-
-      {# Dynamic Page Sections #}
-      {% for sec in sections %}
-        <a href="#{{ sec.id }}" 
-           onclick="handleSectionJump(event, '{{ sec.id }}')"
-           class="navigate-list-item">
-          <span class="navigate-item-label">{{ sec.label }}</span>
-        </a>
-      {% else %}
-        <div class="text-body-secondary" style="font-size: 0.85rem; padding: 1rem 0;">
-          No sections defined for this page.
-        </div>
-      {% endfor %}
-    </div>
-
+      {# Sections Populated Dynamically via JS #}
+    </nav>
   </div>
 
   <script>
     function openNavigateDrawer() {
       const drawer = document.getElementById('drawer-action-navigate');
-      if (drawer) drawer.classList.add('is-open');
+      if (!drawer) return;
+      
+      const list = document.getElementById('navigateSectionList');
+      const sections = document.querySelectorAll('section[id]');
+      
+      if (list && sections.length > 0 && list.children.length === 1) {
+        sections.forEach(sec => {
+          const heading = sec.querySelector('h1, h2, h3');
+          const title = heading ? heading.textContent.trim() : sec.id;
+          const link = document.createElement('a');
+          link.href = '#' + sec.id;
+          link.className = 'navigate-list-item';
+          link.innerHTML = `<span>${title}</span><span aria-hidden="true">&rarr;</span>`;
+          link.onclick = (e) => handleSectionJump(e, sec.id);
+          list.appendChild(link);
+        });
+      }
+
+      drawer.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
     }
-    
+
     function closeNavigateDrawer() {
       const drawer = document.getElementById('drawer-action-navigate');
-      if (drawer) drawer.classList.remove('is-open');
+      if (drawer) {
+        drawer.classList.remove('is-open');
+        document.body.style.overflow = '';
+      }
     }
-    
+
     function handleSectionJump(e, id) {
       e.preventDefault();
       closeNavigateDrawer();
-      if (id === 'top') {
-        setTimeout(() => {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 150);
+      if (id === 'main-content' || id === 'top') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
       const el = document.getElementById(id);
       if (el) {
-        setTimeout(() => {
-          el.scrollIntoView({ behavior: 'smooth' });
-        }, 150);
-      } else {
-        window.location.hash = id;
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 120);
       }
     }
-  </script>
 
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeNavigateDrawer();
+    });
+  </script>
 </div>

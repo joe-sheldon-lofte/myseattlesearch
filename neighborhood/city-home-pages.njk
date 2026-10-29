@@ -1,0 +1,178 @@
+---
+layout: base.njk
+pagination:
+  data: city_data
+  size: 1
+  alias: city
+permalink: "/neighborhood/{{ city.City | slugify }}/index.html"
+eleventyComputed:
+  title: "{{ city.City }}, WA | Neighborhood Guide & Local Intelligence"
+  meta_description: "Explore {{ city.City }}, Washington. Local real estate data, weather, transit scores, municipal services, schools, and community news."
+---
+
+{# =========================================================================
+   UNIVERSAL DATA BINDING BRIDGE
+   ========================================================================= #}
+{% set city_slug = city.City | slugify %}
+{% set slug = city_slug %}
+{% set current_city = city.City %}
+
+{# Expose city.slug directly to city object #}
+{% set city = city | default({}) %}
+
+{# Scoped Telemetry Payloads #}
+{% set weather = city_weather[city_slug] or city_weather[city.City] or {} %}
+{% set current_weather = weather.current or {} %}
+{% set transit = transit_radar_live[city_slug] or transit_radar_live[city.City] or {} %}
+{% set market_gauge = infosparks_stats[city.City] or infosparks_stats[city_slug] or {} %}
+{% set business_list = city_businesses[city_slug] or city_businesses[city.City] or {} %}
+{% set events_list = public_events_feed or public_events or [] %}
+{% set sports = sports_data or {} %}
+
+<div class="layout-container">
+
+  <!-- =========================================================================
+       SECTION 1.0: PAGE HEADER
+       Element: widget.neighborhood.page.header
+       ========================================================================= -->
+  <section id="header" class="portal-section-header">
+    {% include "components/widget/neighborhood-page-header.njk" ignore missing %}
+  </section>
+
+  <!-- =========================================================================
+       SECTION 2.0: AT A GLANCE BAR (6 POSITIONS)
+       ========================================================================= -->
+  <section id="at-a-glance" class="portal-section-glance" aria-label="{{ city.City }} At A Glance">
+    <div class="section-grid-static grid-cols-3">
+      
+      {# Pos 1: Weather Widget #}
+      <div class="glance-item">
+        {% include "components/widget/weather-current-widget.njk" ignore missing %}
+      </div>
+
+      {# Pos 2: Sunrise / Sunset Dial #}
+      <div class="glance-item">
+        {% include "components/widget/weather-sunrise-sunset.njk" ignore missing %}
+      </div>
+
+      {# Pos 3: Active Commute Score #}
+      <div class="glance-item">
+        {% include "components/score/custom-activecommute.njk" ignore missing %}
+      </div>
+
+      {# Pos 4: Active Transit Score #}
+      <div class="glance-item">
+        {% include "components/score/custom-activetransit.njk" ignore missing %}
+      </div>
+
+      {# Pos 5: Market Balance Gauge #}
+      <div class="glance-item">
+        {% include "components/widget/realestate-market-balance-gauge.njk" ignore missing %}
+      </div>
+
+      {# Pos 6: Sports Game Summary #}
+      <div class="glance-item">
+        {% include "components/widget/sports-game-summary.njk" ignore missing %}
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       SECTION 3.0: NAVIGATION TRACK
+       Element: widget.neighborhood.nav.links
+       ========================================================================= -->
+  <section id="navigation" class="portal-section-nav">
+    {% include "components/widget/neighborhood-nav-links.njk" ignore missing %}
+  </section>
+
+  <!-- =========================================================================
+       SECTION 4.0: FEATURED BUSINESSES (3x POSITIONS)
+       ========================================================================= -->
+  <section id="featured-businesses" class="portal-section-businesses" aria-label="Featured Local Businesses">
+    <div class="card-header-split">
+      <h2 class="text-section-title">Featured Local Businesses</h2>
+      <span class="text-body-secondary">Local Commerce &amp; Services</span>
+    </div>
+
+    <div class="section-grid-static grid-cols-3">
+      {# Pos 1 #}
+      <div>
+        {% set business_category = city.FeatCat1 or "coffee" %}
+        {% include "components/widget/business-listing.njk" ignore missing %}
+      </div>
+
+      {# Pos 2 #}
+      <div>
+        {% set business_category = city.FeatCat2 or "bakeries" %}
+        {% include "components/widget/business-listing.njk" ignore missing %}
+      </div>
+
+      {# Pos 3 #}
+      <div>
+        {% set business_category = city.FeatCat3 or "pizza" %}
+        {% include "components/widget/business-listing.njk" ignore missing %}
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       SECTION 5.0 & 6.0: NEWS & EVENTS SPLIT
+       ========================================================================= -->
+  <section id="news-and-events" class="portal-section-news-events">
+    <div class="section-grid-static grid-cols-2">
+      
+      {# Section 5.0: News (5 Most Recent) #}
+      <div>
+        {% include "components/widget/news-summary-list-five.njk" ignore missing %}
+      </div>
+
+      {# Section 6.0: Events (5 Soonest Upcoming) #}
+      <div>
+        {% include "components/widget/events-summary-list-five.njk" ignore missing %}
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       SECTION 7.0: SPORTS (PRO, MINOR, COLLEGE)
+       ========================================================================= -->
+  <section id="sports" class="portal-section-sports" aria-label="Regional Athletics">
+    <div class="card-header-split">
+      <h2 class="text-section-title">Regional Sports</h2>
+      <a href="/sports/pro/" class="link-subtle">View Sports Hub &rarr;</a>
+    </div>
+
+    <div class="section-grid-static grid-cols-3">
+      
+      {# Pos 1: Pro Game Results #}
+      <div>
+        {% set sports_tier = "pro" %}
+        {% include "components/widget/sports-score-box.njk" ignore missing %}
+      </div>
+
+      {# Pos 2: Minor Game Results #}
+      <div>
+        {% set sports_tier = "minor" %}
+        {% include "components/widget/sports-score-box.njk" ignore missing %}
+      </div>
+
+      {# Pos 3: College Game Results #}
+      <div>
+        {% set sports_tier = "college" %}
+        {% include "components/widget/sports-score-box.njk" ignore missing %}
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       SECTION 8.0: EDITORIAL
+       Element: widget.neighborhood.editorial
+       ========================================================================= -->
+  <section id="editorial" class="portal-section-editorial" aria-label="Neighborhood Overview and Editorial">
+    {% include "components/widget/neighborhood-editorial.njk" ignore missing %}
+  </section>
+
+</div>

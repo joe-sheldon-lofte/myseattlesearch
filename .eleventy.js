@@ -41,6 +41,26 @@ module.exports = function(eleventyConfig) {
     return `${dateStr} at ${timeStr}`;
   });
 
+  // File: .eleventy.js (Snippet)
+
+  // Cloudflare R2 Storage Metric Hook
+  eleventyConfig.addGlobalData("r2_storage", () => {
+    const candidates = [
+      path.join(__dirname, "_data", "r2_storage.json"),
+      path.join(__dirname, "data", "r2_storage.json")
+    ];
+    for (const p of candidates) {
+      if (fs.existsSync(p)) {
+        try {
+          return JSON.parse(fs.readFileSync(p, "utf-8"));
+        } catch (e) {
+          console.error("Error reading r2_storage.json:", e);
+        }
+      }
+    }
+    return { usedGB: "0.00" };
+  });
+
   // Universal Production Utility Filters
   eleventyConfig.addFilter("cssmin", function(code) {
     if (!code) return "";

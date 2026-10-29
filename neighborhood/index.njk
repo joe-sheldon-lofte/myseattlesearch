@@ -1,0 +1,174 @@
+---
+layout: base.njk
+title: "Puget Sound Neighborhoods & Regional Gateways | MySeattleSearch"
+meta_description: "Explore 58 Puget Sound municipal portals, live real estate telemetry, sports coverage, and Cascadia travel intelligence."
+permalink: "/neighborhood/index.html"
+---
+
+{# Data Ingestion: Partition 58 Neighborhoods by County Context #}
+{% set king_neighborhoods = [] %}
+{% set snohomish_neighborhoods = [] %}
+
+{% if city_data %}
+  {% for n in city_data %}
+    {% set n_county = (n.County or '') | lower | trim %}
+    {% if n_county == 'king' %}
+      {% set king_neighborhoods = (king_neighborhoods.push(n), king_neighborhoods) %}
+    {% elif n_county == 'snohomish' %}
+      {% set snohomish_neighborhoods = (snohomish_neighborhoods.push(n), snohomish_neighborhoods) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+<div class="traffic-portal-main">
+
+  <!-- =========================================================================
+       1. NEIGHBORHOODS BILLBOARD (Directory & Dual County Jump Engine)
+       ========================================================================= -->
+  <section id="neighborhoods" class="traffic-billboard-section billboard-neighborhoods" aria-label="Puget Sound Neighborhoods Navigation">
+    <div class="traffic-billboard-scrim" aria-hidden="true"></div>
+
+    <div class="traffic-glass-card traffic-glass-card-primary">
+      <span class="text-overline traffic-card-overline">HYPERLOCAL PUGET SOUND COMMUNITY INFORMATION</span>
+      <h1 class="traffic-card-title">Find Your Neighborhood to Explore</h1>
+      <p class="traffic-card-desc">
+        Access hyper-local data, live transit and commute information, public safety, public school information, and more.
+      </p>
+
+      <div class="traffic-selector-grid">
+        
+        {# King County Dropdown #}
+        <div class="traffic-select-wrapper">
+          <label for="king-county-select" class="traffic-select-label">King County Portals</label>
+          <select id="king-county-select" 
+                  class="traffic-select-pill" 
+                  onchange="if(this.value) window.location.href=this.value;"
+                  aria-label="Select a King County Neighborhood">
+            <option value="">Jump to King County Neighborhood...</option>
+            {% for item in king_neighborhoods %}
+              <option value="/neighborhood/{{ item.City | slugify }}/">{{ item.City }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        {# Snohomish County Dropdown #}
+        <div class="traffic-select-wrapper">
+          <label for="snohomish-county-select" class="traffic-select-label">Snohomish County Portals</label>
+          <select id="snohomish-county-select" 
+                  class="traffic-select-pill" 
+                  onchange="if(this.value) window.location.href=this.value;"
+                  aria-label="Select a Snohomish County Neighborhood">
+            <option value="">Jump to Snohomish County Neighborhood...</option>
+            {% for item in snohomish_neighborhoods %}
+              <option value="/neighborhood/{{ item.City | slugify }}/">{{ item.City }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+      </div>
+
+      <a href="/neighborhood/region/news/" class="traffic-directory-link">
+        View Regional News Wire &rarr;
+      </a>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       2. REAL ESTATE BILLBOARD (Canonical Platform Home Link)
+       ========================================================================= -->
+  <section id="real-estate" class="traffic-billboard-section billboard-realestate" aria-label="Puget Sound Real Estate Advisory">
+    <div class="traffic-billboard-scrim" aria-hidden="true"></div>
+
+    <div class="traffic-glass-card">
+      <span class="text-overline traffic-card-overline">MARKET INTELLIGENCE &amp; ADVISORY</span>
+      <h2 class="traffic-card-title">Real Estate &amp; Housing Data</h2>
+      <p class="traffic-card-desc">
+        Real estate tools, calculators, and services for the Puget Sound area.
+      </p>
+
+      <a href="/" class="traffic-action-pill" aria-label="Enter MySeattleSearch Real Estate Homepage">
+        <span>Explore Real Estate Platform</span>
+        <span class="traffic-action-arrow" aria-hidden="true">&rarr;</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       3. SPORTS BILLBOARD (Pro Sports Hub Link)
+       ========================================================================= -->
+  <section id="sports" class="traffic-billboard-section billboard-sports" aria-label="Pacific Northwest Sports Hub">
+    <div class="traffic-billboard-scrim" aria-hidden="true"></div>
+
+    <div class="traffic-glass-card">
+      <span class="text-overline traffic-card-overline">REGIONAL ATHLETICS &amp; ARENAS</span>
+      <h2 class="traffic-card-title">Pacific Northwest Sports Hub</h2>
+      <p class="traffic-card-desc">
+        Live game updates, scores, divisional standings, and season schedules for 
+        Washington professional, minor league, and college teams.
+      </p>
+
+      <a href="/sports/pro/" class="traffic-action-pill" aria-label="Launch Pacific Northwest Sports Hub">
+        <span>Launch Pro Sports Hub</span>
+        <span class="traffic-action-arrow" aria-hidden="true">&rarr;</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       4. ENTERTAINMENT BILLBOARD (Coming Soon)
+       ========================================================================= -->
+  <section id="entertainment" class="traffic-billboard-section billboard-entertainment" aria-label="Arts and Culture Hub Preview">
+    <div class="traffic-billboard-scrim" aria-hidden="true"></div>
+
+    <div class="traffic-glass-card">
+      <span class="text-overline traffic-card-overline">MOVIES, TV SHOWS, &amp; MORE</span>
+      <h2 class="traffic-card-title">Entertainment &amp; Cultural Guide</h2>
+      <p class="traffic-card-desc">
+        Find the latest movies, TV shows, TV guide, and streaming locations.
+      </p>
+
+      <div class="traffic-status-badge">
+        <span>✦ Coming Soon</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       5. TRAVEL BILLBOARD (Coming Soon)
+       ========================================================================= -->
+  <section id="travel" class="traffic-billboard-section billboard-travel" aria-label="Regional Travel Hub Preview">
+    <div class="traffic-billboard-scrim" aria-hidden="true"></div>
+
+    <div class="traffic-glass-card">
+      <span class="text-overline traffic-card-overline">ADVENTURES FROM THE SAN JUANS TO SYDNEY</span>
+      <h2 class="traffic-card-title">Curated Local, National, &amp; International Travel</h2>
+      <p class="traffic-card-desc">
+        Explore and book travel anywhere in the world, including specially curated excursions by local Pacific Northwest travel guides.
+      </p>
+
+      <div class="traffic-status-badge">
+        <span>✦ Coming Soon</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       6. DIGITAL TOOLS BILLBOARD (Coming Soon)
+       ========================================================================= -->
+  <section id="digital-tools" class="traffic-billboard-section billboard-digitaltools" aria-label="Financial Tools Hub Preview">
+    <div class="traffic-billboard-scrim" aria-hidden="true"></div>
+
+    <div class="traffic-glass-card">
+      <span class="text-overline traffic-card-overline">DIGITAL TOOLS TO HELP WITH EVERY DAY NEEDS ON YOUR COMPUTER OR PHONE</span>
+      <h2 class="traffic-card-title">Digital Tools for Every Day Needs</h2>
+      <p class="traffic-card-desc">
+        Simple digital tools to help with every day tasks like editing PDFs, converting images, and more!
+      </p>
+
+      <div class="traffic-status-badge">
+        <span>✦ Coming Soon</span>
+      </div>
+    </div>
+  </section>
+
+</div>
