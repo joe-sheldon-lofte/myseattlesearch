@@ -1,30 +1,38 @@
 <!-- File: _includes/components/schema/SiteOwner.njk -->
 {# 
   COMPONENT: Site Owner Canonical Entity Schema (schema.siteowner)
-  PURPOSE: The ONLY hardcoded schema on the platform. Establishes Joe Sheldon's core canonical entity (#agent) as a licensed Redfin advisor and publisher of MySeattleSearch.
-  USAGE: Include exactly once in the global <head> of your base HTML layout.
+  PURPOSE: Establishes the core canonical entity (#agent) using dynamic global data.
+  USAGE: Included once in the <head> of base.njk.
 #}
+
+{% set a_name = stats.full_name | default("Joe Sheldon") %}
+{% set a_phone = stats.universal_contact_phone | default("2066577493") %}
+{% set a_broker = stats.brokerage_name | default("Redfin") %}
+{% set a_addr = stats.universal_contact_address | default("3400 188th St SW, Ste 165") %}
+{% set a_city = stats.universal_contact_city | default("Lynnwood") %}
+{% set a_state = stats.universal_contact_state | default("WA") %}
+{% set a_zip = stats.universal_contact_zip | default("98036") %}
 
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": ["Person", "RealEstateAgent"],
   "@id": "https://myseattlesearch.com/#agent",
-  "name": "Joe Sheldon",
+  "name": {{ a_name | dump | safe }},
   "image": "https://assets.myseattlesearch.com/team/joe-sheldon-headshot.webp",
-  "telephone": "(206) 657-7493",
+  "telephone": {{ a_phone | dump | safe }},
   "url": "https://myseattlesearch.com",
   "jobTitle": "Senior Real Estate Agent",
   "worksFor": {
     "@type": "RealEstateAgent",
-    "name": "Redfin"
+    "name": {{ a_broker | dump | safe }}
   },
   "address": {
     "@type": "PostalAddress",
-    "streetAddress": "3400 188th St SW, Ste 165",
-    "addressLocality": "Lynnwood",
-    "addressRegion": "WA",
-    "postalCode": "98036",
+    "streetAddress": {{ a_addr | dump | safe }},
+    "addressLocality": {{ a_city | dump | safe }},
+    "addressRegion": {{ a_state | dump | safe }},
+    "postalCode": {{ a_zip | dump | safe }},
     "addressCountry": "US"
   },
   "sameAs": [
@@ -35,7 +43,7 @@
   ],
   "areaServed": [
     "Snohomish County", "King County", "Lynnwood", "Edmonds", 
-    "Shoreline", "Lake Forest Park", "Kenmore", "Kirkland", "Brier", "Mountlake Terrace", "Mukilteo",
+    "Shoreline", "Bothell", "Woodinville", "Kenmore", "Seattle"
   ],
   "priceRange": "$$$$"
 }

@@ -1,59 +1,48 @@
+<!-- File: _includes/layouts/base.njk -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ title | default("MySeattleSearch | Puget Sound Real Estate & Hyperlocal Data") }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   
-  {% if meta_description %}
-    <meta name="description" content="{{ meta_description }}">
-  {% endif %}
+  {# Dynamic Meta Titles & Descriptions #}
+  <title>{{ title | default(stats.site_name | default("MySeattleSearch | Puget Sound Real Estate & Hyperlocal Data")) }}</title>
+  <meta name="description" content="{{ meta_description | default("Explore Puget Sound real estate, municipal data, and neighborhood telemetry with " ~ stats.full_name ~ ".") }}">
+  
+  {# Open Graph / Social Sharing #}
+  <meta property="og:title" content="{{ title | default(stats.site_name) }}">
+  <meta property="og:description" content="{{ meta_description }}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://myseattlesearch.com{{ page.url }}">
+  <meta property="og:image" content="{{ og_image | default('https://assets.myseattlesearch.com/brand/og-default.jpg') }}">
+  <meta name="twitter:card" content="summary_large_image">
+  
+  {# Favicons #}
+  <link rel="icon" href="/assets/brand/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png">
 
-  <!-- Core Design Tokens & Stylesheet -->
+  {# Core Design System Stylesheet #}
   <link rel="stylesheet" href="/style.css">
 
-  <!-- Global Schema.org JSON-LD Entity -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": ["Person", "RealEstateAgent"],
-    "@id": "https://myseattlesearch.com/#agent",
-    "name": "Joe Sheldon",
-    "jobTitle": "Senior Real Estate Agent",
-    "worksFor": {
-      "@type": "RealEstateAgent",
-      "name": "Redfin",
-      "url": "https://www.redfin.com"
-    },
-    "telephone": "+12066577493",
-    "email": "joe.sheldon@redfin.com",
-    "url": "https://myseattlesearch.com",
-    "address": {
-      "@type": "PostalAddress",
-      "addressLocality": "Lynnwood",
-      "addressRegion": "WA",
-      "addressCountry": "US"
-    },
-    "areaServed": [
-      "Seattle",
-      "Bellevue",
-      "Edmonds",
-      "Lynnwood",
-      "Mountlake Terrace",
-      "Shoreline",
-      "Brier",
-      "Kenmore",
-      "Lake Forest Park",
-      "Mukilteo",
-      "Woodinville",
-      "Kirkland"
-    ]
-  }
-  </script>
+  {# Canonical Platform & Publisher Schemas #}
+  {% include "components/schema/WebSite.njk" %}
+  {% include "components/schema/SiteOwner.njk" %}
 </head>
 <body>
 
-  {{ content | safe }}
+  {# Global Overlay Navigation #}
+  {% include "components/global/global-header.njk" %}
+
+  {# Primary Content Viewport #}
+  <main id="main-content">
+    {{ content | safe }}
+  </main>
+
+  {# Minimalist Integrated Footer #}
+  {% include "components/global/integrated-footer.njk" %}
+
+  {# Floating Bottom Action Tray (Liquid Glass) #}
+  {% include "components/global/layout-actionbar-bottom.njk" %}
 
 </body>
 </html>
