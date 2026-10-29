@@ -1,32 +1,32 @@
 <!-- File: _includes/components/widget/map-custom.njk -->
 {# 
-  COMPONENT: Master Polymorphic Geographic Map Engine (widget.map.custom)[cite: 25]
-  PURPOSE: Fluid interactive vector & raster cartographic viewport across all 58 neighborhoods[cite: 25].
+  COMPONENT: Master Polymorphic Geographic Map Engine (widget.map.custom)
+  PURPOSE: Fluid interactive vector & raster cartographic viewport across all 58 neighborhoods.
   CONTRACT:
-    - map_lat / neighborhood.latitude / city.Latitude: Number [Required][cite: 25]
-    - map_lon / neighborhood.longitude / city.Longitude: Number [Required][cite: 25]
-    - map_neighborhood / neighborhood.name / city.City: String [Optional][cite: 25]
+    - map_lat / neighborhood.latitude / city.Latitude: Number [Required]
+    - map_lon / neighborhood.longitude / city.Longitude: Number [Required]
+    - map_neighborhood / neighborhood.name / city.City: String [Optional]
     - map_layer / layer: String [Optional: "base", "emergencies", "transit", "weather" - defaults to "base"]
-    - map_title: String [Optional, overrides default title][cite: 25]
-    - map_overline: String [Optional, overrides default overline][cite: 25]
-    - map_zoom: Number [Optional, defaults to 12][cite: 25]
+    - map_title: String [Optional, overrides default title]
+    - map_overline: String [Optional, overrides default overline]
+    - map_zoom: Number [Optional, defaults to 12]
     - map_aspect_class: String [Optional, e.g. "map-aspect-widescreen", "map-aspect-square"]
-    - map_accent_color: String [Optional, defaults to Alpine Blue][cite: 25]
+    - map_accent_color: String [Optional, defaults to Alpine Blue]
 #}
 
 {% set active_neighborhood = map_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
-{% set lat_val = map_lat if map_lat is defined else ((neighborhood.latitude if neighborhood else null) or (city.Latitude if city else null)) %}[cite: 25]
-{% set lon_val = map_lon if map_lon is defined else ((neighborhood.longitude if neighborhood else null) or (city.Longitude if city else null)) %}[cite: 25]
+{% set lat_val = map_lat if map_lat is defined else ((neighborhood.latitude if neighborhood else null) or (city.Latitude if city else null)) %}
+{% set lon_val = map_lon if map_lon is defined else ((neighborhood.longitude if neighborhood else null) or (city.Longitude if city else null)) %}
 
 {% if lat_val and lon_val %}
   {% set layer_mode = map_layer or layer or "base" %}
-  {% set zoom_val = map_zoom | default(12) %}[cite: 25]
+  {% set zoom_val = map_zoom | default(12) %}
   {% set accent_color = map_accent_color or "var(--alpine-blue)" %}
   {% set aspect_modifier = map_aspect_class | default("") %}
 
   {# Dynamic Domain Layer Labels & Badges #}
-  {% set default_overline = "LOCAL OVERVIEW" %}[cite: 25]
-  {% set default_title = (active_neighborhood ~ " Geography & Infrastructure") if active_neighborhood else "Regional Geography & Infrastructure" %}[cite: 25]
+  {% set default_overline = "LOCAL OVERVIEW" %}
+  {% set default_title = (active_neighborhood ~ " Geography & Infrastructure") if active_neighborhood else "Regional Geography & Infrastructure" %}
   {% set pill_class = "layer-base" %}
   {% set pill_label = "Base Cartography" %}
 
@@ -47,19 +47,19 @@
     {% set pill_label = "Live Doppler Sweep" %}
   {% endif %}
 
-  {% set card_overline = map_overline | default(default_overline) %}[cite: 25]
-  {% set card_title = map_title | default(default_title) %}[cite: 25]
+  {% set card_overline = map_overline | default(default_overline) %}
+  {% set card_title = map_title | default(default_title) %}
 
-  <section class="widget-card custom-map-card" aria-label="{{ card_title }}">[cite: 25]
+  <section class="widget-card custom-map-card" aria-label="{{ card_title }}">
     
     {# Header Row #}
-    <header class="map-header-row">[cite: 25]
+    <header class="map-header-row">
       <div class="map-title-stack">
         <span class="text-overline text-accent-alpine">
           {{ card_overline }}
         </span>
-        <h3 class="text-widget-title map-card-title">[cite: 25]
-          {{ card_title }}[cite: 25]
+        <h3 class="text-widget-title map-card-title">
+          {{ card_title }}
         </h3>
       </div>
 
@@ -70,14 +70,14 @@
     </header>
 
     {# Fluid Map Viewport Container #}
-    <div class="map-viewport-frame {{ aspect_modifier }}">[cite: 25]
+    <div class="map-viewport-frame {{ aspect_modifier }}">
       <neighborhood-map 
         lat="{{ lat_val }}" 
         lon="{{ lon_val }}" 
         zoom="{{ zoom_val }}"
         layer="{{ layer_mode }}"
         active-neighborhood="{{ active_neighborhood | default('Local Area') }}"
-        accent-color="{{ accent_color }}">[cite: 25]
+        accent-color="{{ accent_color }}">
       </neighborhood-map>
     </div>
 
@@ -90,5 +90,5 @@
   </section>
 
   {# Client-side Web Component Script Guard #}
-  <script type="module" src="/scripts/utilities/neighborhood-map.js" defer></script>[cite: 25]
+  <script type="module" src="/scripts/utilities/neighborhood-map.js" defer></script>
 {% endif %}

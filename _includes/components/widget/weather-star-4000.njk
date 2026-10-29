@@ -1,61 +1,61 @@
 <!-- File: _includes/components/widget/weather-star-4000.njk -->
 {# 
-  COMPONENT: Retro Weather Star 4000 Broadcast Terminal (widget.weather.star.4000)[cite: 31]
-  HERITAGE: The Weather Channel "Local on the 8s" 1990 Cable Broadcast Simulator[cite: 31]
+  COMPONENT: Retro Weather Star 4000 Broadcast Terminal (widget.weather.star.4000)
+  HERITAGE: The Weather Channel "Local on the 8s" 1990 Cable Broadcast Simulator
   CONTRACT:
-    - weather_star_temp / weather.temp: Number or String [Required][cite: 31]
-    - weather_star_condition / weather.condition: String [Optional, e.g. "SUNNY", "RAIN"][cite: 31]
-    - weather_star_wind / weather.wind: String [Optional, e.g. "NW 7 MPH"][cite: 31]
-    - weather_star_humidity / weather.humidity: String [Optional, e.g. "50%"][cite: 31]
-    - weather_star_dewpoint: String [Optional, e.g. "52°"][cite: 31]
-    - weather_star_pressure: String [Optional, e.g. "30.12R"][cite: 31]
-    - weather_star_ceiling: String [Optional, e.g. "UNLIMITED"][cite: 31]
-    - weather_star_visib: String [Optional, e.g. "10 MILES"][cite: 31]
-    - weather_star_narrative_today: String [Optional, 36-hour synopsis][cite: 31]
-    - weather_star_narrative_tonight: String [Optional, 36-hour synopsis][cite: 31]
-    - weather_star_narrative_tomorrow: String [Optional, 36-hour synopsis][cite: 31]
-    - weather_star_extended_days: Array of Objects [Optional, 3-day forecast][cite: 31]
-      Each expects: { day, condition, high, low }[cite: 31]
+    - weather_star_temp / weather.temp: Number or String [Required]
+    - weather_star_condition / weather.condition: String [Optional, e.g. "SUNNY", "RAIN"]
+    - weather_star_wind / weather.wind: String [Optional, e.g. "NW 7 MPH"]
+    - weather_star_humidity / weather.humidity: String [Optional, e.g. "50%"]
+    - weather_star_dewpoint: String [Optional, e.g. "52°"]
+    - weather_star_pressure: String [Optional, e.g. "30.12R"]
+    - weather_star_ceiling: String [Optional, e.g. "UNLIMITED"]
+    - weather_star_visib: String [Optional, e.g. "10 MILES"]
+    - weather_star_narrative_today: String [Optional, 36-hour synopsis]
+    - weather_star_narrative_tonight: String [Optional, 36-hour synopsis]
+    - weather_star_narrative_tomorrow: String [Optional, 36-hour synopsis]
+    - weather_star_extended_days: Array of Objects [Optional, 3-day forecast]
+      Each expects: { day, condition, high, low }
     - active_neighborhood / neighborhood.name / city.City: String [Optional]
 #}
 
-{% set raw_temp = weather_star_temp if weather_star_temp is defined else (weather.temp if weather else null) %}[cite: 31]
+{% set raw_temp = weather_star_temp if weather_star_temp is defined else (weather.temp if weather else null) %}
 {% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
 
 {% if raw_temp is not none and raw_temp != '' %}
   {% set star_neighborhood = (active_neighborhood or "Seattle") | upper %}
-  {% set star_cond = (weather_star_condition or (weather.condition if weather else "FAIR")) | upper %}[cite: 31]
-  {% set star_wind = (weather_star_wind or (weather.wind if weather else "CALM")) | upper %}[cite: 31]
-  {% set star_humidity = weather_star_humidity or (weather.humidity if weather else "—") %}[cite: 31]
-  {% set star_dewpoint = weather_star_dewpoint or "—" %}[cite: 31]
-  {% set star_pressure = weather_star_pressure or "—" %}[cite: 31]
-  {% set star_ceiling = weather_star_ceiling or "UNLIMITED" %}[cite: 31]
-  {% set star_visib = weather_star_visib or "10 MILES" %}[cite: 31]
+  {% set star_cond = (weather_star_condition or (weather.condition if weather else "FAIR")) | upper %}
+  {% set star_wind = (weather_star_wind or (weather.wind if weather else "CALM")) | upper %}
+  {% set star_humidity = weather_star_humidity or (weather.humidity if weather else "—") %}
+  {% set star_dewpoint = weather_star_dewpoint or "—" %}
+  {% set star_pressure = weather_star_pressure or "—" %}
+  {% set star_ceiling = weather_star_ceiling or "UNLIMITED" %}
+  {% set star_visib = weather_star_visib or "10 MILES" %}
 
   {# 36-Hour Forecast Paragraphs #}
-  {% set nar_today = weather_star_narrative_today %}[cite: 31]
-  {% set nar_tonight = weather_star_narrative_tonight %}[cite: 31]
-  {% set nar_tomorrow = weather_star_narrative_tomorrow %}[cite: 31]
+  {% set nar_today = weather_star_narrative_today %}
+  {% set nar_tonight = weather_star_narrative_tonight %}
+  {% set nar_tomorrow = weather_star_narrative_tomorrow %}
 
   {# 3-Day Extended Forecast Array #}
-  {% set extended_forecast = weather_star_extended_days %}[cite: 31]
+  {% set extended_forecast = weather_star_extended_days %}
 
-  <div class="weather-star-4000-tv-wrapper" role="region" aria-label="Retro Weather Star 4000 Broadcast for {{ star_neighborhood }} &amp; Vicinity">[cite: 31]
+  <div class="weather-star-4000-tv-wrapper" role="region" aria-label="Retro Weather Star 4000 Broadcast for {{ star_neighborhood }} &amp; Vicinity">
     
     {# Outer CRT Television Molded Frame #}
-    <div class="crt-television-frame">[cite: 31]
+    <div class="crt-television-frame">
       
       {# Top TV Bezel Strip with Audio Controller #}
-      <div class="crt-tv-top-strip">[cite: 31]
-        <div class="crt-tv-channel-id">[cite: 31]
-          WEATHER STAR 4000 • CH 28[cite: 31]
+      <div class="crt-tv-top-strip">
+        <div class="crt-tv-channel-id">
+          WEATHER STAR 4000 • CH 28
         </div>
 
         {# Liquid Glass Mute/Play Button #}
         <button type="button" 
                 class="btn-ws4k-audio" 
                 id="ws4k-audio-btn" 
-                aria-label="Toggle Weather Star Jazz Music">[cite: 31]
+                aria-label="Toggle Weather Star Jazz Music">
           <svg class="ws4k-speaker-icon" id="ws4k-icon-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
             <line x1="23" y1="9" x2="17" y2="15"></line>
@@ -66,93 +66,93 @@
             <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
             <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
           </svg>
-          <span id="ws4k-audio-label">Smooth Jazz</span>[cite: 31]
+          <span id="ws4k-audio-label">Smooth Jazz</span>
         </button>
 
-        <audio id="ws4k-audio-stream" loop preload="none">[cite: 31]
-          <source src="https://assets.myseattlesearch.com/audio/weather-star-smooth-jazz.mp3" type="audio/mpeg">[cite: 31]
+        <audio id="ws4k-audio-stream" loop preload="none">
+          <source src="https://assets.myseattlesearch.com/audio/weather-star-smooth-jazz.mp3" type="audio/mpeg">
         </audio>
       </div>
 
       {# Curved CRT Inner Glass Bezel #}
-      <div class="crt-screen-bezel">[cite: 31]
+      <div class="crt-screen-bezel">
         
         {# Scanlines & Tracking Bar Overlays #}
-        <div class="crt-scanlines" aria-hidden="true"></div>[cite: 31]
-        <div class="crt-tracking-bar" aria-hidden="true"></div>[cite: 31]
+        <div class="crt-scanlines" aria-hidden="true"></div>
+        <div class="crt-tracking-bar" aria-hidden="true"></div>
 
         {# Phosphor Screen Broadcast Content #}
-        <div class="ws4k-screen-content">[cite: 31]
+        <div class="ws4k-screen-content">
           
           {# Fixed Broadcast Header #}
-          <div class="ws4k-broadcast-header">[cite: 31]
-            <div class="ws4k-header-city">[cite: 31]
-              {{ star_neighborhood }} &amp; VICINITY[cite: 31]
+          <div class="ws4k-broadcast-header">
+            <div class="ws4k-header-city">
+              {{ star_neighborhood }} &amp; VICINITY
             </div>
-            <div class="ws4k-header-mode" id="ws4k-view-title">[cite: 31]
-              CURRENT CONDITIONS[cite: 31]
+            <div class="ws4k-header-mode" id="ws4k-view-title">
+              CURRENT CONDITIONS
             </div>
           </div>
 
           {# Cycle View 1: Current Meteorological Matrix #}
-          <div class="ws4k-view-pane is-active" id="ws4k-view-1">[cite: 31]
-            <div class="ws4k-conditions-grid">[cite: 31]
-              <div>TEMP: <span class="ws4k-temp-hero">{{ raw_temp }}°F</span></div>[cite: 31]
-              <div>COND: <span class="ws4k-val">{{ star_cond }}</span></div>[cite: 31]
-              <div>HUMIDITY: <span class="ws4k-val">{{ star_humidity }}</span></div>[cite: 31]
-              <div>DEW POINT: <span class="ws4k-val">{{ star_dewpoint }}</span></div>[cite: 31]
-              <div>WIND: <span class="ws4k-val">{{ star_wind }}</span></div>[cite: 31]
-              <div>PRESSURE: <span class="ws4k-val">{{ star_pressure }}</span></div>[cite: 31]
-              <div>CEILING: <span class="ws4k-val">{{ star_ceiling }}</span></div>[cite: 31]
-              <div>VISIBILITY: <span class="ws4k-val">{{ star_visib }}</span></div>[cite: 31]
+          <div class="ws4k-view-pane is-active" id="ws4k-view-1">
+            <div class="ws4k-conditions-grid">
+              <div>TEMP: <span class="ws4k-temp-hero">{{ raw_temp }}°F</span></div>
+              <div>COND: <span class="ws4k-val">{{ star_cond }}</span></div>
+              <div>HUMIDITY: <span class="ws4k-val">{{ star_humidity }}</span></div>
+              <div>DEW POINT: <span class="ws4k-val">{{ star_dewpoint }}</span></div>
+              <div>WIND: <span class="ws4k-val">{{ star_wind }}</span></div>
+              <div>PRESSURE: <span class="ws4k-val">{{ star_pressure }}</span></div>
+              <div>CEILING: <span class="ws4k-val">{{ star_ceiling }}</span></div>
+              <div>VISIBILITY: <span class="ws4k-val">{{ star_visib }}</span></div>
             </div>
           </div>
 
           {# Cycle View 2: 36-Hour Local Forecast #}
-          <div class="ws4k-view-pane" id="ws4k-view-2">[cite: 31]
-            <div class="ws4k-forecast-stack">[cite: 31]
-              {% if nar_today %}[cite: 31]
-                <div class="ws4k-forecast-card">[cite: 31]
-                  <div class="ws4k-period-title">TODAY...</div>[cite: 31]
-                  <div class="ws4k-period-text">{{ nar_today }}</div>[cite: 31]
+          <div class="ws4k-view-pane" id="ws4k-view-2">
+            <div class="ws4k-forecast-stack">
+              {% if nar_today %}
+                <div class="ws4k-forecast-card">
+                  <div class="ws4k-period-title">TODAY...</div>
+                  <div class="ws4k-period-text">{{ nar_today }}</div>
                 </div>
               {% else %}
-                <div class="ws4k-forecast-card">[cite: 31]
-                  <div class="ws4k-period-title">TODAY...</div>[cite: 31]
+                <div class="ws4k-forecast-card">
+                  <div class="ws4k-period-title">TODAY...</div>
                   <div class="ws4k-period-text">SEASONABLE WITH LOCAL MARITIME FLOW. TEMPS PEAKING NEAR NORMAL BENCHMARKS.</div>
                 </div>
               {% endif %}
 
-              {% if nar_tonight %}[cite: 31]
-                <div class="ws4k-forecast-card">[cite: 31]
-                  <div class="ws4k-period-title">TONIGHT...</div>[cite: 31]
-                  <div class="ws4k-period-text">{{ nar_tonight }}</div>[cite: 31]
+              {% if nar_tonight %}
+                <div class="ws4k-forecast-card">
+                  <div class="ws4k-period-title">TONIGHT...</div>
+                  <div class="ws4k-period-text">{{ nar_tonight }}</div>
                 </div>
               {% else %}
-                <div class="ws4k-forecast-card">[cite: 31]
-                  <div class="ws4k-period-title">TONIGHT...</div>[cite: 31]
+                <div class="ws4k-forecast-card">
+                  <div class="ws4k-period-title">TONIGHT...</div>
                   <div class="ws4k-period-text">PARTLY CLOUDY SKIES WITH MILD ONSHORE BREEZES ALONG PUGET SOUND BASIN.</div>
                 </div>
               {% endif %}
 
-              {% if nar_tomorrow %}[cite: 31]
-                <div class="ws4k-forecast-card">[cite: 31]
-                  <div class="ws4k-period-title">TOMORROW...</div>[cite: 31]
-                  <div class="ws4k-period-text">{{ nar_tomorrow }}</div>[cite: 31]
+              {% if nar_tomorrow %}
+                <div class="ws4k-forecast-card">
+                  <div class="ws4k-period-title">TOMORROW...</div>
+                  <div class="ws4k-period-text">{{ nar_tomorrow }}</div>
                 </div>
               {% endif %}
             </div>
           </div>
 
           {# Cycle View 3: Extended Outlook (3 Days) #}
-          <div class="ws4k-view-pane" id="ws4k-view-3">[cite: 31]
-            <div class="ws4k-extended-grid">[cite: 31]
-              {% if extended_forecast and extended_forecast.length >= 3 %}[cite: 31]
+          <div class="ws4k-view-pane" id="ws4k-view-3">
+            <div class="ws4k-extended-grid">
+              {% if extended_forecast and extended_forecast.length >= 3 %}
                 {% for f in extended_forecast.slice(0, 3) %}
                   {% set f_cond = (f.condition | default('fair')) | lower %}
-                  <div class="ws4k-extended-card">[cite: 31]
-                    <div class="ws4k-day-tag">{{ f.day | upper }}</div>[cite: 31]
-                    <div class="ws4k-retro-icon" aria-hidden="true">[cite: 31]
+                  <div class="ws4k-extended-card">
+                    <div class="ws4k-day-tag">{{ f.day | upper }}</div>
+                    <div class="ws4k-retro-icon" aria-hidden="true">
                       <svg viewBox="0 0 32 32" fill="none" class="ws4k-retro-svg">
                         {% if 'rain' in f_cond or 'shower' in f_cond %}
                           <path d="M7 19a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 19H7z" fill="#FFFFFF" />
@@ -170,15 +170,15 @@
                         {% endif %}
                       </svg>
                     </div>
-                    <div class="ws4k-cond-tag">{{ (f.condition | default('FAIR')) | upper }}</div>[cite: 31]
-                    <div class="ws4k-temps-tag">{{ f.high }} / {{ f.low }}</div>[cite: 31]
+                    <div class="ws4k-cond-tag">{{ (f.condition | default('FAIR')) | upper }}</div>
+                    <div class="ws4k-temps-tag">{{ f.high }} / {{ f.low }}</div>
                   </div>
                 {% endfor %}
               {% else %}
                 {# Standard Fallback Sequence #}
-                <div class="ws4k-extended-card">[cite: 31]
+                <div class="ws4k-extended-card">
                   <div class="ws4k-day-tag">DAY 1</div>
-                  <div class="ws4k-retro-icon" aria-hidden="true">[cite: 31]
+                  <div class="ws4k-retro-icon" aria-hidden="true">
                     <svg viewBox="0 0 32 32" fill="none" class="ws4k-retro-svg">
                       <circle cx="16" cy="16" r="7" fill="#FFFF00" />
                       <line x1="16" y1="4" x2="16" y2="8" stroke="#FFFF00" stroke-width="2.5" />
@@ -190,20 +190,20 @@
                   <div class="ws4k-cond-tag">SEASONABLE</div>
                   <div class="ws4k-temps-tag">— / —</div>
                 </div>
-                <div class="ws4k-extended-card">[cite: 31]
+                <div class="ws4k-extended-card">
                   <div class="ws4k-day-tag">DAY 2</div>
-                  <div class="ws4k-retro-icon" aria-hidden="true">[cite: 31]
+                  <div class="ws4k-retro-icon" aria-hidden="true">
                     <svg viewBox="0 0 32 32" fill="none" class="ws4k-retro-svg">
                       <circle cx="11" cy="11" r="5" fill="#FFFF00" />
                       <path d="M8 22a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 26 22H8z" fill="#FFFFFF" />
                     </svg>
                   </div>
-                  <div class="ws4k-cond-tag">PT CLOUDY</div>[cite: 31]
+                  <div class="ws4k-cond-tag">PT CLOUDY</div>
                   <div class="ws4k-temps-tag">— / —</div>
                 </div>
-                <div class="ws4k-extended-card">[cite: 31]
+                <div class="ws4k-extended-card">
                   <div class="ws4k-day-tag">DAY 3</div>
-                  <div class="ws4k-retro-icon" aria-hidden="true">[cite: 31]
+                  <div class="ws4k-retro-icon" aria-hidden="true">
                     <svg viewBox="0 0 32 32" fill="none" class="ws4k-retro-svg">
                       <path d="M7 19a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 19H7z" fill="#FFFFFF" />
                       <line x1="12" y1="22" x2="10" y2="27" stroke="#FFFF00" stroke-width="2" />
@@ -218,9 +218,9 @@
           </div>
 
           {# Broadcast Footer & Dot Cycle Indicator #}
-          <div class="ws4k-broadcast-footer">[cite: 31]
-            <div class="ws4k-crawl-tag">LOCAL ON THE 8s</div>[cite: 31]
-            <div class="ws4k-dots-indicator" id="ws4k-cycle-dots" aria-live="polite">● ○ ○</div>[cite: 31]
+          <div class="ws4k-broadcast-footer">
+            <div class="ws4k-crawl-tag">LOCAL ON THE 8s</div>
+            <div class="ws4k-dots-indicator" id="ws4k-cycle-dots" aria-live="polite">● ○ ○</div>
           </div>
 
         </div>

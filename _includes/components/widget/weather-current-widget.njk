@@ -1,33 +1,33 @@
 <!-- File: _includes/components/widget/weather-current-widget.njk -->
 {# 
-  COMPONENT: Compact Atmospheric Weather Bar (widget.weather.current.widget)[cite: 28]
-  PURPOSE: Single-line atmospheric summary for navigation headers, sidebars, and compact bento grids[cite: 28].
+  COMPONENT: Compact Atmospheric Weather Bar (widget.weather.current.widget)
+  PURPOSE: Single-line atmospheric summary for navigation headers, sidebars, and compact bento grids.
   CONTRACT:
-    - widget_weather_temp / weather_temp / weather.temp: Number or String [Required][cite: 28]
-    - widget_weather_condition / weather_condition / weather.condition: String [Optional, e.g. "Sunny", "Rain", "Cloudy"][cite: 28]
-    - widget_weather_summary / weather_summary / weather.summary: String [Optional, e.g. "Clear Skies"][cite: 28]
+    - widget_weather_temp / weather_temp / weather.temp: Number or String [Required]
+    - widget_weather_condition / weather_condition / weather.condition: String [Optional, e.g. "Sunny", "Rain", "Cloudy"]
+    - widget_weather_summary / weather_summary / weather.summary: String [Optional, e.g. "Clear Skies"]
     - active_neighborhood / neighborhood.name / city.City: String [Optional]
 #}
 
-{% set raw_temp = widget_weather_temp if widget_weather_temp is defined else (weather_temp if weather_temp is defined else (weather.temp if weather else null)) %}[cite: 28]
+{% set raw_temp = widget_weather_temp if widget_weather_temp is defined else (weather_temp if weather_temp is defined else (weather.temp if weather else null)) %}
 {% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
 
 {% if raw_temp is not none and raw_temp != '' %}
-  {% set condition = widget_weather_condition or (weather.condition if weather else '') or "Fair" %}[cite: 28]
-  {% set summary_text = widget_weather_summary or (weather.summary if weather else '') or condition %}[cite: 28]
-  {% set cond_lower = condition | lower %}[cite: 28]
+  {% set condition = widget_weather_condition or (weather.condition if weather else '') or "Fair" %}
+  {% set summary_text = widget_weather_summary or (weather.summary if weather else '') or condition %}
+  {% set cond_lower = condition | lower %}
   
   {# Format temp string with degree symbol if omitted #}
   {% set display_temp = raw_temp if ('°' in (raw_temp | string)) else (raw_temp ~ '°') %}
 
-  <section class="widget-card weather-current-widget-compact" aria-label="Current Weather for {{ active_neighborhood | default('This Neighborhood') }}: {{ display_temp }}, {{ summary_text }}">[cite: 28]
+  <section class="widget-card weather-current-widget-compact" aria-label="Current Weather for {{ active_neighborhood | default('This Neighborhood') }}: {{ display_temp }}, {{ summary_text }}">
     
     {# Atmospheric Meta & Primary Metric #}
-    <div class="weather-compact-content">[cite: 28]
+    <div class="weather-compact-content">
       <span class="text-overline weather-compact-overline">
         {{ (active_neighborhood | default('Local')) | upper }} ATMOSPHERE
       </span>
-      <div class="weather-compact-metrics-row">[cite: 28]
+      <div class="weather-compact-metrics-row">
         <span class="weather-compact-temp">
           {{ display_temp }}
         </span>
@@ -38,24 +38,24 @@
     </div>
 
     {# 48x48 Vector Graphic Well #}
-    <div class="weather-compact-icon-well" aria-hidden="true">[cite: 28]
-      <svg viewBox="0 0 32 32" fill="none" class="weather-compact-svg">[cite: 28]
+    <div class="weather-compact-icon-well" aria-hidden="true">
+      <svg viewBox="0 0 32 32" fill="none" class="weather-compact-svg">
         {% if 'rain' in cond_lower or 'drizzle' in cond_lower or 'shower' in cond_lower %}
-          <path d="M7 19a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 19H7z" class="weather-vector-cloud" />[cite: 28]
-          <line x1="10" y1="22" x2="8" y2="27" class="weather-vector-rain" />[cite: 28]
-          <line x1="16" y1="22" x2="14" y2="27" class="weather-vector-rain" />[cite: 28]
+          <path d="M7 19a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 19H7z" class="weather-vector-cloud" />
+          <line x1="10" y1="22" x2="8" y2="27" class="weather-vector-rain" />
+          <line x1="16" y1="22" x2="14" y2="27" class="weather-vector-rain" />
         {% elif 'cloud' in cond_lower or 'overcast' in cond_lower %}
           {% if 'part' in cond_lower %}
             <circle cx="11" cy="11" r="5" class="weather-vector-sun-core" />
           {% endif %}
-          <path d="M8 22a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 26 22H8z" class="weather-vector-cloud" />[cite: 28]
+          <path d="M8 22a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 26 22H8z" class="weather-vector-cloud" />
         {% else %}
           {# Sun / Clear Default #}
-          <circle cx="16" cy="16" r="7" class="weather-vector-sun-core" />[cite: 28]
-          <line x1="16" y1="4" x2="16" y2="7" class="weather-vector-sun-rays" />[cite: 28]
-          <line x1="16" y1="25" x2="16" y2="28" class="weather-vector-sun-rays" />[cite: 28]
-          <line x1="4" y1="16" x2="7" y2="16" class="weather-vector-sun-rays" />[cite: 28]
-          <line x1="25" y1="16" x2="28" y2="16" class="weather-vector-sun-rays" />[cite: 28]
+          <circle cx="16" cy="16" r="7" class="weather-vector-sun-core" />
+          <line x1="16" y1="4" x2="16" y2="7" class="weather-vector-sun-rays" />
+          <line x1="16" y1="25" x2="16" y2="28" class="weather-vector-sun-rays" />
+          <line x1="4" y1="16" x2="7" y2="16" class="weather-vector-sun-rays" />
+          <line x1="25" y1="16" x2="28" y2="16" class="weather-vector-sun-rays" />
         {% endif %}
       </svg>
     </div>

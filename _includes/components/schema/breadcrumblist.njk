@@ -1,49 +1,53 @@
 <!-- File: _includes/components/schema/BreadcrumbList.njk -->
-{% set is_debug = ('design-system' in (page.url | default('design-system'))) or schema_debug %}
-{% set default_crumbs = [
-  { name: "Home", url: "https://myseattlesearch.com/" },
-  { name: "Snohomish County", url: "https://myseattlesearch.com/communities/snohomish-county/" },
-  { name: "Edmonds", url: "https://myseattlesearch.com/communities/edmonds/" },
-  { name: "Market Trends", url: "https://myseattlesearch.com/communities/edmonds/real-estate/" }
-] %}
-{% set crumbs = schema_breadcrumbs | default(breadcrumbs if breadcrumbs else default_crumbs) %}
+{# 
+  COMPONENT: BreadcrumbList Hierarchical Navigation Schema (schema.breadcrumblist)
+  PURPOSE: Generates Google SERP hierarchical breadcrumb trails for crawl navigation.
+  CONTRACT:
+    - breadcrumbs / schema_breadcrumbs: Array of Objects [Required]
+      Each expects: { name: String, url: String }
+#}
 
-{% if is_debug %}
-<div class="widget-card schema-preview-card" style="padding: 1.25rem; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; box-sizing: border-box;">
-  <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">SCHEMA.ORG JSON-LD</span>
-      <span style="font-size: 0.7rem; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0.15rem 0.5rem; border-radius: 999px;">✅ Validated</span>
+{% set is_debug = ('design-system' in (page.url | default(''))) or schema_debug %}
+{% set crumbs = schema_breadcrumbs or breadcrumbs %}
+
+{% if crumbs and crumbs.length > 0 %}
+  {% if is_debug %}
+  <aside class="widget-card schema-preview-card" aria-label="Schema Debug: BreadcrumbList">
+    <div>
+      <div class="schema-header-strip">
+        <span class="text-overline text-accent-alpine">SCHEMA.ORG JSON-LD</span>
+        <span class="schema-badge-validated">Validated</span>
+      </div>
+      <h4 class="schema-headline">BreadcrumbList</h4>
+      <p class="schema-caption">
+        Hierarchical search breadcrumb path across {{ crumbs | length }} hierarchy nodes.
+      </p>
     </div>
-    <h4 class="text-widget-title" style="margin: 0 0 0.25rem 0; font-size: 0.95rem;">BreadcrumbList</h4>
-    <p class="text-body-secondary" style="font-size: 0.75rem; margin: 0; line-height: 1.4;">
-      Hierarchical search breadcrumb path (Home &gt; County &gt; City &gt; Subpage) for SERP snippets.
-    </p>
-  </div>
-  <details style="margin-top: 0.75rem; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem;">
-    <summary style="font-size: 0.7rem; font-weight: 700; color: var(--color-secondary-default); cursor: pointer;">Inspect JSON-LD</summary>
-    <pre style="background: var(--color-surface-gray); padding: 0.5rem; border-radius: 6px; font-size: 0.65rem; overflow-x: auto; margin-top: 0.35rem; font-family: monospace;"><code>{
+    <details class="schema-details-drawer">
+      <summary class="schema-summary-trigger">Inspect JSON-LD</summary>
+      <pre class="schema-code-block"><code>{
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
-  "items": {{ crumbs | length }} steps
+  "itemListElement": {{ crumbs | length }} steps
 }</code></pre>
-  </details>
-</div>
-{% endif %}
+    </details>
+  </aside>
+  {% endif %}
 
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    {% for item in crumbs %}
-    {
-      "@type": "ListItem",
-      "position": {{ loop.index }},
-      "name": "{{ item.name }}",
-      "item": "{{ item.url }}"
-    }{% if not loop.last %},{% endif %}
-    {% endfor %}
-  ]
-}
-</script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {% for item in crumbs %}
+      {
+        "@type": "ListItem",
+        "position": {{ loop.index }},
+        "name": {{ item.name | dump | safe }},
+        "item": {{ item.url | dump | safe }}
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ]
+  }
+  </script>
+{% endif %}

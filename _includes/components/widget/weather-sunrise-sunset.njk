@@ -1,82 +1,82 @@
 <!-- File: _includes/components/widget/weather-sunrise-sunset.njk -->
 {# 
-  COMPONENT: Astronomical Solar Sunrise & Sunset Position Dial (widget.weather.sunrise.sunset)[cite: 31]
-  PURPOSE: Real-time solar diurnal arc, solar elevation angle, and daylight tracking[cite: 31].
+  COMPONENT: Astronomical Solar Sunrise & Sunset Position Dial (widget.weather.sunrise.sunset)
+  PURPOSE: Real-time solar diurnal arc, solar elevation angle, and daylight tracking.
   CONTRACT:
-    - weather_sunrise / w_city.astronomy.sunrise_today: String (ISO or 12h format) [Required][cite: 31]
-    - weather_sunset / w_city.astronomy.sunset_today: String (ISO or 12h format) [Required][cite: 31]
-    - city_weather / cityWeather / weather: Object [Optional, telemetry dictionary][cite: 31]
-    - widget_solar_id: String [Optional, unique SVG identifier][cite: 31]
+    - weather_sunrise / w_city.astronomy.sunrise_today: String (ISO or 12h format) [Required]
+    - weather_sunset / w_city.astronomy.sunset_today: String (ISO or 12h format) [Required]
+    - city_weather / cityWeather / weather: Object [Optional, telemetry dictionary]
+    - widget_solar_id: String [Optional, unique SVG identifier]
     - active_neighborhood / neighborhood.name / city.City: String [Optional]
 #}
 
 {% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
-{% set active_city = city or (city_data[0] if city_data else null) or (cityData[0] if cityData else null) %}[cite: 31]
-{% set city_key = (active_neighborhood or active_city.slug or active_city.City or active_city.name or '') | lower | replace(" ", "-") %}[cite: 31]
-{% set weather_source = city_weather or cityWeather or weather %}[cite: 31]
-{% set w_city = weather_source[city_key] if (weather_source and city_key) else null %}[cite: 31]
+{% set active_city = city or (city_data[0] if city_data else null) or (cityData[0] if cityData else null) %}
+{% set city_key = (active_neighborhood or active_city.slug or active_city.City or active_city.name or '') | lower | replace(" ", "-") %}
+{% set weather_source = city_weather or cityWeather or weather %}
+{% set w_city = weather_source[city_key] if (weather_source and city_key) else null %}
 
 {# Pull live astronomy timestamps directly from weather records #}
-{% set raw_rise = weather_sunrise or (w_city.astronomy.sunrise_today if (w_city and w_city.astronomy) else null) %}[cite: 31]
-{% set raw_set = weather_sunset or (w_city.astronomy.sunset_today if (w_city and w_city.astronomy) else null) %}[cite: 31]
+{% set raw_rise = weather_sunrise or (w_city.astronomy.sunrise_today if (w_city and w_city.astronomy) else null) %}
+{% set raw_set = weather_sunset or (w_city.astronomy.sunset_today if (w_city and w_city.astronomy) else null) %}
 
 {# Clean inline time formatting: ISO (2026-10-24T07:42) -> 12-hour (7:42 AM) #}
-{% set sunrise_display = null %}[cite: 31]
-{% if raw_rise and ('T' in raw_rise) %}[cite: 31]
-  {% set rise_h = raw_rise.split('T')[1].split(':')[0] | int %}[cite: 31]
-  {% set rise_m = raw_rise.split('T')[1].split(':')[1] %}[cite: 31]
-  {% set sunrise_display = (12 if rise_h == 0 else (rise_h if rise_h <= 12 else rise_h - 12)) ~ ':' ~ rise_m ~ (' AM' if rise_h < 12 else ' PM') %}[cite: 31]
-{% elif raw_rise %}[cite: 31]
-  {% set sunrise_display = raw_rise %}[cite: 31]
+{% set sunrise_display = null %}
+{% if raw_rise and ('T' in raw_rise) %}
+  {% set rise_h = raw_rise.split('T')[1].split(':')[0] | int %}
+  {% set rise_m = raw_rise.split('T')[1].split(':')[1] %}
+  {% set sunrise_display = (12 if rise_h == 0 else (rise_h if rise_h <= 12 else rise_h - 12)) ~ ':' ~ rise_m ~ (' AM' if rise_h < 12 else ' PM') %}
+{% elif raw_rise %}
+  {% set sunrise_display = raw_rise %}
 {% endif %}
 
-{% set sunset_display = null %}[cite: 31]
-{% if raw_set and ('T' in raw_set) %}[cite: 31]
-  {% set set_h = raw_set.split('T')[1].split(':')[0] | int %}[cite: 31]
-  {% set set_m = raw_set.split('T')[1].split(':')[1] %}[cite: 31]
-  {% set sunset_display = (12 if set_h == 0 else (set_h if set_h <= 12 else set_h - 12)) ~ ':' ~ set_m ~ (' AM' if set_h < 12 else ' PM') %}[cite: 31]
-{% elif raw_set %}[cite: 31]
-  {% set sunset_display = raw_set %}[cite: 31]
+{% set sunset_display = null %}
+{% if raw_set and ('T' in raw_set) %}
+  {% set set_h = raw_set.split('T')[1].split(':')[0] | int %}
+  {% set set_m = raw_set.split('T')[1].split(':')[1] %}
+  {% set sunset_display = (12 if set_h == 0 else (set_h if set_h <= 12 else set_h - 12)) ~ ':' ~ set_m ~ (' AM' if set_h < 12 else ' PM') %}
+{% elif raw_set %}
+  {% set sunset_display = raw_set %}
 {% endif %}
 
 {# Compute build-time sun angle from last_updated #}
-{% set sun_angle = null %}[cite: 31]
-{% if raw_rise and ('T' in raw_rise) and raw_set and ('T' in raw_set) %}[cite: 31]
-  {% set rise_h = raw_rise.split('T')[1].split(':')[0] | int %}[cite: 31]
-  {% set rise_m = raw_rise.split('T')[1].split(':')[1] | int %}[cite: 31]
-  {% set rise_mins = rise_h * 60 + rise_m %}[cite: 31]
+{% set sun_angle = null %}
+{% if raw_rise and ('T' in raw_rise) and raw_set and ('T' in raw_set) %}
+  {% set rise_h = raw_rise.split('T')[1].split(':')[0] | int %}
+  {% set rise_m = raw_rise.split('T')[1].split(':')[1] | int %}
+  {% set rise_mins = rise_h * 60 + rise_m %}
 
-  {% set set_h = raw_set.split('T')[1].split(':')[0] | int %}[cite: 31]
-  {% set set_m = raw_set.split('T')[1].split(':')[1] | int %}[cite: 31]
-  {% set set_mins = set_h * 60 + set_m %}[cite: 31]
+  {% set set_h = raw_set.split('T')[1].split(':')[0] | int %}
+  {% set set_m = raw_set.split('T')[1].split(':')[1] | int %}
+  {% set set_mins = set_h * 60 + set_m %}
 
-  {% set updated_str = w_city.last_updated if w_city else null %}[cite: 31]
-  {% if updated_str and ('T' in updated_str) %}[cite: 31]
-    {% set u_h = updated_str.split('T')[1].split(':')[0] | int %}[cite: 31]
-    {% set u_m = updated_str.split('T')[1].split(':')[1] | int %}[cite: 31]
+  {% set updated_str = w_city.last_updated if w_city else null %}
+  {% if updated_str and ('T' in updated_str) %}
+    {% set u_h = updated_str.split('T')[1].split(':')[0] | int %}
+    {% set u_m = updated_str.split('T')[1].split(':')[1] | int %}
     {# Pacific Daylight Time is UTC - 7 hours #}
-    {% set cur_h = (u_h - 7 + 24) % 24 %}[cite: 31]
-    {% set cur_mins = cur_h * 60 + u_m %}[cite: 31]
-    {% if cur_mins >= rise_mins and cur_mins <= set_mins %}[cite: 31]
-      {% set day_dur = set_mins - rise_mins %}[cite: 31]
-      {% set sun_angle = (((cur_mins - rise_mins) / day_dur) * 180) | round(1) %}[cite: 31]
+    {% set cur_h = (u_h - 7 + 24) % 24 %}
+    {% set cur_mins = cur_h * 60 + u_m %}
+    {% if cur_mins >= rise_mins and cur_mins <= set_mins %}
+      {% set day_dur = set_mins - rise_mins %}
+      {% set sun_angle = (((cur_mins - rise_mins) / day_dur) * 180) | round(1) %}
     {% else %}
-      {% set night_dur = (1440 - set_mins) + rise_mins %}[cite: 31]
-      {% set elapsed = (cur_mins - set_mins) if cur_mins > set_mins else ((1440 - set_mins) + cur_mins) %}[cite: 31]
-      {% set sun_angle = (180 + ((elapsed / night_dur) * 180)) | round(1) %}[cite: 31]
+      {% set night_dur = (1440 - set_mins) + rise_mins %}
+      {% set elapsed = (cur_mins - set_mins) if cur_mins > set_mins else ((1440 - set_mins) + cur_mins) %}
+      {% set sun_angle = (180 + ((elapsed / night_dur) * 180)) | round(1) %}
     {% endif %}
   {% endif %}
 {% endif %}
 
-{% set widget_id = widget_solar_id or ("solar-dial-" ~ (active_neighborhood | slugify | default("regional"))) %}[cite: 31]
+{% set widget_id = widget_solar_id or ("solar-dial-" ~ (active_neighborhood | slugify | default("regional"))) %}
 
 {% if sunrise_display and sunset_display %}
-<section class="widget-card weather-sunrise-sunset-card" aria-label="Sunrise and Sunset Solar Dial for {{ active_neighborhood | default('This Neighborhood') }}: Sunrise {{ sunrise_display }}, Sunset {{ sunset_display }}">[cite: 31]
+<section class="widget-card weather-sunrise-sunset-card" aria-label="Sunrise and Sunset Solar Dial for {{ active_neighborhood | default('This Neighborhood') }}: Sunrise {{ sunrise_display }}, Sunset {{ sunset_display }}">
   
   {# Header Row #}
-  <header class="solar-dial-header">[cite: 31]
-    <span class="text-overline solar-dial-overline">[cite: 31]
-      SUNRISE &amp; SUNSET[cite: 31]
+  <header class="solar-dial-header">
+    <span class="text-overline solar-dial-overline">
+      SUNRISE &amp; SUNSET
     </span>
     {% if active_neighborhood %}
       <span class="solar-neighborhood-badge">
@@ -86,47 +86,47 @@
   </header>
 
   {# SVG Solar Clock Dial with Integrated Flanking Sunrise & Sunset Labels #}
-  <div class="solar-dial-stage">[cite: 31]
-    <svg id="{{ widget_id }}" viewBox="0 0 340 200" class="solar-dial-svg" role="img" aria-label="Solar position dial: Sunrise at {{ sunrise_display }}, Sunset at {{ sunset_display }}">[cite: 31]
-      <defs>[cite: 31]
-        <filter id="solarGlow-{{ widget_id }}" x="-30%" y="-30%" width="160%" height="160%">[cite: 31]
-          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="rgba(0, 0, 0, 0.2)"/>[cite: 31]
+  <div class="solar-dial-stage">
+    <svg id="{{ widget_id }}" viewBox="0 0 340 200" class="solar-dial-svg" role="img" aria-label="Solar position dial: Sunrise at {{ sunrise_display }}, Sunset at {{ sunset_display }}">
+      <defs>
+        <filter id="solarGlow-{{ widget_id }}" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="rgba(0, 0, 0, 0.2)"/>
         </filter>
       </defs>
 
       {# Left Text: Sunrise #}
-      <g>[cite: 31]
-        <text x="86" y="93" text-anchor="end" class="solar-label-heading">SUNRISE</text>[cite: 31]
-        <text x="86" y="112" text-anchor="end" class="solar-label-time">{{ sunrise_display }}</text>[cite: 31]
+      <g>
+        <text x="86" y="93" text-anchor="end" class="solar-label-heading">SUNRISE</text>
+        <text x="86" y="112" text-anchor="end" class="solar-label-time">{{ sunrise_display }}</text>
       </g>
 
       {# Top Semicircle: Daytime (Amber Solar Arc) from 9:00 over the top to 3:00 #}
-      <path d="M 100 100 A 70 70 0 0 1 240 100 Z" class="solar-day-arc" />[cite: 31]
+      <path d="M 100 100 A 70 70 0 0 1 240 100 Z" class="solar-day-arc" />
 
       {# Bottom Semicircle: Nighttime (Nocturnal Slate Arc) from 3:00 under the bottom to 9:00 #}
-      <path d="M 240 100 A 70 70 0 0 1 100 100 Z" class="solar-night-arc" />[cite: 31]
+      <path d="M 240 100 A 70 70 0 0 1 100 100 Z" class="solar-night-arc" />
 
       {# Clean Hollow Center Bearing Hub #}
-      <circle cx="170" cy="100" r="32" class="solar-center-hub" />[cite: 31]
+      <circle cx="170" cy="100" r="32" class="solar-center-hub" />
 
       {# Left Arrow: Sunrise at (100, 100) pointing UP (clockwise into daytime) #}
-      <polygon points="93,107 107,107 100,91" class="solar-arrow-vector" />[cite: 31]
+      <polygon points="93,107 107,107 100,91" class="solar-arrow-vector" />
 
       {# Right Arrow: Sunset at (240, 100) pointing DOWN (clockwise into nighttime) #}
-      <polygon points="233,93 247,93 240,109" class="solar-arrow-vector" />[cite: 31]
+      <polygon points="233,93 247,93 240,109" class="solar-arrow-vector" />
 
       {# Current Sun Position Marker on Circumference #}
-      {% if sun_angle is not none %}[cite: 31]
-        <g class="sun-marker-group" transform="rotate({{ sun_angle }}, 170, 100)">[cite: 31]
-          <circle cx="100" cy="100" r="9" class="solar-marker-outer" filter="url(#solarGlow-{{ widget_id }})"/>[cite: 31]
-          <circle cx="100" cy="100" r="3" class="solar-marker-inner" />[cite: 31]
+      {% if sun_angle is not none %}
+        <g class="sun-marker-group" transform="rotate({{ sun_angle }}, 170, 100)">
+          <circle cx="100" cy="100" r="9" class="solar-marker-outer" filter="url(#solarGlow-{{ widget_id }})"/>
+          <circle cx="100" cy="100" r="3" class="solar-marker-inner" />
         </g>
       {% endif %}
 
       {# Right Text: Sunset #}
-      <g>[cite: 31]
-        <text x="254" y="93" text-anchor="start" class="solar-label-heading">SUNSET</text>[cite: 31]
-        <text x="254" y="112" text-anchor="start" class="solar-label-time">{{ sunset_display }}</text>[cite: 31]
+      <g>
+        <text x="254" y="93" text-anchor="start" class="solar-label-heading">SUNSET</text>
+        <text x="254" y="112" text-anchor="start" class="solar-label-time">{{ sunset_display }}</text>
       </g>
 
     </svg>

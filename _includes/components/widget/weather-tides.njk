@@ -1,78 +1,78 @@
 <!-- File: _includes/components/widget/weather-tides.njk -->
 {# 
-  COMPONENT: Intertidal Physical Hydrology Stratum (widget.weather.tides)[cite: 24]
-  PURPOSE: Mixed semidiurnal tidal telemetry, surface elevation, and high/low predictions[cite: 24].
+  COMPONENT: Intertidal Physical Hydrology Stratum (widget.weather.tides)
+  PURPOSE: Mixed semidiurnal tidal telemetry, surface elevation, and high/low predictions.
   CONTRACT:
-    - tide_current_level / current_level: String or Number [Optional, e.g. "+8.4 ft"][cite: 24]
-    - tide_high_time / high_time: String [Optional, e.g. "8:56 PM"][cite: 24]
-    - tide_high_level / high_level: String or Number [Optional, e.g. "+11.2 ft"][cite: 24]
-    - tide_low_time / low_time: String [Optional, e.g. "2:55 AM"][cite: 24]
-    - tide_low_level / low_level: String or Number [Optional, e.g. "+1.9 ft"][cite: 24]
-    - tide_station / station_name: String [Optional, e.g. "Edmonds, Possession Sound"][cite: 24]
-    - tide_trend_label / trend_label: String [Optional, e.g. "Tide Rising", "Tide Falling"][cite: 24]
-    - tide_is_night: Boolean [Optional, defaults to false][cite: 24]
+    - tide_current_level / current_level: String or Number [Optional, e.g. "+8.4 ft"]
+    - tide_high_time / high_time: String [Optional, e.g. "8:56 PM"]
+    - tide_high_level / high_level: String or Number [Optional, e.g. "+11.2 ft"]
+    - tide_low_time / low_time: String [Optional, e.g. "2:55 AM"]
+    - tide_low_level / low_level: String or Number [Optional, e.g. "+1.9 ft"]
+    - tide_station / station_name: String [Optional, e.g. "Edmonds, Possession Sound"]
+    - tide_trend_label / trend_label: String [Optional, e.g. "Tide Rising", "Tide Falling"]
+    - tide_is_night: Boolean [Optional, defaults to false]
     - active_neighborhood / neighborhood.name / city.City: String [Optional]
 #}
 
-{% set tide_cur = tide_current_level if tide_current_level is defined else current_level %}[cite: 24]
-{% set tide_high = tide_high_level if tide_high_level is defined else high_level %}[cite: 24]
-{% set tide_low = tide_low_level if tide_low_level is defined else low_level %}[cite: 24]
-{% set high_time_str = tide_high_time or high_time %}[cite: 24]
-{% set low_time_str = tide_low_time or low_time %}[cite: 24]
-{% set station = tide_station or station_name %}[cite: 24]
+{% set tide_cur = tide_current_level if tide_current_level is defined else current_level %}
+{% set tide_high = tide_high_level if tide_high_level is defined else high_level %}
+{% set tide_low = tide_low_level if tide_low_level is defined else low_level %}
+{% set high_time_str = tide_high_time or high_time %}
+{% set low_time_str = tide_low_time or low_time %}
+{% set station = tide_station or station_name %}
 {% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
-{% set is_night = tide_is_night if tide_is_night is defined else false %}[cite: 24]
+{% set is_night = tide_is_night if tide_is_night is defined else false %}
 
 {# Determine Flood vs Ebb Flow Trend #}
-{% set raw_trend = tide_trend_label or trend_label or "Tide Rising" %}[cite: 24]
+{% set raw_trend = tide_trend_label or trend_label or "Tide Rising" %}
 {% set is_falling = ('fall' in (raw_trend | lower)) or ('ebb' in (raw_trend | lower)) or ('down' in (raw_trend | lower)) %}
-{% set trend_text = raw_trend | replace("↑", "") | replace("↓", "") | trim %}[cite: 24]
+{% set trend_text = raw_trend | replace("↑", "") | replace("↓", "") | trim %}
 
 {% if tide_cur or tide_high or tide_low or station %}
-<article class="widget-card weather-tides-card" aria-label="Tidal Telemetry for {{ active_neighborhood | default(station | default('Puget Sound')) }}">[cite: 24]
+<article class="widget-card weather-tides-card" aria-label="Tidal Telemetry for {{ active_neighborhood | default(station | default('Puget Sound')) }}">
   
-  {# LAYER 1: SKY STRATUM (Top 25%) #}[cite: 24]
-  <div class="tide-sky-layer {% if is_night %}tide-sky-night{% else %}tide-sky-day{% endif %}">[cite: 24]
-    <div class="tide-sky-lead">[cite: 24]
-      {% if is_night %}[cite: 24]
-        {# Moon Vector Icon #}[cite: 24]
-        <svg class="tide-celestial-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">[cite: 24]
-          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>[cite: 24]
+  {# LAYER 1: SKY STRATUM (Top 25%) #}
+  <div class="tide-sky-layer {% if is_night %}tide-sky-night{% else %}tide-sky-day{% endif %}">
+    <div class="tide-sky-lead">
+      {% if is_night %}
+        {# Moon Vector Icon #}
+        <svg class="tide-celestial-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
         </svg>
       {% else %}
-        {# Sun Vector Icon #}[cite: 24]
-        <svg class="tide-celestial-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">[cite: 24]
-          <circle cx="12" cy="12" r="4"/>[cite: 24]
-          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>[cite: 24]
+        {# Sun Vector Icon #}
+        <svg class="tide-celestial-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
         </svg>
       {% endif %}
-      <span class="text-overline tide-sky-label">[cite: 24]
-        NEXT HIGH{% if high_time_str %} {{ high_time_str }}{% endif %}[cite: 24]
+      <span class="text-overline tide-sky-label">
+        NEXT HIGH{% if high_time_str %} {{ high_time_str }}{% endif %}
       </span>
     </div>
     {% if tide_high %}
-      <div class="tide-sky-val">[cite: 24]
-        {{ tide_high }}[cite: 24]
+      <div class="tide-sky-val">
+        {{ tide_high }}
       </div>
     {% endif %}
   </div>
 
-  {# LAYER 2: MARINE WATER STRATUM (Middle 50%) #}[cite: 24]
-  <div class="tide-water-layer">[cite: 24]
+  {# LAYER 2: MARINE WATER STRATUM (Middle 50%) #}
+  <div class="tide-water-layer">
     
-    {# Wave SVG Divider Contour #}[cite: 24]
-    <div class="tide-wave-wrapper" aria-hidden="true">[cite: 24]
-      <svg viewBox="0 0 1200 120" preserveAspectRatio="none" class="tide-wave-svg">[cite: 24]
+    {# Wave SVG Divider Contour #}
+    <div class="tide-wave-wrapper" aria-hidden="true">
+      <svg viewBox="0 0 1200 120" preserveAspectRatio="none" class="tide-wave-svg">
         <path d="M0,0 C150,90 350,-40 500,40 C650,120 900,10 1200,40 L1200,0 L0,0 Z" 
-              class="{% if is_night %}tide-wave-fill-night{% else %}tide-wave-fill-day{% endif %}"></path>[cite: 24]
+              class="{% if is_night %}tide-wave-fill-night{% else %}tide-wave-fill-day{% endif %}"></path>
       </svg>
     </div>
 
-    {# Water Stratum Content #}[cite: 24]
-    <div class="tide-water-header">[cite: 24]
+    {# Water Stratum Content #}
+    <div class="tide-water-header">
       {% if station %}
-        <span class="tide-station-name">[cite: 24]
-          Station: {{ station }}[cite: 24]
+        <span class="tide-station-name">
+          Station: {{ station }}
         </span>
       {% else %}
         <span class="tide-station-name">
@@ -80,7 +80,7 @@
         </span>
       {% endif %}
 
-      <span class="tide-trend-pill">[cite: 24]
+      <span class="tide-trend-pill">
         <span>{{ trend_text }}</span>
         {% if is_falling %}
           <svg class="tide-trend-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -96,24 +96,24 @@
       </span>
     </div>
 
-    <div class="tide-water-footer">[cite: 24]
-      <div class="tide-water-caption">Current Est. Surface Level</div>[cite: 24]
+    <div class="tide-water-footer">
+      <div class="tide-water-caption">Current Est. Surface Level</div>
       {% if tide_cur %}
-        <div class="tide-current-figure">[cite: 24]
-          {{ tide_cur }}[cite: 24]
+        <div class="tide-current-figure">
+          {{ tide_cur }}
         </div>
       {% endif %}
     </div>
   </div>
 
-  {# LAYER 3: SHORELINE SAND STRATUM (Bottom 25%) #}[cite: 24]
-  <div class="tide-sand-layer">[cite: 24]
-    <div class="text-overline tide-sand-label">[cite: 24]
-      NEXT LOW{% if low_time_str %} {{ low_time_str }}{% endif %}[cite: 24]
+  {# LAYER 3: SHORELINE SAND STRATUM (Bottom 25%) #}
+  <div class="tide-sand-layer">
+    <div class="text-overline tide-sand-label">
+      NEXT LOW{% if low_time_str %} {{ low_time_str }}{% endif %}
     </div>
     {% if tide_low %}
-      <div class="tide-sand-val">[cite: 24]
-        {{ tide_low }}[cite: 24]
+      <div class="tide-sand-val">
+        {{ tide_low }}
       </div>
     {% endif %}
   </div>

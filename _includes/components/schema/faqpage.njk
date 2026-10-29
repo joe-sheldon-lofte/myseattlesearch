@@ -1,0 +1,55 @@
+<!-- File: _includes/components/schema/FAQPage.njk -->
+{# 
+  COMPONENT: Frequently Asked Questions Schema (schema.faqpage)
+  PURPOSE: Direct extraction for Google SERP expandable accordions and AI search overviews.
+  CONTRACT:
+    - faq_items / schema_faq_items: Array of Objects [Required]
+      Each expects: { question: String, answer: String }
+#}
+
+{% set is_debug = ('design-system' in (page.url | default(''))) or schema_debug %}
+{% set items = schema_faq_items or faq_items %}
+
+{% if items and items.length > 0 %}
+  {% if is_debug %}
+  <aside class="widget-card schema-preview-card" aria-label="Schema Debug: FAQPage">
+    <div>
+      <div class="schema-header-strip">
+        <span class="text-overline text-accent-alpine">SCHEMA.ORG JSON-LD</span>
+        <span class="schema-badge-validated">Validated</span>
+      </div>
+      <h4 class="schema-headline">FAQPage</h4>
+      <p class="schema-caption">
+        Powers Google expandable questions and LLM grounding across {{ items | length }} queries.
+      </p>
+    </div>
+    <details class="schema-details-drawer">
+      <summary class="schema-summary-trigger">Inspect JSON-LD</summary>
+      <pre class="schema-code-block"><code>{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "questions": {{ items | length }}
+}</code></pre>
+    </details>
+  </aside>
+  {% endif %}
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {% for q in items %}
+      {
+        "@type": "Question",
+        "name": {{ q.question | dump | safe }},
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": {{ q.answer | dump | safe }}
+        }
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ]
+  }
+  </script>
+{% endif %}

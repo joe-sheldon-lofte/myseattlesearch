@@ -1,0 +1,65 @@
+<!-- File: _includes/components/schema/WebSite.njk -->
+{# 
+  COMPONENT: Canonical WebSite & Sitelinks Searchbox Schema (schema.website)
+  PURPOSE: Declares the top-level digital platform entity (#website) and enables Google Sitelinks Search.
+  PLACEMENT: Global master layout <head> (rendered once across all 58 neighborhood portals).
+  CONTRACT:
+    - site.url / schema_site_url: String [Optional, defaults to canonical domain]
+    - site.name / schema_site_name: String [Optional, defaults to "MySeattleSearch"]
+    - site.description / schema_site_desc: String [Optional]
+    - site.search_path / schema_search_path: String [Optional, defaults to "/search/?q="]
+#}
+
+{% set is_debug = ('design-system' in (page.url | default(''))) or schema_debug %}
+{% set s_url = schema_site_url or (site.url if site else "https://myseattlesearch.com") %}
+{% set s_name = schema_site_name or (site.name if site else "MySeattleSearch") %}
+{% set s_desc = schema_site_desc or (site.description if site else "Puget Sound Real Estate & Municipal Intelligence Platform") %}
+{% set s_search = schema_search_path or "/search/?q=" %}
+
+{% if is_debug %}
+<aside class="widget-card schema-preview-card" aria-label="Schema Debug: WebSite">
+  <div>
+    <div class="schema-header-strip">
+      <span class="text-overline text-accent-alpine">SCHEMA.ORG JSON-LD</span>
+      <span class="schema-badge-validated">Validated</span>
+    </div>
+    <h4 class="schema-headline">WebSite &amp; Sitelinks Searchbox</h4>
+    <p class="schema-caption">
+      Establishes the platform entity (<code>#website</code>) and connects global search indexing to the broker authority node (<code>#agent</code>).
+    </p>
+  </div>
+  <details class="schema-details-drawer">
+    <summary class="schema-summary-trigger">Inspect JSON-LD</summary>
+    <pre class="schema-code-block"><code>{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": "{{ s_url }}/#website",
+  "name": {{ s_name | dump | safe }}
+}</code></pre>
+  </details>
+</aside>
+{% endif %}
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": "{{ s_url }}/#website",
+  "url": "{{ s_url }}/",
+  "name": {{ s_name | dump | safe }},
+  "description": {{ s_desc | dump | safe }},
+  "inLanguage": "en-US",
+  "publisher": {
+    "@type": "RealEstateAgent",
+    "@id": "{{ s_url }}/#agent"
+  },
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": "{{ s_url }}{{ s_search }}{search_term_string}"
+    },
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>

@@ -1,71 +1,90 @@
 <!-- File: _includes/components/schema/SingleFamilyResidence.njk -->
-{% set is_debug = ('design-system' in (page.url | default('design-system'))) or schema_debug %}
-{% set r_address = schema_res_address | default(home.address if home and home.address else "8512 216th St SW") %}
-{% set r_city = schema_res_city | default(home.city if home and home.city else "Edmonds") %}
-{% set r_zip = schema_res_zip | default(home.zip if home and home.zip else "98026") %}
-{% set r_beds = schema_res_beds | default(home.beds if home and home.beds else 4) %}
-{% set r_baths = schema_res_baths | default(home.baths if home and home.baths else 2.5) %}
-{% set r_sqft = schema_res_sqft | default(home.sqft if home and home.sqft else 2480) %}
-{% set r_price = schema_res_price | default(home.price if home and home.price else 945000) %}
-{% set r_status = schema_res_status | default(home.status if home and home.status else "https://schema.org/Sold") %}
-{% set r_url = schema_res_url | default(home.url if home and home.url else "https://myseattlesearch.com/portfolio/8512-216th-st-sw/") %}
+{# 
+  COMPONENT: Real Estate Residential Listing Schema (schema.singlefamilyresidence)
+  PURPOSE: Property attributes (beds, baths, FTK square footage, pricing) for Google Real Estate snippets.
+  CONTRACT:
+    - home.address / schema_res_address: String [Required]
+    - home.city / schema_res_city: String [Required]
+    - home.zip / schema_res_zip: String [Required]
+    - home.beds / schema_res_beds: Number [Required]
+    - home.baths / schema_res_baths: Number [Required]
+    - home.sqft / schema_res_sqft: Number [Required]
+    - home.price / schema_res_price: Number [Required]
+    - home.url / schema_res_url: String (Canonical Listing URL) [Required]
+    - home.status / schema_res_status: String [Optional, defaults to InStock]
+#}
 
-{% if is_debug %}
-<div class="widget-card schema-preview-card" style="padding: 1.25rem; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; box-sizing: border-box;">
-  <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">SCHEMA.ORG JSON-LD</span>
-      <span style="font-size: 0.7rem; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0.15rem 0.5rem; border-radius: 999px;">✅ Validated</span>
+{% set is_debug = ('design-system' in (page.url | default(''))) or schema_debug %}
+{% set r_addr = schema_res_address or (home.address if home else '') %}
+{% set r_city = schema_res_city or (home.city if home else '') %}
+{% set r_zip = schema_res_zip or (home.zip if home else '') %}
+{% set r_beds = schema_res_beds or (home.beds if home else null) %}
+{% set r_baths = schema_res_baths or (home.baths if home else null) %}
+{% set r_sqft = schema_res_sqft or (home.sqft if home else null) %}
+{% set r_price = schema_res_price or (home.price if home else null) %}
+{% set r_status = schema_res_status or (home.status if home else "https://schema.org/InStock") %}
+{% set r_url = schema_res_url or (home.url if home else '') %}
+
+{% if r_addr and r_city and r_price %}
+  {% if is_debug %}
+  <aside class="widget-card schema-preview-card" aria-label="Schema Debug: SingleFamilyResidence">
+    <div>
+      <div class="schema-header-strip">
+        <span class="text-overline text-accent-alpine">SCHEMA.ORG JSON-LD</span>
+        <span class="schema-badge-validated">Validated</span>
+      </div>
+      <h4 class="schema-headline">SingleFamilyResidence</h4>
+      <p class="schema-caption">
+        Property data structure for Google Real Estate rich snippets.
+      </p>
     </div>
-    <h4 class="text-widget-title" style="margin: 0 0 0.25rem 0; font-size: 0.95rem;">SingleFamilyResidence</h4>
-    <p class="text-body-secondary" style="font-size: 0.75rem; margin: 0; line-height: 1.4;">
-      Property data structure (beds, baths, FTK square footage, price) for Google Real Estate rich snippets.
-    </p>
-  </div>
-  <details style="margin-top: 0.75rem; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem;">
-    <summary style="font-size: 0.7rem; font-weight: 700; color: var(--color-secondary-default); cursor: pointer;">Inspect JSON-LD</summary>
-    <pre style="background: var(--color-surface-gray); padding: 0.5rem; border-radius: 6px; font-size: 0.65rem; overflow-x: auto; margin-top: 0.35rem; font-family: monospace;"><code>{
+    <details class="schema-details-drawer">
+      <summary class="schema-summary-trigger">Inspect JSON-LD</summary>
+      <pre class="schema-code-block"><code>{
   "@context": "https://schema.org",
   "@type": "SingleFamilyResidence",
-  "name": "{{ r_address }}",
-  "rooms": "{{ r_beds }} beds, {{ r_baths }} baths"
+  "name": {{ r_addr | dump | safe }},
+  "price": {{ r_price }}
 }</code></pre>
-  </details>
-</div>
-{% endif %}
+    </details>
+  </aside>
+  {% endif %}
 
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "SingleFamilyResidence",
-  "@id": "{{ r_url }}",
-  "name": "{{ r_address }}, {{ r_city }}, WA {{ r_zip }}",
-  "address": {
-    "@type": "PostalAddress",
-    "streetAddress": "{{ r_address }}",
-    "addressLocality": "{{ r_city }}",
-    "addressRegion": "WA",
-    "postalCode": "{{ r_zip }}",
-    "addressCountry": "US"
-  },
-  "numberOfRooms": {{ r_beds }},
-  "numberOfBathroomsTotal": {{ r_baths }},
-  "floorSize": {
-    "@type": "QuantitativeValue",
-    "value": {{ r_sqft }},
-    "unitCode": "FTK"
-  },
-  "offers": {
-    "@type": "Offer",
-    "price": "{{ r_price }}",
-    "priceCurrency": "USD",
-    "availability": "{{ r_status }}"
-  },
-  "broker": {
-    "@type": "Person",
-    "@id": "https://myseattlesearch.com/#agent",
-    "name": "Joe Sheldon",
-    "telephone": "(206) 657-7493"
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SingleFamilyResidence",
+    {% if r_url %}"@id": {{ r_url | dump | safe }},{% endif %}
+    "name": {{ (r_addr ~ ", " ~ r_city ~ ", WA " ~ r_zip) | dump | safe }},
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": {{ r_addr | dump | safe }},
+      "addressLocality": {{ r_city | dump | safe }},
+      "addressRegion": "WA",
+      "postalCode": {{ r_zip | dump | safe }},
+      "addressCountry": "US"
+    },
+    {% if r_beds %}"numberOfRooms": {{ r_beds }},{% endif %}
+    {% if r_baths %}"numberOfBathroomsTotal": {{ r_baths }},{% endif %}
+    {% if r_sqft %}
+    "floorSize": {
+      "@type": "QuantitativeValue",
+      "value": {{ r_sqft }},
+      "unitCode": "FTK"
+    },
+    {% endif %}
+    "offers": {
+      "@type": "Offer",
+      "price": {{ r_price | dump | safe }},
+      "priceCurrency": "USD",
+      "availability": {{ r_status | dump | safe }}
+    },
+    "broker": {
+      "@type": "Person",
+      "@id": "https://myseattlesearch.com/#agent",
+      "name": "Joe Sheldon",
+      "telephone": "(206) 657-7493"
+    }
   }
-}
-</script>
+  </script>
+{% endif %}

@@ -1,49 +1,62 @@
 <!-- File: _includes/components/schema/Neighborhood.njk -->
-{% set is_debug = ('design-system' in (page.url | default('design-system'))) or schema_debug %}
-{% set n_name = schema_neighborhood_name | default(city.name if city and city.name else "Edmonds") %}
-{% set n_parent = schema_parent_city | default(city.parent_city if city and city.parent_city else "Snohomish County") %}
-{% set n_lat = schema_lat | default(city.lat if city and city.lat else 47.8107) %}
-{% set n_lon = schema_lon | default(city.lon if city and city.lon else -122.3774) %}
-{% set n_desc = schema_desc | default("Authoritative Puget Sound community guide covering real estate market data, school performance, and civic infrastructure.") %}
+{# 
+  COMPONENT: Municipal & Neighborhood Geographic Entity Schema (schema.neighborhood)
+  PURPOSE: Establishes territorial and civic authority across all 58 Washington neighborhoods.
+  CONTRACT:
+    - neighborhood.name / city.name / schema_neighborhood_name: String [Required]
+    - neighborhood.parent / city.parent_city / schema_parent_area: String [Optional, e.g. "Snohomish County"]
+    - neighborhood.latitude / city.lat / schema_lat: Number [Required]
+    - neighborhood.longitude / city.lon / schema_lon: Number [Required]
+    - neighborhood.description / schema_desc: String [Optional]
+#}
 
-{% if is_debug %}
-<div class="widget-card schema-preview-card" style="padding: 1.25rem; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; box-sizing: border-box;">
-  <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">SCHEMA.ORG JSON-LD</span>
-      <span style="font-size: 0.7rem; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0.15rem 0.5rem; border-radius: 999px;">✅ Validated</span>
+{% set is_debug = ('design-system' in (page.url | default(''))) or schema_debug %}
+{% set n_name = schema_neighborhood_name or (neighborhood.name if neighborhood else (city.name if city else '')) %}
+{% set n_parent = schema_parent_area or (neighborhood.parent if neighborhood else (city.parent_city if city else 'Washington')) %}
+{% set n_lat = schema_lat or (neighborhood.latitude if neighborhood else (city.lat if city else null)) %}
+{% set n_lon = schema_lon or (neighborhood.longitude if neighborhood else (city.lon if city else null)) %}
+{% set n_desc = schema_desc or (neighborhood.description if neighborhood else "Authoritative Puget Sound community guide covering real estate market trends, school performance, and civic infrastructure.") %}
+
+{% if n_name and n_lat and n_lon %}
+  {% if is_debug %}
+  <aside class="widget-card schema-preview-card" aria-label="Schema Debug: Neighborhood">
+    <div>
+      <div class="schema-header-strip">
+        <span class="text-overline text-accent-alpine">SCHEMA.ORG JSON-LD</span>
+        <span class="schema-badge-validated">Validated</span>
+      </div>
+      <h4 class="schema-headline">Neighborhood</h4>
+      <p class="schema-caption">
+        Geographic authority indicator for search engines and AI citation crawlers.
+      </p>
     </div>
-    <h4 class="text-widget-title" style="margin: 0 0 0.25rem 0; font-size: 0.95rem;">Neighborhood</h4>
-    <p class="text-body-secondary" style="font-size: 0.75rem; margin: 0; line-height: 1.4;">
-      Geographic authority indicator for search engines and AI citation crawlers.
-    </p>
-  </div>
-  <details style="margin-top: 0.75rem; border-top: 1px solid var(--color-border-light); padding-top: 0.5rem;">
-    <summary style="font-size: 0.7rem; font-weight: 700; color: var(--color-secondary-default); cursor: pointer;">Inspect JSON-LD</summary>
-    <pre style="background: var(--color-surface-gray); padding: 0.5rem; border-radius: 6px; font-size: 0.65rem; overflow-x: auto; margin-top: 0.35rem; font-family: monospace;"><code>{
-  "@context": "https://schema.org",
-  "@type": "Neighborhood",
-  "name": "{{ n_name }}",
-  "geo": [{{ n_lat }}, {{ n_lon }}]
-}</code></pre>
-  </details>
-</div>
-{% endif %}
-
-<script type="application/ld+json">
-{
+    <details class="schema-details-drawer">
+      <summary class="schema-summary-trigger">Inspect JSON-LD</summary>
+      <pre class="schema-code-block"><code>{
   "@context": "https://schema.org",
   "@type": "Neighborhood",
   "name": {{ n_name | dump | safe }},
-  "description": {{ n_desc | dump | safe }},
-  "containedInPlace": {
-    "@type": "AdministrativeArea",
-    "name": {{ n_parent | dump | safe }}
-  },
-  "geo": {
-    "@type": "GeoCoordinates",
-    "latitude": {{ n_lat }},
-    "longitude": {{ n_lon }}
+  "geo": [{{ n_lat }}, {{ n_lon }}]
+}</code></pre>
+    </details>
+  </aside>
+  {% endif %}
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Neighborhood",
+    "name": {{ n_name | dump | safe }},
+    "description": {{ n_desc | dump | safe }},
+    "containedInPlace": {
+      "@type": "AdministrativeArea",
+      "name": {{ n_parent | dump | safe }}
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": {{ n_lat }},
+      "longitude": {{ n_lon }}
+    }
   }
-}
-</script>
+  </script>
+{% endif %}
