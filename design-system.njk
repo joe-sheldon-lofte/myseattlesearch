@@ -4,369 +4,215 @@ title: "Master UI Component Sandbox | All Catalog Elements"
 permalink: "/design-system/index.html"
 ---
 
-{# Global Shell Mounting (Dual-path fallback for _includes/components/ or _includes/) #}
-{% set globalHeader %}{% include "components/header.njk" ignore missing %}{% endset %}
-{% if globalHeader | trim | length == 0 %}{% set globalHeader %}{% include "header.njk" ignore missing %}{% endset %}{% endif %}
-{{ globalHeader | safe }}
+{# Defensive Lynnwood Context & Mock Data Hydration #}
+{% set city = { City: "Lynnwood", name: "Lynnwood", lat: 47.8209, lon: -122.3151 } %}
 
-{# Macro: Evaluates captured content. Renders component if file has markup, or a dashed placeholder slot if empty. #}
+{# Mock Operational Telemetry to force widgets to render #}
+{% set scores = {
+  activecommute: 82,
+  activetransit: 68,
+  ontime: 92,
+  friction: 12,
+  ev: 78,
+  tax_stability: 28,
+  psai: 84,
+  surveillance: 54,
+  shore: 12,
+  park: 65,
+  bark: 88
+} %}
+{% set walkscore = { walk: 91, bike: 75, transit: 68 } %}
+{% set schema_debug = true %}
+
+{# Macro: Evaluates captured content #}
 {% macro renderSlot(element_name, content) %}
-  {% if content | trim | length > 0 %}
+  {% set clean_content = content | replace('<!--', '') | replace('-->', '') | trim %}
+  {% if clean_content | length > 5 %}
     {{ content | safe }}
   {% else %}
-    <div class="widget-card placeholder-slot" style="border: 2px dashed rgba(0, 0, 0, 0.16); background: var(--color-surface-gray); min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 1.25rem; width: 100%; box-sizing: border-box;">
-      <span class="text-overline" style="margin-bottom: 0.35rem; color: var(--premier-charcoal); opacity: 0.6; font-size: 0.7rem; word-break: break-all;">{{ element_name }}</span>
-      <span style="font-size: 0.75rem; font-weight: 500; color: var(--premier-charcoal); background: var(--color-surface-gray); padding: 0.2rem 0.65rem; border-radius: 9999px;">⏳ Pending Build</span>
+    <div class="widget-card placeholder-slot">
+      <span class="text-overline placeholder-slot-tag">{{ element_name }}</span>
+      <span class="placeholder-slot-badge">⏳ Pending Build</span>
     </div>
   {% endif %}
 {% endmacro %}
 
-{# Bind sandbox globally to Lynnwood directly from live city_data without fallbacks #}
-{% set city_source = city_data or cityData %}
-{% for c in city_source %}
-  {% if (c.City | trim | lower) == "lynnwood" or (c.name | trim | lower) == "lynnwood" %}
-    {% set city = c %}
-<main class="layout-container" style="padding-top: 3.5rem; padding-bottom: 6rem;">
+<main class="layout-container sandbox-main">
 
-  <header style="margin-bottom: 4rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 2rem;">
-    <div class="text-overline" style="color: var(--card-accent-color);">MYSEATTLESEARCH • DESIGN SYSTEM BENCHMARK</div>
-    <h1 class="text-display" style="margin-top: 0.5rem; margin-bottom: 1rem;">Full Catalog Sandbox</h1>
-    <p class="text-body-secondary" style="font-size: 1.15rem; max-width: 820px; line-height: 1.55;">
+  <header class="sandbox-header">
+    <div class="text-overline text-accent-alpine">MYSEATTLESEARCH • DESIGN SYSTEM BENCHMARK</div>
+    <h1 class="text-display sandbox-title">Full Catalog Sandbox</h1>
+    <p class="text-body-secondary sandbox-desc">
       Master component verification surface testing all elements from <code>UI Upgrade - Element_Catalog.csv</code>. 
       <br><strong>Viewing Mode: Single-Column Inspection Ledger</strong> (Live Neighborhood Context: <strong>{{ city.City }}</strong>).
     </p>
-    <div style="display: flex; gap: 1.5rem; margin-top: 1.25rem; font-size: 0.8rem;" class="text-body-secondary">
-      <div>Compiled: <strong style="color: var(--color-primary-default);">{% buildTime %}</strong></div>
-      <div>Architecture: <strong style="color: var(--color-primary-default);">Vertically Stacked Single-Column</strong></div>
+    <div class="sandbox-meta-row">
+      <div class="sandbox-meta-item">Compiled: <strong>{{ buildTime }}</strong></div>
+      <div class="sandbox-meta-item">Architecture: <strong>Vertically Stacked Single-Column</strong></div>
     </div>
   </header>
 
   <!-- =========================================================================
        1. STYLES & TYPOGRAPHY TOKENS (style.*)
        ========================================================================= -->
-  <section style="margin-bottom: 5.5rem;">
+  <section class="sandbox-section">
     <div class="text-overline">SECTION 1</div>
-    <h2 class="text-section-title" style="margin-top: 0.25rem;">Core Design Tokens & Typography (style.*)</h2>
+    <h2 class="text-section-title sandbox-section-title">Core Design Tokens &amp; Typography (style.*)</h2>
     
-    <div style="display: flex; flex-direction: column; gap: 2.5rem; width: 100%;">
-      <div class="widget-card" style="padding: 2rem;">
-        <div class="text-overline" style="margin-bottom: 1.25rem;">Type Scale Fluid Clamps</div>
-        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
-          <div><span class="text-overline" style="color: var(--card-accent-color);">style.text.heading.display</span><div class="text-display">Seattle Market Trends</div></div>
-          <div><span class="text-overline" style="color: var(--card-accent-color);">style.text.heading.page</span><div class="text-page-title">Real Estate Analytics</div></div>
-          <div><span class="text-overline" style="color: var(--card-accent-color);">style.text.heading.section</span><div class="text-section-title" style="margin: 0; padding: 0; border: none;">Neighborhood Overview</div></div>
-          <div><span class="text-overline" style="color: var(--card-accent-color);">style.text.heading.widget</span><div class="text-widget-title">Active Market Momentum</div></div>
-          <div><span class="text-overline" style="color: var(--card-accent-color);">style.text.data.huge</span><div class="text-data-huge">72° / $1.15M</div></div>
-          <div><span class="text-overline" style="color: var(--card-accent-color);">style.text.label.overline</span><div class="text-overline">Civic Infrastructure Status</div></div>
-          <div><span class="text-overline" style="color: var(--card-accent-color);">style.text.body.primary</span><p class="text-body" style="max-width: 720px;">Primary editorial body text utilizing native Apple-esque system font stack. High-contrast typography with fluid line-height scaling.</p></div>
-          <div><span class="text-overline" style="color: var(--card-accent-color);">style.text.body.secondary</span><p class="text-body-secondary" style="max-width: 720px;">Secondary subtext and metadata annotations with subtle contrast suppression.</p></div>
+    <div class="sandbox-stack">
+      <div class="widget-card sandbox-type-card">
+        <div class="text-overline sandbox-type-lead">Type Scale Fluid Clamps</div>
+        <div class="sandbox-type-group">
+          <div><span class="text-overline text-accent-alpine">style.text.heading.display</span><div class="text-display">Seattle Market Trends</div></div>
+          <div><span class="text-overline text-accent-alpine">style.text.heading.page</span><div class="text-page-title">Real Estate Analytics</div></div>
+          <div><span class="text-overline text-accent-alpine">style.text.heading.section</span><div class="text-section-title">Neighborhood Overview</div></div>
+          <div><span class="text-overline text-accent-alpine">style.text.heading.widget</span><div class="text-widget-title">Active Market Momentum</div></div>
+          <div><span class="text-overline text-accent-alpine">style.text.data.huge</span><div class="text-data-huge">72° / $1.15M</div></div>
+          <div><span class="text-overline text-accent-alpine">style.text.label.overline</span><div class="text-overline">Civic Infrastructure Status</div></div>
+          <div><span class="text-overline text-accent-alpine">style.text.body.primary</span><p class="text-body">Primary editorial body text utilizing native Apple-esque system font stack. High-contrast typography with fluid line-height scaling.</p></div>
+          <div><span class="text-overline text-accent-alpine">style.text.body.secondary</span><p class="text-body-secondary">Secondary subtext and metadata annotations with subtle contrast suppression.</p></div>
         </div>
       </div>
 
-      <div class="widget-card" style="padding: 1.5rem;">
-        <div class="text-overline" style="margin-bottom: 1rem;">Color Token Swatches</div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; text-align: center;">
-          <div style="padding: 1rem; border-radius: var(--border-radius-squircle); background: var(--white); border: 1px solid var(--color-border-light);"><div style="font-weight: 500; font-size: 0.8rem; color: var(--premier-charcoal);">Universal White</div><div class="text-body-secondary" style="font-size: 0.7rem;">--white</div></div>
-          <div style="padding: 1rem; border-radius: var(--border-radius-squircle); background: var(--color-primary-default); color: var(--white);"><div style="font-weight: 500; font-size: 0.8rem;">Premier Charcoal</div><div style="font-size: 0.7rem; opacity: 0.8;">--premier-charcoal</div></div>
-          <div style="padding: 1rem; border-radius: var(--border-radius-squircle); background: var(--color-secondary-default); color: var(--white);"><div style="font-weight: 500; font-size: 0.8rem;">Primary Brand</div><div style="font-size: 0.7rem; opacity: 0.8;">--color-secondary-default</div></div>
-          <div style="padding: 1rem; border-radius: var(--border-radius-squircle); background: var(--card-accent-color); color: var(--white);"><div style="font-weight: 500; font-size: 0.8rem;">Card Accent</div><div style="font-size: 0.7rem; opacity: 0.8;">--card-accent-color</div></div>
-          <div style="padding: 1rem; border-radius: var(--border-radius-squircle); background: var(--color-surface-gray); border: 1px solid var(--color-border-light);"><div style="font-weight: 500; font-size: 0.8rem; color: var(--premier-charcoal);">Surface Gray</div><div class="text-body-secondary" style="font-size: 0.7rem;">--color-surface-gray</div></div>
+      <div class="widget-card sandbox-swatch-card">
+        <div class="text-overline sandbox-type-lead">Color Token Swatches</div>
+        <div class="sandbox-swatch-grid">
+          <div class="sandbox-swatch-tile"><div class="sandbox-swatch-label">Universal White</div><div class="text-body-secondary sandbox-swatch-sub">--color-background-universal</div></div>
+          <div class="sandbox-swatch-tile score-tier-alpine text-tier-emerald"><div class="sandbox-swatch-label">Alpine Blue</div><div class="sandbox-swatch-sub">--alpine-blue</div></div>
+          <div class="sandbox-swatch-tile score-tier-crimson text-tier-emerald"><div class="sandbox-swatch-label">PNW Red</div><div class="sandbox-swatch-sub">--pnw-red</div></div>
+          <div class="sandbox-swatch-tile score-tier-emerald text-tier-emerald"><div class="sandbox-swatch-label">Status Emerald</div><div class="sandbox-swatch-sub">--status-emerald</div></div>
+          <div class="sandbox-swatch-tile score-tier-amber text-tier-emerald"><div class="sandbox-swatch-label">Status Amber</div><div class="sandbox-swatch-sub">--status-amber</div></div>
         </div>
       </div>
     </div>
   </section>
 
   <!-- =========================================================================
-       2. SVG GRAPHICS & MAP MARKERS (graphic.* — 22 Elements)
+       2. SVG GRAPHICS & MAP MARKERS (graphic.*)
        ========================================================================= -->
-  <section style="margin-bottom: 5.5rem;">
+  <section class="sandbox-section">
     <div class="text-overline">SECTION 2</div>
-    <h2 class="text-section-title" style="margin-top: 0.25rem;">SVG Graphics & Map Markers (graphic.*)</h2>
+    <h2 class="text-section-title sandbox-section-title">SVG Graphics &amp; Map Markers (graphic.*)</h2>
     
-    <div style="display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
+    <div class="sandbox-stack">
+      <div class="sandbox-graphic-tile">
+        <div class="sandbox-graphic-well">
           {% set c %}{% include "components/graphic/globe-link.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
+          {% if c and (c | default('') | trim | length > 0) %}{{ c | safe }}{% else %}<span class="text-overline">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.globe.link</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
+          <div class="sandbox-graphic-label">graphic.globe.link</div>
+          <div class="text-overline text-accent-alpine">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
+      <div class="sandbox-graphic-tile">
+        <div class="sandbox-graphic-well">
           {% set c %}{% include "components/graphic/map-bus.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
+          {% if c and (c | default('') | trim | length > 0) %}{{ c | safe }}{% else %}<span class="text-overline">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.bus</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
+          <div class="sandbox-graphic-label">graphic.map.bus</div>
+          <div class="text-overline text-accent-alpine">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/map-bus-communitytransit.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
-        </div>
-        <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.bus.communitytransit</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/map-bus-everetttransit.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
-        </div>
-        <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.bus.everetttransit</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/map-bus-kingcountymetro.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
-        </div>
-        <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.bus.kingcountymetro</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/map-bus-soundtransit.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
-        </div>
-        <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.bus.soundtransit</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/map-construction-zone.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
-        </div>
-        <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.construction.zone</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/map-current-neighborhood.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
-        </div>
-        <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.current.neighborhood</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/map-emergency-ambulance.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
-        </div>
-        <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.emergency.ambulance</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/map-emergency-firetruck.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
-        </div>
-        <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.emergency.firetruck</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/map-emergency-hospital.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
-        </div>
-        <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.emergency.hospital</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/map-ferry-boat.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
-        </div>
-        <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.ferry.boat</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/map-ferry-terminal.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
-        </div>
-        <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.ferry.terminal</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/map-power-outage.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
-        </div>
-        <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.power.outage</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/map-tide-station.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
-        </div>
-        <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.tide.station</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
+      <div class="sandbox-graphic-tile">
+        <div class="sandbox-graphic-well">
           {% set c %}{% include "components/graphic/map-train.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
+          {% if c and (c | default('') | trim | length > 0) %}{{ c | safe }}{% else %}<span class="text-overline">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.train</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
+          <div class="sandbox-graphic-label">graphic.map.train</div>
+          <div class="text-overline text-accent-alpine">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/map-train-amtrakcascades.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
+      <div class="sandbox-graphic-tile">
+        <div class="sandbox-graphic-well">
+          {% set c %}{% include "components/graphic/map-ferry-boat.njk" ignore missing %}{% endset %}
+          {% if c and (c | default('') | trim | length > 0) %}{{ c | safe }}{% else %}<span class="text-overline">Pending</span>{% endif %}
         </div>
         <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.train.amtrakcascades</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/map-train-linklightrail.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
-        </div>
-        <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.train.linklightrail</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/map-train-sounder.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
-        </div>
-        <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.train.sounder</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/map-trainstation.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
-        </div>
-        <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.trainstation</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/map-wildfire.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
-        </div>
-        <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.map.wildfire</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 1rem; align-items: center; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); padding: 1.5rem;">
-        <div style="width: 48px; height: 48px; flex-shrink: 0; background: var(--color-surface-gray); border-radius: 8px; border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--color-primary-default);">
-          {% set c %}{% include "components/graphic/transit-active-seats.njk" ignore missing %}{% endset %}
-          {% if c | trim | length > 0 %}{{ c | safe }}{% else %}<span style="font-size: 0.6rem; color: var(--premier-charcoal);">Pending</span>{% endif %}
-        </div>
-        <div>
-          <div style="font-weight: 500; font-size: 0.9rem; color: var(--color-primary-default);">graphic.transit.active.seats</div>
-          <div class="text-overline" style="color: var(--card-accent-color); font-size: 0.65rem; margin-top: 0.15rem;">SVG VECTOR GRAPHIC</div>
+          <div class="sandbox-graphic-label">graphic.map.ferry.boat</div>
+          <div class="text-overline text-accent-alpine">SVG VECTOR GRAPHIC</div>
         </div>
       </div>
     </div>
   </section>
 
   <!-- =========================================================================
-       3. METRIC SCORES & WALKABILITY (score.* — 11 Elements)
+       3. METRIC SCORES & WALKABILITY (score.* — 14 Elements)
        ========================================================================= -->
-  <section style="margin-bottom: 5.5rem;">
+  <section class="sandbox-section">
     <div class="text-overline">SECTION 3</div>
-    <h2 class="text-section-title" style="margin-top: 0.25rem;">Hyperlocal Metric Scores (score.*)</h2>
+    <h2 class="text-section-title sandbox-section-title">Hyperlocal Metric Scores (score.*)</h2>
     
-    <div style="display: flex; flex-direction: column; gap: 2.5rem; width: 100%;">
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">score.custom.activecommute</div>
+    <div class="sandbox-stack">
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">score.custom.activecommute</div>
         {% set c %}{% include "components/score/custom-activecommute.njk" ignore missing %}{% endset %}
         {{ renderSlot("score.custom.activecommute", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">score.custom.activetransit</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">score.custom.activetransit</div>
         {% set c %}{% include "components/score/custom-activetransit.njk" ignore missing %}{% endset %}
         {{ renderSlot("score.custom.activetransit", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">score.custom.activetransit.ontimeperformance</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">score.custom.activetransit.ontimeperformance</div>
         {% set c %}{% include "components/score/custom-activetransit-ontimeperformance.njk" ignore missing %}{% endset %}
         {{ renderSlot("score.custom.activetransit.ontimeperformance", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">score.custom.citycommutefriction</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">score.custom.citycommutefriction</div>
         {% set c %}{% include "components/score/custom-citycommutefriction.njk" ignore missing %}{% endset %}
         {{ renderSlot("score.custom.citycommutefriction", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">score.custom.evinfrastucture</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">score.custom.evinfrastucture</div>
         {% set c %}{% include "components/score/custom-evinfrastucture.njk" ignore missing %}{% endset %}
         {{ renderSlot("score.custom.evinfrastucture", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">score.custom.propertytaxstability</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">score.custom.propertytaxstability</div>
         {% set c %}{% include "components/score/custom-propertytaxstability.njk" ignore missing %}{% endset %}
         {{ renderSlot("score.custom.propertytaxstability", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">score.custom.psai</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">score.custom.psai</div>
         {% set c %}{% include "components/score/custom-psai.njk" ignore missing %}{% endset %}
         {{ renderSlot("score.custom.psai", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">score.custom.surveillance</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">score.custom.surveillance</div>
         {% set c %}{% include "components/score/custom-surveillance.njk" ignore missing %}{% endset %}
         {{ renderSlot("score.custom.surveillance", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">score.walkscore.bikescore</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">score.custom.shore</div>
+        {% set c %}{% include "components/score/custom-shore.njk" ignore missing %}{% endset %}
+        {{ renderSlot("score.custom.shore", c) }}
+      </div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">score.custom.park</div>
+        {% set c %}{% include "components/score/custom-park.njk" ignore missing %}{% endset %}
+        {{ renderSlot("score.custom.park", c) }}
+      </div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">score.custom.bark</div>
+        {% set c %}{% include "components/score/custom-bark.njk" ignore missing %}{% endset %}
+        {{ renderSlot("score.custom.bark", c) }}
+      </div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">score.walkscore.bikescore</div>
         {% set c %}{% include "components/score/walkscore-bikescore.njk" ignore missing %}{% endset %}
         {{ renderSlot("score.walkscore.bikescore", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">score.walkscore.transitscore</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">score.walkscore.transitscore</div>
         {% set c %}{% include "components/score/walkscore-transitscore.njk" ignore missing %}{% endset %}
         {{ renderSlot("score.walkscore.transitscore", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">score.walkscore.walkscore</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">score.walkscore.walkscore</div>
         {% set c %}{% include "components/score/walkscore-walkscore.njk" ignore missing %}{% endset %}
         {{ renderSlot("score.walkscore.walkscore", c) }}
       </div>
@@ -374,50 +220,30 @@ permalink: "/design-system/index.html"
   </section>
 
   <!-- =========================================================================
-       4. SECTIONS & LAYOUT CONTAINERS (section.* — 8 Elements)
+       4. SECTIONS & LAYOUT CONTAINERS (section.*)
        ========================================================================= -->
-  <section style="margin-bottom: 5.5rem;">
+  <section class="sandbox-section">
     <div class="text-overline">SECTION 4</div>
-    <h2 class="text-section-title" style="margin-top: 0.25rem;">Layout & Structural Sections (section.*)</h2>
+    <h2 class="text-section-title sandbox-section-title">Layout &amp; Structural Sections (section.*)</h2>
     
-    <div style="display: flex; flex-direction: column; gap: 2.5rem; width: 100%;">
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">section.expandable.accordion</div>
+    <div class="sandbox-stack">
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">section.expandable.accordion</div>
         {% set c %}{% include "components/section/expandable-accordion.njk" ignore missing %}{% endset %}
         {{ renderSlot("section.expandable.accordion", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">section.grid.static</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">section.grid.static</div>
         {% set c %}{% include "components/section/grid-static.njk" ignore missing %}{% endset %}
         {{ renderSlot("section.grid.static", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">section.image.gallery</div>
-        {% set c %}{% include "components/section/image-gallery.njk" ignore missing %}{% endset %}
-        {{ renderSlot("section.image.gallery", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">section.infinite.horizontal.scroll.large</div>
-        {% set c %}{% include "components/section/infinite-horizontal-scroll-large.njk" ignore missing %}{% endset %}
-        {{ renderSlot("section.infinite.horizontal.scroll.large", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">section.infinite.horizontal.scroll.medium</div>
-        {% set c %}{% include "components/section/infinite-horizontal-scroll-medium.njk" ignore missing %}{% endset %}
-        {{ renderSlot("section.infinite.horizontal.scroll.medium", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">section.infinite.horizontal.scroll.small</div>
-        {% set c %}{% include "components/section/infinite-horizontal-scroll-small.njk" ignore missing %}{% endset %}
-        {{ renderSlot("section.infinite.horizontal.scroll.small", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">section.neighborhood.page.header</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">section.neighborhood.page.header</div>
         {% set c %}{% include "components/section/neighborhood-page-header.njk" ignore missing %}{% endset %}
         {{ renderSlot("section.neighborhood.page.header", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">section.neighborhood.subpage.header</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">section.neighborhood.subpage.header</div>
         {% set c %}{% include "components/section/neighborhood-subpage-header.njk" ignore missing %}{% endset %}
         {{ renderSlot("section.neighborhood.subpage.header", c) }}
       </div>
@@ -425,67 +251,65 @@ permalink: "/design-system/index.html"
   </section>
 
   <!-- =========================================================================
-       5. REAL ESTATE & MARKET WIDGETS (11 Elements)
+       5. REAL ESTATE & MARKET WIDGETS
        ========================================================================= -->
-  <section style="margin-bottom: 5.5rem;">
+  <section class="sandbox-section">
     <div class="text-overline">SECTION 5</div>
-    <h2 class="text-section-title" style="margin-top: 0.25rem;">Real Estate & Market Analytics</h2>
+    <h2 class="text-section-title sandbox-section-title">Real Estate &amp; Market Analytics</h2>
     
-    <div style="display: flex; flex-direction: column; gap: 2.5rem; width: 100%;">
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.stat.card</div>
+    <div class="sandbox-stack">
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.stat.card</div>
         {% set c %}{% include "components/widget/stat-card.njk" ignore missing %}{% endset %}
-        {% if c | trim | length == 0 %}{% set c %}{% include "components/widgets/stat-card.njk" ignore missing %}{% endset %}{% endif %}
         {{ renderSlot("widget.stat.card", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.realestate.market.balance.bar</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.realestate.market.balance.bar</div>
         {% set c %}{% include "components/widget/realestate-market-balance-bar.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.realestate.market.balance.bar", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.realestate.market.balance.gauge</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.realestate.market.balance.gauge</div>
         {% set c %}{% include "components/widget/realestate-market-balance-gauge.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.realestate.market.balance.gauge", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.universal.data.chart.maxfour</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.universal.data.chart.maxfour</div>
         {% set c %}{% include "components/widget/universal-data-chart-maxfour.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.universal.data.chart.maxfour", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.realestate.housing.affordability.dashboard</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.realestate.housing.affordability.dashboard</div>
         {% set c %}{% include "components/widget/realestate-housing-affordability-dashboard.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.realestate.housing.affordability.dashboard", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.card.prose</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.card.prose</div>
         {% set c %}{% include "components/widget/card-prose.njk" ignore missing %}{% endset %}
-        {% if c | trim | length == 0 %}{% set c %}{% include "components/widgets/widget-prose.njk" ignore missing %}{% endset %}{% endif %}
         {{ renderSlot("widget.card.prose", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.neighborhood.editorial</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.neighborhood.editorial</div>
         {% set c %}{% include "components/widget/neighborhood-editorial.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.neighborhood.editorial", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.realestate.mortgage.rates.daily.table</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.realestate.mortgage.rates.daily.table</div>
         {% set c %}{% include "components/widget/realestate-mortgage-rates-daily-table.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.realestate.mortgage.rates.daily.table", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.realestate.migration.map</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.realestate.migration.map</div>
         {% set c %}{% include "components/widget/realestate-migration-map.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.realestate.migration.map", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.tool.calculator.results</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.tool.calculator.results</div>
         {% set c %}{% include "components/widget/tool-calculator-results.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.tool.calculator.results", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.tool.calculator.viewport</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.tool.calculator.viewport</div>
         {% set c %}{% include "components/widget/tool-calculator-viewport.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.tool.calculator.viewport", c) }}
       </div>
@@ -493,60 +317,60 @@ permalink: "/design-system/index.html"
   </section>
 
   <!-- =========================================================================
-       6. WEATHER & ATMOSPHERIC WIDGETS (10 Elements)
+       6. WEATHER & ATMOSPHERIC WIDGETS
        ========================================================================= -->
-  <section style="margin-bottom: 5.5rem;">
+  <section class="sandbox-section">
     <div class="text-overline">SECTION 6</div>
-    <h2 class="text-section-title" style="margin-top: 0.25rem;">Weather & Atmospheric Widgets</h2>
+    <h2 class="text-section-title sandbox-section-title">Weather &amp; Atmospheric Widgets</h2>
     
-    <div style="display: flex; flex-direction: column; gap: 2.5rem; width: 100%;">
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.weather.current.display</div>
+    <div class="sandbox-stack">
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.weather.current.display</div>
         {% set c %}{% include "components/widget/weather-current-display.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.weather.current.display", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.weather.current.widget</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.weather.current.widget</div>
         {% set c %}{% include "components/widget/weather-current-widget.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.weather.current.widget", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.weather.aqi</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.weather.aqi</div>
         {% set c %}{% include "components/widget/weather-aqi.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.weather.aqi", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.weather.forecast.sevenday</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.weather.forecast.sevenday</div>
         {% set c %}{% include "components/widget/weather-forecast-sevenday.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.weather.forecast.sevenday", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.weather.star.4000</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.weather.star.4000</div>
         {% set c %}{% include "components/widget/weather-star-4000.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.weather.star.4000", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.weather.climate.comfort.index.basic</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.weather.climate.comfort.index.basic</div>
         {% set c %}{% include "components/widget/weather-climate-comfort-index-basic.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.weather.climate.comfort.index.basic", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.weather.climate.comfort.index.full</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.weather.climate.comfort.index.full</div>
         {% set c %}{% include "components/widget/weather-climate-comfort-index-full.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.weather.climate.comfort.index.full", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.weather.sunrise.sunset</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.weather.sunrise.sunset</div>
         {% set c %}{% include "components/widget/weather-sunrise-sunset.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.weather.sunrise.sunset", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.weather.tides</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.weather.tides</div>
         {% set c %}{% include "components/widget/weather-tides.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.weather.tides", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.weather.river.status</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.weather.river.status</div>
         {% set c %}{% include "components/widget/weather-river-status.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.weather.river.status", c) }}
       </div>
@@ -554,194 +378,106 @@ permalink: "/design-system/index.html"
   </section>
 
   <!-- =========================================================================
-       7. TRANSIT, COMMUTE & INFRASTRUCTURE (11 Elements)
+       7. TRANSIT, COMMUTE & INFRASTRUCTURE
        ========================================================================= -->
-  <section style="margin-bottom: 5.5rem;">
+  <section class="sandbox-section">
     <div class="text-overline">SECTION 7</div>
-    <h2 class="text-section-title" style="margin-top: 0.25rem;">Transit & Civic Infrastructure</h2>
+    <h2 class="text-section-title sandbox-section-title">Transit &amp; Civic Infrastructure</h2>
     
-    <div style="display: flex; flex-direction: column; gap: 2.5rem; width: 100%;">
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.ferry.status</div>
+    <div class="sandbox-stack">
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.ferry.status</div>
         {% set c %}{% include "components/widget/ferry-status.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.ferry.status", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.regional.airport.status</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.regional.airport.board</div>
         {% set c %}{% include "components/widget/regional-airport-board.njk" ignore missing %}{% endset %}
-        {% if c | trim | length == 0 %}{% set c %}{% include "components/widget/regional-airport-status.njk" ignore missing %}{% endset %}{% endif %}
-        {{ renderSlot("widget.regional.airport.status", c) }}
+        {{ renderSlot("widget.regional.airport.board", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.commute.employment.hub</div>
-        {% set c %}{% include "components/widget/commute-employment-hub.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.commute.employment.hub", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.transit.tolling.matrix</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.transit.tolling.matrix</div>
         {% set c %}{% include "components/widget/transit-tolling-matrix.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.transit.tolling.matrix", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.transit.stats</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.transit.stats</div>
         {% set c %}{% include "components/widget/transit-stats.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.transit.stats", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.transit.stats.activebuses</div>
-        {% set c %}{% include "components/widget/transit-stats-activebuses.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.transit.stats.activebuses", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.transit.stats.activelightrail</div>
-        {% set c %}{% include "components/widget/transit-stats-activelightrail.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.transit.stats.activelightrail", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.transit.stats.activesoundertrain</div>
-        {% set c %}{% include "components/widget/transit-stats-activesoundertrain.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.transit.stats.activesoundertrain", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.transit.stats.activeseats</div>
-        {% set c %}{% include "components/widget/transit-stats-activeseats.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.transit.stats.activeseats", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.transit.historical.activetransitscore.ontimeperformance</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.transit.historical.activetransitscore.ontimeperformance</div>
         {% set c %}{% include "components/widget/transit-historical-activetransitscore-ontimeperformance.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.transit.historical.activetransitscore.ontimeperformance", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.alert.status</div>
-        {% set c %}{% include "components/widget/alert-status.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.alert.status", c) }}
-      </div>
     </div>
   </section>
 
   <!-- =========================================================================
-       8. EDITORIAL, NEWS, EVENTS & NOTEBOOK (9 Elements)
+       8. CIVIC, MUNICIPAL & ELECTIONS
        ========================================================================= -->
-  <section style="margin-bottom: 5.5rem;">
+  <section class="sandbox-section">
     <div class="text-overline">SECTION 8</div>
-    <h2 class="text-section-title" style="margin-top: 0.25rem;">Editorial, News & Community Events</h2>
+    <h2 class="text-section-title sandbox-section-title">Civic Governance &amp; Elections</h2>
     
-    <div style="display: flex; flex-direction: column; gap: 2.5rem; width: 100%;">
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.news.summary.list.five</div>
-        {% set c %}{% include "components/widget/news-summary-list-five.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.news.summary.list.five", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.events.summary.list.five</div>
-        {% set c %}{% include "components/widget/events-summary-list-five.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.events.summary.list.five", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.news.summary.list.all</div>
-        {% set c %}{% include "components/widget/news-summary-list-all.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.news.summary.list.all", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.events.summary.list.all</div>
-        {% set c %}{% include "components/widget/events-summary-list-all.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.events.summary.list.all", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.cms.notebook.feed</div>
-        {% set c %}{% include "components/widget/cms-notebook-feed.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.cms.notebook.feed", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.cms.card</div>
-        {% set c %}{% include "components/widget/cms-card.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.cms.card", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.cms.widget.linkpreview</div>
-        {% set c %}{% include "components/widget/cms-widget-linkpreview.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.cms.widget.linkpreview", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.cms.entry.single</div>
-        {% set c %}{% include "components/widget/cms-entry-single.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.cms.entry.single", c) }}
-      </div>
-    </div>
-  </section>
-
-  <!-- =========================================================================
-       9. CIVIC, MUNICIPAL & ELECTIONS (13 Elements)
-       ========================================================================= -->
-  <section style="margin-bottom: 5.5rem;">
-    <div class="text-overline">SECTION 9</div>
-    <h2 class="text-section-title" style="margin-top: 0.25rem;">Civic Governance & Elections</h2>
-    
-    <div style="display: flex; flex-direction: column; gap: 2.5rem; width: 100%;">
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.municipal.agenda.feed</div>
+    <div class="sandbox-stack">
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.municipal.agenda.feed</div>
         {% set c %}{% include "components/widget/municipal-agenda-feed.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.municipal.agenda.feed", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.municipal.calendar.civic</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.municipal.calendar.civic</div>
         {% set c %}{% include "components/widget/municipal-calendar-civic.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.municipal.calendar.civic", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.municipal.broadcast.player</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.municipal.broadcast.player</div>
         {% set c %}{% include "components/widget/municipal-broadcast-player.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.municipal.broadcast.player", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.municipal.emergency.crime.stats</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.municipal.emergency.crime.stats</div>
         {% set c %}{% include "components/widget/municipal-emergency-crime-stats.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.municipal.emergency.crime.stats", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.municipal.emergency.fire.department.rating</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.municipal.emergency.fire.department.rating</div>
         {% set c %}{% include "components/widget/municipal-emergency-fire-department-rating.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.municipal.emergency.fire.department.rating", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.municipal.emergency.hospital</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.municipal.emergency.hospital</div>
         {% set c %}{% include "components/widget/municipal-emergency-hospital.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.municipal.emergency.hospital", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.municipal.link.directory</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.municipal.link.directory</div>
         {% set c %}{% include "components/widget/municipal-link-directory.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.municipal.link.directory", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.municipal.surveillance.profile</div>
-        {% set c %}{% include "components/widget/municipal-surveillance.profile.njk" ignore missing %}{% endset %}
-        {% if c | trim | length == 0 %}{% set c %}{% include "components/widget/municipal-surveillance-profile.njk" ignore missing %}{% endset %}{% endif %}
-        {{ renderSlot("widget.municipal.surveillance.profile", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.elections.status.banner</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.elections.status.banner</div>
         {% set c %}{% include "components/widget/elections-status-banner.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.elections.status.banner", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.elections.important.dates</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.elections.important.dates</div>
         {% set c %}{% include "components/widget/elections-important-dates.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.elections.important.dates", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.elections.guide.candidates</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.elections.guide.candidates</div>
         {% set c %}{% include "components/widget/elections-guide-candidates.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.elections.guide.candidates", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.elections.guide.measures</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.elections.guide.measures</div>
         {% set c %}{% include "components/widget/elections-guide-measures.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.elections.guide.measures", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.elections.results.board</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.elections.results.board</div>
         {% set c %}{% include "components/widget/elections-results-board.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.elections.results.board", c) }}
       </div>
@@ -749,137 +485,45 @@ permalink: "/design-system/index.html"
   </section>
 
   <!-- =========================================================================
-       10. EMERGENCY & DISPATCH BOARDS
+       9. DIRECTORY, COMMERCIAL & PROFILES
        ========================================================================= -->
-  <section style="margin-bottom: 5.5rem;">
-    <div class="text-overline">SECTION 10</div>
-    <h2 class="text-section-title" style="margin-top: 0.25rem;">Emergency & Safety Dispatch Boards</h2>
+  <section class="sandbox-section">
+    <div class="text-overline">SECTION 9</div>
+    <h2 class="text-section-title sandbox-section-title">Directory, Commercial &amp; Profiles</h2>
     
-    <div style="display: flex; flex-direction: column; gap: 2.5rem; width: 100%;">
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.emergency.dispatch.board</div>
-        {% set c %}{% include "components/widget/emergency-dispatch-board.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.emergency.dispatch.board", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.map.custom.dispatch</div>
-        {% set c %}{% include "components/widget/map-custom-dispatch.njk" ignore missing %}{% endset %}
-        {% if c | trim | length == 0 %}{% set c %}{% include "components/widgets/map-custom-dispatch.njk" ignore missing %}{% endset %}{% endif %}
-        {{ renderSlot("widget.map.custom.dispatch", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.map.pulsepoint</div>
-        {% set c %}{% include "components/widget/map-pulsepoint.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.map.pulsepoint", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.emergency.power.outage.board</div>
-        {% set c %}{% include "components/widget/emergency-power-outage-board.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.emergency.power.outage.board", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.emergency.severe.weather.board</div>
-        {% set c %}{% include "components/widget/emergency-severe-weather-board.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.emergency.severe.weather.board", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.emergency.earthquake.board</div>
-        {% set c %}{% include "components/widget/emergency-earthquake-board.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.emergency.earthquake.board", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.emergency.wildfire.board</div>
-        {% set c %}{% include "components/widget/emergency-wildfire-board.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.emergency.wildfire.board", c) }}
-      </div>
-    </div>
-  </section>
-
-  <!-- =========================================================================
-       11. DIRECTORY, COMMERCIAL & COMMUNITY (16 Elements)
-       ========================================================================= -->
-  <section style="margin-bottom: 5.5rem;">
-    <div class="text-overline">SECTION 11</div>
-    <h2 class="text-section-title" style="margin-top: 0.25rem;">Directory, Commercial & Community</h2>
-    
-    <div style="display: flex; flex-direction: column; gap: 2.5rem; width: 100%;">
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.business.listing</div>
+    <div class="sandbox-stack">
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.business.listing</div>
         {% set c %}{% include "components/widget/business-listing.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.business.listing", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.people.card.primary</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.people.card.primary</div>
         {% set c %}{% include "components/widget/people-card-primary.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.people.card.primary", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.people.card.secondary</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.people.card.secondary</div>
         {% set c %}{% include "components/widget/people-card-secondary.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.people.card.secondary", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.people.profile.view</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.people.profile.view</div>
         {% set c %}{% include "components/widget/people-profile-view.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.people.profile.view", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.people.directory.grid</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.people.directory.grid</div>
         {% set c %}{% include "components/widget/people-directory-grid.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.people.directory.grid", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.region.school.ranking</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.region.school.ranking</div>
         {% set c %}{% include "components/widget/region-school-ranking.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.region.school.ranking", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.sports.category.link</div>
-        {% set c %}{% include "components/widget/sports-category-link.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.sports.category.link", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.sports.game.summary</div>
-        {% set c %}{% include "components/widget/sports-game-summary.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.sports.game.summary", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.sports.score.box</div>
-        {% set c %}{% include "components/widget/sports-score-box.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.sports.score.box", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.quiz.start.intake</div>
-        {% set c %}{% include "components/widget/quiz-start-intake.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.quiz.start.intake", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.quiz.question.card</div>
-        {% set c %}{% include "components/widget/quiz-question-card.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.quiz.question.card", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.quiz.results.view</div>
-        {% set c %}{% include "components/widget/quiz-results-view.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.quiz.results.view", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.neighborhood.page.header</div>
-        {% set c %}{% include "components/widget/neighborhood-page-header.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.neighborhood.page.header", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.neighborhood.subpage.header</div>
-        {% set c %}{% include "components/widget/neighborhood-subpage-header.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.neighborhood.subpage.header", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.neighborhood.nav.links</div>
-        {% set c %}{% include "components/widget/neighborhood-nav-links.njk" ignore missing %}{% endset %}
-        {{ renderSlot("widget.neighborhood.nav.links", c) }}
-      </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.element.card.hubitem</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.element.card.hubitem</div>
         {% set c %}{% include "components/widget/element-card-hubitem.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.element.card.hubitem", c) }}
       </div>
@@ -887,111 +531,122 @@ permalink: "/design-system/index.html"
   </section>
 
   <!-- =========================================================================
-       12. INTERACTIVE UI SHELL & DRAWERS (Including Global Header/Footer Ledger)
+       10. INTERACTIVE UI SHELL & DRAWERS
        ========================================================================= -->
-  <section style="margin-bottom: 5.5rem;">
-    <div class="text-overline">SECTION 12</div>
-    <h2 class="text-section-title" style="margin-top: 0.25rem;">Interactive UI Shell & Drawers</h2>
+  <section class="sandbox-section">
+    <div class="text-overline">SECTION 10</div>
+    <h2 class="text-section-title sandbox-section-title">Interactive UI Shell &amp; Drawers</h2>
     
-    <div style="display: flex; flex-direction: column; gap: 2.5rem; width: 100%;">
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">chrome.site.header</div>
-        {% set c %}{% include "components/header.njk" ignore missing %}{% endset %}
-        {% if c | trim | length == 0 %}{% set c %}{% include "header.njk" ignore missing %}{% endset %}{% endif %}
+    <div class="sandbox-stack">
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">chrome.site.header</div>
+        {% set c %}{% include "header.njk" ignore missing %}{% endset %}
         {{ renderSlot("chrome.site.header", c) }}
       </div>
 
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">chrome.site.footer</div>
-        {% set c %}{% include "components/footer.njk" ignore missing %}{% endset %}
-        {% if c | trim | length == 0 %}{% set c %}{% include "footer.njk" ignore missing %}{% endset %}{% endif %}
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">chrome.site.footer</div>
+        {% set c %}{% include "footer.njk" ignore missing %}{% endset %}
         {{ renderSlot("chrome.site.footer", c) }}
       </div>
 
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.layout.actionbar.bottom</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.layout.actionbar.bottom</div>
         {% set c %}{% include "components/widget/layout-actionbar-bottom.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.layout.actionbar.bottom", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.layout.hub.grid</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.layout.hub.grid</div>
         {% set c %}{% include "components/widget/layout-hub-grid.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.layout.hub.grid", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.drawer.action.contact</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.drawer.action.contact</div>
         {% set c %}{% include "components/widget/drawer-action-contact.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.drawer.action.contact", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.drawer.action.navigate</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.drawer.action.navigate</div>
         {% set c %}{% include "components/widget/drawer-action-navigate.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.drawer.action.navigate", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.search.modal</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.search.modal</div>
         {% set c %}{% include "components/widget/search-modal.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.search.modal", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.image.viewport.box</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.image.viewport.box</div>
         {% set c %}{% include "components/widget/image-viewport-box.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.image.viewport.box", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.map.custom</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.map.custom</div>
         {% set c %}{% include "components/widget/map-custom.njk" ignore missing %}{% endset %}
         {{ renderSlot("widget.map.custom", c) }}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">widget.custom.score</div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">widget.custom.score</div>
         {% set c %}{% include "components/widget/custom-score.njk" ignore missing %}{% endset %}
-        {% if c | trim | length == 0 %}{% set c %}{% include "components/score/custom.njk" ignore missing %}{% endset %}{% endif %}
         {{ renderSlot("widget.custom.score", c) }}
       </div>
     </div>
   </section>
 
   <!-- =========================================================================
-       13. JSON-LD SCHEMAS (schema.* — 7 Elements)
+       11. JSON-LD SCHEMAS (schema.* — 11 Elements)
        ========================================================================= -->
-  <section style="margin-bottom: 5.5rem;">
-    <div class="text-overline">SECTION 13</div>
-    <h2 class="text-section-title" style="margin-top: 0.25rem;">Schema.org Structured Data (schema.*)</h2>
-    <p class="text-body-secondary" style="margin-bottom: 1.5rem;">JSON-LD structured schemas from <code>_includes/components/schema/</code>.</p>
+  <section class="sandbox-section">
+    <div class="text-overline">SECTION 11</div>
+    <h2 class="text-section-title sandbox-section-title">Schema.org Structured Data (schema.*)</h2>
+    <p class="text-body-secondary">Full suite of 11 verified JSON-LD structured schemas from <code>_includes/components/schema/</code>.</p>
     
-    <div style="display: flex; flex-direction: column; gap: 2.5rem; width: 100%;">
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">schema.BlogPosting</div>
-        {% include "components/schema/BlogPosting.njk" ignore missing %}
+    <div class="sandbox-stack">
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">schema.blogposting</div>
+        {% include "components/schema/blogposting.njk" ignore missing %}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">schema.BreadcrumbList</div>
-        {% include "components/schema/BreadcrumbList.njk" ignore missing %}
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">schema.breadcrumblist</div>
+        {% include "components/schema/breadcrumblist.njk" ignore missing %}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">schema.Event</div>
-        {% include "components/schema/Event.njk" ignore missing %}
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">schema.event</div>
+        {% include "components/schema/event.njk" ignore missing %}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">schema.LocalBusiness</div>
-        {% include "components/schema/LocalBusiness.njk" ignore missing %}
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">schema.localbusiness</div>
+        {% include "components/schema/localbusiness.njk" ignore missing %}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">schema.Neighborhood</div>
-        {% include "components/schema/Neighborhood.njk" ignore missing %}
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">schema.neighborhood</div>
+        {% include "components/schema/neighborhood.njk" ignore missing %}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">schema.Place</div>
-        {% include "components/schema/Place.njk" ignore missing %}
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">schema.place</div>
+        {% include "components/schema/place.njk" ignore missing %}
       </div>
-      <div>
-        <div style="font-family: monospace; font-size: 0.75rem; color: var(--premier-charcoal); opacity: 0.7; margin-bottom: 0.5rem; padding-left: 0.25rem;">schema.SingleFamilyResidence</div>
-        {% include "components/schema/SingleFamilyResidence.njk" ignore missing %}
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">schema.singlefamilyresidence</div>
+        {% include "components/schema/singlefamilyresidence.njk" ignore missing %}
+      </div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">schema.faqpage</div>
+        {% include "components/schema/faqpage.njk" ignore missing %}
+      </div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">schema.website</div>
+        {% include "components/schema/website.njk" ignore missing %}
+      </div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">schema.dataset</div>
+        {% include "components/schema/dataset.njk" ignore missing %}
+      </div>
+      <div class="sandbox-slot-wrapper">
+        <div class="sandbox-slot-label">schema.siteowner</div>
+        {% include "components/schema/siteowner.njk" ignore missing %}
       </div>
     </div>
   </section>
 
 </main>
-  {% endif %}
-{% endfor %}
