@@ -1,0 +1,30 @@
+{# 
+  COMPONENT: Caffeine Score® Coffee Culture Index (score.custom.caffeinescore)
+  PURPOSE: Municipal specialty coffee shop and roaster density factored against resident population.
+#}
+
+{% set val = score_caffeine_val if score_caffeine_val is defined else (scores.caffeine if scores else null) %}
+
+{% if val is defined and val is not none %}
+  {% set tier_badge = "score-tier-emerald" if val >= 75 else ("score-tier-alpine" if val >= 50 else ("score-tier-amber" if val >= 30 else "score-tier-crimson")) %}
+  {% set tier_text = "text-tier-emerald" if val >= 75 else ("text-tier-alpine" if val >= 50 else ("text-tier-amber" if val >= 30 else "text-tier-crimson")) %}
+  {% set tier_label = "Coffee Connoisseur Haven" if val >= 75 else ("Above Regional Average" if val >= 50 else ("Moderate Cafe Density" if val >= 30 else "Emerging Coffee Footprint")) %}
+
+  {% set score = {
+    id: "caffeinescore",
+    title: "Caffeine Score® Coffee Index",
+    overline: "SPECIALTY COFFEE & CAFE CULTURE",
+    value: val,
+    label: tier_label,
+    tier_badge: tier_badge,
+    tier_text: tier_text,
+    detail: score_caffeine_detail or "Independent roasters, specialty espresso bars, and cafes per capita.",
+    source: "OpenStreetMap Commercial Audit",
+    scale: "Scale 0–100",
+    methodology: "Measures accessible artisanal coffee shops, micro-roasters, and commercial cafes within municipal boundaries, balancing gross retail count against resident population.",
+    formula: "Formula: 50% (Count / 50) + 50% ((Cafes / (Pop / 1000)) / 2.5)",
+    scale_notes: "75+: Connoisseur Haven • 50–74: Above Average • 30–49: Moderate • <30: Emerging"
+  } %}
+
+  {% include "components/widget/custom-score.njk" %}
+{% endif %}

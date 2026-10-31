@@ -1,23 +1,23 @@
 <!-- File: _includes/components/widget/realestate-housing-affordability-dashboard.njk -->
 {# 
   COMPONENT: Master Housing Affordability Dashboard (widget.realestate.housing.affordability.dashboard)
-  ARCHITECTURE: Solid Bento Executive Briefing coordinating 3 analytical subpanels.
+  ARCHITECTURE: Unified Executive Briefing combining Property Tier Ladder, Down Payment Matrix, and Household Purchasing Power.
   CONTRACT:
-    - active_neighborhood / neighborhood.name / city.City: String [Optional]
-    - affordability_heading / dashboard_title: String [Optional, defaults to "Housing Affordability"]
-    - affordability_sources_text: String [Optional, defaults to "Sources: Redfin Data Center"]
-    - property_tier_ladder_data: Array of Objects [Optional, passed to Chamber 1]
-    - downpayment_tier_matrix: Array of Objects [Optional, passed to Chamber 2]
-    - household_purchasing_power_data: Array of Objects [Optional, passed to Chamber 3]
+    - active_neighborhood / city.City: String [Optional]
+    - dashboard_title: String [Optional, defaults to "Housing Affordability & Purchasing Power"]
+    - property_tier_ladder: Array of Objects [Required, Chamber 1]
+    - downpayment_matrix: Array of Objects [Required, Chamber 2]
+    - household_power_data: Array of Objects [Required, Chamber 3]
+    - sources_attribution: String [Optional, defaults to "Sources: Redfin Data Center (Seattle Metropolitan Area)"]
 #}
 
 {% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
-{% set heading = affordability_heading or dashboard_title or ("Housing Affordability in " ~ active_neighborhood if active_neighborhood else "Housing Affordability") %}
-{% set sources_caption = affordability_sources_text or "Sources: Redfin Data Center" %}
+{% set heading = dashboard_title or (active_neighborhood ~ " Housing Affordability & Purchasing Power" if active_neighborhood else "Housing Affordability & Purchasing Power") %}
+{% set sources_caption = sources_attribution or "Sources: Redfin Data Center (Seattle Metropolitan Area)" %}
 
 <section class="widget-card housing-affordability-dashboard-container" aria-label="{{ heading }}">
   
-  {# Dashboard Master Header #}
+  {# Master Header #}
   <header class="affordability-master-header">
     <div>
       <span class="text-overline text-accent-alpine">
@@ -29,14 +29,236 @@
     </div>
   </header>
 
-  {# 3 Modular Sub-Panels in Full-Width Stacked Rows #}
   <div class="affordability-panels-stack">
-    {% include "components/widget/realestate-housing-affordability-propertytierentryladder.njk" ignore missing %}
-    {% include "components/widget/realestate-housing-affordability-downpaymenttier.njk" ignore missing %}
-    {% include "components/widget/realestate-housing-affordability-householdincomepurchasingpower.njk" ignore missing %}
+
+    {# ========================================================================
+       CHAMBER 1: PROPERTY TIER ENTRY LADDER
+       ======================================================================== #}
+    {% if property_tier_ladder and property_tier_ladder.length > 0 %}
+    <div class="affordability-subpanel affordability-tier-ladder-card" aria-label="Property Tier Entry Ladder">
+      <div class="affordability-subpanel-header">
+        <h4 class="text-widget-title affordability-subpanel-title">
+          Property Tier Entry Ladder
+        </h4>
+      </div>
+
+      <div class="tier-ladder-row">
+        <div class="affordability-legend-row">
+          <span class="affordability-legend-item">
+            <span class="legend-swatch swatch-alpine"></span> Median Sale Price
+          </span>
+          <span class="affordability-legend-item">
+            <span class="legend-swatch swatch-amber"></span> Required Household Income
+          </span>
+        </div>
+
+        {% for row in property_tier_ladder %}
+          <div class="tier-ladder-row">
+            <div class="tier-ladder-meta">
+              <span class="tier-label-name">{{ row.type }}</span>
+              <span class="tier-label-piti">PITI: {{ row.payment }}/mo</span>
+            </div>
+
+            <div class="tier-bar-row">
+              <div class="tier-bar-track">
+                <div class="tier-bar-fill tier-fill-blue" style="--bar-width: {{ row.price_pct }}%;"></div>
+              </div>
+              <span class="tier-bar-metric tier-metric-blue">{{ row.price_fmt }}</span>
+            </div>
+
+            <div class="tier-bar-row">
+              <div class="tier-bar-track">
+                <div class="tier-bar-fill tier-fill-amber" style="--bar-width: {{ row.inc_pct }}%;"></div>
+              </div>
+              <span class="tier-bar-metric tier-metric-amber">{{ row.income_fmt }}</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="affordability-table-wrap">
+        <table class="affordability-table">
+          <thead>
+            <tr>
+              <th>PROPERTY TYPE</th>
+              <th class="cell-align-right">MEDIAN PRICE</th>
+              <th class="cell-align-right">REQ. INCOME</th>
+              <th class="cell-align-right">MONTHLY PITI</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in property_tier_ladder %}
+              <tr>
+                <td class="table-cell-lead">{{ row.type }}</td>
+                <td class="table-cell-num cell-color-blue">{{ row.price_fmt }}</td>
+                <td class="table-cell-num cell-color-amber">{{ row.income_fmt }}</td>
+                <td class="table-cell-num">{{ row.payment }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ========================================================================
+       CHAMBER 2: DOWN PAYMENT TIER & PMI IMPACT
+       ======================================================================== #}
+    {% if downpayment_matrix and downpayment_matrix.length > 0 %}
+    <div class="affordability-subpanel affordability-downpayment-card" aria-label="Down Payment Tier & PMI Impact">
+      <div class="affordability-subpanel-header">
+        <h4 class="text-widget-title affordability-subpanel-title">
+          Down Payment Tier &amp; PMI Impact
+        </h4>
+      </div>
+
+      <div class="dp-stacked-card">
+        <div class="affordability-legend-row">
+          <span class="affordability-legend-item">
+            <span class="legend-swatch swatch-alpine"></span> P&amp;I Loan
+          </span>
+          <span class="affordability-legend-item">
+            <span class="legend-swatch swatch-teal"></span> Property Tax
+          </span>
+          <span class="affordability-legend-item">
+            <span class="legend-swatch swatch-emerald"></span> Hazard Ins
+          </span>
+          <span class="affordability-legend-item">
+            <span class="legend-swatch swatch-crimson"></span> PMI
+          </span>
+        </div>
+
+        {% for row in downpayment_matrix %}
+          <div class="dp-stacked-card">
+            <div class="dp-meta-row">
+              <span class="dp-tier-name">{{ row.tier }} ({{ row.down }})</span>
+              <span class="dp-total-num">Total: {{ row.total }}/mo</span>
+            </div>
+
+            <div class="dp-stacked-track">
+              <div class="dp-seg-mort" style="--bar-width: {{ row.p_mort }}%;" title="Mortgage: {{ row.mort }}"></div>
+              <div class="dp-seg-tax" style="--bar-width: {{ row.p_tax }}%;" title="Tax: {{ row.tax }}"></div>
+              <div class="dp-seg-ins" style="--bar-width: {{ row.p_ins }}%;" title="Insurance: {{ row.ins }}"></div>
+              {% if row.p_pmi > 0 %}
+                <div class="dp-seg-pmi" style="--bar-width: {{ row.p_pmi }}%;" title="PMI: {{ row.pmi }}"></div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="affordability-table-wrap">
+        <table class="affordability-table">
+          <thead>
+            <tr>
+              <th>TIER</th>
+              <th class="cell-align-right">DOWN $</th>
+              <th class="cell-align-right">P&amp;I</th>
+              <th class="cell-align-right">TAX</th>
+              <th class="cell-align-right">INS</th>
+              <th class="cell-align-right">PMI</th>
+              <th class="cell-align-right">TOTAL PITI</th>
+              <th class="cell-align-right">REQ. INC</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in downpayment_matrix %}
+              <tr>
+                <td class="table-cell-lead">{{ row.tier }}</td>
+                <td class="table-cell-num">{{ row.down }}</td>
+                <td class="table-cell-num">{{ row.mort }}</td>
+                <td class="table-cell-num">{{ row.tax }}</td>
+                <td class="table-cell-num">{{ row.ins }}</td>
+                <td class="table-cell-num {% if row.pmi != '$0' %}cell-color-crimson{% else %}cell-color-muted{% endif %}">{{ row.pmi }}</td>
+                <td class="table-cell-num">{{ row.total }}</td>
+                <td class="table-cell-num cell-color-amber">{{ row.income }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ========================================================================
+       CHAMBER 3: HOUSEHOLD INCOME VS. PURCHASING POWER
+       ======================================================================== #}
+    {% if household_power_data and household_power_data.length > 0 %}
+    <div class="affordability-subpanel affordability-household-card" aria-label="Household Income vs. Purchasing Power">
+      <div class="affordability-subpanel-header">
+        <h4 class="text-widget-title affordability-subpanel-title">
+          Household Income vs. Purchasing Power
+        </h4>
+      </div>
+
+      <div class="hh-bar-row">
+        <span class="text-body-secondary text-overline">
+          DOTTED OVERLAYS INDICATE MINIMUM QUALIFYING INCOME PER PROPERTY TIER:
+        </span>
+
+        <div class="hh-overlay-canvas">
+          {# Static Benchmark Overlays #}
+          <div class="hh-marker-line line-condo" title="Condo Qualifying: $138k">
+            <span class="hh-marker-tag tag-top tag-condo">Condo ($138k)</span>
+          </div>
+
+          <div class="hh-marker-line line-starter" title="Starter Home Qualifying: $182k">
+            <span class="hh-marker-tag tag-top tag-starter">Starter ($182k)</span>
+          </div>
+
+          <div class="hh-marker-line line-th" title="Townhouse Qualifying: $223k">
+            <span class="hh-marker-tag tag-bottom tag-th">TH ($223k)</span>
+          </div>
+
+          <div class="hh-marker-line line-sf" title="Single-Family Qualifying: $291k">
+            <span class="hh-marker-tag tag-bottom tag-sf">SF ($291k)</span>
+          </div>
+
+          <div class="affordability-panels-stack affordability-gap-md">
+            {% for row in household_power_data %}
+              <div class="hh-bar-row">
+                <div class="hh-bar-meta">
+                  <span class="hh-bar-group">{{ row.group }}</span>
+                  <span class="hh-bar-val">{{ row.inc_fmt }}</span>
+                </div>
+
+                <div class="hh-bar-track">
+                  <div class="hh-bar-gradient" style="--bar-width: {{ row.pct }}%;"></div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="affordability-table-wrap">
+        <table class="affordability-table">
+          <thead>
+            <tr>
+              <th>HOUSEHOLD GROUP</th>
+              <th class="cell-align-right">MEDIAN INCOME</th>
+              <th class="cell-align-center">YRS TO SAVE 3.5%</th>
+              <th class="cell-align-right">AFFORDABLE LISTINGS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in household_power_data %}
+              <tr>
+                <td class="table-cell-lead">{{ row.group }}</td>
+                <td class="table-cell-num">{{ row.inc_fmt }}</td>
+                <td class="table-cell-center cell-color-blue">{{ row.years_save }}</td>
+                <td class="table-cell-num {% if row.share | float < 5 %}cell-color-crimson{% else %}cell-color-emerald{% endif %}">{{ row.share }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
   </div>
 
-  {# Dashboard Footer #}
+  {# Master Footer #}
   <footer class="affordability-master-footer">
     <span>{{ sources_caption }}</span>
   </footer>

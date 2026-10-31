@@ -1,7 +1,7 @@
 <!-- File: _includes/components/widget/sports-score-box.njk -->
 {# 
   COMPONENT: Compact Athletic Score Box & Outcome Summary (widget.sports.score.box)
-  PURPOSE: Box score display for regional sports matchups with records and game states.
+  PURPOSE: Box score display for regional sports matchups with records, game states, and zero inline CSS.
   CONTRACT:
     - scorebox_header / scorebox_league_sport: String [Optional, e.g. "MLB BASEBALL"]
     - scorebox_status_text / scorebox_status: String [Optional, e.g. "FINAL", "IN PROGRESS", "7:10 PM"]
@@ -49,46 +49,34 @@
       </span>
     </header>
 
-    {# Stacked Team Rows: Local on Top, Opponent on Bottom #}
+    {# Stacked Team Rows #}
     <div class="score-box-teams-stack">
       
       {# Row 1: Local Team #}
       <div class="score-box-team-row row-local">
         <div class="score-box-team-info">
-          <span class="score-box-team-name">
-            {{ team_local }}
-          </span>
-          {% if record_local %}
-            <span class="score-box-team-record">
-              {{ record_local }}
-            </span>
+          <span class="score-box-team-name">{{ team_local }}</span>
+          {% if record_local and record_local != "()" %}
+            <span class="score-box-team-record">{{ record_local }}</span>
           {% endif %}
         </div>
         
         {% if score_local is not none and score_local != '' %}
-          <span class="score-box-score-value">
-            {{ score_local }}
-          </span>
+          <span class="score-box-score-value">{{ score_local }}</span>
         {% endif %}
       </div>
 
       {# Row 2: Opposing Team #}
       <div class="score-box-team-row row-opp">
         <div class="score-box-team-info">
-          <span class="score-box-team-name name-opp">
-            {{ team_opp }}
-          </span>
-          {% if record_opp %}
-            <span class="score-box-team-record">
-              {{ record_opp }}
-            </span>
+          <span class="score-box-team-name name-opp">{{ team_opp }}</span>
+          {% if record_opp and record_opp != "()" and record_opp != "NO DATA" %}
+            <span class="score-box-team-record">{{ record_opp }}</span>
           {% endif %}
         </div>
 
         {% if score_opp is not none and score_opp != '' %}
-          <span class="score-box-score-value score-opp">
-            {{ score_opp }}
-          </span>
+          <span class="score-box-score-value score-opp">{{ score_opp }}</span>
         {% endif %}
       </div>
 
@@ -105,7 +93,7 @@
           </svg>
         </a>
       {% else %}
-        <span class="text-body-secondary" style="font-size: 0.7rem;">Pacific Northwest Athletics</span>
+        <span class="score-box-default-note">Pacific Northwest Athletics</span>
       {% endif %}
     </footer>
 

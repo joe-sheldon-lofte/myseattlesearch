@@ -1,0 +1,53 @@
+<!-- File: _includes/components/graphic/map-school-building.njk -->
+{# 
+  COMPONENT: Vector School Building Pin (graphic.map.school.building)
+  CONTRACT:
+    - class_name: String [Optional, custom CSS class modifier]
+    - icon_size: Number [Optional, default 28]
+    - stroke_color: String [Optional, defaults to currentColor]
+    - fill_color: String [Optional, defaults to none]
+#}
+
+{% set size = icon_size | default(28) %}
+{% set stroke = stroke_color | default("currentColor") %}
+{% set fill = fill_color | default("none") %}
+{% set extra_class = class_name | default("") %}
+
+<svg 
+  xmlns="http://www.w3.org/2000/svg" 
+  viewBox="0 0 32 32" 
+  width="{{ size }}" 
+  height="{{ size }}" 
+  class="graphic-school-building {{ extra_class }}"
+  fill="{{ fill }}" 
+  stroke="{{ stroke }}" 
+  stroke-width="1.75" 
+  stroke-linecap="round" 
+  stroke-linejoin="round" 
+  aria-hidden="true">
+  
+  {# Bell Tower / Cupola #}
+  <path d="M14 8 L14 5 L18 5 L18 8 Z" class="school-svg-cupola" />
+  <path d="M16 2 L16 5" class="school-svg-spire" />
+  <circle cx="16" cy="6.5" r="0.75" fill="currentColor" stroke="none" />
+
+  {# Classical Pediment / Gable Roof #}
+  <path d="M4 14 L16 8 L28 14 Z" class="school-svg-pediment" />
+
+  {# Main Architectural Body #}
+  <path d="M6 14 L6 27 L26 27 L26 14" class="school-svg-walls" />
+
+  {# Portico Columns #}
+  <line x1="11" y1="14" x2="11" y2="21" class="school-svg-column" />
+  <line x1="21" y1="14" x2="21" y2="21" class="school-svg-column" />
+
+  {# Arched Entryway #}
+  <path d="M13 27 L13 22 Q16 19 19 22 L19 27 Z" class="school-svg-doorway" />
+
+  {# Classroom Fenestration (Windows) #}
+  <rect x="8" y="16" width="2" height="3" rx="0.5" class="school-svg-window" />
+  <rect x="22" y="16" width="2" height="3" rx="0.5" class="school-svg-window" />
+
+  {# Plinth / Base Foundation Line #}
+  <line x1="3" y1="27" x2="29" y2="27" class="school-svg-plinth" />
+</svg>

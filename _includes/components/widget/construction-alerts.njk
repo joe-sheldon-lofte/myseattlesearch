@@ -1,0 +1,102 @@
+<!-- File: _includes/components/widget/construction-alerts.njk -->
+{# 
+  COMPONENT: Municipal & Arterial Construction Alerts (widget.construction.alerts)
+  PURPOSE: Real-time WSDOT roadway advisories, ramp closures, and affirmative clear states.
+  CONTRACT:
+    - active_neighborhood / neighborhood.name / city.City: String [Required]
+    - alert_count / construction.alert_count: Number [Optional, defaults to 0]
+    - alerts_data / alerts / construction.alerts: Array of Objects [Optional, defaults to []]
+      Each alert object expects:
+      - a.headline: String [Required]
+      - a.event_category: String [Optional, e.g. "Construction", "Maintenance", "Collision"]
+      - a.priority: String [Optional, e.g. "Highest", "High", "Medium", "Low"]
+      - a.alert_id: String [Optional]
+    - last_updated: String [Optional]
+#}
+
+{% set city_label = active_neighborhood or (city.City if city else '') or "Local" %}
+{% set alert_list = alerts_data or alerts or (construction.alerts if construction else []) %}
+{% set total_alerts = alert_count if alert_count is defined else (construction.alert_count if construction else (alert_list | length)) %}
+
+<section class="widget-card construction-alerts-card" aria-label="Roadway & Construction Alerts for {{ city_label }}">
+  
+  {# Header Row #}
+  <header class="construction-alerts-header">
+    <div class="construction-alerts-title-stack">
+      <span class="text-overline text-accent-alpine">WSDOT &amp; MUNICIPAL ROADWAY ADVISORIES</span>
+      <h3 class="text-widget-title construction-alerts-headline">
+        {{ city_label }} Construction &amp; Corridor Alerts
+      </h3>
+    </div>
+
+    {% if total_alerts > 0 %}
+      <span class="construction-count-badge status-alert">
+        {{ total_alerts }} ACTIVE {% if total_alerts == 1 %}ADVISORY{% else %}ADVISORIES{% endif %}
+      </span>
+    {% else %}
+      <span class="construction-count-badge status-clear">
+        ALL CLEAR
+      </span>
+    {% endif %}
+  </header>
+
+  {# Conditional Feed or Affirmative Zero-State #}
+  {% if total_alerts > 0 and alert_list.length > 0 %}
+    <div class="construction-alerts-stream">
+      {% for item in alert_list %}
+        {% set priority_lower = (item.priority | default('low')) | lower %}
+        {% set category_label = item.event_category | default('Roadwork') %}
+        
+        {% set priority_class = "priority-low" %}
+        {% if 'highest' in priority_lower or 'high' in priority_lower %}
+          {% set priority_class = "priority-high" %}
+        {% elif 'medium' in priority_lower %}
+          {% set priority_class = "priority-medium" %}
+        {% endif %}
+
+        <article class="construction-alert-tile">
+          <div class="construction-alert-meta">
+            <span class="construction-priority-pill {{ priority_class }}">
+              {{ item.priority | default('Advisory') | upper }}
+            </span>
+            <span class="construction-category-label">{{ category_label }}</span>
+            {% if item.alert_id %}
+              <span class="construction-meta-dot" aria-hidden="true">•</span>
+              <span class="construction-alert-id">{{ item.alert_id | upper }}</span>
+            {% endif %}
+          </div>
+
+          <p class="construction-alert-text">
+            {{ item.headline | trim }}
+          </p>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    {# Apple-Standard Elegant Zero-State #}
+    <div class="construction-empty-state">
+      <div class="construction-empty-icon-well" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+      </div>
+      <div class="construction-empty-content">
+        <h4 class="construction-empty-heading">No Active Construction Delays</h4>
+        <p class="text-body-secondary construction-empty-desc">
+          State highways, primary arterials, and local corridors within {{ city_label }} are currently free of active lane reductions or scheduled utility closures.
+        </p>
+      </div>
+    </div>
+  {% endif %}
+
+  {# Footer Timestamp #}
+  <footer class="construction-alerts-footer">
+    <span class="text-overline construction-footer-caption">Source: Washington State Department of Transportation (WSDOT)</span>
+    <a href="https://wsdot.com/travel/real-time/" class="construction-source-link" target="_blank" rel="noopener noreferrer">
+      <span>WSDOT Live Travel Center</span>
+      <span aria-hidden="true">→</span>
+    </a>
+  </footer>
+
+</section>

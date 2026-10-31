@@ -1,0 +1,30 @@
+{# 
+  COMPONENT: Wine Score® Viticulture & Cellar Index (score.custom.winescore)
+  PURPOSE: Licensed wineries, dedicated tasting cellars, and boutique bottle shops factored against population.
+#}
+
+{% set val = score_wine_val if score_wine_val is defined else (scores.wine if scores else null) %}
+
+{% if val is defined and val is not none %}
+  {% set tier_badge = "score-tier-emerald" if val >= 75 else ("score-tier-alpine" if val >= 50 else ("score-tier-amber" if val >= 25 else "score-tier-crimson")) %}
+  {% set tier_text = "text-tier-emerald" if val >= 75 else ("text-tier-alpine" if val >= 50 else ("text-tier-amber" if val >= 25 else "text-tier-crimson")) %}
+  {% set tier_label = "World-Class Wine Country" if val >= 75 else ("Established Tasting Hub" if val >= 50 else ("Boutique Wine Scene" if val >= 25 else "Limited Tasting Rooms")) %}
+
+  {% set score = {
+    id: "winescore",
+    title: "Wine Score® Viticulture Index",
+    overline: "WINERIES & TASTING ROOM CELLARS",
+    value: val,
+    label: tier_label,
+    tier_badge: tier_badge,
+    tier_text: tier_text,
+    detail: score_wine_detail or "Production wineries, vineyard estates, and dedicated tasting cellars per capita.",
+    source: "OpenStreetMap Viticulture Audit",
+    scale: "Scale 0–100",
+    methodology: "Calculates the regional viticulture footprint by normalizing active winery production facilities, dedicated estate tasting cellars, and curated wine merchants against population.",
+    formula: "Formula: 50% (Count / 6) + 50% ((Wineries / (Pop / 1000)) / 0.3)",
+    scale_notes: "75+: World-Class Destination • 50–74: Tasting Hub • 25–49: Boutique Scene • <25: Limited"
+  } %}
+
+  {% include "components/widget/custom-score.njk" %}
+{% endif %}

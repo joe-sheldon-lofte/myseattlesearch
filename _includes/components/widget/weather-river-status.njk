@@ -1,96 +1,88 @@
 <!-- File: _includes/components/widget/weather-river-status.njk -->
 {# 
   COMPONENT: USGS Hydrological Sensor & River Flood Status (widget.weather.river.status)
-  PURPOSE: Real-time river discharge (CFS) and gauge stage height telemetry for valley flood safety.
   CONTRACT:
-    - river_station_name / river_name / river.station_name: String [Required]
-    - river_flow_cfs / flow_cfs / river.flow_cfs: String or Number [Optional, e.g. "2,850"]
-    - river_gauge_ft / gauge_ft / river.gauge_ft: String or Number [Optional, e.g. "10.42"]
-    - river_flood_stage_ft / flood_stage_ft: String or Number [Optional, benchmark height e.g. "15.0"]
-    - river_flood_status / flood_status: String [Optional, e.g. "Below Flood Stage", "Action Stage", "Flood Warning"]
-    - river_usgs_id / usgs_id / river.usgs_id: String [Optional, e.g. "USGS 12150800"]
-    - river_obs_time / obs_time / river.obs_time: String [Optional, timestamp string]
-    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+    - river_stations / rivers: Array of Objects [Optional, renders all regional stations]
+    - river_station_name / river_name: String [Optional, single station fallback]
+    - river_flow_cfs: String or Number [Optional]
+    - river_gauge_ft: String or Number [Optional]
+    - river_flood_stage_ft: String or Number [Optional]
+    - river_flood_status: String [Optional]
+    - river_usgs_id: String [Optional]
+    - river_obs_time: String [Optional]
 #}
 
-{% set station_title = river_station_name or river_name or (river.station_name if river else '') %}
-{% set flow_val = river_flow_cfs if river_flow_cfs is defined else (flow_cfs if flow_cfs is defined else (river.flow_cfs if river else null)) %}
-{% set stage_val = river_gauge_ft if river_gauge_ft is defined else (gauge_ft if gauge_ft is defined else (river.gauge_ft if river else null)) %}
-{% set threshold_val = river_flood_stage_ft or flood_stage_ft or (river.flood_stage_ft if river else null) %}
-{% set raw_status = river_flood_status or flood_status or (river.flood_status if river else '') %}
-{% set sensor_id = river_usgs_id or usgs_id or (river.usgs_id if river else '') %}
-{% set timestamp = river_obs_time or obs_time or (river.obs_time if river else '') %}
-{% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
+{% set stations_list = river_stations or rivers %}
 
-{% if station_title or flow_val or stage_val %}
-  {# Semantic Flood Tier Classification #}
-  {% set status_lower = (raw_status | default('Below Flood Stage')) | lower %}
-  {% set status_class = "status-river-normal" %}
-  {% if 'flood' in status_lower and ('warning' in status_lower or 'major' in status_lower or 'moderate' in status_lower or 'minor' in status_lower or 'above' in status_lower) %}
-    {% set status_class = "status-river-alert" %}
-  {% elif 'action' in status_lower or 'near' in status_lower or 'advisory' in status_lower %}
-    {% set status_class = "status-river-warning" %}
-  {% endif %}
+{# Single-station fallback normalization #}
+{% if not stations_list and (river_station_name or river_flow_cfs or river_gauge_ft) %}
+  {% set stations_list = [{
+    station_name: river_station_name or river_name,
+    flow_cfs: river_flow_cfs,
+    gauge_ft: river_gauge_ft,
+    flood_stage_ft: river_flood_stage_ft,
+    flood_status: river_flood_status,
+    usgs_id: river_usgs_id,
+    obs_time: river_obs_time
+  }] %}
+{% endif %}
 
-  <section class="widget-card weather-river-status-card" aria-label="USGS River Status: {{ station_title | default('Regional River Sensor') }} — {{ raw_status | default('Below Flood Stage') }}">
-    
-    {# Header Row #}
-    <header class="river-header-row">
-      <div class="river-title-stack">
-        <span class="text-overline text-accent-alpine">
-          USGS HYDROLOGICAL SENSOR
-        </span>
-        <h3 class="text-widget-title river-station-title">
-          {{ station_title }}
-        </h3>
-      </div>
-      <div class="river-status-pill {{ status_class }}">
-        {{ raw_status | default("Below Flood Stage") }}
-      </div>
-    </header>
+{% if stations_list and stations_list.length > 0 %}
+<div class="section-grid-static grid-cols-2">
+  {% for r in stations_list %}
+    {% set station_title = r.station_name %}
+    {% set flow_val = r.flow_cfs %}
+    {% set stage_val = r.gauge_ft %}
+    {% set threshold_val = r.flood_stage_ft %}
+    {% set raw_status = r.flood_status %}
+    {% set sensor_id = r.usgs_id %}
+    {% set timestamp = r.obs_time %}
 
-    {# Dual Metrics Grid: Flow Rate & Gauge Height #}
-    <div class="river-metrics-grid">
-      
-      {# Flow Rate Tile #}
-      {% if flow_val is not none and flow_val != '' %}
-        <div class="river-metric-tile">
-          <span class="text-overline river-metric-overline">Flow Discharge</span>
-          <div class="river-metric-figure val-flow">
-            {{ flow_val }}
-          </div>
-          <div class="river-metric-unit">
-            ft³/s (cfs)
-          </div>
-        </div>
-      {% endif %}
-
-      {# Gauge Height Tile #}
-      {% if stage_val is not none and stage_val != '' %}
-        <div class="river-metric-tile">
-          <span class="text-overline river-metric-overline">Gauge Stage</span>
-          <div class="river-metric-figure">
-            {{ stage_val }}
-          </div>
-          <div class="river-metric-unit">
-            ft{% if threshold_val %} (Flood: {{ threshold_val }} ft){% endif %}
-          </div>
-        </div>
-      {% endif %}
-
-    </div>
-
-    {# Footer Telemetry Strip #}
-    {% if sensor_id or timestamp %}
-      <footer class="river-footer-row">
-        {% if sensor_id %}
-          <span>Station: <span class="river-footer-value">{{ sensor_id }}</span></span>
-        {% endif %}
-        {% if timestamp %}
-          <span>Observed: <span class="river-footer-value">{{ timestamp }}</span></span>
-        {% endif %}
-      </footer>
+    {% set status_lower = (raw_status | default('Below Flood Stage')) | lower %}
+    {% set status_class = "status-river-normal" %}
+    {% if 'no data' in status_lower %}
+      {% set status_class = "status-river-nodata" %}
+    {% elif 'flood' in status_lower and ('warning' in status_lower or 'alert' in status_lower) %}
+      {% set status_class = "status-river-alert" %}
+    {% elif 'action' in status_lower or 'advisory' in status_lower %}
+      {% set status_class = "status-river-warning" %}
     {% endif %}
 
-  </section>
+    <article class="widget-card weather-river-status-card" aria-label="USGS River Status: {{ station_title }}">
+      {# Header Row #}
+      <header class="river-header-row">
+        <div class="river-title-stack">
+          <span class="text-overline text-accent-alpine">USGS HYDROLOGICAL SENSOR</span>
+          <h3 class="text-widget-title river-station-title">{{ station_title }}</h3>
+        </div>
+        <div class="river-status-pill {{ status_class }}">
+          {{ raw_status | default("Below Flood Stage") }}
+        </div>
+      </header>
+
+      {# Dual Metrics Grid #}
+      <div class="river-metrics-grid">
+        <div class="river-metric-tile">
+          <span class="text-overline river-metric-overline">Flow Discharge</span>
+          <div class="river-metric-figure val-flow">{{ flow_val | default("NO DATA") }}</div>
+          <div class="river-metric-unit">ft³/s (cfs)</div>
+        </div>
+
+        <div class="river-metric-tile">
+          <span class="text-overline river-metric-overline">Gauge Stage</span>
+          <div class="river-metric-figure">{{ stage_val | default("NO DATA") }}</div>
+          <div class="river-metric-unit">
+            ft{% if threshold_val and threshold_val != "NO DATA" %} (Flood: {{ threshold_val }} ft){% endif %}
+          </div>
+        </div>
+      </div>
+
+      {# Footer Telemetry Strip #}
+      <footer class="river-footer-row">
+        <span>Station: <span class="river-footer-value">{{ sensor_id | default("NO DATA") }}</span></span>
+        <span>Observed: <span class="river-footer-value">{{ timestamp | default("NO DATA") }}</span></span>
+      </footer>
+    </article>
+  {% endfor %}
+</div>
 {% endif %}

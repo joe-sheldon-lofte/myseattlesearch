@@ -44,7 +44,7 @@
   <div class="transit-days-stack">
     {% for day in transit_days %}
       {% set day_name = day.day or day.name %}
-      {% if day_name and day.score %}
+      {% if day_name and day.score is defined and day.score is not none %}
         <details class="transit-day-accordion" {% if loop.first %}open{% endif %}>
           <summary class="transit-day-summary">
             <div class="transit-day-lead">
@@ -65,7 +65,7 @@
             </div>
           </summary>
 
-          {# Expanded Hourly Performance Table (Renders when telemetry exists) #}
+          {# Expanded Hourly Performance Table #}
           {% if day.hourly and day.hourly.length > 0 %}
             <div class="transit-hourly-pane">
               <table class="transit-hourly-table">

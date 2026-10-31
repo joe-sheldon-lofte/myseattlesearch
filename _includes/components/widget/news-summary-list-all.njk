@@ -1,101 +1,67 @@
 <!-- File: _includes/components/widget/news-summary-list-all.njk -->
 {# 
   COMPONENT: Comprehensive Community News Wire & Categorized Feed (widget.news.summary.list.all)
-  CONTRACT:
-    - all_news_items / news_items / news_all_data / news: Array of Objects [Required]
-      Each article object expects:
-      - item.title: String [Required]
-      - item.url: String [Required]
-      - item.source: String [Optional, e.g. "SEATTLE TIMES"]
-      - item.category: String [Optional, e.g. "local", "real-estate", "transit", "sports"]
-      - item.excerpt: String [Optional]
-      - item.date_formatted: String [Optional, e.g. "Mon, Aug 17, 2026 at 06:57 PM"]
-    - all_news_heading / news_heading: String [Optional, defaults to "All Community & Regional Coverage"]
-    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+  PURPOSE: Full article feed with interactive non-geographic topic filter pills and city-aware headlines.
 #}
 
+{% set city_label = city_name or active_neighborhood or (city.City if city else '') %}
+{% set heading_text = all_news_heading or news_heading or (city_label ~ " Community & Regional Coverage" if city_label else "All Regional Coverage") %}
+{% set overline_text = (city_label ~ " NEWS WIRE") if city_label else "REGIONAL NEWS WIRE" %}
 {% set news_feed = all_news_items or news_items or news_all_data or news %}
-{% set heading_text = all_news_heading or news_heading or "All Community & Regional Coverage" %}
 
 {% if news_feed and news_feed.length > 0 %}
-<section class="widget-card news-summary-list-all-card" aria-label="Community News Wire">
+<section class="widget-card news-summary-list-all-card" aria-label="{{ heading_text }}">
   
   {# Header Row #}
   <header class="news-all-header">
-    <div>
-      <span class="text-overline text-accent-alpine">
-        REGIONAL NEWS WIRE
-      </span>
-      <h3 class="text-widget-title news-all-headline">
-        {{ heading_text }}
-      </h3>
+    <div class="news-all-title-stack">
+      <span class="text-overline text-accent-alpine">{{ overline_text }}</span>
+      <h3 class="text-widget-title news-all-headline">{{ heading_text }}</h3>
     </div>
-    <div class="news-filter-caption">
-      Filter Wire by Category
-    </div>
+    <div class="news-filter-caption">Filter Wire by Topic</div>
   </header>
 
-  {# Pill Filter Toggles #}
-  <nav class="news-filter-pills" role="tablist" aria-label="Filter news by category">
+  {# Topic Filter Pills (Non-Geographic Only) #}
+  <nav class="news-filter-pills" role="tablist" aria-label="Filter wire by category">
     <button type="button" class="btn-filter-pill is-active" data-filter="all" role="tab" aria-selected="true">All Wire</button>
     <button type="button" class="btn-filter-pill" data-filter="local" role="tab" aria-selected="false">Local</button>
+    <button type="button" class="btn-filter-pill" data-filter="business" role="tab" aria-selected="false">Business</button>
     <button type="button" class="btn-filter-pill" data-filter="real-estate" role="tab" aria-selected="false">Real Estate</button>
-    <button type="button" class="btn-filter-pill" data-filter="transit" role="tab" aria-selected="false">Transit</button>
     <button type="button" class="btn-filter-pill" data-filter="sports" role="tab" aria-selected="false">Sports</button>
+    <button type="button" class="btn-filter-pill" data-filter="goodnews" role="tab" aria-selected="false">Civic Spotlight</button>
   </nav>
 
-  {# Full Article Feed #}
+  {# Full Article Stream #}
   <div class="news-list-container">
     {% for item in news_feed %}
-      {% if item.title and item.url %}
-        {% set cat_key = (item.category | lower | replace(' ', '-')) if item.category else 'local' %}
-        <article class="news-wire-item" data-category="{{ cat_key }}">
+      {% set item_url = item.url or item.link %}
+      {% if item.title and item_url %}
+        {% set item_cat = (item.category or (item.tags[0] if item.tags else 'local')) | lower %}
+        <article class="news-wire-item" data-category="{{ item_cat }}">
           
-          {# Meta: Source, Dot, Category Badge #}
           <div class="news-wire-meta">
-            {% if item.source %}
-              <span class="text-overline news-wire-source">{{ item.source }}</span>
-            {% endif %}
-            
-            {% if item.source and item.category %}
-              <span class="news-wire-dot" aria-hidden="true">•</span>
-            {% endif %}
-
-            {% if item.category %}
-              <span class="news-wire-category-tag">{{ item.category }}</span>
-            {% endif %}
+            <span class="text-overline news-wire-source">{{ item.source | default("REGIONAL DISPATCH") }}</span>
+            <span class="news-wire-dot" aria-hidden="true">•</span>
+            <span class="news-wire-category-tag">{{ item_cat }}</span>
           </div>
 
-          {# Title #}
           <h4 class="news-wire-title">
-            <a href="{{ item.url }}" class="news-wire-title-link">
+            <a href="{{ item_url }}" class="news-wire-title-link" target="_blank" rel="noopener noreferrer">
               {{ item.title }}
             </a>
           </h4>
 
-          {# Excerpt #}
           {% if item.excerpt %}
             <p class="text-body-secondary news-wire-excerpt">
               {{ item.excerpt }}
             </p>
           {% endif %}
 
-          {# Footer: Timestamp & Read Story Action #}
           <div class="news-wire-footer">
-            {% if item.date_formatted %}
-              <time class="news-wire-time">
-                {{ item.date_formatted }}
-              </time>
-            {% else %}
-              <span></span>
-            {% endif %}
-
-            <a href="{{ item.url }}" class="news-read-link">
+            <time class="news-wire-time">{{ item.date_formatted or item.published }}</time>
+            <a href="{{ item_url }}" class="news-read-link" target="_blank" rel="noopener noreferrer">
               <span>Read Story</span>
-              <svg class="news-read-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
+              <span aria-hidden="true">→</span>
             </a>
           </div>
 
@@ -104,7 +70,7 @@
     {% endfor %}
   </div>
 
-  {# Lightweight Controller (Decoupled from CSS, toggles state classes only) #}
+  {# Client-Side Controller (Toggles display state classes) #}
   <script>
     (function() {
       const container = document.currentScript ? document.currentScript.closest('.news-summary-list-all-card') : document.querySelector('.news-summary-list-all-card');

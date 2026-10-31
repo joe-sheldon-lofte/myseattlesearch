@@ -1,65 +1,26 @@
 <!-- File: _includes/components/widget/neighborhood-nav-links.njk -->
 {# 
-  COMPONENT: Neighborhood Section Navigation Buttons & Scroll Track (widget.neighborhood.nav.links)
-  MODES:
-    1. Full Sequence Strip (Default): Renders positions 1, 2, 3, 4, 5... in a horizontal scroll track.
-    2. Single Position Mode: Pass `target_position` (e.g. 1, 2, 3) to render only that specific button.
-  DATA CONTRACT:
-    - current_city_slug / neighborhood.slug / slug: String [Required]
-    - current_nav_tab / active_tab: String [Optional, e.g. "hub", "weather", "transit"]
-    - page_manifest.navigation / manifest_nav_items / nav_items: Array of Objects [Optional]
-      Each nav item expects:
-      - item.id: String [Required]
-      - item.label: String [Required]
-      - item.url: String [Required]
-      - item.position: Number [Optional, 1-8]
-    - target_position: Number [Optional, 1-8 for single button placement]
+  COMPONENT: Atomic Navigation Pill Link (widget.neighborhood.nav.links)
+  PURPOSE: Atomic text-only navigation link button for subpage routers, category tabs, and civic links.
+  CONTRACT:
+    - nav_label / link_label / label: String [Required, e.g. "Weather", "City Website"]
+    - nav_url / link_url / url: String [Required, e.g. "/neighborhood/bellevue/weather/", "https://bellevuewa.gov"]
+    - is_active / is_current: Boolean [Optional, true if current route]
+    - is_external: Boolean [Optional, true for external http/https links]
 #}
 
-{% set slug = current_city_slug or (neighborhood.slug if neighborhood else '') or (city.slug if city else '') or slug %}
-{% set active_id = current_nav_tab or active_tab or "hub" %}
+{% set label_text = nav_label or link_label or label %}
+{% set target_url = nav_url or link_url or url %}
+{% set active_state = is_active or is_current or false %}
+{% set external_state = is_external or (target_url and ('http://' in target_url or 'https://' in target_url)) %}
 
-{# Default Canonical 8-Position Neighborhood Manifest #}
-{% set fallback_items = [
-  { position: 1, id: "hub", label: "Neighborhood Hub", url: "/communities/" ~ slug ~ "/" },
-  { position: 2, id: "weather", label: "Weather", url: "/communities/" ~ slug ~ "/weather/" },
-  { position: 3, id: "transit", label: "Transit & Commute", url: "/communities/" ~ slug ~ "/transit-commute/" },
-  { position: 4, id: "news", label: "News & Events", url: "/communities/" ~ slug ~ "/news-events/" },
-  { position: 5, id: "municipal", label: "Municipal Services", url: "/communities/" ~ slug ~ "/municipal/" },
-  { position: 6, id: "emergency", label: "Emergency & Safety", url: "/communities/" ~ slug ~ "/emergency-safety/" },
-  { position: 7, id: "elections", label: "Elections & Voting", url: "/communities/" ~ slug ~ "/elections/" },
-  { position: 8, id: "realestate", label: "Real Estate & Data", url: "/communities/" ~ slug ~ "/real-estate/" }
-] %}
-
-{% set items_raw = (page_manifest.navigation if page_manifest and page_manifest.navigation else null) or manifest_nav_items or nav_items or fallback_items %}
-
-{# Macro: Render an Individual Navigation Pill #}
-{% macro render_nav_pill(item, active_id, is_single) %}
-  {% set is_current = (item.id == active_id) %}
-  <a href="{{ item.url }}" 
-     class="neighborhood-nav-pill {% if is_single %}neighborhood-nav-single-btn{% endif %} {% if is_current %}is-active{% else %}is-inactive{% endif %}"
-     {% if is_current %}aria-current="page"{% endif %}
-     {% if item.position %}data-position="{{ item.position }}"{% endif %}>
-    {{ item.label }}
+{% if label_text and target_url %}
+  <a href="{{ target_url }}" 
+     class="neighborhood-nav-pill {% if active_state %}is-active{% else %}is-inactive{% endif %}"
+     {% if active_state %}aria-current="page"{% endif %}
+     {% if external_state %}target="_blank" rel="noopener noreferrer"{% endif %}>
+    {{ label_text }}
   </a>
-{% endmacro %}
-
-{% if slug and items_raw and items_raw.length > 0 %}
-  {% if target_position %}
-    {# 1. Single Button Mode by Manifest Position #}
-    {% for item in items_raw %}
-      {% if item.position == target_position or loop.index == target_position %}
-        {{ render_nav_pill(item, active_id, true) }}
-      {% endif %}
-    {% endfor %}
-  {% else %}
-    {# 2. Full Horizontal Position Strip (1 2 3 4 5...) #}
-    <nav class="neighborhood-nav-container" aria-label="Neighborhood Sections">
-      <div class="neighborhood-nav-track">
-        {% for item in items_raw %}
-          {{ render_nav_pill(item, active_id, false) }}
-        {% endfor %}
-      </div>
-    </nav>
-  {% endif %}
+{% else %}
+  <span class="neighborhood-nav-pill is-inactive" style="opacity: 0.4;">NO DATA</span>
 {% endif %}

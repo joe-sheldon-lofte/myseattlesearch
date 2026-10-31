@@ -1,0 +1,31 @@
+<!-- File: _includes/components/score/custom-barkscore.njk -->
+{# 
+  COMPONENT: Bark Score® Canine & Pet Friendliness Index (score.custom.barkscore)
+  PURPOSE: Dog parks (weighted x5) and pet specialty retail (weighted x1) per capita.
+#}
+
+{% set val = score_bark_val if score_bark_val is defined else (scores.bark if scores else null) %}
+
+{% if val is defined and val is not none %}
+  {% set tier_badge = "score-tier-emerald" if val >= 75 else ("score-tier-alpine" if val >= 50 else ("score-tier-amber" if val >= 30 else "score-tier-crimson")) %}
+  {% set tier_text = "text-tier-emerald" if val >= 75 else ("text-tier-alpine" if val >= 50 else ("text-tier-amber" if val >= 30 else "text-tier-crimson")) %}
+  {% set tier_label = "Canine Paradise" if val >= 75 else ("Dog-Friendly Community" if val >= 50 else ("Moderate Pet Access" if val >= 30 else "Sparse Pet Services")) %}
+
+  {% set score = {
+    id: "barkscore",
+    title: "Bark Score® Pet Index",
+    overline: "CANINE & PET FRIENDLINESS",
+    value: val,
+    label: tier_label,
+    tier_badge: tier_badge,
+    tier_text: tier_text,
+    detail: score_bark_detail or "Off-leash dog parks and independent pet retail supplies per capita.",
+    source: "OpenStreetMap Canine Infrastructure",
+    scale: "Scale 0–100",
+    methodology: "Measures neighborhood pet-friendliness by weighting dedicated off-leash dog parks (5x) and local pet supply retail (1x) normalized against local resident population.",
+    formula: "Formula: 50% (Points / 25) + 50% ((Points / (Pop / 1000)) / 1.5)",
+    scale_notes: "75+: Canine Paradise • 50–74: Dog-Friendly • 30–49: Moderate • <30: Sparse"
+  } %}
+
+  {% include "components/widget/custom-score.njk" %}
+{% endif %}

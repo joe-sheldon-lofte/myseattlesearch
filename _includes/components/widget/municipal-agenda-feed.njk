@@ -2,28 +2,23 @@
 {# 
   COMPONENT: Municipal Agenda Feed & Public Hearings (widget.municipal.agenda.feed)
   CONTRACT:
-    - municipal_neighborhood_name / neighborhood.name / city.City / city: String [Required]
-    - municipal_agendas_data / agendas / municipal_agendas: Array of Objects [Required]
-      Each agenda object expects:
-      - item.body: String [Required, e.g. "City Council", "Planning Board"]
-      - item.title: String [Required]
-      - item.date: String [Required, e.g. "Tuesday, Oct 27, 2026"]
-      - item.time: String [Optional, e.g. "7:00 PM"]
-      - item.url: String [Optional, link to official PDF packet]
-      - item.status: String [Optional, e.g. "Published", "Draft"]
+    - municipal_neighborhood_name / city.City: String [Required]
+    - municipal_agendas_data: Array of Objects [Optional, SSR seed items]
+    - municipal_agenda_feed_url: String [Optional, RSS/portal for live edge parsing]
+    - municipal_agenda_fallback_url: String [Optional, clerk portal link]
     - municipal_badge_label: String [Optional, defaults to "Public Meeting Documents"]
-    - municipal_disclaimer_text: String [Optional]
 #}
 
 {% set active_neighborhood = municipal_neighborhood_name or (neighborhood.name if neighborhood else '') or city.City or city %}
-{% set agenda_list = municipal_agendas_data or agendas or municipal_agendas %}
+{% set agenda_list = municipal_agendas_data or [] %}
+{% set feed_src = municipal_agenda_feed_url %}
+{% set fallback_href = municipal_agenda_fallback_url or "https://www.google.com/search?q=" ~ (active_neighborhood ~ " city council agenda packets") %}
 {% set badge_text = municipal_badge_label or "Public Meeting Documents" %}
-{% set disclaimer_text = municipal_disclaimer_text or "Agendas sourced directly from municipal portals. Subject to change based on city policies." %}
 
-{% if active_neighborhood and agenda_list and agenda_list.length > 0 %}
-<div class="widget-card municipal-agenda-card">
+{% if active_neighborhood %}
+<div class="widget-card municipal-agenda-card" id="civic-agenda-{{ active_neighborhood | slugify }}">
   
-  {# Header Row: Civic Overline, Title & Verification Badge #}
+  {# Header Row #}
   <div class="card-header-split municipal-header-strip">
     <div>
       <span class="text-overline text-accent-alpine">
@@ -34,65 +29,105 @@
       </h3>
     </div>
     
-    {% if badge_text %}
-      <div class="badge-status-emerald">
-        {{ badge_text }}
+    <div class="badge-status-emerald">
+      {{ badge_text }}
+    </div>
+  </div>
+
+  {# Agendas Container #}
+  <div class="municipal-agenda-stack" id="civic-agenda-stack-{{ active_neighborhood | slugify }}">
+    {% if agenda_list and agenda_list.length > 0 %}
+      {% for item in agenda_list %}
+        {% if item.title %}
+          <div class="agenda-entry-card">
+            <div class="agenda-entry-top">
+              <span class="text-overline agenda-body-tag">{{ (item.body or "Council") | upper }}</span>
+              {% if item.date %}
+                <time class="agenda-entry-time">{{ item.date }}{% if item.time %} • {{ item.time }}{% endif %}</time>
+              {% endif %}
+            </div>
+            <h4 class="agenda-entry-title">{{ item.title }}</h4>
+            <div class="agenda-entry-footer">
+              <span class="text-body-secondary">Official Clerk Packet Available</span>
+              {% if item.url %}
+                <a href="{{ item.url }}" class="agenda-download-link" target="_blank" rel="noopener noreferrer">
+                  <span>Download Agenda PDF</span>
+                  <svg class="agenda-download-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      {# SSR Fallback Slate #}
+      <div class="agenda-fallback-slate" id="civic-agenda-fallback-{{ active_neighborhood | slugify }}">
+        <div class="agenda-fallback-icon-well" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
+        <div class="agenda-fallback-content">
+          <h4 class="agenda-fallback-title">Official Agenda &amp; Legislative Records</h4>
+          <p class="text-body-secondary agenda-fallback-desc">
+            Complete agenda packets, public hearing items, and ordinance amendments are published ahead of each scheduled session.
+          </p>
+          <a href="{{ fallback_href }}" target="_blank" rel="noopener noreferrer" class="btn-agenda-fallback">
+            <span>Access Legislative Portal</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </div>
       </div>
     {% endif %}
   </div>
 
-  {# Agendas Feed #}
-  <div class="municipal-agenda-stack">
-    {% for item in agenda_list %}
-      {% if item.title %}
-        <div class="agenda-entry-card">
-          
-          {# Item Top: Governing Body & Timestamp #}
-          <div class="agenda-entry-top">
-            {% if item.body %}
-              <span class="text-overline agenda-body-tag">
-                {{ item.body | upper }}
-              </span>
-            {% else %}
-              <span></span>
-            {% endif %}
-
-            {% if item.date %}
-              <time class="agenda-entry-time">
-                {{ item.date }}{% if item.time %} • {{ item.time }}{% endif %}
-              </time>
-            {% endif %}
-          </div>
-
-          {# Meeting Agenda Title #}
-          <h4 class="agenda-entry-title">
-            {{ item.title }}
-          </h4>
-
-          {# Item Footer: Packet Status & Download Action #}
-          <div class="agenda-entry-footer">
-            <span class="text-body-secondary">Official Clerk Packet Available</span>
-            {% if item.url %}
-              <a href="{{ item.url }}" class="agenda-download-link" target="_blank" rel="noopener noreferrer">
-                <span>Download Agenda PDF</span>
-                <svg class="agenda-download-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                  <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-              </a>
-            {% endif %}
-          </div>
-
-        </div>
-      {% endif %}
-    {% endfor %}
+  {# Footer #}
+  <div class="card-footer-strip text-body-secondary">
+    <span>Agendas sourced directly from municipal clerk portals. Subject to procedural updates.</span>
   </div>
 
-  {# Card Footer: Disclaimer #}
-  {% if disclaimer_text %}
-    <div class="card-footer-strip text-body-secondary">
-      <span>{{ disclaimer_text }}</span>
-    </div>
+  {# Live Edge Agenda Parser #}
+  {% if feed_src %}
+  <script>
+    (function() {
+      const feedUrl = "{{ feed_src }}";
+      const slug = "{{ active_neighborhood | slugify }}";
+      const stack = document.getElementById("civic-agenda-stack-" + slug);
+      if (!feedUrl || !stack) return;
+
+      fetch("/functions/api/civic-agendas?url=" + encodeURIComponent(feedUrl) + "&city=" + encodeURIComponent(slug))
+        .then(res => res.ok ? res.json() : Promise.reject())
+        .then(items => {
+          if (items && Array.isArray(items) && items.length > 0) {
+            let html = "";
+            items.slice(0, 4).forEach(item => {
+              html += '<div class="agenda-entry-card">' +
+                        '<div class="agenda-entry-top">' +
+                          '<span class="text-overline agenda-body-tag">' + (item.body || "CITY COUNCIL").toUpperCase() + '</span>' +
+                          (item.date ? '<time class="agenda-entry-time">' + item.date + '</time>' : '') +
+                        '</div>' +
+                        '<h4 class="agenda-entry-title">' + (item.title || "Regular Business Meeting Packet") + '</h4>' +
+                        '<div class="agenda-entry-footer">' +
+                          '<span class="text-body-secondary">Clerk Packet Available</span>' +
+                          (item.url ? '<a href="' + item.url + '" class="agenda-download-link" target="_blank" rel="noopener noreferrer"><span>View Packet</span><span aria-hidden="true">→</span></a>' : '') +
+                        '</div>' +
+                      '</div>';
+            });
+            stack.innerHTML = html;
+          }
+        })
+        .catch(() => {
+          /* Retain fallback portal card */
+        });
+    })();
+  </script>
   {% endif %}
 
 </div>

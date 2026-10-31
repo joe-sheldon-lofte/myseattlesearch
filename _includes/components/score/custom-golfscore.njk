@@ -1,0 +1,30 @@
+{# 
+  COMPONENT: Golf Score® Links & Fairways Index (score.custom.golfscore)
+  PURPOSE: Municipal championship, public municipal, and private golf course access factored against population.
+#}
+
+{% set val = score_golf_val if score_golf_val is defined else (scores.golf if scores else null) %}
+
+{% if val is defined and val is not none %}
+  {% set tier_badge = "score-tier-emerald" if val >= 75 else ("score-tier-alpine" if val >= 50 else ("score-tier-amber" if val >= 25 else "score-tier-crimson")) %}
+  {% set tier_text = "text-tier-emerald" if val >= 75 else ("text-tier-alpine" if val >= 50 else ("text-tier-amber" if val >= 25 else "text-tier-crimson")) %}
+  {% set tier_label = "Golfer's Destination" if val >= 75 else ("Accessible Fairways" if val >= 50 else ("Limited Course Access" if val >= 25 else "No Local Courses")) %}
+
+  {% set score = {
+    id: "golfscore",
+    title: "Golf Score® Fairway Index",
+    overline: "GOLF & COUNTRY CLUB ACCESS",
+    value: val,
+    label: tier_label,
+    tier_badge: tier_badge,
+    tier_text: tier_text,
+    detail: score_golf_detail or "Dedicated public and private regulation golf courses accessible to residents.",
+    source: "OpenStreetMap Recreational Survey",
+    scale: "Scale 0–100",
+    methodology: "Measures regulation 9-hole and 18-hole golf facilities and country clubs within municipal boundaries, evaluated against total local land use and per-capita resident density.",
+    formula: "Formula: 50% (Count / 2) + 50% ((Courses / (Pop / 1000)) / 0.15)",
+    scale_notes: "75+: Golfer's Destination • 50–74: Accessible • 25–49: Limited • <25: Sparse"
+  } %}
+
+  {% include "components/widget/custom-score.njk" %}
+{% endif %}

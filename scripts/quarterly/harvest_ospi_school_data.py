@@ -17,10 +17,13 @@ CITY_DATA_JSON = os.path.join(DATA_DIR, "city_data.json")
 OUTPUT_JSON = os.path.join(DATA_DIR, "ospi_school_data.json")
 
 # Primary and Fallback OSPI Socrata Endpoints (Data.WA.gov Report Card Assessment Series)
-OSPI_ENDPOINTS = [
+OSPI_ASSESSMENT_ENDPOINTS = [
     "https://data.wa.gov/resource/h5d9-vgwi.json",  # OSPI Report Card Assessment (2024-25)
     "https://data.wa.gov/resource/x73g-mrqp.json"   # OSPI Report Card Assessment (2023-24)
 ]
+
+# OSPI School Facilities & Directory Endpoint (Contains Physical Address, Lat, Lon, Websites)
+OSPI_DIRECTORY_ENDPOINT = "https://data.wa.gov/resource/5ypr-e9i6.json"
 
 HTTP_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -34,15 +37,16 @@ STATE_SCIENCE_BASELINE = 43.0
 
 def load_city_district_mappings():
     """
-    Dynamically loads city-to-district mappings from data/city_data.json.
+    Dynamically loads city-to-district mappings and fallback district websites from data/city_data.json.
     Supports comma-separated multi-district mappings (e.g., Sammamish).
     """
-    print(f"📖 Loading municipal district mappings from {CITY_DATA_JSON}...")
+    print(f"Loading municipal district mappings from {CITY_DATA_JSON}...")
     city_map = {}
+    district_web_fallbacks = {}
     
     if not os.path.exists(CITY_DATA_JSON):
-        print(f"  ⚠️ Warning: {CITY_DATA_JSON} not found. City district ratings will be empty.")
-        return city_map
+        print(f"  Warning: {CITY_DATA_JSON} not found. City district ratings will be empty.")
+        return city_map, district_web_fallbacks
 
     try:
         with open(CITY_DATA_JSON, "r", encoding="utf-8") as f:
@@ -52,6 +56,7 @@ def load_city_district_mappings():
             city_name = item.get("City", "").strip()
             district_name = item.get("School District", "").strip()
             ospi_id = str(item.get("OSPI District ID", "")).strip()
+            web_url = item.get("School Website", "").strip()
 
             if city_name and (district_name or ospi_id):
                 city_map[city_name] = {
@@ -59,11 +64,14 @@ def load_city_district_mappings():
                     "ospi_district_id": ospi_id
                 }
 
-        print(f"  ✓ Successfully mapped {len(city_map)} cities from city_data.json.")
-    except Exception as e:
-        print(f"  ❌ Error loading city_data.json: {e}")
+            if district_name and web_url and district_name not in district_web_fallbacks:
+                district_web_fallbacks[district_name] = web_url
 
-    return city_map
+        print(f"  Successfully mapped {len(city_map)} cities from city_data.json.")
+    except Exception as e:
+        print(f"  Error loading city_data.json: {e}")
+
+    return city_map, district_web_fallbacks
 
 def safe_float(val):
     """Safely extracts a numeric float from strings with percentages or comparison characters."""
@@ -81,7 +89,7 @@ def safe_float(val):
 def parse_percentage(val):
     """
     Parses and normalizes test score strings into true 0.0-100.0 percentages.
-    Converts decimal rates (e.g., 0.345 -> 34.5%) while preserving whole percentages (e.g., 57.0 -> 57.0%).
+    Converts decimal rates (e.g., 0.345 -> 34.5%) while preserving whole percentages.
     """
     v = safe_float(val)
     if v is None:
@@ -94,7 +102,6 @@ def calculate_psai_score(math_pct, ela_pct, science_pct):
     """
     Computes the difficulty-weighted Puget Sound Academic Index (PSAI) on a 0-100 scale,
     dynamically anchoring only to subjects actually tested at the facility.
-    Returns: (psai_score, active_benchmark)
     """
     active_pairs = []
     if math_pct is not None:
@@ -107,37 +114,107 @@ def calculate_psai_score(math_pct, ela_pct, science_pct):
     if not active_pairs:
         return None, None
 
-    # Multiplier per subject: School % / State Baseline %
     multipliers = [score / base for score, base in active_pairs]
     composite_ratio = sum(multipliers) / len(multipliers)
-
-    # Dynamic baseline based strictly on tested subjects (e.g., 44.7 for 3-subject, 45.5 for Math/ELA)
     raw_active_benchmark = sum(base for _, base in active_pairs) / len(active_pairs)
     active_benchmark = round(raw_active_benchmark, 1)
 
-    # Weighted proficiency: Composite Ratio * Active State Baseline
     psai = round(composite_ratio * raw_active_benchmark, 1)
     psai = min(100.0, psai)
 
     return psai, active_benchmark
 
+def fetch_school_directory_geography():
+    """
+    Queries the OSPI State School Directory to index physical addresses, coordinates,
+    and official websites for both schools and parent districts.
+    """
+    print("Ingesting OSPI Physical School Directory, Geocodes & Websites...")
+    geo_lookup = {}
+    district_web_lookup = {}
+    limit = 50000
+    params = {
+        "$where": "county in ('King', 'Snohomish')",
+        "$limit": limit
+    }
+
+    try:
+        resp = requests.get(OSPI_DIRECTORY_ENDPOINT, headers=HTTP_HEADERS, params=params, timeout=25, verify=False)
+        if resp.status_code == 200:
+            records = resp.json()
+            for r in records:
+                scode = str(r.get("school_code", r.get("schoolcode", r.get("building_code", "")))).strip()
+                org_id = str(r.get("school_organization_id", r.get("schoolorganizationid", ""))).strip()
+                dcode = str(r.get("district_code", r.get("districtcode", ""))).strip()
+                dname = str(r.get("district_name", r.get("districtname", ""))).strip()
+                
+                # Extract coordinates
+                lat = safe_float(r.get("latitude", r.get("lat")))
+                lon = safe_float(r.get("longitude", r.get("lon", r.get("long"))))
+                
+                # Check nested Socrata location objects if present
+                if lat is None and "location_1" in r and isinstance(r["location_1"], dict):
+                    lat = safe_float(r["location_1"].get("latitude"))
+                    lon = safe_float(r["location_1"].get("longitude"))
+
+                address = str(r.get("address", r.get("street_address", r.get("physical_address", "")))).strip()
+                city = str(r.get("city", "")).strip()
+                zip_code = str(r.get("zip", r.get("zip_code", ""))).strip()
+
+                # Extract school website URL
+                school_web = str(r.get("school_website", r.get("website", r.get("url", r.get("web_page", ""))))).strip()
+                if school_web and not school_web.startswith("http"):
+                    school_web = f"https://{school_web}"
+
+                # Extract district website URL
+                dist_web = str(r.get("district_website", r.get("district_url", ""))).strip()
+                if dist_web and not dist_web.startswith("http"):
+                    dist_web = f"https://{dist_web}"
+
+                if dcode and dist_web:
+                    district_web_lookup[dcode] = dist_web
+                if dname and dist_web:
+                    district_web_lookup[dname] = dist_web
+
+                geo_payload = {
+                    "address": address,
+                    "city": city,
+                    "zip": zip_code,
+                    "latitude": lat,
+                    "longitude": lon,
+                    "school_website": school_web,
+                    "district_website": dist_web
+                }
+
+                if scode:
+                    geo_lookup[scode] = geo_payload
+                if org_id:
+                    geo_lookup[f"org_{org_id}"] = geo_payload
+
+            print(f"  Indexed geography & websites for {len(geo_lookup)} physical school facilities.")
+        else:
+            print(f"  Warning: Directory endpoint returned HTTP {resp.status_code}. Fallback mechanisms will engage.")
+    except Exception as e:
+        print(f"  Warning: Unable to fetch OSPI directory stream: {e}")
+
+    return geo_lookup, district_web_lookup
+
 def resolve_redfin_school_data(school_name, district_name, county):
-    """Queries Redfin's native autocomplete API to obtain exact search URLs and cities."""
+    """Queries Redfin's autocomplete API for search URLs and municipal city locations."""
     if not school_name:
-        return {"redfin_url": "", "city": district_name}
+        return {"redfin_url": "", "city": district_name, "lat": None, "lon": None}
 
     query_str = f"{school_name} {district_name} WA"
     encoded_query = urllib.parse.quote(query_str)
     endpoint = f"https://www.redfin.com/stingray/do/location-autocomplete?location={encoded_query}&v=2"
 
-    resolved_info = {"redfin_url": "", "city": district_name}
+    resolved_info = {"redfin_url": "", "city": district_name, "lat": None, "lon": None}
 
     try:
         resp = requests.get(endpoint, headers=HTTP_HEADERS, timeout=4, verify=False)
         if resp.status_code == 200:
             clean_text = resp.text.replace("{}&&", "").strip()
             data = json.loads(clean_text)
-            
             payload = data.get("payload", {})
             exact_match = payload.get("exactMatch", {})
 
@@ -147,6 +224,9 @@ def resolve_redfin_school_data(school_name, district_name, county):
                     sub_parts = exact_match.get("subText").split(",")
                     if len(sub_parts) > 0:
                         resolved_info["city"] = sub_parts[0].strip()
+                if exact_match.get("lat") and exact_match.get("long"):
+                    resolved_info["lat"] = safe_float(exact_match.get("lat"))
+                    resolved_info["lon"] = safe_float(exact_match.get("long"))
                 return resolved_info
 
             for section in payload.get("sections", []):
@@ -157,6 +237,9 @@ def resolve_redfin_school_data(school_name, district_name, county):
                             sub_parts = row.get("subText").split(",")
                             if len(sub_parts) > 0:
                                 resolved_info["city"] = sub_parts[0].strip()
+                        if row.get("lat") and row.get("long"):
+                            resolved_info["lat"] = safe_float(row.get("lat"))
+                            resolved_info["lon"] = safe_float(row.get("long"))
                         return resolved_info
     except Exception:
         pass
@@ -164,9 +247,7 @@ def resolve_redfin_school_data(school_name, district_name, county):
     return resolved_info
 
 def sniff_schema_fields(sample_records):
-    """
-    Inspects sample records to dynamically identify exact Socrata field keys across schema variations.
-    """
+    """Dynamic schema field inspector across Socrata release cycles."""
     if not sample_records:
         return {}
 
@@ -228,9 +309,7 @@ def sniff_schema_fields(sample_records):
     }
 
 def fetch_ospi_endpoint_records(endpoint):
-    """
-    Pages through a Socrata endpoint with resilient county field probing.
-    """
+    """Pages through a Socrata endpoint with resilient county field probing."""
     records = []
     limit = 25000
     offset = 0
@@ -246,11 +325,8 @@ def fetch_ospi_endpoint_records(endpoint):
                     county_field = "county_name"
                 elif "countyname" in keys:
                     county_field = "countyname"
-        elif probe_resp.status_code == 403:
-            print(f"  ❌ Endpoint returned HTTP 403 (Forbidden/Archived): {endpoint}")
-            return records
     except Exception as e:
-        print(f"  ⚠️ Schema probe warning on {endpoint}: {e}")
+        print(f"  Schema probe warning on {endpoint}: {e}")
 
     where_clause = f"{county_field} in ('King', 'Snohomish')"
 
@@ -272,44 +348,31 @@ def fetch_ospi_endpoint_records(endpoint):
                 if len(chunk) < limit:
                     break
                 offset += limit
-            elif resp.status_code == 400 and offset == 0:
-                params.pop("$where", None)
-                resp_fallback = requests.get(endpoint, headers=HTTP_HEADERS, params=params, timeout=30, verify=False)
-                if resp_fallback.status_code == 200:
-                    chunk = resp_fallback.json()
-                    filtered_chunk = [
-                        r for r in chunk 
-                        if str(r.get("county", r.get("county_name", r.get("countyname", "")))).lower() in ["king", "snohomish"]
-                    ]
-                    records.extend(filtered_chunk)
-                break
             else:
                 break
-        except Exception as e:
-            print(f"  ❌ Endpoint exception on {endpoint}: {e}")
+        except Exception:
             break
 
     return records
 
 def fetch_all_ospi_records():
     """Queries all configured OSPI Report Card Socrata REST endpoints."""
-    print("📡 Querying OSPI Assessment Data from Data.WA.gov...")
+    print("Querying OSPI Assessment Data from Data.WA.gov...")
     all_records = []
 
-    for ep in OSPI_ENDPOINTS:
-        print(f"  • Ingesting stream: {ep}...")
+    for ep in OSPI_ASSESSMENT_ENDPOINTS:
+        print(f"  Ingesting stream: {ep}...")
         ep_records = fetch_ospi_endpoint_records(ep)
-        print(f"    ✓ Retrieved {len(ep_records)} records from stream.")
+        print(f"  Retrieved {len(ep_records)} records from stream.")
         all_records.extend(ep_records)
 
-    print(f"  ✅ Completed OSPI data ingestion: {len(all_records)} total assessment records compiled.")
+    print(f"  Compiled {len(all_records)} total assessment records.")
     return all_records
 
 def process_ospi_data(records):
     """Processes raw assessment records into structured school and district maps."""
     schools_map = {}
     districts_map = {}
-
     school_raw_scores = {}
     district_raw_scores = {}
 
@@ -317,14 +380,6 @@ def process_ospi_data(records):
         return schools_map, districts_map
 
     schema = sniff_schema_fields(records)
-    print("\n🔍 Dynamic Field Schema Audit:")
-    print(f"   • Org Level:       '{schema['org_level']}'")
-    print(f"   • School Code:     '{schema['school_code']}' | Name: '{schema['school_name']}'")
-    print(f"   • District Code:   '{schema['district_code']}' | Name: '{schema['district_name']}'")
-    print(f"   • Subject Key:     '{schema['subject']}'")
-    print(f"   • Student Group:   '{schema['student_group']}'")
-    print(f"   • Score Fields:    {schema['score_candidates'][:4]}")
-
     k_org = schema["org_level"]
     k_scode = schema["school_code"]
     k_sname = schema["school_name"]
@@ -339,8 +394,6 @@ def process_ospi_data(records):
     k_c_met = schema["count_met"]
     k_c_tot = schema["count_expected"]
 
-    matched_scores_count = 0
-
     for r in records:
         org_level = str(r.get(k_org, "")).strip().lower()
         scode = str(r.get(k_scode, "")).strip()
@@ -350,7 +403,6 @@ def process_ospi_data(records):
         county = str(r.get(k_county, "")).strip()
         stype = str(r.get("currentschooltype", r.get("schooltype", r.get("type", "P")))).strip() or "P"
 
-        # --- STEP 1: INITIALIZE ENTITIES ---
         if org_level == "school" and scode and sname:
             if scode not in schools_map:
                 schools_map[scode] = {
@@ -377,10 +429,9 @@ def process_ospi_data(records):
             elif dcode and not districts_map[dname]["district_code"]:
                 districts_map[dname]["district_code"] = dcode
 
-        # --- STEP 2: COHORT FILTERING ---
+        # Cohort Filtering
         sgroup = str(r.get(k_sgroup, "")).strip().lower()
         sgrouptype = str(r.get(k_sgrouptype, "")).strip().lower()
-
         is_all_students = (
             sgroup in ["all students", "all", "total", ""] or 
             sgrouptype in ["all", "federal", ""] or 
@@ -390,7 +441,6 @@ def process_ospi_data(records):
         if not is_all_students:
             continue
 
-        # --- STEP 3: SCORE EXTRACTION & PERCENTAGE NORMALIZATION ---
         pct_met = None
         for sk in score_keys:
             val = r.get(sk)
@@ -408,8 +458,6 @@ def process_ospi_data(records):
 
         if pct_met is None:
             continue
-
-        matched_scores_count += 1
 
         subject_raw = str(r.get(k_subj, "")).strip().lower()
         subject_key = None
@@ -435,9 +483,6 @@ def process_ospi_data(records):
                 district_raw_scores[dname][subject_key][syear] = []
             district_raw_scores[dname][subject_key][syear].append(pct_met)
 
-    print(f"   ✓ Extracted and matched {matched_scores_count} valid student proficiency records.")
-
-    # Helper function to get the latest academic year's average for a subject
     def get_latest_subject_score(subj_years_map):
         if not subj_years_map:
             return None
@@ -448,13 +493,11 @@ def process_ospi_data(records):
                 return round(sum(vals) / len(vals), 1)
         return None
 
-    # Attach latest scores to schools
     for scode, subjects in school_raw_scores.items():
         schools_map[scode]["latest_math_pct"] = get_latest_subject_score(subjects["math"])
         schools_map[scode]["latest_ela_pct"] = get_latest_subject_score(subjects["ela"])
         schools_map[scode]["latest_science_pct"] = get_latest_subject_score(subjects["science"])
 
-    # Attach latest scores to districts
     for dname, subjects in district_raw_scores.items():
         districts_map[dname]["district_math_proficiency"] = get_latest_subject_score(subjects["math"])
         districts_map[dname]["district_ela_proficiency"] = get_latest_subject_score(subjects["ela"])
@@ -469,26 +512,28 @@ def process_ospi_data(records):
 
 def main():
     print("==================================================")
-    print("     OSPI MASTER SCHOOL DATA HARVESTER (V4.6)     ")
+    print("     OSPI MASTER SCHOOL DATA HARVESTER (V5.1)     ")
     print("==================================================")
 
     os.makedirs(DATA_DIR, exist_ok=True)
-    city_mapping = load_city_district_mappings()
+    city_mapping, district_web_fallbacks = load_city_district_mappings()
 
+    # Step A: Ingest Geospatial Coordinates, Physical Street Addresses & Websites
+    geo_directory, district_web_lookup = fetch_school_directory_geography()
+
+    # Step B: Ingest State Assessment Performance Data
     raw_records = fetch_all_ospi_records()
     if not raw_records:
-        print("❌ No OSPI assessment records fetched. Exiting.")
+        print("Error: No OSPI assessment records fetched. Exiting.")
         return
 
     schools_map, districts_map = process_ospi_data(raw_records)
 
-    # --- 1. COMPILE INDIVIDUAL SCHOOL BUILDING RECORDS ---
     total_schools = len(schools_map)
-    print(f"\n🚀 Discovered {total_schools} unique public schools across King & Snohomish counties.")
-    print("📡 Resolving Redfin URLs & Computing Difficulty-Weighted PSAI Scores...")
+    print(f"\nDiscovered {total_schools} unique public schools across King & Snohomish counties.")
+    print("Resolving Geospatial Attributes, Websites, Redfin URLs & PSAI Scores...")
 
     compiled_schools = []
-    sample_printed = False
 
     for idx, (scode, school_data) in enumerate(schools_map.items(), 1):
         redfin_info = resolve_redfin_school_data(
@@ -497,18 +542,26 @@ def main():
             school_data["county"]
         )
 
+        # Cross-reference geocoding & websites: Directory lookup first, Redfin/fallback second
+        geo_info = geo_directory.get(scode, geo_directory.get(f"org_{school_data['ospi_org_id']}", {}))
+        
+        street_address = geo_info.get("address", "")
+        city_name = geo_info.get("city") or redfin_info["city"]
+        zip_code = geo_info.get("zip", "")
+        lat_coord = geo_info.get("latitude") or redfin_info["lat"]
+        lon_coord = geo_info.get("longitude") or redfin_info["lon"]
+        
+        # School website resolution: State directory -> fallback to district portal or Redfin URL
+        school_web_url = geo_info.get("school_website", "")
+        if not school_web_url:
+            dist_fallback = district_web_lookup.get(school_data["district_code"], district_web_lookup.get(school_data["district_name"], district_web_fallbacks.get(school_data["district_name"], "")))
+            school_web_url = dist_fallback or redfin_info["redfin_url"]
+
         m_score = school_data.get("latest_math_pct")
         e_score = school_data.get("latest_ela_pct")
         s_score = school_data.get("latest_science_pct")
 
         psai_score, psai_benchmark = calculate_psai_score(m_score, e_score, s_score)
-
-        if not sample_printed and psai_score is not None:
-            print(f"\n📊 [Sample Verified Extraction]:")
-            print(f"   • School: {school_data['school_name']} ({school_data['district_name']})")
-            print(f"   • Math Met: {m_score}% | ELA Met: {e_score}% | Science Met: {s_score}%")
-            print(f"   • PSAI Score: {psai_score} / 100 (Active Benchmark: {psai_benchmark} / 100)\n")
-            sample_printed = True
 
         school_entry = {
             "school_name": school_data["school_name"],
@@ -517,7 +570,12 @@ def main():
             "district_name": school_data["district_name"],
             "district_code": school_data["district_code"],
             "county": school_data["county"],
-            "city": redfin_info["city"],
+            "address": street_address,
+            "city": city_name,
+            "zip": zip_code,
+            "latitude": lat_coord,
+            "longitude": lon_coord,
+            "website_url": school_web_url,
             "school_type": school_data["school_type"],
             "redfin_search_url": redfin_info["redfin_url"],
             "psai_score": psai_score,
@@ -529,18 +587,17 @@ def main():
 
         compiled_schools.append(school_entry)
         if idx % 100 == 0 or idx == total_schools:
-            print(f"  [Progress] {idx}/{total_schools} schools processed...")
+            print(f"  [Progress] {idx}/{total_schools} schools enriched with addresses, coordinates & websites...")
 
-    compiled_schools.sort(key=lambda s: (s["city"], s["district_name"], s["school_name"]))
+    compiled_schools.sort(key=lambda s: (s["county"], s["district_name"], s["school_name"]))
 
-    # --- 2. COMPILE DISTRICT SUMMARIES ---
+    # Step C: Compile District Summaries
     compiled_districts = {}
     for dname, ddata in districts_map.items():
         m_score = ddata.get("district_math_proficiency")
         e_score = ddata.get("district_ela_proficiency")
         s_score = ddata.get("district_science_proficiency")
 
-        # Fallback to building average if district row was absent in state stream
         if m_score is None or e_score is None or s_score is None:
             dist_schools = [s for s in compiled_schools if s["district_name"] == dname]
             if dist_schools:
@@ -559,11 +616,20 @@ def main():
 
         psai_score, psai_benchmark = calculate_psai_score(m_score, e_score, s_score)
 
+        # District website resolution: State feed lookup -> city_data.json fallback
+        dcode = ddata["district_code"]
+        district_website = (
+            district_web_lookup.get(dcode) or 
+            district_web_lookup.get(dname) or 
+            district_web_fallbacks.get(dname, "")
+        )
+
         compiled_districts[dname] = {
             "district_name": dname,
-            "district_code": ddata["district_code"],
+            "district_code": dcode,
             "county": ddata["county"],
             "records_count": ddata["records_count"],
+            "website_url": district_website,
             "district_math_proficiency": m_score,
             "district_ela_proficiency": e_score,
             "district_science_proficiency": s_score,
@@ -571,7 +637,7 @@ def main():
             "psai_benchmark": psai_benchmark
         }
 
-    # --- 3. COMPILE CITY DISTRICT RATINGS DYNAMICALLY FROM city_data.json ---
+    # Step D: Compile City District Ratings
     compiled_city_ratings = {}
     for city_name, meta in city_mapping.items():
         raw_dnames = [d.strip() for d in meta["district_name"].split(",") if d.strip()]
@@ -620,11 +686,10 @@ def main():
             "status": status
         }
 
-    # --- 4. ANTI-WIPEOUT GUARDRAIL & WRITE MASTER UNIFIED JSON ---
+    # Step E: Guardrail & Output
     schools_with_scores = sum(1 for s in compiled_schools if s["psai_score"] is not None)
     if total_schools > 0 and schools_with_scores == 0:
-        print("\n⚠️ WARNING: 0 schools computed valid PSAI scores.")
-        print("⚠️ Aborting file write to preserve existing verified data asset.")
+        print("\nWarning: 0 schools computed valid PSAI scores. Aborting write.")
         return
 
     master_output = {
@@ -636,11 +701,10 @@ def main():
     with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
         json.dump(master_output, f, indent=2, ensure_ascii=False)
 
-    print(f"\n🎉 Master harvesting complete!")
-    print(f"  • Compiled {len(compiled_schools)} individual school facilities ({schools_with_scores} with active PSAI ratings).")
-    print(f"  • Compiled {len(compiled_districts)} school districts.")
-    print(f"  • Compiled {len(compiled_city_ratings)} city-district rating mappings.")
-    print(f"  • Saved clean master dataset to: {OUTPUT_JSON}")
+    print(f"\nMaster harvesting complete with verified geocoding, addresses & websites!")
+    print(f"  Compiled {len(compiled_schools)} individual school facilities.")
+    print(f"  Compiled {len(compiled_districts)} school districts.")
+    print(f"  Saved master dataset to: {OUTPUT_JSON}")
 
 if __name__ == "__main__":
     main()

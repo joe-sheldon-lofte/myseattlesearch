@@ -1,0 +1,18 @@
+{# _includes/layouts/neighborhood.njk #}
+---
+layout: "layouts/base.njk"
+---
+{# ========================================================= #}
+{# UNIVERSAL DATA BRIDGE                                     #}
+{# Safely normalizes data for all neighborhood sub-routes    #}
+{# ========================================================= #}
+{% set city_slug = city.City | slugify %}
+{% set city_name = city.City %}
+
+{# Peripheral Data Bindings #}
+{% set local_weather = city_weather[city_slug] %}
+{% set local_stats = infosparks_stats.feeds["group_1_median_sale_price"].data %} {# Target exact arrays based on your structure #}
+
+<main class="neighborhood-canvas">
+  {{ content | safe }}
+</main>

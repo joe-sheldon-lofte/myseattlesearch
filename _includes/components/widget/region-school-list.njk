@@ -1,0 +1,125 @@
+<!-- File: _includes/components/widget/region-school-list.njk -->
+{# 
+  COMPONENT: Nested Regional School Directory (widget.region.school.list)
+  ARCHITECTURE: Multi-tier expandable directory grouped by County -> District -> School.
+  CONTRACT:
+    - schools_data: Object [Required, ospi_school_data.json content]
+      Expects: { schools: Array, districts: Object }
+    - directory_title: String [Optional, defaults to "Puget Sound School Directory"]
+    - directory_overline: String [Optional, defaults to "ACADEMIC TELEMETRY & DISTRICT BOUNDARIES"]
+#}
+
+{% set root_data = schools_data %}
+{% set card_title = directory_title or "Puget Sound Regional School Directory" %}
+{% set card_overline = directory_overline or "ACADEMIC TELEMETRY & DISTRICT BOUNDARIES" %}
+
+{% if root_data and root_data.schools and root_data.schools.length > 0 %}
+
+  {# Group raw flat schools array by County -> District #}
+  {% set counties = ["King", "Snohomish"] %}
+
+  <section class="school-directory-section" aria-label="{{ card_title }}">
+    <header class="section-header">
+      <div class="section-title-stack">
+        <span class="text-overline text-accent-alpine">
+          {{ card_overline }}
+        </span>
+        <h2 class="text-section-title">
+          {{ card_title }}
+        </h2>
+      </div>
+    </header>
+
+    {% for county_name in counties %}
+      {% set county_schools = root_data.schools | filter_by('county', county_name) %}
+      
+      {% if county_schools and county_schools.length > 0 %}
+        {# Extract unique districts within this county #}
+        {% set county_districts = county_schools | map('district_name') | unique | sort %}
+
+        <div class="school-county-group">
+          <div class="school-county-heading">
+            <h3 class="school-county-title">{{ county_name }} County</h3>
+            <span class="school-county-count">
+              {{ county_districts.length }} Districts • {{ county_schools.length }} Campuses
+            </span>
+          </div>
+
+          <div class="school-districts-stack">
+            {% for dist_name in county_districts %}
+              {% set dist_meta = root_data.districts[dist_name] %}
+              {% set dist_slug = dist_name | slugify %}
+              {% set dist_schools = county_schools | filter_by('district_name', dist_name) | sort_by('school_name') %}
+
+              <details class="school-district-accordion" id="district-{{ dist_slug }}">
+                <summary class="school-district-summary">
+                  <div class="district-meta-left">
+                    <svg class="district-chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                    <div class="district-title-wrap">
+                      <a href="/neighborhood/school/{{ dist_slug }}/" class="district-name-text" onclick="event.stopPropagation();">
+                        {{ dist_name }}
+                      </a>
+                      <span class="district-subtext">
+                        {{ dist_schools.length }} {% if dist_schools.length == 1 %}School{% else %}Schools{% endif %}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="district-telemetry-right">
+                    {% if dist_meta and dist_meta.psai_score %}
+                      <span class="district-psai-pill {% if dist_meta.psai_score >= 60 %}is-benchmark-high{% elif dist_meta.psai_score < 40 %}is-benchmark-low{% endif %}" title="District Composite PSAI Rating">
+                        <span>PSAI</span>
+                        <strong>{{ dist_meta.psai_score | round(1) }}</strong>
+                      </span>
+                    {% endif %}
+                  </div>
+                </summary>
+
+                <div class="school-cards-grid">
+                  {% for s in dist_schools %}
+                    {% set school_slug = s.school_name | slugify %}
+                    {% set s_type = "Public" %}
+                    {% if s.school_type == "A" %}{% set s_type = "Alt" %}
+                    {% elif s.school_type == "R" %}{% set s_type = "Re-entry" %}
+                    {% elif s.school_type == "S" %}{% set s_type = "Special" %}
+                    {% elif s.school_type == "Q" %}{% set s_type = "Tribal" %}
+                    {% endif %}
+
+                    <a href="/neighborhood/school/{{ dist_slug }}/{{ school_slug }}/" class="school-card-item">
+                      <div class="school-card-header">
+                        <span class="school-card-name">{{ s.school_name }}</span>
+                        <span class="school-type-pill">{{ s_type }}</span>
+                      </div>
+
+                      <div class="school-card-metrics">
+                        <div class="school-psai-stat">
+                          {% if s.psai_score %}
+                            PSAI <strong>{{ s.psai_score | round(1) }}</strong>
+                          {% else %}
+                            <span class="text-muted">—</span>
+                          {% endif %}
+                        </div>
+
+                        <div class="school-subject-pills">
+                          {% if s.latest_math_pct %}
+                            <span class="subject-mini-chip" title="Math Proficiency">M: {{ s.latest_math_pct | round }}%</span>
+                          {% endif %}
+                          {% if s.latest_ela_pct %}
+                            <span class="subject-mini-chip" title="ELA Proficiency">E: {{ s.latest_ela_pct | round }}%</span>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </a>
+                  {% endfor %}
+                </div>
+              </details>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </section>
+
+{% endif %}

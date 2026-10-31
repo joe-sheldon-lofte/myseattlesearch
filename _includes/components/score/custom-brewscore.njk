@@ -1,0 +1,30 @@
+{# 
+  COMPONENT: Brew Score® Craft Taproom Index (score.custom.brewscore)
+  PURPOSE: Independent microbreweries, cidermakers, and craft pub taprooms factored against population.
+#}
+
+{% set val = score_brew_val if score_brew_val is defined else (scores.brew if scores else null) %}
+
+{% if val is defined and val is not none %}
+  {% set tier_badge = "score-tier-emerald" if val >= 75 else ("score-tier-alpine" if val >= 50 else ("score-tier-amber" if val >= 30 else "score-tier-crimson")) %}
+  {% set tier_text = "text-tier-emerald" if val >= 75 else ("text-tier-alpine" if val >= 50 else ("text-tier-amber" if val >= 30 else "text-tier-crimson")) %}
+  {% set tier_label = "Craft Brewing Epicenter" if val >= 75 else ("Vibrant Taproom Scene" if val >= 50 else ("Moderate Craft Options" if val >= 30 else "Sparse Microbreweries")) %}
+
+  {% set score = {
+    id: "brewscore",
+    title: "Brew Score® Craft Index",
+    overline: "CRAFT BREWERY & TAPROOM CULTURE",
+    value: val,
+    label: tier_label,
+    tier_badge: tier_badge,
+    tier_text: tier_text,
+    detail: score_brew_detail or "Independent breweries, tasting rooms, and craft beer purveyors per capita.",
+    source: "OpenStreetMap Brewing Audit",
+    scale: "Scale 0–100",
+    methodology: "Evaluates the depth of municipal craft brewing infrastructure by balancing licensed independent microbreweries and dedicated craft taprooms against local population density.",
+    formula: "Formula: 50% (Count / 8) + 50% ((Breweries / (Pop / 1000)) / 0.5)",
+    scale_notes: "75+: Craft Epicenter • 50–74: Vibrant Scene • 30–49: Moderate • <30: Sparse"
+  } %}
+
+  {% include "components/widget/custom-score.njk" %}
+{% endif %}

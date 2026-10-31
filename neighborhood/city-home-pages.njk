@@ -1,178 +1,276 @@
 ---
-layout: base.njk
+layout: "base.njk"
 pagination:
   data: city_data
   size: 1
   alias: city
 permalink: "/neighborhood/{{ city.City | slugify }}/index.html"
 eleventyComputed:
-  title: "{{ city.City }}, WA | Neighborhood Guide & Local Intelligence"
-  meta_description: "Explore {{ city.City }}, Washington. Local real estate data, weather, transit scores, municipal services, schools, and community news."
+  title: "{{ city.City }}, WA | Local Intelligence & Neighborhood Guide"
+  meta_description: "Explore {{ city.City }}, Washington. Real estate telemetry, active commute velocities, school district metrics, municipal services, and local perspective."
 ---
 
 {# =========================================================================
    UNIVERSAL DATA BINDING BRIDGE
    ========================================================================= #}
 {% set city_slug = city.City | slugify %}
-{% set slug = city_slug %}
-{% set current_city = city.City %}
+{% set city_name = city.City %}
 
-{# Expose city.slug directly to city object #}
-{% set city = city | default({}) %}
+{# Telemetry Data Stores #}
+{% set weather_record = city_weather[city_slug] %}
+{% set transit_record = transit_radar_live[city_slug] %}
+{% set business_categories = city_businesses[city_slug].categories %}
 
-{# Scoped Telemetry Payloads #}
-{% set weather = city_weather[city_slug] or city_weather[city.City] or {} %}
-{% set current_weather = weather.current or {} %}
-{% set transit = transit_radar_live[city_slug] or transit_radar_live[city.City] or {} %}
-{% set market_gauge = infosparks_stats[city.City] or infosparks_stats[city_slug] or {} %}
-{% set business_list = city_businesses[city_slug] or city_businesses[city.City] or {} %}
-{% set events_list = public_events_feed or public_events or [] %}
-{% set sports = sports_data or {} %}
+{# Parse Business Category Slugs from city_data #}
+{% set cat1_key = (city.FeatCat1 or '').split(',')[0] %}
+{% set cat2_key = (city.FeatCat2 or '').split(',')[0] %}
+{% set cat3_key = (city.FeatCat3 or '').split(',')[0] %}
+
+{# Target First Business in Each Category #}
+{% set b1 = business_categories[cat1_key][0] if business_categories and cat1_key and business_categories[cat1_key] else null %}
+{% set b2 = business_categories[cat2_key][0] if business_categories and cat2_key and business_categories[cat2_key] else null %}
+{% set b3 = business_categories[cat3_key][0] if business_categories and cat3_key and business_categories[cat3_key] else null %}
+
+{# Sports Feeds: Most Recent Pro, Minor, and College Matchups #}
+{% set recent_game = hourly_sports.recent_finals[0] if hourly_sports and hourly_sports.recent_finals else null %}
+
+{# Canonical SEO Schemas #}
+{% set schema_neighborhood_name = city.City %}
+{% set schema_parent_area = city.County ~ " County" %}
+{% set schema_lat = city.Latitude | float %}
+{% set schema_lon = city.Longitude | float %}
+{% set schema_breadcrumbs = [
+  { name: "Home", url: "/" },
+  { name: "Neighborhoods", url: "/neighborhood/" },
+  { name: city.City, url: "/neighborhood/" ~ city_slug ~ "/" }
+] %}
+
+{% include "components/schema/neighborhood.njk" %}
+{% include "components/schema/breadcrumblist.njk" %}
 
 <div class="layout-container">
 
-  <!-- =========================================================================
-       SECTION 1.0: PAGE HEADER
-       Element: widget.neighborhood.page.header
-       ========================================================================= -->
-  <section id="header" class="portal-section-header">
-    {% include "components/widget/neighborhood-page-header.njk" ignore missing %}
+  {# =========================================================================
+     SECTION 1.0: PAGE HEADER & PHOTOGRAPHIC BILLBOARD
+     ========================================================================= #}
+  <section id="header" class="portal-section portal-section-divider" data-section-title="Overview" aria-label="Welcome banner for {{ city.City }}">
+    {% include "components/widget/neighborhood-page-header.njk" %}
   </section>
 
-  <!-- =========================================================================
-       SECTION 2.0: AT A GLANCE BAR (6 POSITIONS)
-       ========================================================================= -->
-  <section id="at-a-glance" class="portal-section-glance" aria-label="{{ city.City }} At A Glance">
+  {# =========================================================================
+     SECTION 2.0: AT A GLANCE TELEMETRY BAR (6 POSITIONS)
+     ========================================================================= #}
+  <section id="at-a-glance" class="portal-section portal-section-divider" data-section-title="At A Glance" aria-label="{{ city.City }} Telemetry Summary">
     <div class="section-grid-static grid-cols-3">
-      
-      {# Pos 1: Weather Widget #}
+
+      {# Pos 1: Current Weather Widget #}
       <div class="glance-item">
-        {% include "components/widget/weather-current-widget.njk" ignore missing %}
+        {% set widget_weather_temp = weather_record.current.temp_f %}
+        {% set widget_weather_condition = "Cloudy" if weather_record.current.weather_code == 3 else ("Rain" if weather_record.current.weather_code >= 50 else "Fair") %}
+        {% set widget_weather_summary = widget_weather_condition %}
+        {% set active_neighborhood = city.City %}
+        {% include "components/widget/weather-current-widget.njk" %}
       </div>
 
-      {# Pos 2: Sunrise / Sunset Dial #}
+      {# Pos 2: Sunrise & Sunset Solar Dial #}
       <div class="glance-item">
-        {% include "components/widget/weather-sunrise-sunset.njk" ignore missing %}
+        {% set weather_sunrise = weather_record.astronomy.sunrise_today %}
+        {% set weather_sunset = weather_record.astronomy.sunset_today %}
+        {% set active_neighborhood = city.City %}
+        {% include "components/widget/weather-sunrise-sunset.njk" %}
       </div>
 
       {# Pos 3: Active Commute Score #}
       <div class="glance-item">
-        {% include "components/score/custom-activecommute.njk" ignore missing %}
+        {% set score_activecommute_val = transit_record.active_commute_score %}
+        {% include "components/score/custom-activecommute.njk" %}
       </div>
 
       {# Pos 4: Active Transit Score #}
       <div class="glance-item">
-        {% include "components/score/custom-activetransit.njk" ignore missing %}
+        {% set score_activetransit_val = transit_record.active_transit_score %}
+        {% include "components/score/custom-activetransit.njk" %}
       </div>
 
       {# Pos 5: Market Balance Gauge #}
       <div class="glance-item">
-        {% include "components/widget/realestate-market-balance-gauge.njk" ignore missing %}
+        {# Extract real months supply if present in infosparks feed for city.City #}
+        {% set active_neighborhood = city.City %}
+        {% set current_months_supply = null %}
+        {% for feed_key, feed in infosparks_stats.feeds %}
+          {% if 'months_supply_closed' in feed_key and city.City in feed.meta.geographies %}
+            {% set last_entry = feed.data | last %}
+            {% set current_months_supply = last_entry[city.City] %}
+          {% endif %}
+        {% endfor %}
+        {% include "components/widget/realestate-market-balance-gauge.njk" %}
       </div>
 
-      {# Pos 6: Sports Game Summary #}
+      {# Pos 6: Live / Upcoming Sports Matchup Summary #}
       <div class="glance-item">
-        {% include "components/widget/sports-game-summary.njk" ignore missing %}
+        {% if recent_game %}
+          {% set game_summary_team_local = recent_game.home_team %}
+          {% set game_summary_team_away = recent_game.away_team %}
+          {% set game_summary_score_local = recent_game.home_score %}
+          {% set game_summary_score_away = recent_game.away_score %}
+          {% set game_summary_league = recent_game.league %}
+          {% set game_summary_status = recent_game.status | upper %}
+          {% set game_summary_date = recent_game.game_date %}
+          {% include "components/widget/sports-game-summary.njk" %}
+        {% endif %}
       </div>
 
     </div>
   </section>
 
-  <!-- =========================================================================
-       SECTION 3.0: NAVIGATION TRACK
-       Element: widget.neighborhood.nav.links
-       ========================================================================= -->
-  <section id="navigation" class="portal-section-nav">
-    {% include "components/widget/neighborhood-nav-links.njk" ignore missing %}
+  {# =========================================================================
+     SECTION 3.0: NAVIGATION TRACK
+     ========================================================================= #}
+  <section id="navigation" class="portal-section portal-section-divider" data-section-title="Navigation" aria-label="{{ city.City }} Section Directory">
+    {% set current_city_slug = city_slug %}
+    {% set active_tab = "hub" %}
+    {% include "components/widget/neighborhood-nav-links.njk" %}
   </section>
 
-  <!-- =========================================================================
-       SECTION 4.0: FEATURED BUSINESSES (3x POSITIONS)
-       ========================================================================= -->
-  <section id="featured-businesses" class="portal-section-businesses" aria-label="Featured Local Businesses">
+  {# =========================================================================
+     SECTION 4.0: CURATED LOCAL BUSINESSES (3 POSITIONS)
+     ========================================================================= #}
+  <section id="featured-businesses" class="portal-section portal-section-divider" data-section-title="Local Commerce" aria-label="Featured Local Commerce in {{ city.City }}">
     <div class="card-header-split">
-      <h2 class="text-section-title">Featured Local Businesses</h2>
-      <span class="text-body-secondary">Local Commerce &amp; Services</span>
+      <h2 class="text-section-title">Local Commerce</h2>
+      <span class="text-body-secondary">Curated Service &amp; Dining</span>
     </div>
 
     <div class="section-grid-static grid-cols-3">
-      {# Pos 1 #}
       <div>
-        {% set business_category = city.FeatCat1 or "coffee" %}
-        {% include "components/widget/business-listing.njk" ignore missing %}
+        {% if b1 %}
+          {% set business_name = b1.name %}
+          {% set business_category = b1.category %}
+          {% set business_price_level = b1.price_level %}
+          {% set business_rating = b1.rating %}
+          {% set business_reviews_count = b1.review_count %}
+          {% set business_address = b1.location %}
+          {% set business_summary = b1.summary %}
+          {% set business_image_url = b1.image_url %}
+          {% set business_url = b1.url %}
+          {% include "components/widget/business-listing.njk" %}
+        {% endif %}
       </div>
 
-      {# Pos 2 #}
       <div>
-        {% set business_category = city.FeatCat2 or "bakeries" %}
-        {% include "components/widget/business-listing.njk" ignore missing %}
+        {% if b2 %}
+          {% set business_name = b2.name %}
+          {% set business_category = b2.category %}
+          {% set business_price_level = b2.price_level %}
+          {% set business_rating = b2.rating %}
+          {% set business_reviews_count = b2.review_count %}
+          {% set business_address = b2.location %}
+          {% set business_summary = b2.summary %}
+          {% set business_image_url = b2.image_url %}
+          {% set business_url = b2.url %}
+          {% include "components/widget/business-listing.njk" %}
+        {% endif %}
       </div>
 
-      {# Pos 3 #}
       <div>
-        {% set business_category = city.FeatCat3 or "pizza" %}
-        {% include "components/widget/business-listing.njk" ignore missing %}
+        {% if b3 %}
+          {% set business_name = b3.name %}
+          {% set business_category = b3.category %}
+          {% set business_price_level = b3.price_level %}
+          {% set business_rating = b3.rating %}
+          {% set business_reviews_count = b3.review_count %}
+          {% set business_address = b3.location %}
+          {% set business_summary = b3.summary %}
+          {% set business_image_url = b3.image_url %}
+          {% set business_url = b3.url %}
+          {% include "components/widget/business-listing.njk" %}
+        {% endif %}
       </div>
     </div>
   </section>
 
-  <!-- =========================================================================
-       SECTION 5.0 & 6.0: NEWS & EVENTS SPLIT
-       ========================================================================= -->
-  <section id="news-and-events" class="portal-section-news-events">
+  {# =========================================================================
+     SECTION 5.0 & 6.0: NEWS & COMMUNITY EVENTS SPLIT
+     ========================================================================= #}
+  <section id="news-and-events" class="portal-section portal-section-divider" data-section-title="News & Events" aria-label="News and Upcoming Events for {{ city.City }}">
     <div class="section-grid-static grid-cols-2">
-      
-      {# Section 5.0: News (5 Most Recent) #}
       <div>
-        {% include "components/widget/news-summary-list-five.njk" ignore missing %}
+        {% set news_items = market_news %}
+        {% include "components/widget/news-summary-list-five.njk" %}
       </div>
 
-      {# Section 6.0: Events (5 Soonest Upcoming) #}
       <div>
-        {% include "components/widget/events-summary-list-five.njk" ignore missing %}
+        {% set events_neighborhood_name = city.City %}
+        {% set events_five_data = public_events_feed %}
+        {% include "components/widget/events-summary-list-five.njk" %}
       </div>
-
     </div>
   </section>
 
-  <!-- =========================================================================
-       SECTION 7.0: SPORTS (PRO, MINOR, COLLEGE)
-       ========================================================================= -->
-  <section id="sports" class="portal-section-sports" aria-label="Regional Athletics">
+  {# =========================================================================
+     SECTION 7.0: REGIONAL SPORTS SCORE BOXES
+     ========================================================================= #}
+  <section id="sports" class="portal-section portal-section-divider" data-section-title="Regional Athletics" aria-label="Pacific Northwest Athletics">
     <div class="card-header-split">
-      <h2 class="text-section-title">Regional Sports</h2>
-      <a href="/sports/pro/" class="link-subtle">View Sports Hub &rarr;</a>
+      <h2 class="text-section-title">Regional Athletics</h2>
+      <a href="/sports/pro/" class="link-subtle">Full Athletics Hub &rarr;</a>
     </div>
 
     <div class="section-grid-static grid-cols-3">
-      
-      {# Pos 1: Pro Game Results #}
-      <div>
-        {% set sports_tier = "pro" %}
-        {% include "components/widget/sports-score-box.njk" ignore missing %}
-      </div>
+      {% for team in sports_data.teams %}
+        {% if team.level == "Professional" and loop.index <= 1 and team.recentGames and team.recentGames.length > 0 %}
+          {% set g = team.recentGames[0] %}
+          <div>
+            {% set scorebox_header = team.sport ~ " • " ~ team.level %}
+            {% set team_local_name = g.home_team %}
+            {% set team_local_score = g.home_score %}
+            {% set team_opp_name = g.away_team %}
+            {% set team_opp_score = g.away_score %}
+            {% set scorebox_status = g.status | upper %}
+            {% include "components/widget/sports-score-box.njk" %}
+          </div>
+        {% endif %}
+      {% endfor %}
 
-      {# Pos 2: Minor Game Results #}
-      <div>
-        {% set sports_tier = "minor" %}
-        {% include "components/widget/sports-score-box.njk" ignore missing %}
-      </div>
+      {% for team in sports_data.teams %}
+        {% if team.level == "Minor League" and loop.index <= 1 and team.recentGames and team.recentGames.length > 0 %}
+          {% set g = team.recentGames[0] %}
+          <div>
+            {% set scorebox_header = team.sport ~ " • " ~ team.level %}
+            {% set team_local_name = g.home_team %}
+            {% set team_local_score = g.home_score %}
+            {% set team_opp_name = g.away_team %}
+            {% set team_opp_score = g.away_score %}
+            {% set scorebox_status = g.status | upper %}
+            {% include "components/widget/sports-score-box.njk" %}
+          </div>
+        {% endif %}
+      {% endfor %}
 
-      {# Pos 3: College Game Results #}
-      <div>
-        {% set sports_tier = "college" %}
-        {% include "components/widget/sports-score-box.njk" ignore missing %}
-      </div>
-
+      {% for team in sports_data.teams %}
+        {% if team.level == "Collegiate" and loop.index <= 1 and team.recentGames and team.recentGames.length > 0 %}
+          {% set g = team.recentGames[0] %}
+          <div>
+            {% set scorebox_header = team.sport ~ " • " ~ team.level %}
+            {% set team_local_name = g.home_team %}
+            {% set team_local_score = g.home_score %}
+            {% set team_opp_name = g.away_team %}
+            {% set team_opp_score = g.away_score %}
+            {% set scorebox_status = g.status | upper %}
+            {% include "components/widget/sports-score-box.njk" %}
+          </div>
+        {% endif %}
+      {% endfor %}
     </div>
   </section>
 
-  <!-- =========================================================================
-       SECTION 8.0: EDITORIAL
-       Element: widget.neighborhood.editorial
-       ========================================================================= -->
-  <section id="editorial" class="portal-section-editorial" aria-label="Neighborhood Overview and Editorial">
-    {% include "components/widget/neighborhood-editorial.njk" ignore missing %}
+  {# =========================================================================
+     SECTION 8.0: EDITORIAL OVERVIEW
+     ========================================================================= #}
+  <section id="editorial" class="portal-section" data-section-title="Dossier" aria-label="Editorial Dossier for {{ city.City }}">
+    {% set active_neighborhood = city.City %}
+    {% set editorial_content = editorials[city_slug] %}
+    {% include "components/widget/neighborhood-editorial.njk" %}
   </section>
 
 </div>

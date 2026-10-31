@@ -1,0 +1,31 @@
+<!-- File: _includes/components/score/custom-parkscore.njk -->
+{# 
+  COMPONENT: Park Score® Green Space & Recreation Index (score.custom.parkscore)
+  PURPOSE: Municipal open-space density and park access factored against population.
+#}
+
+{% set val = score_park_val if score_park_val is defined else (scores.park if scores else null) %}
+
+{% if val is defined and val is not none %}
+  {% set tier_badge = "score-tier-emerald" if val >= 75 else ("score-tier-alpine" if val >= 50 else ("score-tier-amber" if val >= 30 else "score-tier-crimson")) %}
+  {% set tier_text = "text-tier-emerald" if val >= 75 else ("text-tier-alpine" if val >= 50 else ("text-tier-amber" if val >= 30 else "text-tier-crimson")) %}
+  {% set tier_label = "Abundant Parks & Preserves" if val >= 75 else ("Above Regional Average" if val >= 50 else ("Moderate Park Access" if val >= 30 else "Limited Local Parkland")) %}
+
+  {% set score = {
+    id: "parkscore",
+    title: "Park Score® Green Space",
+    overline: "PARKLAND & NATURE ACCESS",
+    value: val,
+    label: tier_label,
+    tier_badge: tier_badge,
+    tier_text: tier_text,
+    detail: score_park_detail or "Public municipal parks and recreational open space within neighborhood boundaries.",
+    source: "OpenStreetMap Municipal Audit",
+    scale: "Scale 0–100",
+    methodology: "Measures accessible public parkland and open nature preserves within a 2.4-mile perimeter, evaluated across total inventory and per-capita resident density.",
+    formula: "Formula: 50% (Count / 60) + 50% ((Parks / (Pop / 1000)) / 3.0)",
+    scale_notes: "75+: Abundant Parkland • 50–74: Above Average • 30–49: Moderate • <30: Limited"
+  } %}
+
+  {% include "components/widget/custom-score.njk" %}
+{% endif %}

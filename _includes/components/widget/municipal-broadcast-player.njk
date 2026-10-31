@@ -1,61 +1,58 @@
 <!-- File: _includes/components/widget/municipal-broadcast-player.njk -->
 {# 
   COMPONENT: Official Civic Video Stream & Broadcast Player (widget.municipal.broadcast.player)
-  CHANNELS: YouTube Live, Granicus, Legistar, Swagit, PEG Cable Portals
+  CHANNELS: YouTube Live/Uploads, Granicus, Swagit, PEG Cable Portals
   CONTRACT:
     - municipal_neighborhood_name / neighborhood.name / city.City / city: String [Required]
-    - broadcast_title / stream_title: String [Required]
+    - broadcast_title / stream_title: String [Optional, defaults to "[City] Public Meeting Stream"]
     - broadcast_youtube_id / youtube_id: String [Optional]
+    - broadcast_channel_id / channel_id: String [Optional, triggers live edge resolution]
     - broadcast_embed_url / embed_url: String [Optional, for Granicus/Swagit iframes]
-    - broadcast_external_url / portal_url: String [Optional, for external Granicus/Legistar launches]
-    - broadcast_date / stream_date: String [Optional, e.g. "Tuesday, Oct 27, 2026 • 7:00 PM PDT"]
+    - broadcast_external_url / portal_url: String [Optional, for fallback portal launches]
+    - broadcast_date / stream_date: String [Optional]
     - broadcast_is_live / is_live: Boolean [Optional, defaults to false]
     - broadcast_archive_url: String [Optional, defaults to "#"]
 #}
 
 {% set active_neighborhood = municipal_neighborhood_name or (neighborhood.name if neighborhood else '') or city.City or city %}
-{% set is_live = broadcast_is_live if broadcast_is_live is defined else (is_live if is_live is defined else false) %}
-{% set stream_name = broadcast_title or stream_title %}
+{% set stream_name = broadcast_title or stream_title or (active_neighborhood ~ " Council & Public Proceedings") %}
 {% set stream_time = broadcast_date or stream_date %}
 {% set yt_id = broadcast_youtube_id or youtube_id %}
+{% set yt_channel = broadcast_channel_id or channel_id %}
 {% set embed_src = broadcast_embed_url or embed_url %}
 {% set external_src = broadcast_external_url or portal_url %}
-{% set archive_href = broadcast_archive_url or "#" %}
+{% set archive_href = broadcast_archive_url or external_src or "#" %}
 
-{# Render when a valid stream title exists paired with either video ID, embed URL, or external portal #}
-{% if active_neighborhood and stream_name and (yt_id or embed_src or external_src) %}
-<div class="widget-card municipal-broadcast-player-card">
+{% if active_neighborhood and (yt_id or yt_channel or embed_src or external_src) %}
+<div class="widget-card municipal-broadcast-player-card" id="broadcast-player-{{ active_neighborhood | slugify }}">
   
-  {# Header Row: Section Overline, Neighborhood Title & Live Pulse Badge #}
+  {# Header Row #}
   <div class="card-header-split broadcast-header-strip">
     <div>
       <span class="text-overline text-accent-alpine">
-        CITY BROADCAST &amp; ARCHIVES
+        CIVIC BROADCAST &amp; PROCEEDINGS
       </span>
       <h3 class="text-widget-title broadcast-headline">
         {{ active_neighborhood }} Official Meeting Video Stream
       </h3>
     </div>
 
-    {% if is_live %}
-      <div class="badge-status-live" role="status" aria-live="polite">
-        <span class="broadcast-live-dot" aria-hidden="true"></span>
-        <span>BROADCASTING LIVE</span>
-      </div>
-    {% else %}
-      <span class="text-overline broadcast-dormant-badge">
-        CURRENT &amp; ARCHIVE
-      </span>
-    {% endif %}
+    <div class="badge-status-live is-hidden" id="broadcast-live-badge-{{ active_neighborhood | slugify }}" role="status" aria-live="polite">
+      <span class="broadcast-live-dot" aria-hidden="true"></span>
+      <span>BROADCASTING LIVE</span>
+    </div>
+    <span class="text-overline broadcast-dormant-badge" id="broadcast-dormant-badge-{{ active_neighborhood | slugify }}">
+      ON-DEMAND &amp; ARCHIVES
+    </span>
   </div>
 
   {# 16:9 Video Viewport Stage #}
-  <div class="broadcast-viewport-stage">
+  <div class="broadcast-viewport-stage" id="broadcast-stage-{{ active_neighborhood | slugify }}">
     {% if yt_id %}
-      {# 1. YouTube Player (Privacy-Enhanced Embed Mode) #}
+      {# 1. Direct Static YouTube Embed #}
       <iframe class="broadcast-iframe"
               src="https://www.youtube-nocookie.com/embed/{{ yt_id }}?rel=0" 
-              title="{{ active_neighborhood }} Official Council Stream" 
+              title="{{ active_neighborhood }} Official Meeting Stream" 
               loading="lazy"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
               allowfullscreen></iframe>
@@ -70,7 +67,7 @@
               allowfullscreen></iframe>
 
     {% elif external_src %}
-      {# 3. Standby / Restricted Iframe Fallback (Direct Portal Launch) #}
+      {# 3. Verified Portal Fallback Launchpad #}
       <div class="broadcast-standby-slate">
         <div class="broadcast-standby-icon-well" aria-hidden="true">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -78,11 +75,11 @@
           </svg>
         </div>
         <h4 class="broadcast-standby-title">{{ stream_name }}</h4>
-        <p class="broadcast-standby-subtext">
-          Broadcast hosted via {{ active_neighborhood }} municipal media portal. Launch viewer in high-definition stream console.
+        <p class="broadcast-standby-subtext text-body-secondary">
+          Official recordings and live proceedings are hosted directly via the {{ active_neighborhood }} municipal media portal.
         </p>
         <a href="{{ external_src }}" target="_blank" rel="noopener noreferrer" class="btn-broadcast-launch">
-          <span>Launch Civic Stream</span>
+          <span>Launch Municipal Video Console</span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <line x1="7" y1="17" x2="17" y2="7"/>
             <polyline points="7 7 17 7 17 17"/>
@@ -95,20 +92,57 @@
   {# Stream Meta & Archive Link #}
   <div class="broadcast-meta-footer">
     <div class="broadcast-meta-lead">
-      <span class="broadcast-stream-title">{{ stream_name }}</span>
-      {% if stream_time %}
-        <span class="text-body-secondary broadcast-stream-date">{{ stream_time }}</span>
-      {% endif %}
+      <span class="broadcast-stream-title" id="broadcast-title-{{ active_neighborhood | slugify }}">{{ stream_name }}</span>
+      <span class="text-body-secondary broadcast-stream-date" id="broadcast-date-{{ active_neighborhood | slugify }}">
+        {{ stream_time | default("Official Public Record") }}
+      </span>
     </div>
 
-    <a href="{{ archive_href }}" class="broadcast-archive-link">
-      <span>All Past Archives</span>
+    <a href="{{ archive_href }}" target="_blank" rel="noopener noreferrer" class="broadcast-archive-link">
+      <span>Official Video Archives</span>
       <svg class="broadcast-archive-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <line x1="5" y1="12" x2="19" y2="12"/>
         <polyline points="12 5 19 12 12 19"/>
       </svg>
     </a>
   </div>
+
+  {# Live Edge Video Resolver (Runs when channel_id is provided) #}
+  {% if yt_channel and not yt_id %}
+  <script>
+    (function() {
+      const channelId = "{{ yt_channel }}";
+      const slug = "{{ active_neighborhood | slugify }}";
+      const stage = document.getElementById("broadcast-stage-" + slug);
+      if (!channelId || !stage) return;
+
+      fetch("/functions/api/civic-video?channel_id=" + encodeURIComponent(channelId) + "&city=" + encodeURIComponent(slug))
+        .then(res => res.ok ? res.json() : Promise.reject())
+        .then(data => {
+          if (data && data.video_id) {
+            stage.innerHTML = '<iframe class="broadcast-iframe" src="https://www.youtube-nocookie.com/embed/' + data.video_id + '?rel=0" title="{{ active_neighborhood }} Civic Stream" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+            if (data.title) {
+              const titleEl = document.getElementById("broadcast-title-" + slug);
+              if (titleEl) titleEl.textContent = data.title;
+            }
+            if (data.published) {
+              const dateEl = document.getElementById("broadcast-date-" + slug);
+              if (dateEl) dateEl.textContent = data.published;
+            }
+            if (data.is_live) {
+              const liveBadge = document.getElementById("broadcast-live-badge-" + slug);
+              const dormantBadge = document.getElementById("broadcast-dormant-badge-" + slug);
+              if (liveBadge) liveBadge.classList.remove("is-hidden");
+              if (dormantBadge) dormantBadge.classList.add("is-hidden");
+            }
+          }
+        })
+        .catch(() => {
+          /* Gracefully retains fallback portal card already rendered in SSR */
+        });
+    })();
+  </script>
+  {% endif %}
 
 </div>
 {% endif %}

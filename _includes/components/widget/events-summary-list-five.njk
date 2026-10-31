@@ -1,54 +1,85 @@
 <!-- File: _includes/components/widget/events-summary-list-five.njk -->
 {# 
   COMPONENT: Five-Item Upcoming Community Events Summary (widget.events.summary.list.five)
+  PURPOSE: Compact civic and entertainment schedule with dynamic city naming and optional topic pills.
   CONTRACT:
-    - events_neighborhood_name / neighborhood.name / city.City / city: String [Required]
-    - events_five_data / events / events_list: Array of Objects [Required]
+    - events_items / events_five_data / events: Array of Objects [Required]
       Each event object expects:
-      - item.title: String [Required, e.g. "Edmonds Waterfront Spring Clean-Up"]
-      - item.date: String [Required, e.g. "SAT, MAR 28"]
-      - item.time: String [Optional, e.g. "9:00 AM - 12:00 PM"]
-      - item.location: String [Optional, e.g. "Brackett's Landing North"]
-    - events_archive_url: String [Optional, defaults to "/events/"]
+      - item.title: String [Required]
+      - item.url / item.link: String [Optional]
+      - item.date / item.display_date: String [Required, e.g. "SAT, MAR 28"]
+      - item.time / item.display_time: String [Optional, e.g. "9:00 AM"]
+      - item.location: String [Optional, e.g. "Library Chambers"]
+      - item.category / item.categories[0]: String [Optional]
+    - city_name / active_neighborhood / city.City: String [Optional]
+    - events_heading: String [Optional]
+    - predefined_category: String [Optional, locks feed to a single category]
+    - enable_category_pills: Boolean [Optional, default false]
+    - events_all_url: String [Optional, defaults to '/neighborhood/' + city_slug + '/news-events/']
 #}
 
-{% set active_neighborhood = events_neighborhood_name or (neighborhood.name if neighborhood else '') or city.City or city %}
-{% set events_raw = events_five_data or events or events_list %}
-{% set events_items = events_raw | slice(0, 5) if events_raw else [] %}
-{% set archive_url = events_archive_url or "/events/" %}
+{% set city_label = city_name or active_neighborhood or (city.City if city else '') %}
+{% set heading_text = events_heading or ("Upcoming " ~ city_label ~ " Events" if city_label else "Upcoming Regional Events") %}
+{% set overline_text = (city_label ~ " COMMUNITY CALENDAR") if city_label else "REGIONAL COMMUNITY CALENDAR" %}
+{% set feed = events_items or events_five_data or events %}
+{% set target_cat = (predefined_category | lower) if predefined_category else null %}
 
-{% if active_neighborhood and events_items and events_items.length > 0 %}
-<div class="widget-card events-summary-five-card">
+{% if feed and feed.length > 0 %}
+<section class="widget-card events-summary-five-card" aria-label="{{ heading_text }}">
   
-  {# Header Row: Overline, Neighborhood Title & Subtitle Badge #}
-  <div class="card-header-split events-five-header">
-    <div>
-      <span class="text-overline text-accent-alpine">
-        COMMUNITY CALENDAR
-      </span>
-      <h3 class="text-widget-title events-five-headline">
-        Upcoming {{ active_neighborhood }} Events
-      </h3>
+  {# Header Row #}
+  <header class="events-list-header">
+    <div class="events-list-title-stack">
+      <span class="text-overline text-accent-alpine">{{ overline_text }}</span>
+      <h3 class="text-widget-title events-list-headline">{{ heading_text }}</h3>
     </div>
-    <span class="text-overline events-five-badge">
-      NEXT 5 UPCOMING EVENTS
-    </span>
-  </div>
+
+    {% if target_cat %}
+      <span class="events-category-tag is-locked">{{ target_cat | upper }}</span>
+    {% else %}
+      <span class="events-count-caption">NEXT 5 UPCOMING</span>
+    {% endif %}
+  </header>
+
+  {# Optional Interactive Pill Filter Toggles #}
+  {% if enable_category_pills and not target_cat %}
+    <nav class="events-filter-pills" role="tablist" aria-label="Filter events by category">
+      <button type="button" class="btn-filter-pill is-active" data-filter="all" role="tab" aria-selected="true">All</button>
+      <button type="button" class="btn-filter-pill" data-filter="municipal" role="tab" aria-selected="false">Municipal</button>
+      <button type="button" class="btn-filter-pill" data-filter="family-friendly" role="tab" aria-selected="false">Family</button>
+      <button type="button" class="btn-filter-pill" data-filter="music" role="tab" aria-selected="false">Music</button>
+      <button type="button" class="btn-filter-pill" data-filter="entertainment" role="tab" aria-selected="false">Entertainment</button>
+    </nav>
+  {% endif %}
 
   {# 5 Stacked Events #}
   <div class="events-five-stack">
-    {% for item in events_items %}
-      {% if item.title %}
-        <div class="events-five-row">
+    {% set count = 0 %}
+    {% for item in feed %}
+      {% set item_cat = (item.category or (item.categories[0] if item.categories else 'Community')) | lower | replace(' ', '-') %}
+      {% if (not target_cat or target_cat == item_cat) and count < 5 %}
+        {% set count = count + 1 %}
+        {% set item_url = item.url or item.link %}
+        {% set item_date = item.date or item.display_date %}
+        {% set item_time = item.time or item.display_time %}
+
+        <article class="events-five-row" data-category="{{ item_cat }}">
           
           {# Left: Title & Location Stack #}
           <div class="events-five-lead">
-            <div class="events-five-title">
-              {{ item.title }}
-            </div>
+            <h4 class="events-five-title">
+              {% if item_url %}
+                <a href="{{ item_url }}" class="events-title-link" target="_blank" rel="noopener noreferrer">
+                  {{ item.title }}
+                </a>
+              {% else %}
+                {{ item.title }}
+              {% endif %}
+            </h4>
+
             {% if item.location %}
-              <div class="text-body-secondary events-five-location">
-                <svg class="events-five-pin-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <div class="events-five-location">
+                <svg class="events-pin-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
                   <circle cx="12" cy="10" r="3"/>
                 </svg>
@@ -57,35 +88,29 @@
             {% endif %}
           </div>
 
-          {# Right: Date & Time Telemetry #}
+          {# Right: Date, Time & Category Badge #}
           <div class="events-five-timing">
-            {% if item.date %}
-              <time class="events-five-date">
-                {{ item.date }}
-              </time>
+            {% if item_date %}
+              <time class="events-five-date">{{ item_date }}</time>
             {% endif %}
-            {% if item.time %}
-              <div class="text-body-secondary events-five-time">
-                {{ item.time }}
-              </div>
+            {% if item_time and item_time != "12:00 AM" and item_time != "Community Event" %}
+              <div class="events-five-time">{{ item_time }}</div>
             {% endif %}
+            <span class="events-category-pill">{{ item.category or (item.categories[0] if item.categories else 'Community') }}</span>
           </div>
 
-        </div>
+        </article>
       {% endif %}
     {% endfor %}
   </div>
 
-  {# Footer Action Link #}
-  <div class="events-five-footer">
-    <a href="{{ archive_url }}" class="events-five-view-all">
-      <span>See all {{ active_neighborhood }} events</span>
-      <svg class="events-five-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-        <polyline points="12 5 19 12 12 19"></polyline>
-      </svg>
+  {# Footer Routing Strip #}
+  <footer class="events-list-footer">
+    <a href="{{ events_all_url | default('/neighborhood/' ~ (city_label | slugify) ~ '/news-events/') }}" class="events-all-action-link">
+      <span>See all {{ city_label | default("regional") }} events</span>
+      <span aria-hidden="true">→</span>
     </a>
-  </div>
+  </footer>
 
-</div>
+</section>
 {% endif %}

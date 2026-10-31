@@ -1,64 +1,127 @@
 <!-- File: _includes/components/widget/events-summary-list-all.njk -->
-{% set city = events_city_name | default("Edmonds") %}
-{% set all_events = events_all_data | default([
-  { title: "Edmonds Waterfront Spring Clean-Up", date: "SAT, MAR 28", time: "9:00 AM - 12:00 PM", location: "Brackett's Landing North", category: "Civic", desc: "Annual beach sweep and native plant restoration along the saltwater promenade." },
-  { title: "City Council Regular Business Meeting", date: "TUE, APR 07", time: "7:00 PM", location: "Council Chambers / Zoom", category: "Government", desc: "Public comment period followed by legislative review of 2026 capital improvement funds." },
-  { title: "Downtown Edmonds Art Walk", date: "THU, APR 16", time: "5:00 PM - 8:00 PM", location: "Main Street Commercial Core", category: "Arts", desc: "Third Thursday monthly celebration featuring local Pacific Northwest artists, galleries, and tastings." },
-  { title: "Planning Board Comprehensive Plan Hearing", date: "WED, APR 22", time: "6:00 PM", location: "Public Safety Complex", category: "Planning", desc: "Public testimony regarding proposed transit-oriented development zoning along arterial corridors." },
-  { title: "Snohomish County Fire Prevention Open House", date: "SAT, MAY 02", time: "10:00 AM - 2:00 PM", location: "South County Fire Station 17", category: "Public Safety", desc: "Community safety demonstrations, CPR training, and emergency vehicle exploration." }
-]) %}
+{# 
+  COMPONENT: Comprehensive Community Event Schedule (widget.events.summary.list.all)
+  PURPOSE: Full calendar feed with interactive category filters, descriptive body text, and zero inline CSS.
+#}
 
-<div class="widget-card events-summary-all-card" style="padding: 1.75rem; width: 100%; border-radius: var(--border-radius-squircle); background: var(--color-background-universal); border: 1px solid var(--color-border-light); display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
+{% set city_label = events_city_name or city_name or active_neighborhood or (city.City if city else '') %}
+{% set heading_text = events_heading or ("Full " ~ city_label ~ " Event Schedule" if city_label else "Full Regional Event Schedule") %}
+{% set overline_text = (city_label ~ " COMMUNITY CALENDAR") if city_label else "REGIONAL COMMUNITY CALENDAR" %}
+{% set all_events = events_all_data or events_items or events %}
+
+{% if all_events and all_events.length > 0 %}
+<section class="widget-card events-summary-all-card" aria-label="{{ heading_text }}">
   
-  {# Header Row per edit: "COMMUNITY CALENDAR" #}
-  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem;">
-    <div>
-      <span class="text-overline" style="color: var(--color-secondary-default); font-size: 0.65rem;">
-        COMMUNITY CALENDAR
-      </span>
-      <h3 class="text-widget-title" style="margin: 0.15rem 0 0 0; font-size: 1.25rem;">
-        Full {{ city }} Event Schedule
-      </h3>
+  {# Header Row #}
+  <header class="events-all-header">
+    <div class="events-all-title-stack">
+      <span class="text-overline text-accent-alpine">{{ overline_text }}</span>
+      <h3 class="text-widget-title events-all-headline">{{ heading_text }}</h3>
     </div>
-  </div>
+    <div class="events-filter-caption">Filter Schedule by Category</div>
+  </header>
+
+  {# Topic Filter Pills (Scrubbed of city-* and county-* tags) #}
+  <nav class="events-filter-pills" role="tablist" aria-label="Filter events by category">
+    <button type="button" class="btn-filter-pill is-active" data-filter="all" role="tab" aria-selected="true">All Events</button>
+    <button type="button" class="btn-filter-pill" data-filter="municipal" role="tab" aria-selected="false">Municipal</button>
+    <button type="button" class="btn-filter-pill" data-filter="family-friendly" role="tab" aria-selected="false">Family Friendly</button>
+    <button type="button" class="btn-filter-pill" data-filter="all-ages" role="tab" aria-selected="false">All Ages</button>
+    <button type="button" class="btn-filter-pill" data-filter="music" role="tab" aria-selected="false">Music &amp; Arts</button>
+    <button type="button" class="btn-filter-pill" data-filter="entertainment" role="tab" aria-selected="false">Entertainment</button>
+  </nav>
 
   {# Full Events Stack #}
-  <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+  <div class="events-all-stack">
     {% for item in all_events %}
-      <div style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 10px; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+      {% set item_url = item.url or item.link %}
+      {% set item_cat = (item.category or (item.categories[0] if item.categories else 'Community')) | lower | replace(' ', '-') %}
+      {% set item_tags = (item.tags | join(' ')) | lower if item.tags else '' %}
+
+      <article class="events-all-item" data-category="{{ item_cat }}" data-tags="{{ item_tags }}">
         
-        {# Event Title & DateTime #}
-        <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.5rem;">
-          <h4 style="margin: 0; font-size: 0.95rem; font-weight: 800; color: var(--color-primary-default);">
-            {{ item.title }}
+        {# Title & Timing Header #}
+        <div class="events-all-row-top">
+          <h4 class="events-all-title">
+            {% if item_url %}
+              <a href="{{ item_url }}" class="events-title-link" target="_blank" rel="noopener noreferrer">
+                {{ item.title }}
+              </a>
+            {% else %}
+              {{ item.title }}
+            {% endif %}
           </h4>
-          <span style="font-family: monospace; font-size: 0.75rem; font-weight: 800; color: var(--color-secondary-default);">
-            {{ item.date }} • {{ item.time }}
+
+          <span class="events-all-datetime">
+            {{ item.date or item.display_date }}{% if item.time and item.time != "12:00 AM" and item.time != "Community Event" %} • {{ item.time }}{% endif %}
           </span>
         </div>
 
-        {# Event Description #}
-        <p class="text-body-secondary" style="font-size: 0.8rem; line-height: 1.45; margin: 0;">
-          {{ item.desc }}
-        </p>
+        {# Excerpt / Description #}
+        {% set item_desc = item.desc or item.excerpt %}
+        {% if item_desc %}
+          <p class="text-body-secondary events-all-desc">
+            {{ item_desc }}
+          </p>
+        {% endif %}
 
-        {# Footer: Location (Left) & Tag + View Event Action (Right) #}
-        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; margin-top: 0.25rem; flex-wrap: wrap; gap: 0.5rem;">
-          <span class="text-body-secondary">📍 {{ item.location }}</span>
+        {# Location & Category Badge Strip #}
+        <div class="events-all-footer">
+          <div class="events-all-location">
+            {% if item.location %}
+              <span aria-hidden="true">📍</span>
+              <span>{{ item.location }}</span>
+            {% endif %}
+          </div>
           
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <span style="font-size: 0.65rem; font-weight: 700; color: #86868b; background: var(--color-background-universal); padding: 0.15rem 0.45rem; border-radius: 999px; border: 1px solid var(--color-border-light);">
-              {{ item.category }}
+          <div class="events-all-actions">
+            <span class="events-category-pill">
+              {{ item.category or (item.categories[0] if item.categories else 'Community') }}
             </span>
-            <a href="{{ item.url | default('/events/' ~ (item.title | lower | replace(' ', '-') | replace("'", '')) ~ '/') }}" style="display: inline-flex; align-items: center; gap: 0.25rem; color: var(--color-secondary-default); font-weight: 700; font-size: 0.75rem; text-decoration: none;">
-              <span>View Event</span>
-              <span aria-hidden="true">→</span>
-            </a>
+            {% if item_url %}
+              <a href="{{ item_url }}" class="events-view-link" target="_blank" rel="noopener noreferrer">
+                <span>View Event</span>
+                <span aria-hidden="true">→</span>
+              </a>
+            {% endif %}
           </div>
         </div>
 
-      </div>
+      </article>
     {% endfor %}
   </div>
 
-</div>
+  {# Client Controller (Category Pill Filter Engine) #}
+  <script>
+    (function() {
+      const container = document.currentScript ? document.currentScript.closest('.events-summary-all-card') : document.querySelector('.events-summary-all-card');
+      if (!container) return;
+      const pills = container.querySelectorAll('.btn-filter-pill');
+      const items = container.querySelectorAll('.events-all-item');
+
+      pills.forEach(pill => {
+        pill.addEventListener('click', function() {
+          pills.forEach(p => {
+            p.classList.remove('is-active');
+            p.setAttribute('aria-selected', 'false');
+          });
+          this.classList.add('is-active');
+          this.setAttribute('aria-selected', 'true');
+
+          const filter = this.getAttribute('data-filter');
+          items.forEach(item => {
+            const cat = item.getAttribute('data-category');
+            const tags = item.getAttribute('data-tags') || '';
+            if (filter === 'all' || cat === filter || tags.includes(filter)) {
+              item.classList.remove('is-hidden');
+            } else {
+              item.classList.add('is-hidden');
+            }
+          });
+        });
+      });
+    })();
+  </script>
+
+</section>
+{% endif %}

@@ -2,27 +2,23 @@
 {# 
   COMPONENT: Civic & Municipal Calendar (widget.municipal.calendar.civic)
   CONTRACT:
-    - civic_calendar_neighborhood_name / neighborhood.name / civic_calendar_city / city.City / city: String [Required]
-    - civic_calendar_items / civic_meetings: Array of Objects [Required]
-      Each meeting object expects:
-      - m.title: String [Required, e.g. "City Council Regular Meeting"]
-      - m.date: String [Required, e.g. "OCT 27"]
-      - m.time: String [Optional, e.g. "7:00 PM"]
-      - m.place: String [Optional, e.g. "Council Chambers / Zoom"]
-      - m.type: String [Optional, e.g. "Council", "Planning"]
+    - civic_calendar_neighborhood_name / city.City: String [Required]
+    - civic_calendar_items: Array of Objects [Optional, SSR seed items]
+    - civic_calendar_feed_url: String [Optional, public RSS/iCal for live edge hydration]
+    - civic_calendar_fallback_url: String [Optional, fallback city portal link]
     - civic_calendar_badge_label: String [Optional, defaults to "Official Meetings"]
-    - civic_calendar_footer_text: String [Optional, defaults to "Provided directly by public city calendar feed."]
 #}
 
-{% set active_neighborhood = civic_calendar_neighborhood_name or (neighborhood.name if neighborhood else '') or civic_calendar_city or (city.City if city else '') or city %}
-{% set meetings_list = civic_calendar_items or civic_meetings %}
+{% set active_neighborhood = civic_calendar_neighborhood_name or (neighborhood.name if neighborhood else '') or city.City or city %}
+{% set meetings_list = civic_calendar_items or [] %}
+{% set feed_src = civic_calendar_feed_url %}
+{% set fallback_href = civic_calendar_fallback_url or "https://www.google.com/search?q=" ~ (active_neighborhood ~ " city council calendar") %}
 {% set badge_label = civic_calendar_badge_label or "Official Meetings" %}
-{% set footer_text = civic_calendar_footer_text or "Provided directly by public city calendar feed." %}
 
-{% if active_neighborhood and meetings_list and meetings_list.length > 0 %}
-<div class="widget-card municipal-calendar-card">
+{% if active_neighborhood %}
+<div class="widget-card municipal-calendar-card" id="civic-cal-{{ active_neighborhood | slugify }}">
   
-  {# Header Row: Civic Overline, Neighborhood Title & Status Label #}
+  {# Header Row #}
   <div class="card-header-split calendar-header-strip">
     <div>
       <span class="text-overline text-accent-alpine">
@@ -37,43 +33,95 @@
     </span>
   </div>
 
-  {# Calendar Entries Stack #}
-  <div class="calendar-events-stack">
-    {% for m in meetings_list %}
-      {% if m.title and m.date %}
-        <div class="calendar-event-row">
-          
-          {# Left: Monospace Date Column #}
-          <div class="calendar-date-stamp">
-            <time class="calendar-date-text">
-              {{ m.date }}
-            </time>
-          </div>
-
-          {# Right: Title & Location/Time Details #}
-          <div class="calendar-event-details">
-            <div class="calendar-event-title">
-              {{ m.title }}
+  {# Calendar Entries Container #}
+  <div class="calendar-events-stack" id="civic-cal-stack-{{ active_neighborhood | slugify }}">
+    {% if meetings_list and meetings_list.length > 0 %}
+      {% for m in meetings_list %}
+        {% if m.title and m.date %}
+          <div class="calendar-event-row">
+            <div class="calendar-date-stamp">
+              <time class="calendar-date-text">{{ m.date }}</time>
             </div>
-            {% if m.time or m.place %}
-              <div class="text-body-secondary calendar-event-meta">
-                {% if m.time %}{{ m.time }}{% endif %}
-                {% if m.time and m.place %} • {% endif %}
-                {% if m.place %}{{ m.place }}{% endif %}
-              </div>
-            {% endif %}
+            <div class="calendar-event-details">
+              <div class="calendar-event-title">{{ m.title }}</div>
+              {% if m.time or m.place %}
+                <div class="text-body-secondary calendar-event-meta">
+                  {% if m.time %}{{ m.time }}{% endif %}
+                  {% if m.time and m.place %} • {% endif %}
+                  {% if m.place %}{{ m.place }}{% endif %}
+                </div>
+              {% endif %}
+            </div>
           </div>
-
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      {# SSR Fallback Slate (Replaced if live edge fetch succeeds) #}
+      <div class="calendar-fallback-slate" id="civic-cal-fallback-{{ active_neighborhood | slugify }}">
+        <div class="calendar-fallback-icon-well" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
         </div>
-      {% endif %}
-    {% endfor %}
+        <div class="calendar-fallback-content">
+          <h4 class="calendar-fallback-title">Official Municipal Meeting Schedule</h4>
+          <p class="text-body-secondary calendar-fallback-desc">
+            Public hearings, city council study sessions, and commission calendars are updated continually by the city clerk.
+          </p>
+          <a href="{{ fallback_href }}" target="_blank" rel="noopener noreferrer" class="btn-calendar-fallback">
+            <span>View {{ active_neighborhood }} Meeting Calendar</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </div>
+      </div>
+    {% endif %}
   </div>
 
-  {# Footer: Verification Attribution #}
-  {% if footer_text %}
-    <div class="card-footer-strip text-body-secondary">
-      <span>{{ footer_text }}</span>
-    </div>
+  {# Card Footer #}
+  <footer class="calendar-footer-strip">
+    <span class="text-body-secondary">Direct public meeting telemetry verified via municipal feeds.</span>
+    <a href="{{ fallback_href }}" target="_blank" rel="noopener noreferrer" class="calendar-portal-link">
+      <span>Official Portal</span>
+      <span aria-hidden="true">→</span>
+    </a>
+  </footer>
+
+  {# Live Edge RSS/iCal Parser #}
+  {% if feed_src %}
+  <script>
+    (function() {
+      const feedUrl = "{{ feed_src }}";
+      const slug = "{{ active_neighborhood | slugify }}";
+      const stack = document.getElementById("civic-cal-stack-" + slug);
+      if (!feedUrl || !stack) return;
+
+      fetch("/functions/api/civic-calendar?url=" + encodeURIComponent(feedUrl) + "&city=" + encodeURIComponent(slug))
+        .then(res => res.ok ? res.json() : Promise.reject())
+        .then(items => {
+          if (items && Array.isArray(items) && items.length > 0) {
+            let html = "";
+            items.slice(0, 5).forEach(m => {
+              html += '<div class="calendar-event-row">' +
+                        '<div class="calendar-date-stamp"><time class="calendar-date-text">' + (m.date || "UPCOMING") + '</time></div>' +
+                        '<div class="calendar-event-details">' +
+                          '<div class="calendar-event-title">' + (m.title || "Municipal Public Meeting") + '</div>' +
+                          '<div class="text-body-secondary calendar-event-meta">' +
+                            (m.time ? m.time : "") + ((m.time && m.place) ? " • " : "") + (m.place ? m.place : "") +
+                          '</div>' +
+                        '</div>' +
+                      '</div>';
+            });
+            stack.innerHTML = html;
+          }
+        })
+        .catch(() => {
+          /* Silently retain fallback portal card */
+        });
+    })();
+  </script>
   {% endif %}
 
 </div>
