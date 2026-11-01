@@ -1,0 +1,20 @@
+---
+layout: layouts/base.njk
+permalink: "realestate/condos/index.html"
+eleventyComputed:
+  title: "Regional Condominium Directory | MySeattleSearch"
+  search_scope: "condo"
+---
+<div class="map-viewport" id="condos-map" aria-label="Interactive Regional Condominium Directory">
+  {% for condo in all_condos %}
+    {% if condo.latitude and condo.longitude %}
+      {% include "components/widget/map-marker-condo.njk" with {
+        condo_name: condo.name,
+        condo_slug: condo.building_id,
+        condo_units: condo.total_units,
+        lat: condo.latitude,
+        lng: condo.longitude
+      } %}
+    {% endif %}
+  {% endfor %}
+</div>

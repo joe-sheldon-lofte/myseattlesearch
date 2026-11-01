@@ -1,0 +1,20 @@
+---
+layout: layouts/base.njk
+permalink: "realestate/subdivisions/index.html"
+eleventyComputed:
+  title: "Regional Subdivisions & Plats Directory | MySeattleSearch"
+  search_scope: "subdivision"
+---
+<div class="map-viewport" id="subdivisions-map" aria-label="Interactive Regional Plat & Subdivision Directory">
+  {% for plat in all_subdivisions %}
+    {% if plat.latitude and plat.longitude %}
+      {% include "components/widget/map-marker-subdivision.njk" with {
+        plat_name: plat.name,
+        plat_slug: plat.slug,
+        lot_count: plat.lot_count,
+        lat: plat.latitude,
+        lng: plat.longitude
+      } %}
+    {% endif %}
+  {% endfor %}
+</div>
