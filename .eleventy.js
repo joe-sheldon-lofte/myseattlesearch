@@ -87,7 +87,30 @@ module.exports = function(eleventyConfig) {
     }).format(date);
   });
 
-  // Sports Telemetry Filter (Moved inside export scope)
+  // Universal Substring & Keyed Array Filter (resolves missing filter_contains error)
+  eleventyConfig.addFilter("filter_contains", function(arr, property, targetValue) {
+    if (!arr || !Array.isArray(arr)) return [];
+    if (!property) return arr;
+
+    // Single-argument array check: array | filter_contains("substring")
+    if (targetValue === undefined) {
+      const match = String(property).trim().toLowerCase();
+      return arr.filter(item => String(item).toLowerCase().includes(match));
+    }
+
+    // Keyed object array check: array | filter_contains("tags", "sports-collegiate")
+    const match = String(targetValue).trim().toLowerCase();
+    return arr.filter(item => {
+      const val = item[property];
+      if (!val) return false;
+      if (Array.isArray(val)) {
+        return val.some(entry => String(entry).toLowerCase().includes(match));
+      }
+      return String(val).toLowerCase().includes(match);
+    });
+  });
+
+  // Sports Telemetry Filter
   eleventyConfig.addFilter("recentLevelGames", function(teams, level = "Professional", count = 6) {
     if (!teams || !Array.isArray(teams)) return [];
 
