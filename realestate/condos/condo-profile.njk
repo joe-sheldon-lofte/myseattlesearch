@@ -1,7 +1,7 @@
 ---
 layout: layouts/base.njk
 pagination:
-  data: all_condos
+  data: unique_condos
   size: 1
   alias: condo
 permalink: "realestate/condos/{{ condo.building_id | slugify }}/index.html"
@@ -10,21 +10,19 @@ eleventyComputed:
   search_scope: "condo"
 ---
 <article class="condo-canvas" data-pagefind-body data-pagefind-filter="type:condo">
-  {% include "components/widget/search-box.njk" with {
-    search_scope: "condo",
-    search_placeholder: "Search regional condo communities, buildings, or HOAs...",
-    search_title: "Condominium Community Directory",
-    search_overline: "REGIONAL CONDO INDEX",
-    search_element_id: "pagefind-condos"
-  } %}
+  {% set search_scope = "condo" %}
+  {% set search_placeholder = "Search regional condo communities, buildings, or HOAs..." %}
+  {% set search_title = "Condominium Community Directory" %}
+  {% set search_overline = "REGIONAL CONDO INDEX" %}
+  {% set search_element_id = "pagefind-condos" %}
+  {% include "components/widget/search-box.njk" %}
 
   {# Section 2.0: Core Profile #}
   <section class="condo-section" id="condo-overview" aria-label="Condominium Overview">
-    {% include "components/widget/card-prose.njk" with {
-      card_overline: "COMMUNITY PROFILE",
-      card_title: condo.name,
-      card_body_html: "<div class='condo-profile-meta'><p class='condo-meta-address'>" ~ condo.address ~ "<br>" ~ condo.city ~ ", " ~ condo.state ~ "</p><p class='condo-meta-county'>" ~ condo.county ~ " County</p><p class='condo-meta-timestamp'><span class='meta-timestamp-label'>Last Updated:</span> <span class='tabular-digit font-mono'>" ~ condo.last_updated ~ "</span></p></div>"
-    } %}
+    {% set card_overline = "COMMUNITY PROFILE" %}
+    {% set card_title = condo.name %}
+    {% set card_body_html = "<div class='condo-profile-meta'><p class='condo-meta-address'>" ~ condo.address ~ "<br>" ~ condo.city ~ ", " ~ condo.state ~ "</p><p class='condo-meta-county'>" ~ condo.county ~ " County</p><p class='condo-meta-timestamp'><span class='meta-timestamp-label'>Last Updated:</span> <span class='tabular-digit font-mono'>" ~ condo.last_updated ~ "</span></p></div>" %}
+    {% include "components/widget/card-prose.njk" %}
   </section>
 
   {# Section 3.0: Underwriting & Physical Telemetry #}
@@ -36,56 +34,50 @@ eleventyComputed:
 
     <div class="condo-telemetry-grid">
       {# Position 1: FHA Approval Status #}
-      {% include "components/widget/stat-card.njk" with {
-        stat_label: "FHA FINANCING",
-        stat_value: "APPROVED" if condo.fha_approved else "NOT APPROVED",
-        stat_subtext: "Eligible for FHA Loans" if condo.fha_approved else "Ineligible / Uncertified",
-        stat_accent: "var(--status-emerald)" if condo.fha_approved else "var(--color-secondary-muted)",
-        stat_tabular: false
-      } %}
+      {% set stat_label = "FHA FINANCING" %}
+      {% set stat_value = "APPROVED" if condo.fha_approved else "NOT APPROVED" %}
+      {% set stat_subtext = "Eligible for FHA Loans" if condo.fha_approved else "Ineligible / Uncertified" %}
+      {% set stat_accent = "var(--status-emerald)" if condo.fha_approved else "var(--color-secondary-muted)" %}
+      {% set stat_tabular = false %}
+      {% include "components/widget/stat-card.njk" %}
 
       {# Position 2: FHA Expiration Date #}
-      {% include "components/widget/stat-card.njk" with {
-        stat_label: "FHA EXPIRATION",
-        stat_value: condo.fha_expiration_date if condo.fha_expiration_date else "N/A",
-        stat_subtext: "Certification Renewal Due" if condo.fha_expiration_date else "No Active Certification",
-        stat_accent: "var(--color-primary-default)",
-        stat_tabular: true
-      } %}
+      {% set stat_label = "FHA EXPIRATION" %}
+      {% set stat_value = condo.fha_expiration_date if condo.fha_expiration_date else "N/A" %}
+      {% set stat_subtext = "Certification Renewal Due" if condo.fha_expiration_date else "No Active Certification" %}
+      {% set stat_accent = "var(--color-primary-default)" %}
+      {% set stat_tabular = true %}
+      {% include "components/widget/stat-card.njk" %}
 
       {# Position 3: VA Approval Status #}
-      {% include "components/widget/stat-card.njk" with {
-        stat_label: "VA FINANCING",
-        stat_value: "APPROVED" if condo.va_approved else "NOT APPROVED",
-        stat_subtext: condo.va_status if condo.va_status else "Department of Veterans Affairs",
-        stat_accent: "var(--status-emerald)" if condo.va_approved else "var(--color-secondary-muted)",
-        stat_tabular: false
-      } %}
+      {% set stat_label = "VA FINANCING" %}
+      {% set stat_value = "APPROVED" if condo.va_approved else "NOT APPROVED" %}
+      {% set stat_subtext = condo.va_status if condo.va_status else "Department of Veterans Affairs" %}
+      {% set stat_accent = "var(--status-emerald)" if condo.va_approved else "var(--color-secondary-muted)" %}
+      {% set stat_tabular = false %}
+      {% include "components/widget/stat-card.njk" %}
 
       {# Position 4: Total Units #}
-      {% include "components/widget/stat-card.njk" with {
-        stat_label: "COMMUNITY SCALE",
-        stat_value: condo.total_units if condo.total_units else "N/A",
-        stat_subtext: "Total Recorded Residential Units",
-        stat_accent: "var(--color-secondary-default)",
-        stat_tabular: true
-      } %}
+      {% set stat_label = "COMMUNITY SCALE" %}
+      {% set stat_value = condo.total_units if condo.total_units else "N/A" %}
+      {% set stat_subtext = "Total Recorded Residential Units" %}
+      {% set stat_accent = "var(--color-secondary-default)" %}
+      {% set stat_tabular = true %}
+      {% include "components/widget/stat-card.njk" %}
 
       {# Position 5: Has Elevator #}
       {% set elevator_display = "N/A" %}
-      {% if condo.has_elevator is sameas true %}
+      {% if condo.has_elevator === true %}
         {% set elevator_display = "YES" %}
-      {% elif condo.has_elevator is sameas false %}
+      {% elif condo.has_elevator === false %}
         {% set elevator_display = "NO" %}
       {% endif %}
-
-      {% include "components/widget/stat-card.njk" with {
-        stat_label: "ACCESSIBILITY",
-        stat_value: elevator_display,
-        stat_subtext: "Elevator Service to Floors",
-        stat_accent: "var(--color-primary-default)",
-        stat_tabular: false
-      } %}
+      {% set stat_label = "ACCESSIBILITY" %}
+      {% set stat_value = elevator_display %}
+      {% set stat_subtext = "Elevator Service to Floors" %}
+      {% set stat_accent = "var(--color-primary-default)" %}
+      {% set stat_tabular = false %}
+      {% include "components/widget/stat-card.njk" %}
     </div>
   </section>
 </article>

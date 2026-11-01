@@ -5,16 +5,37 @@ eleventyComputed:
   title: "Regional Subdivisions & Plats Directory | MySeattleSearch"
   search_scope: "subdivision"
 ---
-<div class="map-viewport" id="subdivisions-map" aria-label="Interactive Regional Plat & Subdivision Directory">
+<div class="directory-canvas">
+  <header class="directory-header">
+    <div class="section-title-stack">
+      <span class="text-overline text-accent-alpine">REGIONAL LAND INTELLIGENCE</span>
+      <h1 class="text-section-title">Puget Sound Subdivisions & Plats</h1>
+    </div>
+  </header>
+
+  {# Transform valid records into the markers payload expected by map-custom.njk #}
+  {% set plat_markers = [] %}
   {% for plat in all_subdivisions %}
     {% if plat.latitude and plat.longitude %}
-      {% include "components/widget/map-marker-subdivision.njk" with {
-        plat_name: plat.name,
-        plat_slug: plat.slug,
-        lot_count: plat.lot_count,
+      {% set marker_item = {
+        name: plat.name,
+        slug: plat.slug,
         lat: plat.latitude,
-        lng: plat.longitude
+        lng: plat.longitude,
+        lots: plat.lot_count,
+        url: "/realestate/subdivisions/" ~ (plat.slug | slugify) ~ "/"
       } %}
+      {% set plat_markers = (plat_markers.push(marker_item), plat_markers) %}
     {% endif %}
   {% endfor %}
+
+  {# Primary Cartographic Canvas #}
+  <section class="directory-map-section" aria-label="Interactive Plat Directory Map">
+    {% set map_id = "master-subdivisions-map" %}
+    {% set map_center = [47.6062, -122.3321] %}
+    {% set map_zoom = 10 %}
+    {% set marker_component = "graphic.map.subdivision" %}
+    {% set markers = plat_markers %}
+    {% include "components/widget/map-custom.njk" %}
+  </section>
 </div>

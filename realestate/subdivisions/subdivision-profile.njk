@@ -10,38 +10,34 @@ eleventyComputed:
   search_scope: "subdivision"
 ---
 <article class="subdivision-canvas" data-pagefind-body data-pagefind-filter="type:subdivision">
-  {% include "components/widget/search-box.njk" with {
-    search_scope: "subdivision",
-    search_placeholder: "Search planned communities, plats, and subdivisions...",
-    search_title: "Subdivision & Community Directory",
-    search_overline: "REGIONAL SUBDIVISION INDEX",
-    search_element_id: "pagefind-subdivisions"
-  } %}
+  {% set search_scope = "subdivision" %}
+  {% set search_placeholder = "Search planned communities, plats, and subdivisions..." %}
+  {% set search_title = "Subdivision & Community Directory" %}
+  {% set search_overline = "REGIONAL SUBDIVISION INDEX" %}
+  {% set search_element_id = "pagefind-subdivisions" %}
+  {% include "components/widget/search-box.njk" %}
 
   {# Section 2.0: Core Community Plat Overview #}
   <section class="subdivision-section" id="subdivision-overview" aria-label="Subdivision Overview">
-    {% include "components/widget/card-prose.njk" with {
-      card_overline: "SUBDIVISION OVERVIEW",
-      card_title: subdivision.name,
-      card_body_html: "<div class='subdivision-profile-meta'><p class='subdivision-meta-location'>" ~ subdivision.city ~ ", WA</p><p class='subdivision-meta-county'>County: " ~ subdivision.county ~ "</p><p class='subdivision-meta-lots'><span class='meta-label'>Number of Lots:</span> <span class='tabular-digit font-mono'>" ~ (subdivision.lot_count | default("N/A")) ~ "</span></p><p class='subdivision-meta-timestamp'><span class='meta-label'>Last Updated:</span> <span class='tabular-digit font-mono'>" ~ subdivision.last_updated ~ "</span></p></div>"
-    } %}
+    {% set card_overline = "SUBDIVISION OVERVIEW" %}
+    {% set card_title = subdivision.name %}
+    {% set card_body_html = "<div class='subdivision-profile-meta'><p class='subdivision-meta-location'>" ~ subdivision.city ~ ", WA</p><p class='subdivision-meta-county'>County: " ~ subdivision.county ~ "</p><p class='subdivision-meta-lots'><span class='meta-label'>Number of Lots:</span> <span class='tabular-digit font-mono'>" ~ (subdivision.lot_count | default("N/A")) ~ "</span></p><p class='subdivision-meta-timestamp'><span class='meta-label'>Last Updated:</span> <span class='tabular-digit font-mono'>" ~ subdivision.last_updated ~ "</span></p></div>" %}
+    {% include "components/widget/card-prose.njk" %}
   </section>
 
   {# Section 3.0: Official County Records & GIS Portal #}
   <nav class="subdivision-section subdivision-links-strip" aria-label="Official Public Records">
-    {% include "components/widget/neighborhood-nav-links.njk" with {
-      nav_label: "County Assessor Record",
-      nav_url: subdivision.assessor_url,
-      is_active: false,
-      is_external: true
-    } %}
+    {% set nav_label = "County Assessor Record" %}
+    {% set nav_url = subdivision.assessor_url %}
+    {% set is_active = false %}
+    {% set is_external = true %}
+    {% include "components/widget/neighborhood-nav-links.njk" %}
 
-    {% include "components/widget/neighborhood-nav-links.njk" with {
-      nav_label: "GIS Parcel Viewer",
-      nav_url: subdivision.gis_viewer_url,
-      is_active: false,
-      is_external: true
-    } %}
+    {% set nav_label = "GIS Parcel Viewer" %}
+    {% set nav_url = subdivision.gis_viewer_url %}
+    {% set is_active = false %}
+    {% set is_external = true %}
+    {% include "components/widget/neighborhood-nav-links.njk" %}
   </nav>
 
   {# Section 4.0: Plat Geographic Location #}
@@ -52,20 +48,19 @@ eleventyComputed:
     </div>
 
     {% if subdivision.latitude and subdivision.longitude %}
-      {% include "components/widget/map-custom.njk" with {
-        map_id: "plat-map-" ~ (subdivision.slug | slugify),
-        map_center: [subdivision.latitude, subdivision.longitude],
-        map_zoom: 15,
-        marker_component: "graphic.map.subdivision",
-        markers: [{
-          name: subdivision.name,
-          slug: subdivision.slug,
-          lat: subdivision.latitude,
-          lng: subdivision.longitude,
-          lots: subdivision.lot_count,
-          url: "/realestate/subdivisions/" ~ (subdivision.slug | slugify) ~ "/"
-        }]
-      } %}
+      {% set map_id = "plat-map-" ~ (subdivision.slug | slugify) %}
+      {% set map_center = [subdivision.latitude, subdivision.longitude] %}
+      {% set map_zoom = 15 %}
+      {% set marker_component = "graphic.map.subdivision" %}
+      {% set markers = [{
+        name: subdivision.name,
+        slug: subdivision.slug,
+        lat: subdivision.latitude,
+        lng: subdivision.longitude,
+        lots: subdivision.lot_count,
+        url: "/realestate/subdivisions/" ~ (subdivision.slug | slugify) ~ "/"
+      }] %}
+      {% include "components/widget/map-custom.njk" %}
     {% else %}
       <div class="subdivision-empty-shield">
         <div class="subdivision-empty-inner">

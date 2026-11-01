@@ -60,6 +60,45 @@ module.exports = function(eleventyConfig) {
     return { usedGB: "0.00" };
   });
 
+  // Build-Time Deduplicated Condos (Discards "Unknown Address" on collision)
+  eleventyConfig.addGlobalData("unique_condos", () => {
+    const candidates = [
+      path.join(__dirname, "data", "all_condos.json"),
+      path.join(__dirname, "_data", "all_condos.json")
+    ];
+    let raw = [];
+    for (const p of candidates) {
+      if (fs.existsSync(p)) {
+        try {
+          raw = JSON.parse(fs.readFileSync(p, "utf-8"));
+          break;
+        } catch (e) {
+          console.error("Error reading all_condos.json:", e);
+        }
+      }
+    }
+    if (!Array.isArray(raw)) return [];
+
+    const registry = new Map();
+    for (const item of raw) {
+      const id = item.building_id ? String(item.building_id).trim().toLowerCase() : null;
+      if (!id) continue;
+
+      const addr = String(item.address || "").trim().toLowerCase();
+      const isPlaceholder = !addr || addr === "unknown address" || addr === "unknown";
+
+      if (!registry.has(id)) {
+        registry.set(id, item);
+      } else if (!isPlaceholder) {
+        const existingAddr = String(registry.get(id).address || "").trim().toLowerCase();
+        if (!existingAddr || existingAddr === "unknown address" || existingAddr === "unknown") {
+          registry.set(id, item);
+        }
+      }
+    }
+    return Array.from(registry.values());
+  });
+
   // Universal Production Utility Filters
   eleventyConfig.addFilter("cssmin", function(code) {
     if (!code) return "";
@@ -87,18 +126,16 @@ module.exports = function(eleventyConfig) {
     }).format(date);
   });
 
-  // Universal Substring & Keyed Array Filter (resolves missing filter_contains error)
+  // Universal Substring & Keyed Array Filter
   eleventyConfig.addFilter("filter_contains", function(arr, property, targetValue) {
     if (!arr || !Array.isArray(arr)) return [];
     if (!property) return arr;
 
-    // Single-argument array check: array | filter_contains("substring")
     if (targetValue === undefined) {
       const match = String(property).trim().toLowerCase();
       return arr.filter(item => String(item).toLowerCase().includes(match));
     }
 
-    // Keyed object array check: array | filter_contains("tags", "sports-collegiate")
     const match = String(targetValue).trim().toLowerCase();
     return arr.filter(item => {
       const val = item[property];

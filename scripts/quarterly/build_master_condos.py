@@ -128,6 +128,40 @@ def parse_va_records():
         })
     return cleaned_va
 
+def deduplicate_condos(condos):
+    """
+    Deduplicates condo objects by building_id.
+    Prioritizes records with valid street addresses over 'Unknown Address'.
+    """
+    registry = {}
+    for item in condos:
+        raw_id = item.get("building_id")
+        if not raw_id:
+            continue
+        
+        # Standardize ID with hyphens to match canonical route schema
+        norm_id = str(raw_id).strip().lower().replace("_", "-")
+        item["building_id"] = norm_id
+        
+        addr = str(item.get("address", "")).strip().lower()
+        is_unknown = (not addr) or (addr in ["unknown address", "unknown"])
+
+        if norm_id not in registry:
+            registry[norm_id] = item
+        else:
+            # Overwrite existing if existing has unknown address and incoming is verified
+            existing_addr = str(registry[norm_id].get("address", "")).strip().lower()
+            existing_is_unknown = (not existing_addr) or (existing_addr in ["unknown address", "unknown"])
+            
+            if existing_is_unknown and not is_unknown:
+                registry[norm_id] = item
+            elif not existing_is_unknown and not is_unknown:
+                # If both have addresses, pick the one with valid lat/lon coordinates
+                if not registry[norm_id].get("latitude") and item.get("latitude"):
+                    registry[norm_id] = item
+
+    return list(registry.values())
+
 def build_master_condos():
     print("🚀 Building Master Condo Database...\n")
     organize_staging_directory()
@@ -152,6 +186,10 @@ def build_master_condos():
                 
     print(f"Loaded {len(county_condos)} total county condo complexes across King & Snohomish.")
     
+    # Run immediate deduplication on county inputs prior to federal telemetry joins
+    deduped_county_condos = deduplicate_condos(county_condos)
+    print(f"Sanitized to {len(deduped_county_condos)} unique building complexes (purged unknown-address collisions).")
+
     fha_records = parse_fha_records()
     va_records = parse_va_records()
     print(f"Loaded {len(fha_records)} Approved FHA records and {len(va_records)} Approved VA records.\n")
@@ -160,7 +198,7 @@ def build_master_condos():
     fha_matches = 0
     va_matches = 0
     
-    for condo in county_condos:
+    for condo in deduped_county_condos:
         c_house, c_street = normalize_street_address(condo.get("address", ""))
         c_name_norm = normalize_text(condo.get("name", ""))
         
@@ -202,10 +240,10 @@ def build_master_condos():
     print(f"   - FHA Approved Condos Matched: {fha_matches}")
     print(f"   - VA Approved Condos Matched: {va_matches}")
     
-    with open(MASTER_OUT_PATH, 'w') as f:
-        json.dump(master_condos, f, indent=2)
+    with open(MASTER_OUT_PATH, 'w', encoding='utf-8') as f:
+        json.dump(master_condos, f, indent=2, ensure_ascii=False)
         
-    print(f"\n🎉 MASTER FILE CREATED! Saved {len(master_condos)} normalized buildings to {MASTER_OUT_PATH}")
+    print(f"\n🎉 MASTER FILE CREATED! Saved {len(master_condos)} clean, unique buildings to {MASTER_OUT_PATH}")
     
     cleanup_staging_directory()
 
