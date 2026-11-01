@@ -21,7 +21,7 @@ module.exports = function(eleventyConfig) {
 
   // Ignored Directories & Source Scripts
   eleventyConfig.ignores.add("scripts/*.py");
-  eleventyConfig.ignores.add(".github/");
+  eleventyConfig.ignores.add(".github/**");
   eleventyConfig.ignores.add("_deprecated/**");
 
   // Global Dynamic Variables (resolves {{ buildTime }} in footer.njk)
