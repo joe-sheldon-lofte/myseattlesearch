@@ -13,23 +13,21 @@ eleventyComputed:
     </div>
   </header>
 
-  {# Transform valid records into the markers payload expected by map-custom.njk #}
   {% set plat_markers = [] %}
   {% for plat in all_subdivisions %}
-    {% if plat.latitude and plat.longitude %}
+    {% if plat.latitude and plat.longitude and plat.plat_id %}
       {% set marker_item = {
         name: plat.name,
-        slug: plat.slug,
+        slug: plat.plat_id,
         lat: plat.latitude,
         lng: plat.longitude,
         lots: plat.lot_count,
-        url: "/realestate/subdivisions/" ~ (plat.slug | slugify) ~ "/"
+        url: "/realestate/subdivisions/" ~ (plat.plat_id | slugify) ~ "/"
       } %}
       {% set plat_markers = (plat_markers.push(marker_item), plat_markers) %}
     {% endif %}
   {% endfor %}
 
-  {# Primary Cartographic Canvas #}
   <section class="directory-map-section" aria-label="Interactive Plat Directory Map">
     {% set map_id = "master-subdivisions-map" %}
     {% set map_center = [47.6062, -122.3321] %}

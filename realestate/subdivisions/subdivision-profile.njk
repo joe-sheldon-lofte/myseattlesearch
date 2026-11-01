@@ -4,7 +4,7 @@ pagination:
   data: all_subdivisions
   size: 1
   alias: subdivision
-permalink: "realestate/subdivisions/{{ subdivision.slug | slugify }}/index.html"
+permalink: "realestate/subdivisions/{{ subdivision.plat_id | slugify }}/index.html"
 eleventyComputed:
   title: "{{ subdivision.name }} | Subdivision Plat Intelligence"
   search_scope: "subdivision"
@@ -48,17 +48,17 @@ eleventyComputed:
     </div>
 
     {% if subdivision.latitude and subdivision.longitude %}
-      {% set map_id = "plat-map-" ~ (subdivision.slug | slugify) %}
+      {% set map_id = "plat-map-" ~ (subdivision.plat_id | slugify) %}
       {% set map_center = [subdivision.latitude, subdivision.longitude] %}
       {% set map_zoom = 15 %}
       {% set marker_component = "graphic.map.subdivision" %}
       {% set markers = [{
         name: subdivision.name,
-        slug: subdivision.slug,
+        slug: subdivision.plat_id,
         lat: subdivision.latitude,
         lng: subdivision.longitude,
         lots: subdivision.lot_count,
-        url: "/realestate/subdivisions/" ~ (subdivision.slug | slugify) ~ "/"
+        url: "/realestate/subdivisions/" ~ (subdivision.plat_id | slugify) ~ "/"
       }] %}
       {% include "components/widget/map-custom.njk" %}
     {% else %}
