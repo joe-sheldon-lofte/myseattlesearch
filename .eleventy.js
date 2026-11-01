@@ -41,8 +41,6 @@ module.exports = function(eleventyConfig) {
     return `${dateStr} at ${timeStr}`;
   });
 
-  // File: .eleventy.js (Snippet)
-
   // Cloudflare R2 Storage Metric Hook
   eleventyConfig.addGlobalData("r2_storage", () => {
     const candidates = [
@@ -88,6 +86,31 @@ module.exports = function(eleventyConfig) {
     }).format(date);
   });
 
+  // Sports Telemetry Filter (Moved inside export scope)
+  eleventyConfig.addFilter("recentLevelGames", function(teams, level = "Professional", count = 6) {
+    if (!teams || !Array.isArray(teams)) return [];
+
+    const allGames = [];
+    const targetLevel = String(level).trim().toLowerCase();
+
+    teams
+      .filter(team => String(team.level).trim().toLowerCase() === targetLevel && Array.isArray(team.recentGames))
+      .forEach(team => {
+        team.recentGames.forEach(game => {
+          allGames.push({
+            ...game,
+            teamName: team.teamName,
+            teamRecord: team.currentRecord || "",
+            teamSite: team.teamSite || "",
+            sport: team.sport || "Athletics"
+          });
+        });
+      });
+
+    allGames.sort((a, b) => new Date(b.game_date) - new Date(a.game_date));
+    return allGames.slice(0, count);
+  });
+
   // Collections (posts archive)
   eleventyConfig.addCollection("posts", function(collectionApi) {
     return collectionApi.getFilteredByGlob("posts/*.md");
@@ -101,36 +124,7 @@ module.exports = function(eleventyConfig) {
       input: ".",          
       output: "_site",     
       includes: "_includes",
-      data: "data" // Auto-discovers all ./data/*.json as global objects
+      data: "data"
     }
   };
 };
-
-// In .eleventy.js
-eleventyConfig.addFilter("recentLevelGames", function(teams, level = "Professional", count = 6) {
-  if (!teams || !Array.isArray(teams)) return [];
-
-  const allGames = [];
-  
-  // Normalize comparison to prevent case-sensitivity mismatches
-  const targetLevel = String(level).trim().toLowerCase();
-
-  teams
-    .filter(team => String(team.level).trim().toLowerCase() === targetLevel && Array.isArray(team.recentGames))
-    .forEach(team => {
-      team.recentGames.forEach(game => {
-        allGames.push({
-          ...game,
-          teamName: team.teamName,
-          teamRecord: team.currentRecord || "",
-          teamSite: team.teamSite || "",
-          sport: team.sport || "Athletics"
-        });
-      });
-    });
-
-  // Sort chronologically descending (newest match first)
-  allGames.sort((a, b) => new Date(b.game_date) - new Date(a.game_date));
-
-  return allGames.slice(0, count);
-});
