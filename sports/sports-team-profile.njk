@@ -1,3 +1,14 @@
+---
+layout: layouts/base.njk
+pagination:
+  data: teams
+  size: 1
+  alias: team
+permalink: "sports/{{ team.league | slugify }}/{{ team.slug | slugify }}/index.html"
+eleventyComputed:
+  title: "{{ team.teamName }} Telemetry & News | MySeattleSearch"
+  search_scope: "sports"
+---
 {# Section 4.0: Franchise Team Metrics #}
 {% include "components/widget/sports-team-stats.njk" with {
   team_name: team.teamName,
