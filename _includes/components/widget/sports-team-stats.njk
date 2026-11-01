@@ -1,0 +1,52 @@
+<!-- File: _includes/components/widget/sports-team-stats.njk -->
+{# 
+  COMPONENT: Franchise Team Performance Metrics (widget.sports.team.stats)
+  CONTRACT:
+    - team_stats: Object or Array of Key/Value pairs [Optional, e.g. team.teamStats]
+    - team_name: String [Required]
+    - season_label: String [Optional, defaults to "ACTIVE SEASON TELEMETRY"]
+#}
+
+{% set stats_data = team_stats %}
+{% set label_text = season_label | default("ACTIVE SEASON TELEMETRY") %}
+
+<section class="sports-section" id="team-stats" aria-label="{{ team_name }} Performance Statistics">
+  <div class="section-title-stack">
+    <span class="text-overline text-accent-alpine">{{ label_text }}</span>
+    <h2 class="text-section-title">Team Performance Index</h2>
+  </div>
+
+  {% if stats_data and (stats_data | length > 0) %}
+    <div class="sports-team-stats-grid">
+      {# Support both dictionary object { "Metric": "Value" } and array of objects [{ "label": "Metric", "value": "Val" }] #}
+      {% if stats_data is iterable and stats_data[0] is defined %}
+        {% for stat in stats_data %}
+          <div class="team-stat-tile">
+            <span class="text-overline team-stat-label">{{ stat.label or stat.name or stat.category }}</span>
+            <span class="team-stat-metric tabular-digit">{{ stat.value or stat.stat }}</span>
+            {% if stat.subtext or stat.rank %}
+              <span class="team-stat-subtext">{{ stat.subtext or stat.rank }}</span>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% else %}
+        {% for label, val in stats_data %}
+          <div class="team-stat-tile">
+            <span class="text-overline team-stat-label">{{ label }}</span>
+            <span class="team-stat-metric tabular-digit">{{ val }}</span>
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  {% else %}
+    {# Zero-Fallback Visual Debug State #}
+    <div class="sports-stat-empty-shield">
+      <div class="stat-empty-inner">
+        <span class="text-overline text-muted">TEAM AGGREGATE PIPELINE</span>
+        <h3 class="stat-empty-title">Team Statistical Index Inactive</h3>
+        <p class="stat-empty-subtext">Comprehensive league splits and efficiency metrics for {{ team_name }} are pending state athletic feed verification.</p>
+        <div class="stat-empty-badge">NO DATA</div>
+      </div>
+    </div>
+  {% endif %}
+</section>

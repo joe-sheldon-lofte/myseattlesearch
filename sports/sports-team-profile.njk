@@ -1,0 +1,22 @@
+{# Section 4.0: Franchise Team Metrics #}
+{% include "components/widget/sports-team-stats.njk" with {
+  team_name: team.teamName,
+  team_stats: team.teamStats,
+  season_label: team.season_label
+} %}
+
+{# Section 6.0: Franchise Wire & Recaps #}
+<section class="sports-section" id="news" aria-label="{{ team.teamName }} News Wire">
+  <div class="section-title-stack">
+    <span class="text-overline text-accent-alpine">FRANCHISE WIRE</span>
+    <h2 class="text-section-title">{{ team.teamName }} News & Dispatches</h2>
+  </div>
+
+  {% set team_news_tag = "sports-" ~ (team.slug | slugify) %}
+
+  {% include "components/widget/news-summary-list-all.njk" with {
+    all_news_heading: team.teamName ~ " News & Dispatches",
+    overline_text: (team.altName | default(team.teamName) | upper) ~ " DISPATCH WIRE",
+    all_news_items: market_news | filter_contains('tags', team_news_tag)
+  } %}
+</section>

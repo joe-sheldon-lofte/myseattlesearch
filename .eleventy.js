@@ -105,3 +105,32 @@ module.exports = function(eleventyConfig) {
     }
   };
 };
+
+// In .eleventy.js
+eleventyConfig.addFilter("recentLevelGames", function(teams, level = "Professional", count = 6) {
+  if (!teams || !Array.isArray(teams)) return [];
+
+  const allGames = [];
+  
+  // Normalize comparison to prevent case-sensitivity mismatches
+  const targetLevel = String(level).trim().toLowerCase();
+
+  teams
+    .filter(team => String(team.level).trim().toLowerCase() === targetLevel && Array.isArray(team.recentGames))
+    .forEach(team => {
+      team.recentGames.forEach(game => {
+        allGames.push({
+          ...game,
+          teamName: team.teamName,
+          teamRecord: team.currentRecord || "",
+          teamSite: team.teamSite || "",
+          sport: team.sport || "Athletics"
+        });
+      });
+    });
+
+  // Sort chronologically descending (newest match first)
+  allGames.sort((a, b) => new Date(b.game_date) - new Date(a.game_date));
+
+  return allGames.slice(0, count);
+});

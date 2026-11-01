@@ -1,0 +1,37 @@
+{# 
+  COMPONENT: Map Subdivision Plat Cartridge (graphic.map.subdivision)
+  PURPOSE: Interactive SVG marker for single-family residential plats and master-planned neighborhoods.
+  CONTRACT:
+    - plat_name / subdivision_name: String [Required]
+    - plat_slug / subdivision_slug: String [Required]
+    - lot_count: Number [Optional]
+#}
+
+{% set pin_slug = subdivision_slug or plat_slug or (subdivision_name | slugify) or (plat_name | slugify) %}
+{% set pin_label = subdivision_name or plat_name or "Residential Subdivision" %}
+{% set target_url = "/realestate/subdivisions/" ~ (pin_slug | slugify) ~ "/" %}
+
+<a href="{{ target_url }}" class="map-marker-pin pin-subdivision" aria-label="View {{ pin_label }} Profile" title="{{ pin_label }}{% if lot_count %} ({{ lot_count }} Lots){% endif %}">
+  <svg class="map-marker-svg" width="36" height="42" viewBox="0 0 36 42" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    {# Pin Shadow & Teardrop Squircle Base #}
+    <path class="pin-base" d="M18 41C18 41 33 26.5 33 16C33 7.71573 26.2843 1 18 1C9.71573 1 3 7.71573 3 16C3 26.5 18 41 18 41Z" fill="var(--color-background-universal, #FFFFFF)" stroke="var(--color-border-light, rgba(0, 0, 0, 0.12))" stroke-width="1.5" />
+    <circle class="pin-core-disc" cx="18" cy="16" r="13" fill="var(--color-surface-gray, #F5F5F7)" />
+
+    {# Craftsman Dual-Home Community Glyph #}
+    <g class="pin-glyph glyph-subdivision">
+      <!-- Background Secondary Cottage -->
+      <path d="M19 13.5L24 9.5L27 12V19H21V15.5H19V13.5Z" fill="var(--color-secondary-muted, #6E6E73)" />
+      
+      <!-- Primary Foreground Single-Family Home -->
+      <path d="M9 13.5L16 8L23 13.5V21H9V13.5Z" fill="var(--color-secondary-default, #1E4D6B)" />
+      
+      <!-- Overhanging Gable Eaves -->
+      <path d="M8 14L16 7.5L24 14" stroke="var(--color-primary-default, #1C1C1E)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      
+      <!-- Front Entry Door -->
+      <rect x="14.5" y="16.5" width="3" height="4.5" rx="0.5" fill="var(--color-background-universal, #FFFFFF)" />
+      <!-- Square Attic Window -->
+      <rect x="14.5" y="11" width="3" height="2.5" rx="0.5" fill="var(--color-background-universal, #FFFFFF)" />
+    </g>
+  </svg>
+</a>

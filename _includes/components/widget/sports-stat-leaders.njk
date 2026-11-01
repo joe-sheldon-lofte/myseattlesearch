@@ -1,0 +1,55 @@
+<!-- File: _includes/components/widget/sports-stat-leaders.njk -->
+{# 
+  COMPONENT: Franchise Statistical Leaders Grid (widget.sports.stat.leaders)
+  CONTRACT:
+    - leaders_list: Array of Objects [Optional, from team.teamLeaders]
+    - team_name: String [Required]
+#}
+
+{% set leaders = leaders_list %}
+
+<section class="sports-section" id="team-leaders" aria-label="{{ team_name }} Statistical Leaders">
+  <div class="section-title-stack">
+    <span class="text-overline text-accent-alpine">FRANCHISE BENCHMARKS</span>
+    <h2 class="text-section-title">Statistical Leaders</h2>
+  </div>
+
+  {% if leaders and leaders.length > 0 %}
+    <div class="sports-leaders-grid">
+      {% for leader in leaders %}
+        <article class="sports-leader-card">
+          <div class="leader-card-top">
+            <span class="text-overline leader-category">{{ leader.category }}</span>
+            <span class="leader-value tabular-digit">{{ leader.value }}</span>
+          </div>
+          
+          <div class="leader-card-bottom">
+            {% if leader.headshot %}
+              <img src="{{ leader.headshot }}" alt="{{ leader.player }}" class="leader-headshot" width="44" height="44" loading="lazy">
+            {% else %}
+              <div class="leader-headshot-fallback" aria-hidden="true">
+                <span>{{ leader.player | slice(0, 1) }}</span>
+              </div>
+            {% endif %}
+            <div class="leader-player-meta">
+              <span class="leader-player-name">{{ leader.player }}</span>
+              {% if leader.position %}
+                <span class="leader-player-pos">{{ leader.position }}{% if leader.sweater %} • #{{ leader.sweater }}{% endif %}</span>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    {# Zero-Fallback Visual Debug State #}
+    <div class="sports-stat-empty-shield">
+      <div class="stat-empty-inner">
+        <span class="text-overline text-muted">SEASON METRIC PIPELINE</span>
+        <h3 class="stat-empty-title">Statistical Telemetry Pending</h3>
+        <p class="stat-empty-subtext">Verified statistical benchmarks for {{ team_name }} are currently compiling for the active campaign.</p>
+        <div class="stat-empty-badge">NO DATA</div>
+      </div>
+    </div>
+  {% endif %}
+</section>

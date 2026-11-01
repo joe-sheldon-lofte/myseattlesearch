@@ -1,0 +1,12 @@
+<div class="map-viewport" id="condos-map" aria-label="Interactive Regional Condominium Directory">
+  {% for condo in all_condos %}
+    {% if condo.latitude and condo.longitude %}
+      {# Compile-time marker pin template instantiation #}
+      {% include "components/graphic/map-condobuilding.njk" with {
+        condo_name: condo.name,
+        condo_slug: condo.building_id,
+        condo_units: condo.total_units
+      } %}
+    {% endif %}
+  {% endfor %}
+</div>

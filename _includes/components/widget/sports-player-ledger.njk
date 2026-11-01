@@ -1,0 +1,66 @@
+<!-- File: _includes/components/widget/sports-player-ledger.njk -->
+{# 
+  COMPONENT: Comprehensive Player Telemetry Table (widget.sports.player.ledger)
+  CONTRACT:
+    - players_list: Array of Objects [Optional, from team.playerStats]
+    - team_name: String [Required]
+#}
+
+{% set players = players_list %}
+
+<section class="sports-section" id="player-stats" aria-label="{{ team_name }} Player Statistics">
+  <div class="section-title-stack">
+    <span class="text-overline text-accent-alpine">ROSTER TELEMETRY</span>
+    <h2 class="text-section-title">Player Performance Ledger</h2>
+  </div>
+
+  {% if players and players.length > 0 %}
+    <div class="sports-table-viewport">
+      <table class="sports-player-table">
+        <thead>
+          <tr>
+            <th scope="col" class="th-player">Player</th>
+            <th scope="col" class="th-pos">Pos</th>
+            <th scope="col" class="th-num">GP</th>
+            <th scope="col" class="th-num">G / W</th>
+            <th scope="col" class="th-num">A / L</th>
+            <th scope="col" class="th-num">PTS</th>
+            <th scope="col" class="th-num">+/-</th>
+            <th scope="col" class="th-num">GAA</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in players %}
+            <tr>
+              <td class="td-player">
+                <div class="player-cell-wrap">
+                  {% if p.headshot %}
+                    <img src="{{ p.headshot }}" alt="{{ p.player }}" class="table-player-thumb" width="28" height="28" loading="lazy">
+                  {% endif %}
+                  <span class="player-cell-name">{{ p.player }}</span>
+                </div>
+              </td>
+              <td class="td-pos">{{ p.position | default("—") }}</td>
+              <td class="td-num tabular-digit">{{ p.games_played | default("—") }}</td>
+              <td class="td-num tabular-digit">{{ p.goals if p.goals is defined else (p.wins if p.wins is defined else "—") }}</td>
+              <td class="td-num tabular-digit">{{ p.assists if p.assists is defined else (p.losses if p.losses is defined else "—") }}</td>
+              <td class="td-num tabular-digit font-medium">{{ p.points if p.points is defined else "—" }}</td>
+              <td class="td-num tabular-digit">{{ p.plus_minus if p.plus_minus is defined else "—" }}</td>
+              <td class="td-num tabular-digit">{{ p.gaa if p.gaa is defined else "—" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    {# Zero-Fallback Visual Debug State #}
+    <div class="sports-stat-empty-shield">
+      <div class="stat-empty-inner">
+        <span class="text-overline text-muted">ROSTER LEDGER PIPELINE</span>
+        <h3 class="stat-empty-title">Roster Performance Feed Inactive</h3>
+        <p class="stat-empty-subtext">Player ledger profiles and split metrics for {{ team_name }} are pending state athletic sync.</p>
+        <div class="stat-empty-badge">NO DATA</div>
+      </div>
+    </div>
+  {% endif %}
+</section>

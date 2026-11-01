@@ -1,0 +1,101 @@
+---
+layout: "layouts/base.njk"
+permalink: "/neighborhood/sports/college/index.html"
+title: "Washington Collegiate Athletics Intelligence"
+meta_description: "Scores, standings, program updates, and game telemetry for NCAA Division I, II, and Northwest Conference programs across Washington State."
+---
+{# Section 1.0: Billboard Header #}
+<header class="sports-hub-hero" role="banner">
+  <div class="sports-hero-scrim" aria-hidden="true"></div>
+  <div class="sports-hero-content">
+    <span class="text-overline text-accent-alpine">REGIONAL ATHLETIC TELEMETRY</span>
+    <h1 class="text-hero-title">Washington College Athletics</h1>
+    <p class="text-hero-subtitle">Program records, varsity matchups, and tournament coverage across regional university athletics.</p>
+  </div>
+</header>
+
+<div class="sports-content-container">
+
+  {# Section 2.0: Category Navigation #}
+  <nav class="sports-nav-strip" aria-label="Sports Categories">
+    {% include "components/widget/neighborhood-nav-links.njk" with {
+      nav_label: "Neighborhood Home",
+      nav_url: "/neighborhood/",
+      is_active: false
+    } %}
+    {% include "components/widget/neighborhood-nav-links.njk" with {
+      nav_label: "Transit & Commute",
+      nav_url: "/neighborhood/region/transit-commute/",
+      is_active: false
+    } %}
+    {% include "components/widget/neighborhood-nav-links.njk" with {
+      nav_label: "School Directory",
+      nav_url: "/neighborhood/school/",
+      is_active: false
+    } %}
+    {% include "components/widget/neighborhood-nav-links.njk" with {
+      nav_label: "Pro Sports",
+      nav_url: "/neighborhood/sports/pro/",
+      is_active: false
+    } %}
+    {% include "components/widget/neighborhood-nav-links.njk" with {
+      nav_label: "Minor League Sports",
+      nav_url: "/neighborhood/sports/minor/",
+      is_active: false
+    } %}
+    {% include "components/widget/neighborhood-nav-links.njk" with {
+      nav_label: "College Sports",
+      nav_url: "/neighborhood/sports/college/",
+      is_active: true
+    } %}
+  </nav>
+
+  {# Section 3.0: Active & Recent Matchups #}
+  <section class="sports-section" id="matchups" aria-label="Recent and Active Matchups">
+    <div class="section-title-stack">
+      <span class="text-overline text-accent-alpine">RECENT RESULTS & SCHEDULED CONTESTS</span>
+      <h2 class="text-section-title">Latest Varsity Outcomes</h2>
+    </div>
+
+    {% set college_games = sports_data.teams | recentLevelGames("Collegiate", 6) %}
+    
+    <div class="sports-score-grid">
+      {% for g in college_games %}
+        {% set is_local_home = (g.teamName == g.home_team) %}
+        {% include "components/widget/sports-score-box.njk" with {
+          scorebox_header: (g.league ~ " " ~ g.sport) | upper,
+          scorebox_status_text: g.status | upper,
+          scorebox_local_name: g.teamName,
+          scorebox_local_record: g.teamRecord,
+          scorebox_local_score: g.home_score if is_local_home else g.away_score,
+          scorebox_opp_name: g.away_team if is_local_home else g.home_team,
+          scorebox_opp_record: "",
+          scorebox_opp_score: g.away_score if is_local_home else g.home_score,
+          scorebox_recap_url: g.teamSite
+        } %}
+      {% endfor %}
+    </div>
+  </section>
+
+{# Section 4.0: Collegiate Program Roster #}
+  {% include "components/widget/sports-team-list.njk" with {
+    teams_data: sports_data.teams,
+    target_level: "Collegiate",
+    list_title: "Regional University Programs",
+    list_overline: "VARSITY ATHLETICS"
+  } %}
+
+{# Section 5.0: Collegiate Sports Wire #}
+<section class="sports-section" id="news" aria-label="Collegiate Sports Intelligence">
+  <div class="section-title-stack">
+    <span class="text-overline text-accent-alpine">DISPATCH FEED</span>
+    <h2 class="text-section-title">Collegiate News & Recaps</h2>
+  </div>
+
+  {% include "components/widget/news-summary-list-all.njk" with {
+    all_news_heading: "Washington College Athletics News Wire",
+    all_news_items: market_news | filter_contains('tags', 'sports-collegiate')
+  } %}
+</section>
+
+</div>

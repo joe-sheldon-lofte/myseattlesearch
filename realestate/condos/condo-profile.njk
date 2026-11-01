@@ -1,0 +1,90 @@
+<!-- Inside src/realestate/condos/[condo-slug].njk -->
+<article data-pagefind-body data-pagefind-filter="type:condo">
+  <h1>{{ condo.name }}</h1>
+  ...
+</article>
+
+{% include "components/widget/search-box.njk" with {
+  search_scope: "condo",
+  search_placeholder: "Search regional condo communities, buildings, or HOAs...",
+  search_title: "Condominium Community Directory",
+  search_overline: "REGIONAL CONDO INDEX",
+  search_element_id: "pagefind-condos"
+} %}
+
+{% include "components/widget/card-prose.njk" with {
+  card_overline: "COMMUNITY PROFILE",
+  card_title: condo.name,
+  card_body_html: "<div class='condo-profile-meta'><p class='condo-meta-address'>" ~ condo.address ~ "<br>" ~ condo.city ~ ", " ~ condo.state ~ "</p><p class='condo-meta-county'>" ~ condo.county ~ " County</p><p class='condo-meta-timestamp'><span class='meta-timestamp-label'>Last Updated:</span> <span class='tabular-digit'>" ~ condo.last_updated ~ "</span></p></div>"
+} %}
+
+{# Section 2.0: Core Profile #}
+<section class="condo-section" id="condo-overview" aria-label="Condominium Overview">
+  {% include "components/widget/card-prose.njk" with {
+    card_overline: "COMMUNITY PROFILE",
+    card_title: condo.name,
+    card_body_html: "<div class='condo-profile-meta'><p class='condo-meta-address'>" ~ condo.address ~ "<br>" ~ condo.city ~ ", " ~ condo.state ~ "</p><p class='condo-meta-county'>" ~ condo.county ~ " County</p><p class='condo-meta-timestamp'><span class='meta-timestamp-label'>Last Updated:</span> <span class='tabular-digit'>" ~ condo.last_updated ~ "</span></p></div>"
+  } %}
+</section>
+
+{# Section 3.0: Underwriting & Physical Telemetry #}
+<section class="condo-section" id="condo-telemetry" aria-label="Financing and Building Telemetry">
+  <div class="section-title-stack">
+    <span class="text-overline text-accent-alpine">FINANCING & SPECIFICATIONS</span>
+    <h2 class="text-section-title">Underwriting & Physical Telemetry</h2>
+  </div>
+
+  <div class="condo-telemetry-grid">
+    {# Position 1: FHA Approval Status #}
+    {% include "components/widget/stat-card.njk" with {
+      stat_label: "FHA FINANCING",
+      stat_value: "APPROVED" if condo.fha_approved else "NOT APPROVED",
+      stat_subtext: "Eligible for FHA Loans" if condo.fha_approved else "Ineligible / Uncertified",
+      stat_accent: "var(--status-emerald)" if condo.fha_approved else "var(--color-secondary-muted)",
+      stat_tabular: false
+    } %}
+
+    {# Position 2: FHA Expiration Date #}
+    {% include "components/widget/stat-card.njk" with {
+      stat_label: "FHA EXPIRATION",
+      stat_value: condo.fha_expiration_date if condo.fha_expiration_date else "N/A",
+      stat_subtext: "Certification Renewal Due" if condo.fha_expiration_date else "No Active Certification",
+      stat_accent: "var(--color-primary-default)",
+      stat_tabular: true
+    } %}
+
+    {# Position 3: VA Approval Status #}
+    {% include "components/widget/stat-card.njk" with {
+      stat_label: "VA FINANCING",
+      stat_value: "APPROVED" if condo.va_approved else "NOT APPROVED",
+      stat_subtext: condo.va_status if condo.va_status else "Department of Veterans Affairs",
+      stat_accent: "var(--status-emerald)" if condo.va_approved else "var(--color-secondary-muted)",
+      stat_tabular: false
+    } %}
+
+    {# Position 4: Total Units #}
+    {% include "components/widget/stat-card.njk" with {
+      stat_label: "COMMUNITY SCALE",
+      stat_value: condo.total_units if condo.total_units else "N/A",
+      stat_subtext: "Total Recorded Residential Units",
+      stat_accent: "var(--color-secondary-default)",
+      stat_tabular: true
+    } %}
+
+    {# Position 5: Has Elevator #}
+    {% set elevator_display = "N/A" %}
+    {% if condo.has_elevator is sameas true %}
+      {% set elevator_display = "YES" %}
+    {% elif condo.has_elevator is sameas false %}
+      {% set elevator_display = "NO" %}
+    {% endif %}
+
+    {% include "components/widget/stat-card.njk" with {
+      stat_label: "ACCESSIBILITY",
+      stat_value: elevator_display,
+      stat_subtext: "Elevator Service to Floors",
+      stat_accent: "var(--color-primary-default)",
+      stat_tabular: false
+    } %}
+  </div>
+</section>

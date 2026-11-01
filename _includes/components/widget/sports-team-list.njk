@@ -1,0 +1,102 @@
+<!-- File: _includes/components/widget/sports-team-list.njk -->
+{# 
+  COMPONENT: Master Sports Franchise & Program Directory (widget.sports.team.list)
+  PURPOSE: Dynamically generates profile cards linking to internal team pages for a given sport tier.
+  CONTRACT:
+    - teams_data / sports_data.teams: Array of Objects [Required]
+    - target_level: String [Required: "Professional", "Minor League", or "Collegiate"]
+    - list_title: String [Optional, defaults to target level title]
+    - list_overline: String [Optional, defaults to "FRANCHISE TELEMETRY"]
+#}
+
+{% set all_teams = teams_data or sports_data.teams %}
+{% set level_param = target_level | default("Professional") %}
+{% set level_normalized = level_param | lower | trim %}
+
+{% set default_titles = {
+  "professional": "Pacific Northwest Franchises",
+  "minor league": "Regional Affiliate Clubs",
+  "collegiate": "Regional University Programs"
+} %}
+
+{% set heading_text = list_title or default_titles[level_normalized] or "Regional Teams" %}
+{% set overline_text = list_overline or "FRANCHISE TELEMETRY" %}
+
+{% if all_teams and all_teams.length > 0 %}
+<section class="sports-team-directory-section" aria-label="{{ heading_text }}">
+  
+  <header class="section-title-stack">
+    <span class="text-overline text-accent-alpine">{{ overline_text }}</span>
+    <h2 class="text-section-title">{{ heading_text }}</h2>
+  </header>
+
+  <div class="sports-team-grid">
+    {% for team in all_teams %}
+      {% if (team.level | lower | trim) == level_normalized %}
+        <article class="sports-team-card">
+          <div class="team-card-header">
+            {% if team.logo %}
+              <img src="{{ team.logo }}" alt="{{ team.teamName }} crest" class="team-card-logo" width="48" height="48" loading="lazy">
+            {% else %}
+              <div class="team-card-logo-fallback" aria-hidden="true">
+                <span>{{ team.teamName | slice(0, 1) }}</span>
+              </div>
+            {% endif %}
+            
+            <div class="team-card-title-group">
+              <span class="text-overline">{{ team.sport | upper }}</span>
+              <h3 class="team-card-title">{{ team.teamName }}</h3>
+            </div>
+          </div>
+
+          <div class="team-card-meta">
+            {% if team.homeFacilityName %}
+              <div class="team-meta-row">
+                <span class="meta-label">Facility</span>
+                <span class="meta-value">{{ team.homeFacilityName }}</span>
+              </div>
+            {% endif %}
+
+            {% if team.facilityCity %}
+              <div class="team-meta-row">
+                <span class="meta-label">Location</span>
+                <span class="meta-value">{{ team.facilityCity }}, WA</span>
+              </div>
+            {% endif %}
+
+            {% if team.currentRecord %}
+              <div class="team-meta-row">
+                <span class="meta-label">Record</span>
+                <span class="meta-value tabular-digit">{{ team.currentRecord }}</span>
+              </div>
+            {% elif team.standingSummary %}
+              <div class="team-meta-row">
+                <span class="meta-label">Standing</span>
+                <span class="meta-value status-indicator">{{ team.standingSummary }}</span>
+              </div>
+            {% endif %}
+
+            {% if team.season_status %}
+              <div class="team-meta-row">
+                <span class="meta-label">Status</span>
+                <span class="meta-value status-indicator">{{ team.season_status }}</span>
+              </div>
+            {% endif %}
+          </div>
+
+          <footer class="team-card-footer">
+            <a href="/neighborhood/sports/{{ team.slug }}/" class="btn-team-details" aria-label="View {{ team.teamName }} Profile">
+              <span>Team Profile</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </footer>
+        </article>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+</section>
+{% endif %}

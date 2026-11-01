@@ -1,0 +1,70 @@
+<!-- File: _includes/components/widget/search-box.njk -->
+{# 
+  COMPONENT: In-Line Scoped Search Engine (widget.search.box)
+  PURPOSE: Dedicated on-page search box with Pagefind filter scoping and instant UI results.
+  CONTRACT:
+    - search_scope / filter_type: String [Optional, e.g. "condo", "subdivision", "neighborhood"]
+    - search_placeholder: String [Optional, default: "Search residential index..."]
+    - search_title: String [Optional]
+    - search_overline: String [Optional]
+    - search_element_id: String [Optional, auto-generated fallback]
+#}
+
+{% set scope_type = search_scope or filter_type or "" %}
+{% set placeholder_text = search_placeholder or ("Search " ~ scope_type ~ "s..." if scope_type else "Search residential index...") %}
+{% set overline_label = search_overline or ((scope_type ~ " REPOSITORY SEARCH") | upper if scope_type else "INDEX SEARCH") %}
+{% set title_text = search_title or ("Search " ~ (scope_type | capitalize) ~ " Communities" if scope_type else "Search Directory") %}
+{% set unique_id = search_element_id or ("pagefind-search-" ~ (scope_type | default("inline"))) %}
+
+<section class="widget-card search-box-card" aria-label="{{ title_text }}">
+  
+  <header class="search-box-header">
+    <span class="text-overline text-accent-alpine">{{ overline_label }}</span>
+    <h3 class="text-widget-title search-box-title">{{ title_text }}</h3>
+  </header>
+
+  <div class="search-box-engine-container">
+    {# Pagefind Mount Target #}
+    <div id="{{ unique_id }}" class="pagefind-mount" data-scope="{{ scope_type }}" data-placeholder="{{ placeholder_text }}"></div>
+  </div>
+
+  <script>
+    (function() {
+      const mountId = "{{ unique_id }}";
+      const targetScope = "{{ scope_type }}";
+      const placeholder = "{{ placeholder_text }}";
+
+      function initPagefind() {
+        if (typeof PagefindUI === "undefined") {
+          setTimeout(initPagefind, 50);
+          return;
+        }
+
+        const config = {
+          element: "#" + mountId,
+          showImages: false,
+          showSubResults: true,
+          resetStyles: false,
+          autofocus: false,
+          placeholder: placeholder
+        };
+
+        // Enforce strict scoped filtering when a scope is provided
+        if (targetScope) {
+          config.filters = {
+            type: [targetScope]
+          };
+        }
+
+        new PagefindUI(config);
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initPagefind);
+      } else {
+        initPagefind();
+      }
+    })();
+  </script>
+
+</section>

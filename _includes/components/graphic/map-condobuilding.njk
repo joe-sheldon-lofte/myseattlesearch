@@ -1,0 +1,39 @@
+{# 
+  COMPONENT: Map Condominium Pin Cartridge (graphic.map.condobuilding)
+  PURPOSE: Interactive SVG marker for multi-family residential building locations on interactive maps.
+  CONTRACT:
+    - condo_name: String [Required]
+    - condo_slug: String or building_id [Required]
+    - condo_units: Number [Optional]
+#}
+
+{% set pin_slug = condo_slug or building_id %}
+{% set pin_label = condo_name | default("Condominium Community") %}
+{% set target_url = "/realestate/condos/" ~ (pin_slug | slugify) ~ "/" %}
+
+<a href="{{ target_url }}" class="map-marker-pin pin-condo" aria-label="View {{ pin_label }} Profile" title="{{ pin_label }}{% if condo_units %} ({{ condo_units }} Units){% endif %}">
+  <svg class="map-marker-svg" width="36" height="42" viewBox="0 0 36 42" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    {# Pin Shadow & Teardrop Squircle Base #}
+    <path class="pin-base" d="M18 41C18 41 33 26.5 33 16C33 7.71573 26.2843 1 18 1C9.71573 1 3 7.71573 3 16C3 26.5 18 41 18 41Z" fill="var(--color-background-universal, #FFFFFF)" stroke="var(--color-border-light, rgba(0, 0, 0, 0.12))" stroke-width="1.5" />
+    <circle class="pin-core-disc" cx="18" cy="16" r="13" fill="var(--color-surface-gray, #F5F5F7)" />
+
+    {# Architectural Mid-Rise Condo Glyph #}
+    <g class="pin-glyph glyph-condo">
+      <!-- Main High-Rise Structure -->
+      <rect x="11.5" y="8" width="13" height="15" rx="1.5" fill="var(--color-secondary-default, #1E4D6B)" />
+      <!-- Architectural Cornice/Roof Peak -->
+      <path d="M10.5 8.5L18 5L25.5 8.5" stroke="var(--color-secondary-default, #1E4D6B)" stroke-width="1.2" stroke-linecap="round" />
+      <!-- Grid Balcony Windows -->
+      <rect x="13.5" y="10" width="2" height="2.5" rx="0.5" fill="var(--color-background-universal, #FFFFFF)" />
+      <rect x="17" y="10" width="2" height="2.5" rx="0.5" fill="var(--color-background-universal, #FFFFFF)" />
+      <rect x="20.5" y="10" width="2" height="2.5" rx="0.5" fill="var(--color-background-universal, #FFFFFF)" />
+      
+      <rect x="13.5" y="14" width="2" height="2.5" rx="0.5" fill="var(--color-background-universal, #FFFFFF)" />
+      <rect x="17" y="14" width="2" height="2.5" rx="0.5" fill="var(--color-background-universal, #FFFFFF)" />
+      <rect x="20.5" y="14" width="2" height="2.5" rx="0.5" fill="var(--color-background-universal, #FFFFFF)" />
+
+      <!-- Ground Level Entrance Portico -->
+      <rect x="16.5" y="19" width="3" height="4" rx="0.5" fill="var(--color-background-universal, #FFFFFF)" />
+    </g>
+  </svg>
+</a>
