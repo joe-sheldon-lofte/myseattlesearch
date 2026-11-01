@@ -10,11 +10,10 @@ eleventyComputed:
   search_scope: "sports"
 ---
 {# Section 4.0: Franchise Team Metrics #}
-{% include "components/widget/sports-team-stats.njk" with {
-  team_name: team.TeamName,
-  team_stats: team.teamStats,
-  season_label: team.season_label
-} %}
+{% set team_name = team.TeamName %}
+{% set team_stats = team.teamStats if team.teamStats else {} %}
+{% set season_label = team.season_label if team.season_label else "" %}
+{% include "components/widget/sports-team-stats.njk" %}
 
 {# Section 6.0: Franchise Wire & Recaps #}
 <section class="sports-section" id="news" aria-label="{{ team.TeamName }} News Wire">
@@ -24,10 +23,8 @@ eleventyComputed:
   </div>
 
   {% set team_news_tag = "sports-" ~ (team.TeamName | slugify) %}
-
-  {% include "components/widget/news-summary-list-all.njk" with {
-    all_news_heading: team.TeamName ~ " News & Dispatches",
-    overline_text: (team.AltName | default(team.TeamName) | upper) ~ " DISPATCH WIRE",
-    all_news_items: market_news | filter_contains('tags', team_news_tag)
-  } %}
+  {% set all_news_heading = team.TeamName ~ " News & Dispatches" %}
+  {% set overline_text = (team.AltName | default(team.TeamName) | upper) ~ " DISPATCH WIRE" %}
+  {% set all_news_items = market_news | filter_contains('tags', team_news_tag) if market_news else [] %}
+  {% include "components/widget/news-summary-list-all.njk" %}
 </section>

@@ -1,10 +1,9 @@
 ---
-layout: "layouts/base.njk"
+layout: layouts/base.njk
 permalink: "/neighborhood/sports/pro/index.html"
 title: "Puget Sound Professional Sports Intelligence"
 meta_description: "Real-time scores, standings, team telemetry, and news covering Seattle Seahawks, Mariners, Kraken, Sounders FC, Storm, and Reign FC."
 ---
-
 {# Section 1.0: Billboard Header #}
 <header class="sports-pro-hero" role="banner">
   <div class="sports-hero-scrim" aria-hidden="true"></div>
@@ -19,36 +18,35 @@ meta_description: "Real-time scores, standings, team telemetry, and news coverin
 
   {# Section 2.0: Category Navigation #}
   <nav class="sports-nav-strip" aria-label="Sports Categories">
-    {% include "components/widget/neighborhood-nav-links.njk" with {
-      nav_label: "Neighborhood Home",
-      nav_url: "/neighborhood/",
-      is_active: false
-    } %}
-    {% include "components/widget/neighborhood-nav-links.njk" with {
-      nav_label: "Transit & Commute",
-      nav_url: "/neighborhood/region/transit-commute/",
-      is_active: false
-    } %}
-    {% include "components/widget/neighborhood-nav-links.njk" with {
-      nav_label: "School Directory",
-      nav_url: "/neighborhood/school/",
-      is_active: false
-    } %}
-    {% include "components/widget/neighborhood-nav-links.njk" with {
-      nav_label: "Pro Sports",
-      nav_url: "/neighborhood/sports/pro/",
-      is_active: true
-    } %}
-    {% include "components/widget/neighborhood-nav-links.njk" with {
-      nav_label: "Minor League Sports",
-      nav_url: "/neighborhood/sports/minor/",
-      is_active: false
-    } %}
-    {% include "components/widget/neighborhood-nav-links.njk" with {
-      nav_label: "College Sports",
-      nav_url: "/neighborhood/sports/college/",
-      is_active: false
-    } %}
+    {% set nav_label = "Neighborhood Home" %}
+    {% set nav_url = "/neighborhood/" %}
+    {% set is_active = false %}
+    {% include "components/widget/neighborhood-nav-links.njk" %}
+
+    {% set nav_label = "Transit & Commute" %}
+    {% set nav_url = "/neighborhood/region/transit-commute/" %}
+    {% set is_active = false %}
+    {% include "components/widget/neighborhood-nav-links.njk" %}
+
+    {% set nav_label = "School Directory" %}
+    {% set nav_url = "/neighborhood/school/" %}
+    {% set is_active = false %}
+    {% include "components/widget/neighborhood-nav-links.njk" %}
+
+    {% set nav_label = "Pro Sports" %}
+    {% set nav_url = "/neighborhood/sports/pro/" %}
+    {% set is_active = true %}
+    {% include "components/widget/neighborhood-nav-links.njk" %}
+
+    {% set nav_label = "Minor League Sports" %}
+    {% set nav_url = "/neighborhood/sports/minor/" %}
+    {% set is_active = false %}
+    {% include "components/widget/neighborhood-nav-links.njk" %}
+
+    {% set nav_label = "College Sports" %}
+    {% set nav_url = "/neighborhood/sports/college/" %}
+    {% set is_active = false %}
+    {% include "components/widget/neighborhood-nav-links.njk" %}
   </nav>
 
   {# Section 3.0: Active & Recent Matchups #}
@@ -58,45 +56,42 @@ meta_description: "Real-time scores, standings, team telemetry, and news coverin
       <h2 class="text-section-title">Latest Game Outcomes</h2>
     </div>
 
-    {% set pro_games = sports_data.teams | recentLevelGames("Professional", 6) %}
+    {% set pro_games = (sports_data.teams if sports_data and sports_data.teams else []) | recentLevelGames("Professional", 6) %}
     
     <div class="sports-score-grid">
       {% for g in pro_games %}
         {% set is_local_home = (g.teamName == g.home_team) %}
-        {% include "components/widget/sports-score-box.njk" with {
-          scorebox_header: (g.league ~ " " ~ g.sport) | upper,
-          scorebox_status_text: g.status | upper,
-          scorebox_local_name: g.teamName,
-          scorebox_local_record: g.teamRecord,
-          scorebox_local_score: g.home_score if is_local_home else g.away_score,
-          scorebox_opp_name: g.away_team if is_local_home else g.home_team,
-          scorebox_opp_record: "",
-          scorebox_opp_score: g.away_score if is_local_home else g.home_score,
-          scorebox_recap_url: g.teamSite
-        } %}
+        {% set scorebox_header = (g.league ~ " " ~ g.sport) | upper %}
+        {% set scorebox_status_text = g.status | upper %}
+        {% set scorebox_local_name = g.teamName %}
+        {% set scorebox_local_record = g.teamRecord %}
+        {% set scorebox_local_score = g.home_score if is_local_home else g.away_score %}
+        {% set scorebox_opp_name = g.away_team if is_local_home else g.home_team %}
+        {% set scorebox_opp_record = "" %}
+        {% set scorebox_opp_score = g.away_score if is_local_home else g.home_score %}
+        {% set scorebox_recap_url = g.teamSite %}
+        {% include "components/widget/sports-score-box.njk" %}
       {% endfor %}
     </div>
   </section>
 
-{# Section 4.0: Professional Franchise Roster #}
-  {% include "components/widget/sports-team-list.njk" with {
-    teams_data: sports_data.teams,
-    target_level: "Professional",
-    list_title: "Pacific Northwest Franchises",
-    list_overline: "FRANCHISE TELEMETRY"
-  } %}
+  {# Section 4.0: Professional Franchise Roster #}
+  {% set teams_data = sports_data.teams if sports_data and sports_data.teams else [] %}
+  {% set target_level = "Professional" %}
+  {% set list_title = "Pacific Northwest Franchises" %}
+  {% set list_overline = "FRANCHISE TELEMETRY" %}
+  {% include "components/widget/sports-team-list.njk" %}
 
-{# Section 5.0: Professional Sports Wire #}
-<section class="sports-section" id="news" aria-label="Professional Sports Intelligence">
-  <div class="section-title-stack">
-    <span class="text-overline text-accent-alpine">DISPATCH FEED</span>
-    <h2 class="text-section-title">Franchise News & Wire</h2>
-  </div>
+  {# Section 5.0: Professional Sports Wire #}
+  <section class="sports-section" id="news" aria-label="Professional Sports Intelligence">
+    <div class="section-title-stack">
+      <span class="text-overline text-accent-alpine">DISPATCH FEED</span>
+      <h2 class="text-section-title">Franchise News & Wire</h2>
+    </div>
 
-  {% include "components/widget/news-summary-list-all.njk" with {
-    all_news_heading: "Puget Sound Pro Sports News Wire",
-    all_news_items: market_news | filter_contains('tags', 'sports-professional')
-  } %}
-</section>
+    {% set all_news_heading = "Puget Sound Pro Sports News Wire" %}
+    {% set all_news_items = market_news | filter_contains('tags', 'sports-professional') if market_news else [] %}
+    {% include "components/widget/news-summary-list-all.njk" %}
+  </section>
 
 </div>
