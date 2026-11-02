@@ -381,7 +381,7 @@ def main():
         "Live_Archive", "Uploads", "Sports", "TollData", 
         "UtilityData", "MatrixKeepAlive", 
         "BuyerGuide", "SellerGuide", "GuideFAQs",
-        "PublicEvents", "Translations", "SiteCredits", "DispatchAgencies", "VideoLibrary", "AudioLibrary", "VideoChannels", "VideoChannelSchedules", "ElectionSchedule",
+        "PublicEvents", "Translations", "SiteCredits", "DispatchAgencies", "VideoLibrary", "AudioLibrary", "VideoChannels", "VideoChannelSchedules", "ElectionSchedule", "Publishers",
     ]
     ranges = [f"{tab}!A:BK" for tab in all_tabs]
 
@@ -558,6 +558,7 @@ def main():
         ("VideoChannels", "video_channels.json"),
         ("VideoChannelSchedules", "video_channel_schedules.json"),
         ("ElectionSchedule", "election_schedule.json"),
+        ("Publishers", "publishers.json"),
     ]:
         rows = tabs_data.get(tab_name, {}).get('values', [])
         if rows:
