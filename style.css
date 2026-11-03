@@ -5798,3 +5798,152 @@ neighborhood-map { display: block; width: 100%; height: 100%; }
 [data-live-source][data-status="alpine"] .stat-accent-indicator {
   color: var(--color-secondary-default);
 }
+
+/* ==========================================================================
+   WIDGET: MUNICIPAL POWER OUTAGE TELEMETRY BOARD
+   ========================================================================== */
+
+.power-outage-card {
+  background: var(--color-background-universal, #FFFFFF);
+  border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08));
+  border-radius: var(--border-radius-squircle, 18px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.power-outage-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.power-outage-header-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.power-outage-overline {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--color-secondary-muted, #6E6E73);
+}
+
+.power-outage-title {
+  font-size: 1.15rem;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--premier-charcoal, #1C1C1E);
+  margin: 0;
+}
+
+.power-outage-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--border-radius-pill, 9999px);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.power-outage-pill .status-indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.power-outage-pill.status-emerald {
+  background: rgba(16, 185, 129, 0.12);
+  color: #065F46;
+}
+
+.power-outage-pill.status-emerald .status-indicator-dot {
+  background: var(--status-emerald, #10B981);
+}
+
+.power-outage-pill.status-amber {
+  background: rgba(217, 119, 6, 0.12);
+  color: #92400E;
+}
+
+.power-outage-pill.status-amber .status-indicator-dot {
+  background: var(--status-amber, #D97706);
+}
+
+.power-outage-pill.status-neutral {
+  background: rgba(110, 110, 115, 0.1);
+  color: var(--color-secondary-muted, #6E6E73);
+}
+
+.power-outage-pill.status-neutral .status-indicator-dot {
+  background: var(--color-secondary-muted, #6E6E73);
+}
+
+.power-outage-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.power-outage-metrics .metric-chamber {
+  background: var(--color-surface-gray, #F5F5F7);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.power-outage-metrics .metric-chamber-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--color-secondary-muted, #6E6E73);
+}
+
+.power-outage-metrics .metric-chamber-val {
+  font-family: monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--premier-charcoal, #1C1C1E);
+}
+
+.power-outage-metrics .metric-chamber-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.power-outage-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.06));
+}
+
+.power-outage-timestamp,
+.power-outage-provenance {
+  font-size: 0.68rem;
+  font-family: monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-secondary-muted, #6E6E73);
+}
+
+@media (max-width: 640px) {
+  .power-outage-metrics {
+    grid-template-columns: 1fr;
+  }
+}

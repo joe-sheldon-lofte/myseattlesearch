@@ -1,16 +1,83 @@
-<!-- File: _includes/components/widget/map-custom-emergencies.njk -->
 {# 
-  COMPONENT: Emergency Infrastructure & Evacuation Corridor Map (widget.map.custom.emergencies)
-  PURPOSE: Specialized orchestrator mapping fire/police stations, hospitals, cooling centers, and disaster routes.
+  COMPONENT: Electrical Power Outage Monitor (widget.emergency.power.outage.board)
+  TAXONOMY: _includes/components/widget/emergency-power-outage-board.njk
+  DATA-GATE: Reads territory telemetry dynamically via /api/power-outages?city=[city_slug]
   CONTRACT:
-    - map_lat / neighborhood.latitude / city.Latitude: Number [Required]
-    - map_lon / neighborhood.longitude / city.Longitude: Number [Required]
-    - map_neighborhood / neighborhood.name / city.City: String [Optional]
-    - map_title: String [Optional, overrides default title]
+    - city_slug: String [Optional, auto-derived from city.City | slugify or defaults to "seattle"]
+    - outage_board_title: String [Optional, defaults to "Electrical Distribution"]
+    - outage_board_overline: String [Optional, defaults to "Municipal Grid Telemetry"]
 #}
 
-{% set map_layer = "emergencies" %}
-{% set map_overline = "CIVIL DEFENSE & READINESS" %}
-{% set map_accent_color = "var(--pnw-red)" %}
+{% set active_city = city_slug or (city.City | slugify) or "seattle" %}
+{% set board_title = outage_board_title or "Electrical Distribution" %}
+{% set board_overline = outage_board_overline or "Municipal Grid Telemetry" %}
 
-{% include "components/widget/map-custom.njk" %}
+<section class="widget-card power-outage-card" data-city="{{ active_city }}" aria-labelledby="outage-heading-{{ active_city }}">
+  <div class="power-outage-header">
+    <div class="power-outage-header-meta">
+      <span class="power-outage-overline">{{ board_overline }}</span>
+      <h3 id="outage-heading-{{ active_city }}" class="power-outage-title">{{ board_title }}</h3>
+    </div>
+    <div class="power-outage-pill status-neutral" id="outage-pill-{{ active_city }}">
+      <span class="status-indicator-dot" aria-hidden="true"></span>
+      <span class="status-indicator-text" id="outage-label-{{ active_city }}">Connecting…</span>
+    </div>
+  </div>
+
+  <div class="power-outage-metrics">
+    <div class="metric-chamber">
+      <span class="metric-chamber-label">Active Incidents</span>
+      <span class="metric-chamber-val" id="outage-incidents-{{ active_city }}">--</span>
+    </div>
+    <div class="metric-chamber">
+      <span class="metric-chamber-label">Customers Impacted</span>
+      <span class="metric-chamber-val" id="outage-customers-{{ active_city }}">--</span>
+    </div>
+    <div class="metric-chamber">
+      <span class="metric-chamber-label">Jurisdictional Utility</span>
+      <span class="metric-chamber-val metric-chamber-truncate" id="outage-utility-{{ active_city }}">--</span>
+    </div>
+  </div>
+
+  <div class="power-outage-footer">
+    <span class="power-outage-timestamp" id="outage-updated-{{ active_city }}">Synchronizing edge feed…</span>
+    <span class="power-outage-provenance">R2 Direct Utility Ingestion</span>
+  </div>
+</section>
+
+<script>
+  (function() {
+    const city = "{{ active_city }}";
+    const pill = document.getElementById(`outage-pill-${city}`);
+    const label = document.getElementById(`outage-label-${city}`);
+    const incidents = document.getElementById(`outage-incidents-${city}`);
+    const customers = document.getElementById(`outage-customers-${city}`);
+    const utility = document.getElementById(`outage-utility-${city}`);
+    const updated = document.getElementById(`outage-updated-${city}`);
+
+    if (!pill || !label) return;
+
+    fetch(`/api/power-outages?city=${encodeURIComponent(city)}`)
+      .then(res => {
+        if (!res.ok) throw new Error("Telemetry offline");
+        return res.json();
+      })
+      .then(data => {
+        if (incidents) incidents.textContent = Number(data.active_incidents || 0).toLocaleString();
+        if (customers) customers.textContent = Number(data.customers_affected || 0).toLocaleString();
+        if (utility) utility.textContent = data.utility || "Regional Grid";
+
+        pill.className = "power-outage-pill";
+        if (data.grid_condition === "elevated") {
+          pill.classList.add("status-amber");
+        } else if (data.grid_condition === "localized") {
+          pill.classList.add("status-amber");
+        } else {
+          pill.classList.add("status-emerald");
+        }
+
+        label.textContent = data.status_label || "Grid Optimal";
+
+        if (updated && data.updated_utc) {
+          const syncDate = new Date(data.updated_utc);
+          updated.textContent
