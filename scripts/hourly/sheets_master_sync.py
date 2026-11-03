@@ -1,13 +1,9 @@
-# File: scripts/hourly/sheets_master_sync.py
 import os
 import io
+import re
 import json
 import math
-import re
-import time
 import datetime
-import urllib.request
-import urllib.parse
 import requests
 import boto3
 from PIL import Image
@@ -16,12 +12,10 @@ from googleapiclient.discovery import build
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(BASE_DIR, "data")
-CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 COMMUTE_TOLLS_PATH = os.path.join(DATA_DIR, "city_commute_tolls.json")
 
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
-    'https://www.googleapis.com/auth/documents.readonly',
     'https://www.googleapis.com/auth/drive'
 ]
 
@@ -47,21 +41,11 @@ def slugify(text):
     if not text:
         return ""
     text = str(text).lower().strip()
-    out = []
-    for ch in text:
-        if ch.isalnum():
-            out.append(ch)
-        elif ch in [' ', '-', '_']:
-            out.append('-')
+    out = [ch if ch.isalnum() else '-' for ch in text if ch.isalnum() or ch in [' ', '-', '_']]
     res = "".join(out)
     while '--' in res:
         res = res.replace('--', '-')
     return res.strip('-')
-
-def generate_url_slug(text_input):
-    processed = str(text_input).lower().strip()
-    processed = re.sub(r'[^a-z0-9\s-]', '', processed)
-    return re.sub(r'[\s-]+', '-', processed)
 
 def extract_google_id(url_string):
     if not isinstance(url_string, str):
@@ -70,9 +54,7 @@ def extract_google_id(url_string):
     if match:
         return match.group(1)
     match = re.search(r'id=([a-zA-Z0-9_-]+)', url_string)
-    if match:
-        return match.group(1)
-    return None
+    return match.group(1) if match else None
 
 def is_google_drive_link(url_string):
     if not isinstance(url_string, str) or not url_string.strip():
@@ -82,86 +64,32 @@ def is_google_drive_link(url_string):
         return False
     return "drive.google.com" in u or "docs.google.com" in u or "drive.usercontent.google.com" in u or extract_google_id(url_string) is not None
 
-def apply_markdown_style(content, style_type, url=None):
-    if not content or content.isspace():
-        return content
-    match = re.match(r'^(\s*)(.*?)(\s*)$', content, re.DOTALL)
-    if match:
-        lead, core, trail = match.groups()
-        if style_type == 'bold':
-            core = f"**{core}**"
-        elif style_type == 'italic':
-            core = f"*{core}*"
-        elif style_type == 'link' and url:
-            core = core.replace('[', '').replace(']', '')
-            core = f"[{core}]({url})"
-        return f"{lead}{core}{trail}"
-    return content
-
-def get_google_doc_as_markdown(docs_service, doc_url):
-    doc_id = extract_google_id(doc_url)
-    if not doc_id:
-        return ""
-    try:
-        doc = docs_service.documents().get(documentId=doc_id).execute()
-        elements = doc.get('body', {}).get('content', [])
-        markdown_text = []
-        for element in elements:
-            if 'paragraph' in element:
-                paragraph = element['paragraph']
-                named_style = paragraph.get('paragraphStyle', {}).get('namedStyleType', 'NORMAL_TEXT')
-                p_text = ""
-                for p_element in paragraph.get('elements', []):
-                    if 'textRun' in p_element:
-                        text_run = p_element['textRun']
-                        content = text_run.get('content', '')
-                        style = text_run.get('textStyle', {})
-                        if style.get('bold'):
-                            content = apply_markdown_style(content, 'bold')
-                        if style.get('italic'):
-                            content = apply_markdown_style(content, 'italic')
-                        if 'link' in style and 'url' in style['link']:
-                            content = apply_markdown_style(content, 'link', style['link']['url'])
-                        p_text += content
-                if named_style == 'HEADING_1':
-                    markdown_text.append(f"# {p_text.strip()}\n\n")
-                elif named_style == 'HEADING_2':
-                    markdown_text.append(f"## {p_text.strip()}\n\n")
-                elif named_style == 'HEADING_3':
-                    markdown_text.append(f"### {p_text.strip()}\n\n")
-                else:
-                    markdown_text.append(p_text)
-        return "".join(markdown_text)
-    except Exception as e:
-        print(f"   ⚠️ Doc parsing fault on ID {doc_id}: {e}")
-        return ""
-
 def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, folder_name, filename_slug, index=1):
     file_id = extract_google_id(image_url)
     if not file_id:
         return image_url
-        
+
     custom_domain = "https://assets.myseattlesearch.com"
     object_key = f"{folder_name.lower()}/{filename_slug}-img-{index}.webp"
     permanent_url = f"{custom_domain}/{object_key}"
-    
+
     try:
         request = drive_service.files().get_media(fileId=file_id)
         raw_bytes = request.execute()
-        
+
         file_stream = io.BytesIO(raw_bytes)
         img = Image.open(file_stream)
-        
+
         max_dim = 1600
         if img.width > max_dim or img.height > max_dim:
             img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
 
         img = img.convert("RGBA") if img.mode in ("RGBA", "P") else img.convert("RGB")
-        
+
         webp_buffer = io.BytesIO()
         img.save(webp_buffer, format="WEBP", quality=82)
         webp_buffer.seek(0)
-        
+
         s3_client.put_object(
             Bucket=r2_bucket,
             Key=object_key,
@@ -234,7 +162,7 @@ def process_and_upload_pdf(drive_service, s3_client, r2_bucket, pdf_url, mls_num
         return pdf_url, title or f"Document {index}"
 
     custom_domain = "https://assets.myseattlesearch.com"
-    
+
     try:
         file_meta = drive_service.files().get(fileId=file_id, fields="name").execute()
         original_name = file_meta.get("name", f"Document_{index}.pdf")
@@ -288,14 +216,11 @@ def clean_wsdot_facility_name(raw_name, travel_dir):
         "099tp03268": "SR 99 Tunnel (Northbound)",
         "509tp02050": "SR 509 Expressway (Southbound)",
     }
-    if clean_id in wsdot_known_map:
-        return wsdot_known_map[clean_id]
-    return str(raw_name).strip()
+    return wsdot_known_map.get(clean_id, str(raw_name).strip())
 
-def harvest_commute_and_tolls(toll_schedules_from_sheet=None):
+def harvest_commute_and_tolls():
     wsdot_code = os.environ.get("WSDOT_ACCESS_CODE", "").strip().strip("'").strip('"')
     tolls_data = []
-    travel_times_data = []
 
     if wsdot_code:
         headers = {"User-Agent": "Mozilla/5.0"}
@@ -322,40 +247,34 @@ def harvest_commute_and_tolls(toll_schedules_from_sheet=None):
                         }
                 tolls_data = list(facility_rate_map.values())
         except Exception as e:
-            print(f"   ⚠️ Tolls fetch notice: {e}")
+            print(f"   ⚠️ WSDOT Tolls live fetch notice: {e}")
 
-    static_schedules = toll_schedules_from_sheet if toll_schedules_from_sheet else []
     output = {
         "live_express_tolls": tolls_data,
-        "static_rate_schedules": static_schedules,
-        "commute_corridors": travel_times_data,
+        "static_rate_schedules": [],
+        "commute_corridors": [],
         "last_updated": datetime.datetime.now(datetime.timezone.utc).isoformat()
     }
     with open(COMMUTE_TOLLS_PATH, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
+    print("   Updated city_commute_tolls.json directly from WSDOT API.")
 
 def main():
-    print("📊 Running Consolidated Sheets Master Ingestion & Sync...")
+    print("📊 Running Hourly Platform Sync (Historical Log, Media, News, Sports & Live Tolls)...")
     os.makedirs(DATA_DIR, exist_ok=True)
-    editorials_dir = os.path.join(DATA_DIR, "editorials")
-    os.makedirs(editorials_dir, exist_ok=True)
 
+    # 1. Harvest Live WSDOT Express Tolls (Replacing TollData Sheet tab)
+    harvest_commute_and_tolls()
+
+    # 2. Connect to Google Sheets & R2 Engine
     master_sheet_id = os.environ.get("WEBSITE_DATA_CORE_SHEET_ID") or os.environ.get("WEBSITE_DATA_SHEET_ID")
-    if not master_sheet_id:
-        print("❌ WEBSITE_DATA_CORE_SHEET_ID missing from environment.")
-        return
-
     creds_path = "credentials.json"
-    if not os.path.exists(creds_path):
-        print("❌ credentials.json missing.")
+    if not master_sheet_id or not os.path.exists(creds_path):
+        print("❌ Missing credentials or Sheet ID. Exiting Sheets ingestion.")
         return
 
-    creds = Credentials.from_service_account_file(
-        creds_path,
-        scopes=SCOPES
-    )
+    creds = Credentials.from_service_account_file(creds_path, scopes=SCOPES)
     sheets_service = build('sheets', 'v4', credentials=creds)
-    docs_service = build('docs', 'v1', credentials=creds)
     drive_service = build('drive', 'v3', credentials=creds)
 
     r2_access_key = os.environ.get("R2_ACCESS_KEY_ID")
@@ -370,141 +289,28 @@ def main():
             region_name="auto"
         )
 
-    batch_sheet_writebacks = {master_sheet_id: []}
-
-    # Consolidated Single Batch Call across all tabs (Expanded to !A:BJ)
-    all_tabs = [
-        "Market_Dashboard", "Rates", "Historical_Log", 
-        "CityData", "MunicipalFeeds", "Stats", "Team", 
-        "Disclaimers", "Events", "DPA", "Professionals", 
-        "Reviews", "ThirdPartyPrograms", "News", "Sales", 
-        "Live_Archive", "Uploads", "Sports", "TollData", 
-        "UtilityData", "MatrixKeepAlive", 
-        "BuyerGuide", "SellerGuide", "GuideFAQs",
-        "PublicEvents", "Translations", "SiteCredits", "DispatchAgencies", "VideoLibrary", "AudioLibrary", "VideoChannels", "VideoChannelSchedules", "ElectionSchedule", "Publishers",
-    ]
+    # 3. Pull strictly the 5 Hourly Tabs
+    all_tabs = ["Historical_Log", "News", "Uploads", "Sports", "Publishers"]
     ranges = [f"{tab}!A:BK" for tab in all_tabs]
 
-    try:
-        response = sheets_service.spreadsheets().values().batchGet(
-            spreadsheetId=master_sheet_id, ranges=ranges
-        ).execute()
-        value_ranges = response.get('valueRanges', [])
-        tabs_data = dict(zip(all_tabs, value_ranges))
-    except Exception as e:
-        print(f"   ⚠ Master Workbook batchGet notice: {e}")
-        tabs_data = {}
+    res = sheets_service.spreadsheets().values().batchGet(spreadsheetId=master_sheet_id, ranges=ranges).execute()
+    data = dict(zip(all_tabs, res.get('valueRanges', [])))
+    sheet_writebacks = []
 
-    # Module 1: Command Center Tabs
-    if tabs_data.get("Market_Dashboard", {}).get('values'):
-        with open(os.path.join(DATA_DIR, "hourly_market.json"), "w", encoding="utf-8") as f:
-            json.dump(parse_sheet_values(tabs_data["Market_Dashboard"]['values']), f, indent=2, ensure_ascii=False)
-
-    if tabs_data.get("Rates", {}).get('values'):
-        with open(os.path.join(DATA_DIR, "hourly_rates.json"), "w", encoding="utf-8") as f:
-            json.dump(parse_sheet_values(tabs_data["Rates"]['values']), f, indent=2, ensure_ascii=False)
-
-    if tabs_data.get("Historical_Log", {}).get('values'):
+    # Historical Log
+    if data.get("Historical_Log", {}).get('values'):
         with open(os.path.join(DATA_DIR, "hourly_market_historical.json"), "w", encoding="utf-8") as f:
-            json.dump(parse_sheet_values(tabs_data["Historical_Log"]['values']), f, indent=2, ensure_ascii=False)
+            json.dump(parse_sheet_values(data["Historical_Log"]['values']), f, indent=2, ensure_ascii=False)
 
-    # Module 1B: City Data Tabs & Editorial Download
-    city_rows = tabs_data.get("CityData", {}).get('values', [])
-    if city_rows and len(city_rows) >= 2:
-        headers = [str(h).strip() for h in city_rows[0]]
-        parsed_city_data = parse_sheet_values(city_rows)
-
-        with open(CITY_DATA_PATH, "w", encoding="utf-8") as f:
-            json.dump(clean_nan_tokens(parsed_city_data), f, indent=2, ensure_ascii=False)
-
-        col_status_idx = -1
-        for candidate in ["EditorialStatus", "Editorial Status", "Editorial_Status"]:
-            if candidate in headers:
-                col_status_idx = headers.index(candidate)
-                break
-
-        for idx, r in enumerate(city_rows[1:]):
-            padded = list(r) + [""] * (len(headers) - len(r))
-            record = dict(zip(headers, padded))
-            row_num = idx + 2
-            city_name = record.get("City", "").strip()
-            if not city_name: continue
-
-            slug = slugify(city_name)
-            doc_url = record.get("Editorial", "").strip()
-            status = (record.get("EditorialStatus", "") or record.get("Editorial Status", "") or "").strip()
-
-            if doc_url and is_google_drive_link(doc_url) and status.lower() == "pending":
-                md_content = get_google_doc_as_markdown(docs_service, doc_url)
-                if md_content and md_content.strip():
-                    with open(os.path.join(editorials_dir, f"{slug}.md"), "w", encoding="utf-8") as f_md:
-                        f_md.write(md_content)
-                    if col_status_idx != -1:
-                        batch_sheet_writebacks[master_sheet_id].append({
-                            'range': f"CityData!{get_col_letter(col_status_idx)}{row_num}",
-                            'values': [["Complete"]]
-                        })
-
-    # MunicipalFeeds
-    muni_rows = tabs_data.get("MunicipalFeeds", {}).get('values', [])
-    if muni_rows:
-        parsed_muni_feeds = parse_sheet_values(muni_rows)
-        with open(os.path.join(DATA_DIR, "municipal_feeds.json"), "w", encoding="utf-8") as f:
-            json.dump(clean_nan_tokens(parsed_muni_feeds), f, indent=2, ensure_ascii=False)
-
-    # Module 2: Website Data Tabs & Tolls
-    toll_rows = tabs_data.get("TollData", {}).get('values', [])
-    harvest_commute_and_tolls(parse_sheet_values(toll_rows) if toll_rows else [])
-
-    # Dynamic Vertical Key-Value Parser for Stats Tab
-    stats_rows = tabs_data.get("Stats", {}).get('values', [])
-    if stats_rows and len(stats_rows) >= 2:
-        stats_dict = {}
-        for r in stats_rows[1:]:
-            if r and len(r) > 0 and str(r[0]).strip():
-                k = str(r[0]).strip()
-                v = str(r[1]).strip() if len(r) > 1 and r[1] is not None else ""
-                stats_dict[k] = v
-        with open(os.path.join(DATA_DIR, "stats.json"), "w", encoding="utf-8") as f:
-            json.dump(clean_nan_tokens(stats_dict), f, indent=2, ensure_ascii=False)
-
-    # Bulk Process Uploads Tab
-    upload_rows = tabs_data.get("Uploads", {}).get('values', [])
+    # R2 Image Asset Conversion Engine
+    upload_rows = data.get("Uploads", {}).get('values', [])
     if upload_rows and len(upload_rows) >= 2:
         u_headers = [str(h).strip() for h in upload_rows[0]]
-
-        col_u_link = -1
-        for cand in ["Link", "Drive Link", "URL"]:
-            if cand in u_headers:
-                col_u_link = u_headers.index(cand)
-                break
-
-        col_u_dir = -1
-        for cand in ["Directory", "Image Directory", "Folder", "Dir"]:
-            if cand in u_headers:
-                col_u_dir = u_headers.index(cand)
-                break
-
-        col_u_name = -1
-        for cand in ["Name", "Asset Name", "File Name"]:
-            if cand in u_headers:
-                col_u_name = u_headers.index(cand)
-                break
-
-        col_u_asset = -1
-        for cand in ["New Asset URL", "Asset URL", "New Asset Link", "New URL"]:
-            if cand in u_headers:
-                col_u_asset = u_headers.index(cand)
-                break
-
-        if col_u_asset == -1 and col_u_link != -1:
-            col_u_asset = col_u_link
-
-        col_u_done = -1
-        for cand in ["Done", "Status", "Complete", "Processed"]:
-            if cand in u_headers:
-                col_u_done = u_headers.index(cand)
-                break
+        col_u_link = next((i for i, h in enumerate(u_headers) if h in ["Link", "Drive Link", "URL"]), -1)
+        col_u_dir = next((i for i, h in enumerate(u_headers) if h in ["Directory", "Image Directory", "Folder", "Dir"]), -1)
+        col_u_name = next((i for i, h in enumerate(u_headers) if h in ["Name", "Asset Name", "File Name"]), -1)
+        col_u_asset = next((i for i, h in enumerate(u_headers) if h in ["New Asset URL", "Asset URL", "New Asset Link", "New URL"]), col_u_link)
+        col_u_done = next((i for i, h in enumerate(u_headers) if h in ["Done", "Status", "Complete", "Processed"]), -1)
 
         for idx, r in enumerate(upload_rows[1:]):
             padded = list(r) + [""] * (len(u_headers) - len(r))
@@ -517,91 +323,31 @@ def main():
             d_done = (u_rec.get("Done") or u_rec.get("Status") or u_rec.get("Complete") or "").strip().lower()
 
             if d_link and is_google_drive_link(d_link) and d_done != "yes" and s3_client:
-                new_url = process_custom_upload_asset(
-                    drive_service, s3_client, r2_bucket, d_link, d_dir, d_name
-                )
+                new_url = process_custom_upload_asset(drive_service, s3_client, r2_bucket, d_link, d_dir, d_name)
                 if new_url and new_url != d_link:
                     if col_u_asset != -1:
-                        batch_sheet_writebacks[master_sheet_id].append({
-                            'range': f"Uploads!{get_col_letter(col_u_asset)}{row_num}",
-                            'values': [[new_url]]
-                        })
+                        sheet_writebacks.append({'range': f"Uploads!{get_col_letter(col_u_asset)}{row_num}", 'values': [[new_url]]})
                     if col_u_done != -1:
-                        batch_sheet_writebacks[master_sheet_id].append({
-                            'range': f"Uploads!{get_col_letter(col_u_done)}{row_num}",
-                            'values': [["Yes"]]
-                        })
+                        sheet_writebacks.append({'range': f"Uploads!{get_col_letter(col_u_done)}{row_num}", 'values': [["Yes"]]})
 
-    # Simple Array JSON tabs export
-    for tab_name, json_name in [
-        ("Disclaimers", "disclaimers.json"),
-        ("DPA", "dpa_programs.json"), 
-        ("Professionals", "professionals.json"), 
-        ("Reviews", "reviews.json"), 
-        ("ThirdPartyPrograms", "thirdpartyprograms.json"), 
-        ("News", "news.json"), 
-        ("Sports", "sports_teams.json"),
-        ("Uploads", "uploads.json"), 
-        ("UtilityData", "utility_data.json"),
-        ("Events", "events.json"), 
-        ("Team", "team.json"),
-        ("MatrixKeepAlive", "matrix_keep_alive.json"),
-        ("BuyerGuide", "buyer_guide.json"),
-        ("SellerGuide", "seller_guide.json"),
-        ("GuideFAQs", "guide_faqs.json"),
-        ("PublicEvents", "public_events.json"),
-        ("Translations", "translations.json"),
-        ("SiteCredits", "site_credits.json"),
-        ("DispatchAgencies", "dispatch_agencies.json"),
-        ("VideoLibrary", "video_library.json"),
-        ("AudioLibrary", "audio_library.json"),
-        ("VideoChannels", "video_channels.json"),
-        ("VideoChannelSchedules", "video_channel_schedules.json"),
-        ("ElectionSchedule", "election_schedule.json"),
-        ("Publishers", "publishers.json"),
-    ]:
-        rows = tabs_data.get(tab_name, {}).get('values', [])
+    # Array JSON Outputs
+    for tab_name, json_name in [("News", "news.json"), ("Sports", "sports_teams.json"), ("Uploads", "uploads.json"), ("Publishers", "publishers.json")]:
+        rows = data.get(tab_name, {}).get('values', [])
         if rows:
-            recs = parse_sheet_values(rows)
-            # Filter empty URLs out of MatrixKeepAlive
-            if tab_name == "MatrixKeepAlive":
-                recs = [r for r in recs if r.get("URL", "").strip()]
-            
             with open(os.path.join(DATA_DIR, json_name), "w", encoding="utf-8") as f:
-                json.dump(clean_nan_tokens(recs), f, indent=2, ensure_ascii=False)
+                json.dump(clean_nan_tokens(parse_sheet_values(rows)), f, indent=2, ensure_ascii=False)
 
-    # Sales & DOM Calibration
-    sales_rows = tabs_data.get("Sales", {}).get('values', [])
-    if sales_rows:
-        headers = [h.strip() for h in sales_rows[0]]
-        compiled_sales = []
-        today_date = datetime.datetime.now().date()
-        for idx, r in enumerate(sales_rows[1:]):
-            padded = list(r) + [""] * (len(headers) - len(r))
-            row_dict = dict(zip(headers, padded))
-            if row_dict.get("Status", "").strip() != "Sold":
-                s_date = row_dict.get("Selling Date")
-                if s_date and str(s_date).strip():
-                    try:
-                        dt_obj = datetime.datetime.strptime(str(s_date).strip(), "%m/%d/%Y").date()
-                        row_dict["DOM"] = max(0, (today_date - dt_obj).days)
-                    except Exception:
-                        row_dict["DOM"] = "-"
-            compiled_sales.append(row_dict)
-        with open(os.path.join(DATA_DIR, "sales.json"), "w", encoding="utf-8") as f:
-            json.dump(clean_nan_tokens(compiled_sales), f, indent=4, ensure_ascii=False)
+    # Flush Cell Updates back to the Sheet
+    if sheet_writebacks:
+        try:
+            sheets_service.spreadsheets().values().batchUpdate(
+                spreadsheetId=master_sheet_id,
+                body={'valueInputOption': 'USER_ENTERED', 'data': sheet_writebacks}
+            ).execute()
+        except Exception as e:
+            print(f"   ⚠️ Sheet writeback notice: {e}")
 
-    # Flush Cell Writebacks
-    for s_id, updates in batch_sheet_writebacks.items():
-        if updates:
-            try:
-                sheets_service.spreadsheets().values().batchUpdate(
-                    spreadsheetId=s_id, body={'valueInputOption': 'USER_ENTERED', 'data': updates}
-                ).execute()
-            except Exception as write_err:
-                print(f"   ⚠️ Sheet writeback notice: {write_err}")
-
-    print("✅ Consolidated Sheets Master Sync complete.")
+    print("✅ Hourly Platform Sync complete.")
 
 if __name__ == "__main__":
     main()

@@ -1,84 +1,354 @@
-<!-- File: _includes/components/widget/emergency-power-outage-board.njk -->
 {# 
-  COMPONENT: Electrical Power Outage Monitor (widget.emergency.power.outage.board)
+  COMPONENT: Electrical Power Outage Monitor & Live Grid Map (widget.emergency.power.outage.board)
+  TAXONOMY: _includes/components/widget/emergency-power-outage-board.njk
+  DATA-GATE: Reads territory telemetry dynamically via /api/power-outages?city=[city_slug]
   CONTRACT:
-    - outage_utilities_data / utilities / power_outage_data: Array of Objects [Required]
-      Each utility provider object expects:
-      - u.name: String [Required, e.g. "Snohomish County PUD"]
-      - u.customers_affected: Number [Required, e.g. 42]
-      - u.active_outages: Number [Optional, e.g. 3]
-      - u.status: String [Optional, e.g. "Normal Operations"]
-      - u.restored_pct: String [Optional, e.g. "99.98%"]
-    - outage_board_title: String [Optional, defaults to "Electrical Power Outage Monitor"]
-    - outage_board_overline: String [Optional, defaults to "UTILITY STATUS"]
-    - outage_source_text: String [Optional, defaults to "Source: Washington State Emergency Operations Center"]
-    - outage_sync_interval: String [Optional, defaults to "Updated Every 15 min"]
+    - city_slug: String [Optional, auto-derived from city.City | slugify or defaults to "seattle"]
+    - city: Object [Optional, provides Latitude and Longitude for initial camera centering]
+    - outage_board_title: String [Optional, defaults to "Electrical Distribution"]
+    - outage_board_overline: String [Optional, defaults to "Municipal Grid Telemetry"]
 #}
 
-{% set utility_list = outage_utilities_data or utilities or power_outage_data %}
-{% set board_title = outage_board_title or "Electrical Power Outage Monitor" %}
-{% set board_overline = outage_board_overline or "UTILITY STATUS" %}
-{% set source_text = outage_source_text or "Source: Washington State Emergency Operations Center" %}
-{% set sync_interval = outage_sync_interval or "Updated Every 15 min" %}
+{% set active_city = city_slug or (city.City | slugify) or "seattle" %}
+{% set center_lat = city.Latitude if city and city.Latitude else 47.6062 %}
+{% set center_lon = city.Longitude if city and city.Longitude else -122.3321 %}
+{% set board_title = outage_board_title or "Electrical Distribution" %}
+{% set board_overline = outage_board_overline or "Municipal Grid Telemetry" %}
 
-{% if utility_list and utility_list.length > 0 %}
-<div class="widget-card emergency-board-card">
+<section class="widget-card power-outage-card" 
+         data-city="{{ active_city }}" 
+         data-lat="{{ center_lat }}" 
+         data-lon="{{ center_lon }}" 
+         aria-labelledby="outage-heading-{{ active_city }}">
   
-  {# Header Row: Utility Status Overline & Title #}
-  <div class="card-header-clean emergency-board-header">
-    <div>
-      <span class="text-overline text-accent-alpine">
-        {{ board_overline }}
-      </span>
-      <h3 class="text-widget-title emergency-board-title">
-        {{ board_title }}
-      </h3>
+  <div class="power-outage-header">
+    <div class="power-outage-header-meta">
+      <span class="power-outage-overline">{{ board_overline }}</span>
+      <h3 id="outage-heading-{{ active_city }}" class="power-outage-title">{{ board_title }}</h3>
+    </div>
+    <div class="power-outage-pill status-neutral" id="outage-pill-{{ active_city }}">
+      <span class="status-indicator-dot" aria-hidden="true"></span>
+      <span class="status-indicator-text" id="outage-label-{{ active_city }}">Connecting…</span>
     </div>
   </div>
 
-  {# Utility Grid Matrix #}
-  <div class="emergency-events-stack">
-    {% for u in utility_list %}
-      {% if u.name and u.customers_affected is defined %}
-        <div class="power-outage-row">
-          
-          {# Left: Provider Identity & Graphic Frame #}
-          <div class="power-outage-lead">
-            <div class="power-outage-icon-frame" aria-hidden="true">
-              {% include "components/graphic/map-power-outage.njk" ignore missing %}
-            </div>
-            <div class="power-outage-identity">
-              <div class="power-outage-name">
-                {{ u.name }}
-              </div>
-              {% if u.active_outages is defined %}
-                <div class="text-body-secondary power-outage-subtext">
-                  {{ u.active_outages }} Active Incidents
+  <div class="power-outage-metrics">
+    <div class="metric-chamber">
+      <span class="metric-chamber-label">Active Incidents</span>
+      <span class="metric-chamber-val" id="outage-incidents-{{ active_city }}">--</span>
+    </div>
+    <div class="metric-chamber">
+      <span class="metric-chamber-label">Customers Impacted</span>
+      <span class="metric-chamber-val" id="outage-customers-{{ active_city }}">--</span>
+    </div>
+    <div class="metric-chamber">
+      <span class="metric-chamber-label">Jurisdictional Utility</span>
+      <span class="metric-chamber-val metric-chamber-truncate" id="outage-utility-{{ active_city }}">--</span>
+    </div>
+  </div>
+
+  <div class="power-outage-map-chamber">
+    <div id="power-outage-map-{{ active_city }}" class="power-outage-map-canvas" role="region" aria-label="Live Regional Power Outage Spatial Map"></div>
+    <div class="power-outage-map-overlay" id="outage-map-overlay-{{ active_city }}">
+      <span class="power-outage-overlay-text" id="outage-overlay-text-{{ active_city }}">Monitoring Grid Activity</span>
+    </div>
+  </div>
+
+  <div class="power-outage-footer">
+    <span class="power-outage-timestamp" id="outage-updated-{{ active_city }}">Synchronizing edge feed…</span>
+    <span class="power-outage-provenance">R2 Direct Utility Ingestion</span>
+  </div>
+</section>
+
+<script>
+  (function() {
+    const city = "{{ active_city }}";
+    const card = document.querySelector(`.power-outage-card[data-city="${city}"]`);
+    if (!card) return;
+
+    const defaultLat = parseFloat(card.dataset.lat || "47.6062");
+    const defaultLon = parseFloat(card.dataset.lon || "-122.3321");
+
+    const pill = document.getElementById(`outage-pill-${city}`);
+    const label = document.getElementById(`outage-label-${city}`);
+    const incidents = document.getElementById(`outage-incidents-${city}`);
+    const customers = document.getElementById(`outage-customers-${city}`);
+    const utility = document.getElementById(`outage-utility-${city}`);
+    const updated = document.getElementById(`outage-updated-${city}`);
+    const overlayText = document.getElementById(`outage-overlay-text-${city}`);
+    const mapContainerId = `power-outage-map-${city}`;
+
+    function loadMapbox(callback) {
+      if (window.mapboxgl) {
+        callback();
+        return;
+      }
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.css";
+      document.head.appendChild(link);
+
+      const script = document.createElement("script");
+      script.src = "https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.js";
+      script.onload = callback;
+      document.head.appendChild(script);
+    }
+
+    function initOutageMap(geoJsonFeatures, mapboxToken) {
+      if (!mapboxToken) {
+        if (overlayText) overlayText.textContent = "Grid Map Configuration Pending";
+        return;
+      }
+
+      loadMapbox(() => {
+        mapboxgl.accessToken = mapboxToken;
+        const map = new mapboxgl.Map({
+          container: mapContainerId,
+          style: "mapbox://styles/mapbox/light-v11",
+          center: [defaultLon, defaultLat],
+          zoom: 11,
+          attributionControl: false
+        });
+
+        map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
+        map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+
+        map.on("load", () => {
+          map.addSource("outage-data", {
+            type: "geojson",
+            data: {
+              type: "FeatureCollection",
+              features: geoJsonFeatures
+            }
+          });
+
+          map.addLayer({
+            id: "outage-polygons-fill",
+            type: "fill",
+            source: "outage-data",
+            filter: ["==", "$type", "Polygon"],
+            paint: {
+              "fill-color": [
+                "case",
+                [">", ["get", "customers"], 500],
+                "#D9232A",
+                "#D97706"
+              ],
+              "fill-opacity": 0.24
+            }
+          });
+
+          map.addLayer({
+            id: "outage-polygons-stroke",
+            type: "line",
+            source: "outage-data",
+            filter: ["==", "$type", "Polygon"],
+            paint: {
+              "line-color": [
+                "case",
+                [">", ["get", "customers"], 500],
+                "#D9232A",
+                "#D97706"
+              ],
+              "line-width": 1.75
+            }
+          });
+
+          map.addLayer({
+            id: "outage-points",
+            type: "circle",
+            source: "outage-data",
+            filter: ["==", "$type", "Point"],
+            paint: {
+              "circle-radius": 6,
+              "circle-color": [
+                "case",
+                [">", ["get", "customers"], 500],
+                "#D9232A",
+                "#D97706"
+              ],
+              "circle-stroke-width": 2,
+              "circle-stroke-color": "#FFFFFF"
+            }
+          });
+
+          if (geoJsonFeatures.length > 0) {
+            const bounds = new mapboxgl.LngLatBounds();
+            geoJsonFeatures.forEach(feat => {
+              if (feat.geometry.type === "Point") {
+                bounds.extend(feat.geometry.coordinates);
+              } else if (feat.geometry.type === "Polygon") {
+                feat.geometry.coordinates[0].forEach(coord => bounds.extend(coord));
+              }
+            });
+            map.fitBounds(bounds, { padding: 48, maxZoom: 14.5, duration: 1000 });
+          }
+
+          map.on("click", ["outage-polygons-fill", "outage-points"], (e) => {
+            if (!e.features.length) return;
+            const props = e.features[0].properties;
+            const coords = e.lngLat;
+            new mapboxgl.Popup({ closeButton: false, offset: 12 })
+              .setLngLat(coords)
+              .setHTML(`
+                <div class="outage-popup-content">
+                  <div class="outage-popup-title">${props.title || "Grid Incident"}</div>
+                  <div class="outage-popup-stat"><strong>${props.customers || 0}</strong> Customers Impacted</div>
+                  <div class="outage-popup-meta">${props.status || "Assessing"} • ${props.cause || "Investigating"}</div>
                 </div>
-              {% endif %}
-            </div>
-          </div>
+              `)
+              .addTo(map);
+          });
 
-          {# Right: Customer Impact Metric with Crimson Alert Switch #}
-          <div class="power-outage-metric-block">
-            <div class="power-outage-number {% if u.customers_affected > 500 %}text-tier-crimson{% else %}text-primary-charcoal{% endif %}">
-              {{ u.customers_affected }}
-            </div>
-            <div class="text-overline power-outage-caption">
-              Customers Without Power
-            </div>
-          </div>
+          map.on("mouseenter", ["outage-polygons-fill", "outage-points"], () => {
+            map.getCanvas().style.cursor = "pointer";
+          });
+          map.on("mouseleave", ["outage-polygons-fill", "outage-points"], () => {
+            map.getCanvas().style.cursor = "";
+          });
+        });
+      });
+    }
 
-        </div>
-      {% endif %}
-    {% endfor %}
-  </div>
+    fetch(`/api/power-outages?city=${encodeURIComponent(city)}`)
+      .then(res => {
+        if (!res.ok) throw new Error("Telemetry offline");
+        return res.json();
+      })
+      .then(data => {
+        if (incidents) incidents.textContent = Number(data.active_incidents || 0).toLocaleString();
+        if (customers) customers.textContent = Number(data.customers_affected || 0).toLocaleString();
+        if (utility) utility.textContent = data.utility || "Regional Grid";
 
-  {# Footer: Attribution & Refresh Interval #}
-  <div class="card-footer-strip text-body-secondary">
-    <span>{{ source_text }}</span>
-    <span>{{ sync_interval }}</span>
-  </div>
+        pill.className = "power-outage-pill";
+        if (data.grid_condition === "elevated" || data.grid_condition === "localized") {
+          pill.classList.add("status-amber");
+        } else {
+          pill.classList.add("status-emerald");
+        }
 
-</div>
-{% endif %}
+        label.textContent = data.status_label || "Grid Optimal";
+
+        if (updated && data.updated_utc) {
+          const syncDate = new Date(data.updated_utc);
+          updated.textContent = `Synced ${syncDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        }
+
+        const features = [];
+
+        if (Array.isArray(data.events)) {
+          data.events.forEach(ev => {
+            const cust = Number(ev.numPeople || 0);
+            if (ev.polygons && Array.isArray(ev.polygons.rings)) {
+              features.push({
+                type: "Feature",
+                properties: {
+                  id: ev.id,
+                  customers: cust,
+                  cause: ev.cause || "Investigating",
+                  status: ev.status || "Active",
+                  title: ev.city ? `${ev.city} Outage` : "Active Incident"
+                },
+                geometry: {
+                  type: "Polygon",
+                  coordinates: ev.polygons.rings
+                }
+              });
+            }
+            if (ev.latitude && ev.longitude) {
+              features.push({
+                type: "Feature",
+                properties: {
+                  id: ev.id,
+                  customers: cust,
+                  cause: ev.cause || "Investigating",
+                  status: ev.status || "Active",
+                  title: ev.city ? `${ev.city} Incident` : "Active Incident"
+                },
+                geometry: {
+                  type: "Point",
+                  coordinates: [Number(ev.longitude), Number(ev.latitude)]
+                }
+              });
+            }
+          });
+        }
+
+        if (Array.isArray(data.incidents)) {
+          data.incidents.forEach(inc => {
+            const dp = inc.DataProvider || {};
+            const poi = dp.PointOfInterest || {};
+            const attrs = dp.Attributes || [];
+            let custCount = 0;
+            let statusText = "Active";
+            let causeText = "Investigating";
+
+            attrs.forEach(a => {
+              if (a.Name === "Customers impacted") custCount = parseInt(a.Value, 10) || 0;
+              if (a.Name === "Status") statusText = a.Value || statusText;
+              if (a.Name === "Cause") causeText = a.Value || causeText;
+            });
+
+            if (Array.isArray(inc.Polygon) && inc.Polygon.length > 2) {
+              const ring = inc.Polygon.map(pt => [parseFloat(pt.Longitude), parseFloat(pt.Latitude)]);
+              if (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1]) {
+                ring.push(ring[0]);
+              }
+              features.push({
+                type: "Feature",
+                properties: {
+                  id: poi.Id || "PSE-INC",
+                  customers: custCount,
+                  status: statusText,
+                  cause: causeText,
+                  title: poi.Title ? `${poi.Title} Incident` : "PSE Incident"
+                },
+                geometry: {
+                  type: "Polygon",
+                  coordinates: [ring]
+                }
+              });
+            }
+
+            if (poi.Latitude && poi.Longitude) {
+              features.push({
+                type: "Feature",
+                properties: {
+                  id: poi.Id || "PSE-POI",
+                  customers: custCount,
+                  status: statusText,
+                  cause: causeText,
+                  title: poi.Title ? `${poi.Title} Incident` : "PSE Incident"
+                },
+                geometry: {
+                  type: "Point",
+                  coordinates: [parseFloat(poi.Longitude), parseFloat(poi.Latitude)]
+                }
+              });
+            }
+          });
+        }
+
+        if (overlayText) {
+          if (features.length === 0) {
+            overlayText.textContent = "Grid Optimal • Zero Active Outages";
+          } else {
+            overlayText.textContent = `Displaying ${data.active_incidents} Active Spatial ${data.active_incidents === 1 ? "Boundary" : "Boundaries"}`;
+          }
+        }
+
+        const resolvedToken = data.mapbox_token || window.MAPBOX_PUBLIC_TOKEN || "{{ site.mapbox_public_token | default('') }}";
+        initOutageMap(features, resolvedToken);
+      })
+      .catch(() => {
+        pill.className = "power-outage-pill status-neutral";
+        label.textContent = "Telemetry Synchronizing";
+        if (incidents) incidents.textContent = "--";
+        if (customers) customers.textContent = "--";
+        if (utility) utility.textContent = "--";
+        if (updated) updated.textContent = "Awaiting snapshot";
+        if (overlayText) overlayText.textContent = "Spatial Telemetry Synchronizing";
+        initOutageMap([], null);
+      });
+  })();
+</script>

@@ -1,13 +1,9 @@
-# File: scripts/harvest_daily.py
 import os
 import sys
 import traceback
 import sentry_sdk
 from sentry_sdk.crons import monitor
 
-# ------------------------------------------------------------------------------
-# 1. INITIALIZE SENTRY (Global Process Handler)
-# ------------------------------------------------------------------------------
 SENTRY_DSN = os.getenv("SENTRY_DSN")
 
 if SENTRY_DSN:
@@ -16,15 +12,12 @@ if SENTRY_DSN:
         traces_sample_rate=0.0,
         environment="production"
     )
-    print("🛡 Sentry Error Monitoring Initialized.")
+    print("🛡️ Sentry Error Monitoring Initialized.")
 else:
     print("⚠️ SENTRY_DSN environment variable not found. Logging to terminal only.")
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# ------------------------------------------------------------------------------
-# 2. ENHANCED SAFE_TASK WITH SENTRY ERROR CAPTURE
-# ------------------------------------------------------------------------------
 def safe_task(task_name, func):
     print(f"🚀 [Daily Master] Starting: {task_name}...")
     try:
@@ -47,7 +40,6 @@ def safe_task(task_name, func):
 def run_subscript(script_relative_path):
     primary_path = os.path.join(BASE_DIR, "scripts", "daily", script_relative_path)
     fallback_path = os.path.join(BASE_DIR, "scripts", script_relative_path)
-    
     target_path = primary_path if os.path.exists(primary_path) else fallback_path
 
     if os.path.exists(target_path):
@@ -57,15 +49,13 @@ def run_subscript(script_relative_path):
     else:
         raise FileNotFoundError(f"Script not found at expected path: {primary_path}")
 
+def harvest_daily_sheets(): run_subscript("daily_sheet_sync.py")
 def harvest_construction_zones(): run_subscript("construction_zones.py")
 def harvest_quizzes_processor(): run_subscript("quizzes_processor.py")
 def harvest_city_events(): run_subscript("harvest_city_events.py")
 def harvest_sports_daily(): run_subscript("sports_daily.py")
 def harvest_public_events(): run_subscript("harvest_public_events.py")
 
-# ------------------------------------------------------------------------------
-# 3. MASTER DAILY RUNNER WITH SENTRY CRON MONITORING
-# ------------------------------------------------------------------------------
 @monitor(
     monitor_slug="daily-harvest-pipeline",
     monitor_config={
@@ -80,11 +70,12 @@ def main():
     print("       MYSEATTLESEARCH DAILY MASTER HARVESTER     ")
     print("==================================================\n")
 
-    safe_task("1. WSDOT Active Construction & Work Zones", harvest_construction_zones)
-    safe_task("2. Daily Polymorphic Quizzes Processor", harvest_quizzes_processor)
-    safe_task("3. Municipal & City Events Harvester", harvest_city_events)
-    safe_task("4. Regional Sports Standings & Records", harvest_sports_daily)
-    safe_task("5. Regional Public Events Feed Aggregator", harvest_public_events)
+    safe_task("1. Core Platform Daily Sheet Ingestion", harvest_daily_sheets)
+    safe_task("2. WSDOT Active Construction & Work Zones", harvest_construction_zones)
+    safe_task("3. Daily Polymorphic Quizzes Processor", harvest_quizzes_processor)
+    safe_task("4. Municipal & City Events Harvester", harvest_city_events)
+    safe_task("5. Regional Sports Standings & Records", harvest_sports_daily)
+    safe_task("6. Regional Public Events Feed Aggregator", harvest_public_events)
 
     print("🎉 Daily master harvesting sequence complete. Data fresh!")
 

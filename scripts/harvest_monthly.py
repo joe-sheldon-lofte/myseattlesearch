@@ -1,4 +1,3 @@
-# File: scripts/harvest_monthly.py
 import os
 import sys
 import traceback
@@ -13,7 +12,7 @@ SENTRY_DSN = os.getenv("SENTRY_DSN")
 if SENTRY_DSN:
     sentry_sdk.init(
         dsn=SENTRY_DSN,
-        traces_sample_rate=0.0,  # Pure error monitoring (saves quota)
+        traces_sample_rate=0.0,
         environment="production"
     )
     print("🛡️ Sentry Error Monitoring Initialized.")
@@ -49,8 +48,7 @@ def run_subscript(script_relative_path):
     if os.path.exists(path):
         exit_code = os.system(f"{sys.executable} {path}")
         if exit_code != 0:
-            # Raise exception so safe_task and Sentry capture sub-script failures
-            raise RuntimeError(f"Sub-script '{script_relative_path}' failed with exit status code {exit_code}")
+            raise RuntimeError(f"Sub-script '{script_relative_path}' failed with exit code {exit_code}")
     else:
         raise FileNotFoundError(f"Script not found at expected path: {path}")
 
@@ -59,6 +57,20 @@ def harvest_osm_amenities(): run_subscript("osm_amenities.py")
 def harvest_gis_boundaries(): run_subscript("gis_boundaries.py")
 def harvest_redfin_monthly(): run_subscript("redfin_monthly_stats.py")
 def harvest_businesses(): run_subscript("harvest_businesses.py")
+def harvest_monthly_sheets(): run_subscript("monthly_sheet_sync.py")
+def harvest_parcel_deltas(): run_subscript("sync_parcel_deltas.py")
+def harvest_fha_condos(): run_subscript("harvest_fha_condos.py")
+def harvest_va_condos(): run_subscript("harvest_va_condos.py")
+def build_master_condos(): run_subscript("build_master_condos.py")
+
+def sync_condos_to_d1():
+    utility_path = os.path.join(BASE_DIR, "scripts", "utilities", "seed_condos_d1.py")
+    if os.path.exists(utility_path):
+        exit_code = os.system(f"{sys.executable} {utility_path}")
+        if exit_code != 0:
+            raise RuntimeError(f"Condo D1 sync failed with exit code {exit_code}")
+    else:
+        raise FileNotFoundError(f"Utility not found at: {utility_path}")
 
 # ------------------------------------------------------------------------------
 # 3. MASTER MONTHLY RUNNER WITH SENTRY CRON MONITORING
@@ -67,8 +79,8 @@ def harvest_businesses(): run_subscript("harvest_businesses.py")
     monitor_slug="monthly-harvest-pipeline",
     monitor_config={
         "schedule": {"type": "crontab", "value": "0 9 1 * *"},
-        "checkin_margin": 240,  # Allows up to 4 hours delay for GitHub queue lag
-        "max_runtime": 210,     # Allows up to 3.5 hours runtime
+        "checkin_margin": 240,
+        "max_runtime": 210,
         "timezone": "America/Los_Angeles"
     }
 )
@@ -82,6 +94,12 @@ def main():
     safe_task("3. GIS City Boundaries (WSDOT)", harvest_gis_boundaries)
     safe_task("4. Advanced Redfin Monthly Analytics & Migration", harvest_redfin_monthly)
     safe_task("5. Google Places Local Business Spotlights", harvest_businesses)
+    safe_task("6. Utility Directory Ingestion (Google Sheets to D1)", harvest_monthly_sheets)
+    safe_task("7. County Parcel Roll Delta Synchronization", harvest_parcel_deltas)
+    safe_task("8. FHA Condo Certification Roll (HUD ENTP)", harvest_fha_condos)
+    safe_task("9. VA Condo Loan Approval Registry (VA LGY)", harvest_va_condos)
+    safe_task("10. Master Condominium Roll Assembly", build_master_condos)
+    safe_task("11. Condominium Database Synchronization (D1)", sync_condos_to_d1)
 
     print("🎉 Monthly master harvesting sequence complete. Data fresh!")
 
