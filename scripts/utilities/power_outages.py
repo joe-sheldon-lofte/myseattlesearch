@@ -79,7 +79,23 @@ def ingest_pse():
         incidents = data.get("PseMap", [])
         common = data.get("Common", {})
         count = common.get("OutageCount", len(incidents))
-        customers = common.get("CustsOut", sum(i.get("CustAffected", 0) for i in incidents))
+
+        # 1. Check top-level aggregate
+        customers = common.get("CustsOut", 0)
+
+        # 2. If aggregate is missing/zero, sum across incident DataProvider attributes
+        if not customers and incidents:
+            tally = 0
+            for inc in incidents:
+                attrs = inc.get("DataProvider", {}).get("Attributes", [])
+                for attr in attrs:
+                    if attr.get("Name") == "Customers impacted":
+                        raw_val = str(attr.get("Value", "0")).replace(",", "").strip()
+                        try:
+                            tally += int(raw_val)
+                        except ValueError:
+                            pass
+            customers = tally
 
         if count > 5 or customers > 1000:
             condition = "elevated"
