@@ -1,0 +1,14 @@
+name: Rapid Telemetry Pipeline
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  telemetry-noop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acknowledge Edge Dispatch Signal
+        run: echo "Edge signal received. Rapid telemetry pipeline registered on main."
