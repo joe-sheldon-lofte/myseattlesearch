@@ -1,9 +1,12 @@
+# File: scripts/utilities/ingest_history.py
+
 import os
 import sys
 import json
 import time
 import io
 import gc
+import re
 import warnings
 import argparse
 import urllib.request
@@ -13,6 +16,7 @@ import boto3
 from botocore.config import Config
 from PIL import Image, ImageDraw
 
+# Suppress boto3 deprecation warnings on Python 3.9
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 # ---------------------------------------------------------------------------
@@ -24,6 +28,7 @@ DEV_VARS_PATH = os.path.join(PROJECT_ROOT, ".dev.vars")
 PROGRESS_FILE = os.path.join(SCRIPT_DIR, "history_progress.json")
 
 def load_dev_vars(filepath):
+    """Parses key-value pairs from .dev.vars without external dependencies."""
     env_vars = {}
     if not os.path.exists(filepath):
         print(f"[!] Warning: Environment secrets file not found at {filepath}")
@@ -147,31 +152,8 @@ def execute_d1_query(sql, params=None):
 # ---------------------------------------------------------------------------
 # In-Memory Image Transcoder & Fallback Generator
 # ---------------------------------------------------------------------------
-def resolve_archival_scan_url(item):
-    file_title = item.get("wikimedia_file")
-    if file_title:
-        api_url = (
-            f"https://commons.wikimedia.org/w/api.php?action=query"
-            f"&titles=File:{urllib.parse.quote(file_title)}"
-            f"&prop=imageinfo&iiprop=url&format=json"
-        )
-        try:
-            req = urllib.request.Request(api_url, headers=HTTP_HEADERS)
-            with urllib.request.urlopen(req, timeout=12) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                pages = data.get("query", {}).get("pages", {})
-                for _, page_info in pages.items():
-                    image_info = page_info.get("imageinfo", [])
-                    if image_info and "url" in image_info[0]:
-                        return image_info[0]["url"]
-        except Exception:
-            pass
-
-        return f"https://commons.wikimedia.org/wiki/Special:FilePath/{urllib.parse.quote(file_title)}"
-
-    return item.get("source_master_url")
-
 def create_fallback_card(title, subtitle, year, county):
+    """Renders an archival card in memory if remote download fails."""
     img = Image.new("RGB", (1200, 800), color=(240, 235, 224))
     draw = ImageDraw.Draw(img)
     draw.rectangle([(30, 30), (1170, 770)], outline=(100, 85, 70), width=4)
@@ -187,7 +169,12 @@ def create_fallback_card(title, subtitle, year, county):
     return img
 
 def process_and_transcode_image(item, max_retries=3):
-    direct_url = resolve_archival_scan_url(item)
+    """
+    Downloads archive scan into RAM with exponential backoff and transcodes to dual WebPs:
+    - photo_buf: max 1200px width/height @ quality 80 (~75 KB)
+    - thumb_buf: max 300px width/height @ quality 75 (~14 KB)
+    """
+    direct_url = item.get("source_master_url")
     orig_img = None
 
     if direct_url:
@@ -212,7 +199,7 @@ def process_and_transcode_image(item, max_retries=3):
             item.get("county", "King")
         )
 
-    if orig_img.mode in ("RGBA", "P"):
+    if orig_img.mode in ("RGBA", "P", "CMYK"):
         orig_img = orig_img.convert("RGB")
 
     photo_img = orig_img.copy()
@@ -230,291 +217,211 @@ def process_and_transcode_image(item, max_retries=3):
     return photo_buf, thumb_buf
 
 # ---------------------------------------------------------------------------
-# Archival Datasets & Harvesting Catalogs (Seed Data)
+# Live Archival Repositories & Standardized Category Queries
 # ---------------------------------------------------------------------------
-SOURCE_CATALOGS = {
-    "wpa_king": [
-        {
-            "id": "kc-wpa-martin-house",
-            "dataset_type": "wpa_property",
-            "pin": "6852700140",
-            "title": "F. J. Martin Residence (Capitol Hill)",
-            "city": "Seattle",
-            "county": "King",
-            "neighborhood": "Capitol Hill",
-            "year_built": 1908,
-            "year_photo": 1936,
-            "architectural_style": "Craftsman / Neoclassical Revival",
-            "notes": "Authentic King County Assessor Real Property Record Card survey from Washington State Digital Archives, showing original exterior elevation and tax assessment stamps.",
-            "lat": 47.6253,
-            "lng": -122.3168,
-            "source_archive": "Puget Sound Regional Archives / WA State Digital Archives",
-            "source_record_id": "DA-KC-PROP-1936-05",
-            "wikimedia_file": "F._J._Martin_House,_Capitol_Hill,_Seattle.jpg"
-        },
-        {
-            "id": "kc-wpa-florence-theatre",
-            "dataset_type": "wpa_property",
-            "pin": "1974700105",
-            "title": "Florence Theatre Building (2nd Ave)",
-            "city": "Seattle",
-            "county": "King",
-            "neighborhood": "Downtown Seattle / Pioneer Square",
-            "year_built": 1912,
-            "year_photo": 1937,
-            "architectural_style": "Commercial Masonry / Classical Revival",
-            "notes": "Authentic 1937 WPA Real Property Record Card survey scan showing Depression-era storefront retail, marquee, and structural field survey notes.",
-            "lat": 47.6015,
-            "lng": -122.3325,
-            "source_archive": "Puget Sound Regional Archives / WA State Digital Archives",
-            "source_record_id": "DA-KC-PROP-1937-FLORENCE",
-            "wikimedia_file": "Florence_Theatre,_Seattle,_1930s.jpg"
-        },
-        {
-            "id": "kc-wpa-richmond-beach-01",
-            "dataset_type": "wpa_property",
-            "pin": "7268200115",
-            "title": "19812 8th Ave NW",
-            "city": "Shoreline",
-            "county": "King",
-            "neighborhood": "Richmond Beach",
-            "year_built": 1924,
-            "year_photo": 1937,
-            "architectural_style": "Craftsman Bungalow",
-            "notes": "WPA property tax card appraisal survey. 1.5-story frame residence with basalt stone porch pillars and cedar shingle siding overlooking Puget Sound.",
-            "lat": 47.7725,
-            "lng": -122.3850,
-            "source_archive": "Puget Sound Regional Archives",
-            "source_record_id": "KC-TITLE-854-REC-48201",
-            "wikimedia_file": "Residence,_Richmond_Beach,_Washington,_ca_1910_(WASTATE_162).jpeg"
-        },
-        {
-            "id": "kc-wpa-lake-forest-park-01",
-            "dataset_type": "wpa_property",
-            "pin": "4022900050",
-            "title": "17415 Beach Dr NE",
-            "city": "Lake Forest Park",
-            "county": "King",
-            "neighborhood": "Lake Forest Park Waterfront",
-            "year_built": 1918,
-            "year_photo": 1938,
-            "architectural_style": "Pioneer Timber Cottage",
-            "notes": "Early Lake Washington homestead dwelling built with hand-hewn fir timber framing and river rock fireplace.",
-            "lat": 47.7550,
-            "lng": -122.2810,
-            "source_archive": "Puget Sound Regional Archives",
-            "source_record_id": "KC-TITLE-854-REC-11204",
-            "wikimedia_file": "Log_cabin_near_Bothell,_Washington,_ca_1915_(WASTATE_2052).jpeg"
-        },
-        {
-            "id": "kc-wpa-ballard-avenue-brick",
-            "dataset_type": "wpa_property",
-            "pin": "2768300220",
-            "title": "5200 Ballard Ave NW",
-            "city": "Seattle",
-            "county": "King",
-            "neighborhood": "Ballard",
-            "year_built": 1902,
-            "year_photo": 1937,
-            "architectural_style": "Romanesque Revival Commercial",
-            "notes": "Two-story unreinforced masonry commercial building housing maritime trades and dry goods during the WPA 1937 survey.",
-            "lat": 47.6658,
-            "lng": -122.3831,
-            "source_archive": "Puget Sound Regional Archives / WA State Digital Archives",
-            "source_record_id": "DA-KC-PROP-1937-BALLARD52",
-            "wikimedia_file": "Ballard_Avenue_Historic_District_-_Ballard_Hardware_Building_01.jpg"
-        },
-        {
-            "id": "kc-wpa-greenwood-commercial",
-            "dataset_type": "wpa_property",
-            "pin": "3026049015",
-            "title": "8501 Greenwood Ave N",
-            "city": "Seattle",
-            "county": "King",
-            "neighborhood": "Greenwood",
-            "year_built": 1926,
-            "year_photo": 1937,
-            "architectural_style": "Single-Story Commercial Storefront",
-            "notes": "Continuous brick storefront with display plate windows along the Greenwood streetcar line.",
-            "lat": 47.6912,
-            "lng": -122.3553,
-            "source_archive": "Puget Sound Regional Archives",
-            "source_record_id": "KC-TITLE-854-REC-8501GW",
-            "wikimedia_file": "Greenwood,_Seattle,_Washington_-_neighborhood_center_01.jpg"
-        }
-    ],
-    "snohomish_local": [
-        {
-            "id": "sno-edm-hyner-house",
-            "dataset_type": "wpa_property",
-            "pin": "00430100000100",
-            "title": "Hyner Residence & Homestead",
-            "city": "Edmonds",
-            "county": "Snohomish",
-            "neighborhood": "Edmonds Bowl",
-            "year_built": 1890,
-            "year_photo": 1890,
-            "architectural_style": "Pioneer Folk Victorian",
-            "notes": "Original turn-of-the-century woodframe homestead residence in early Edmonds, preserved by the Snohomish County Historical Society and UW Special Collections.",
-            "lat": 47.8082,
-            "lng": -122.3789,
-            "source_archive": "Snohomish County Historical Society / UW Libraries",
-            "source_record_id": "WASTATE-708",
-            "wikimedia_file": "Hyner_residence,_Edmonds,_Washington,_ca_1890_(WASTATE_708).jpeg"
-        },
-        {
-            "id": "sno-edm-first-phone",
-            "dataset_type": "wpa_property",
-            "pin": "00430100000200",
-            "title": "First Edmonds Telephone Exchange Building",
-            "city": "Edmonds",
-            "county": "Snohomish",
-            "neighborhood": "Edmonds Bowl",
-            "year_built": 1900,
-            "year_photo": 1900,
-            "architectural_style": "Woodframe Commercial",
-            "notes": "First telephone central office building in Edmonds along 4th Avenue, early municipal telecommunications hub.",
-            "lat": 47.8115,
-            "lng": -122.3775,
-            "source_archive": "Edmonds Historical Museum / UW Digital Collections",
-            "source_record_id": "WASTATE-171",
-            "wikimedia_file": "First_telephone_office,_Edmonds,_Washington,_1900_(WASTATE_171).jpeg"
-        },
-        {
-            "id": "sno-edm-carnegie-library",
-            "dataset_type": "wpa_property",
-            "pin": "00430100000300",
-            "title": "Edmonds Carnegie Library (Historical Museum)",
-            "city": "Edmonds",
-            "county": "Snohomish",
-            "neighborhood": "Edmonds Bowl",
-            "year_built": 1910,
-            "year_photo": 1911,
-            "architectural_style": "Beaux-Arts / Classical Revival",
-            "notes": "Constructed with Andrew Carnegie grant funding; served as original library and town council chambers; listed on National Register of Historic Places.",
-            "lat": 47.8108,
-            "lng": -122.3782,
-            "source_archive": "Snohomish County Historical Society",
-            "source_record_id": "SNO-EDM-CARNEGIE-1910",
-            "wikimedia_file": "Edmonds_Carnegie_Library_01.jpg"
-        },
-        {
-            "id": "sno-snohomish-avenued",
-            "dataset_type": "wpa_property",
-            "pin": "00584500001200",
-            "title": "1002 1st St Commercial Block",
-            "city": "Snohomish",
-            "county": "Snohomish",
-            "neighborhood": "Historic Downtown Snohomish",
-            "year_built": 1904,
-            "year_photo": 1910,
-            "architectural_style": "Victorian Commercial / Masonry",
-            "notes": "Two-story unreinforced red clay brick commercial building with cast-iron storefront pilasters along the Snohomish River.",
-            "lat": 47.9128,
-            "lng": -122.0935,
-            "source_archive": "Washington State Digital Archives",
-            "source_record_id": "SNO-HIST-1904-88",
-            "wikimedia_file": "Snohomish,_WA_-_First_Street_04.jpg"
-        },
-        {
-            "id": "sno-mukilteo-light-station",
-            "dataset_type": "wpa_property",
-            "pin": "00610000000400",
-            "title": "Mukilteo Light Station & Fog Bell House",
-            "city": "Mukilteo",
-            "county": "Snohomish",
-            "neighborhood": "Mukilteo Waterfront",
-            "year_built": 1906,
-            "year_photo": 1906,
-            "architectural_style": "Victorian Lighthouse / Maritime",
-            "notes": "Octagonal wood lighthouse tower with original Fresnel lens and keeper's quarters sited at Point Elliott.",
-            "lat": 47.9497,
-            "lng": -122.2989,
-            "source_archive": "Snohomish County Historical Archives",
-            "source_record_id": "MUK-LIGHT-1906-01",
-            "wikimedia_file": "Mukilteo_Light_Station_01.jpg"
-        }
-    ],
-    "sma_infrastructure": [
-        {
-            "id": "sma-transit-interurban-hall",
-            "dataset_type": "wsdot_infrastructure",
-            "pin": None,
-            "title": "Seattle-Everett Interurban Substation (Hall Lake)",
-            "city": "Lynnwood",
-            "county": "Snohomish",
-            "neighborhood": "Interurban Corridor",
-            "year_built": 1910,
-            "year_photo": 1910,
-            "architectural_style": "Electric Interurban Traction Substation",
-            "notes": "Electrical power conversion facility along the Seattle-Everett Traction Company electric interurban passenger corridor at Hall Lake near Lynnwood.",
-            "lat": 47.8185,
-            "lng": -122.3250,
-            "source_archive": "Seattle Municipal Archives / DPLA",
-            "source_record_id": "DPLA-6e1ee2aafbb0968f89e0e16150e31fb0",
-            "wikimedia_file": "Seattle-Everett_Traction_Company_substation_at_Hall_Lake,_1910_-_DPLA_-_6e1ee2aafbb0968f89e0e16150e31fb0.jpg"
-        },
-        {
-            "id": "sma-infra-ballard-bridge",
-            "dataset_type": "wsdot_infrastructure",
-            "pin": None,
-            "title": "Ballard Bridge Under Construction (1916)",
-            "city": "Seattle",
-            "county": "King",
-            "neighborhood": "Ballard",
-            "year_built": 1916,
-            "year_photo": 1916,
-            "architectural_style": "Bascule Truss Bridge / Civil Infrastructure",
-            "notes": "Item 1185, Engineering Department Photographic Negatives (Record Series 2613-07), Seattle Municipal Archives. Construction of the historic bascule bridge crossing Salmon Bay.",
-            "lat": 47.6597,
-            "lng": -122.3750,
-            "source_archive": "Seattle Municipal Archives",
-            "source_record_id": "SMA-ENG-2613-07-ITEM-1185",
-            "wikimedia_file": "Seattle_-_Ballard_Bridge_under_construction,_1916.jpg"
-        },
-        {
-            "id": "sma-infra-fremont-bridge",
-            "dataset_type": "wsdot_infrastructure",
-            "pin": None,
-            "title": "Fremont Bascule Bridge Dedication (1917)",
-            "city": "Seattle",
-            "county": "King",
-            "neighborhood": "Fremont",
-            "year_built": 1917,
-            "year_photo": 1917,
-            "architectural_style": "Double-Leaf Bascule Bridge",
-            "notes": "Engineering Department Record Series 2613-07. Opening day of the Fremont Bridge over Lake Washington Ship Canal.",
-            "lat": 47.6475,
-            "lng": -122.3497,
-            "source_archive": "Seattle Municipal Archives",
-            "source_record_id": "SMA-ENG-2613-07-ITEM-2104",
-            "wikimedia_file": "Fremont_Bridge_Seattle_1917.jpg"
-        },
-        {
-            "id": "sma-infra-montlake-cut",
-            "dataset_type": "wsdot_infrastructure",
-            "pin": None,
-            "title": "Montlake Cut Excavation & Canal Works",
-            "city": "Seattle",
-            "county": "King",
-            "neighborhood": "Montlake",
-            "year_built": 1916,
-            "year_photo": 1915,
-            "architectural_style": "Civil Engineering / Navigational Canal",
-            "notes": "Item 4820, Seattle Municipal Archives. Steam shovels and rail cars excavating the canal cut connecting Lake Union to Lake Washington.",
-            "lat": 47.6489,
-            "lng": -122.3045,
-            "source_archive": "Seattle Municipal Archives",
-            "source_record_id": "SMA-ENG-2613-07-ITEM-4820",
-            "wikimedia_file": "Montlake_Cut_excavation_1915.jpg"
-        }
-    ]
+SOURCE_SEARCH_QUERIES = {
+    "wpa_king": 'incategory:"Black and white photographs of Seattle|Seattle in the 1930s|History of Seattle"',
+    "snohomish_local": '"Edmonds, Washington" OR "Snohomish, Washington" OR "Mukilteo, Washington"',
+    "sma_infrastructure": 'incategory:"Seattle Municipal Archives via Flickr"'
 }
+
+SOURCE_ARCHIVE_NAMES = {
+    "wpa_king": "Puget Sound Regional Archives / Washington State Digital Archives",
+    "snohomish_local": "Snohomish County Historical Collections / UW Libraries",
+    "sma_infrastructure": "Seattle Municipal Archives"
+}
+
+SOURCE_PREFIXES = {
+    "wpa_king": "kc-wpa",
+    "snohomish_local": "sno-hist",
+    "sma_infrastructure": "sma-infra"
+}
+
+def fetch_live_archive_records(source_key, offset=0, limit=25):
+    """
+    Queries digital archive APIs via MediaWiki generator search,
+    extracting master high-res scans, embedded metadata, dates, and coordinates.
+    """
+    search_query = SOURCE_SEARCH_QUERIES.get(source_key)
+    if not search_query:
+        return [], offset
+
+    params = {
+        "action": "query",
+        "generator": "search",
+        "gsrsearch": search_query,
+        "gsrnamespace": "6",
+        "gsrlimit": str(limit),
+        "gsroffset": str(offset),
+        "prop": "imageinfo|coordinates",
+        "iiprop": "url|extmetadata|dimensions|mime",
+        "format": "json"
+    }
+
+    api_url = f"https://commons.wikimedia.org/w/api.php?{urllib.parse.urlencode(params)}"
+    req = urllib.request.Request(api_url, headers=HTTP_HEADERS)
+
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except Exception as e:
+        print(f"[!] Live query failed for {source_key}: {e}")
+        return [], offset
+
+    query_obj = data.get("query", {})
+    pages = query_obj.get("pages", {})
+    if not pages:
+        return [], offset
+
+    sorted_pages = sorted(pages.values(), key=lambda p: p.get("index", 0))
+
+    continue_obj = data.get("continue", {})
+    next_offset = continue_obj.get("gsroffset", offset + len(sorted_pages))
+
+    items = []
+    prefix = SOURCE_PREFIXES.get(source_key, "hist")
+    source_archive = SOURCE_ARCHIVE_NAMES.get(source_key, "Washington State Archives")
+
+    for page in sorted_pages:
+        page_id = str(page.get("pageid"))
+        raw_file_title = page.get("title", "").replace("File:", "").strip()
+        imageinfo = page.get("imageinfo", [])
+        if not imageinfo:
+            continue
+
+        ii = imageinfo[0]
+        direct_url = ii.get("url")
+        if not direct_url:
+            continue
+
+        base_name = os.path.splitext(raw_file_title)[0]
+        clean_title = re.sub(r'[\(\)_]+', ' ', base_name).strip()
+        clean_slug = re.sub(r'[^a-zA-Z0-9]', '-', clean_title[:28]).strip('-').lower()
+        item_id = f"{prefix}-{clean_slug}-{page_id}"
+
+        extmetadata = ii.get("extmetadata", {})
+        raw_desc = extmetadata.get("ImageDescription", {}).get("value", "")
+        clean_desc = re.sub(r'<[^>]+>', ' ', raw_desc).strip()
+        clean_desc = re.sub(r'\s+', ' ', clean_desc)
+        if not clean_desc or len(clean_desc) < 10:
+            clean_desc = clean_title
+
+        date_val = extmetadata.get("DateTimeOriginal", {}).get("value", "") or extmetadata.get("DateTime", {}).get("value", "")
+        year_match = re.search(r'\b(18\d{2}|19\d{2})\b', f"{date_val} {clean_desc} {clean_title}")
+        year_found = int(year_match.group(1)) if year_match else None
+
+        lat = None
+        lng = None
+        if "coordinates" in page and page["coordinates"]:
+            lat = float(page["coordinates"][0].get("lat", 0.0))
+            lng = float(page["coordinates"][0].get("lon", 0.0))
+        elif "GPSLatitude" in extmetadata and "GPSLongitude" in extmetadata:
+            try:
+                lat = float(extmetadata["GPSLatitude"]["value"])
+                lng = float(extmetadata["GPSLongitude"]["value"])
+            except (ValueError, TypeError):
+                pass
+
+        combined_text = f"{clean_title} {clean_desc}".lower()
+        city = "Seattle"
+        county = "King"
+        neighborhood = None
+
+        if "edmonds" in combined_text:
+            city = "Edmonds"
+            county = "Snohomish"
+            neighborhood = "Edmonds Bowl"
+            if not lat: lat, lng = 47.8107, -122.3774
+        elif "snohomish" in combined_text:
+            city = "Snohomish"
+            county = "Snohomish"
+            neighborhood = "Historic Snohomish"
+            if not lat: lat, lng = 47.9129, -122.0982
+        elif "mukilteo" in combined_text:
+            city = "Mukilteo"
+            county = "Snohomish"
+            neighborhood = "Waterfront"
+            if not lat: lat, lng = 47.9493, -122.3046
+        elif "lynnwood" in combined_text:
+            city = "Lynnwood"
+            county = "Snohomish"
+            neighborhood = "Interurban Corridor"
+            if not lat: lat, lng = 47.8209, -122.3151
+        elif "shoreline" in combined_text or "richmond beach" in combined_text:
+            city = "Shoreline"
+            county = "King"
+            neighborhood = "Richmond Beach" if "richmond" in combined_text else "Shoreline"
+            if not lat: lat, lng = 47.7560, -122.3457
+        elif "lake forest park" in combined_text:
+            city = "Lake Forest Park"
+            county = "King"
+            neighborhood = "Waterfront"
+            if not lat: lat, lng = 47.7540, -122.2779
+        elif "ballard" in combined_text:
+            city = "Seattle"
+            county = "King"
+            neighborhood = "Ballard"
+            if not lat: lat, lng = 47.6769, -122.3860
+        elif "capitol hill" in combined_text:
+            city = "Seattle"
+            county = "King"
+            neighborhood = "Capitol Hill"
+            if not lat: lat, lng = 47.6253, -122.3168
+        elif "pioneer square" in combined_text:
+            city = "Seattle"
+            county = "King"
+            neighborhood = "Pioneer Square"
+            if not lat: lat, lng = 47.6015, -122.3325
+        else:
+            if source_key == "snohomish_local":
+                city = "Edmonds"
+                county = "Snohomish"
+                if not lat: lat, lng = 47.8107, -122.3774
+            else:
+                city = "Seattle"
+                county = "King"
+                if not lat: lat, lng = 47.6062, -122.3321
+
+        if lat and lat > 47.78 and county == "King":
+            county = "Snohomish"
+
+        parcel_number = None
+        if source_key == "wpa_king":
+            dataset_type = "wpa_property"
+            pin_match = re.search(r'\b\d{10}\b', clean_desc)
+            if pin_match:
+                parcel_number = pin_match.group(0)
+        elif source_key == "snohomish_local":
+            dataset_type = "wpa_property"
+        else:
+            dataset_type = "wsdot_infrastructure"
+
+        items.append({
+            "id": item_id,
+            "dataset_type": dataset_type,
+            "parcel_number": parcel_number,
+            "title": clean_title[:90],
+            "city": city,
+            "county": county,
+            "neighborhood": neighborhood,
+            "year_built": year_found,
+            "year_photo": year_found,
+            "architectural_style": "Archival Photographic Record",
+            "notes": clean_desc[:250],
+            "lat": round(lat, 6),
+            "lng": round(lng, 6),
+            "source_archive": source_archive,
+            "source_record_id": f"COMMONS-{page_id}",
+            "source_master_url": direct_url
+        })
+
+    return items, next_offset
 
 # ---------------------------------------------------------------------------
 # Core Ingestion Engine
 # ---------------------------------------------------------------------------
 def ingest_record(item, s3_client):
+    """Processes, transcodes, uploads, and commits a single historical asset."""
     item_id = item["id"]
 
     photo_buf, thumb_buf = process_and_transcode_image(item)
@@ -545,7 +452,7 @@ def ingest_record(item, s3_client):
     params = [
         item["id"],
         item["dataset_type"],
-        item.get("pin") or item.get("parcel_number"),
+        item.get("parcel_number"),
         item["title"],
         item["city"],
         item["county"],
@@ -560,7 +467,7 @@ def ingest_record(item, s3_client):
         photo_url,
         item["source_archive"],
         item.get("source_record_id"),
-        item.get("source_master_url") or item.get("wikimedia_file")
+        item["source_master_url"]
     ]
     execute_d1_query(sql, params)
 
@@ -569,14 +476,16 @@ def ingest_record(item, s3_client):
 # ---------------------------------------------------------------------------
 # Multi-Stage Bulk Pipeline Orchestrator
 # ---------------------------------------------------------------------------
-def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=None, force=False):
+def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=None, force=False, is_bulk=False):
     print("================================================================================")
-    print("MYSEATTLESEARCH: UNATTENDED HISTORICAL ASSET INGESTION ENGINE")
+    print("MYSEATTLESEARCH: LIVE HISTORICAL ASSET INGESTION ENGINE")
     print("================================================================================")
     print(f"Target Database ID: {CF_D1_DATABASE_ID}")
     print(f"Target R2 Bucket:   {R2_BUCKET_NAME} ({R2_PUBLIC_DOMAIN})")
     print(f"State Checkpoint:   {PROGRESS_FILE}")
     print(f"Stages Scheduled:   {', '.join(stages_to_run).upper()}")
+    if limit_per_source:
+        print(f"Record Target:      {limit_per_source} committed records per stage")
     print("================================================================================")
 
     progress = load_progress()
@@ -587,74 +496,104 @@ def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=None, for
     total_committed = 0
 
     for stage_idx, stage in enumerate(stages_to_run, 1):
-        print(f"\n>>> [STAGE {stage_idx}/{len(stages_to_run)}] EXECUTING {stage.upper()}")
+        print(f"\n>>> [STAGE {stage_idx}/{len(stages_to_run)}] HARVESTING LIVE: {stage.upper()}")
         print("--------------------------------------------------------------------------------")
 
-        catalog = SOURCE_CATALOGS.get(stage, [])
-        if city_filter:
-            catalog = [r for r in catalog if r["city"].lower() == city_filter.lower()]
+        stage_committed = 0
+        current_offset = 0 if force else cursors.get(stage, 0)
 
-        pending = [r for r in catalog if force or r["id"] not in completed_ids]
-        if limit_per_source:
-            pending = pending[:limit_per_source]
+        while True:
+            batch_fetch_size = max(25, limit_per_source) if limit_per_source else 25
 
-        if not pending:
-            print(f"[+] All records for stage '{stage}' are already synchronized.")
-            continue
+            print(f"[*] Querying repository for '{stage}' at offset {current_offset}...")
+            live_items, next_offset = fetch_live_archive_records(stage, offset=current_offset, limit=batch_fetch_size)
 
-        print(f"[*] Processing {len(pending)} pending assets for stage '{stage}'...")
+            if not live_items:
+                print(f"[+] Reached end of live repository records for '{stage}'.")
+                break
 
-        stage_success = 0
-        for item_idx, item in enumerate(pending, 1):
-            item_id = item["id"]
-            print(f"  [{item_idx}/{len(pending)}] {item_id} | {item['title']} ({item['city']})")
+            if city_filter:
+                live_items = [r for r in live_items if r["city"].lower() == city_filter.lower()]
 
-            try:
-                photo_url = ingest_record(item, s3_client)
+            pending = [r for r in live_items if force or r["id"] not in completed_ids]
 
-                completed_ids.add(item_id)
-                progress["completed_ids"] = list(completed_ids)
-                cursors[stage] = cursors.get(stage, 0) + 1
+            if not pending:
+                if next_offset == current_offset:
+                    break
+                print(f"[*] Advancing offset from {current_offset} -> {next_offset} to find new candidates...")
+                current_offset = next_offset
+                cursors[stage] = current_offset
                 progress["cursors"] = cursors
                 save_progress(progress)
+                continue
 
-                stage_success += 1
-                total_committed += 1
-                print(f"      [OK] Committed -> {photo_url}")
+            for item in pending:
+                item_id = item["id"]
+                print(f"  [{stage_committed + 1}] {item_id} | {item['title']} ({item['city']}, {item['county']} County)")
 
-                time.sleep(0.35)
+                try:
+                    photo_url = ingest_record(item, s3_client)
 
-            except Exception as e:
-                print(f"      [!] Error processing record {item_id}: {e}")
+                    completed_ids.add(item_id)
+                    progress["completed_ids"] = list(completed_ids)
+                    save_progress(progress)
+
+                    stage_success_msg = f"      [OK] Committed -> {photo_url}"
+                    if item.get("parcel_number"):
+                        stage_success_msg += f" (Parcel: {item['parcel_number']})"
+                    print(stage_success_msg)
+
+                    stage_committed += 1
+                    total_committed += 1
+
+                    time.sleep(0.35)
+
+                    if limit_per_source and stage_committed >= limit_per_source:
+                        break
+
+                except Exception as e:
+                    print(f"      [!] Error processing record {item_id}: {e}")
+
+            current_offset = next_offset
+            cursors[stage] = current_offset
+            progress["cursors"] = cursors
+            save_progress(progress)
+
+            if limit_per_source and stage_committed >= limit_per_source:
+                break
+
+            if not is_bulk and limit_per_source is None:
+                break
 
         gc.collect()
-        print(f"[+] Stage {stage.upper()} complete. {stage_success}/{len(pending)} records committed.")
+        print(f"[+] Stage {stage.upper()} complete. {stage_committed} records committed.")
 
     print("\n================================================================================")
-    print(f"[+] INGESTION RUN COMPLETED: {total_committed} records committed to Cloudflare D1 & R2.")
+    print(f"[+] INGESTION RUN FINISHED: {total_committed} live records committed to Cloudflare D1 & R2.")
     print("================================================================================")
 
 # ---------------------------------------------------------------------------
 # CLI Entrypoint
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Unattended Multi-Source Historical Photo Ingestion Engine")
-    parser.add_argument("--bulk", action="store_true", help="Execute complete multi-stage pipeline sequentially")
-    parser.add_argument("--source", type=str, default=None, choices=["wpa_king", "snohomish_local", "sma_infrastructure", "all"],
-                        help="Execute a targeted data source or 'all'")
+    parser = argparse.ArgumentParser(description="Live Multi-Source Historical Photo Ingestion Engine")
+    parser.add_argument("--bulk", action="store_true", help="Execute complete multi-stage pipeline continuously until end of repositories")
+    parser.add_argument("--source", type=str, default="all", choices=["all", "wpa_king", "snohomish_local", "sma_infrastructure"],
+                        help="Target data source (default: all)")
     parser.add_argument("--city", type=str, default=None, help="Filter harvest to a single city (e.g. Edmonds, Shoreline)")
-    parser.add_argument("--limit", type=int, default=None, help="Maximum records per source")
-    parser.add_argument("--force", action="store_true", help="Bypass checkpoint progress and re-transcode all records")
+    parser.add_argument("--limit", type=int, default=None, help="Maximum records per source (e.g. 3)")
+    parser.add_argument("--force", action="store_true", help="Bypass checkpoint cache to test fresh records")
     args = parser.parse_args()
 
-    if args.bulk or args.source == "all" or (args.source is None and not args.city):
+    if args.source == "all":
         stages = ["wpa_king", "snohomish_local", "sma_infrastructure"]
     else:
-        stages = [args.source] if args.source else ["wpa_king", "snohomish_local", "sma_infrastructure"]
+        stages = [args.source]
 
     execute_pipeline(
         stages_to_run=stages,
         city_filter=args.city,
         limit_per_source=args.limit,
-        force=args.force
+        force=args.force,
+        is_bulk=args.bulk
     )
