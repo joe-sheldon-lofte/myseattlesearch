@@ -1,5 +1,3 @@
-# File: scripts/utilities/ingest_history.py
-
 import os
 import sys
 import json
@@ -15,7 +13,6 @@ import boto3
 from botocore.config import Config
 from PIL import Image, ImageDraw
 
-# Suppress boto3 deprecation warnings on Python 3.9
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 # ---------------------------------------------------------------------------
@@ -27,7 +24,6 @@ DEV_VARS_PATH = os.path.join(PROJECT_ROOT, ".dev.vars")
 PROGRESS_FILE = os.path.join(SCRIPT_DIR, "history_progress.json")
 
 def load_dev_vars(filepath):
-    """Parses key-value pairs from .dev.vars without external dependencies."""
     env_vars = {}
     if not os.path.exists(filepath):
         print(f"[!] Warning: Environment secrets file not found at {filepath}")
@@ -48,8 +44,8 @@ def load_dev_vars(filepath):
 config = load_dev_vars(DEV_VARS_PATH)
 
 CF_ACCOUNT_ID = config.get("CF_ACCOUNT_ID")
-CF_D1_DATABASE_ID = config.get("CF_D1_DATABASE_ID")
-CF_API_TOKEN = config.get("CF_API_TOKEN")
+CF_D1_DATABASE_ID = config.get("CF_D1_DATABASE_ID") or config.get("CF_DATABASE_PARCELDATA_ID")
+CF_API_TOKEN = config.get("CF_API_TOKEN") or config.get("CF_D1_API_TOKEN")
 R2_ACCESS_KEY_ID = config.get("R2_ACCESS_KEY_ID")
 R2_SECRET_ACCESS_KEY = config.get("R2_SECRET_ACCESS_KEY")
 R2_BUCKET_NAME = config.get("R2_BUCKET_NAME", "myseattlesearch-assets")
@@ -152,7 +148,6 @@ def execute_d1_query(sql, params=None):
 # In-Memory Image Transcoder & Fallback Generator
 # ---------------------------------------------------------------------------
 def resolve_archival_scan_url(item):
-    """Resolves master file URL via Wikimedia REST API or direct URL."""
     file_title = item.get("wikimedia_file")
     if file_title:
         api_url = (
@@ -177,7 +172,6 @@ def resolve_archival_scan_url(item):
     return item.get("source_master_url")
 
 def create_fallback_card(title, subtitle, year, county):
-    """Renders an archival card in memory if remote download fails."""
     img = Image.new("RGB", (1200, 800), color=(240, 235, 224))
     draw = ImageDraw.Draw(img)
     draw.rectangle([(30, 30), (1170, 770)], outline=(100, 85, 70), width=4)
@@ -193,11 +187,6 @@ def create_fallback_card(title, subtitle, year, county):
     return img
 
 def process_and_transcode_image(item, max_retries=3):
-    """
-    Downloads archive scan into RAM with exponential backoff and transcodes to dual WebPs:
-    - photo_buf: max 1200px width/height @ quality 80 (~75 KB)
-    - thumb_buf: max 300px width/height @ quality 75 (~14 KB)
-    """
     direct_url = resolve_archival_scan_url(item)
     orig_img = None
 
@@ -236,18 +225,14 @@ def process_and_transcode_image(item, max_retries=3):
     thumb_buf = io.BytesIO()
     thumb_img.save(thumb_buf, format="WEBP", quality=75, method=6)
 
-    # Clean memory references
     del orig_img, photo_img, thumb_img
 
     return photo_buf, thumb_buf
 
 # ---------------------------------------------------------------------------
-# Archival Datasets & Harvesting Catalogs
+# Archival Datasets & Harvesting Catalogs (Seed Data)
 # ---------------------------------------------------------------------------
 SOURCE_CATALOGS = {
-    # -----------------------------------------------------------------------
-    # STAGE 1: King County 1937–1941 WPA Real Property Record Cards
-    # -----------------------------------------------------------------------
     "wpa_king": [
         {
             "id": "kc-wpa-martin-house",
@@ -358,10 +343,6 @@ SOURCE_CATALOGS = {
             "wikimedia_file": "Greenwood,_Seattle,_Washington_-_neighborhood_center_01.jpg"
         }
     ],
-
-    # -----------------------------------------------------------------------
-    # STAGE 2: Snohomish County Historic Vaults & Municipal Surveys
-    # -----------------------------------------------------------------------
     "snohomish_local": [
         {
             "id": "sno-edm-hyner-house",
@@ -454,10 +435,6 @@ SOURCE_CATALOGS = {
             "wikimedia_file": "Mukilteo_Light_Station_01.jpg"
         }
     ],
-
-    # -----------------------------------------------------------------------
-    # STAGE 3: Seattle Municipal Archives Infrastructure & Transit (pin = NULL)
-    # -----------------------------------------------------------------------
     "sma_infrastructure": [
         {
             "id": "sma-transit-interurban-hall",
@@ -538,28 +515,25 @@ SOURCE_CATALOGS = {
 # Core Ingestion Engine
 # ---------------------------------------------------------------------------
 def ingest_record(item, s3_client):
-    """Processes, transcodes, uploads, and commits a single historical asset."""
     item_id = item["id"]
 
-    # 1. Download and In-Memory Transcode
     photo_buf, thumb_buf = process_and_transcode_image(item)
 
-    # 2. Upload to Cloudflare R2
     photo_key = f"history/photos/{item_id}.webp"
     thumb_key = f"history/thumbs/{item_id}.webp"
 
     photo_url = upload_buffer_to_r2(s3_client, photo_buf, photo_key)
     thumb_url = upload_buffer_to_r2(s3_client, thumb_buf, thumb_key)
 
-    # 3. Upsert to Cloudflare D1
     sql = """
     INSERT INTO historical_photos (
-        id, dataset_type, pin, title, city, county, neighborhood,
+        id, dataset_type, parcel_number, title, city, county, neighborhood,
         year_built, year_photo, architectural_style, notes,
         lat, lng, thumb_url, photo_url,
         source_archive, source_record_id, source_master_url
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
+        parcel_number = excluded.parcel_number,
         thumb_url = excluded.thumb_url,
         photo_url = excluded.photo_url,
         notes = excluded.notes,
@@ -571,7 +545,7 @@ def ingest_record(item, s3_client):
     params = [
         item["id"],
         item["dataset_type"],
-        item.get("pin"),
+        item.get("pin") or item.get("parcel_number"),
         item["title"],
         item["city"],
         item["county"],
@@ -620,7 +594,6 @@ def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=None, for
         if city_filter:
             catalog = [r for r in catalog if r["city"].lower() == city_filter.lower()]
 
-        # Filter against completed IDs unless force mode is enabled
         pending = [r for r in catalog if force or r["id"] not in completed_ids]
         if limit_per_source:
             pending = pending[:limit_per_source]
@@ -639,7 +612,6 @@ def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=None, for
             try:
                 photo_url = ingest_record(item, s3_client)
 
-                # Update state
                 completed_ids.add(item_id)
                 progress["completed_ids"] = list(completed_ids)
                 cursors[stage] = cursors.get(stage, 0) + 1
@@ -650,18 +622,16 @@ def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=None, for
                 total_committed += 1
                 print(f"      [OK] Committed -> {photo_url}")
 
-                # Polite delay to avoid hammering upstream servers
                 time.sleep(0.35)
 
             except Exception as e:
                 print(f"      [!] Error processing record {item_id}: {e}")
 
-        # Trigger garbage collection between stages to keep M1 RAM low
         gc.collect()
         print(f"[+] Stage {stage.upper()} complete. {stage_success}/{len(pending)} records committed.")
 
     print("\n================================================================================")
-    print(f"[+] BULK INGESTION RUN COMPLETED: {total_committed} records committed to Cloudflare D1 & R2.")
+    print(f"[+] INGESTION RUN COMPLETED: {total_committed} records committed to Cloudflare D1 & R2.")
     print("================================================================================")
 
 # ---------------------------------------------------------------------------
@@ -670,14 +640,14 @@ def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=None, for
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Unattended Multi-Source Historical Photo Ingestion Engine")
     parser.add_argument("--bulk", action="store_true", help="Execute complete multi-stage pipeline sequentially")
-    parser.add_argument("--source", type=str, default=None, choices=["wpa_king", "snohomish_local", "sma_infrastructure"],
-                        help="Execute a single targeted data source")
+    parser.add_argument("--source", type=str, default=None, choices=["wpa_king", "snohomish_local", "sma_infrastructure", "all"],
+                        help="Execute a targeted data source or 'all'")
     parser.add_argument("--city", type=str, default=None, help="Filter harvest to a single city (e.g. Edmonds, Shoreline)")
     parser.add_argument("--limit", type=int, default=None, help="Maximum records per source")
     parser.add_argument("--force", action="store_true", help="Bypass checkpoint progress and re-transcode all records")
     args = parser.parse_args()
 
-    if args.bulk or (args.source is None and not args.city):
+    if args.bulk or args.source == "all" or (args.source is None and not args.city):
         stages = ["wpa_king", "snohomish_local", "sma_infrastructure"]
     else:
         stages = [args.source] if args.source else ["wpa_king", "snohomish_local", "sma_infrastructure"]

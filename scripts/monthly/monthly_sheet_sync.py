@@ -41,7 +41,7 @@ def parse_sheet_values(rows):
     return records
 
 def sql_escape(val):
-    if val is None:
+    if val is None or val == "":
         return "NULL"
     if isinstance(val, (int, float)):
         return str(val)
@@ -54,6 +54,9 @@ def execute_d1_raw(session, endpoint, headers, sql_chunk):
     if not data.get("success"):
         raise RuntimeError(f"Cloudflare D1 SQL Error: {data.get('errors', [])}")
     return data
+
+def slugify(text):
+    return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
 
 def sync_utility_directory_to_d1(utility_records):
     cf_account_id = os.environ.get("CF_ACCOUNT_ID")
@@ -80,31 +83,35 @@ def sync_utility_directory_to_d1(utility_records):
         values_clauses = []
 
         for rec in chunk:
-            entity_id = rec.get("entity_id") or rec.get("EntityID") or rec.get("ID")
-            city = rec.get("City") or rec.get("city")
-            service_category = rec.get("ServiceCategory") or rec.get("Category") or rec.get("service_category")
-            provider_name = rec.get("ProviderName") or rec.get("Provider") or rec.get("provider_name")
-            phone = rec.get("Phone") or rec.get("phone")
-            website_url = rec.get("Website") or rec.get("WebsiteURL") or rec.get("website_url")
-            coverage_type = rec.get("CoverageType") or rec.get("coverage_type") or "Municipal"
+            utility_name = rec.get("Utility Name") or rec.get("utility_name")
+            normal_name = rec.get("Normal Name") or rec.get("normal_name") or utility_name
+            county = rec.get("County") or rec.get("county") or "King"
+            utility_type = rec.get("Type") or rec.get("utility_type")
+            phone = rec.get("Phone Number") or rec.get("phone_number")
+            website = rec.get("Website") or rec.get("website")
+            physical_addr = rec.get("Physical Address") or rec.get("physical_address")
+            mailing_addr = rec.get("Mailing Address") or rec.get("mailing_address")
 
-            if not provider_name or not service_category:
+            if not utility_name or not utility_type:
                 continue
 
-            if not entity_id:
-                clean_city = re.sub(r'[^a-zA-Z0-9]', '', str(city or "regional")).lower()
-                clean_prov = re.sub(r'[^a-zA-Z0-9]', '', str(provider_name)).lower()
-                clean_cat = re.sub(r'[^a-zA-Z0-9]', '', str(service_category)).lower()
-                entity_id = f"{clean_city}_{clean_cat}_{clean_prov}"[:64]
+            utility_id = rec.get("utility_id") or rec.get("Utility ID")
+            if not utility_id:
+                c_slug = slugify(county or "pnw")
+                u_slug = slugify(utility_name)
+                t_slug = slugify(utility_type)
+                utility_id = f"{c_slug}_{u_slug}_{t_slug}"[:64]
 
             val_tuple = (
-                sql_escape(entity_id),
-                sql_escape(city),
-                sql_escape(service_category),
-                sql_escape(provider_name),
+                sql_escape(utility_id),
+                sql_escape(utility_name),
+                sql_escape(normal_name),
+                sql_escape(county),
+                sql_escape(utility_type),
                 sql_escape(phone),
-                sql_escape(website_url),
-                sql_escape(coverage_type)
+                sql_escape(website),
+                sql_escape(physical_addr),
+                sql_escape(mailing_addr)
             )
             values_clauses.append(f"({', '.join(val_tuple)}, CURRENT_TIMESTAMP)")
 
@@ -113,15 +120,17 @@ def sync_utility_directory_to_d1(utility_records):
 
         sql = f"""
         INSERT INTO utility_directory (
-          entity_id, city, service_category, provider_name, phone, website_url, coverage_type, updated_utc
+          utility_id, utility_name, normal_name, county, utility_type, phone_number, website, physical_address, mailing_address, updated_utc
         ) VALUES {', '.join(values_clauses)}
-        ON CONFLICT(entity_id) DO UPDATE SET
-          city = excluded.city,
-          service_category = excluded.service_category,
-          provider_name = excluded.provider_name,
-          phone = excluded.phone,
-          website_url = excluded.website_url,
-          coverage_type = excluded.coverage_type,
+        ON CONFLICT(utility_id) DO UPDATE SET
+          utility_name = excluded.utility_name,
+          normal_name = excluded.normal_name,
+          county = excluded.county,
+          utility_type = excluded.utility_type,
+          phone_number = excluded.phone_number,
+          website = excluded.website,
+          physical_address = excluded.physical_address,
+          mailing_address = excluded.mailing_address,
           updated_utc = CURRENT_TIMESTAMP;
         """
 
