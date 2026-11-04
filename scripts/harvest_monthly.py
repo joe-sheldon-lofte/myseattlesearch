@@ -2,7 +2,6 @@ import os
 import sys
 import traceback
 import sentry_sdk
-from sentry_sdk.crons import monitor
 
 # ------------------------------------------------------------------------------
 # 1. INITIALIZE SENTRY (Global Process Handler)
@@ -24,7 +23,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # ------------------------------------------------------------------------------
 # 2. ENHANCED SAFE_TASK WITH SENTRY ERROR CAPTURE
 # ------------------------------------------------------------------------------
-def safe_task(task_name, func):
+def safe_task(task_name, func, county="Regional"):
     print(f"🚀 [Monthly Master] Starting: {task_name}...")
     try:
         func()
@@ -38,6 +37,7 @@ def safe_task(task_name, func):
             with sentry_sdk.new_scope() as scope:
                 scope.set_tag("task_name", task_name)
                 scope.set_tag("cadence", "monthly")
+                scope.set_tag("county", county)
                 sentry_sdk.capture_exception(e)
                 print(f"📡 Exception sent to Sentry for {task_name}")
 
@@ -52,6 +52,7 @@ def run_subscript(script_relative_path):
     else:
         raise FileNotFoundError(f"Script not found at expected path: {path}")
 
+# Task Callers
 def harvest_census_demographics(): run_subscript("census_demographics.py")
 def harvest_osm_amenities(): run_subscript("osm_amenities.py")
 def harvest_gis_boundaries(): run_subscript("gis_boundaries.py")
@@ -61,29 +62,10 @@ def harvest_monthly_sheets(): run_subscript("monthly_sheet_sync.py")
 def harvest_parcel_deltas(): run_subscript("sync_parcel_deltas.py")
 def harvest_fha_condos(): run_subscript("harvest_fha_condos.py")
 def harvest_va_condos(): run_subscript("harvest_va_condos.py")
-def build_master_condos(): run_subscript("build_master_condos.py")
-
-def sync_condos_to_d1():
-    utility_path = os.path.join(BASE_DIR, "scripts", "utilities", "seed_condos_d1.py")
-    if os.path.exists(utility_path):
-        exit_code = os.system(f"{sys.executable} {utility_path}")
-        if exit_code != 0:
-            raise RuntimeError(f"Condo D1 sync failed with exit code {exit_code}")
-    else:
-        raise FileNotFoundError(f"Utility not found at: {utility_path}")
 
 # ------------------------------------------------------------------------------
-# 3. MASTER MONTHLY RUNNER WITH SENTRY CRON MONITORING
+# 3. MASTER MONTHLY RUNNER
 # ------------------------------------------------------------------------------
-@monitor(
-    monitor_slug="monthly-harvest-pipeline",
-    monitor_config={
-        "schedule": {"type": "crontab", "value": "0 9 1 * *"},
-        "checkin_margin": 240,
-        "max_runtime": 210,
-        "timezone": "America/Los_Angeles"
-    }
-)
 def main():
     print("==================================================")
     print("     MYSEATTLESEARCH MONTHLY MASTER HARVESTER     ")
@@ -96,12 +78,10 @@ def main():
     safe_task("5. Google Places Local Business Spotlights", harvest_businesses)
     safe_task("6. Utility Directory Ingestion (Google Sheets to D1)", harvest_monthly_sheets)
     safe_task("7. County Parcel Roll Delta Synchronization", harvest_parcel_deltas)
-    safe_task("8. FHA Condo Certification Roll (HUD ENTP)", harvest_fha_condos)
-    safe_task("9. VA Condo Loan Approval Registry (VA LGY)", harvest_va_condos)
-    safe_task("10. Master Condominium Roll Assembly", build_master_condos)
-    safe_task("11. Condominium Database Synchronization (D1)", sync_condos_to_d1)
+    safe_task("8. FHA Condo Certification Roll (HUD ENTP to D1)", harvest_fha_condos)
+    safe_task("9. VA Condo Loan Approval Registry (VA LGY to D1)", harvest_va_condos)
 
-    print("🎉 Monthly master harvesting sequence complete. Data fresh!")
+    print("🎉 Monthly master harvesting sequence complete. Database fresh!")
 
 if __name__ == "__main__":
     main()

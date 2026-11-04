@@ -2,7 +2,6 @@ import os
 import sys
 import traceback
 import sentry_sdk
-from sentry_sdk.crons import monitor
 
 # ------------------------------------------------------------------------------
 # 1. INITIALIZE SENTRY (Global Process Handler)
@@ -62,15 +61,7 @@ def compile_alerts(): run_subscript("compile_alerts.py")
 # ------------------------------------------------------------------------------
 # 3. MASTER RAPID RUNNER WITH SENTRY CRON MONITORING
 # ------------------------------------------------------------------------------
-@monitor(
-    monitor_slug="rapid-harvest-pipeline",
-    monitor_config={
-        "schedule": {"type": "crontab", "value": "*/15 * * * *"},
-        "checkin_margin": 60,
-        "max_runtime": 10,
-        "timezone": "America/Los_Angeles"
-    }
-)
+
 def main():
     print("==================================================")
     print("       MYSEATTLESEARCH RAPID TELEMETRY HARVESTER  ")

@@ -5,7 +5,6 @@ import traceback
 import datetime
 import boto3
 import sentry_sdk
-from sentry_sdk.crons import monitor
 
 # ------------------------------------------------------------------------------
 # 1. INITIALIZE SENTRY (Global Process Handler)
@@ -104,15 +103,7 @@ def run_r2_accounting():
 # ------------------------------------------------------------------------------
 # 3. MASTER HOURLY RUNNER WITH SENTRY CRON MONITORING
 # ------------------------------------------------------------------------------
-@monitor(
-    monitor_slug="hourly-harvest-pipeline",
-    monitor_config={
-        "schedule": {"type": "crontab", "value": "0 * * * *"},
-        "checkin_margin": 180,  # Allows up to 3 hours delay for GitHub queue lag
-        "max_runtime": 120,     # Allows up to 2 hours runtime
-        "timezone": "America/Los_Angeles"
-    }
-)
+
 def main():
     print("==================================================")
     print("     MYSEATTLESEARCH HOURLY MASTER HARVESTER      ")

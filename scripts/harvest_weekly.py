@@ -2,7 +2,6 @@ import os
 import sys
 import traceback
 import sentry_sdk
-from sentry_sdk.crons import monitor
 
 SENTRY_DSN = os.getenv("SENTRY_DSN")
 
@@ -55,15 +54,6 @@ def harvest_building_permits(): run_subscript("building_permits.py")
 def harvest_traffic_cameras(): run_subscript("traffic_cameras.py")
 def ping_matrix_keep_alive(): run_subscript("keep_alive_matrix.py")
 
-@monitor(
-    monitor_slug="weekly-harvest-pipeline",
-    monitor_config={
-        "schedule": {"type": "crontab", "value": "0 8 * * 0"},
-        "checkin_margin": 240,
-        "max_runtime": 180,
-        "timezone": "America/Los_Angeles"
-    }
-)
 def main():
     print("==================================================")
     print("     MYSEATTLESEARCH WEEKLY MASTER HARVESTER      ")

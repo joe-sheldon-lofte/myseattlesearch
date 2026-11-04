@@ -2,7 +2,6 @@ import os
 import sys
 import traceback
 import sentry_sdk
-from sentry_sdk.crons import monitor
 
 SENTRY_DSN = os.getenv("SENTRY_DSN")
 
@@ -56,15 +55,6 @@ def harvest_city_events(): run_subscript("harvest_city_events.py")
 def harvest_sports_daily(): run_subscript("sports_daily.py")
 def harvest_public_events(): run_subscript("harvest_public_events.py")
 
-@monitor(
-    monitor_slug="daily-harvest-pipeline",
-    monitor_config={
-        "schedule": {"type": "crontab", "value": "0 6 * * *"},
-        "checkin_margin": 180,
-        "max_runtime": 120,
-        "timezone": "America/Los_Angeles"
-    }
-)
 def main():
     print("==================================================")
     print("       MYSEATTLESEARCH DAILY MASTER HARVESTER     ")
