@@ -55,6 +55,9 @@ def run_subscript(script_relative_path):
 def harvest_power_outages(): run_subscript("power_outages.py")
 def harvest_wildfires(): run_subscript("wildfires.py")
 def harvest_rapid_sheets(): run_subscript("rapid_sheet_sync.py")
+def harvest_earthquakes(): run_subscript("earthquakes.py")
+def harvest_schools(): run_subscript("schools.py")
+def compile_alerts(): run_subscript("compile_alerts.py")
 
 # ------------------------------------------------------------------------------
 # 3. MASTER RAPID RUNNER WITH SENTRY CRON MONITORING
@@ -73,9 +76,15 @@ def main():
     print("       MYSEATTLESEARCH RAPID TELEMETRY HARVESTER  ")
     print("==================================================\n")
 
+    # Ingestion phase (isolated sub-processes)
     safe_task("1. Real-Time Utility Power Outages", harvest_power_outages)
     safe_task("2. Active Wildland Fire Telemetry (NIFC WFIGS)", harvest_wildfires)
     safe_task("3. High-Frequency Market Dashboard Sync", harvest_rapid_sheets)
+    safe_task("4. USGS Pacific Northwest Seismic Telemetry", harvest_earthquakes)
+    safe_task("5. FlashAlert PNW School Closures & Delays", harvest_schools)
+
+    # Aggregation phase (must execute last after all feeds write to R2 & D1)
+    safe_task("6. Master Edge Alert Matrix Compilation", compile_alerts)
 
     print("🎉 Rapid telemetry harvesting sequence complete.")
 

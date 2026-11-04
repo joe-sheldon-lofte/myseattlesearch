@@ -5898,4 +5898,229 @@ neighborhood-map { display: block; width: 100%; height: 100%; }
   border-radius: 12px;
   padding: 12px 14px;
   display: flex;
-  flex-direction
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metric-chamber-label {
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-secondary-muted, #6E6E73);
+}
+
+.metric-chamber-val {
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--premier-charcoal, #1C1C1E);
+  font-variant-numeric: tabular-nums;
+  font-family: monospace;
+}
+
+.metric-chamber-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==========================================================================
+   ALERT CENTER: TELEMETRY LED & GLASS PANEL HIERARCHY
+   ========================================================================== */
+
+.alert-center-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Master Navigation Trigger Pill */
+.alert-center-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 38px;
+  padding: 0 14px;
+  background: var(--color-background-universal, #FFFFFF);
+  border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08));
+  border-radius: var(--border-radius-pill, 9999px);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  user-select: none;
+}
+
+.alert-center-trigger:hover {
+  background: var(--color-surface-gray, #F5F5F7);
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+/* Master Telemetry LED Dot */
+.alert-led-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: var(--color-secondary-muted, #6E6E73);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Trigger LED State 1: Active Operational & Optimal */
+.alert-center-wrapper.is-optimal .alert-led-dot {
+  background-color: var(--status-emerald, #10B981);
+  box-shadow: none;
+}
+
+/* Trigger LED State 2: Active Hazard Broadcast (Breathing Pulse) */
+.alert-center-wrapper.is-alert .alert-led-dot {
+  background-color: var(--pnw-red, #D9232A);
+  animation: led-ambient-pulse 2.2s infinite ease-in-out;
+}
+
+@keyframes led-ambient-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(217, 35, 42, 0.55);
+  }
+  60% {
+    box-shadow: 0 0 0 6px rgba(217, 35, 42, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(217, 35, 42, 0);
+  }
+}
+
+/* Master Typography Stack */
+.alert-text-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+
+.alert-label-top {
+  font-size: 0.62rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-secondary-muted, #6E6E73);
+}
+
+.alert-status-bottom {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--premier-charcoal, #1C1C1E);
+  font-variant-numeric: tabular-nums;
+}
+
+.alert-center-wrapper.is-alert .alert-status-bottom {
+  color: var(--pnw-red, #D9232A);
+}
+
+/* 88% High-Density Liquid Glass Floating Panel */
+.alert-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--border-radius-squircle, 18px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+  padding: 10px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px) scale(0.98);
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), 
+              transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), 
+              visibility 0.2s;
+  z-index: 1000;
+}
+
+.alert-dropdown-panel.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+.alert-categories-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Opaque Shielding Tile Rule: Nested Pure White Squircles */
+.alert-category-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--color-background-universal, #FFFFFF);
+  border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.06));
+  border-radius: 12px;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.alert-category-item:hover {
+  background: var(--color-surface-gray, #F5F5F7);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Category Telemetry Dots (Solid Non-Pulsing) */
+.alert-category-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: var(--color-secondary-muted, #6E6E73);
+}
+
+.alert-category-item.is-optimal .alert-category-dot {
+  background-color: var(--status-emerald, #10B981);
+}
+
+.alert-category-item.is-alert .alert-category-dot {
+  background-color: var(--pnw-red, #D9232A);
+}
+
+.alert-category-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.alert-category-title {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--premier-charcoal, #1C1C1E);
+}
+
+.alert-category-status {
+  font-size: 0.70rem;
+  font-weight: 400;
+  color: var(--color-secondary-muted, #6E6E73);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+.alert-category-item.is-alert .alert-category-status {
+  color: var(--pnw-red, #D9232A);
+  font-weight: 500;
+}
+
+.alert-category-action {
+  font-size: 0.75rem;
+  color: var(--color-secondary-muted, #6E6E73);
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.alert-category-item:hover .alert-category-action {
+  opacity: 1;
+  transform: translateX(2px);
+}

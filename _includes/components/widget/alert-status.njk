@@ -1,59 +1,77 @@
-<div class="alert-center-wrapper" id="alertCenterWrapper">
-  <!-- Sits in header horizontal flow -->
+<div class="alert-center-wrapper is-optimal" id="alertCenterWrapper">
+  <!-- Master Navigation Trigger Button -->
   <button type="button" 
           class="alert-center-trigger" 
           id="alertCenterTrigger" 
           aria-haspopup="true" 
           aria-expanded="false" 
-          aria-label="Alert Center: No Active Alerts">
-    <span class="alert-led-dot"></span>
+          aria-label="Alert Center: Optimal Conditions">
+    <span class="alert-led-dot" id="alertTriggerDot"></span>
     <span class="alert-text-stack">
       <span class="alert-label-top">Alert Center</span>
-      <span class="alert-status-bottom">No Active Alerts</span>
+      <span class="alert-status-bottom" id="alertTriggerLabel">Optimal Conditions</span>
     </span>
   </button>
 
-  <!-- Absolutely positioned floating liquid glass panel -->
-  <div class="alert-dropdown-panel" id="alertDropdownPanel" role="region" aria-label="Alert Categories">
+  <!-- 88% High-Density Liquid Glass Panel -->
+  <div class="alert-dropdown-panel" id="alertDropdownPanel" role="region" aria-label="Emergency Status Categories">
     <div class="alert-categories-list">
       
-      <div class="alert-category-item">
+      <!-- Power Outages -->
+      <a href="/neighborhood/region/emergency-safety/" class="alert-category-item is-optimal" id="catItemOutages">
+        <span class="alert-category-dot" id="catDotOutages"></span>
+        <div class="alert-category-content">
+          <span class="alert-category-title">Power Outages</span>
+          <span class="alert-category-status" id="catStatusOutages">No Active Power Outage Alerts</span>
+        </div>
+        <span class="alert-category-action" aria-hidden="true">→</span>
+      </a>
+
+      <!-- Earthquakes -->
+      <a href="/neighborhood/region/emergency-safety/" class="alert-category-item is-optimal" id="catItemQuakes">
+        <span class="alert-category-dot" id="catDotQuakes"></span>
+        <div class="alert-category-content">
+          <span class="alert-category-title">Earthquakes</span>
+          <span class="alert-category-status" id="catStatusQuakes">No Active Earthquake Alerts</span>
+        </div>
+        <span class="alert-category-action" aria-hidden="true">→</span>
+      </a>
+
+      <!-- Wildfires -->
+      <a href="/neighborhood/region/emergency-safety/" class="alert-category-item is-optimal" id="catItemWildfires">
+        <span class="alert-category-dot" id="catDotWildfires"></span>
+        <div class="alert-category-content">
+          <span class="alert-category-title">Wildfires</span>
+          <span class="alert-category-status" id="catStatusWildfires">No Active Wildfire Alerts</span>
+        </div>
+        <span class="alert-category-action" aria-hidden="true">→</span>
+      </a>
+
+      <!-- School Closures & Delays (FlashAlert) -->
+      <a href="/neighborhood/region/emergency-safety/#schools" class="alert-category-item is-optimal" id="catItemSchools">
+        <span class="alert-category-dot" id="catDotSchools"></span>
+        <div class="alert-category-content">
+          <span class="alert-category-title">Schools</span>
+          <span class="alert-category-status" id="catStatusSchools">No Active School Alerts</span>
+        </div>
+        <span class="alert-category-action" aria-hidden="true">→</span>
+      </a>
+
+      <!-- Severe Weather (Unconfigured Muted Gray) -->
+      <div class="alert-category-item is-unconfigured">
         <span class="alert-category-dot"></span>
         <div class="alert-category-content">
           <span class="alert-category-title">Severe Weather</span>
-          <span class="alert-category-status">Severe Weather Alerts Not Yet Available</span>
+          <span class="alert-category-status">No Active Severe Weather Alerts</span>
         </div>
       </div>
 
-      <div class="alert-category-item">
-        <span class="alert-category-dot"></span>
-        <div class="alert-category-content">
-          <span class="alert-category-title">Power Outages</span>
-          <span class="alert-category-status">Power Outage Alerts Not Yet Available</span>
-        </div>
-      </div>
-
-      <div class="alert-category-item">
-        <span class="alert-category-dot"></span>
-        <div class="alert-category-content">
-          <span class="alert-category-title">Earthquakes</span>
-          <span class="alert-category-status">Earthquake Alerts Not Yet Available</span>
-        </div>
-      </div>
-
-      <div class="alert-category-item">
-        <span class="alert-category-dot"></span>
-        <div class="alert-category-content">
-          <span class="alert-category-title">Wildfires</span>
-          <span class="alert-category-status">Wildfire Alerts Not Yet Available</span>
-        </div>
-      </div>
-
-      <div class="alert-category-item">
+      <!-- Elections (Unconfigured Muted Gray) -->
+      <div class="alert-category-item is-unconfigured">
         <span class="alert-category-dot"></span>
         <div class="alert-category-content">
           <span class="alert-category-title">Elections</span>
-          <span class="alert-category-status">Election Alerts Not Yet Available</span>
+          <span class="alert-category-status">No Active Election Alerts</span>
         </div>
       </div>
 
@@ -66,6 +84,20 @@
     const wrapper = document.getElementById('alertCenterWrapper');
     const trigger = document.getElementById('alertCenterTrigger');
     const panel = document.getElementById('alertDropdownPanel');
+    const triggerLabel = document.getElementById('alertTriggerLabel');
+
+    const catOutages = document.getElementById('catItemOutages');
+    const catOutagesStatus = document.getElementById('catStatusOutages');
+
+    const catQuakes = document.getElementById('catItemQuakes');
+    const catQuakesStatus = document.getElementById('catStatusQuakes');
+
+    const catWildfires = document.getElementById('catItemWildfires');
+    const catWildfiresStatus = document.getElementById('catStatusWildfires');
+
+    const catSchools = document.getElementById('catItemSchools');
+    const catSchoolsStatus = document.getElementById('catStatusSchools');
+
     if (!wrapper || !trigger || !panel) return;
 
     trigger.addEventListener('click', function(e) {
@@ -87,6 +119,107 @@
         trigger.setAttribute('aria-expanded', 'false');
         trigger.focus();
       }
+    });
+
+    function getContextualSlug() {
+      const match = window.location.pathname.match(/\/neighborhood\/([a-z0-9-]+)\/?/);
+      if (match && match[1] && match[1] !== 'region') {
+        return match[1];
+      }
+      return null;
+    }
+
+    function syncAlertState() {
+      fetch('https://assets.myseattlesearch.com/telemetry/active_alerts.json')
+        .then(res => {
+          if (!res.ok) throw new Error('Telemetry offline');
+          return res.json();
+        })
+        .then(data => {
+          const citySlug = getContextualSlug();
+          let alertCount = 0;
+          let targetUrl = (data.global && data.global.regional_target_url) || '/neighborhood/region/emergency-safety/';
+
+          let pAlert = false;
+          let qAlert = false;
+          let wAlert = false;
+          let sLevel = 'optimal';
+
+          if (citySlug && data.neighborhoods && data.neighborhoods[citySlug]) {
+            const city = data.neighborhoods[citySlug];
+            targetUrl = city.target_url || targetUrl;
+            alertCount = city.alert_count || 0;
+            pAlert = Boolean(city.power_outage);
+            qAlert = Boolean(city.earthquake);
+            wAlert = Boolean(city.wildfire);
+            sLevel = city.school_level || 'optimal';
+          } else {
+            const g = data.global || {};
+            alertCount = g.active_alert_count || 0;
+            pAlert = Boolean(g.critical_grid_failure);
+            qAlert = Boolean(g.seismic_emergency);
+            if (g.school_emergency) sLevel = 'red';
+            else if (g.school_advisory) sLevel = 'amber';
+
+            if (data.neighborhoods) {
+              for (const k in data.neighborhoods) {
+                if (data.neighborhoods[k].wildfire) {
+                  wAlert = true;
+                  break;
+                }
+              }
+            }
+          }
+
+          // 1. Power
+          catOutages.href = targetUrl;
+          catOutages.className = 'alert-category-item ' + (pAlert ? 'is-alert' : 'is-optimal');
+          catOutagesStatus.textContent = pAlert ? 'Active Power Outage Alert' : 'No Active Power Outage Alerts';
+
+          // 2. Earthquakes
+          catQuakes.href = targetUrl;
+          catQuakes.className = 'alert-category-item ' + (qAlert ? 'is-alert' : 'is-optimal');
+          catQuakesStatus.textContent = qAlert ? 'Active Earthquake Alert' : 'No Active Earthquake Alerts';
+
+          // 3. Wildfires
+          catWildfires.href = targetUrl;
+          catWildfires.className = 'alert-category-item ' + (wAlert ? 'is-alert' : 'is-optimal');
+          catWildfiresStatus.textContent = wAlert ? 'Active Wildfire Alert' : 'No Active Wildfire Alerts';
+
+          // 4. Schools
+          catSchools.href = targetUrl + '#schools';
+          const sClass = sLevel === 'red' ? 'is-alert' : (sLevel === 'amber' ? 'is-amber' : 'is-optimal');
+          catSchools.className = 'alert-category-item ' + sClass;
+          catSchoolsStatus.textContent = sLevel !== 'optimal' ? 'Active School Alert' : 'No Active School Alerts';
+
+          // Master Trigger State
+          const hasRed = pAlert || qAlert || wAlert || (sLevel === 'red');
+          const hasAmber = !hasRed && (sLevel === 'amber');
+
+          if (hasRed) {
+            wrapper.className = 'alert-center-wrapper is-alert';
+            triggerLabel.textContent = `${alertCount} Active Alert${alertCount === 1 ? '' : 's'}`;
+            trigger.setAttribute('aria-label', `Alert Center: ${alertCount} Active Alert${alertCount === 1 ? '' : 's'}`);
+          } else if (hasAmber) {
+            wrapper.className = 'alert-center-wrapper is-amber';
+            triggerLabel.textContent = 'Active Advisory';
+            trigger.setAttribute('aria-label', 'Alert Center: Active Advisory');
+          } else {
+            wrapper.className = 'alert-center-wrapper is-optimal';
+            triggerLabel.textContent = 'Optimal Conditions';
+            trigger.setAttribute('aria-label', 'Alert Center: Optimal Conditions');
+          }
+        })
+        .catch(() => {
+          wrapper.className = 'alert-center-wrapper is-optimal';
+          triggerLabel.textContent = 'Optimal Conditions';
+        });
+    }
+
+    syncAlertState();
+    setInterval(syncAlertState, 60000);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) syncAlertState();
     });
   })();
 </script>
