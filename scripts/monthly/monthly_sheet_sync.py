@@ -64,7 +64,7 @@ def sync_utility_directory_to_d1(utility_records):
         print("   ⚠️ Cloudflare D1 environment variables missing. Skipping utility_directory edge sync.")
         return
 
-    print("   ⚡ Syncing UtilityData into Cloudflare D1 (utility_directory)...")
+    print("   ⚡ Syncing UtilityData directly into Cloudflare D1 (utility_directory)...")
     endpoint = f"https://api.cloudflare.com/client/v4/accounts/{cf_account_id}/d1/database/{cf_db_id}/query"
     headers = {
         "Authorization": f"Bearer {cf_api_token}",
@@ -170,10 +170,6 @@ def main():
     utility_rows = data.get("UtilityData", {}).get('values', [])
     if utility_rows:
         parsed_utilities = parse_sheet_values(utility_rows)
-        with open(os.path.join(DATA_DIR, "utility_directory.json"), "w", encoding="utf-8") as f:
-            json.dump(clean_nan_tokens(parsed_utilities), f, indent=2, ensure_ascii=False)
-        print(f"   Updated utility_directory.json ({len(parsed_utilities):,} records).")
-
         sync_utility_directory_to_d1(parsed_utilities)
 
     print("✅ Monthly Sheets Sync & Edge Ingestion complete.")
