@@ -254,7 +254,7 @@ def main():
     tabs = [
         "Rates", "CityData", "Stats", "Professionals", "Sales",
         "Translations", "SiteCredits", "VideoLibrary", "AudioLibrary",
-        "VideoChannels", "VideoChannelSchedules", "PublicEvents"
+        "VideoChannels", "VideoChannelSchedules", "PublicEvents", "BoldPrint"
     ]
     ranges = [f"{tab}!A:BK" for tab in tabs]
     res = sheets_service.spreadsheets().values().batchGet(spreadsheetId=master_sheet_id, ranges=ranges).execute()
@@ -331,7 +331,7 @@ def main():
     mappings = [
         ("Professionals", "professionals.json"),
         ("Translations", "translations.json"),
-        ("SiteCredits", "site_credits.json"),
+        ("BoldPrint", "bold_print.json"),
         ("VideoLibrary", "video_library.json"),
         ("AudioLibrary", "audio_library.json"),
         ("VideoChannels", "video_channels.json"),

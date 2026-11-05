@@ -54,7 +54,7 @@ R2_BUCKET_NAME = config.get("R2_BUCKET_NAME", "myseattlesearch-assets")
 R2_PUBLIC_DOMAIN = config.get("R2_PUBLIC_DOMAIN", "https://assets.myseattlesearch.com").rstrip("/")
 
 HTTP_HEADERS = {
-    "User-Agent": "MySeattleSearch-History-Harvester/5.0 (Slug-Standardized Architecture; info@myseattlesearch.com)"
+    "User-Agent": "MySeattleSearch-History-Harvester/5.1 (Bulk-Uncapped Architecture; info@myseattlesearch.com)"
 }
 
 # ---------------------------------------------------------------------------
@@ -609,7 +609,7 @@ def process_and_transcode_image(item, max_retries=3):
 # ---------------------------------------------------------------------------
 # Category Query & Strict Zero-Fallback Spatial Gate
 # ---------------------------------------------------------------------------
-def fetch_live_archive_records(source_key, offset=0, limit=25):
+def fetch_live_archive_records(source_key, offset=0, limit=50):
     cfg = SOURCE_CONFIGS.get(source_key)
     if not cfg:
         return [], offset
@@ -770,9 +770,9 @@ def fetch_live_archive_records(source_key, offset=0, limit=25):
             "dataset_type": dataset_type,
             "parcel_number": parcel_number,
             "title": clean_title[:90],
-            "city": city_slug,                # Always lowercase hyphenated city slug (e.g. 'seattle', 'edmonds')
+            "city": city_slug,                # Lowercase hyphenated city slug (e.g. 'seattle', 'edmonds')
             "county": county_name,            # Preserves 'King' or 'Snohomish'
-            "neighborhood": matched_slug,     # Sub-neighborhood slug or city slug (e.g. 'ballard', 'edmonds')
+            "neighborhood": matched_slug,     # Sub-neighborhood slug or city slug
             "year_built": year_found,
             "year_photo": year_found,
             "architectural_style": "Archival Photographic Record",
@@ -844,9 +844,9 @@ def ingest_record(item, s3_client):
 # ---------------------------------------------------------------------------
 # Pipeline Orchestrator
 # ---------------------------------------------------------------------------
-def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=3, force=False, is_bulk=False):
+def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=None, force=False, is_bulk=False):
     print("================================================================================")
-    print("MYSEATTLESEARCH: ZERO-FALLBACK SLUG-STANDARDIZED HISTORICAL HARVESTER")
+    print("MYSEATTLESEARCH: ZERO-FALLBACK BULK HISTORICAL HARVESTER")
     print("================================================================================")
     print(f"Target Database ID: {CF_D1_DATABASE_ID}")
     print(f"Target R2 Bucket:   {R2_BUCKET_NAME} ({R2_PUBLIC_DOMAIN})")
@@ -855,6 +855,8 @@ def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=3, force=
     print(f"Target Stages:      {', '.join(stages_to_run).upper()}")
     if limit_per_source:
         print(f"Quota Target:       {limit_per_source} verified records per stage")
+    else:
+        print("Quota Target:       UNCAPPED BULK (Continuous harvest to end of archives)")
     print("================================================================================")
 
     progress = load_progress()
@@ -872,7 +874,7 @@ def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=3, force=
         current_offset = 0 if force else cursors.get(stage, 0)
 
         while True:
-            fetch_size = max(25, limit_per_source) if limit_per_source else 25
+            fetch_size = 50 if is_bulk else (max(25, limit_per_source) if limit_per_source else 25)
             print(f"[*] Querying '{stage}' at offset {current_offset} (fetch buffer: {fetch_size})...")
             live_items, next_offset = fetch_live_archive_records(stage, offset=current_offset, limit=fetch_size)
 
@@ -942,7 +944,7 @@ def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=3, force=
 # CLI Entrypoint
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Zero-Fallback Slug-Standardized Historical Asset Harvester")
+    parser = argparse.ArgumentParser(description="Zero-Fallback Bulk Historical Asset Harvester")
     parser.add_argument("--bulk", action="store_true", help="Execute complete continuous run until end of archives")
     parser.add_argument("--source", type=str, default="all", choices=["all"] + ALL_SOURCES,
                         help="Target data source (default: all)")
@@ -952,11 +954,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     stages = ALL_SOURCES if args.source == "all" else [args.source]
+    limit_target = None if args.bulk else args.limit
 
     execute_pipeline(
         stages_to_run=stages,
         city_filter=args.city,
-        limit_per_source=args.limit,
+        limit_per_source=limit_target,
         force=args.force,
         is_bulk=args.bulk
     )
