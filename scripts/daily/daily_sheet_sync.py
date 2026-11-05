@@ -3,6 +3,7 @@ import re
 import json
 import math
 import datetime
+import requests
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
@@ -14,6 +15,25 @@ SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/documents.readonly'
 ]
+
+def load_local_env():
+    """Load development environment variables if running outside GitHub Actions."""
+    for env_file in [".dev.vars", ".env"]:
+        env_path = os.path.join(BASE_DIR, env_file)
+        if os.path.exists(env_path):
+            try:
+                with open(env_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith("#") or "=" not in line:
+                            continue
+                        k, v = line.split("=", 1)
+                        k = k.strip()
+                        v = v.strip().strip("\"'")
+                        if k and k not in os.environ:
+                            os.environ[k] = v
+            except Exception:
+                pass
 
 def get_col_letter(col_idx):
     result = ""
@@ -128,8 +148,93 @@ def parse_sheet_values(rows):
         records.append(dict(zip(headers, sanitized)))
     return records
 
+def sync_professionals_to_d1(records):
+    """Upserts normalized professional directory records into Cloudflare D1."""
+    account_id = os.environ.get("CF_ACCOUNT_ID")
+    database_id = os.environ.get("CF_DATABASE_CUSTOMERS_ID")
+    api_token = os.environ.get("CF_D1_API_TOKEN") or os.environ.get("CF_API_TOKEN")
+
+    if not account_id or not database_id or not api_token:
+        print("   ⚠️ Cloudflare D1 credentials missing (CF_ACCOUNT_ID, CF_DATABASE_CUSTOMERS_ID, CF_D1_API_TOKEN). Skipping D1 sync.")
+        return False
+
+    def clean_val(v):
+        if v is None:
+            return None
+        s = str(v).strip()
+        return s if s else None
+
+    mapped_rows = []
+    for rec in records:
+        category = clean_val(rec.get("Category") or rec.get("category")) or "General"
+        biz_name = clean_val(rec.get("Business/Vendor Name") or rec.get("business_name") or rec.get("Business Name")) or "Unknown Vendor"
+        pro_id = clean_val(rec.get("ProID") or rec.get("pro_id"))
+        if not pro_id:
+            pro_id = f"{category}-{biz_name}".replace(" ", "-")
+
+        phone = clean_val(rec.get("Phone Number") or rec.get("phone_number") or rec.get("Phone"))
+        email = clean_val(rec.get("Email") or rec.get("email"))
+        website = clean_val(rec.get("Website") or rec.get("website"))
+        additional_info = clean_val(rec.get("Additional Info") or rec.get("additional_info") or rec.get("AdditionalInfo"))
+        legal_req = clean_val(rec.get("Legal Requirements") or rec.get("legal_requirements"))
+        legal_link = clean_val(rec.get("Legal Requirements Link") or rec.get("legal_requirements_link"))
+
+        mapped_rows.append((
+            pro_id,
+            category,
+            biz_name,
+            phone,
+            email,
+            website,
+            additional_info,
+            legal_req,
+            legal_link
+        ))
+
+    if not mapped_rows:
+        return True
+
+    endpoint = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/d1/database/{database_id}/query"
+    headers = {
+        "Authorization": f"Bearer {api_token}",
+        "Content-Type": "application/json"
+    }
+
+    chunk_size = 25
+    synced_count = 0
+
+    for i in range(0, len(mapped_rows), chunk_size):
+        chunk = mapped_rows[i:i + chunk_size]
+        placeholders = ", ".join(["(?, ?, ?, ?, ?, ?, ?, ?, ?)"] * len(chunk))
+        sql = f"""
+            INSERT OR REPLACE INTO professionals (
+                pro_id, category, business_name, phone_number, email,
+                website, additional_info, legal_requirements, legal_requirements_link
+            ) VALUES {placeholders};
+        """
+        flat_params = [item for row in chunk for item in row]
+
+        try:
+            res = requests.post(
+                endpoint,
+                headers=headers,
+                json={"sql": sql, "params": flat_params},
+                timeout=30
+            )
+            res_json = res.json()
+            if res_json.get("success"):
+                synced_count += len(chunk)
+            else:
+                print(f"   ❌ D1 Query Batch Error: {res_json.get('errors')}")
+        except Exception as e:
+            print(f"   ❌ D1 Network Error in batch {i // chunk_size + 1}: {e}")
+
+    print(f"   ⚡ Synchronized {synced_count}/{len(mapped_rows)} vendors into D1 table 'professionals'.")
+    return synced_count == len(mapped_rows)
+
 def main():
     print("🌅 Running Daily Sheets Ingestion...")
+    load_local_env()
     os.makedirs(DATA_DIR, exist_ok=True)
     editorials_dir = os.path.join(DATA_DIR, "editorials")
     os.makedirs(editorials_dir, exist_ok=True)
@@ -220,7 +325,7 @@ def main():
         with open(os.path.join(DATA_DIR, "sales.json"), "w", encoding="utf-8") as f:
             json.dump(clean_nan_tokens(compiled_sales), f, indent=2, ensure_ascii=False)
 
-    # Direct Array JSON Tabs
+    # Direct Array JSON Tabs & D1 Dual-Ingestion
     mappings = [
         ("Professionals", "professionals.json"),
         ("Translations", "translations.json"),
@@ -234,8 +339,14 @@ def main():
     for tab_name, json_name in mappings:
         rows = data.get(tab_name, {}).get('values', [])
         if rows:
+            parsed_records = parse_sheet_values(rows)
+            # Write to static data directory for SSG build
             with open(os.path.join(DATA_DIR, json_name), "w", encoding="utf-8") as f:
-                json.dump(clean_nan_tokens(parse_sheet_values(rows)), f, indent=2, ensure_ascii=False)
+                json.dump(clean_nan_tokens(parsed_records), f, indent=2, ensure_ascii=False)
+            
+            # Dual-write professionals into Cloudflare D1
+            if tab_name == "Professionals":
+                sync_professionals_to_d1(parsed_records)
 
     if sheet_writebacks:
         try:
