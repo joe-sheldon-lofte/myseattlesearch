@@ -54,17 +54,17 @@ R2_BUCKET_NAME = config.get("R2_BUCKET_NAME", "myseattlesearch-assets")
 R2_PUBLIC_DOMAIN = config.get("R2_PUBLIC_DOMAIN", "https://assets.myseattlesearch.com").rstrip("/")
 
 HTTP_HEADERS = {
-    "User-Agent": "MySeattleSearch-History-Harvester/4.0 (Zero-Fallback Bounding Architecture; info@myseattlesearch.com)"
+    "User-Agent": "MySeattleSearch-History-Harvester/5.0 (Slug-Standardized Architecture; info@myseattlesearch.com)"
 }
 
 # ---------------------------------------------------------------------------
 # Strict Geographic Bounding Box (King & Snohomish Counties + 3mi Buffer)
 # ---------------------------------------------------------------------------
 BOUNDING_BOX = {
-    "lat_min": 47.1000,  # South King County buffer (Pierce Co line)
-    "lat_max": 48.3500,  # North Snohomish County buffer (Skagit Co line)
-    "lng_min": -122.6000, # West boundary (Puget Sound / Vashon buffer)
-    "lng_max": -121.0000  # East boundary (Cascade Mountain Crest buffer)
+    "lat_min": 47.1000,   # South King County buffer (Pierce Co line)
+    "lat_max": 48.3500,   # North Snohomish County buffer (Skagit Co line)
+    "lng_min": -122.6000,  # West boundary (Puget Sound / Vashon buffer)
+    "lng_max": -121.0000   # East boundary (Cascade Mountain Crest buffer)
 }
 
 def is_inside_bounding_box(lat, lng):
@@ -75,110 +75,247 @@ def is_inside_bounding_box(lat, lng):
             BOUNDING_BOX["lng_min"] <= lng <= BOUNDING_BOX["lng_max"])
 
 # ---------------------------------------------------------------------------
-# Authoritative Municipal Taxonomy (All 59 Footprint Cities & Neighborhoods)
+# Pre-Seeded Municipal & Neighborhood Centroids (Zero-Scan Memory Cache)
 # ---------------------------------------------------------------------------
-SLUG_DISPLAY_MAP = {
+CENTROIDS = {
     # Snohomish County Municipalities
-    "edmonds": ("Edmonds", "Snohomish"),
-    "snohomish": ("Snohomish", "Snohomish"),
-    "mukilteo": ("Mukilteo", "Snohomish"),
-    "lynnwood": ("Lynnwood", "Snohomish"),
-    "everett": ("Everett", "Snohomish"),
-    "marysville": ("Marysville", "Snohomish"),
-    "mountlake-terrace": ("Mountlake Terrace", "Snohomish"),
-    "mill-creek": ("Mill Creek", "Snohomish"),
-    "lake-stevens": ("Lake Stevens", "Snohomish"),
-    "arlington": ("Arlington", "Snohomish"),
-    "monroe": ("Monroe", "Snohomish"),
-    "stanwood": ("Stanwood", "Snohomish"),
-    "granite-falls": ("Granite Falls", "Snohomish"),
-    "sultan": ("Sultan", "Snohomish"),
-    "gold-bar": ("Gold Bar", "Snohomish"),
-    "brier": ("Brier", "Snohomish"),
-    "woodway": ("Woodway", "Snohomish"),
-    "darrington": ("Darrington", "Snohomish"),
-    "tulalip": ("Tulalip", "Snohomish"),
-    "index": ("Index", "Snohomish"),
-    "silvana": ("Silvana", "Snohomish"),
+    "edmonds": (47.8107, -122.3774),
+    "snohomish": (47.9128, -122.0933),
+    "mukilteo": (47.9030, -122.3043),
+    "lynnwood": (47.8209, -122.3151),
+    "everett": (47.9789, -122.2021),
+    "marysville": (48.0518, -122.1771),
+    "mountlake-terrace": (47.7884, -122.3085),
+    "mill-creek": (47.8604, -122.2046),
+    "lake-stevens": (48.0151, -122.0635),
+    "arlington": (48.1987, -122.1251),
+    "monroe": (47.8557, -121.9699),
+    "stanwood": (48.2415, -122.3707),
+    "granite-falls": (48.0837, -121.9696),
+    "sultan": (47.8623, -121.8157),
+    "gold-bar": (47.8584, -121.6948),
+    "brier": (47.7801, -122.2818),
+    "woodway": (47.7884, -122.3854),
+    "darrington": (48.2559, -121.6026),
+    "tulalip": (48.0645, -122.2846),
+    "index": (47.8207, -121.5540),
+    "silvana": (48.2012, -122.2504),
 
     # King County Municipalities
-    "seattle": ("Seattle", "King"),
-    "bellevue": ("Bellevue", "King"),
-    "renton": ("Renton", "King"),
-    "kent": ("Kent", "King"),
-    "auburn": ("Auburn", "King"),
-    "kirkland": ("Kirkland", "King"),
-    "redmond": ("Redmond", "King"),
-    "federal-way": ("Federal Way", "King"),
-    "federaly": ("Federal Way", "King"),
-    "sammamish": ("Sammamish", "King"),
-    "issaquah": ("Issaquah", "King"),
-    "shoreline": ("Shoreline", "King"),
-    "woodinville": ("Woodinville", "King"),
-    "maple-valley": ("Maple Valley", "King"),
-    "mercer-island": ("Mercer Island", "King"),
-    "burien": ("Burien", "King"),
-    "enumclaw": ("Enumclaw", "King"),
-    "des-moines": ("Des Moines", "King"),
-    "kenmore": ("Kenmore", "King"),
-    "covington": ("Covington", "King"),
-    "north-bend": ("North Bend", "King"),
-    "vashon": ("Vashon", "King"),
-    "snoqualmie": ("Snoqualmie", "King"),
-    "duvall": ("Duvall", "King"),
-    "seatac": ("SeaTac", "King"),
-    "tukwila": ("Tukwila", "King"),
-    "newcastle": ("Newcastle", "King"),
-    "black-diamond": ("Black Diamond", "King"),
-    "lake-forest-park": ("Lake Forest Park", "King"),
-    "carnation": ("Carnation", "King"),
-    "normandy-park": ("Normandy Park", "King"),
-    "fall-city": ("Fall City", "King"),
-    "pacific": ("Pacific", "King"),
-    "ravensdale": ("Ravensdale", "King"),
-    "medina": ("Medina", "King"),
-    "clyde-hill": ("Clyde Hill", "King"),
-    "algona": ("Algona", "King"),
-    "yarrow-point": ("Yarrow Point", "King"),
-    "hunts-point": ("Hunts Point", "King"),
-    "beaux-arts-village": ("Beaux Arts Village", "King"),
-    "skykomish": ("Skykomish", "King"),
+    "seattle": (47.6062, -122.3321),
+    "bellevue": (47.6101, -122.2015),
+    "renton": (47.4829, -122.2171),
+    "kent": (47.3809, -122.2348),
+    "auburn": (47.3073, -122.2284),
+    "kirkland": (47.6815, -122.2087),
+    "redmond": (47.6740, -122.1215),
+    "federal-way": (47.3223, -122.3126),
+    "sammamish": (47.6163, -122.0356),
+    "issaquah": (47.5301, -122.0326),
+    "shoreline": (47.7560, -122.3457),
+    "woodinville": (47.7543, -122.1635),
+    "bothell": (47.7601, -122.2054),
+    "maple-valley": (47.3654, -122.0437),
+    "mercer-island": (47.5707, -122.2221),
+    "burien": (47.4704, -122.3468),
+    "enumclaw": (47.2043, -121.9915),
+    "des-moines": (47.4018, -122.3243),
+    "kenmore": (47.7573, -122.2440),
+    "covington": (47.3648, -122.0918),
+    "north-bend": (47.4957, -121.7868),
+    "vashon": (47.4476, -122.4632),
+    "snoqualmie": (47.5287, -121.8254),
+    "duvall": (47.7423, -121.9857),
+    "seatac": (47.4439, -122.2961),
+    "tukwila": (47.4740, -122.2610),
+    "newcastle": (47.5390, -122.1671),
+    "black-diamond": (47.3087, -122.0032),
+    "lake-forest-park": (47.7537, -122.2776),
+    "carnation": (47.6479, -121.9118),
+    "normandy-park": (47.4390, -122.3396),
+    "fall-city": (47.5670, -121.8987),
+    "pacific": (47.2645, -122.2504),
+    "ravensdale": (47.3548, -121.9915),
+    "medina": (47.6209, -122.2348),
+    "clyde-hill": (47.6301, -122.2179),
+    "algona": (47.2815, -122.2490),
+    "yarrow-point": (47.6454, -122.2157),
+    "hunts-point": (47.6395, -122.2271),
+    "beaux-arts-village": (47.5884, -122.1996),
+    "skykomish": (47.7095, -121.3598),
 
-    # Common Sub-Neighborhoods (Mapped strictly to parent municipality)
-    "ballard": ("Seattle", "King"),
-    "capitol-hill": ("Seattle", "King"),
-    "pioneer-square": ("Seattle", "King"),
-    "fremont": ("Seattle", "King"),
-    "queen-anne": ("Seattle", "King"),
-    "green-lake": ("Seattle", "King"),
-    "view-ridge": ("Seattle", "King"),
-    "mount-baker": ("Seattle", "King"),
-    "magnolia": ("Seattle", "King"),
-    "west-seattle": ("Seattle", "King"),
-    "wallingford": ("Seattle", "King"),
-    "georgetown": ("Seattle", "King"),
-    "columbia-city": ("Seattle", "King"),
-    "south-lake-union": ("Seattle", "King"),
-    "belltown": ("Seattle", "King"),
-    "first-hill": ("Seattle", "King"),
-    "international-district": ("Seattle", "King"),
-    "beacon-hill": ("Seattle", "King"),
-    "ravenna": ("Seattle", "King"),
-    "phinney-ridge": ("Seattle", "King"),
-    "madrona": ("Seattle", "King"),
-    "leschi": ("Seattle", "King"),
-    "madison-park": ("Seattle", "King"),
-    "wedgwood": ("Seattle", "King"),
-    "laurelhurst": ("Seattle", "King"),
-    "bitter-lake": ("Seattle", "King"),
-    "crown-hill": ("Seattle", "King"),
-    "greenwood": ("Seattle", "King"),
-    "interbay": ("Seattle", "King"),
-    "montlake": ("Seattle", "King"),
-    "richmond-beach": ("Shoreline", "King"),
-    "edmonds-bowl": ("Edmonds", "Snohomish"),
-    "silver-lake": ("Everett", "Snohomish")
+    # Common Sub-Neighborhoods (Seattle & Suburbs)
+    "ballard": (47.6677, -122.3846),
+    "capitol-hill": (47.6253, -122.3222),
+    "pioneer-square": (47.6015, -122.3343),
+    "fremont": (47.6505, -122.3499),
+    "queen-anne": (47.6373, -122.3571),
+    "green-lake": (47.6797, -122.3275),
+    "view-ridge": (47.6837, -122.2687),
+    "mount-baker": (47.5815, -122.2932),
+    "magnolia": (47.6401, -122.3999),
+    "west-seattle": (47.5615, -122.3867),
+    "wallingford": (47.6592, -122.3357),
+    "georgetown": (47.5415, -122.3243),
+    "columbia-city": (47.5604, -122.2857),
+    "south-lake-union": (47.6221, -122.3364),
+    "belltown": (47.6145, -122.3457),
+    "first-hill": (47.6101, -122.3243),
+    "international-district": (47.5987, -122.3243),
+    "beacon-hill": (47.5798, -122.3126),
+    "ravenna": (47.6765, -122.3023),
+    "phinney-ridge": (47.6740, -122.3548),
+    "madrona": (47.6123, -122.2887),
+    "leschi": (47.6015, -122.2871),
+    "madison-park": (47.6345, -122.2776),
+    "wedgwood": (47.6912, -122.2907),
+    "laurelhurst": (47.6592, -122.2776),
+    "bitter-lake": (47.7245, -122.3548),
+    "crown-hill": (47.6954, -122.3707),
+    "greenwood": (47.6912, -122.3548),
+    "interbay": (47.6454, -122.3776),
+    "montlake": (47.6415, -122.3043),
+    "richmond-beach": (47.7687, -122.3854),
+    "edmonds-bowl": (47.8107, -122.3774),
+    "silver-lake": (47.8945, -122.2157)
 }
+
+# ---------------------------------------------------------------------------
+# Authoritative Slug-To-City-Slug & County Mapping
+# Key: Sub-slug or City-slug -> Value: (parent_city_slug, county_name)
+# ---------------------------------------------------------------------------
+SLUG_TAXONOMY_MAP = {
+    # Snohomish County
+    "edmonds": ("edmonds", "Snohomish"),
+    "snohomish": ("snohomish", "Snohomish"),
+    "mukilteo": ("mukilteo", "Snohomish"),
+    "lynnwood": ("lynnwood", "Snohomish"),
+    "everett": ("everett", "Snohomish"),
+    "marysville": ("marysville", "Snohomish"),
+    "mountlake-terrace": ("mountlake-terrace", "Snohomish"),
+    "mill-creek": ("mill-creek", "Snohomish"),
+    "lake-stevens": ("lake-stevens", "Snohomish"),
+    "arlington": ("arlington", "Snohomish"),
+    "monroe": ("monroe", "Snohomish"),
+    "stanwood": ("stanwood", "Snohomish"),
+    "granite-falls": ("granite-falls", "Snohomish"),
+    "sultan": ("sultan", "Snohomish"),
+    "gold-bar": ("gold-bar", "Snohomish"),
+    "brier": ("brier", "Snohomish"),
+    "woodway": ("woodway", "Snohomish"),
+    "darrington": ("darrington", "Snohomish"),
+    "tulalip": ("tulalip", "Snohomish"),
+    "index": ("index", "Snohomish"),
+    "silvana": ("silvana", "Snohomish"),
+    "edmonds-bowl": ("edmonds", "Snohomish"),
+    "silver-lake": ("everett", "Snohomish"),
+
+    # King County
+    "seattle": ("seattle", "King"),
+    "bellevue": ("bellevue", "King"),
+    "renton": ("renton", "King"),
+    "kent": ("kent", "King"),
+    "auburn": ("auburn", "King"),
+    "kirkland": ("kirkland", "King"),
+    "redmond": ("redmond", "King"),
+    "federal-way": ("federal-way", "King"),
+    "federaly": ("federal-way", "King"),
+    "sammamish": ("sammamish", "King"),
+    "issaquah": ("issaquah", "King"),
+    "shoreline": ("shoreline", "King"),
+    "woodinville": ("woodinville", "King"),
+    "maple-valley": ("maple-valley", "King"),
+    "mercer-island": ("mercer-island", "King"),
+    "burien": ("burien", "King"),
+    "enumclaw": ("enumclaw", "King"),
+    "des-moines": ("des-moines", "King"),
+    "kenmore": ("kenmore", "King"),
+    "covington": ("covington", "King"),
+    "north-bend": ("north-bend", "King"),
+    "vashon": ("vashon", "King"),
+    "snoqualmie": ("snoqualmie", "King"),
+    "duvall": ("duvall", "King"),
+    "seatac": ("seatac", "King"),
+    "tukwila": ("tukwila", "King"),
+    "newcastle": ("newcastle", "King"),
+    "black-diamond": ("black-diamond", "King"),
+    "lake-forest-park": ("lake-forest-park", "King"),
+    "carnation": ("carnation", "King"),
+    "normandy-park": ("normandy-park", "King"),
+    "fall-city": ("fall-city", "King"),
+    "pacific": ("pacific", "King"),
+    "ravensdale": ("ravensdale", "King"),
+    "medina": ("medina", "King"),
+    "clyde-hill": ("clyde-hill", "King"),
+    "algona": ("algona", "King"),
+    "yarrow-point": ("yarrow-point", "King"),
+    "hunts-point": ("hunts-point", "King"),
+    "beaux-arts-village": ("beaux-arts-village", "King"),
+    "skykomish": ("skykomish", "King"),
+
+    # Common Sub-Neighborhoods (Mapped to parent city slug)
+    "ballard": ("seattle", "King"),
+    "capitol-hill": ("seattle", "King"),
+    "pioneer-square": ("seattle", "King"),
+    "fremont": ("seattle", "King"),
+    "queen-anne": ("seattle", "King"),
+    "green-lake": ("seattle", "King"),
+    "view-ridge": ("seattle", "King"),
+    "mount-baker": ("seattle", "King"),
+    "magnolia": ("seattle", "King"),
+    "west-seattle": ("seattle", "King"),
+    "wallingford": ("seattle", "King"),
+    "georgetown": ("seattle", "King"),
+    "columbia-city": ("seattle", "King"),
+    "south-lake-union": ("seattle", "King"),
+    "belltown": ("seattle", "King"),
+    "first-hill": ("seattle", "King"),
+    "international-district": ("seattle", "King"),
+    "beacon-hill": ("seattle", "King"),
+    "ravenna": ("seattle", "King"),
+    "phinney-ridge": ("seattle", "King"),
+    "madrona": ("seattle", "King"),
+    "leschi": ("seattle", "King"),
+    "madison-park": ("seattle", "King"),
+    "wedgwood": ("seattle", "King"),
+    "laurelhurst": ("seattle", "King"),
+    "bitter-lake": ("seattle", "King"),
+    "crown-hill": ("seattle", "King"),
+    "greenwood": ("seattle", "King"),
+    "interbay": ("seattle", "King"),
+    "montlake": ("seattle", "King"),
+    "richmond-beach": ("shoreline", "King")
+}
+
+# ---------------------------------------------------------------------------
+# Institutional Boilerplate Sanitization & Out-of-Area Filters
+# ---------------------------------------------------------------------------
+OUT_OF_AREA_EXCLUSIONS = [
+    "fairbanks", "alaska", "yukon", "klondike", "nome", "juneau", "skagway",
+    "spokane", "cheney", "pomeroy", "walla walla", "yakima", "tri-cities",
+    "bellingham", "olympia", "portland", "oregon", "california", "idaho",
+    "british columbia", "canada"
+]
+
+def strip_institutional_boilerplate(text):
+    """Strips university/museum donor credits that falsely inject 'Seattle' into non-Seattle photos."""
+    if not text:
+        return ""
+    cleaned = re.sub(r'University of Washington Libraries[^\.\;]*', '', text, flags=re.IGNORECASE)
+    cleaned = re.sub(r'Museum of History & Industry[^\.\;]*', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'MOHAI[^\.\;]*', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'Asahel Curtis \([^\)]*Seattle[^\)]*\)', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'Special Collections Division[^\.\;]*', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'Seattle Municipal Archives via Flickr', '', cleaned, flags=re.IGNORECASE)
+    return cleaned
+
+def is_out_of_area(title, desc):
+    """Rejects photos whose subject or location explicitly references out-of-area regions."""
+    combined = f"{title} {desc}".lower()
+    for kw in OUT_OF_AREA_EXCLUSIONS:
+        if re.search(r'\b' + re.escape(kw) + r'\b', combined):
+            return True
+    return False
 
 def normalize_slug(slug):
     if not slug:
@@ -189,28 +326,47 @@ def normalize_slug(slug):
     return clean
 
 def resolve_location(slug, lat=None):
+    """
+    Returns (city_slug, county_name) where city_slug is ALWAYS an incorporated
+    city slug (e.g. 'seattle', 'shoreline', 'edmonds', 'federal-way').
+    """
     clean = normalize_slug(slug)
     if clean == "bothell":
         if lat and lat > 47.78:
-            return "Bothell", "Snohomish"
-        return "Bothell", "King"
+            return "bothell", "Snohomish"
+        return "bothell", "King"
 
-    if clean in SLUG_DISPLAY_MAP:
-        return SLUG_DISPLAY_MAP[clean]
+    if clean in SLUG_TAXONOMY_MAP:
+        return SLUG_TAXONOMY_MAP[clean]
 
     return None, None
 
-def match_slug_from_text(text):
-    """Extracts known municipal or neighborhood slug from text. Returns None if unmatched."""
-    if not text:
-        return None
-    clean_text = text.lower()
-    for slug_candidate in SLUG_DISPLAY_MAP.keys():
+def match_slug_from_text(title, desc):
+    """Matches known municipal or neighborhood slug, checking title first with sanitized text."""
+    clean_title = strip_institutional_boilerplate(title).lower()
+    for slug_candidate in SLUG_TAXONOMY_MAP.keys():
         readable = slug_candidate.replace("-", " ")
-        pattern = r'\b' + re.escape(readable) + r'\b'
-        if re.search(pattern, clean_text):
+        if re.search(r'\b' + re.escape(readable) + r'\b', clean_title):
             return slug_candidate
+
+    clean_desc = strip_institutional_boilerplate(desc).lower()
+    for slug_candidate in SLUG_TAXONOMY_MAP.keys():
+        readable = slug_candidate.replace("-", " ")
+        if re.search(r'\b' + re.escape(readable) + r'\b', clean_desc):
+            return slug_candidate
+
     return None
+
+def find_nearest_slug_by_coords(lat, lng):
+    """Resolves coordinates inside bounding box to the closest footprint municipality."""
+    best_slug = None
+    min_dist = float("inf")
+    for slug, (c_lat, c_lng) in CENTROIDS.items():
+        dist = (lat - c_lat) ** 2 + (lng - c_lng) ** 2
+        if dist < min_dist:
+            min_dist = dist
+            best_slug = slug
+    return best_slug or "seattle"
 
 # ---------------------------------------------------------------------------
 # 5-Stage Institutional Harvest Configuration (Zero Fallback Slugs)
@@ -305,9 +461,9 @@ def upload_buffer_to_r2(s3_client, buffer, object_key, content_type="image/webp"
     return f"{R2_PUBLIC_DOMAIN}/{object_key}"
 
 # ---------------------------------------------------------------------------
-# Cloudflare D1 Query Engine
+# Cloudflare D1 Query Engine with Exponential Retry Backoff
 # ---------------------------------------------------------------------------
-def execute_d1_query(sql, params=None):
+def execute_d1_query(sql, params=None, max_retries=3):
     if not all([CF_ACCOUNT_ID, CF_D1_DATABASE_ID, CF_API_TOKEN]):
         raise ValueError("Missing D1 credentials in .dev.vars")
 
@@ -316,77 +472,38 @@ def execute_d1_query(sql, params=None):
     if params:
         payload["params"] = params
 
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {CF_API_TOKEN}",
-            "Content-Type": "application/json"
-        },
-        method="POST"
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=20) as response:
-            res_data = json.loads(response.read().decode("utf-8"))
-            if not res_data.get("success"):
-                raise RuntimeError(f"D1 Query Failed: {res_data.get('errors', [])}")
-            return res_data
-    except urllib.error.HTTPError as e:
-        raise RuntimeError(f"D1 HTTP {e.code}: {e.read().decode('utf-8')}")
+    for attempt in range(1, max_retries + 1):
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {CF_API_TOKEN}",
+                "Content-Type": "application/json"
+            },
+            method="POST"
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=20) as response:
+                res_data = json.loads(response.read().decode("utf-8"))
+                if not res_data.get("success"):
+                    errs = res_data.get("errors", [])
+                    if any(e.get("code") == 7429 for e in errs) and attempt < max_retries:
+                        time.sleep(2.5 * attempt)
+                        continue
+                    raise RuntimeError(f"D1 Query Failed: {errs}")
+                return res_data
+        except urllib.error.HTTPError as e:
+            err_body = e.read().decode("utf-8")
+            if (e.code == 429 or "7429" in err_body) and attempt < max_retries:
+                time.sleep(2.5 * attempt)
+                continue
+            raise RuntimeError(f"D1 HTTP {e.code}: {err_body}")
 
 # ---------------------------------------------------------------------------
-# D1 Relational Base Resolvers & Centroid Memory Cache
+# Targeted D1 Index Lookups (Single-Row Point Queries Only)
 # ---------------------------------------------------------------------------
-CENTROID_CACHE = {}
-
-def init_centroid_cache():
-    """Pre-caches authoritative municipal centroids from base table on startup."""
-    sql = "SELECT neighborhood_slug, AVG(latitude) as lat, AVG(longitude) as lng FROM base GROUP BY neighborhood_slug;"
-    try:
-        res = execute_d1_query(sql)
-        rows = res.get("result", [{}])[0].get("results", [])
-        for r in rows:
-            slug = normalize_slug(r.get("neighborhood_slug"))
-            if slug and r.get("lat") and r.get("lng"):
-                CENTROID_CACHE[slug] = (round(float(r["lat"]), 6), round(float(r["lng"]), 6))
-    except Exception as e:
-        print(f"[!] Warning: Could not pre-cache centroids from base: {e}")
-
-def get_neighborhood_centroid(slug):
-    """Retrieves authoritative municipal centroid from cache or base table."""
-    clean = normalize_slug(slug)
-    if not clean:
-        return None
-
-    if clean in CENTROID_CACHE:
-        return CENTROID_CACHE[clean]
-
-    # Sub-neighborhood mapping to parent city centroid
-    if clean in ["ballard", "capitol-hill", "pioneer-square", "fremont", "queen-anne", "green-lake", "view-ridge", "mount-baker"]:
-        return CENTROID_CACHE.get("seattle", (47.6062, -122.3321))
-    if clean == "edmonds-bowl":
-        return CENTROID_CACHE.get("edmonds", (47.8107, -122.3774))
-    if clean == "richmond-beach":
-        return CENTROID_CACHE.get("shoreline", (47.7560, -122.3457))
-
-    return None
-
-def find_nearest_slug_by_coords(lat, lng):
-    """Resolves coordinates inside bounding box to the closest footprint municipality."""
-    if not CENTROID_CACHE:
-        return "seattle"
-    best_slug = None
-    min_dist = float("inf")
-    for slug, (c_lat, c_lng) in CENTROID_CACHE.items():
-        dist = (lat - c_lat) ** 2 + (lng - c_lng) ** 2
-        if dist < min_dist:
-            min_dist = dist
-            best_slug = slug
-    return best_slug or "seattle"
-
 def lookup_base_pin(pin):
-    """Matches a 10-digit (King) or 14-digit (Snohomish) PIN against base."""
+    """Indexed primary key lookup against base table."""
     if not pin:
         return None
     sql = """
@@ -400,7 +517,7 @@ def lookup_base_pin(pin):
     return results[0] if results else None
 
 def lookup_base_address(situs_address, neighborhood_slug=None):
-    """Fuzzy searches a street address against base indexed addresses."""
+    """Indexed address lookup against base table."""
     if not situs_address or len(situs_address) < 4:
         return None
     
@@ -434,7 +551,7 @@ def lookup_base_address(situs_address, neighborhood_slug=None):
 # ---------------------------------------------------------------------------
 def process_and_transcode_image(item, max_retries=3):
     """
-    Downloads and strictly validates authentic archival images in RAM.
+    Downloads and strictly verifies authentic archival images in RAM.
     Zero synthetic cards: rejects non-200s, non-image MIME types, and corrupt bytes.
     Returns (photo_buf, thumb_buf) on success, or (None, None) on any failure.
     """
@@ -554,6 +671,10 @@ def fetch_live_archive_records(source_key, offset=0, limit=25):
         if not clean_desc or len(clean_desc) < 10:
             clean_desc = clean_title
 
+        # Check for explicit out-of-area entities
+        if is_out_of_area(clean_title, clean_desc):
+            continue
+
         date_val = extmetadata.get("DateTimeOriginal", {}).get("value", "") or extmetadata.get("DateTime", {}).get("value", "")
         year_match = re.search(r'\b(18\d{2}|19\d{2})\b', f"{date_val} {clean_desc} {clean_title}")
         year_found = int(year_match.group(1)) if year_match else None
@@ -583,11 +704,10 @@ def fetch_live_archive_records(source_key, offset=0, limit=25):
         if lat is not None and lng is not None:
             # 1. Bounding box gate: strictly reject anything outside King & Snohomish counties
             if not is_inside_bounding_box(lat, lng):
-                # Drops Cheney, Pomeroy, Alaska, Spokane, etc.
                 continue
 
             # 2. Inside bounding box: determine municipal entity
-            matched_slug = match_slug_from_text(combined_text)
+            matched_slug = match_slug_from_text(clean_title, clean_desc)
             if not matched_slug:
                 matched_slug = find_nearest_slug_by_coords(lat, lng)
 
@@ -613,7 +733,7 @@ def fetch_live_archive_records(source_key, offset=0, limit=25):
             if not base_record:
                 addr_match = re.search(r'\b\d{2,5}\s+[A-Za-z0-9\.\s]+(?:St|Street|Ave|Avenue|Pl|Place|Rd|Road|Way|Blvd|Dr)\b', clean_desc, re.IGNORECASE)
                 if addr_match:
-                    cand_slug = match_slug_from_text(combined_text)
+                    cand_slug = match_slug_from_text(clean_title, clean_desc)
                     base_record = lookup_base_address(addr_match.group(0), cand_slug)
 
             if base_record:
@@ -626,7 +746,7 @@ def fetch_live_archive_records(source_key, offset=0, limit=25):
                 dataset_type = "residential_property"
             else:
                 # C. Check for verified 59-city or neighborhood slug in text
-                matched_slug = match_slug_from_text(combined_text)
+                matched_slug = match_slug_from_text(clean_title, clean_desc)
                 
                 # Special allowance for SMA: SMA is explicitly City of Seattle engineering negatives
                 if not matched_slug and source_key == "sma_infrastructure":
@@ -636,13 +756,13 @@ def fetch_live_archive_records(source_key, offset=0, limit=25):
                 if not matched_slug:
                     continue
 
-                centroid = get_neighborhood_centroid(matched_slug)
+                centroid = CENTROIDS.get(matched_slug)
                 if not centroid:
                     continue
                 lat, lng = centroid
 
-        city, county = resolve_location(matched_slug, lat)
-        if not city or not county:
+        city_slug, county_name = resolve_location(matched_slug, lat)
+        if not city_slug or not county_name:
             continue
 
         items.append({
@@ -650,9 +770,9 @@ def fetch_live_archive_records(source_key, offset=0, limit=25):
             "dataset_type": dataset_type,
             "parcel_number": parcel_number,
             "title": clean_title[:90],
-            "city": city,
-            "county": county,
-            "neighborhood": matched_slug,
+            "city": city_slug,                # Always lowercase hyphenated city slug (e.g. 'seattle', 'edmonds')
+            "county": county_name,            # Preserves 'King' or 'Snohomish'
+            "neighborhood": matched_slug,     # Sub-neighborhood slug or city slug (e.g. 'ballard', 'edmonds')
             "year_built": year_found,
             "year_photo": year_found,
             "architectural_style": "Archival Photographic Record",
@@ -726,18 +846,16 @@ def ingest_record(item, s3_client):
 # ---------------------------------------------------------------------------
 def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=3, force=False, is_bulk=False):
     print("================================================================================")
-    print("MYSEATTLESEARCH: ZERO-FALLBACK BOUNDED HISTORICAL HARVESTER")
+    print("MYSEATTLESEARCH: ZERO-FALLBACK SLUG-STANDARDIZED HISTORICAL HARVESTER")
     print("================================================================================")
     print(f"Target Database ID: {CF_D1_DATABASE_ID}")
     print(f"Target R2 Bucket:   {R2_BUCKET_NAME} ({R2_PUBLIC_DOMAIN})")
     print(f"Bounding Bounds:    Lat [{BOUNDING_BOX['lat_min']}, {BOUNDING_BOX['lat_max']}] | Lng [{BOUNDING_BOX['lng_min']}, {BOUNDING_BOX['lng_max']}]")
+    print(f"Memory Centroids:   {len(CENTROIDS)} municipal entities pre-seeded in RAM (0 D1 row scans)")
     print(f"Target Stages:      {', '.join(stages_to_run).upper()}")
     if limit_per_source:
         print(f"Quota Target:       {limit_per_source} verified records per stage")
     print("================================================================================")
-
-    init_centroid_cache()
-    print(f"[*] Pre-cached {len(CENTROID_CACHE)} municipal centroids from D1 'base' table.")
 
     progress = load_progress()
     completed_ids = set() if force else set(progress.get("completed_ids", []))
@@ -779,7 +897,7 @@ def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=3, force=
 
             for item in pending:
                 item_id = item["id"]
-                loc_desc = f"{item['city']} ({item['county']} County) @ [{item['lat']}, {item['lng']}]"
+                loc_desc = f"{item['city']} ({item['county']}) [{item['neighborhood']}] @ [{item['lat']}, {item['lng']}]"
                 parcel_desc = f" [PIN: {item['parcel_number']}]" if item.get("parcel_number") else ""
                 print(f"  [{stage_committed + 1}] {item_id} | {item['title']}{parcel_desc} - {loc_desc}")
 
@@ -824,7 +942,7 @@ def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=3, force=
 # CLI Entrypoint
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Zero-Fallback Bounded Historical Asset Harvester")
+    parser = argparse.ArgumentParser(description="Zero-Fallback Slug-Standardized Historical Asset Harvester")
     parser.add_argument("--bulk", action="store_true", help="Execute complete continuous run until end of archives")
     parser.add_argument("--source", type=str, default="all", choices=["all"] + ALL_SOURCES,
                         help="Target data source (default: all)")
