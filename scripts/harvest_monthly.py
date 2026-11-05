@@ -62,6 +62,7 @@ def harvest_monthly_sheets(): run_subscript("monthly_sheet_sync.py")
 def harvest_parcel_deltas(): run_subscript("sync_parcel_deltas.py")
 def harvest_fha_condos(): run_subscript("harvest_fha_condos.py")
 def harvest_va_condos(): run_subscript("harvest_va_condos.py")
+def harvest_wastewater(): run_subscript("wastewater_update.py")
 
 # ------------------------------------------------------------------------------
 # 3. MASTER MONTHLY RUNNER
@@ -80,6 +81,7 @@ def main():
     safe_task("7. County Parcel Roll Delta Synchronization", harvest_parcel_deltas)
     safe_task("8. FHA Condo Certification Roll (HUD ENTP to D1)", harvest_fha_condos)
     safe_task("9. VA Condo Loan Approval Registry (VA LGY to D1)", harvest_va_condos)
+    safe_task("10. Live Wastewater & Septic Harvester (ArcGIS & OnlineRME)", harvest_wastewater, county="Both")
 
     print("🎉 Monthly master harvesting sequence complete. Database fresh!")
 

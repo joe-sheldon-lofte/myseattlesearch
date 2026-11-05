@@ -253,8 +253,8 @@ def main():
 
     tabs = [
         "Rates", "CityData", "Stats", "Professionals", "Sales",
-        "Translations", "SiteCredits", "VideoLibrary", "AudioLibrary",
-        "VideoChannels", "VideoChannelSchedules", "PublicEvents", "BoldPrint"
+        "Translations", "BoldPrint", "VideoLibrary", "AudioLibrary",
+        "VideoChannels", "VideoChannelSchedules", "PublicEvents"
     ]
     ranges = [f"{tab}!A:BK" for tab in tabs]
     res = sheets_service.spreadsheets().values().batchGet(spreadsheetId=master_sheet_id, ranges=ranges).execute()
