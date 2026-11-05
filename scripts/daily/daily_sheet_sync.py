@@ -200,7 +200,9 @@ def sync_professionals_to_d1(records):
         "Content-Type": "application/json"
     }
 
-    chunk_size = 25
+    # Cloudflare D1 variable ceiling: maximum 100 bound parameters (?) per query.
+    # 9 columns * 10 rows = 90 parameters, safely below the 100-variable ceiling.
+    chunk_size = 10
     synced_count = 0
 
     for i in range(0, len(mapped_rows), chunk_size):
@@ -340,11 +342,9 @@ def main():
         rows = data.get(tab_name, {}).get('values', [])
         if rows:
             parsed_records = parse_sheet_values(rows)
-            # Write to static data directory for SSG build
             with open(os.path.join(DATA_DIR, json_name), "w", encoding="utf-8") as f:
                 json.dump(clean_nan_tokens(parsed_records), f, indent=2, ensure_ascii=False)
             
-            # Dual-write professionals into Cloudflare D1
             if tab_name == "Professionals":
                 sync_professionals_to_d1(parsed_records)
 

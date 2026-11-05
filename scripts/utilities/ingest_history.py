@@ -14,7 +14,7 @@ import urllib.error
 import urllib.parse
 import boto3
 from botocore.config import Config
-from PIL import Image, ImageDraw
+from PIL import Image
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -27,6 +27,7 @@ DEV_VARS_PATH = os.path.join(PROJECT_ROOT, ".dev.vars")
 PROGRESS_FILE = os.path.join(SCRIPT_DIR, "history_progress.json")
 
 def load_dev_vars(filepath):
+    """Parses key-value pairs from .dev.vars without external dependencies."""
     env_vars = {}
     if not os.path.exists(filepath):
         print(f"[!] Warning: Environment secrets file not found at {filepath}")
@@ -53,43 +54,54 @@ R2_BUCKET_NAME = config.get("R2_BUCKET_NAME", "myseattlesearch-assets")
 R2_PUBLIC_DOMAIN = config.get("R2_PUBLIC_DOMAIN", "https://assets.myseattlesearch.com").rstrip("/")
 
 HTTP_HEADERS = {
-    "User-Agent": "MySeattleSearch-History-Harvester/2.0 (Direct Institutional; info@myseattlesearch.com)"
+    "User-Agent": "MySeattleSearch-History-Harvester/4.0 (Zero-Fallback Bounding Architecture; info@myseattlesearch.com)"
 }
 
 # ---------------------------------------------------------------------------
-# Municipal Taxonomy & Normalization Map
+# Strict Geographic Bounding Box (King & Snohomish Counties + 3mi Buffer)
+# ---------------------------------------------------------------------------
+BOUNDING_BOX = {
+    "lat_min": 47.1000,  # South King County buffer (Pierce Co line)
+    "lat_max": 48.3500,  # North Snohomish County buffer (Skagit Co line)
+    "lng_min": -122.6000, # West boundary (Puget Sound / Vashon buffer)
+    "lng_max": -121.0000  # East boundary (Cascade Mountain Crest buffer)
+}
+
+def is_inside_bounding_box(lat, lng):
+    """Returns True only if coordinates fall cleanly inside King/Snohomish boundaries."""
+    if lat is None or lng is None:
+        return False
+    return (BOUNDING_BOX["lat_min"] <= lat <= BOUNDING_BOX["lat_max"] and
+            BOUNDING_BOX["lng_min"] <= lng <= BOUNDING_BOX["lng_max"])
+
+# ---------------------------------------------------------------------------
+# Authoritative Municipal Taxonomy (All 59 Footprint Cities & Neighborhoods)
 # ---------------------------------------------------------------------------
 SLUG_DISPLAY_MAP = {
-    "federaly": ("Federal Way", "King"),
-    "federal-way": ("Federal Way", "King"),
-    "lake-forest-park": ("Lake Forest Park", "King"),
-    "mountlake-terrace": ("Mountlake Terrace", "Snohomish"),
-    "lake-stevens": ("Lake Stevens", "Snohomish"),
-    "maple-valley": ("Maple Valley", "King"),
-    "mercer-island": ("Mercer Island", "King"),
-    "des-moines": ("Des Moines", "King"),
-    "mill-creek": ("Mill Creek", "Snohomish"),
-    "north-bend": ("North Bend", "King"),
-    "granite-falls": ("Granite Falls", "Snohomish"),
-    "black-diamond": ("Black Diamond", "King"),
-    "gold-bar": ("Gold Bar", "Snohomish"),
-    "normandy-park": ("Normandy Park", "King"),
-    "fall-city": ("Fall City", "King"),
-    "clyde-hill": ("Clyde Hill", "King"),
+    # Snohomish County Municipalities
     "edmonds": ("Edmonds", "Snohomish"),
     "snohomish": ("Snohomish", "Snohomish"),
     "mukilteo": ("Mukilteo", "Snohomish"),
     "lynnwood": ("Lynnwood", "Snohomish"),
     "everett": ("Everett", "Snohomish"),
     "marysville": ("Marysville", "Snohomish"),
+    "mountlake-terrace": ("Mountlake Terrace", "Snohomish"),
+    "mill-creek": ("Mill Creek", "Snohomish"),
+    "lake-stevens": ("Lake Stevens", "Snohomish"),
     "arlington": ("Arlington", "Snohomish"),
     "monroe": ("Monroe", "Snohomish"),
     "stanwood": ("Stanwood", "Snohomish"),
+    "granite-falls": ("Granite Falls", "Snohomish"),
     "sultan": ("Sultan", "Snohomish"),
+    "gold-bar": ("Gold Bar", "Snohomish"),
     "brier": ("Brier", "Snohomish"),
-    "darrington": ("Darrington", "Snohomish"),
     "woodway": ("Woodway", "Snohomish"),
+    "darrington": ("Darrington", "Snohomish"),
     "tulalip": ("Tulalip", "Snohomish"),
+    "index": ("Index", "Snohomish"),
+    "silvana": ("Silvana", "Snohomish"),
+
+    # King County Municipalities
     "seattle": ("Seattle", "King"),
     "bellevue": ("Bellevue", "King"),
     "renton": ("Renton", "King"),
@@ -97,30 +109,80 @@ SLUG_DISPLAY_MAP = {
     "auburn": ("Auburn", "King"),
     "kirkland": ("Kirkland", "King"),
     "redmond": ("Redmond", "King"),
+    "federal-way": ("Federal Way", "King"),
+    "federaly": ("Federal Way", "King"),
     "sammamish": ("Sammamish", "King"),
     "issaquah": ("Issaquah", "King"),
     "shoreline": ("Shoreline", "King"),
     "woodinville": ("Woodinville", "King"),
+    "maple-valley": ("Maple Valley", "King"),
+    "mercer-island": ("Mercer Island", "King"),
     "burien": ("Burien", "King"),
     "enumclaw": ("Enumclaw", "King"),
+    "des-moines": ("Des Moines", "King"),
     "kenmore": ("Kenmore", "King"),
     "covington": ("Covington", "King"),
+    "north-bend": ("North Bend", "King"),
     "vashon": ("Vashon", "King"),
     "snoqualmie": ("Snoqualmie", "King"),
     "duvall": ("Duvall", "King"),
     "seatac": ("SeaTac", "King"),
     "tukwila": ("Tukwila", "King"),
     "newcastle": ("Newcastle", "King"),
+    "black-diamond": ("Black Diamond", "King"),
+    "lake-forest-park": ("Lake Forest Park", "King"),
     "carnation": ("Carnation", "King"),
-    "medina": ("Medina", "King"),
-    "algona": ("Algona", "King"),
+    "normandy-park": ("Normandy Park", "King"),
+    "fall-city": ("Fall City", "King"),
     "pacific": ("Pacific", "King"),
-    "ravensdale": ("Ravensdale", "King")
+    "ravensdale": ("Ravensdale", "King"),
+    "medina": ("Medina", "King"),
+    "clyde-hill": ("Clyde Hill", "King"),
+    "algona": ("Algona", "King"),
+    "yarrow-point": ("Yarrow Point", "King"),
+    "hunts-point": ("Hunts Point", "King"),
+    "beaux-arts-village": ("Beaux Arts Village", "King"),
+    "skykomish": ("Skykomish", "King"),
+
+    # Common Sub-Neighborhoods (Mapped strictly to parent municipality)
+    "ballard": ("Seattle", "King"),
+    "capitol-hill": ("Seattle", "King"),
+    "pioneer-square": ("Seattle", "King"),
+    "fremont": ("Seattle", "King"),
+    "queen-anne": ("Seattle", "King"),
+    "green-lake": ("Seattle", "King"),
+    "view-ridge": ("Seattle", "King"),
+    "mount-baker": ("Seattle", "King"),
+    "magnolia": ("Seattle", "King"),
+    "west-seattle": ("Seattle", "King"),
+    "wallingford": ("Seattle", "King"),
+    "georgetown": ("Seattle", "King"),
+    "columbia-city": ("Seattle", "King"),
+    "south-lake-union": ("Seattle", "King"),
+    "belltown": ("Seattle", "King"),
+    "first-hill": ("Seattle", "King"),
+    "international-district": ("Seattle", "King"),
+    "beacon-hill": ("Seattle", "King"),
+    "ravenna": ("Seattle", "King"),
+    "phinney-ridge": ("Seattle", "King"),
+    "madrona": ("Seattle", "King"),
+    "leschi": ("Seattle", "King"),
+    "madison-park": ("Seattle", "King"),
+    "wedgwood": ("Seattle", "King"),
+    "laurelhurst": ("Seattle", "King"),
+    "bitter-lake": ("Seattle", "King"),
+    "crown-hill": ("Seattle", "King"),
+    "greenwood": ("Seattle", "King"),
+    "interbay": ("Seattle", "King"),
+    "montlake": ("Seattle", "King"),
+    "richmond-beach": ("Shoreline", "King"),
+    "edmonds-bowl": ("Edmonds", "Snohomish"),
+    "silver-lake": ("Everett", "Snohomish")
 }
 
 def normalize_slug(slug):
     if not slug:
-        return "seattle"
+        return None
     clean = str(slug).strip().lower().strip(",. ")
     if clean == "federaly":
         return "federal-way"
@@ -136,10 +198,57 @@ def resolve_location(slug, lat=None):
     if clean in SLUG_DISPLAY_MAP:
         return SLUG_DISPLAY_MAP[clean]
 
-    if clean in ["ballard", "capitol-hill", "pioneer-square", "fremont", "queen-anne", "green-lake", "view-ridge"]:
-        return "Seattle", "King"
+    return None, None
 
-    return "Seattle", "King"
+def match_slug_from_text(text):
+    """Extracts known municipal or neighborhood slug from text. Returns None if unmatched."""
+    if not text:
+        return None
+    clean_text = text.lower()
+    for slug_candidate in SLUG_DISPLAY_MAP.keys():
+        readable = slug_candidate.replace("-", " ")
+        pattern = r'\b' + re.escape(readable) + r'\b'
+        if re.search(pattern, clean_text):
+            return slug_candidate
+    return None
+
+# ---------------------------------------------------------------------------
+# 5-Stage Institutional Harvest Configuration (Zero Fallback Slugs)
+# ---------------------------------------------------------------------------
+SOURCE_CONFIGS = {
+    "residential_properties": {
+        "query": 'incategory:"Houses in Seattle|Houses in King County, Washington|Seattle Department of Neighborhoods Historic Sites"',
+        "prefix": "res-prop",
+        "archive": "Seattle Department of Neighborhoods / King County Historic Resources",
+        "dataset_type": "residential_property"
+    },
+    "historic_districts": {
+        "query": 'incategory:"National Register of Historic Places in King County, Washington|National Register of Historic Places in Snohomish County, Washington|Historic district contributing properties in Washington (state)"',
+        "prefix": "hist-dist",
+        "archive": "National Register of Historic Places / WA DAHP",
+        "dataset_type": "historic_district"
+    },
+    "photographer_surveys": {
+        "query": 'incategory:"Photographs by Asahel Curtis|Webster & Stevens"',
+        "prefix": "photo-surv",
+        "archive": "Puget Sound Historical Survey Collections (Asahel Curtis / Webster & Stevens)",
+        "dataset_type": "photographer_survey"
+    },
+    "snohomish_local": {
+        "query": 'incategory:"Buildings in Snohomish County, Washington|Snohomish County, Washington"',
+        "prefix": "sno-hist",
+        "archive": "Snohomish County Historical Collections / UW Libraries Special Collections",
+        "dataset_type": "civic_landmark"
+    },
+    "sma_infrastructure": {
+        "query": 'incategory:"Seattle Municipal Archives via Flickr"',
+        "prefix": "sma-infra",
+        "archive": "Seattle Municipal Archives (Record Series 2613-07)",
+        "dataset_type": "wsdot_infrastructure"
+    }
+}
+
+ALL_SOURCES = list(SOURCE_CONFIGS.keys())
 
 # ---------------------------------------------------------------------------
 # Resumable Checkpoint & Cursor Management
@@ -147,18 +256,19 @@ def resolve_location(slug, lat=None):
 def load_progress():
     default_state = {
         "completed_ids": [],
-        "cursors": {
-            "wpa_king": 0,
-            "snohomish_local": 0,
-            "sma_infrastructure": 0
-        }
+        "cursors": {src: 0 for src in ALL_SOURCES}
     }
     if os.path.exists(PROGRESS_FILE):
         try:
             with open(PROGRESS_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                if "completed_ids" not in data: data["completed_ids"] = []
-                if "cursors" not in data: data["cursors"] = default_state["cursors"]
+                if "completed_ids" not in data:
+                    data["completed_ids"] = []
+                if "cursors" not in data:
+                    data["cursors"] = default_state["cursors"]
+                for src in ALL_SOURCES:
+                    if src not in data["cursors"]:
+                        data["cursors"][src] = 0
                 return data
         except Exception:
             return default_state
@@ -226,9 +336,54 @@ def execute_d1_query(sql, params=None):
         raise RuntimeError(f"D1 HTTP {e.code}: {e.read().decode('utf-8')}")
 
 # ---------------------------------------------------------------------------
-# D1 Relational Base Resolvers
+# D1 Relational Base Resolvers & Centroid Memory Cache
 # ---------------------------------------------------------------------------
 CENTROID_CACHE = {}
+
+def init_centroid_cache():
+    """Pre-caches authoritative municipal centroids from base table on startup."""
+    sql = "SELECT neighborhood_slug, AVG(latitude) as lat, AVG(longitude) as lng FROM base GROUP BY neighborhood_slug;"
+    try:
+        res = execute_d1_query(sql)
+        rows = res.get("result", [{}])[0].get("results", [])
+        for r in rows:
+            slug = normalize_slug(r.get("neighborhood_slug"))
+            if slug and r.get("lat") and r.get("lng"):
+                CENTROID_CACHE[slug] = (round(float(r["lat"]), 6), round(float(r["lng"]), 6))
+    except Exception as e:
+        print(f"[!] Warning: Could not pre-cache centroids from base: {e}")
+
+def get_neighborhood_centroid(slug):
+    """Retrieves authoritative municipal centroid from cache or base table."""
+    clean = normalize_slug(slug)
+    if not clean:
+        return None
+
+    if clean in CENTROID_CACHE:
+        return CENTROID_CACHE[clean]
+
+    # Sub-neighborhood mapping to parent city centroid
+    if clean in ["ballard", "capitol-hill", "pioneer-square", "fremont", "queen-anne", "green-lake", "view-ridge", "mount-baker"]:
+        return CENTROID_CACHE.get("seattle", (47.6062, -122.3321))
+    if clean == "edmonds-bowl":
+        return CENTROID_CACHE.get("edmonds", (47.8107, -122.3774))
+    if clean == "richmond-beach":
+        return CENTROID_CACHE.get("shoreline", (47.7560, -122.3457))
+
+    return None
+
+def find_nearest_slug_by_coords(lat, lng):
+    """Resolves coordinates inside bounding box to the closest footprint municipality."""
+    if not CENTROID_CACHE:
+        return "seattle"
+    best_slug = None
+    min_dist = float("inf")
+    for slug, (c_lat, c_lng) in CENTROID_CACHE.items():
+        dist = (lat - c_lat) ** 2 + (lng - c_lng) ** 2
+        if dist < min_dist:
+            min_dist = dist
+            best_slug = slug
+    return best_slug or "seattle"
 
 def lookup_base_pin(pin):
     """Matches a 10-digit (King) or 14-digit (Snohomish) PIN against base."""
@@ -250,7 +405,6 @@ def lookup_base_address(situs_address, neighborhood_slug=None):
         return None
     
     clean_addr = re.sub(r'[\,\.]+', '', situs_address).strip()
-    
     if neighborhood_slug:
         sql = """
         SELECT parcel_number, situs_address, zip_code, neighborhood_slug,
@@ -275,71 +429,49 @@ def lookup_base_address(situs_address, neighborhood_slug=None):
     except Exception:
         return None
 
-def get_neighborhood_centroid(slug):
-    """Computes and caches true municipal centroids from base."""
-    clean = normalize_slug(slug)
-    if clean in CENTROID_CACHE:
-        return CENTROID_CACHE[clean]
-
-    sql = "SELECT AVG(latitude) AS lat, AVG(longitude) AS lng FROM base WHERE neighborhood_slug = ?;"
-    try:
-        res = execute_d1_query(sql, [clean])
-        rows = res.get("result", [{}])[0].get("results", [])
-        if rows and rows[0].get("lat") and rows[0].get("lng"):
-            coords = (round(rows[0]["lat"], 6), round(rows[0]["lng"], 6))
-            CENTROID_CACHE[clean] = coords
-            return coords
-    except Exception:
-        pass
-
-    if clean in ["ballard", "capitol-hill", "pioneer-square", "fremont", "queen-anne"]:
-        return get_neighborhood_centroid("seattle")
-
-    return 47.6062, -122.3321
-
 # ---------------------------------------------------------------------------
-# Image Processing & In-Memory Transcoder
+# Strict Zero-Fallback Image Processor & Validator
 # ---------------------------------------------------------------------------
-def create_fallback_card(title, subtitle, year, county):
-    img = Image.new("RGB", (1200, 800), color=(240, 235, 224))
-    draw = ImageDraw.Draw(img)
-    draw.rectangle([(30, 30), (1170, 770)], outline=(100, 85, 70), width=4)
-    draw.rectangle([(42, 42), (1158, 758)], outline=(160, 145, 130), width=1)
-    draw.text((60, 60), f"STATE OF WASHINGTON - {county.upper()} COUNTY REAL PROPERTY ARCHIVE", fill=(90, 75, 60))
-    draw.text((60, 130), f"RECORD: {title.upper()}", fill=(30, 25, 20))
-    draw.text((60, 175), f"CLASSIFICATION: {subtitle}", fill=(70, 60, 50))
-    if year:
-        draw.text((60, 220), f"RECORDED YEAR: {year}", fill=(70, 60, 50))
-    draw.line([(60, 270), (1140, 270)], fill=(180, 170, 155), width=2)
-    draw.text((60, 300), "DIGITIZED ARCHIVAL MASTER RECORD", fill=(100, 90, 80))
-    draw.text((60, 720), "MYSEATTLESEARCH HISTORICAL ARCHIVE ENGINE • R2 / D1 SPATIAL REPOSITORY", fill=(130, 120, 105))
-    return img
-
 def process_and_transcode_image(item, max_retries=3):
+    """
+    Downloads and strictly validates authentic archival images in RAM.
+    Zero synthetic cards: rejects non-200s, non-image MIME types, and corrupt bytes.
+    Returns (photo_buf, thumb_buf) on success, or (None, None) on any failure.
+    """
     direct_url = item.get("source_master_url")
-    orig_img = None
+    if not direct_url:
+        return None, None
 
-    if direct_url:
-        for attempt in range(1, max_retries + 1):
-            try:
-                req = urllib.request.Request(direct_url, headers=HTTP_HEADERS)
-                with urllib.request.urlopen(req, timeout=18) as resp:
-                    img_bytes = resp.read()
-                orig_img = Image.open(io.BytesIO(img_bytes))
+    img_bytes = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            req = urllib.request.Request(direct_url, headers=HTTP_HEADERS)
+            with urllib.request.urlopen(req, timeout=18) as resp:
+                if resp.status != 200:
+                    raise ValueError(f"HTTP status {resp.status}")
+                
+                content_type = resp.headers.get("Content-Type", "").lower()
+                valid_mimes = ["image/jpeg", "image/png", "image/webp", "image/tiff"]
+                if not any(m in content_type for m in valid_mimes):
+                    raise ValueError(f"Invalid MIME content-type: {content_type}")
+                
+                img_bytes = resp.read()
                 break
-            except Exception as e:
-                if attempt == max_retries:
-                    print(f"    [!] Remote download failed ({e}). Generating archival card...")
-                else:
-                    time.sleep(1.0 * attempt)
+        except Exception as e:
+            if attempt == max_retries:
+                print(f"    [!] Download failed after {max_retries} attempts ({e}). Skipping record.")
+                return None, None
+            time.sleep(1.0 * attempt)
 
-    if orig_img is None:
-        orig_img = create_fallback_card(
-            item.get("title", "Historic Record"),
-            item.get("architectural_style", "Archival Survey"),
-            item.get("year_built") or item.get("year_photo"),
-            item.get("county", "King")
-        )
+    if not img_bytes:
+        return None, None
+
+    try:
+        orig_img = Image.open(io.BytesIO(img_bytes))
+        orig_img.load()  # Force load raster data into memory to verify integrity
+    except Exception as e:
+        print(f"    [!] Image raster verification failed ({e}). Skipping record.")
+        return None, None
 
     if orig_img.mode in ("RGBA", "P", "CMYK"):
         orig_img = orig_img.convert("RGB")
@@ -358,194 +490,181 @@ def process_and_transcode_image(item, max_retries=3):
     return photo_buf, thumb_buf
 
 # ---------------------------------------------------------------------------
-# DIRECT INSTITUTIONAL CONNECTORS (NO WIKIMEDIA INTERMEDIARY)
+# Category Query & Strict Zero-Fallback Spatial Gate
 # ---------------------------------------------------------------------------
-
-def fetch_wpa_king_direct(offset=0, limit=25):
-    """
-    Direct Connector: Washington State Digital Archives / Puget Sound Regional Archives
-    Collection: Title 854 (King County Assessor Real Property Record Cards, 1937–1972)
-    Queries historical properties directly from base and retrieves authentic Title 854 scans.
-    """
-    sql = """
-    SELECT parcel_number, situs_address, zip_code, neighborhood_slug,
-           latitude, longitude, year_built
-    FROM base 
-    WHERE length(parcel_number) = 10 
-      AND year_built IS NOT NULL 
-      AND year_built <= 1941
-    ORDER BY parcel_number ASC
-    LIMIT ? OFFSET ?;
-    """
-    res = execute_d1_query(sql, [limit, offset])
-    rows = res.get("result", [{}])[0].get("results", [])
-    if not rows:
+def fetch_live_archive_records(source_key, offset=0, limit=25):
+    cfg = SOURCE_CONFIGS.get(source_key)
+    if not cfg:
         return [], offset
 
-    items = []
-    for r in rows:
-        pin = r["parcel_number"]
-        item_id = f"kc-wpa-{pin}"
-        city, county = resolve_location(r["neighborhood_slug"], r["latitude"])
-        
-        # Direct State Digital Archives Title 854 record locator
-        formatted_pin = f"{pin[:6]}-{pin[6:]}"
-        da_record_url = f"https://digitalarchives.wa.gov/Collections/TitleInfo/854?parcel={formatted_pin}"
-        
-        items.append({
-            "id": item_id,
-            "dataset_type": "wpa_property",
-            "parcel_number": pin,
-            "title": f"WPA Assessment Card: {r.get('situs_address') or pin}",
-            "city": city,
-            "county": county,
-            "neighborhood": r["neighborhood_slug"],
-            "year_built": r.get("year_built"),
-            "year_photo": 1937,
-            "architectural_style": "King County Assessor Real Property Record Card (Title 854)",
-            "notes": f"Original 1937-1941 WPA property tax appraisal card from Puget Sound Regional Archives for parcel {formatted_pin}.",
-            "lat": round(float(r["latitude"]), 6),
-            "lng": round(float(r["longitude"]), 6),
-            "source_archive": "Puget Sound Regional Archives / Washington State Digital Archives (Title 854)",
-            "source_record_id": f"WA-DA-TITLE854-{pin}",
-            "source_master_url": da_record_url
-        })
+    params = {
+        "action": "query",
+        "generator": "search",
+        "gsrsearch": cfg["query"],
+        "gsrnamespace": "6",
+        "gsrlimit": str(limit),
+        "gsroffset": str(offset),
+        "prop": "imageinfo|coordinates",
+        "iiprop": "url|extmetadata|dimensions|mime",
+        "format": "json"
+    }
 
-    return items, offset + len(rows)
+    api_url = f"https://commons.wikimedia.org/w/api.php?{urllib.parse.urlencode(params)}"
+    req = urllib.request.Request(api_url, headers=HTTP_HEADERS)
 
-
-def fetch_snohomish_contentdm_direct(offset=0, limit=25):
-    """
-    Direct Connector: University of Washington Libraries Special Collections
-    Protocol: CONTENTdm Server API (/digital/bl/dmwebservices/index.php)
-    Searches Pacific Northwest Historical Collections directly across Snohomish County municipalities.
-    """
-    base_api = "https://digitalcollections.lib.washington.edu/digital/bl/dmwebservices/index.php"
-    search_terms = ["edmonds", "snohomish", "mukilteo", "everett"]
-    term = search_terms[(offset // limit) % len(search_terms)]
-    page_offset = (offset % (limit * len(search_terms))) + 1
-
-    query_str = f"dmQuery/all/{term}^all^and/title!descri!date!subjec!covera/nosort/{limit}/{page_offset}/0/0/0/0/0/json"
-    req_url = f"{base_api}?q={query_str}"
-    
-    items = []
     try:
-        req = urllib.request.Request(req_url, headers=HTTP_HEADERS)
-        with urllib.request.urlopen(req, timeout=15) as resp:
+        with urllib.request.urlopen(req, timeout=20) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            records = data.get("records", [])
     except Exception as e:
-        print(f"    [!] UW CONTENTdm query failed ({e}). Proceeding to regional index...")
-        records = []
+        print(f"[!] API query failed for {source_key}: {e}")
+        return [], offset
 
-    for idx, rec in enumerate(records):
-        pointer = rec.get("pointer")
-        collection = rec.get("collection", "").strip("/")
-        if not pointer or not collection:
+    pages = data.get("query", {}).get("pages", {})
+    if not pages:
+        return [], offset
+
+    sorted_pages = sorted(pages.values(), key=lambda p: p.get("index", 0))
+    next_offset = data.get("continue", {}).get("gsroffset", offset + len(sorted_pages))
+
+    items = []
+    prefix = cfg["prefix"]
+    source_archive = cfg["archive"]
+
+    for page in sorted_pages:
+        page_id = str(page.get("pageid"))
+        raw_file_title = page.get("title", "").replace("File:", "").strip()
+        imageinfo = page.get("imageinfo", [])
+        if not imageinfo:
             continue
 
-        raw_title = rec.get("title", f"{term.title()} Historical Photo")
-        clean_title = re.sub(r'[\(\)_]+', ' ', raw_title).strip()
-        item_id = f"sno-uw-{collection}-{pointer}"
+        ii = imageinfo[0]
+        direct_url = ii.get("url")
+        mime = ii.get("mime", "").lower()
+        if not direct_url or not mime.startswith("image/"):
+            continue
 
-        direct_image_url = f"https://digitalcollections.lib.washington.edu/digital/api/singleitem/image/{collection}/{pointer}/default.jpg"
-        
-        # Spatial resolution against base
-        lat, lng = get_neighborhood_centroid(term)
-        city, county = resolve_location(term, lat)
+        base_name = os.path.splitext(raw_file_title)[0]
+        clean_title = re.sub(r'[\(\)_]+', ' ', base_name).strip()
+        clean_slug = re.sub(r'[^a-zA-Z0-9]', '-', clean_title[:28]).strip('-').lower()
+        item_id = f"{prefix}-{clean_slug}-{page_id}"
+
+        extmetadata = ii.get("extmetadata", {})
+        raw_desc = extmetadata.get("ImageDescription", {}).get("value", "")
+        clean_desc = re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', raw_desc)).strip()
+        if not clean_desc or len(clean_desc) < 10:
+            clean_desc = clean_title
+
+        date_val = extmetadata.get("DateTimeOriginal", {}).get("value", "") or extmetadata.get("DateTime", {}).get("value", "")
+        year_match = re.search(r'\b(18\d{2}|19\d{2})\b', f"{date_val} {clean_desc} {clean_title}")
+        year_found = int(year_match.group(1)) if year_match else None
+
+        combined_text = f"{clean_title} {clean_desc}"
+
+        # -------------------------------------------------------------------
+        # SPATIAL FILTERING & ZERO-FALLBACK VALIDATION GATE
+        # -------------------------------------------------------------------
+        lat, lng = None, None
+        if "coordinates" in page and page["coordinates"]:
+            lat = float(page["coordinates"][0].get("lat", 0.0))
+            lng = float(page["coordinates"][0].get("lon", 0.0))
+        elif "GPSLatitude" in extmetadata and "GPSLongitude" in extmetadata:
+            try:
+                lat = float(extmetadata["GPSLatitude"]["value"])
+                lng = float(extmetadata["GPSLongitude"]["value"])
+            except Exception:
+                pass
+
+        matched_slug = None
+        parcel_number = None
+        base_record = None
+        dataset_type = cfg["dataset_type"]
+
+        # CASE 1: Archive scan HAS native GPS coordinates
+        if lat is not None and lng is not None:
+            # 1. Bounding box gate: strictly reject anything outside King & Snohomish counties
+            if not is_inside_bounding_box(lat, lng):
+                # Drops Cheney, Pomeroy, Alaska, Spokane, etc.
+                continue
+
+            # 2. Inside bounding box: determine municipal entity
+            matched_slug = match_slug_from_text(combined_text)
+            if not matched_slug:
+                matched_slug = find_nearest_slug_by_coords(lat, lng)
+
+            # Check if property PIN can be attached
+            pin_match = re.search(r'\b\d{10}\b', combined_text)
+            if pin_match:
+                base_record = lookup_base_pin(pin_match.group(0))
+
+            if base_record:
+                parcel_number = base_record["parcel_number"]
+                dataset_type = "residential_property"
+                if base_record.get("year_built"):
+                    year_found = int(base_record["year_built"])
+
+        # CASE 2: Archive scan DOES NOT have native GPS coordinates
+        else:
+            # A. Check for 10-digit (King) or 14-digit (Snohomish) PIN
+            pin_match = re.search(r'\b\d{10}\b', combined_text) or re.search(r'\b\d{14}\b', combined_text)
+            if pin_match:
+                base_record = lookup_base_pin(pin_match.group(0))
+
+            # B. Check for street address match in base
+            if not base_record:
+                addr_match = re.search(r'\b\d{2,5}\s+[A-Za-z0-9\.\s]+(?:St|Street|Ave|Avenue|Pl|Place|Rd|Road|Way|Blvd|Dr)\b', clean_desc, re.IGNORECASE)
+                if addr_match:
+                    cand_slug = match_slug_from_text(combined_text)
+                    base_record = lookup_base_address(addr_match.group(0), cand_slug)
+
+            if base_record:
+                parcel_number = base_record["parcel_number"]
+                lat = float(base_record["latitude"])
+                lng = float(base_record["longitude"])
+                matched_slug = base_record["neighborhood_slug"]
+                if base_record.get("year_built"):
+                    year_found = int(base_record["year_built"])
+                dataset_type = "residential_property"
+            else:
+                # C. Check for verified 59-city or neighborhood slug in text
+                matched_slug = match_slug_from_text(combined_text)
+                
+                # Special allowance for SMA: SMA is explicitly City of Seattle engineering negatives
+                if not matched_slug and source_key == "sma_infrastructure":
+                    matched_slug = "seattle"
+
+                # STRICT ZERO-FALLBACK: If no local anchor exists, DROP RECORD COMPLETELY
+                if not matched_slug:
+                    continue
+
+                centroid = get_neighborhood_centroid(matched_slug)
+                if not centroid:
+                    continue
+                lat, lng = centroid
+
+        city, county = resolve_location(matched_slug, lat)
+        if not city or not county:
+            continue
 
         items.append({
             "id": item_id,
-            "dataset_type": "civic_landmark",
-            "parcel_number": None,
+            "dataset_type": dataset_type,
+            "parcel_number": parcel_number,
             "title": clean_title[:90],
             "city": city,
             "county": county,
-            "neighborhood": term,
-            "year_built": None,
-            "year_photo": None,
-            "architectural_style": "Pacific Northwest Historical Collection",
-            "notes": rec.get("descri", clean_title)[:250],
-            "lat": lat,
-            "lng": lng,
-            "source_archive": "University of Washington Libraries Special Collections (CONTENTdm)",
-            "source_record_id": f"UW-CDM-{collection}-{pointer}",
-            "source_master_url": direct_image_url
+            "neighborhood": matched_slug,
+            "year_built": year_found,
+            "year_photo": year_found,
+            "architectural_style": "Archival Photographic Record",
+            "notes": clean_desc[:250],
+            "lat": round(lat, 6),
+            "lng": round(lng, 6),
+            "source_archive": source_archive,
+            "source_record_id": f"COMMONS-{page_id}",
+            "source_master_url": direct_url
         })
 
-    # If CONTENTdm query returned 0, provide cataloged Snohomish regional masters
-    if not items:
-        catalog = [
-            ("sno-edm-homestead-01", "Early Edmonds Pioneer Homestead & Waterfront", "edmonds", 1898, "https://digitalcollections.lib.washington.edu/digital/api/singleitem/image/pnws/708/default.jpg"),
-            ("sno-snoh-first-st-02", "First Street Commercial District, Snohomish", "snohomish", 1904, "https://digitalcollections.lib.washington.edu/digital/api/singleitem/image/pnws/171/default.jpg"),
-            ("sno-muk-point-elliott-03", "Mukilteo Point Elliott Light Station", "mukilteo", 1906, "https://digitalcollections.lib.washington.edu/digital/api/singleitem/image/pnws/320/default.jpg"),
-        ]
-        for cid, ctitle, cslug, cyr, curl in catalog[offset:offset+limit]:
-            clat, clng = get_neighborhood_centroid(cslug)
-            ccity, ccounty = resolve_location(cslug, clat)
-            items.append({
-                "id": cid,
-                "dataset_type": "civic_landmark",
-                "parcel_number": None,
-                "title": ctitle,
-                "city": ccity,
-                "county": ccounty,
-                "neighborhood": cslug,
-                "year_built": cyr,
-                "year_photo": cyr,
-                "architectural_style": "Pacific Northwest Regional Architecture",
-                "notes": f"Historical photographic record from the University of Washington Libraries Special Collections documenting early {ccity}.",
-                "lat": clat,
-                "lng": clng,
-                "source_archive": "University of Washington Libraries Special Collections (CONTENTdm)",
-                "source_record_id": f"UW-CDM-{cid}",
-                "source_master_url": curl
-            })
-
-    return items, offset + max(len(items), limit)
-
-
-def fetch_sma_direct(offset=0, limit=25):
-    """
-    Direct Connector: Seattle Municipal Archives (SMA)
-    Collections: Engineering Department Photographic Negatives (Series 2613-07)
-    Streams directly from archives.seattle.gov digital collections repository.
-    """
-    sma_catalog = [
-        ("sma-item-1185-ballard", "Ballard Bridge Construction and Salmon Bay Approaches", "ballard", 1916, "https://archives.seattle.gov/digital-collections/media/transfers/2613-07/1185.jpg"),
-        ("sma-item-2104-fremont", "Fremont Bascule Bridge Dedication and Ship Canal", "fremont", 1917, "https://archives.seattle.gov/digital-collections/media/transfers/2613-07/2104.jpg"),
-        ("sma-item-4820-montlake", "Montlake Cut Canal Works and Steam Shovels", "capitol-hill", 1915, "https://archives.seattle.gov/digital-collections/media/transfers/2613-07/4820.jpg"),
-        ("sma-item-5385-interurban", "Seattle-Everett Interurban Passenger Traction Corridor", "shoreline", 1910, "https://archives.seattle.gov/digital-collections/media/transfers/2613-07/5385.jpg"),
-        ("sma-item-6120-waterfront", "Alaskan Way Seawall and Waterfront Regrade Works", "seattle", 1934, "https://archives.seattle.gov/digital-collections/media/transfers/2613-07/6120.jpg"),
-        ("sma-item-7410-lakeunion", "South Lake Union Municipal Power Substation", "seattle", 1928, "https://archives.seattle.gov/digital-collections/media/transfers/2613-07/7410.jpg"),
-    ]
-
-    selected = sma_catalog[offset:offset+limit]
-    items = []
-    for item_id, title, slug, yr, master_url in selected:
-        lat, lng = get_neighborhood_centroid(slug)
-        city, county = resolve_location(slug, lat)
-        
-        items.append({
-            "id": item_id,
-            "dataset_type": "wsdot_infrastructure",
-            "parcel_number": None,
-            "title": title,
-            "city": city,
-            "county": county,
-            "neighborhood": slug,
-            "year_built": yr,
-            "year_photo": yr,
-            "architectural_style": "Municipal Public Works / Engineering Negatives",
-            "notes": f"Seattle Municipal Archives Engineering Department Photographic Negatives (Record Series 2613-07). Historic infrastructure survey at {title}.",
-            "lat": lat,
-            "lng": lng,
-            "source_archive": "Seattle Municipal Archives (Record Series 2613-07)",
-            "source_record_id": item_id.upper(),
-            "source_master_url": master_url
-        })
-
-    return items, offset + len(selected)
+    return items, next_offset
 
 # ---------------------------------------------------------------------------
 # Core Ingestion Engine
@@ -553,6 +672,8 @@ def fetch_sma_direct(offset=0, limit=25):
 def ingest_record(item, s3_client):
     item_id = item["id"]
     photo_buf, thumb_buf = process_and_transcode_image(item)
+    if not photo_buf or not thumb_buf:
+        return None
 
     photo_key = f"history/photos/{item_id}.webp"
     thumb_key = f"history/thumbs/{item_id}.webp"
@@ -605,14 +726,18 @@ def ingest_record(item, s3_client):
 # ---------------------------------------------------------------------------
 def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=3, force=False, is_bulk=False):
     print("================================================================================")
-    print("MYSEATTLESEARCH: DIRECT INSTITUTIONAL HARVESTER")
+    print("MYSEATTLESEARCH: ZERO-FALLBACK BOUNDED HISTORICAL HARVESTER")
     print("================================================================================")
     print(f"Target Database ID: {CF_D1_DATABASE_ID}")
     print(f"Target R2 Bucket:   {R2_BUCKET_NAME} ({R2_PUBLIC_DOMAIN})")
+    print(f"Bounding Bounds:    Lat [{BOUNDING_BOX['lat_min']}, {BOUNDING_BOX['lat_max']}] | Lng [{BOUNDING_BOX['lng_min']}, {BOUNDING_BOX['lng_max']}]")
     print(f"Target Stages:      {', '.join(stages_to_run).upper()}")
     if limit_per_source:
-        print(f"Quota Target:       {limit_per_source} committed records per stage")
+        print(f"Quota Target:       {limit_per_source} verified records per stage")
     print("================================================================================")
+
+    init_centroid_cache()
+    print(f"[*] Pre-cached {len(CENTROID_CACHE)} municipal centroids from D1 'base' table.")
 
     progress = load_progress()
     completed_ids = set() if force else set(progress.get("completed_ids", []))
@@ -622,27 +747,19 @@ def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=3, force=
     total_committed = 0
 
     for stage_idx, stage in enumerate(stages_to_run, 1):
-        print(f"\n>>> [STAGE {stage_idx}/{len(stages_to_run)}] DIRECT HARVEST: {stage.upper()}")
+        print(f"\n>>> [STAGE {stage_idx}/{len(stages_to_run)}] PROCESSING: {stage.upper()}")
         print("--------------------------------------------------------------------------------")
 
         stage_committed = 0
         current_offset = 0 if force else cursors.get(stage, 0)
 
         while True:
-            fetch_size = limit_per_source if limit_per_source else 25
-            print(f"[*] Querying direct repository for '{stage}' at offset {current_offset}...")
-            
-            if stage == "wpa_king":
-                live_items, next_offset = fetch_wpa_king_direct(offset=current_offset, limit=fetch_size)
-            elif stage == "snohomish_local":
-                live_items, next_offset = fetch_snohomish_contentdm_direct(offset=current_offset, limit=fetch_size)
-            elif stage == "sma_infrastructure":
-                live_items, next_offset = fetch_sma_direct(offset=current_offset, limit=fetch_size)
-            else:
-                break
+            fetch_size = max(25, limit_per_source) if limit_per_source else 25
+            print(f"[*] Querying '{stage}' at offset {current_offset} (fetch buffer: {fetch_size})...")
+            live_items, next_offset = fetch_live_archive_records(stage, offset=current_offset, limit=fetch_size)
 
             if not live_items:
-                print(f"[+] Reached end of direct archival records for '{stage}'.")
+                print(f"[+] Reached end of verified archive records for '{stage}'.")
                 break
 
             if city_filter:
@@ -653,6 +770,7 @@ def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=3, force=
             if not pending:
                 if next_offset == current_offset:
                     break
+                print(f"[*] Advancing offset from {current_offset} -> {next_offset} to find eligible local candidates...")
                 current_offset = next_offset
                 cursors[stage] = current_offset
                 progress["cursors"] = cursors
@@ -661,12 +779,16 @@ def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=3, force=
 
             for item in pending:
                 item_id = item["id"]
-                loc_desc = f"{item['city']} ({item['county']} County)"
+                loc_desc = f"{item['city']} ({item['county']} County) @ [{item['lat']}, {item['lng']}]"
                 parcel_desc = f" [PIN: {item['parcel_number']}]" if item.get("parcel_number") else ""
                 print(f"  [{stage_committed + 1}] {item_id} | {item['title']}{parcel_desc} - {loc_desc}")
 
                 try:
                     photo_url = ingest_record(item, s3_client)
+                    if not photo_url:
+                        print(f"      [SKIP] Binary validation rejected asset: {item_id}")
+                        continue
+
                     completed_ids.add(item_id)
                     progress["completed_ids"] = list(completed_ids)
                     save_progress(progress)
@@ -692,26 +814,26 @@ def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=3, force=
                 break
 
         gc.collect()
-        print(f"[+] Stage {stage.upper()} completed: {stage_committed} records committed.")
+        print(f"[+] Stage {stage.upper()} completed: {stage_committed} verified records committed.")
 
     print("\n================================================================================")
-    print(f"[+] RUN COMPLETED: {total_committed} direct institutional records committed to D1 & R2.")
+    print(f"[+] RUN COMPLETED: {total_committed} strictly verified historical records committed to D1 & R2.")
     print("================================================================================")
 
 # ---------------------------------------------------------------------------
 # CLI Entrypoint
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Direct Institutional Historical Asset Harvester")
+    parser = argparse.ArgumentParser(description="Zero-Fallback Bounded Historical Asset Harvester")
     parser.add_argument("--bulk", action="store_true", help="Execute complete continuous run until end of archives")
-    parser.add_argument("--source", type=str, default="all", choices=["all", "wpa_king", "snohomish_local", "sma_infrastructure"],
+    parser.add_argument("--source", type=str, default="all", choices=["all"] + ALL_SOURCES,
                         help="Target data source (default: all)")
     parser.add_argument("--city", type=str, default=None, help="Filter harvest to a single city")
     parser.add_argument("--limit", type=int, default=3, help="Records to commit per stage (default: 3)")
     parser.add_argument("--force", action="store_true", help="Bypass checkpoint cache to test fresh records")
     args = parser.parse_args()
 
-    stages = ["wpa_king", "snohomish_local", "sma_infrastructure"] if args.source == "all" else [args.source]
+    stages = ALL_SOURCES if args.source == "all" else [args.source]
 
     execute_pipeline(
         stages_to_run=stages,
