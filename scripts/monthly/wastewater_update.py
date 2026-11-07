@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
-Monthly Regional Wastewater & Septic Harvester (Live County Feeds)
-Pulls directly from King County ArcGIS REST API and Snohomish OnlineRME,
-then upserts the monthly deltas into Cloudflare D1 'wastewater' table.
+Monthly Regional Wastewater & Septic Harvester
+Target: Cloudflare D1 'wastewater' table
+Sources:
+  - King County Wastewater ArcGIS REST API (Utility & Capacity Charge Updates)
+  - Snohomish County OnlineRME Portal (Recent Inspections & Maintenance)
 """
 
 import os
@@ -10,23 +12,49 @@ import sys
 import json
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 
 # ------------------------------------------------------------------------------
-# 1. CLOUDFLARE CONFIGURATION (From GitHub Actions Environment)
+# 1. LOAD ENVIRONMENT VARIABLES (.dev.vars fallback for local testing)
 # ------------------------------------------------------------------------------
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent.parent
+
+def load_dev_vars():
+    for p in [REPO_ROOT / ".dev.vars", Path(".dev.vars")]:
+        if p.is_file():
+            with open(p, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if "=" in line:
+                        k, v = line.split("=", 1)
+                        k = k.strip()
+                        v = v.strip().strip('"').strip("'")
+                        if k and k not in os.environ:
+                            os.environ[k] = v
+            break
+
+load_dev_vars()
+
 CF_ACCOUNT_ID = os.getenv("CF_ACCOUNT_ID")
-CF_DATABASE_ID = os.getenv("CF_DATABASE_PARCELDATA_ID")
-CF_API_TOKEN = os.getenv("CF_D1_API_TOKEN")
+CF_DATABASE_ID = os.getenv("CF_DATABASE_PARCELDATA_ID") or os.getenv("CF_D1_DATABASE_ID")
+CF_API_TOKEN = os.getenv("CF_D1_API_TOKEN") or os.getenv("CF_API_TOKEN")
 
 if not all([CF_ACCOUNT_ID, CF_DATABASE_ID, CF_API_TOKEN]):
-    print("❌ Missing required Cloudflare environment variables.")
+    print("❌ Missing required Cloudflare variables in environment or .dev.vars.")
     sys.exit(1)
 
 D1_API_URL = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}/d1/database/{CF_DATABASE_ID}/query"
 BATCH_SIZE = 100
 
+
+# ------------------------------------------------------------------------------
+# 2. SQL HELPERS
+# ------------------------------------------------------------------------------
 def sql_escape(val):
     if val is None:
         return "NULL"
@@ -87,24 +115,25 @@ def build_upsert_sql(rows):
             last_inspection_date = COALESCE(excluded.last_inspection_date, wastewater.last_inspection_date),
             last_pump_date = COALESCE(excluded.last_pump_date, wastewater.last_pump_date),
             has_asbuilt = MAX(excluded.has_asbuilt, wastewater.has_asbuilt),
-            raw_source_data = excluded.raw_source_data,
+            raw_source_data = COALESCE(excluded.raw_source_data, wastewater.raw_source_data),
             updated_utc = CURRENT_TIMESTAMP;
     """
 
+
 # ------------------------------------------------------------------------------
-# 2. KING COUNTY: LIVE ARCGIS REST HARVESTER
+# 3. KING COUNTY: LIVE ARCGIS HARVESTER
 # ------------------------------------------------------------------------------
-def harvest_king_county_live(session):
-    print("📡 Polling King County ArcGIS REST API for wastewater updates...")
+def harvest_king_county(session):
+    print("📡 Polling King County ArcGIS REST API for monthly wastewater updates...")
     
     # Official Feature Layer for Parcels with Onsite Sewage Designations
     arcgis_url = "https://services.arcgis.com/Ej0PsM5Aw677QF1W/arcgis/rest/services/SEPTIC_ONSITE_PARCEL_AREA_2682/FeatureServer/0/query"
     
-    # Target updates from the last 35 days (covers previous monthly cycle)
+    # Target updates from the past 35 days to cover the monthly cycle
     cutoff_date = (datetime.utcnow() - timedelta(days=35)).strftime("%Y-%m-%d")
     
     params = {
-        "where": f"EditDate >= DATE '{cutoff_date}' OR EditDate IS NULL",
+        "where": f"EditDate >= DATE '{cutoff_date}'",
         "outFields": "PIN,MAJOR,MINOR,ExpExcludeOn,ExcludeOn,ExpSewerConnection,SewerConnection,ExpSewerAgency,CapacityCharge,WastewaterTreatmentType,Comments,EditDate",
         "returnGeometry": "false",
         "resultRecordCount": 2000,
@@ -120,7 +149,7 @@ def harvest_king_county_live(session):
 
     features = data.get("features", [])
     if not features:
-        print("ℹ️ No new/modified King County wastewater records in the last 35 days.")
+        print("ℹ️ No new/modified King County records in the last 35 days.")
         return
 
     print(f"📦 Fetched {len(features)} live updates from King County.")
@@ -154,6 +183,9 @@ def harvest_king_county_live(session):
         cap_charge = 1 if "YES" in str(attr.get("CapacityCharge") or "").upper() else 0
         sewer_agency = attr.get("ExpSewerAgency") if srv == "SEWER" else None
 
+        comments = str(attr.get("Comments") or "").strip()
+        raw_meta = json.dumps({"Comments": comments, "EditDate": attr.get("EditDate")}) if comments else None
+
         batch.append({
             "parcel_number": pin,
             "county": "KING",
@@ -162,12 +194,7 @@ def harvest_king_county_live(session):
             "service_status": "ACTIVE",
             "sewer_provider_name": sewer_agency,
             "has_capacity_charge": cap_charge,
-            "has_asbuilt": 0,
-            "raw_source_data": json.dumps({
-                "Comments": attr.get("Comments"),
-                "ExcludeOn": attr.get("ExcludeOn"),
-                "EditDate": attr.get("EditDate")
-            })
+            "raw_source_data": raw_meta
         })
 
         if len(batch) >= BATCH_SIZE:
@@ -181,13 +208,13 @@ def harvest_king_county_live(session):
 
     print(f"✅ King County Live Upsert Complete: {upserted} records.")
 
+
 # ------------------------------------------------------------------------------
-# 3. SNOHOMISH COUNTY: LIVE ONLINERME INSPECTION ACTIVITY HARVESTER
+# 4. SNOHOMISH COUNTY: LIVE ONLINERME INSPECTION HARVESTER
 # ------------------------------------------------------------------------------
-def harvest_snohomish_live(session):
-    print("📡 Polling Snohomish County OnlineRME portal for recent septic activity...")
+def harvest_snohomish(session):
+    print("📡 Polling Snohomish County OnlineRME for recent maintenance activity...")
     
-    # OnlineRME Public Activity Log URL for Snohomish County
     activity_url = "https://www.onlinerme.com/Reports/PublicActivity.aspx"
     end_dt = datetime.now()
     start_dt = end_dt - timedelta(days=35)
@@ -197,19 +224,18 @@ def harvest_snohomish_live(session):
     }
 
     try:
-        # 1. Establish session and get viewstate
         get_res = session.get(activity_url, headers=headers, timeout=30)
         soup = BeautifulSoup(get_res.text, "html.parser")
         
-        vs_elem = soup.find("input", {"id": "__VIEWSTATE"})
-        ev_elem = soup.find("input", {"id": "__EVENTVALIDATION"})
-        if not vs_elem:
+        vs = soup.find("input", {"id": "__VIEWSTATE"})
+        ev = soup.find("input", {"id": "__EVENTVALIDATION"})
+        if not vs:
             print("⚠️ OnlineRME viewstate unavailable. Skipping Snohomish live poll.")
             return
 
         payload = {
-            "__VIEWSTATE": vs_elem["value"],
-            "__EVENTVALIDATION": ev_elem["value"] if ev_elem else "",
+            "__VIEWSTATE": vs["value"],
+            "__EVENTVALIDATION": ev["value"] if ev else "",
             "ddlCounty": "Snohomish",
             "txtStartDate": start_dt.strftime("%m/%d/%Y"),
             "txtEndDate": end_dt.strftime("%m/%d/%Y"),
@@ -219,7 +245,6 @@ def harvest_snohomish_live(session):
         post_res = session.post(activity_url, data=payload, headers=headers, timeout=45)
         soup_res = BeautifulSoup(post_res.text, "html.parser")
         
-        # Parse activity table rows
         rows = soup_res.find_all("tr", {"class": ["GridRow", "GridAltRow"]})
         if not rows:
             print("ℹ️ No recent OnlineRME activity rows returned for Snohomish.")
@@ -235,14 +260,14 @@ def harvest_snohomish_live(session):
                 continue
 
             raw_apn = cols[0].replace("-", "").strip()
-            # Normalize APN: drop leading zero to match base table convention
+            # Normalize APN: remove leading zeros to match base table convention
             pin = raw_apn.lstrip('0') if raw_apn.startswith('0') else raw_apn
             if len(pin) < 10:
                 continue
 
             permit_num = cols[1] if len(cols) > 1 else None
             system_type = cols[2] if len(cols) > 2 else "SEPTIC"
-            event_date = cols[3] if len(cols) > 3 else None  # Inspection or pump date
+            event_date = cols[3] if len(cols) > 3 else None
 
             batch.append({
                 "parcel_number": pin,
@@ -254,7 +279,7 @@ def harvest_snohomish_live(session):
                 "last_inspection_date": event_date,
                 "last_pump_date": event_date,
                 "has_asbuilt": 1,
-                "raw_source_data": json.dumps({"Source": "OnlineRME_Live_Harvester"})
+                "raw_source_data": json.dumps({"Source": "OnlineRME_Monthly_Delta"})
             })
 
             if len(batch) >= BATCH_SIZE:
@@ -269,10 +294,11 @@ def harvest_snohomish_live(session):
         print(f"✅ Snohomish Live Upsert Complete: {upserted} records.")
 
     except Exception as err:
-        print(f"⚠️ Snohomish OnlineRME poll skipped or failed: {err}")
+        print(f"⚠️ Snohomish OnlineRME poll skipped or encountered an error: {err}")
+
 
 # ------------------------------------------------------------------------------
-# 4. ENTRY POINT
+# 5. MAIN ENTRY POINT
 # ------------------------------------------------------------------------------
 def main():
     print("==================================================")
@@ -280,9 +306,9 @@ def main():
     print("==================================================\n")
     
     session = requests.Session()
-    harvest_king_county_live(session)
-    harvest_snohomish_live(session)
-    print("\n🎉 Live wastewater sync finished successfully.")
+    harvest_king_county(session)
+    harvest_snohomish(session)
+    print("\n🎉 Monthly wastewater update sequence finished.")
 
 if __name__ == "__main__":
     main()

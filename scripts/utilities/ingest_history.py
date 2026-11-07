@@ -17,6 +17,11 @@ from botocore.config import Config
 from PIL import Image
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
+# Treat decompression bomb warnings as errors so oversized files skip cleanly
+warnings.filterwarnings("error", category=Image.DecompressionBombWarning)
+
+# Maximum raster dimension allowed before download (75 Megapixels)
+MAX_PIXEL_CEILING = 75_000_000
 
 # ---------------------------------------------------------------------------
 # Configuration & Environment Loading (.dev.vars in project root)
@@ -54,7 +59,7 @@ R2_BUCKET_NAME = config.get("R2_BUCKET_NAME", "myseattlesearch-assets")
 R2_PUBLIC_DOMAIN = config.get("R2_PUBLIC_DOMAIN", "https://assets.myseattlesearch.com").rstrip("/")
 
 HTTP_HEADERS = {
-    "User-Agent": "MySeattleSearch-History-Harvester/5.1 (Bulk-Uncapped Architecture; info@myseattlesearch.com)"
+    "User-Agent": "MySeattleSearch-History-Harvester/6.0 (CirrusSearch-Uncapped; info@myseattlesearch.com)"
 }
 
 # ---------------------------------------------------------------------------
@@ -110,6 +115,7 @@ CENTROIDS = {
     "kirkland": (47.6815, -122.2087),
     "redmond": (47.6740, -122.1215),
     "federal-way": (47.3223, -122.3126),
+    "federaly": (47.3223, -122.3126),
     "sammamish": (47.6163, -122.0356),
     "issaquah": (47.5301, -122.0326),
     "shoreline": (47.7560, -122.3457),
@@ -182,7 +188,6 @@ CENTROIDS = {
 
 # ---------------------------------------------------------------------------
 # Authoritative Slug-To-City-Slug & County Mapping
-# Key: Sub-slug or City-slug -> Value: (parent_city_slug, county_name)
 # ---------------------------------------------------------------------------
 SLUG_TAXONOMY_MAP = {
     # Snohomish County
@@ -253,7 +258,7 @@ SLUG_TAXONOMY_MAP = {
     "beaux-arts-village": ("beaux-arts-village", "King"),
     "skykomish": ("skykomish", "King"),
 
-    # Common Sub-Neighborhoods (Mapped to parent city slug)
+    # Common Sub-Neighborhoods
     "ballard": ("seattle", "King"),
     "capitol-hill": ("seattle", "King"),
     "pioneer-square": ("seattle", "King"),
@@ -369,29 +374,29 @@ def find_nearest_slug_by_coords(lat, lng):
     return best_slug or "seattle"
 
 # ---------------------------------------------------------------------------
-# 5-Stage Institutional Harvest Configuration (Zero Fallback Slugs)
+# 5-Stage Institutional Harvest Configuration (CirrusSearch OR Syntax)
 # ---------------------------------------------------------------------------
 SOURCE_CONFIGS = {
     "residential_properties": {
-        "query": 'incategory:"Houses in Seattle|Houses in King County, Washington|Seattle Department of Neighborhoods Historic Sites"',
+        "query": 'incategory:"Houses in Seattle" OR incategory:"Houses in King County, Washington" OR incategory:"Seattle Department of Neighborhoods Historic Sites"',
         "prefix": "res-prop",
         "archive": "Seattle Department of Neighborhoods / King County Historic Resources",
         "dataset_type": "residential_property"
     },
     "historic_districts": {
-        "query": 'incategory:"National Register of Historic Places in King County, Washington|National Register of Historic Places in Snohomish County, Washington|Historic district contributing properties in Washington (state)"',
+        "query": 'incategory:"National Register of Historic Places in King County, Washington" OR incategory:"National Register of Historic Places in Snohomish County, Washington" OR incategory:"Historic district contributing properties in Washington (state)"',
         "prefix": "hist-dist",
         "archive": "National Register of Historic Places / WA DAHP",
         "dataset_type": "historic_district"
     },
     "photographer_surveys": {
-        "query": 'incategory:"Photographs by Asahel Curtis|Webster & Stevens"',
+        "query": 'incategory:"Photographs by Asahel Curtis" OR incategory:"Photographs by Webster & Stevens" OR incategory:"Webster & Stevens"',
         "prefix": "photo-surv",
         "archive": "Puget Sound Historical Survey Collections (Asahel Curtis / Webster & Stevens)",
         "dataset_type": "photographer_survey"
     },
     "snohomish_local": {
-        "query": 'incategory:"Buildings in Snohomish County, Washington|Snohomish County, Washington"',
+        "query": 'incategory:"Buildings in Snohomish County, Washington" OR incategory:"Snohomish County, Washington"',
         "prefix": "sno-hist",
         "archive": "Snohomish County Historical Collections / UW Libraries Special Collections",
         "dataset_type": "civic_landmark"
@@ -586,8 +591,13 @@ def process_and_transcode_image(item, max_retries=3):
     try:
         orig_img = Image.open(io.BytesIO(img_bytes))
         orig_img.load()  # Force load raster data into memory to verify integrity
+    except (Image.DecompressionBombError, Image.DecompressionBombWarning) as e:
+        print(f"    [SKIP] Image exceeds decompression safe limits ({e}). Skipping record.")
+        del img_bytes
+        return None, None
     except Exception as e:
         print(f"    [!] Image raster verification failed ({e}). Skipping record.")
+        del img_bytes
         return None, None
 
     if orig_img.mode in ("RGBA", "P", "CMYK"):
@@ -603,7 +613,7 @@ def process_and_transcode_image(item, max_retries=3):
     thumb_buf = io.BytesIO()
     thumb_img.save(thumb_buf, format="WEBP", quality=75, method=6)
 
-    del orig_img, photo_img, thumb_img
+    del orig_img, photo_img, thumb_img, img_bytes
     return photo_buf, thumb_buf
 
 # ---------------------------------------------------------------------------
@@ -658,6 +668,13 @@ def fetch_live_archive_records(source_key, offset=0, limit=50):
         direct_url = ii.get("url")
         mime = ii.get("mime", "").lower()
         if not direct_url or not mime.startswith("image/"):
+            continue
+
+        # Pre-Download Dimension Guard (Skip ultra-massive composite scans before downloading)
+        width = ii.get("width", 0)
+        height = ii.get("height", 0)
+        if width and height and (width * height > MAX_PIXEL_CEILING):
+            print(f"    [SKIP] Exceeds {MAX_PIXEL_CEILING}px ceiling ({width}x{height}): {raw_file_title[:45]}")
             continue
 
         base_name = os.path.splitext(raw_file_title)[0]
@@ -852,6 +869,7 @@ def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=None, for
     print(f"Target R2 Bucket:   {R2_BUCKET_NAME} ({R2_PUBLIC_DOMAIN})")
     print(f"Bounding Bounds:    Lat [{BOUNDING_BOX['lat_min']}, {BOUNDING_BOX['lat_max']}] | Lng [{BOUNDING_BOX['lng_min']}, {BOUNDING_BOX['lng_max']}]")
     print(f"Memory Centroids:   {len(CENTROIDS)} municipal entities pre-seeded in RAM (0 D1 row scans)")
+    print(f"Pixel Ceiling:      Max {MAX_PIXEL_CEILING} pixels (oversized images skipped before download)")
     print(f"Target Stages:      {', '.join(stages_to_run).upper()}")
     if limit_per_source:
         print(f"Quota Target:       {limit_per_source} verified records per stage")
