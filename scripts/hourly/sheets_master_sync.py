@@ -1,3 +1,5 @@
+# File: scripts/sheets_master_sync.py
+
 import os
 import io
 import re
@@ -10,7 +12,7 @@ from PIL import Image
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 COMMUTE_TOLLS_PATH = os.path.join(DATA_DIR, "city_commute_tolls.json")
 
@@ -263,7 +265,7 @@ def main():
     print("📊 Running Hourly Platform Sync (Historical Log, Media, News, Sports & Live Tolls)...")
     os.makedirs(DATA_DIR, exist_ok=True)
 
-    # 1. Harvest Live WSDOT Express Tolls (Replacing TollData Sheet tab)
+    # 1. Harvest Live WSDOT Express Tolls
     harvest_commute_and_tolls()
 
     # 2. Connect to Google Sheets & R2 Engine
@@ -289,8 +291,8 @@ def main():
             region_name="auto"
         )
 
-    # 3. Pull strictly the 5 Hourly Tabs
-    all_tabs = ["Historical_Log", "News", "Uploads", "Sports", "Publishers"]
+    # 3. Pull strictly the 6 Hourly Tabs (BookingRules added)
+    all_tabs = ["Historical_Log", "News", "Uploads", "Sports", "Publishers", "BookingRules"]
     ranges = [f"{tab}!A:BK" for tab in all_tabs]
 
     res = sheets_service.spreadsheets().values().batchGet(spreadsheetId=master_sheet_id, ranges=ranges).execute()
@@ -330,8 +332,14 @@ def main():
                     if col_u_done != -1:
                         sheet_writebacks.append({'range': f"Uploads!{get_col_letter(col_u_done)}{row_num}", 'values': [["Yes"]]})
 
-    # Array JSON Outputs
-    for tab_name, json_name in [("News", "news.json"), ("Sports", "sports_teams.json"), ("Uploads", "uploads.json"), ("Publishers", "publishers.json")]:
+    # Array JSON Outputs (BookingRules mapped to booking_rules.json)
+    for tab_name, json_name in [
+        ("News", "news.json"), 
+        ("Sports", "sports_teams.json"), 
+        ("Uploads", "uploads.json"), 
+        ("Publishers", "publishers.json"),
+        ("BookingRules", "booking_rules.json")
+    ]:
         rows = data.get(tab_name, {}).get('values', [])
         if rows:
             with open(os.path.join(DATA_DIR, json_name), "w", encoding="utf-8") as f:

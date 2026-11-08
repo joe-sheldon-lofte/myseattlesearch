@@ -1,0 +1,217 @@
+---
+layout: layouts/base.njk
+title: "Preferred Professionals | Joe Sheldon"
+description: "Pre-vetted local Puget Sound real estate service providers, contractors, and specialists recommended by Joe Sheldon."
+permalink: /realestate/preferredprofessionals/index.html
+---
+
+{% set vendor_list = professionals.vendors if professionals.vendors else professionals %}
+{% set categories = professionals.categories if professionals.categories else [
+  "Attorney", "Electrical", "Escrow", "Estate Sales", "Exterior Cleaning",
+  "Feasibility Study", "Fences", "Flooring", "General Contractor",
+  "Geotechnical Engineering", "Handyperson - Home Maintenance", "Home Cleaning",
+  "Home Inspector", "HVAC", "Insurance", "Interior Designer", "Landscaper",
+  "Mortgage", "Movers", "Oil Tank Services", "Painting", "Plumbing",
+  "Rental Property Management", "Roofing", "Senior Home Placement",
+  "Septic Installation and Inspection", "Sewer Inspector", "Staging", "Title",
+  "Water Quality Testing"
+] %}
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "Joe Sheldon's Preferred Real Estate Professionals",
+  "description": "Pre-vetted local service providers recommended by Redfin Agent Joe Sheldon.",
+  "itemListElement": [
+    {% for vendor in vendor_list %}
+    {
+      "@type": "ListItem",
+      "position": {{ loop.index }},
+      "item": {
+        "@type": "ProfessionalService",
+        "name": "{{ vendor['Business/Vendor Name'] or vendor.name }}",
+        "telephone": "{{ vendor['Phone Number'] or vendor.phone }}",
+        "email": "{{ vendor.Email or vendor.email }}",
+        "url": "https://myseattlesearch.com/realestate/professionals/{{ ((vendor.ProID or vendor['Business/Vendor Name']) | lower | slugify) }}/"
+      }
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+
+<main class="layout-container layout-stack-main">
+
+  {# Section 1.0 & 2.0: Canonical Hero Header #}
+  <header class="surface-bento page-hero-bento">
+    <h1 class="text-page-title">Joe's Preferred Professionals</h1>
+    <p class="text-body page-hero-lead">
+      A curated list of trusted local experts I rely on to get the job done right.
+    </p>
+    <div class="action-tray-constrained">
+      <button type="button" onclick="window.print()" class="btn btn-secondary" aria-label="Print Directory">
+        <span>Print Professional Directory</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="section-divider"></div>
+
+  {# Section 3.0: Bold Consumer Advisory Callout #}
+  <section id="consumer-notice" class="content-section-centered">
+    <div class="surface-bento pro-advisory-card">
+      <div class="pro-advisory-header">
+        <span class="status-led led-amber" aria-hidden="true"></span>
+        <strong class="pro-advisory-title">Consumer Advisory</strong>
+      </div>
+      <p class="text-body-secondary pro-advisory-desc">
+        While I have had positive experiences working with the professionals listed below, it is your responsibility to verify that they hold the proper, active credentials, licenses, and insurance policies required for your specific job before hiring.
+      </p>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  {# Section 4.0 & 5.0: Filter Cloud & Professionals Directory #}
+  <section id="professionals-directory" class="content-section-centered">
+    
+    {# Multi-Row Category Filter Cloud #}
+    <div class="pro-filter-cloud" id="categoryFilterCloud" role="tablist" aria-label="Filter Professionals by Category">
+      <button type="button" class="pro-filter-pill is-active" data-filter="all" role="tab" aria-selected="true">
+        <span>All ({{ vendor_list | length }})</span>
+      </button>
+      {% for cat in categories %}
+      <button type="button" class="pro-filter-pill" data-filter="{{ cat | slugify }}" role="tab" aria-selected="false">
+        <span>{{ cat }}</span>
+      </button>
+      {% endfor %}
+    </div>
+
+    {# 2-Column Responsive Directory Grid #}
+    <div class="section-grid-static grid-cols-2" id="proGrid">
+      {% for vendor in vendor_list %}
+        {% set v_category = vendor['Category'] or vendor.Category or vendor.category %}
+        {% set v_name = vendor['Business/Vendor Name'] or vendor.name %}
+        {% set v_phone = vendor['Phone Number'] or vendor.phone %}
+        {% set v_tel = v_phone | replace('-', '') | replace(' ', '') | replace('(', '') | replace(')', '') if v_phone else '' %}
+        {% set v_email = vendor['Email'] or vendor.email %}
+        {% set v_website = vendor['Website'] or vendor.website %}
+        {% set v_info = vendor['Additional Info'] or vendor.additionalInfo %}
+        {% set v_cat_slug = v_category | slugify %}
+        {% set v_pro_id = (vendor.ProID or v_name) | lower | slugify %}
+
+        <article class="surface-bento people-card-secondary pro-card" data-category="{{ v_cat_slug }}" aria-label="{{ v_name }} - {{ v_category }}">
+          
+          <div class="people-sec-stage">
+            {% if v_category %}
+              <span class="text-overline people-sec-role-tag">
+                {{ v_category }}
+              </span>
+            {% endif %}
+
+            <h2 class="text-widget-title people-sec-name-heading">
+              {{ v_name }}
+            </h2>
+
+            {% if v_info %}
+              <p class="text-body-secondary people-bio-text">
+                {{ v_info }}
+              </p>
+            {% endif %}
+
+            <div class="people-sec-contact-cluster">
+              {% if v_tel and v_phone %}
+                <a href="tel:{{ v_tel }}" class="people-contact-link" aria-label="Call {{ v_name }}">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                  </svg>
+                  <span>{{ v_phone }}</span>
+                </a>
+              {% endif %}
+
+              {% if v_email %}
+                <a href="mailto:{{ v_email }}" class="people-contact-link" aria-label="Email {{ v_name }}">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect width="20" height="16" x="2" y="4" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                  </svg>
+                  <span>{{ v_email }}</span>
+                </a>
+              {% endif %}
+
+              {% if v_website %}
+                <a href="{{ v_website }}" target="_blank" rel="noopener noreferrer" class="people-contact-link" aria-label="Visit official website for {{ v_name }}">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="2" y1="12" x2="22" y2="12"/>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                  </svg>
+                  <span>Website</span>
+                </a>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="people-sec-cta-wrapper action-tray-constrained">
+            <a href="/realestate/professionals/{{ v_pro_id }}/" class="btn btn-primary">
+              <span>View Profile</span>
+            </a>
+          </div>
+
+        </article>
+      {% endfor %}
+    </div>
+
+  </section>
+
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const filterCloud = document.getElementById('categoryFilterCloud');
+  const filterBtns = filterCloud ? filterCloud.querySelectorAll('.pro-filter-pill') : [];
+  const proCards = document.querySelectorAll('.pro-card');
+
+  function applyFilter(filterValue, activeBtn) {
+    filterBtns.forEach(btn => {
+      btn.classList.remove('is-active');
+      btn.setAttribute('aria-selected', 'false');
+    });
+
+    if (activeBtn) {
+      activeBtn.classList.add('is-active');
+      activeBtn.setAttribute('aria-selected', 'true');
+    }
+
+    proCards.forEach(card => {
+      const cardCat = card.getAttribute('data-category');
+      const isMatch = filterValue === 'all' || cardCat === filterValue;
+      if (isMatch) {
+        card.style.display = 'flex';
+        card.classList.remove('is-hidden');
+      } else {
+        card.style.display = 'none';
+        card.classList.add('is-hidden');
+      }
+    });
+  }
+
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const filterValue = btn.getAttribute('data-filter');
+      applyFilter(filterValue, btn);
+    });
+  });
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const categoryParam = urlParams.get('category');
+  if (categoryParam) {
+    const targetBtn = Array.from(filterBtns).find(b => b.getAttribute('data-filter') === categoryParam);
+    if (targetBtn) {
+      applyFilter(categoryParam, targetBtn);
+      targetBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+});
+</script>
