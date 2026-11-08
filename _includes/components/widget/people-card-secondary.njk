@@ -1,17 +1,4 @@
 <!-- File: _includes/components/widget/people-card-secondary.njk -->
-{# 
-  COMPONENT: Secondary Team Member & Advisory Card (widget.people.card.secondary)
-  PURPOSE: Team roster, transaction coordinators, listing managers, mortgage & escrow partners.
-  CONTRACT:
-    - person_sec_name / person_name / name: String [Required]
-    - person_sec_role / person_role / role: String [Optional, e.g. "TRANSACTION COORDINATOR"]
-    - person_sec_image / person_avatar / avatar: String [Optional, headshot URL]
-    - person_sec_phone / person_phone / phone: String [Optional, e.g. "(206) 657-7493"]
-    - person_sec_tel / person_tel / tel: String [Optional, e.g. "2066577493"]
-    - person_sec_email / person_email / email: String [Optional]
-    - person_sec_url / person_url / url: String [Optional, defaults to "/team/"]
-#}
-
 {% set p_name = person_sec_name or person_name or name %}
 {% set p_role = person_sec_role or person_role or role %}
 {% set p_avatar = person_sec_image or person_avatar or avatar %}
@@ -21,10 +8,9 @@
 {% set p_url = person_sec_url or person_url or url or "/team/" %}
 
 {% if p_name %}
-<article class="widget-card people-card-secondary" aria-label="Advisor profile for {{ p_name }}">
+<article class="surface-bento people-card-secondary" aria-label="Advisor profile for {{ p_name }}">
   
   <div class="people-sec-stage">
-    {# Standardized 150x150 Circular Avatar per SOP 6 #}
     {% if p_avatar %}
       <div class="people-sec-avatar-wrapper">
         <img src="{{ p_avatar }}" 
@@ -38,38 +24,40 @@
     {% endif %}
 
     {% if p_role %}
-      <span class="text-overline people-sec-role-tag">
+      <div class="text-overline people-sec-role-tag">
         {{ p_role }}
-      </span>
+      </div>
     {% endif %}
 
-    <h4 class="text-widget-title people-sec-name-heading">
+    <h3 class="text-widget-title people-sec-name-heading">
       {{ p_name }}
-    </h4>
+    </h3>
 
     <div class="people-sec-contact-cluster">
       {% if p_tel and p_phone %}
-        <a href="tel:{{ p_tel }}" class="people-sec-phone-link" aria-label="Call {{ p_name }}">
-          {{ p_phone }}
+        <a href="tel:{{ p_tel }}" class="people-contact-link" aria-label="Call {{ p_name }}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+          <span>{{ p_phone }}</span>
         </a>
       {% endif %}
 
       {% if p_email %}
-        <a href="mailto:{{ p_email }}" class="people-sec-email-link" aria-label="Email {{ p_name }}">
-          {{ p_email }}
+        <a href="mailto:{{ p_email }}" class="people-contact-link" aria-label="Email {{ p_name }}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect width="20" height="16" x="2" y="4" rx="2"/>
+            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+          </svg>
+          <span>{{ p_email }}</span>
         </a>
       {% endif %}
     </div>
   </div>
 
-  {# Action Button #}
-  <div class="people-sec-cta-wrapper">
-    <a href="{{ p_url }}" class="btn-people-secondary">
+  <div class="people-sec-cta-wrapper action-tray-constrained">
+    <a href="{{ p_url }}" class="btn btn-primary">
       <span>View Profile</span>
-      <svg class="btn-people-secondary-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-        <polyline points="12 5 19 12 12 19"></polyline>
-      </svg>
     </a>
   </div>
 

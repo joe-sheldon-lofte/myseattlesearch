@@ -1,0 +1,84 @@
+/* File: css/99-ghost.css */
+/* ==========================================================================
+   24. GHOST CODE / DEPRECATION LEDGER
+   The following legacy aliases ensure existing templates continue to render 
+   flawlessly while you update your HTML markup to the canonical classes.
+   ========================================================================== */
+
+/* 
+ * GHOST: Generic Bento Cards -> Canonical: .surface-bento
+ * NOTE: Replace class="widget-card" with class="surface-bento" in your templates.
+ */
+.widget-card {
+  background-color: var(--color-background-universal, #FFFFFF);
+  border-radius: var(--border-radius-squircle);
+  padding: var(--spacing-widget-padding);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--color-border-light);
+  box-sizing: border-box;
+  width: 100%;
+}
+.widget-card-interactive:hover {
+  transform: translateY(-1px);
+  border-color: var(--alpine-blue);
+  box-shadow: 0 12px 32px rgba(30, 77, 107, 0.08);
+}
+
+/* 
+ * GHOST: Legacy Contact Buttons -> Canonical: .btn .btn-primary / .btn-secondary
+ * NOTE: Replace class="btn-contact-primary" with class="btn btn-primary"
+ * NOTE: Replace class="btn-contact-secondary" with class="btn btn-secondary"
+ */
+.btn-contact-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.8rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  border-radius: var(--border-radius-pill, 9999px);
+  box-sizing: border-box;
+  background-color: var(--alpine-blue, #1E4D6B);
+  color: #FFFFFF !important;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-contact-primary:hover {
+  opacity: 0.92;
+  box-shadow: 0 4px 12px rgba(30, 77, 107, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn-contact-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.8rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  border-radius: var(--border-radius-pill, 9999px);
+  box-sizing: border-box;
+  background-color: var(--color-surface-gray, #F5F5F7);
+  color: var(--color-primary-default, #1C1C1E) !important;
+  border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08));
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-contact-secondary:hover {
+  background-color: #EBEBEF;
+  transform: translateY(-1px);
+}
+
+/* 
+ * GHOST: Legacy Actionbar Buttons -> Canonical: .btn
+ * NOTE: .actionbar-pill-primary and .actionbar-pill-secondary are preserved
+ * for backward compatibility with older action-bar.njk includes.
+ */
+

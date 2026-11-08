@@ -1,0 +1,56 @@
+<div class="livechat-container">
+  <!-- Tawk.to Static Embed Framework Container Target -->
+  <div id="tawk-embed-container" class="livechat-canvas">
+    <div id="chat-loading-spinner" class="livechat-loading">
+      <div class="livechat-spinner" aria-hidden="true"></div>
+      <p class="text-body-secondary">Connecting to the real estate chat desk...</p>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+  var Tawk_API = Tawk_API || {};
+  var Tawk_LoadStart = new Date();
+
+  // Core Override Contract: Force inline rendering directly within our layout architecture frame container
+  Tawk_API.embedded = 'tawk-embed-container';
+
+  // Executed dynamically the precise instant communication protocols initialize
+  Tawk_API.onLoad = function() {
+    // Clear out the custom connection placeholder graphic loading element without inline styles
+    var spinner = document.getElementById('chat-loading-spinner');
+    if (spinner) {
+      spinner.classList.add('is-hidden');
+    }
+
+    // Capture layout context properties passed forward from your neighborhood blog posts
+    var urlParams = new URLSearchParams(window.location.search);
+    var postRoutePath = urlParams.get('reply_to');
+
+    if (postRoutePath) {
+      // Decode the URL string parameters to safely reconstruct slashes, hyphens, and dates completely
+      var decodedPath = decodeURIComponent(postRoutePath);
+      var completePostUrl = window.location.origin + decodedPath;
+
+      // Inject clean, active, clickable context hyperlinks directly into your agent dashboard console
+      Tawk_API.setAttributes({
+        'Source Post Path': decodedPath,
+        'Direct Post Link': completePostUrl
+      }, function(error) {
+        if (error) {
+          console.error('Context alignment sync issue:', error);
+        }
+      });
+    }
+  };
+
+  // Wrap network parsing inside a DOMContentLoaded event handler to guarantee the HTML structure loads before executing script hooks
+  window.addEventListener('DOMContentLoaded', function() {
+    var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
+    s1.async = true;
+    s1.src = 'https://embed.tawk.to/6a5b0cb0efae261d44936bbd/1jtpqj4im';
+    s1.charset = 'UTF-8';
+    s1.setAttribute('crossorigin', '*');
+    s0.parentNode.insertBefore(s1, s0);
+  });
+</script>

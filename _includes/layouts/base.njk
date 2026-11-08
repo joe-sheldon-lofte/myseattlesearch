@@ -4,16 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   
+  {# Preconnect to Google Font origins early #}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
   {# Dynamic Meta Titles & Descriptions #}
   <title>{{ title | default(stats.site_name | default("MySeattleSearch | Puget Sound Real Estate & Hyperlocal Data")) }}</title>
-  <meta name="description" content="{{ meta_description | default("Explore Puget Sound real estate, municipal data, and neighborhood telemetry with " ~ stats.full_name ~ ".") }}">
+  <meta name="description" content="{{ meta_description | default("Explore Puget Sound real estate, municipal data, and neighborhood telemetry with " ~ (stats.full_name | default("Joe Sheldon")) ~ ".") }}">
   
   {# Favicons #}
   <link rel="icon" href="/assets/brand/favicon.ico" sizes="any">
   <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png">
 
-  {# Core Design System Stylesheet with Automatic Cache-Buster #}
-  <link rel="stylesheet" href="/style.css?v={{ buildTime | slugify }}">
+  {# Dancing Script Font Resource #}
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet">
+
+  {# Canonical Master Stylesheet with Cache-Buster #}
+  <link rel="stylesheet" href="/style.css{% if buildTime %}?v={{ buildTime | slugify }}{% endif %}">
 
   {# Canonical Schemas #}
   {% include "components/schema/website.njk" ignore missing %}
@@ -24,39 +31,40 @@
   {# Global Overlay Header #}
   {% include "header.njk" %}
 
-  {# Primary Content Viewport #}
-  <main id="main-content">
+  {# Primary Content Viewport Anchor (Div wrapper prevents invalid nested <main> elements) #}
+  <div id="main-content">
     {{ content | safe }}
-  </main>
+  </div>
 
   {# Minimalist Integrated Footer #}
   {% include "footer.njk" %}
 
-  {# Floating Bottom Action Tray (75% Liquid Glass) #}
+  {# Floating Bottom Action Tray (78% Liquid Glass) #}
   {% include "components/widget/layout-actionbar-bottom.njk" ignore missing %}
 
   {# Slide-Up Section Navigation Drawer (Hidden Off-Screen) #}
   {% include "components/widget/drawer-action-navigate.njk" ignore missing %}
 
-<script>
-document.querySelectorAll("[data-live-source]").forEach(async (el) => {
-  const endpoint = el.getAttribute("data-live-source");
-  try {
-    const res = await fetch(endpoint);
-    const json = await res.json();
-    
-    const valueEl = el.querySelector('[data-target="value"]');
-    const labelEl = el.querySelector('[data-target="label"]');
-    
-    if (valueEl) valueEl.textContent = json.value;
-    if (labelEl) labelEl.textContent = json.label;
-    if (json.status_token) el.style.setProperty("--stat-accent", json.status_token);
-  } catch (e) {
-    const valueEl = el.querySelector('[data-target="value"]');
-    if (valueEl) valueEl.textContent = "NO DATA";
-  }
-});
-</script>
+  {# Global Telemetry Polling Hook #}
+  <script>
+  document.querySelectorAll("[data-live-source]").forEach(async (el) => {
+    const endpoint = el.getAttribute("data-live-source");
+    try {
+      const res = await fetch(endpoint);
+      const json = await res.json();
+      
+      const valueEl = el.querySelector('[data-target="value"]');
+      const labelEl = el.querySelector('[data-target="label"]');
+      
+      if (valueEl) valueEl.textContent = json.value;
+      if (labelEl) labelEl.textContent = json.label;
+      if (json.status_token) el.style.setProperty("--stat-accent", json.status_token);
+    } catch (e) {
+      const valueEl = el.querySelector('[data-target="value"]');
+      if (valueEl) valueEl.textContent = "NO DATA";
+    }
+  });
+  </script>
 
 </body>
 </html>

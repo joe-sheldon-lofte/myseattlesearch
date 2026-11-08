@@ -1,0 +1,107 @@
+/* File: css/components/media.css */
+/* Canonical Base Media Frame (Geometry decoupled from ratio) */
+.media-frame {
+  position: relative;
+  width: 100%;
+  border-radius: var(--border-radius-squircle, 18px);
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  background-color: var(--color-surface-gray, #F5F5F7);
+}
+.media-frame-16-9  { aspect-ratio: 16 / 9; }
+.media-frame-16-10 { aspect-ratio: 16 / 10; }
+.media-frame-4-3   { aspect-ratio: 4 / 3; }
+.media-frame-1-1   { aspect-ratio: 1 / 1; }
+
+.media-frame youtube-lite {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.media-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+.widget-card-interactive:hover .media-zoom,
+.surface-bento:hover .media-zoom {
+  transform: scale(1.03);
+}
+
+/* Video Player & Progressive Disclosure */
+.widget-video-player {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.video-play-trigger {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.video-poster-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.video-play-trigger:hover .video-poster-img {
+  transform: scale(1.02);
+}
+
+.video-play-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 68px;
+  height: 68px;
+  border-radius: var(--border-radius-squircle, 18px);
+  background-color: rgba(28, 28, 30, 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.video-play-trigger:hover .video-play-button {
+  transform: translate(-50%, -50%) scale(1.08);
+  background-color: var(--alpine-blue, #1E4D6B);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.icon-play {
+  width: 26px;
+  height: 26px;
+  margin-left: 3px;
+}
+
+.video-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  border-radius: inherit;
+}

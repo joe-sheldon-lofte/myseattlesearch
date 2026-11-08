@@ -1,0 +1,232 @@
+/* File: css/components/people.css */
+/* ==========================================================================
+   16. PEOPLE, PROFILES & DIRECTORIES
+   ========================================================================== */
+.people-card-primary, 
+.people-card-secondary {  
+  display: flex;  
+  flex-direction: column;  
+  justify-content: space-between;  
+  width: 100%;  
+  background: var(--color-background-universal, #FFFFFF);  
+  border: 1px solid var(--color-border-light);  
+  border-radius: var(--border-radius-squircle);  
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);  
+  text-align: center;  
+  box-sizing: border-box;  
+  padding: 2rem 1.5rem;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease;
+}
+
+.people-card-primary:hover,
+.people-card-secondary:hover {
+  transform: translateY(-2px);
+  border-color: var(--alpine-blue);
+  box-shadow: 0 12px 28px rgba(30, 77, 107, 0.08);
+}
+
+.people-primary-stage,
+.people-sec-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-grow: 1;
+}
+
+/* SQUIRCLE AVATAR GEOMETRY (Zero Circular Borders) */
+.people-avatar-wrapper, 
+.people-sec-avatar-wrapper, 
+.profile-avatar-wrapper { 
+  position: relative; 
+  width: 150px; 
+  height: 150px; 
+  margin: 0 auto 1.25rem auto; 
+}  
+
+.people-avatar-img, 
+.people-sec-avatar-img, 
+.profile-avatar-img { 
+  width: 150px; 
+  height: 150px; 
+  border-radius: var(--border-radius-squircle, 18px); 
+  object-fit: cover; 
+  object-position: center; 
+  border: 1px solid var(--color-border-light); 
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); 
+  display: block; 
+}  
+
+.people-role-tag,
+.people-sec-role-tag {
+  margin-bottom: 0.35rem;
+  color: var(--color-secondary-muted);
+}
+
+.people-name-heading, 
+.people-sec-name-heading { 
+  font-size: 1.35rem; 
+  font-weight: 500; 
+  color: var(--premier-charcoal); 
+  margin: 0 0 0.5rem 0; 
+  line-height: 1.25; 
+}  
+
+.people-bio-text { 
+  font-size: 0.88rem; 
+  line-height: 1.6; 
+  color: var(--color-secondary-muted); 
+  margin: 0 0 1.25rem 0; 
+  max-width: 440px; 
+}
+
+/* GENEROUS CONTACT SPACING (Prevents Button Collisions) */
+.people-verification-cluster,
+.people-sec-contact-cluster,
+.people-contact-meta,
+.people-sec-contact-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-top: 1.25rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.people-contact-link,
+.people-sec-phone-link,
+.people-sec-email-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-secondary-muted, #6E6E73);
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: color 0.15s ease;
+}
+
+.people-contact-link:hover,
+.people-sec-phone-link:hover,
+.people-sec-email-link:hover {
+  color: var(--alpine-blue);
+  text-decoration: underline;
+}
+
+.people-license-text {
+  width: 100%;
+  font-size: 0.75rem;
+  color: var(--color-secondary-muted);
+  margin-top: 0.25rem;
+}
+
+.people-cta-wrapper,
+.people-sec-cta-wrapper {
+  width: 100%;
+  margin-top: auto;
+}
+
+.profile-single-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2.5rem 2rem;
+  box-sizing: border-box;
+}
+
+.profile-single-card .profile-avatar-wrapper {
+  margin: 0 auto 1.25rem auto;
+}
+
+.profile-single-card .profile-name-heading {
+  font-size: clamp(1.8rem, 3.2vw, 2.4rem);
+  font-weight: 500;
+  color: var(--premier-charcoal);
+  margin: 0.25rem 0 0.5rem 0;
+  line-height: 1.2;
+}
+
+.profile-single-card .profile-cta-wrapper {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.profile-single-card .section-divider {
+  margin: 2.5rem auto;
+}
+
+.profile-narrative-section {
+  width: 100%;
+  text-align: center;
+}
+
+.profile-narrative-section .profile-narrative-heading {
+  margin-top: 0;
+  margin-bottom: 1.25rem;
+  border-bottom: none;
+  padding-bottom: 0;
+  text-align: center;
+}
+
+.profile-prose-body {
+  max-width: 760px;
+  margin: 0 auto;
+  line-height: 1.75;
+  text-align: center;
+  white-space: pre-line;
+}
+
+.people-license-text {
+  width: 100%;
+  font-size: 0.75rem;
+  color: var(--color-secondary-muted);
+  margin-top: 0.25rem;
+}
+
+.people-cta-wrapper,
+.people-sec-cta-wrapper {
+  width: 100%;
+}
+
+/* UNIFIED ALPINE BLUE PILL BUTTONS */
+.btn-people-primary,
+.btn-people-secondary {  
+  display: inline-flex;  
+  align-items: center;  
+  justify-content: center;  
+  gap: 0.45rem;  
+  width: 100%;  
+  padding: 0.75rem 1.5rem;  
+  background-color: var(--alpine-blue, #1E4D6B);  
+  color: #FFFFFF !important;  
+  border-radius: var(--border-radius-pill, 9999px);  
+  font-size: 0.9rem;  
+  font-weight: 500;  
+  text-decoration: none;  
+  border: 1px solid transparent;  
+  box-shadow: 0 2px 8px rgba(30, 77, 107, 0.2);  
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);  
+  box-sizing: border-box;  
+  cursor: pointer;  
+}  
+
+.btn-people-primary:hover,
+.btn-people-secondary:hover { 
+  opacity: 0.92; 
+  box-shadow: 0 4px 12px rgba(30, 77, 107, 0.28); 
+  transform: translateY(-1px); 
+}
+
+.team-subgrid-spacing {
+  margin-top: 1.5rem;
+}
+
+

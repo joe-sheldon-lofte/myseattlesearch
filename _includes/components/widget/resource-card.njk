@@ -1,12 +1,11 @@
-<!-- File: _includes/components/widget/resource-card.njk -->
 {% if resource_title and resource_content %}
-<div style="text-align: center; max-width: 600px; margin: 0 auto;">
-  <h2 class="text-section-title" style="border: none; padding: 0; margin-top: 0; margin-bottom: 0.5rem;">{{ resource_title }}</h2>
-  <p class="text-body-secondary" style="margin-bottom: 1.5rem;">{{ resource_content }}</p>
-  <div style="max-width: 320px; margin: 0 auto;">
-    {% if resource_button_text and resource_button_url %}
-      <a href="{{ resource_button_url }}" class="btn-contact-primary">{{ resource_button_text }}</a>
-    {% endif %}
-  </div>
+<div class="widget-resource-card">
+  <h2 class="text-section-title resource-card-title">{{ resource_title }}</h2>
+  <p class="resource-card-content text-body-secondary">{{ resource_content }}</p>
+  {% if resource_button_text and resource_button_url %}
+    <div class="resource-card-action">
+      <a href="{{ resource_button_url }}" class="btn btn-primary">{{ resource_button_text }}</a>
+    </div>
+  {% endif %}
 </div>
 {% endif %}

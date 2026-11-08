@@ -1,18 +1,4 @@
 <!-- File: _includes/components/widget/people-card-primary.njk -->
-{# 
-  COMPONENT: Primary Specialist & Real Estate Advisor Card (widget.people.card.primary)
-  CONTRACT:
-    - person_primary_name / person_name / name: String [Required]
-    - person_primary_role / person_role / role: String [Optional, e.g. "SENIOR REAL ESTATE AGENT"]
-    - person_primary_image / person_avatar / avatar: String [Optional, headshot URL]
-    - person_primary_bio / person_bio / bio: String [Optional]
-    - person_primary_phone / person_phone / phone: String [Optional, e.g. "(206) 657-7493"]
-    - person_primary_tel / person_tel / tel: String [Optional, e.g. "2066577493"]
-    - person_primary_email / person_email / email: String [Optional]
-    - person_primary_license / person_license / license: String [Optional, e.g. "WA DOL #115714"]
-    - person_primary_url / person_url / url: String [Optional, defaults to "/#agent"]
-#}
-
 {% set p_name = person_primary_name or person_name or name %}
 {% set p_role = person_primary_role or person_role or role %}
 {% set p_avatar = person_primary_image or person_avatar or avatar %}
@@ -24,9 +10,8 @@
 {% set p_url = person_primary_url or person_url or url or "/#agent" %}
 
 {% if p_name %}
-<article class="widget-card people-card-primary" aria-label="Advisor profile for {{ p_name }}">
+<article class="surface-bento people-card-primary" aria-label="Advisor profile for {{ p_name }}">
   
-  {# Header & Circular Avatar #}
   <div class="people-primary-stage">
     {% if p_avatar %}
       <div class="people-avatar-wrapper">
@@ -41,9 +26,9 @@
     {% endif %}
 
     {% if p_role %}
-      <span class="text-overline people-role-tag">
+      <div class="text-overline people-role-tag">
         {{ p_role }}
-      </span>
+      </div>
     {% endif %}
 
     <h3 class="text-widget-title people-name-heading">
@@ -57,11 +42,10 @@
     {% endif %}
   </div>
 
-  {# Contact Details & Verification Cluster #}
   <div class="people-verification-cluster">
     <div class="people-contact-meta">
       {% if p_tel and p_phone %}
-        <a href="tel:{{ p_tel }}" class="people-contact-link people-contact-phone" aria-label="Call {{ p_name }}">
+        <a href="tel:{{ p_tel }}" class="people-contact-link" aria-label="Call {{ p_name }}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
           </svg>
@@ -70,7 +54,7 @@
       {% endif %}
 
       {% if p_email %}
-        <a href="mailto:{{ p_email }}" class="people-contact-link people-contact-email" aria-label="Email {{ p_name }}">
+        <a href="mailto:{{ p_email }}" class="people-contact-link" aria-label="Email {{ p_name }}">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect width="20" height="16" x="2" y="4" rx="2"/>
             <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
@@ -86,14 +70,9 @@
       {% endif %}
     </div>
 
-    {# Primary Action Pill #}
-    <div class="people-cta-wrapper">
-      <a href="{{ p_url }}" class="btn-people-primary">
+    <div class="people-cta-wrapper action-tray-constrained">
+      <a href="{{ p_url }}" class="btn btn-primary">
         <span>View Profile</span>
-        <svg class="btn-people-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-          <polyline points="12 5 19 12 12 19"></polyline>
-        </svg>
       </a>
     </div>
   </div>

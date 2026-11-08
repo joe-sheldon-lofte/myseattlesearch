@@ -1,0 +1,44 @@
+---js
+{
+  layout: "layouts/base.njk",
+  pagination: {
+    data: "team",
+    size: 1,
+    alias: "member",
+    before: function(paginationData) {
+      return paginationData.filter(function(entry) {
+        return entry["Team Page"] === "Yes";
+      });
+    }
+  },
+  permalink: "/realestate/joesteam/{{ member['Team ID'] }}/index.html",
+  eleventyComputed: {
+    title: "{{ member.Name }} | Redfin Professional Profile",
+    description: "{{ member.Position }} supporting Greater Seattle buyers and sellers with Redfin Senior Agent Joe Sheldon."
+  }
+}
+---
+
+<main class="layout-container layout-stack-main">
+
+  {# Section 1.0: Canonical Hero Header #}
+  <header class="surface-bento page-hero-bento">
+    <h1 class="text-page-title">{{ member.Name }}</h1>
+    <p class="text-body page-hero-lead">{{ member.Position }}</p>
+  </header>
+
+  <div class="section-divider"></div>
+
+  {# Section 2.0: Single Unified Profile Card Widget #}
+  <section id="member-dossier" class="content-section-centered">
+    {% set profile_view_name = member.Name %}
+    {% set profile_view_role = member.Position %}
+    {% set profile_view_image = member.Photo %}
+    {% set profile_view_phone = member.Phone %}
+    {% set profile_view_email = member.Email %}
+    {% set profile_view_website = member.Website %}
+    {% set profile_view_content = member.Description %}
+    {% include "components/widget/people-profile-view.njk" %}
+  </section>
+
+</main>

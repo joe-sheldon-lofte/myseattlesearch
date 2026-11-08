@@ -1,0 +1,120 @@
+/* File: css/02-layout.css */
+/* ==========================================================================
+   4. LAYOUT, SOLID BENTO CONTAINERS & DIVIDERS
+   ========================================================================== */
+.layout-container {
+  width: 100%;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 0 1.5rem; 
+}
+
+.layout-stack-main {
+  padding-top: 4rem;
+  padding-bottom: 6rem;
+}
+
+/* Universal Architectural Section Bezel */
+.section-divider {
+  border: none;
+  height: 1px;
+  background-color: var(--color-primary-default, #1C1C1E);
+  max-width: 860px;
+  margin: 4rem auto;
+  width: 100%;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.section-widget,
+.section-profile {
+  margin: 4rem auto;
+  max-width: 860px;
+}
+
+.section-profile {
+  text-align: center;
+}
+
+/* Canonical Bento Box Surface Token */
+.surface-bento {
+  background-color: var(--color-background-universal, #FFFFFF);
+  border-radius: var(--border-radius-squircle);
+  padding: var(--spacing-widget-padding);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--color-border-light);
+  box-sizing: border-box;
+  width: 100%;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease;
+}
+
+.surface-bento:hover {
+  transform: translateY(-1px);
+  border-color: var(--alpine-blue);
+  box-shadow: 0 12px 32px rgba(30, 77, 107, 0.08);
+}
+
+.section-grid-static {
+  display: grid;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  width: 100%;
+}
+.grid-cols-1 { grid-template-columns: 1fr; width: 100%; }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+.grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+.grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; }
+
+.horizontal-scroll-section {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  gap: 1.5rem;
+  padding-bottom: 1.5rem; 
+  scrollbar-width: none; 
+}
+.horizontal-scroll-section::-webkit-scrollbar { display: none; }
+
+.horizontal-scroll-item {
+  flex: 0 0 auto; 
+  scroll-snap-align: start;
+}
+.scroll-variant-small .horizontal-scroll-item { width: 220px; }
+.scroll-variant-medium .horizontal-scroll-item { width: 320px; }
+.scroll-variant-large .horizontal-scroll-item { width: 85%; max-width: 600px; }
+
+.widget-layout-hub-grid { width: 100%; }  
+.hub-grid-container {  
+  display: grid;  
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));  
+  gap: 1.5rem;  
+  align-items: stretch;  
+  width: 100%;  
+}
+
+.portal-section-header { margin-bottom: 2rem; }
+.portal-section-glance { margin-bottom: 2.5rem; }
+.portal-section-nav { margin-bottom: 2.5rem; }
+.portal-section-businesses { margin-bottom: 3rem; }
+.portal-section-news-events { margin-bottom: 3rem; }
+.portal-section-sports { margin-bottom: 3rem; }
+.portal-section-editorial { margin-bottom: 3rem; }
+
+
+
+/* ==========================================================================
+   RESPONSIVE BREAKPOINTS (COLLAPSE & MOBILE REFLOW)
+   ========================================================================== */
+@media (max-width: 860px) {
+  .menu-grid { grid-template-columns: 1fr; gap: 2rem; }
+}
+
+@media (max-width: 768px) {
+  .grid-cols-2, .grid-cols-3, .grid-cols-4, .hub-grid-container, .directory-cards-grid, .profile-stage-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}

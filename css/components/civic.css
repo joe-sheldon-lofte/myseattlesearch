@@ -1,0 +1,242 @@
+/* File: css/components/civic.css */
+/* ==========================================================================
+   10. CIVIC INFRASTRUCTURE, MUNICIPAL BOARDS & ELECTIONS
+   ========================================================================== */
+.municipal-directory-card,
+.municipal-agenda-card,
+.municipal-calendar-card,
+.municipal-broadcast-player-card {  
+  display: flex;  
+  flex-direction: column;  
+  gap: 1.25rem;  
+  width: 100%;  
+  padding: 1.5rem;  
+  background: #FFFFFF;  
+  border: 1px solid var(--color-border-light);  
+  border-radius: var(--border-radius-squircle);  
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);  
+  box-sizing: border-box;  
+}  
+  
+.municipal-directory-header,
+.municipal-header-strip,
+.calendar-header-strip,
+.broadcast-header-strip {  
+  border-bottom: 1px solid var(--color-border-light);  
+  padding-bottom: 0.75rem;  
+  display: flex;  
+  justify-content: space-between;
+  align-items: flex-start;  
+  gap: 1rem;  
+}  
+  
+.municipal-directory-title,
+.municipal-headline,
+.calendar-headline,
+.broadcast-headline {
+  margin: 0.15rem 0 0 0;
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--premier-charcoal);
+  line-height: 1.3;
+}
+.municipal-directory-subtitle { font-size: 0.75rem; margin: 0; line-height: 1.4; color: var(--color-secondary-muted); }  
+  
+.municipal-grid-matrix {  
+  display: grid;  
+  grid-template-columns: repeat(2, 1fr);  
+  gap: 0.75rem;  
+  width: 100%;  
+}  
+  
+.municipal-portal-tile {  
+  display: flex;  
+  align-items: center;  
+  justify-content: space-between;  
+  padding: 0.85rem 1rem;  
+  background: var(--color-surface-gray);  
+  border: 1px solid var(--color-border-light);  
+  border-radius: 12px;  
+  text-decoration: none;  
+  box-sizing: border-box;  
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;  
+  min-height: 64px;  
+}  
+.municipal-portal-tile:hover {  
+  background: #FFFFFF;  
+  border-color: var(--alpine-blue);  
+  transform: translateY(-2px);  
+  box-shadow: 0 4px 12px rgba(30, 77, 107, 0.1);  
+}  
+.municipal-portal-tile:focus-visible { outline: 2px solid var(--alpine-blue); outline-offset: 2px; }  
+  
+.portal-identity-stack { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }  
+.portal-category-tag { font-size: 0.6rem; letter-spacing: 0.05em; color: var(--color-secondary-muted); text-transform: uppercase; transition: color 0.15s ease; }  
+.municipal-portal-tile:hover .portal-category-tag { color: var(--alpine-blue); }  
+.portal-label-text { font-size: 0.85rem; font-weight: 500; color: var(--premier-charcoal); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  
+  
+.portal-arrow-well {  
+  display: flex;  
+  align-items: center;  
+  justify-content: center;  
+  width: 26px;  
+  height: 26px;  
+  border-radius: 50%;  
+  background: #FFFFFF;  
+  border: 1px solid var(--color-border-light);  
+  color: var(--color-secondary-muted);  
+  flex-shrink: 0;  
+  margin-left: 0.5rem;  
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;  
+}  
+.municipal-portal-tile:hover .portal-arrow-well {  
+  background: var(--alpine-blue);  
+  border-color: var(--alpine-blue);  
+  color: #FFFFFF;  
+  transform: translate(1px, -1px);  
+}  
+.portal-arrow-icon { flex-shrink: 0; }  
+.municipal-directory-footer { border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem; color: var(--color-secondary-muted); }
+
+.municipal-agenda-stack { display: flex; flex-direction: column; gap: 0.85rem; }  
+.agenda-entry-card {  
+  background: var(--color-surface-gray);  
+  border: 1px solid var(--color-border-light);  
+  border-radius: 12px;  
+  padding: 1rem 1.15rem;  
+  display: flex;  
+  flex-direction: column;  
+  gap: 0.5rem;  
+}  
+.agenda-entry-top { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }  
+.agenda-body-tag { font-size: 0.6rem; color: var(--color-secondary-default); letter-spacing: 0.05em; font-weight: 500; }  
+.agenda-entry-time { font-size: 0.75rem; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--color-secondary-muted); }  
+.agenda-entry-title { font-size: 1rem; font-weight: 500; color: var(--premier-charcoal); line-height: 1.35; margin: 0; }  
+.agenda-entry-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 0.25rem; font-size: 0.75rem; flex-wrap: wrap; gap: 0.5rem; }  
+  
+.agenda-download-link { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--color-secondary-default); font-weight: 500; text-decoration: none; transition: opacity 0.15s ease; }  
+.agenda-download-link:hover { opacity: 0.85; text-decoration: underline; }  
+.agenda-download-arrow { color: var(--color-secondary-default); flex-shrink: 0; }
+
+.badge-status-live {  
+  display: inline-flex;  
+  align-items: center;  
+  gap: 0.45rem;  
+  padding: 0.25rem 0.65rem;  
+  border-radius: var(--border-radius-pill);  
+  background: rgba(217, 35, 42, 0.12);  
+  color: var(--pnw-red);  
+  font-size: 0.7rem;  
+  font-weight: 500;  
+  letter-spacing: 0.04em;  
+  white-space: nowrap;  
+}  
+  
+.broadcast-live-dot {  
+  width: 7px;  
+  height: 7px;  
+  border-radius: 50%;  
+  background: var(--pnw-red);  
+  box-shadow: 0 0 6px rgba(217, 35, 42, 0.6);  
+  animation: pulseLiveLed 1.8s ease-in-out infinite;  
+  flex-shrink: 0;  
+}  
+  
+@keyframes pulseLiveLed {  
+  0%, 100% { opacity: 1; transform: scale(1); }  
+  50% { opacity: 0.4; transform: scale(0.85); }  
+}  
+  
+.broadcast-dormant-badge { font-size: 0.75rem; color: var(--color-secondary-muted); letter-spacing: 0.04em; white-space: nowrap; }  
+  
+.broadcast-viewport-stage {  
+  position: relative;
+  width: 100%;  
+  aspect-ratio: 16 / 9;  
+  border-radius: 12px;  
+  overflow: hidden;  
+  background: #000000;  
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);  
+  margin-bottom: 1rem;
+}  
+.broadcast-iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }  
+  
+.broadcast-standby-slate,
+.calendar-fallback-slate,
+.agenda-fallback-slate {  
+  display: flex;  
+  flex-direction: column;  
+  align-items: center;  
+  justify-content: center;  
+  text-align: center;  
+  padding: 2.5rem 1.5rem;  
+  background: var(--color-surface-gray);  
+  border: 1px solid var(--color-border-light);  
+  border-radius: 12px;  
+  gap: 0.75rem;  
+}  
+.broadcast-standby-icon-well,
+.calendar-fallback-icon-well,
+.agenda-fallback-icon-well {  
+  display: flex;  
+  align-items: center;  
+  justify-content: center;  
+  width: 44px;  
+  height: 44px;  
+  border-radius: var(--border-radius-pill);  
+  background: rgba(30, 77, 107, 0.1);  
+  color: var(--alpine-blue);  
+}  
+.broadcast-standby-title,
+.calendar-fallback-title,
+.agenda-fallback-title { font-size: 1.05rem; font-weight: 500; margin: 0; color: var(--premier-charcoal); }  
+.broadcast-standby-subtext,
+.calendar-fallback-desc,
+.agenda-fallback-desc { font-size: 0.85rem; color: var(--color-secondary-muted); max-width: 52ch; line-height: 1.5; margin: 0 auto; }  
+  
+.btn-broadcast-launch,
+.btn-calendar-fallback,
+.btn-agenda-fallback {  
+  display: inline-flex;  
+  align-items: center;  
+  gap: 0.45rem;  
+  padding: 0.5rem 1.15rem;  
+  border-radius: var(--border-radius-pill);  
+  background: var(--alpine-blue);  
+  color: #FFFFFF;  
+  font-size: 0.825rem;  
+  font-weight: 500;  
+  text-decoration: none;  
+  box-shadow: 0 4px 12px rgba(30, 77, 107, 0.25);  
+  transition: opacity 0.15s ease, transform 0.15s ease;  
+  margin-top: 0.5rem;
+}  
+.btn-broadcast-launch:hover,
+.btn-calendar-fallback:hover,
+.btn-agenda-fallback:hover { opacity: 0.92; transform: translateY(-1px); }  
+  
+.broadcast-meta-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; font-size: 0.85rem; }  
+.broadcast-meta-lead { display: flex; flex-direction: column; gap: 0.15rem; }  
+.broadcast-stream-title { font-weight: 500; color: var(--premier-charcoal); }  
+.broadcast-stream-date { font-size: 0.75rem; color: var(--color-secondary-muted); }  
+.broadcast-archive-link,
+.calendar-portal-link { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--alpine-blue); font-weight: 500; text-decoration: none; font-size: 0.8rem; transition: opacity 0.15s ease; }  
+.broadcast-archive-link:hover,
+.calendar-portal-link:hover { opacity: 0.85; text-decoration: underline; }  
+.broadcast-archive-arrow { color: var(--alpine-blue); flex-shrink: 0; }
+
+.calendar-events-stack { display: flex; flex-direction: column; gap: 0.65rem; }  
+.calendar-event-row {  
+  display: flex;  
+  align-items: center;  
+  gap: 1.25rem;  
+  padding: 0.75rem 0.5rem;  
+  border-bottom: 1px solid var(--color-border-light);  
+}  
+.calendar-event-row:last-child { border-bottom: none; }
+.calendar-date-stamp { flex: 0 0 75px; text-align: center; padding: 0.35rem 0.5rem; border-radius: 8px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); }  
+.calendar-date-text { font-size: 0.75rem; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--premier-charcoal); }  
+.calendar-event-details { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.2rem; }  
+.calendar-event-title { font-size: 0.95rem; font-weight: 500; color: var(--premier-charcoal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  
+.calendar-event-meta { font-size: 0.75rem; color: var(--color-secondary-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.calendar-footer-strip { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem; color: var(--color-secondary-muted); }

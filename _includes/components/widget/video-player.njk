@@ -1,15 +1,22 @@
-<!-- File: _includes/components/widget/video-player.njk -->
-{% if video_id and video_poster %}
-<div style="max-width: 860px; margin: 0 auto;">
-  {% if video_title %}
-    <h2 class="hero-script-tag" style="text-align: center; margin-bottom: 1.5rem;">{{ video_title }}</h2>
+{% set v_id = video_id | default("e3o5FIXoK84") %}
+{% set v_title = video_title | default("Won't you be my neighbor?") %}
+{% set v_poster = video_poster | default("https://assets.myseattlesearch.com/repomove/youtubeneighborthumbnail.webp") %}
+{% set v_label = video_label | default("Won't you be my neighbor video") %}
+
+<div class="widget-video-player">
+  {% if v_title %}
+    <h2 class="text-script-signature">{{ v_title }}</h2>
   {% endif %}
   <div class="media-frame media-frame-16-9">
-    <youtube-lite 
-      video-id="{{ video_id }}" 
-      poster="{{ video_poster }}" 
-      label="{{ video_label | default('Video Player') }}">
+    <youtube-lite video-id="{{ v_id }}" poster="{{ v_poster }}" label="{{ v_label }}">
+      <button type="button" class="video-play-trigger" aria-label="{{ v_label }}">
+        <img src="{{ v_poster }}" alt="{{ v_label }}" class="video-poster-img" loading="lazy" width="860" height="484">
+        <span class="video-play-button" aria-hidden="true">
+          <svg viewBox="0 0 24 24" class="icon-play" fill="currentColor">
+            <polygon points="6 3 20 12 6 21 6 3"></polygon>
+          </svg>
+        </span>
+      </button>
     </youtube-lite>
   </div>
 </div>
-{% endif %}

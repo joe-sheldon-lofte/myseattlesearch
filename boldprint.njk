@@ -1,0 +1,145 @@
+---
+layout: layouts/base.njk
+title: "The Bold Print | Legal & Credits"
+description: "Platform terms of use, privacy policies, DMCA notices, and data source acknowledgments for MySeattleSearch.com."
+permalink: /boldprint/index.html
+---
+
+<main class="layout-container layout-stack-main">
+
+    {# Section 1.0 & 2.0: Acknowledgments Header #}
+    <header class="surface-bento page-hero-bento">
+        <h1 class="text-page-title">Acknowledgments</h1>
+        <p class="text-body page-hero-lead">
+            This website is built using several publicly available and creative commons licensed data. 
+            Below are the specific acknowledgments for each source of data. I am grateful for Washington State 
+            and the municipalities covered on this site for their open data resources. I am especially grateful 
+            to the individual contributors that make this site fun and interesting.
+        </p>
+    </header>
+
+    <div class="section-divider"></div>
+
+    {# Group Data from bold_print.json #}
+    {% set grouped_credits = bold_print | groupby("Type") %}
+
+    {# Section 3.0: Creator Credits #}
+    {% if grouped_credits.creator_credit %}
+    <section id="creator-credits" class="content-section-centered">
+        <h2 class="text-section-title">Creator Credits</h2>
+        <div class="section-grid-static grid-cols-1">
+            {% for item in grouped_credits.creator_credit | sort(attribute="Order") %}
+            <article class="surface-bento boldprint-entry">
+                <h3 class="text-widget-title boldprint-title">{{ item.Title }}</h3>
+                {% if item.Recipient %}
+                <div class="boldprint-recipient text-body-secondary">
+                    <span class="text-primary-charcoal">Credit to:</span> {{ item.Recipient }}
+                </div>
+                {% endif %}
+                {% if item.en_Text %}
+                <p class="text-body boldprint-body">{{ item.en_Text }}</p>
+                {% endif %}
+                {% if item.Link %}
+                <div class="boldprint-action">
+                    <a href="{{ item.Link }}" target="_blank" rel="noopener noreferrer" class="link-subtle">
+                        View Source <span class="link-external-arrow">↗</span>
+                    </a>
+                </div>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    <div class="section-divider"></div>
+    {% endif %}
+
+    {# Section 4.0: Data Source Credits #}
+    {% if grouped_credits.data_source_credit %}
+    <section id="data-source-credits" class="content-section-centered">
+        <h2 class="text-section-title">Data Source Credits</h2>
+        <div class="section-grid-static grid-cols-1">
+            {% for item in grouped_credits.data_source_credit | sort(attribute="Order") %}
+            <article class="surface-bento boldprint-entry">
+                <h3 class="text-widget-title boldprint-title">{{ item.Title }}</h3>
+                {% if item.Recipient %}
+                <div class="boldprint-recipient text-body-secondary">
+                    <span class="text-primary-charcoal">Credit to:</span> {{ item.Recipient }}
+                </div>
+                {% endif %}
+                {% if item.en_Text %}
+                <p class="text-body boldprint-body">{{ item.en_Text }}</p>
+                {% endif %}
+                {% if item.Link %}
+                <div class="boldprint-action">
+                    <a href="{{ item.Link }}" target="_blank" rel="noopener noreferrer" class="link-subtle">
+                        View Source <span class="link-external-arrow">↗</span>
+                    </a>
+                </div>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    <div class="section-divider"></div>
+    {% endif %}
+
+    {# Section 5.0: Policies #}
+    {% if grouped_credits.policy %}
+    <section id="platform-policies" class="content-section-centered">
+        <h2 class="text-section-title">Policies</h2>
+        <div class="section-grid-static grid-cols-1">
+            {% for item in grouped_credits.policy | sort(attribute="Order") %}
+            <article class="surface-bento boldprint-entry">
+                <h3 class="text-widget-title boldprint-title">{{ item.Title }}</h3>
+                {% if item.Recipient %}
+                <div class="boldprint-recipient text-body-secondary">
+                    <span class="text-primary-charcoal">Credit to:</span> {{ item.Recipient }}
+                </div>
+                {% endif %}
+                {% if item.en_Text %}
+                <p class="text-body boldprint-body">{{ item.en_Text }}</p>
+                {% endif %}
+                {% if item.Link %}
+                <div class="boldprint-action">
+                    <a href="{{ item.Link }}" target="_blank" rel="noopener noreferrer" class="link-subtle">
+                        View Policy Details <span class="link-external-arrow">↗</span>
+                    </a>
+                </div>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    <div class="section-divider"></div>
+    {% endif %}
+
+    {# Section 6.0: Advisories #}
+    {% if grouped_credits.advisory %}
+    <section id="statutory-advisories" class="content-section-centered">
+        <h2 class="text-section-title">Advisories</h2>
+        <div class="section-grid-static grid-cols-1">
+            {% for item in grouped_credits.advisory | sort(attribute="Order") %}
+            <article class="surface-bento boldprint-entry">
+                <h3 class="text-widget-title boldprint-title">{{ item.Title }}</h3>
+                {% if item.Recipient %}
+                <div class="boldprint-recipient text-body-secondary">
+                    <span class="text-primary-charcoal">Credit to:</span> {{ item.Recipient }}
+                </div>
+                {% endif %}
+                {% if item.en_Text %}
+                <p class="text-body boldprint-body">{{ item.en_Text }}</p>
+                {% endif %}
+                {% if item.Link %}
+                <div class="boldprint-action">
+                    <a href="{{ item.Link }}" target="_blank" rel="noopener noreferrer" class="link-subtle">
+                        View Full Advisory <span class="link-external-arrow">↗</span>
+                    </a>
+                </div>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+</main>

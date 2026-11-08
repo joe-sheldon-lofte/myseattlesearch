@@ -3,9 +3,6 @@ layout: layouts/base.njk
 title: "Joe Sheldon | Redfin Senior Agent"
 description: "Greater Seattle real estate insights, hyper-local market stats, and buyer & seller guides with Redfin Senior Agent Joe Sheldon."
 permalink: /index.html
-page_scripts:
-  - /assets/js/youtube-lite.js
-  - /assets/js/local-reviews.js
 ---
 
 <main class="layout-container layout-stack-main">
@@ -22,22 +19,22 @@ page_scripts:
 
         <div class="profile-metrics-grid">
             <div class="metric-block">
-                <div class="text-data-huge text-primary-charcoal tabular-nums">{{ stats['Closed Sales'] }}</div>
+                <div class="text-metric-cozy text-primary-charcoal tabular-nums">{{ stats['Closed Sales'] }}</div>
                 <div class="text-overline">TRANSACTIONS</div>
             </div>
             <div class="metric-block">
-                <div class="text-data-huge text-primary-charcoal tabular-nums">${{ (stats['Total Sales Volume'] / 1000000) | round(0, "floor") }}M</div>
+                <div class="text-metric-cozy text-primary-charcoal tabular-nums">${{ (stats['Total Sales Volume'] / 1000000) | round(0, "floor") }}M</div>
                 <div class="text-overline">VOLUME</div>
             </div>
             <div class="metric-block">
-                <div class="text-data-huge text-primary-charcoal tabular-nums">{{ stats['Average Rating'] }}</div>
+                <div class="text-metric-cozy text-primary-charcoal tabular-nums">{{ stats['Average Rating'] }}</div>
                 <div class="text-overline">AVG RATING</div>
             </div>
         </div>
 
         <div class="profile-contact-links">
-            <a href="tel:{{ stats.universal_contact_phone }}" class="title-link title-link-large tabular-nums">(206) 657-7493</a>
-            <a href="mailto:joe.sheldon@redfin.com" class="title-link title-link-large">joe.sheldon@redfin.com</a>
+            <a href="tel:{{ stats.universal_contact_phone }}" class="profile-contact-link">(206) 657-7493</a>
+            <a href="mailto:joe.sheldon@redfin.com" class="profile-contact-link">joe.sheldon@redfin.com</a>
         </div>
 
         <div class="drawer-actions-stack action-tray-constrained">
@@ -47,7 +44,7 @@ page_scripts:
         </div>
     </section>
 
-    <hr class="section-divider">
+    <div class="section-divider"></div>
 
     {# Section 2.0: Educational Resource #}
     <section id="educational-resources" class="section-widget">
@@ -58,7 +55,7 @@ page_scripts:
       {% include "components/widget/resource-card.njk" %}
     </section>
 
-    <hr class="section-divider">
+    <div class="section-divider"></div>
 
     {# Section 3.0: Video Player #}
     <section id="featured-video" class="section-widget">
@@ -69,12 +66,15 @@ page_scripts:
       {% include "components/widget/video-player.njk" %}
     </section>
 
-    <hr class="section-divider">
+    <div class="section-divider"></div>
 
     {# Section 4.0: Client Reviews #}
     <section id="client-reviews" class="section-widget">
-      {% set reviews_data = homepageReviews %}
       {% include "components/widget/reviews.njk" %}
     </section>
 
 </main>
+
+{# Modular script execution #}
+<script type="module" src="/assets/js/youtube-lite.js"></script>
+<script type="module" src="/assets/js/local-reviews.js"></script>

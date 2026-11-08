@@ -1,0 +1,102 @@
+---
+layout: layouts/base.njk
+title: "Meet Joe's Team | Redfin Senior Agent"
+description: "Dedicated real estate professionals working seamlessly together to deliver an elite experience during your real estate journey."
+permalink: /realestate/joesteam/index.html
+---
+
+<main class="layout-container layout-stack-main">
+
+  {# Section 1.0 & 2.0: Canonical Page Hero Bento #}
+  <header class="surface-bento page-hero-bento">
+    <h1 class="text-page-title">Meet Joe's Team</h1>
+    <p class="text-body page-hero-lead">
+      Dedicated professionals working seamlessly together to deliver an elite experience during your real estate journey.
+    </p>
+  </header>
+
+  <div class="section-divider"></div>
+
+  {# Section 2: Core Team #}
+  <section id="core-team" class="content-section-centered">
+    <h2 class="text-section-title">Core Team</h2>
+    
+    {# Row 1: Joe Sheldon (#1) & Carly Ozuna (#3) in Primary Cards #}
+    <div class="section-grid-static grid-cols-2">
+      {% for id in ['1', '3'] %}
+        {% for m in team %}
+          {% if m['Team ID'] == id and m['Team Page'] == 'Yes' %}
+            {% set person_primary_name = m.Name %}
+            {% set person_primary_role = m.Position %}
+            {% set person_primary_image = m.Photo %}
+            {% set person_primary_bio = m.Description %}
+            {% set person_primary_phone = m.Phone %}
+            {% set person_primary_email = m.Email %}
+            {% set person_primary_url = "/realestate/joesteam/" + m['Team ID'] + "/" %}
+            {% include "components/widget/people-card-primary.njk" %}
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    </div>
+
+    {# Row 2: Beth Davis (#5) & Desirae Pepperdine (#4) in Secondary Cards #}
+    <div class="section-grid-static grid-cols-2 team-subgrid-spacing">
+      {% for id in ['5', '4'] %}
+        {% for m in team %}
+          {% if m['Team ID'] == id and m['Team Page'] == 'Yes' %}
+            {% set person_sec_name = m.Name %}
+            {% set person_sec_role = m.Position %}
+            {% set person_sec_image = m.Photo %}
+            {% set person_sec_phone = m.Phone %}
+            {% set person_sec_email = m.Email %}
+            {% set person_sec_url = "/realestate/joesteam/" + m['Team ID'] + "/" %}
+            {% include "components/widget/people-card-secondary.njk" %}
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  {# Section 3: Coverage and Management Partners (Christina #2 & Rick #7 top row, Ben #6 bottom row) #}
+  <section id="coverage-management" class="content-section-centered">
+    <h2 class="text-section-title">Coverage and Management Partners</h2>
+    <div class="section-grid-static grid-cols-2">
+      {% for id in ['2', '7', '6'] %}
+        {% for m in team %}
+          {% if m['Team ID'] == id and m['Team Page'] == 'Yes' %}
+            {% set person_sec_name = m.Name %}
+            {% set person_sec_role = m.Position %}
+            {% set person_sec_image = m.Photo %}
+            {% set person_sec_phone = m.Phone %}
+            {% set person_sec_email = m.Email %}
+            {% set person_sec_url = "/realestate/joesteam/" + m['Team ID'] + "/" %}
+            {% include "components/widget/people-card-secondary.njk" %}
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  {# Section 4: Associate Agents (All 15 agents in 2-wide secondary cards) #}
+  <section id="associate-agents" class="content-section-centered">
+    <h2 class="text-section-title">Associate Agents</h2>
+    <div class="section-grid-static grid-cols-2">
+      {% for m in team %}
+        {% if m.Position == 'Associate Agent' and m['Team Page'] == 'Yes' %}
+          {% set person_sec_name = m.Name %}
+          {% set person_sec_role = m.Position %}
+          {% set person_sec_image = m.Photo %}
+          {% set person_sec_phone = m.Phone %}
+          {% set person_sec_email = m.Email %}
+          {% set person_sec_url = "/realestate/joesteam/" + m['Team ID'] + "/" %}
+          {% include "components/widget/people-card-secondary.njk" %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+
+</main>
