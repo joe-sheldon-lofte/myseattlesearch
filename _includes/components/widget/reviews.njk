@@ -1,0 +1,15 @@
+<!-- File: _includes/components/widget/reviews.njk -->
+{% if reviews_data %}
+<div style="max-width: 860px; margin: 0 auto;">
+  <h2 class="text-section-title" style="text-align: center; border: none; padding: 0; margin-top: 0; margin-bottom: 2rem;">Client Reviews</h2>
+  <div class="data-list">
+    {% for review in reviews_data %}
+      <div class="data-list-item" style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 1.5rem 0; gap: 0.5rem;">
+        <div class="tabular-nums" style="letter-spacing: 0.15em;">★★★★★</div>
+        <p class="text-body">"{{ review['Full Review'] }}"</p>
+        <div class="text-overline">— {{ review.Reviewer }}</div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}

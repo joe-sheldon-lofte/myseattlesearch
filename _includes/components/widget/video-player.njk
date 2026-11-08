@@ -1,0 +1,15 @@
+<!-- File: _includes/components/widget/video-player.njk -->
+{% if video_id and video_poster %}
+<div style="max-width: 860px; margin: 0 auto;">
+  {% if video_title %}
+    <h2 class="hero-script-tag" style="text-align: center; margin-bottom: 1.5rem;">{{ video_title }}</h2>
+  {% endif %}
+  <div class="media-frame media-frame-16-9">
+    <youtube-lite 
+      video-id="{{ video_id }}" 
+      poster="{{ video_poster }}" 
+      label="{{ video_label | default('Video Player') }}">
+    </youtube-lite>
+  </div>
+</div>
+{% endif %}

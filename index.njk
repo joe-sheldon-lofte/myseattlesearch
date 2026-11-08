@@ -4,81 +4,90 @@ title: "Joe Sheldon | Redfin Senior Agent"
 description: "Greater Seattle real estate insights, hyper-local market stats, and buyer & seller guides with Redfin Senior Agent Joe Sheldon."
 permalink: /index.html
 ---
-<div class="canvas-universal-white pb-24">
-    
-    <!-- Profile Bento -->
-    <section class="bento-squircle bg-surface-gray elevation-soft mx-4 mt-6 p-6 text-center border-light">
-        <img src="https://assets.myseattlesearch.com/repomove/joe.webp" alt="Joe Sheldon - Seattle Real Estate Agent" class="avatar-squircle mx-auto mb-4" width="120" height="120" loading="eager" fetchpriority="high">
-        <h1 class="text-premier-charcoal text-xl font-medium tracking-tight mb-1">Joe Sheldon</h1>
-        <p class="text-secondary-muted text-sm">Redfin Senior Agent</p>
-        <p class="text-secondary-muted text-sm mb-6">Serving North King & South Snohomish Counties, Washington</p>
-         
-        <div class="grid-3-col border-t border-light pt-6 mb-6">
-            <div class="stat-block">
-                <span class="tabular-nums text-premier-charcoal text-lg font-medium block">{{ personalStats['Closed Sales'] }}</span>
-                <span class="overline-label text-secondary-muted block mt-1">Transactions</span>
-            </div>
-            <div class="stat-block">
-                <span class="tabular-nums text-premier-charcoal text-lg font-medium block">${{ (personalStats['Total Sales Volume'] / 1000000) | round(0, "floor") }}M</span>
-                <span class="overline-label text-secondary-muted block mt-1">Volume</span>
-            </div>
-            <div class="stat-block">
-                <span class="tabular-nums text-status-amber text-lg font-medium block">{{ personalStats['Average Rating'] }}</span>
-                <span class="overline-label text-secondary-muted block mt-1">Rating</span>
-            </div>
-        </div>
 
-        <div class="flex-column gap-3">
-            <a href="/contact.vcf" class="pill-btn btn-surface text-premier-charcoal w-full">Save My Contact Info</a>
-            <a href="https://www.redfin.com/real-estate-agents/joe-sheldon?loyalty=true" class="pill-btn bg-alpine-blue text-universal-white w-full" target="_blank">View My Redfin Profile</a>
-            <a href="/sales/" class="pill-btn btn-surface text-premier-charcoal w-full">Listings & Sales</a>
-        </div>
-    </section>
-
-    <!-- Education Promo Bento -->
-    <section class="bento-squircle bg-universal-white elevation-soft mx-4 mt-4 p-6 text-center border-light">
-        <h2 class="text-premier-charcoal text-lg font-medium mb-2">Free Home Buying Classes</h2>
-        <p class="text-secondary-muted text-sm mb-5 leading-relaxed">Join us to learn everything you need to know about navigating the current real estate market.</p>
-        <a href="/events/" class="pill-btn bg-alpine-blue text-universal-white w-full">View Upcoming Classes & Register</a>
-    </section>
-
-    <!-- Media Bento -->
-    <section class="bento-squircle bg-universal-white elevation-soft mx-4 mt-4 p-6 border-light">
-        <!-- Note: Handwriting font is now handled by the global CSS class .font-signature -->
-        <h2 class="font-signature text-alpine-blue text-center text-2xl mb-5">Won't you be my neighbor?</h2>
-        <div class="media-frame squircle-inner overflow-hidden">
-            <youtube-lite 
-                video-id="e3o5FIXoK84" 
-                poster="https://assets.myseattlesearch.com/repomove/youtubeneighborthumbnail.webp" 
-                label="Won't you be my neighbor video">
-            </youtube-lite>
-        </div>
-    </section>
-
-    <!-- Testimonials Bento -->
-    <section class="bento-squircle bg-universal-white elevation-soft mx-4 mt-4 p-6 border-light">
-        <h2 class="text-premier-charcoal text-lg font-medium mb-5 text-center">Client Reviews</h2>
+<div class="layout-container" style="padding-top: 4rem; padding-bottom: 6rem;">
+  
+    {# Section 1.0: Profile #}
+    <div style="text-align: center; margin-bottom: 4rem;">
         
-        <div class="flex-column gap-5">
-            {% for review in homepageReviews %}
-            <div class="review-tile border-b border-light pb-5 last:border-0 last:pb-0">
-                <div class="text-status-amber text-sm mb-2 tabular-nums">★★★★★</div>
-                <p class="text-premier-charcoal text-sm leading-relaxed mb-3">"{{ review['Full Review'] }}"</p>
-                <div class="overline-label text-secondary-muted">— {{ review.Reviewer }}</div>
-            </div>
-            {% endfor %}
+        <div style="margin-bottom: 1.5rem;">
+          <img src="https://assets.myseattlesearch.com/repomove/joe.webp" alt="Joe Sheldon" width="150" height="150" style="border-radius: var(--border-radius-squircle); object-fit: cover; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);">
         </div>
-    </section>
+        
+        <div class="text-overline">Redfin Senior Agent</div>
+        <h1 class="text-display" style="margin-top: 0.25rem; margin-bottom: 0.25rem;">{{ stats.short_name }}</h1>
+        <p class="text-body-secondary">Serving North King & South Snohomish Counties, WA</p>
 
-    <!-- Biography Bento -->
-    <section class="bento-squircle bg-universal-white elevation-soft mx-4 mt-4 mb-8 p-6 border-light">
-        <h2 class="text-premier-charcoal text-lg font-medium mb-4">About Me</h2>
-        <p class="text-premier-charcoal text-sm leading-relaxed mb-4">
-            I transplanted to Seattle in 2009, and the Pacific Northwest has become my new home. I am in love with its natural beauty and the abundance of year-round activities. Having grew up around the construction business, I developed a deep understanding of what makes a good home.
-        </p>
-        <p class="text-premier-charcoal text-sm leading-relaxed">
-            My real estate passion comes from my desire to help you navigate the journey of purchasing one of the largest yet most personal items of your lifetime. I joined Redfin in 2014 to pursue this passion relentlessly. I like my customers to think of me as their coach throughout the entire process. My team and I will give you expert guidance at every turn, and I'll be by your side through the ups and downs. You can expect me to provide honest advice and tireless advocacy.
-        </p>
-    </section>
+        <div style="display: flex; justify-content: center; gap: 3rem; margin: 2rem 0;">
+            <div>
+                <div class="text-data-huge text-primary-charcoal">{{ stats['Closed Sales'] }}</div>
+                <div class="text-overline" style="margin-top: 0.5rem;">TRANSACTIONS</div>
+            </div>
+            <div>
+                <div class="text-data-huge text-primary-charcoal">${{ (stats['Total Sales Volume'] / 1000000) | round(0, "floor") }}M</div>
+                <div class="text-overline" style="margin-top: 0.5rem;">VOLUME</div>
+            </div>
+            <div>
+                <div class="text-data-huge text-primary-charcoal">{{ stats['Average Rating'] }}</div>
+                <div class="text-overline" style="margin-top: 0.5rem;">AVG RATING</div>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 2rem;">
+            <a href="tel:{{ stats.universal_contact_phone }}" class="title-link" style="display: block; margin-bottom: 0.5rem;">(206) 657-7493</a>
+            <a href="mailto:joe.sheldon@redfin.com" class="title-link" style="display: block;">joe.sheldon@redfin.com</a>
+        </div>
+
+        <div class="drawer-actions-stack" style="max-width: 360px; margin: 0 auto;">
+            <a href="/contact.vcf" class="btn-contact-secondary">Save My Contact Info</a>
+            <a href="https://www.redfin.com/real-estate-agents/joe-sheldon?loyalty=true" class="btn-contact-primary" target="_blank">View My Redfin Profile</a>
+            <a href="/sales/" class="btn-contact-secondary">Listings & Sales</a>
+        </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    {# Section 2.0: Educational Resource #}
+    <div style="margin: 4rem 0;">
+      {% set resource_title = "Free Home Buying Classes" %}
+      {% set resource_content = "Join us to learn everything you need to know about navigating the current real estate market." %}
+      {% set resource_button_text = "View Upcoming Classes & Register" %}
+      {% set resource_button_url = "/events/" %}
+      {% include "components/widget/resource-card.njk" %}
+    </div>
+
+    <div class="section-divider"></div>
+
+    {# Section 3.0: Video Player #}
+    <div style="margin: 4rem 0;">
+      {% set video_title = "Won't you be my neighbor?" %}
+      {% set video_id = "e3o5FIXoK84" %}
+      {% set video_poster = "https://assets.myseattlesearch.com/repomove/youtubeneighborthumbnail.webp" %}
+      {% set video_label = "Won't you be my neighbor video" %}
+      {% include "components/widget/video-player.njk" %}
+    </div>
+
+    <div class="section-divider"></div>
+
+    {# Section 4.0: Client Reviews #}
+    <div style="margin: 4rem 0;">
+      {% set reviews_data = homepageReviews %}
+      {% include "components/widget/reviews.njk" %}
+    </div>
+
+    <div class="section-divider"></div>
+
+    {# Section 5.0: About Me #}
+    <div style="margin-top: 4rem; max-width: 860px; margin-left: auto; margin-right: auto;">
+      <h2 class="text-section-title" style="text-align: center; border: none; padding: 0; margin-top: 0; margin-bottom: 2rem;">About Me</h2>
+      <div class="text-body">
+        <p style="margin-bottom: 1.25rem;">I transplanted to Seattle in 2009, and the Pacific Northwest has become my new home. I am in love with its natural beauty and the abundance of year-round activities. Having grew up around the construction business, I developed a deep understanding of what makes a good home. My real estate passion comes from my desire to help you navigate the journey of purchasing one of the largest yet most personal items of your lifetime.</p>
+        <p>I joined Redfin in 2014 to pursue this passion relentlessly. I like my customers to think of me as their coach throughout the entire process. My team and I will give you expert guidance at every turn, and I'll be by your side through the ups and downs. You can expect me to provide honest advice and tireless advocacy.</p>
+      </div>
+    </div>
 
 </div>
+
+{# Modular Script Injections #}
+<script type="module" src="/assets/js/youtube-lite.js"></script>
+<script type="module" src="/assets/js/local-reviews.js"></script>
