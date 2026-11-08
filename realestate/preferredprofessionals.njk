@@ -6,16 +6,6 @@ permalink: /realestate/preferredprofessionals/index.html
 ---
 
 {% set vendor_list = professionals.vendors if professionals.vendors else professionals %}
-{% set categories = professionals.categories if professionals.categories else [
-  "Attorney", "Electrical", "Escrow", "Estate Sales", "Exterior Cleaning",
-  "Feasibility Study", "Fences", "Flooring", "General Contractor",
-  "Geotechnical Engineering", "Handyperson - Home Maintenance", "Home Cleaning",
-  "Home Inspector", "HVAC", "Insurance", "Interior Designer", "Landscaper",
-  "Mortgage", "Movers", "Oil Tank Services", "Painting", "Plumbing",
-  "Rental Property Management", "Roofing", "Senior Home Placement",
-  "Septic Installation and Inspection", "Sewer Inspector", "Staging", "Title",
-  "Water Quality Testing"
-] %}
 
 <script type="application/ld+json">
 {
@@ -49,23 +39,18 @@ permalink: /realestate/preferredprofessionals/index.html
     <p class="text-body page-hero-lead">
       A curated list of trusted local experts I rely on to get the job done right.
     </p>
-    <div class="action-tray-constrained">
-      <button type="button" onclick="window.print()" class="btn btn-secondary" aria-label="Print Directory">
-        <span>Print Professional Directory</span>
-      </button>
-    </div>
   </header>
 
   <div class="section-divider"></div>
 
-  {# Section 3.0: Bold Consumer Advisory Callout #}
+  {# Section 3.0: High-Impact Consumer Advisory #}
   <section id="consumer-notice" class="content-section-centered">
-    <div class="surface-bento pro-advisory-card">
-      <div class="pro-advisory-header">
+    <div class="surface-bento callout-feature-card" style="border-left: 4px solid var(--status-amber); text-align: left; align-items: flex-start; padding: 1.5rem 2rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
         <span class="status-led led-amber" aria-hidden="true"></span>
-        <strong class="pro-advisory-title">Consumer Advisory</strong>
+        <strong style="font-size: 0.85rem; font-weight: 600; color: var(--premier-charcoal); letter-spacing: 0.06em; text-transform: uppercase;">Consumer Advisory</strong>
       </div>
-      <p class="text-body-secondary pro-advisory-desc">
+      <p class="text-body-secondary" style="margin: 0; line-height: 1.6;">
         While I have had positive experiences working with the professionals listed below, it is your responsibility to verify that they hold the proper, active credentials, licenses, and insurance policies required for your specific job before hiring.
       </p>
     </div>
@@ -73,18 +58,20 @@ permalink: /realestate/preferredprofessionals/index.html
 
   <div class="section-divider"></div>
 
-  {# Section 4.0 & 5.0: Filter Cloud & Professionals Directory #}
+  {# Section 4.0: Integrated Filter Cloud & Directory Grid #}
   <section id="professionals-directory" class="content-section-centered">
     
-    {# Multi-Row Category Filter Cloud #}
-    <div class="pro-filter-cloud" id="categoryFilterCloud" role="tablist" aria-label="Filter Professionals by Category">
-      <button type="button" class="pro-filter-pill is-active" data-filter="all" role="tab" aria-selected="true">
+    {# Dynamic Multi-Row Filter Cloud (Auto-generated from professionals.json via groupby) #}
+    <div id="categoryFilterNav" role="tablist" aria-label="Filter Professionals by Category" style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.5rem; width: 100%; max-width: 960px; margin: 0 auto 2.5rem auto;">
+      <button type="button" class="neighborhood-nav-pill is-active" data-filter="all" role="tab" aria-selected="true" style="cursor: pointer;">
         <span>All ({{ vendor_list | length }})</span>
       </button>
-      {% for cat in categories %}
-      <button type="button" class="pro-filter-pill" data-filter="{{ cat | slugify }}" role="tab" aria-selected="false">
-        <span>{{ cat }}</span>
-      </button>
+      {% for group in vendor_list | groupby('Category') %}
+        {% if group.grouper %}
+        <button type="button" class="neighborhood-nav-pill is-inactive" data-filter="{{ group.grouper | slugify }}" role="tab" aria-selected="false" style="cursor: pointer;">
+          <span>{{ group.grouper }}</span>
+        </button>
+        {% endif %}
       {% endfor %}
     </div>
 
@@ -96,10 +83,9 @@ permalink: /realestate/preferredprofessionals/index.html
         {% set v_phone = vendor['Phone Number'] or vendor.phone %}
         {% set v_tel = v_phone | replace('-', '') | replace(' ', '') | replace('(', '') | replace(')', '') if v_phone else '' %}
         {% set v_email = vendor['Email'] or vendor.email %}
-        {% set v_website = vendor['Website'] or vendor.website %}
         {% set v_info = vendor['Additional Info'] or vendor.additionalInfo %}
         {% set v_cat_slug = v_category | slugify %}
-        {% set v_pro_id = (vendor.ProID or v_name) | lower | slugify %}
+        {% set v_pro_slug = (vendor.ProID or v_name) | lower | slugify %}
 
         <article class="surface-bento people-card-secondary pro-card" data-category="{{ v_cat_slug }}" aria-label="{{ v_name }} - {{ v_category }}">
           
@@ -139,22 +125,11 @@ permalink: /realestate/preferredprofessionals/index.html
                   <span>{{ v_email }}</span>
                 </a>
               {% endif %}
-
-              {% if v_website %}
-                <a href="{{ v_website }}" target="_blank" rel="noopener noreferrer" class="people-contact-link" aria-label="Visit official website for {{ v_name }}">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="2" y1="12" x2="22" y2="12"/>
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                  </svg>
-                  <span>Website</span>
-                </a>
-              {% endif %}
             </div>
           </div>
 
-          <div class="people-sec-cta-wrapper action-tray-constrained">
-            <a href="/realestate/professionals/{{ v_pro_id }}/" class="btn btn-primary">
+          <div class="people-sec-cta-wrapper action-tray-constrained" style="margin-top: auto; width: 100%;">
+            <a href="/realestate/professionals/{{ v_pro_slug }}/" class="btn btn-primary">
               <span>View Profile</span>
             </a>
           </div>
@@ -169,17 +144,19 @@ permalink: /realestate/preferredprofessionals/index.html
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const filterCloud = document.getElementById('categoryFilterCloud');
-  const filterBtns = filterCloud ? filterCloud.querySelectorAll('.pro-filter-pill') : [];
+  const filterTrack = document.getElementById('categoryFilterNav');
+  const filterBtns = filterTrack ? filterTrack.querySelectorAll('.neighborhood-nav-pill') : [];
   const proCards = document.querySelectorAll('.pro-card');
 
   function applyFilter(filterValue, activeBtn) {
     filterBtns.forEach(btn => {
       btn.classList.remove('is-active');
+      btn.classList.add('is-inactive');
       btn.setAttribute('aria-selected', 'false');
     });
 
     if (activeBtn) {
+      activeBtn.classList.remove('is-inactive');
       activeBtn.classList.add('is-active');
       activeBtn.setAttribute('aria-selected', 'true');
     }
@@ -189,10 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const isMatch = filterValue === 'all' || cardCat === filterValue;
       if (isMatch) {
         card.style.display = 'flex';
-        card.classList.remove('is-hidden');
       } else {
         card.style.display = 'none';
-        card.classList.add('is-hidden');
       }
     });
   }
