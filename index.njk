@@ -3,91 +3,78 @@ layout: layouts/base.njk
 title: "Joe Sheldon | Redfin Senior Agent"
 description: "Greater Seattle real estate insights, hyper-local market stats, and buyer & seller guides with Redfin Senior Agent Joe Sheldon."
 permalink: /index.html
+page_scripts:
+  - /assets/js/youtube-lite.js
+  - /assets/js/local-reviews.js
 ---
 
-<div class="layout-container" style="padding-top: 4rem; padding-bottom: 6rem;">
+<main class="layout-container layout-stack-main">
   
     {# Section 1.0: Profile #}
-    <div style="text-align: center; margin-bottom: 4rem;">
-        
-        <div style="margin-bottom: 1.5rem;">
-          <img src="https://assets.myseattlesearch.com/repomove/joe.webp" alt="Joe Sheldon" width="150" height="150" style="border-radius: var(--border-radius-squircle); object-fit: cover; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);">
+    <section id="agent-profile" class="section-profile">
+        <div class="profile-avatar-wrapper">
+          <img src="https://assets.myseattlesearch.com/repomove/joe.webp" alt="Joe Sheldon" width="150" height="150" class="avatar-squircle">
         </div>
         
         <div class="text-overline">Redfin Senior Agent</div>
-        <h1 class="text-display" style="margin-top: 0.25rem; margin-bottom: 0.25rem;">{{ stats.short_name }}</h1>
+        <h1 class="text-display display-tight">{{ stats.short_name }}</h1>
         <p class="text-body-secondary">Serving North King & South Snohomish Counties, WA</p>
 
-        <div style="display: flex; justify-content: center; gap: 3rem; margin: 2rem 0;">
-            <div>
-                <div class="text-data-huge text-primary-charcoal">{{ stats['Closed Sales'] }}</div>
-                <div class="text-overline" style="margin-top: 0.5rem;">TRANSACTIONS</div>
+        <div class="profile-metrics-grid">
+            <div class="metric-block">
+                <div class="text-data-huge text-primary-charcoal tabular-nums">{{ stats['Closed Sales'] }}</div>
+                <div class="text-overline">TRANSACTIONS</div>
             </div>
-            <div>
-                <div class="text-data-huge text-primary-charcoal">${{ (stats['Total Sales Volume'] / 1000000) | round(0, "floor") }}M</div>
-                <div class="text-overline" style="margin-top: 0.5rem;">VOLUME</div>
+            <div class="metric-block">
+                <div class="text-data-huge text-primary-charcoal tabular-nums">${{ (stats['Total Sales Volume'] / 1000000) | round(0, "floor") }}M</div>
+                <div class="text-overline">VOLUME</div>
             </div>
-            <div>
-                <div class="text-data-huge text-primary-charcoal">{{ stats['Average Rating'] }}</div>
-                <div class="text-overline" style="margin-top: 0.5rem;">AVG RATING</div>
+            <div class="metric-block">
+                <div class="text-data-huge text-primary-charcoal tabular-nums">{{ stats['Average Rating'] }}</div>
+                <div class="text-overline">AVG RATING</div>
             </div>
         </div>
 
-        <div style="margin-bottom: 2rem;">
-            <a href="tel:{{ stats.universal_contact_phone }}" class="title-link" style="display: block; margin-bottom: 0.5rem;">(206) 657-7493</a>
-            <a href="mailto:joe.sheldon@redfin.com" class="title-link" style="display: block;">joe.sheldon@redfin.com</a>
+        <div class="profile-contact-links">
+            <a href="tel:{{ stats.universal_contact_phone }}" class="title-link title-link-large tabular-nums">(206) 657-7493</a>
+            <a href="mailto:joe.sheldon@redfin.com" class="title-link title-link-large">joe.sheldon@redfin.com</a>
         </div>
 
-        <div class="drawer-actions-stack" style="max-width: 360px; margin: 0 auto;">
-            <a href="/contact.vcf" class="btn-contact-secondary">Save My Contact Info</a>
-            <a href="https://www.redfin.com/real-estate-agents/joe-sheldon?loyalty=true" class="btn-contact-primary" target="_blank">View My Redfin Profile</a>
-            <a href="/sales/" class="btn-contact-secondary">Listings & Sales</a>
+        <div class="drawer-actions-stack action-tray-constrained">
+            <a href="/contact.vcf" class="btn btn-secondary">Save My Contact Info</a>
+            <a href="https://www.redfin.com/real-estate-agents/joe-sheldon?loyalty=true" class="btn btn-primary" target="_blank">View My Redfin Profile</a>
+            <a href="/sales/" class="btn btn-secondary">Listings & Sales</a>
         </div>
-    </div>
+    </section>
 
-    <div class="section-divider"></div>
+    <hr class="section-divider">
 
     {# Section 2.0: Educational Resource #}
-    <div style="margin: 4rem 0;">
+    <section id="educational-resources" class="section-widget">
       {% set resource_title = "Free Home Buying Classes" %}
       {% set resource_content = "Join us to learn everything you need to know about navigating the current real estate market." %}
       {% set resource_button_text = "View Upcoming Classes & Register" %}
       {% set resource_button_url = "/events/" %}
       {% include "components/widget/resource-card.njk" %}
-    </div>
+    </section>
 
-    <div class="section-divider"></div>
+    <hr class="section-divider">
 
     {# Section 3.0: Video Player #}
-    <div style="margin: 4rem 0;">
+    <section id="featured-video" class="section-widget">
       {% set video_title = "Won't you be my neighbor?" %}
       {% set video_id = "e3o5FIXoK84" %}
       {% set video_poster = "https://assets.myseattlesearch.com/repomove/youtubeneighborthumbnail.webp" %}
       {% set video_label = "Won't you be my neighbor video" %}
       {% include "components/widget/video-player.njk" %}
-    </div>
+    </section>
 
-    <div class="section-divider"></div>
+    <hr class="section-divider">
 
     {# Section 4.0: Client Reviews #}
-    <div style="margin: 4rem 0;">
+    <section id="client-reviews" class="section-widget">
       {% set reviews_data = homepageReviews %}
       {% include "components/widget/reviews.njk" %}
-    </div>
+    </section>
 
-    <div class="section-divider"></div>
-
-    {# Section 5.0: About Me #}
-    <div style="margin-top: 4rem; max-width: 860px; margin-left: auto; margin-right: auto;">
-      <h2 class="text-section-title" style="text-align: center; border: none; padding: 0; margin-top: 0; margin-bottom: 2rem;">About Me</h2>
-      <div class="text-body">
-        <p style="margin-bottom: 1.25rem;">I transplanted to Seattle in 2009, and the Pacific Northwest has become my new home. I am in love with its natural beauty and the abundance of year-round activities. Having grew up around the construction business, I developed a deep understanding of what makes a good home. My real estate passion comes from my desire to help you navigate the journey of purchasing one of the largest yet most personal items of your lifetime.</p>
-        <p>I joined Redfin in 2014 to pursue this passion relentlessly. I like my customers to think of me as their coach throughout the entire process. My team and I will give you expert guidance at every turn, and I'll be by your side through the ups and downs. You can expect me to provide honest advice and tireless advocacy.</p>
-      </div>
-    </div>
-
-</div>
-
-{# Modular Script Injections #}
-<script type="module" src="/assets/js/youtube-lite.js"></script>
-<script type="module" src="/assets/js/local-reviews.js"></script>
+</main>
