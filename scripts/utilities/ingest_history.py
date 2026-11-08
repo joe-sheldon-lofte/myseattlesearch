@@ -59,7 +59,7 @@ R2_BUCKET_NAME = config.get("R2_BUCKET_NAME", "myseattlesearch-assets")
 R2_PUBLIC_DOMAIN = config.get("R2_PUBLIC_DOMAIN", "https://assets.myseattlesearch.com").rstrip("/")
 
 HTTP_HEADERS = {
-    "User-Agent": "MySeattleSearch-History-Harvester/7.1 (CONTENTdm Native Architecture; info@myseattlesearch.com)",
+    "User-Agent": "MySeattleSearch-History-Harvester/7.2 (Suburban-Rural Native; info@myseattlesearch.com)",
     "Accept": "application/json"
 }
 
@@ -83,83 +83,209 @@ def is_inside_bounding_box(lat, lng):
 # Pre-Seeded Municipal & Neighborhood Centroids
 # ---------------------------------------------------------------------------
 CENTROIDS = {
-    # Snohomish County
-    "edmonds": (47.8107, -122.3774), "snohomish": (47.9128, -122.0933), "mukilteo": (47.9030, -122.3043),
-    "lynnwood": (47.8209, -122.3151), "everett": (47.9789, -122.2021), "marysville": (48.0518, -122.1771),
-    "mountlake-terrace": (47.7884, -122.3085), "mill-creek": (47.8604, -122.2046), "lake-stevens": (48.0151, -122.0635),
-    "arlington": (48.1987, -122.1251), "monroe": (47.8557, -121.9699), "stanwood": (48.2415, -122.3707),
-    "granite-falls": (48.0837, -121.9696), "sultan": (47.8623, -121.8157), "gold-bar": (47.8584, -121.6948),
-    "brier": (47.7801, -122.2818), "woodway": (47.7884, -122.3854), "darrington": (48.2559, -121.6026),
-    "tulalip": (48.0645, -122.2846), "index": (47.8207, -121.5540), "silvana": (48.2012, -122.2504),
+    # Snohomish County Municipalities
+    "edmonds": (47.8107, -122.3774),
+    "snohomish": (47.9128, -122.0933),
+    "mukilteo": (47.9030, -122.3043),
+    "lynnwood": (47.8209, -122.3151),
+    "everett": (47.9789, -122.2021),
+    "marysville": (48.0518, -122.1771),
+    "mountlake-terrace": (47.7884, -122.3085),
+    "mill-creek": (47.8604, -122.2046),
+    "lake-stevens": (48.0151, -122.0635),
+    "arlington": (48.1987, -122.1251),
+    "monroe": (47.8557, -121.9699),
+    "stanwood": (48.2415, -122.3707),
+    "granite-falls": (48.0837, -121.9696),
+    "sultan": (47.8623, -121.8157),
+    "gold-bar": (47.8584, -121.6948),
+    "brier": (47.7801, -122.2818),
+    "woodway": (47.7884, -122.3854),
+    "darrington": (48.2559, -121.6026),
+    "tulalip": (48.0645, -122.2846),
+    "index": (47.8207, -121.5540),
+    "silvana": (48.2012, -122.2504),
 
-    # King County
-    "seattle": (47.6062, -122.3321), "bellevue": (47.6101, -122.2015), "renton": (47.4829, -122.2171),
-    "kent": (47.3809, -122.2348), "auburn": (47.3073, -122.2284), "kirkland": (47.6815, -122.2087),
-    "redmond": (47.6740, -122.1215), "federal-way": (47.3223, -122.3126), "sammamish": (47.6163, -122.0356),
-    "issaquah": (47.5301, -122.0326), "shoreline": (47.7560, -122.3457), "woodinville": (47.7543, -122.1635),
-    "bothell": (47.7601, -122.2054), "maple-valley": (47.3654, -122.0437), "mercer-island": (47.5707, -122.2221),
-    "burien": (47.4704, -122.3468), "enumclaw": (47.2043, -121.9915), "des-moines": (47.4018, -122.3243),
-    "kenmore": (47.7573, -122.2440), "covington": (47.3648, -122.0918), "north-bend": (47.4957, -121.7868),
-    "vashon": (47.4476, -122.4632), "snoqualmie": (47.5287, -121.8254), "duvall": (47.7423, -121.9857),
-    "seatac": (47.4439, -122.2961), "tukwila": (47.4740, -122.2610), "newcastle": (47.5390, -122.1671),
-    "black-diamond": (47.3087, -122.0032), "lake-forest-park": (47.7537, -122.2776), "carnation": (47.6479, -121.9118),
-    "normandy-park": (47.4390, -122.3396), "fall-city": (47.5670, -121.8987), "pacific": (47.2645, -122.2504),
-    "ravensdale": (47.3548, -121.9915), "medina": (47.6209, -122.2348), "clyde-hill": (47.6301, -122.2179),
-    "algona": (47.2815, -122.2490), "yarrow-point": (47.6454, -122.2157), "hunts-point": (47.6395, -122.2271),
-    "beaux-arts-village": (47.5884, -122.1996), "skykomish": (47.7095, -121.3598),
+    # King County Municipalities
+    "seattle": (47.6062, -122.3321),
+    "bellevue": (47.6101, -122.2015),
+    "renton": (47.4829, -122.2171),
+    "kent": (47.3809, -122.2348),
+    "auburn": (47.3073, -122.2284),
+    "kirkland": (47.6815, -122.2087),
+    "redmond": (47.6740, -122.1215),
+    "federal-way": (47.3223, -122.3126),
+    "federaly": (47.3223, -122.3126),
+    "sammamish": (47.6163, -122.0356),
+    "issaquah": (47.5301, -122.0326),
+    "shoreline": (47.7560, -122.3457),
+    "woodinville": (47.7543, -122.1635),
+    "bothell": (47.7601, -122.2054),
+    "maple-valley": (47.3654, -122.0437),
+    "mercer-island": (47.5707, -122.2221),
+    "burien": (47.4704, -122.3468),
+    "enumclaw": (47.2043, -121.9915),
+    "des-moines": (47.4018, -122.3243),
+    "kenmore": (47.7573, -122.2440),
+    "covington": (47.3648, -122.0918),
+    "north-bend": (47.4957, -121.7868),
+    "vashon": (47.4476, -122.4632),
+    "snoqualmie": (47.5287, -121.8254),
+    "duvall": (47.7423, -121.9857),
+    "seatac": (47.4439, -122.2961),
+    "tukwila": (47.4740, -122.2610),
+    "newcastle": (47.5390, -122.1671),
+    "black-diamond": (47.3087, -122.0032),
+    "lake-forest-park": (47.7537, -122.2776),
+    "carnation": (47.6479, -121.9118),
+    "normandy-park": (47.4390, -122.3396),
+    "fall-city": (47.5670, -121.8987),
+    "pacific": (47.2645, -122.2504),
+    "ravensdale": (47.3548, -121.9915),
+    "medina": (47.6209, -122.2348),
+    "clyde-hill": (47.6301, -122.2179),
+    "algona": (47.2815, -122.2490),
+    "yarrow-point": (47.6454, -122.2157),
+    "hunts-point": (47.6395, -122.2271),
+    "beaux-arts-village": (47.5884, -122.1996),
+    "skykomish": (47.7095, -121.3598),
 
-    # Sub-Neighborhoods
-    "ballard": (47.6677, -122.3846), "capitol-hill": (47.6253, -122.3222), "pioneer-square": (47.6015, -122.3343),
-    "fremont": (47.6505, -122.3499), "queen-anne": (47.6373, -122.3571), "green-lake": (47.6797, -122.3275),
-    "view-ridge": (47.6837, -122.2687), "mount-baker": (47.5815, -122.2932), "magnolia": (47.6401, -122.3999),
-    "west-seattle": (47.5615, -122.3867), "wallingford": (47.6592, -122.3357), "georgetown": (47.5415, -122.3243),
-    "columbia-city": (47.5604, -122.2857), "south-lake-union": (47.6221, -122.3364), "belltown": (47.6145, -122.3457),
-    "first-hill": (47.6101, -122.3243), "international-district": (47.5987, -122.3243), "beacon-hill": (47.5798, -122.3126),
-    "ravenna": (47.6765, -122.3023), "phinney-ridge": (47.6740, -122.3548), "madrona": (47.6123, -122.2887),
-    "leschi": (47.6015, -122.2871), "madison-park": (47.6345, -122.2776), "wedgwood": (47.6912, -122.2907),
-    "laurelhurst": (47.6592, -122.2776), "bitter-lake": (47.7245, -122.3548), "crown-hill": (47.6954, -122.3707),
-    "greenwood": (47.6912, -122.3548), "interbay": (47.6454, -122.3776), "montlake": (47.6415, -122.3043),
-    "richmond-beach": (47.7687, -122.3854), "edmonds-bowl": (47.8107, -122.3774), "silver-lake": (47.8945, -122.2157)
+    # Common Sub-Neighborhoods
+    "ballard": (47.6677, -122.3846),
+    "capitol-hill": (47.6253, -122.3222),
+    "pioneer-square": (47.6015, -122.3343),
+    "fremont": (47.6505, -122.3499),
+    "queen-anne": (47.6373, -122.3571),
+    "green-lake": (47.6797, -122.3275),
+    "view-ridge": (47.6837, -122.2687),
+    "mount-baker": (47.5815, -122.2932),
+    "magnolia": (47.6401, -122.3999),
+    "west-seattle": (47.5615, -122.3867),
+    "wallingford": (47.6592, -122.3357),
+    "georgetown": (47.5415, -122.3243),
+    "columbia-city": (47.5604, -122.2857),
+    "south-lake-union": (47.6221, -122.3364),
+    "belltown": (47.6145, -122.3457),
+    "first-hill": (47.6101, -122.3243),
+    "international-district": (47.5987, -122.3243),
+    "beacon-hill": (47.5798, -122.3126),
+    "ravenna": (47.6765, -122.3023),
+    "phinney-ridge": (47.6740, -122.3548),
+    "madrona": (47.6123, -122.2887),
+    "leschi": (47.6015, -122.2871),
+    "madison-park": (47.6345, -122.2776),
+    "wedgwood": (47.6912, -122.2907),
+    "laurelhurst": (47.6592, -122.2776),
+    "bitter-lake": (47.7245, -122.3548),
+    "crown-hill": (47.6954, -122.3707),
+    "greenwood": (47.6912, -122.3548),
+    "interbay": (47.6454, -122.3776),
+    "montlake": (47.6415, -122.3043),
+    "richmond-beach": (47.7687, -122.3854),
+    "edmonds-bowl": (47.8107, -122.3774),
+    "silver-lake": (47.8945, -122.2157)
 }
 
 SLUG_TAXONOMY_MAP = {
     # Snohomish County
-    "edmonds": ("edmonds", "Snohomish"), "snohomish": ("snohomish", "Snohomish"), "mukilteo": ("mukilteo", "Snohomish"),
-    "lynnwood": ("lynnwood", "Snohomish"), "everett": ("everett", "Snohomish"), "marysville": ("marysville", "Snohomish"),
-    "mountlake-terrace": ("mountlake-terrace", "Snohomish"), "mill-creek": ("mill-creek", "Snohomish"), "lake-stevens": ("lake-stevens", "Snohomish"),
-    "arlington": ("arlington", "Snohomish"), "monroe": ("monroe", "Snohomish"), "stanwood": ("stanwood", "Snohomish"),
-    "granite-falls": ("granite-falls", "Snohomish"), "sultan": ("sultan", "Snohomish"), "gold-bar": ("gold-bar", "Snohomish"),
-    "brier": ("brier", "Snohomish"), "woodway": ("woodway", "Snohomish"), "darrington": ("darrington", "Snohomish"),
-    "tulalip": ("tulalip", "Snohomish"), "index": ("index", "Snohomish"), "silvana": ("silvana", "Snohomish"),
-    "edmonds-bowl": ("edmonds", "Snohomish"), "silver-lake": ("everett", "Snohomish"),
+    "edmonds": ("edmonds", "Snohomish"),
+    "snohomish": ("snohomish", "Snohomish"),
+    "mukilteo": ("mukilteo", "Snohomish"),
+    "lynnwood": ("lynnwood", "Snohomish"),
+    "everett": ("everett", "Snohomish"),
+    "marysville": ("marysville", "Snohomish"),
+    "mountlake-terrace": ("mountlake-terrace", "Snohomish"),
+    "mill-creek": ("mill-creek", "Snohomish"),
+    "lake-stevens": ("lake-stevens", "Snohomish"),
+    "arlington": ("arlington", "Snohomish"),
+    "monroe": ("monroe", "Snohomish"),
+    "stanwood": ("stanwood", "Snohomish"),
+    "granite-falls": ("granite-falls", "Snohomish"),
+    "sultan": ("sultan", "Snohomish"),
+    "gold-bar": ("gold-bar", "Snohomish"),
+    "brier": ("brier", "Snohomish"),
+    "woodway": ("woodway", "Snohomish"),
+    "darrington": ("darrington", "Snohomish"),
+    "tulalip": ("tulalip", "Snohomish"),
+    "index": ("index", "Snohomish"),
+    "silvana": ("silvana", "Snohomish"),
+    "edmonds-bowl": ("edmonds", "Snohomish"),
+    "silver-lake": ("everett", "Snohomish"),
 
     # King County
-    "seattle": ("seattle", "King"), "bellevue": ("bellevue", "King"), "renton": ("renton", "King"),
-    "kent": ("kent", "King"), "auburn": ("auburn", "King"), "kirkland": ("kirkland", "King"),
-    "redmond": ("redmond", "King"), "federal-way": ("federal-way", "King"), "federaly": ("federal-way", "King"),
-    "sammamish": ("sammamish", "King"), "issaquah": ("issaquah", "King"), "shoreline": ("shoreline", "King"),
-    "woodinville": ("woodinville", "King"), "maple-valley": ("maple-valley", "King"), "mercer-island": ("mercer-island", "King"),
-    "burien": ("burien", "King"), "enumclaw": ("enumclaw", "King"), "des-moines": ("des-moines", "King"),
-    "kenmore": ("kenmore", "King"), "covington": ("covington", "King"), "north-bend": ("north-bend", "King"),
-    "vashon": ("vashon", "King"), "snoqualmie": ("snoqualmie", "King"), "duvall": ("duvall", "King"),
-    "seatac": ("seatac", "King"), "tukwila": ("tukwila", "King"), "newcastle": ("newcastle", "King"),
-    "black-diamond": ("black-diamond", "King"), "lake-forest-park": ("lake-forest-park", "King"),
-    "carnation": ("carnation", "King"), "normandy-park": ("normandy-park", "King"), "fall-city": ("fall-city", "King"),
-    "pacific": ("pacific", "King"), "ravensdale": ("ravensdale", "King"), "medina": ("medina", "King"),
-    "clyde-hill": ("clyde-hill", "King"), "algona": ("algona", "King"), "yarrow-point": ("yarrow-point", "King"),
-    "hunts-point": ("hunts-point", "King"), "beaux-arts-village": ("beaux-arts-village", "King"), "skykomish": ("skykomish", "King"),
+    "seattle": ("seattle", "King"),
+    "bellevue": ("bellevue", "King"),
+    "renton": ("renton", "King"),
+    "kent": ("kent", "King"),
+    "auburn": ("auburn", "King"),
+    "kirkland": ("kirkland", "King"),
+    "redmond": ("redmond", "King"),
+    "federal-way": ("federal-way", "King"),
+    "federaly": ("federal-way", "King"),
+    "sammamish": ("sammamish", "King"),
+    "issaquah": ("issaquah", "King"),
+    "shoreline": ("shoreline", "King"),
+    "woodinville": ("woodinville", "King"),
+    "maple-valley": ("maple-valley", "King"),
+    "mercer-island": ("mercer-island", "King"),
+    "burien": ("burien", "King"),
+    "enumclaw": ("enumclaw", "King"),
+    "des-moines": ("des-moines", "King"),
+    "kenmore": ("kenmore", "King"),
+    "covington": ("covington", "King"),
+    "north-bend": ("north-bend", "King"),
+    "vashon": ("vashon", "King"),
+    "snoqualmie": ("snoqualmie", "King"),
+    "duvall": ("duvall", "King"),
+    "seatac": ("seatac", "King"),
+    "tukwila": ("tukwila", "King"),
+    "newcastle": ("newcastle", "King"),
+    "black-diamond": ("black-diamond", "King"),
+    "lake-forest-park": ("lake-forest-park", "King"),
+    "carnation": ("carnation", "King"),
+    "normandy-park": ("normandy-park", "King"),
+    "fall-city": ("fall-city", "King"),
+    "pacific": ("pacific", "King"),
+    "ravensdale": ("ravensdale", "King"),
+    "medina": ("medina", "King"),
+    "clyde-hill": ("clyde-hill", "King"),
+    "algona": ("algona", "King"),
+    "yarrow-point": ("yarrow-point", "King"),
+    "hunts-point": ("hunts-point", "King"),
+    "beaux-arts-village": ("beaux-arts-village", "King"),
+    "skykomish": ("skykomish", "King"),
 
     # Common Sub-Neighborhoods
-    "ballard": ("seattle", "King"), "capitol-hill": ("seattle", "King"), "pioneer-square": ("seattle", "King"),
-    "fremont": ("seattle", "King"), "queen-anne": ("seattle", "King"), "green-lake": ("seattle", "King"),
-    "view-ridge": ("seattle", "King"), "mount-baker": ("seattle", "King"), "magnolia": ("seattle", "King"),
-    "west-seattle": ("seattle", "King"), "wallingford": ("seattle", "King"), "georgetown": ("seattle", "King"),
-    "columbia-city": ("seattle", "King"), "south-lake-union": ("seattle", "King"), "belltown": ("seattle", "King"),
-    "first-hill": ("seattle", "King"), "international-district": ("seattle", "King"), "beacon-hill": ("seattle", "King"),
-    "ravenna": ("seattle", "King"), "phinney-ridge": ("seattle", "King"), "madrona": ("seattle", "King"),
-    "leschi": ("seattle", "King"), "madison-park": ("seattle", "King"), "wedgwood": ("seattle", "King"),
-    "laurelhurst": ("seattle", "King"), "bitter-lake": ("seattle", "King"), "crown-hill": ("seattle", "King"),
-    "greenwood": ("seattle", "King"), "interbay": ("seattle", "King"), "montlake": ("seattle", "King"),
+    "ballard": ("seattle", "King"),
+    "capitol-hill": ("seattle", "King"),
+    "pioneer-square": ("seattle", "King"),
+    "fremont": ("seattle", "King"),
+    "queen-anne": ("seattle", "King"),
+    "green-lake": ("seattle", "King"),
+    "view-ridge": ("seattle", "King"),
+    "mount-baker": ("seattle", "King"),
+    "magnolia": ("seattle", "King"),
+    "west-seattle": ("seattle", "King"),
+    "wallingford": ("seattle", "King"),
+    "georgetown": ("seattle", "King"),
+    "columbia-city": ("seattle", "King"),
+    "south-lake-union": ("seattle", "King"),
+    "belltown": ("seattle", "King"),
+    "first-hill": ("seattle", "King"),
+    "international-district": ("seattle", "King"),
+    "beacon-hill": ("seattle", "King"),
+    "ravenna": ("seattle", "King"),
+    "phinney-ridge": ("seattle", "King"),
+    "madrona": ("seattle", "King"),
+    "leschi": ("seattle", "King"),
+    "madison-park": ("seattle", "King"),
+    "wedgwood": ("seattle", "King"),
+    "laurelhurst": ("seattle", "King"),
+    "bitter-lake": ("seattle", "King"),
+    "crown-hill": ("seattle", "King"),
+    "greenwood": ("seattle", "King"),
+    "interbay": ("seattle", "King"),
+    "montlake": ("seattle", "King"),
     "richmond-beach": ("shoreline", "King")
 }
 
@@ -220,7 +346,7 @@ def find_nearest_slug_by_coords(lat, lng):
     return best_slug or "seattle"
 
 # ---------------------------------------------------------------------------
-# CONTENTdm Archive Endpoints (Replacing Wikimedia Commons)
+# CONTENTdm Archive Endpoints (Suburban & Rural Repositories Only)
 # ---------------------------------------------------------------------------
 CONTENTDM_SOURCES = {
     "uw_kcsnapshots": {
@@ -246,12 +372,6 @@ CONTENTDM_SOURCES = {
         "aliases": ["snoisle", "duvall", "enumclaw"],
         "archive_name": "Washington Rural Heritage",
         "dataset_type": "civic_landmark"
-    },
-    "spl_seattle": {
-        "domain": "cdm16118.contentdm.oclc.org",
-        "aliases": ["p16118coll14", "p16118coll17", "p16118coll22"],
-        "archive_name": "Seattle Public Library Special Collections",
-        "dataset_type": "civic_landmark"
     }
 }
 
@@ -263,7 +383,7 @@ ALL_SOURCES = list(CONTENTDM_SOURCES.keys())
 def load_progress():
     default_state = {
         "completed_ids": [],
-        "cursors": {src: 1 for src in ALL_SOURCES} # CONTENTdm pagination starts at 1
+        "cursors": {src: 1 for src in ALL_SOURCES}
     }
     if os.path.exists(PROGRESS_FILE):
         try:
@@ -399,12 +519,11 @@ def lookup_base_address(situs_address, neighborhood_slug=None):
 # ---------------------------------------------------------------------------
 def process_and_transcode_image(download_url, max_retries=3):
     """
-    Downloads raw image files via CONTENTdm API. 
+    Downloads raw image files via native CONTENTdm collection API.
     Validates natively via Pillow. Traps oversized bombs via filterwarnings.
     """
-    # CONTENTdm API sometimes requires an explicit User-Agent
     custom_headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
     
     img_bytes = None
@@ -505,7 +624,7 @@ def fetch_contentdm_records(source_key, start_offset=1, limit=50):
         if is_out_of_area(f"{raw_title} {clean_desc}"):
             continue
 
-        # Use Native CONTENTdm Collection API Download endpoint to bypass IIIF 501 restrictions
+        # Use native CONTENTdm Collection API Download endpoint to bypass IIIF 501 restrictions
         download_url = f"https://{domain}/digital/api/collection/{collection_alias}/id/{pointer}/download"
         
         clean_slug = re.sub(r'[^a-zA-Z0-9]', '-', raw_title[:28]).strip('-').lower()
@@ -547,10 +666,6 @@ def fetch_contentdm_records(source_key, start_offset=1, limit=50):
         else:
             # C. Check for verified 59-city or neighborhood slug in text
             matched_slug = match_slug_from_text(raw_title, combined_text)
-            
-            # Special allowance for SPL: Seattle Room defaults to Seattle
-            if not matched_slug and source_key == "spl_seattle":
-                matched_slug = "seattle"
 
             if not matched_slug:
                 continue
@@ -646,7 +761,7 @@ def ingest_record(item, s3_client):
 # ---------------------------------------------------------------------------
 def execute_pipeline(stages_to_run, city_filter=None, limit_per_source=None, force=False, is_bulk=False):
     print("================================================================================")
-    print("MYSEATTLESEARCH: CONTENTDM ARCHIVAL HARVESTER")
+    print("MYSEATTLESEARCH: CONTENTDM SUBURBAN & RURAL ARCHIVAL HARVESTER")
     print("================================================================================")
     print(f"Target Database ID: {CF_D1_DATABASE_ID}")
     print(f"Target R2 Bucket:   {R2_BUCKET_NAME} ({R2_PUBLIC_DOMAIN})")
