@@ -1,13 +1,12 @@
 ---
 layout: layouts/base.njk
 title: "The Social Notebook | Joe Sheldon"
-description: "A collection of posts, notes, and articles written by Joe Sheldon, his team, and his network."
-permalink: /notebook/index.html
+description: "A collection of posts, notes, and articles written by Joe, his team, and his network."
+permalink: /cms/notebook/index.html
 ---
 
 <main class="layout-container layout-stack-main">
 
-  {# Section 1.0 & 2.0: Notebook Header #}
   <header class="surface-bento page-hero-bento">
     <h1 class="text-page-title">The Social Notebook</h1>
     <p class="text-body page-hero-lead">
@@ -17,35 +16,60 @@ permalink: /notebook/index.html
 
   <div class="section-divider"></div>
 
-  {# Section 3.0: The Notebook Feed Widget #}
-  <section id="notebook-feed-stream" class="content-section-centered">
-    
-    {# Prepare D1 Data for the Component Contract #}
-    {% set active_posts = [] %}
-    {% for post in notebook %}
-      {# Only render posts that are not archived and not held #}
-      {% if post.archive != 1 and post.hold_status == 'active' %}
-        
-        {# Join D1 publisher_id with local publishers.json #}
-        {% set author_data = publishers[post.publisher_id] %}
-        
-        {% set mapped_post = {
-          "title": post.title,
-          "content": post.body,
-          "url": "/notebook/" ~ post.slug ~ "/",
-          "date": post.created_at | date("MMM D, YYYY"),
-          "author": author_data.name if author_data else "Joe Sheldon",
-          "author_role": author_data.role if author_data else "Redfin Senior Agent",
-          "overline": "FIELD DISPATCH"
-        } %}
-        {% set _ = active_posts.push(mapped_post) %}
-      {% endif %}
-    {% endfor %}
+  <section id="notebook-feed" data-nav-title="Dispatches" class="content-section-centered">
+    <div class="section-grid-static grid-cols-1">
+      
+      {% for item in notebook %}
+        {% if item.hold_status == 'active' %}
+          <article class="surface-bento pathway-item-card">
+            
+            <div class="card-header-split">
+              <span class="text-overline text-accent-alpine">
+                {{ (item.cities[0] | upper) if item.cities and item.cities.length else "DISPATCH" }}
+              </span>
+              {% if item.published_at %}
+                <time class="text-body-secondary tabular-nums">
+                  {{ item.published_at }}
+                </time>
+              {% endif %}
+            </div>
 
-    {# Inject into Canonical Widget #}
-    {% set notebook_posts = active_posts %}
-    {% include "components/widget/cms-notebook-feed.njk" %}
+            <h2 class="text-widget-title">
+              <a href="/cms/notebook/{{ item.slug }}/" class="title-link">
+                {{ item.title }}
+              </a>
+            </h2>
 
+            <div class="text-body section-body-prose">
+              {{ item.body | safe }}
+            </div>
+
+            <div class="card-footer-strip text-body-secondary">
+              <div class="cms-card-byline">
+                <span>By </span>
+                <strong class="text-primary-charcoal">{{ item.author }}</strong>
+                <span> &bull; {{ item.author_role }}</span>
+              </div>
+
+              <div class="card-actions-group">
+                <a href="/chat/?topic={{ item.title | urlencode }}" class="btn btn-secondary">
+                  <span>Reply</span>
+                </a>
+                <a href="/cms/notebook/{{ item.slug }}/" class="btn btn-primary">
+                  <span>Read &rarr;</span>
+                </a>
+              </div>
+            </div>
+
+          </article>
+        {% endif %}
+      {% else %}
+        <div class="surface-bento callout-feature-card">
+          <p class="text-body-secondary">No dispatches published yet. Check back soon for field notes and market commentary.</p>
+        </div>
+      {% endfor %}
+
+    </div>
   </section>
 
 </main>

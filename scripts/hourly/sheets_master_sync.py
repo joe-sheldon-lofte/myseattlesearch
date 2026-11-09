@@ -12,9 +12,39 @@ from PIL import Image
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+def find_project_root(start_path):
+    """Scans upward to find the project root dynamically, avoiding phantom directories."""
+    curr = os.path.dirname(os.path.abspath(start_path))
+    for _ in range(5):
+        if os.path.exists(os.path.join(curr, ".eleventy.js")) or os.path.exists(os.path.join(curr, "package.json")):
+            return curr
+        parent = os.path.dirname(curr)
+        if parent == curr:
+            break
+        curr = parent
+    # Fallback to standard 2-level assumption if no config files found
+    return os.path.dirname(os.path.dirname(os.path.abspath(start_path)))
+
+BASE_DIR = find_project_root(__file__)
 DATA_DIR = os.path.join(BASE_DIR, "data")
 COMMUTE_TOLLS_PATH = os.path.join(DATA_DIR, "city_commute_tolls.json")
+DEV_VARS_PATH = os.path.join(BASE_DIR, ".dev.vars")
+
+def load_dev_vars(filepath):
+    """Loads environment variables for local Mac execution."""
+    if not os.path.exists(filepath):
+        return
+    with open(filepath, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" in line:
+                key, val = line.split("=", 1)
+                os.environ[key.strip()] = val.strip().strip("'").strip('"')
+
+# Inject local dev vars if running outside GitHub Actions
+load_dev_vars(DEV_VARS_PATH)
 
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
@@ -259,10 +289,10 @@ def harvest_commute_and_tolls():
     }
     with open(COMMUTE_TOLLS_PATH, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
-    print("   Updated city_commute_tolls.json directly from WSDOT API.")
+    print("   ✅ Updated city_commute_tolls.json directly from WSDOT API.")
 
 def main():
-    print("📊 Running Hourly Platform Sync (Historical Log, Media, News, Sports & Live Tolls)...")
+    print("📊 Running Hourly Platform Sync (Historical Log, Media, News, Sports, Booking Rules & Tolls)...")
     os.makedirs(DATA_DIR, exist_ok=True)
 
     # 1. Harvest Live WSDOT Express Tolls
@@ -270,9 +300,10 @@ def main():
 
     # 2. Connect to Google Sheets & R2 Engine (Strictly lock to Core Sheet ID)
     master_sheet_id = os.environ.get("WEBSITE_DATA_CORE_SHEET_ID")
-    creds_path = "credentials.json"
+    creds_path = os.path.join(BASE_DIR, "credentials.json")
+    
     if not master_sheet_id or not os.path.exists(creds_path):
-        print("❌ Missing credentials or WEBSITE_DATA_CORE_SHEET_ID. Exiting Sheets ingestion.")
+        print(f"❌ Missing credentials.json at {creds_path} or WEBSITE_DATA_CORE_SHEET_ID. Exiting Sheets ingestion.")
         return
 
     creds = Credentials.from_service_account_file(creds_path, scopes=SCOPES)
@@ -300,9 +331,13 @@ def main():
     sheet_writebacks = []
 
     # Historical Log
-    if data.get("Historical_Log", {}).get('values'):
+    hist_log_rows = data.get("Historical_Log", {}).get('values')
+    if hist_log_rows:
         with open(os.path.join(DATA_DIR, "hourly_market_historical.json"), "w", encoding="utf-8") as f:
-            json.dump(parse_sheet_values(data["Historical_Log"]['values']), f, indent=2, ensure_ascii=False)
+            json.dump(parse_sheet_values(hist_log_rows), f, indent=2, ensure_ascii=False)
+        print(f"   💾 Saved: data/hourly_market_historical.json ({len(hist_log_rows) - 1} records)")
+    else:
+        print("   ⚠️ Warning: Tab 'Historical_Log' returned 0 rows from sheet.")
 
     # R2 Image Asset Conversion Engine
     upload_rows = data.get("Uploads", {}).get('values', [])
@@ -332,7 +367,7 @@ def main():
                     if col_u_done != -1:
                         sheet_writebacks.append({'range': f"Uploads!{get_col_letter(col_u_done)}{row_num}", 'values': [["Yes"]]})
 
-    # Array JSON Outputs (BookingRules mapped to booking_rules.json)
+    # Array JSON Outputs (News, Sports, Uploads, Publishers, BookingRules)
     for tab_name, json_name in [
         ("News", "news.json"), 
         ("Sports", "sports_teams.json"), 
@@ -344,6 +379,9 @@ def main():
         if rows:
             with open(os.path.join(DATA_DIR, json_name), "w", encoding="utf-8") as f:
                 json.dump(clean_nan_tokens(parse_sheet_values(rows)), f, indent=2, ensure_ascii=False)
+            print(f"   💾 Saved: data/{json_name} ({len(rows) - 1} records)")
+        else:
+            print(f"   ⚠️ Warning: Tab '{tab_name}' returned 0 rows from sheet.")
 
     # Flush Cell Updates back to the Sheet
     if sheet_writebacks:

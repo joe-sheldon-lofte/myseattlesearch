@@ -14,28 +14,66 @@ eleventyComputed:
   
   <div class="content-section-centered">
 
-    {# Section 1.0 & 2.0: Single Post Entry (widget.cms.entry.single) #}
-    {% set single_entry_title = post.title %}
-    {% set single_entry_content = post.body %}
-    {% set single_entry_date = post.published_at %}
-    {% set single_entry_author = post.author %}
-    {% set single_entry_author_role = post.author_role %}
-    {% set single_entry_author_image = post.author_image %}
-    {% set single_entry_back_url = "/cms/notebook/" %}
+    <article class="surface-bento profile-single-card">
+      
+      <nav class="entry-subnav">
+        <a href="/cms/notebook/" class="btn btn-secondary">
+          <span>&larr; Back to Notebook</span>
+        </a>
+      </nav>
 
-    {% include "components/widget/cms-entry-single.njk" %}
+      <header class="entry-header">
+        {% if post.published_at %}
+          <time class="text-body-secondary tabular-nums">
+            {{ post.published_at }}
+          </time>
+        {% endif %}
+        <h1 class="text-section-title">
+          {{ post.title }}
+        </h1>
+      </header>
 
-    {# Section 3.0: External Link Preview (widget.cms.widget.linkpreview) #}
-    {% if post.external_links and post.external_links.length %}
-      {% set link_data = post.external_links[0] %}
-      <div style="margin-top: 2rem; width: 100%; text-align: left;">
-        {% set link_preview_url = link_data.url or link_data %}
-        {% set link_preview_title = link_data.title or post.title %}
-        {% set link_preview_domain = link_data.domain or "" %}
-        {% set link_preview_snippet = link_data.snippet or link_data.description or "" %}
-        {% include "components/widget/cms-widget-linkpreview.njk" %}
+      <div class="text-body profile-prose-body">
+        {{ post.body | safe }}
       </div>
-    {% endif %}
+
+      <footer class="card-footer-strip">
+        <div class="author-lockup">
+          <img src="{{ post.author_image }}" alt="{{ post.author }}" width="44" height="44" class="avatar-squircle">
+          <div>
+            <strong class="text-primary-charcoal">{{ post.author }}</strong>
+            <span class="text-overline">{{ post.author_role }}</span>
+          </div>
+        </div>
+
+        <div class="action-cluster">
+          <a href="/chat/?topic={{ post.title | urlencode }}" class="btn btn-secondary">
+            <span>Reply</span>
+          </a>
+          <button type="button" 
+                  class="btn btn-primary" 
+                  onclick="if(navigator.share){navigator.share({title:'{{ post.title | escape }}',url:window.location.href})}else{navigator.clipboard.writeText(window.location.href);alert('Link copied to clipboard!');}">
+            <span>Share</span>
+          </button>
+        </div>
+      </footer>
+
+      {% if post.external_links and post.external_links.length %}
+        {% set link = post.external_links[0] %}
+        <div class="section-divider"></div>
+        <div class="action-tray-constrained">
+          <a href="{{ link.url or link }}" target="_blank" rel="noopener noreferrer" class="surface-bento callout-feature-card">
+            <span class="text-overline text-accent-alpine">{{ link.domain | default('EXTERNAL RESOURCE') | upper }}</span>
+            <h4 class="text-widget-title">{{ link.title | default(post.title) }}</h4>
+            {% if link.snippet or link.description %}
+              <p class="text-body-secondary">{{ link.snippet or link.description }}</p>
+            {% endif %}
+            <span class="text-overline">&nearr; Open Resource</span>
+          </a>
+        </div>
+      {% endif %}
+
+    </article>
 
   </div>
 
