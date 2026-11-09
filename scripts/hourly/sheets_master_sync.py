@@ -268,11 +268,11 @@ def main():
     # 1. Harvest Live WSDOT Express Tolls
     harvest_commute_and_tolls()
 
-    # 2. Connect to Google Sheets & R2 Engine
-    master_sheet_id = os.environ.get("WEBSITE_DATA_CORE_SHEET_ID") or os.environ.get("WEBSITE_DATA_SHEET_ID")
+    # 2. Connect to Google Sheets & R2 Engine (Strictly lock to Core Sheet ID)
+    master_sheet_id = os.environ.get("WEBSITE_DATA_CORE_SHEET_ID")
     creds_path = "credentials.json"
     if not master_sheet_id or not os.path.exists(creds_path):
-        print("❌ Missing credentials or Sheet ID. Exiting Sheets ingestion.")
+        print("❌ Missing credentials or WEBSITE_DATA_CORE_SHEET_ID. Exiting Sheets ingestion.")
         return
 
     creds = Credentials.from_service_account_file(creds_path, scopes=SCOPES)
