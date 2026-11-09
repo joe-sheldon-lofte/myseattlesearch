@@ -61,6 +61,135 @@ module.exports = function(eleventyConfig) {
     return { usedGB: "0.00" };
   });
 
+  // Cloudflare D1 Social Notebook Data Hook
+  eleventyConfig.addGlobalData("notebook", async () => {
+    // 1. Ensure .env is read if Node hasn't pre-loaded it locally
+    const envPath = path.join(__dirname, ".env");
+    if (fs.existsSync(envPath)) {
+      const rawEnv = fs.readFileSync(envPath, "utf-8");
+      for (const line of rawEnv.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) continue;
+        const eqIdx = trimmed.indexOf("=");
+        if (eqIdx > 0) {
+          const key = trimmed.slice(0, eqIdx).trim();
+          let val = trimmed.slice(eqIdx + 1).trim();
+          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            val = val.slice(1, -1);
+          }
+          if (!process.env[key]) process.env[key] = val;
+        }
+      }
+    }
+
+    const accountId = process.env.CF_ACCOUNT_ID;
+    const databaseId = process.env.CF_D1_DATABASE_ID;
+    const apiToken = process.env.CF_D1_API_TOKEN || process.env.CF_API_TOKEN;
+
+    let rawPosts = [];
+
+    // 2. Direct Query to Cloudflare D1 REST API
+    if (accountId && databaseId && apiToken) {
+      try {
+        const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${apiToken}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            sql: "SELECT * FROM notebook WHERE hold_status = 'active' ORDER BY published_at DESC;"
+          })
+        });
+
+        if (response.ok) {
+          const json = await response.json();
+          const results = json.result?.[0]?.results;
+          if (Array.isArray(results)) {
+            rawPosts = results;
+          }
+        } else {
+          const errText = await response.text();
+          console.warn(`[notebook] Cloudflare D1 HTTP ${response.status}:`, errText);
+        }
+      } catch (err) {
+        console.warn("[notebook] Cloudflare D1 fetch error:", err.message);
+      }
+    }
+
+    // 3. Optional local mock fallback if offline or empty
+    if (rawPosts.length === 0) {
+      const candidates = [
+        path.join(__dirname, "data", "notebook.json"),
+        path.join(__dirname, "_data", "notebook.json")
+      ];
+      for (const p of candidates) {
+        if (fs.existsSync(p)) {
+          try {
+            rawPosts = JSON.parse(fs.readFileSync(p, "utf-8"));
+            break;
+          } catch (e) {}
+        }
+      }
+    }
+
+    // Defensive Guard: Always return an array so Eleventy's pagination never halts
+    if (!Array.isArray(rawPosts) || rawPosts.length === 0) {
+      return [];
+    }
+
+    // 4. Load publishers directory to match publisher_id
+    let publishersIndex = {};
+    const pubCandidates = [
+      path.join(__dirname, "data", "publishers.json"),
+      path.join(__dirname, "_data", "publishers.json")
+    ];
+    for (const pubPath of pubCandidates) {
+      if (fs.existsSync(pubPath)) {
+        try {
+          const pubData = JSON.parse(fs.readFileSync(pubPath, "utf-8"));
+          if (Array.isArray(pubData)) {
+            pubData.forEach(p => {
+              const key = p.id || p.publisher_id || p.pro_id;
+              if (key) publishersIndex[key] = p;
+            });
+          } else if (typeof pubData === "object") {
+            publishersIndex = pubData;
+          }
+          break;
+        } catch (e) {}
+      }
+    }
+
+    const parseJson = (val) => {
+      if (typeof val === "string") {
+        try { return JSON.parse(val); } catch (e) { return []; }
+      }
+      return val || [];
+    };
+
+    return rawPosts.map(post => {
+      const pub = publishersIndex[post.publisher_id];
+      return {
+        id: post.id,
+        slug: post.slug,
+        title: post.title,
+        body: post.body,
+        hold_status: post.hold_status || "active",
+        published_at: post.published_at,
+        updated_at: post.updated_at,
+        cities: parseJson(post.cities),
+        images: parseJson(post.images),
+        attachments: parseJson(post.attachments),
+        external_links: parseJson(post.external_links),
+        author: pub ? (pub.name || pub.full_name) : "Joe Sheldon",
+        author_role: pub ? pub.role : "Redfin Senior Agent",
+        author_image: pub ? (pub.avatar || pub.image) : "/assets/brand/joe-sheldon-headshot.webp"
+      };
+    });
+  });
+
   // Universal Production Utility Filters
   eleventyConfig.addFilter("cssmin", function(code) {
     if (!code) return "";

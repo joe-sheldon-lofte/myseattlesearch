@@ -16,13 +16,13 @@ eleventyComputed:
 
     <article class="surface-bento profile-single-card">
       
-      <nav class="entry-subnav">
+      <div class="action-tray-constrained">
         <a href="/cms/notebook/" class="btn btn-secondary">
           <span>&larr; Back to Notebook</span>
         </a>
-      </nav>
+      </div>
 
-      <header class="entry-header">
+      <header class="section-profile">
         {% if post.published_at %}
           <time class="text-body-secondary tabular-nums">
             {{ post.published_at }}
@@ -37,8 +37,10 @@ eleventyComputed:
         {{ post.body | safe }}
       </div>
 
+      <div class="section-divider"></div>
+
       <footer class="card-footer-strip">
-        <div class="author-lockup">
+        <div class="profile-avatar-wrapper">
           <img src="{{ post.author_image }}" alt="{{ post.author }}" width="44" height="44" class="avatar-squircle">
           <div>
             <strong class="text-primary-charcoal">{{ post.author }}</strong>
@@ -46,7 +48,7 @@ eleventyComputed:
           </div>
         </div>
 
-        <div class="action-cluster">
+        <div class="action-tray-constrained">
           <a href="/chat/?topic={{ post.title | urlencode }}" class="btn btn-secondary">
             <span>Reply</span>
           </a>

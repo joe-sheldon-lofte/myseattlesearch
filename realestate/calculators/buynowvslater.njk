@@ -1,0 +1,445 @@
+---
+layout: layouts/base.njk
+title: "Buying Now vs. Waiting Modeler | Joe Sheldon"
+description: "A straightforward look at how the total cost of buying a home today compares to waiting, using local market history timelines."
+permalink: /realestate/calculators/buynowvslater/index.html
+---
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "@id": "https://myseattlesearch.com/realestate/calculators/buynowvslater/#calculator",
+  "name": "Buy Now vs. Waiting Cost Calculator",
+  "url": "https://myseattlesearch.com/realestate/calculators/buynowvslater/",
+  "description": "An interactive real estate financial comparison tool analyzing the cost of buying a home today versus waiting, based on regional market history.",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "All",
+  "author": {
+    "@type": "RealEstateAgent",
+    "@id": "https://myseattlesearch.com/#agent",
+    "name": "Joe Sheldon - Redfin Real Estate Agent"
+  },
+  "provider": {
+    "@type": "RealEstateAgent",
+    "@id": "https://myseattlesearch.com/#agent"
+  }
+}
+</script>
+
+<main class="layout-container layout-stack-main">
+
+  <header class="surface-bento page-hero-bento">
+    <h1 class="text-page-title">Buying Now vs. Waiting Modeler</h1>
+    <p class="text-body page-hero-lead">
+      A straightforward look at how the total cost of buying a home today compares to waiting, using local market history timelines.
+    </p>
+  </header>
+
+  <div class="section-divider"></div>
+
+  {# Section 1.0: Strategy Control Card #}
+  <section id="cost-inputs" data-nav-title="Inputs" class="surface-bento">
+    <div class="card-header-split">
+      <h2 class="text-widget-title">Financing &amp; Timeline Inputs</h2>
+    </div>
+
+    <div class="section-grid-static grid-cols-4">
+      <div class="calc-field-group">
+        <label for="citySelect">Target City</label>
+        <select id="citySelect"></select>
+      </div>
+
+      <div class="calc-field-group">
+        <label for="inWaitTime">Planned Wait Period</label>
+        <select id="inWaitTime">
+          <option value="0.5">6 Months</option>
+          <option value="1" selected>1 Year</option>
+          <option value="2">2 Years</option>
+          <option value="3">3 Years</option>
+        </select>
+      </div>
+
+      <div class="calc-field-group">
+        <label for="inLoanType">Loan Program</label>
+        <select id="inLoanType" onchange="updateDisplayedRate()">
+          <option value="Conventional">Conventional</option>
+          <option value="FHA">Standard FHA</option>
+          <option value="VA">VA Loan</option>
+        </select>
+      </div>
+
+      <div class="calc-field-group">
+        <label for="inRent">Current Monthly Rent ($)</label>
+        <input type="number" id="inRent" value="2800">
+      </div>
+
+      <div class="calc-field-group">
+        <label for="inPriceOverride">Current Home Price Target ($)</label>
+        <input type="number" id="inPriceOverride" value="800000">
+      </div>
+
+      <div class="calc-field-group">
+        <label for="inRateNow">Interest Rate Today (%)</label>
+        <input type="number" id="inRateNow" value="6.50" step="0.125">
+      </div>
+
+      <div class="calc-field-group">
+        <label for="inDownValueNow">Down Payment Available Now</label>
+        <div class="calc-input-combo">
+          <input type="number" id="inDownValueNow" value="5">
+          <select id="inDownUnitNow" aria-label="Down Payment Unit Today">
+            <option value="%">%</option>
+            <option value="$">$</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="calc-field-group">
+        <label for="inRateLater">Estimated Future Interest Rate (%)</label>
+        <input type="number" id="inRateLater" value="5.75" step="0.125">
+      </div>
+
+      <div class="calc-field-group grid-span-full">
+        <label for="inDownValueLater">Projected Future Down Payment (If continuing to save)</label>
+        <div class="calc-input-combo">
+          <input type="number" id="inDownValueLater" value="15">
+          <select id="inDownUnitLater" aria-label="Future Down Payment Unit">
+            <option value="%">%</option>
+            <option value="$">$</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="calc-baselines-strip">
+        <span>Calculated annualized home price growth in this city: <strong id="lblAppreciationRate">4.5%</strong></span>
+      </div>
+
+      <div class="action-tray-constrained grid-span-full">
+        <button type="button" class="btn btn-primary" onclick="calculateCostOfWaiting()">Compare Buying Now vs. Waiting</button>
+      </div>
+    </div>
+  </section>
+
+  {# Section 2.0: Comparison Results #}
+  <section id="resultsWrapper" class="calc-results-stage" data-nav-title="Comparison Results">
+    
+    {# Strategic Executive Summary Banner (With 2rem Bottom Spacing) #}
+    <div class="surface-bento calc-summary-card" id="summaryBoxBlock">
+      <h2 class="text-widget-title" id="txtSummaryTitle">Cost of Waiting Summary</h2>
+      <p class="text-body-secondary" id="txtSummarySubtitle">When combining projected home price growth, rent paid while waiting, and the expected mortgage loan reduction over this timeframe, the total calculated variance is:</p>
+      <div class="calc-stat-hero" id="txtTotalCostOfWaiting">$0</div>
+      <p class="text-body calc-prose-lead" id="txtCoachConclusion">Analyzing calculations...</p>
+    </div>
+
+    {# 4-Cell Comparative Narrative Grid #}
+    <div class="section-grid-static grid-cols-2">
+      <article class="surface-bento pathway-item-card">
+        <h3 class="text-widget-title">1. Home Price Growth</h3>
+        <div class="calc-stat-strip">
+          <div class="calc-stat-col">
+            <span class="calc-stat-label">Price Today</span>
+            <span class="calc-stat-val" id="valPriceNow">--</span>
+          </div>
+          <div class="calc-stat-col">
+            <span class="calc-stat-label">Projected Price Later</span>
+            <span class="calc-stat-val" id="valPriceLater">--</span>
+          </div>
+        </div>
+        <p class="text-body-secondary" id="descPriceChase">This tracks how projected home price changes affect the final cost of the property at the end of your waiting period.</p>
+      </article>
+
+      <article class="surface-bento pathway-item-card">
+        <h3 class="text-widget-title">2. Down Payment Structure</h3>
+        <div class="calc-stat-strip">
+          <div class="calc-stat-col">
+            <span class="calc-stat-label">Down Payment Today</span>
+            <span class="calc-stat-val" id="valDownNow">--</span>
+          </div>
+          <div class="calc-stat-col">
+            <span class="calc-stat-label">Down Payment Later</span>
+            <span class="calc-stat-val" id="valDownLater">--</span>
+          </div>
+        </div>
+        <p class="text-body-secondary" id="descDownTrap">This shows how changes in the purchase price alter the relationship between your available down payment savings and the remaining loan size.</p>
+      </article>
+
+      <article class="surface-bento pathway-item-card">
+        <h3 class="text-widget-title">3. Monthly Outlays &amp; Income Qualification</h3>
+        <div class="calc-stat-strip">
+          <div class="calc-stat-col">
+            <span class="calc-stat-label">Payment Today</span>
+            <span class="calc-stat-val" id="valPaymentNow">--</span>
+          </div>
+          <div class="calc-stat-col">
+            <span class="calc-stat-label">Payment Later</span>
+            <span class="calc-stat-val" id="valPaymentLater">--</span>
+          </div>
+        </div>
+        <p class="text-body-secondary" id="descBreakdownQualifying">This calculates how changes in the base purchase price and future interest rates combine to impact your regular monthly payment and the annual income required by lenders.</p>
+      </article>
+
+      <article class="surface-bento pathway-item-card">
+        <h3 class="text-widget-title">4. Rent Outflows &amp; Principal Paydown</h3>
+        <div class="calc-stat-strip">
+          <div class="calc-stat-col">
+            <span class="calc-stat-label">Rent Paid While Waiting</span>
+            <span class="calc-stat-val" id="valRentSunk">--</span>
+          </div>
+          <div class="calc-stat-col">
+            <span class="calc-stat-label">Loan Balance Reduction</span>
+            <span class="calc-stat-val" id="valMissedPaydown">--</span>
+          </div>
+        </div>
+        <p class="text-body-secondary" id="descSunkProgress">This calculates the total rent paid during your waiting window alongside the expected drop in your loan balance that would occur under an active mortgage over that same time.</p>
+      </article>
+    </div>
+
+  </section>
+
+</main>
+
+<script>
+  let parsedFeedRatesRegistry = {
+    'Conventional': 6.50,
+    'FHA': 6.125,
+    'VA': 6.125
+  };
+
+  function updateDisplayedRate() {
+    const loanType = document.getElementById('inLoanType').value;
+    if (parsedFeedRatesRegistry[loanType]) {
+      document.getElementById('inRateNow').value = parsedFeedRatesRegistry[loanType].toFixed(3);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    fetch('/data/hourly_rates.json')
+      .then(response => response.json())
+      .then(rows => {
+        if (rows && rows.length > 0) {
+          const validRows = rows.filter(r => Object.values(r)[0] && String(Object.values(r)[0]).trim() !== '');
+          validRows.sort((a, b) => new Date(Object.values(a)[0].split(' ')[0]) - new Date(Object.values(b)[0].split(' ')[0]));
+          const latestRow = validRows[validRows.length - 1];
+          const latestVals = Object.values(latestRow);
+          
+          const convRate = parseFloat(latestVals[1]);
+          const fhaRate = parseFloat(latestVals[2]);
+          const vaRate = parseFloat(latestVals[3]);
+
+          if (!isNaN(convRate)) parsedFeedRatesRegistry['Conventional'] = convRate;
+          if (!isNaN(fhaRate)) parsedFeedRatesRegistry['FHA'] = fhaRate;
+          if (!isNaN(vaRate)) parsedFeedRatesRegistry['VA'] = vaRate;
+          
+          updateDisplayedRate();
+        }
+      })
+      .catch(error => console.error("Error loading live rates, defaulting to reference baselines", error));
+
+    const categoriesPath = '/data/city_data.json';
+    const infosparksPath = '/data/infosparks_stats.json';
+
+    let dataStore = { cities: {}, infosparks: {}, computedAppreciation: 4.5 };
+
+    const cleanNum = (str) => {
+      if (str === null || str === undefined || str === 'NaN') return 0;
+      return parseFloat((str).toString().replace(/[^0-9.-]+/g, "")) || 0;
+    };
+    const formatCurrency = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+
+    const fetchJSON = async (path) => {
+      try { 
+        const res = await fetch(path); 
+        if (!res.ok) return null; 
+        return JSON.parse((await res.text()).replace(/:\s*NaN/g, ": null")); 
+      } catch (e) { 
+        return null; 
+      }
+    };
+
+    Promise.all([
+      fetchJSON(categoriesPath), fetchJSON(infosparksPath)
+    ]).then(values => {
+      const categoryRows = values[0] || [];
+      const is = values[1];
+      dataStore.infosparks = is && is.feeds ? is.feeds : (is || {});
+
+      categoryRows.forEach(row => {
+        if (row.City) {
+          dataStore.cities[row.City.trim().toLowerCase()] = { city: row.City.trim() };
+        }
+      });
+      populateDropdown();
+    });
+
+    function populateDropdown() {
+      const select = document.getElementById('citySelect');
+      let optionsHtml = '';
+      Object.values(dataStore.cities).sort((a,b) => a.city.localeCompare(b.city)).forEach(item => {
+        optionsHtml += `<option value="${item.city}">${item.city}</option>`;
+      });
+      select.innerHTML = optionsHtml;
+      select.addEventListener('change', handleCityChange);
+      handleCityChange();
+    }
+
+    function handleCityChange() {
+      const city = document.getElementById('citySelect').value;
+      const target = city.toLowerCase().trim();
+      let timeline = [];
+
+      for (let feedKey in dataStore.infosparks) {
+        if (feedKey.toLowerCase().includes('median_sale_price')) {
+          const feed = dataStore.infosparks[feedKey];
+          let rows = Array.isArray(feed) ? feed : (feed.data || []);
+          
+          if (rows.length > 0) {
+            const validRow = rows.find(r => r.Date && !String(r.Date).includes("All data from"));
+            if (validRow && Object.keys(validRow).some(k => k.toLowerCase().trim() === target)) {
+              timeline = rows.filter(row => {
+                if (!row || !row.Date || String(row.Date).includes("All data from")) return false;
+                let v = row[Object.keys(row).find(k => k.toLowerCase().trim() === target)];
+                return v !== null && v !== undefined && v !== 'NaN' && !Number.isNaN(v);
+              }).map(row => cleanNum(row[Object.keys(row).find(k => k.toLowerCase().trim() === target)]));
+            }
+          }
+        }
+      }
+
+      let appreciationRate = 4.5; 
+      let currentMedian = 800000;
+
+      if (timeline.length > 1) {
+        currentMedian = timeline[timeline.length - 1];
+        const earliestPrice = timeline[0];
+        const totalPoints = timeline.length;
+        if (totalPoints >= 12) {
+          const years = totalPoints / 12;
+          appreciationRate = (Math.pow((currentMedian / earliestPrice), (1 / years)) - 1) * 100;
+        } else {
+          appreciationRate = ((currentMedian / earliestPrice) - 1) * 100;
+        }
+        if (appreciationRate < -10 || appreciationRate > 20 || isNaN(appreciationRate)) {
+          appreciationRate = 4.5;
+        }
+      }
+
+      dataStore.computedAppreciation = appreciationRate;
+      document.getElementById('lblAppreciationRate').textContent = appreciationRate.toFixed(1) + '%';
+      document.getElementById('inPriceOverride').value = currentMedian;
+    }
+
+    window.calculateCostOfWaiting = function() {
+      const cityVal = document.getElementById('citySelect').value;
+      const targetLocation = cityVal ? cityVal : "this area";
+      const waitYears = parseFloat(document.getElementById('inWaitTime').value);
+      const loanType = document.getElementById('inLoanType').value;
+      const baseRent = parseFloat(document.getElementById('inRent').value) || 0;
+      const priceNow = parseFloat(document.getElementById('inPriceOverride').value) || 0;
+      const rateNow = parseFloat(document.getElementById('inRateNow').value) || 6.5;
+      const rateLater = parseFloat(document.getElementById('inRateLater').value) || 5.75;
+      const downValNow = parseFloat(document.getElementById('inDownValueNow').value) || 0;
+      const downUnitNow = document.getElementById('inDownUnitNow').value;
+      const downValLater = parseFloat(document.getElementById('inDownValueLater').value) || 0;
+      const downUnitLater = document.getElementById('inDownUnitLater').value;
+
+      const annualAppreciation = dataStore.computedAppreciation / 100;
+
+      let cashDownNow = (downUnitNow === '%') ? priceNow * (downValNow / 100) : downValNow;
+      let loanAmountNow = priceNow - cashDownNow;
+      if (loanType === 'FHA') loanAmountNow += (loanAmountNow * 0.0175);
+      else if (loanType === 'VA') loanAmountNow += (loanAmountNow * 0.0215);
+
+      const monthlyPINow = calculateAmortization(loanAmountNow, rateNow);
+      const taxAndInsNow = (priceNow * 0.009 / 12) + 120; 
+      let pmiNow = 0;
+      if (loanType === 'Conventional' && (cashDownNow / priceNow) < 0.20) pmiNow = (loanAmountNow * 0.005 / 12);
+      else if (loanType === 'FHA') pmiNow = (loanAmountNow * 0.0055 / 12);
+      const totalPaymentNow = monthlyPINow + taxAndInsNow + pmiNow;
+
+      const priceLater = priceNow * Math.pow(1 + annualAppreciation, waitYears);
+      let cashDownLater = (downUnitLater === '%') ? priceLater * (downValLater / 100) : downValLater;
+      let loanAmountLater = priceLater - cashDownLater;
+      if (loanType === 'FHA') loanAmountLater += (loanAmountLater * 0.0175);
+      else if (loanType === 'VA') loanAmountLater += (loanAmountLater * 0.0215);
+
+      const monthlyPILater = calculateAmortization(loanAmountLater, rateLater);
+      const taxAndInsLater = (priceLater * 0.009 / 12) + 120;
+      let pmiLater = 0;
+      if (loanType === 'Conventional' && (cashDownLater / priceLater) < 0.20) pmiLater = (loanAmountLater * 0.005 / 12);
+      else if (loanType === 'FHA') pmiLater = (loanAmountLater * 0.0055 / 12);
+      const totalPaymentLater = monthlyPILater + taxAndInsLater + pmiLater;
+
+      const priceIncreasePenalty = priceLater - priceNow;
+      const totalRentSunk = baseRent * 12 * waitYears;
+      
+      let trackingBalance = loanAmountNow;
+      const monthlyRateNow = (rateNow / 100) / 12;
+      const totalMonthsToWait = waitYears * 12;
+      let accumulatedPaydown = 0;
+
+      for (let m = 1; m <= totalMonthsToWait; m++) {
+        const interestCharge = trackingBalance * monthlyRateNow;
+        const principalReduction = monthlyPINow - interestCharge;
+        accumulatedPaydown += principalReduction;
+        trackingBalance -= principalReduction;
+      }
+
+      const absoluteFinancialLoss = priceIncreasePenalty + totalRentSunk + accumulatedPaydown;
+
+      document.getElementById('valPriceNow').textContent = formatCurrency(priceNow);
+      document.getElementById('valPriceLater').textContent = formatCurrency(priceLater);
+      document.getElementById('valDownNow').textContent = formatCurrency(cashDownNow);
+      document.getElementById('valDownLater').textContent = formatCurrency(cashDownLater);
+      document.getElementById('valPaymentNow').textContent = formatCurrency(totalPaymentNow) + '/mo';
+      document.getElementById('valPaymentLater').textContent = formatCurrency(totalPaymentLater) + '/mo';
+      document.getElementById('valRentSunk').textContent = formatCurrency(totalRentSunk);
+      document.getElementById('valMissedPaydown').textContent = formatCurrency(accumulatedPaydown);
+
+      document.getElementById('descPriceChase').textContent = `Based on historical trends in ${targetLocation}, a waiting period of ${waitYears} ${waitYears === 1 ? 'year' : 'years'} is projected to shift the purchase price from ${formatCurrency(priceNow)} to ${formatCurrency(priceLater)}, a difference of ${formatCurrency(Math.abs(priceIncreasePenalty))}.`;
+      const extraSavingsTarget = cashDownLater - cashDownNow;
+      if (extraSavingsTarget > 0) {
+        document.getElementById('descDownTrap').textContent = `With a projected price change of ${formatCurrency(priceIncreasePenalty)}, saving an additional ${formatCurrency(extraSavingsTarget)} results in an estimated future loan balance of ${formatCurrency(loanAmountLater)}, compared to a balance of ${formatCurrency(loanAmountNow)} if purchasing today.`;
+      } else {
+        document.getElementById('descDownTrap').textContent = `This tracks how changes in the purchase price alter the relationship between your available down payment savings and the remaining loan size.`;
+      }
+
+      const incomeNow = (totalPaymentNow / 0.33) * 12;
+      const incomeLater = (totalPaymentLater / 0.33) * 12;
+      document.getElementById('descBreakdownQualifying').textContent = `Based on a standard lending allocation for housing costs, an immediate purchase requires an estimated annual household income of ${formatCurrency(incomeNow)}. A delayed purchase requires an estimated annual household income of ${formatCurrency(incomeLater)} based on the projected future price and interest rate.`;
+
+      const summaryBox = document.getElementById('summaryBoxBlock');
+      const totalTextEl = document.getElementById('txtTotalCostOfWaiting');
+      const titleEl = document.getElementById('txtSummaryTitle');
+      const subtitleEl = document.getElementById('txtSummarySubtitle');
+
+      if (absoluteFinancialLoss > 0) {
+        summaryBox.classList.remove('advantage-waiting');
+        totalTextEl.classList.remove('advantage-waiting');
+        titleEl.textContent = "Cost of Waiting Summary";
+        subtitleEl.textContent = "Based on these inputs, a purchase today results in a lower total calculated financial outlay over this timeframe. The difference between the two tracks is:";
+        totalTextEl.textContent = formatCurrency(absoluteFinancialLoss);
+        document.getElementById('txtCoachConclusion').textContent = `Historical data indicates that home price growth and rent outlays frequently combine to create a higher total cost if a purchase is delayed. Securing the home at today's price sets your baseline cost and begins reducing your loan balance right away. If interest rates drop down the road, homeowners can explore refinancing options to lower their regular monthly payments without needing to catch up to a higher purchase price.`;
+      } else {
+        summaryBox.classList.add('advantage-waiting');
+        totalTextEl.classList.add('advantage-waiting');
+        titleEl.textContent = "Cost of Waiting Summary";
+        subtitleEl.textContent = "Based on these inputs, a delayed purchase results in a lower total calculated financial outlay over this timeframe. The difference between the two tracks is:";
+        totalTextEl.textContent = formatCurrency(Math.abs(absoluteFinancialLoss));
+        document.getElementById('txtCoachConclusion').textContent = `In this scenario, delaying the purchase aligns with a lower total calculated outlay. Over the next ${waitYears} ${waitYears === 1 ? 'year' : 'years'}, the financial benefit of a lower projected interest rate and an increased down payment outweighs both the total rent paid while waiting and the projected home price growth of ${formatCurrency(priceIncreasePenalty)}.`;
+      }
+
+      const resultsWrapper = document.getElementById('resultsWrapper');
+      resultsWrapper.style.display = 'block';
+      resultsWrapper.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    function calculateAmortization(principal, annualRate) {
+      if (principal <= 0) return 0;
+      const monthlyRate = (annualRate / 100) / 12;
+      const totalPayments = 360;
+      if (monthlyRate === 0) return principal / totalPayments;
+      return principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / (Math.pow(1 + monthlyRate, totalPayments) - 1);
+    }
+  });
+</script>

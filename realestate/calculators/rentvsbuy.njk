@@ -1,0 +1,485 @@
+---
+layout: layouts/base.njk
+title: "Housing Planner - Renting vs. Buying Modeler | Joe Sheldon"
+description: "An interactive 30-year housing financial planner comparing wealth compounding, home equity growth, rent inflation, and life milestone transitions."
+permalink: /realestate/calculators/rentvsbuy/index.html
+---
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "@id": "https://myseattlesearch.com/realestate/calculators/rentvsbuy/#calculator",
+  "name": "Renting vs. Buying 30-Year Wealth Journey Calculator",
+  "url": "https://myseattlesearch.com/realestate/calculators/rentvsbuy/",
+  "description": "An interactive 30-year housing financial planner comparing wealth compounding, home equity growth, rent inflation, and life milestone transitions.",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "All",
+  "author": {
+    "@type": "RealEstateAgent",
+    "@id": "https://myseattlesearch.com/#agent",
+    "name": "Joe Sheldon - Redfin Real Estate Agent"
+  }
+}
+</script>
+
+<main class="layout-container layout-stack-main">
+
+  {# Canonical Page Hero Header #}
+  <header class="surface-bento page-hero-bento">
+    <h1 class="text-page-title" style="margin-bottom: 0.5rem;">Housing Planner: Renting vs. Buying Modeler</h1>
+    <p class="text-body page-hero-lead">
+      Put real estate decisions on a personal scale based on major life milestones.
+    </p>
+  </header>
+
+  <div class="section-divider"></div>
+
+  {# Section 1.0: Strategy Control Card #}
+  <section id="financing-parameters" data-nav-title="Parameters" class="surface-bento calc-control-card">
+    <div class="calc-control-header">
+      <h2 class="text-widget-title">Financing Parameters</h2>
+    </div>
+
+    <div class="control-form-grid">
+      <div class="input-element-box">
+        <label for="inAge">Current Age</label>
+        <input type="number" id="inAge" value="30" min="18" max="75">
+      </div>
+
+      <div class="input-element-box">
+        <label for="inIncome">Annual Household Income ($)</label>
+        <input type="number" id="inIncome" value="165000">
+      </div>
+
+      <div class="input-element-box">
+        <label for="inCreditScore">Credit Score Range</label>
+        <select id="inCreditScore" onchange="evaluateLiveRateLockAdjustments()">
+          <option value="740">740+ (Excellent)</option>
+          <option value="700">700&ndash;739 (Good)</option>
+          <option value="660">660&ndash;699 (Fair)</option>
+          <option value="620">620&ndash;659 (Subprime Baseline)</option>
+        </select>
+      </div>
+
+      <div class="input-element-box">
+        <label for="inLoanType">Loan Program</label>
+        <select id="inLoanType" onchange="handleLoanTypeMenuShift()">
+          <option value="Conventional">Conventional</option>
+          <option value="FHA">Standard FHA</option>
+          <option value="VA">VA Loan</option>
+        </select>
+      </div>
+
+      <div class="input-element-box">
+        <label for="inPrice">Target Purchase Price ($)</label>
+        <input type="number" id="inPrice" value="850000" oninput="evaluateLiveRateLockAdjustments()">
+      </div>
+
+      <div class="input-element-box">
+        <label for="inDownValue">Down Payment</label>
+        <div class="down-payment-combo-group">
+          <input type="number" id="inDownValue" value="5" oninput="handleDownPaymentManualOverride()">
+          <select id="inDownUnit" onchange="handleDownPaymentManualOverride()" aria-label="Down Payment Unit">
+            <option value="%">%</option>
+            <option value="$">$</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="input-element-box">
+        <label for="inRate">Calculated Interest Rate (%)</label>
+        <input type="number" id="inRate" value="6.50" step="0.125">
+      </div>
+
+      <div class="input-element-box">
+        <label for="inRent">Current Monthly Rent ($)</label>
+        <input type="number" id="inRent" value="3200">
+      </div>
+
+      <div class="input-element-box input-grid-span-full">
+        <div class="slider-header-row">
+          <label for="inCycleLength">Expected property duration length before relocation</label>
+          <span id="lblCycleVal" class="slider-value-pill">Washington homeowner average of 10.3 years</span>
+        </div>
+        <input type="range" id="inCycleLength" class="rvb-range-slider" min="3" max="31" step="0.5" value="10.3" oninput="handleSliderMovementValueUpdate(this.value)">
+      </div>
+
+      <div class="input-element-box input-element-constrained">
+        <label for="inViewMode">Timeline View Mode</label>
+        <select id="inViewMode" onchange="handleViewModeConfigurationChange(this.value)">
+          <option value="phases">Realistic Life View</option>
+          <option value="flat30">Standard 30-Year Mortgage View</option>
+        </select>
+      </div>
+
+      <div class="baselines-summary-strip">
+        <span>Home Appreciation: <strong>4.5%</strong></span>
+        <span>Rent Inflation: <strong>4.0%</strong></span>
+        <span>Tenant Lease Frequency: <strong>Every 3 Years</strong></span>
+        <span>Relocation Pack/Move Costs: <strong>$2,500</strong></span>
+      </div>
+
+      <div class="input-grid-span-full">
+        <button type="button" class="btn btn-primary" onclick="generateComparativeWealthTimeline()">Generate Timeline</button>
+      </div>
+    </div>
+  </section>
+
+  {# Section 2.0: Timeline Results Display #}
+  <section id="resultsCardWrapper" class="surface-bento rvb-results-card" data-nav-title="Timeline">
+    
+    <div class="print-only-header">
+      <div class="card-header-split">
+        <div>
+          <h1>Housing Lifespan Analysis</h1>
+          <p>Wealth Compounding and Structural Milestone Blueprint</p>
+        </div>
+        <div>
+          <h3>Joe Sheldon</h3>
+          <p class="url-line">myseattlesearch.com</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="rvb-results-header">
+      <h2 class="text-widget-title">30-Year Financial Horizon Analysis</h2>
+      <p class="text-body-secondary">A side-by-side annual breakdown itemizing property appreciation, remaining debt obligations, housing expenses, and calculated net equity variances.</p>
+    </div>
+    
+    <div class="table-scroll-container">
+      <table class="timeline-data-table">
+        <thead>
+          <tr>
+            <th>Age (Year)</th>
+            <th>Home Value</th>
+            <th>Loan Balance</th>
+            <th>Owner Outflow</th>
+            <th>Renter Outflow</th>
+            <th>Accumulated Equity</th>
+            <th>Net Wealth Variance</th>
+          </tr>
+        </thead>
+        <tbody id="timelineTableBodyOutput"></tbody>
+      </table>
+    </div>
+
+    {# Modular Single-Card Loan Officer Referral Block #}
+    <article class="surface-bento profile-single-card" style="margin-top: 3rem;">
+      <div class="profile-avatar-wrapper">
+        <img src="https://assets.myseattlesearch.com/repomove/carly.webp" alt="Carly Ozuna" width="150" height="150" class="avatar-squircle" loading="lazy" onerror="this.src='https://placehold.co/150x150?text=Carly+Ozuna'">
+      </div>
+      
+      <div class="text-overline people-role-tag">Preferred Lending Partner &bull; Rocket Mortgage</div>
+      <h2 class="profile-name-heading">Carly Ozuna</h2>
+      
+      <div class="people-contact-meta">
+        <a href="tel:4252184630" class="people-contact-link">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <span class="tabular-nums">(425) 218-4630</span>
+        </a>
+        <a href="mailto:carlyozuna@rocketmortgage.com" class="people-contact-link">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          <span>carlyozuna@rocketmortgage.com</span>
+        </a>
+      </div>
+      
+      <div class="action-tray-constrained profile-cta-wrapper" style="margin-top: 1.25rem;">
+        <a href="https://rkt.me/carlyozuna#rf_aid=4621" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+          <span>Apply Securely with Carly &rarr;</span>
+        </a>
+      </div>
+    </article>
+
+    <div class="compliance-disclaimer-text">
+      Legal Disclaimer and Education Notice: All calculations, appreciation tracks, rent inflation rates, and mortgage interest models are designed for consumer educational and illustrative analysis. Local tax rules, standard deductions, and insurance premiums can vary over a 30-year lifecycle. This layout does not constitute a formal commitment to lend or official tax advice. Washington state enforces no individual personal income tax. Interest adjustments follow federal tax bracket guidelines. Consult a certified public accountant and a licensed mortgage professional for underwriting verification.
+    </div>
+
+</main>
+
+<script>
+  let parsedFeedRatesRegistry = {
+    'Conventional': 6.50,
+    'FHA': 6.125,
+    'VA': 6.125
+  };
+  let activeLockStateAutomated = true;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    fetchLiveDailyMarketRates();
+  });
+
+  async function fetchLiveDailyMarketRates() {
+    try {
+      const res = await fetch('/data/hourly_rates.json');
+      if (!res.ok) throw new Error("Rates JSON not found");
+      const rows = await res.json();
+      
+      if (rows && rows.length > 0) {
+        const validRows = rows.filter(r => Object.values(r)[0] && String(Object.values(r)[0]).trim() !== '');
+        validRows.sort((a, b) => new Date(Object.values(a)[0].split(' ')[0]) - new Date(Object.values(b)[0].split(' ')[0]));
+        
+        const latestRow = validRows[validRows.length - 1];
+        const latestVals = Object.values(latestRow);
+        
+        const convRate = parseFloat(latestVals[1]);
+        const fhaRate = parseFloat(latestVals[2]);
+        const vaRate = parseFloat(latestVals[3]);
+
+        if (!isNaN(convRate)) parsedFeedRatesRegistry['Conventional'] = convRate;
+        if (!isNaN(fhaRate)) parsedFeedRatesRegistry['FHA'] = fhaRate;
+        if (!isNaN(vaRate)) parsedFeedRatesRegistry['VA'] = vaRate;
+      }
+      evaluateLiveRateLockAdjustments();
+    } catch (e) {
+      console.error("Error fetching live rates feed, utilizing baseline fallbacks:", e);
+      evaluateLiveRateLockAdjustments();
+    }
+  }
+
+  function handleLoanTypeMenuShift() {
+    activeLockStateAutomated = true;
+    evaluateLiveRateLockAdjustments();
+  }
+
+  function handleDownPaymentManualOverride() {
+    activeLockStateAutomated = false;
+    evaluateLiveRateLockAdjustments();
+  }
+
+  function evaluateLiveRateLockAdjustments() {
+    const type = document.getElementById('inLoanType').value;
+    const credit = parseInt(document.getElementById('inCreditScore').value) || 740;
+    const price = parseFloat(document.getElementById('inPrice').value) || 0;
+    const downValEl = document.getElementById('inDownValue');
+    const unitEl = document.getElementById('inDownUnit');
+    const rateInput = document.getElementById('inRate');
+
+    if (activeLockStateAutomated && price > 0) {
+      if (type === 'VA') { downValEl.value = 0; unitEl.value = '%'; } 
+      else if (type === 'FHA') { downValEl.value = 3.5; unitEl.value = '%'; } 
+      else { downValEl.value = 5; unitEl.value = '%'; }
+    }
+
+    let baseRate = parsedFeedRatesRegistry[type] || 6.50;
+    let adjustmentFactor = 0;
+
+    if (type === 'Conventional' && price > 0) {
+      const manualDownValue = parseFloat(downValEl.value) || 0;
+      let computedDownPct = manualDownValue;
+      if (unitEl.value === '$') computedDownPct = (manualDownValue / price) * 100;
+
+      if (credit < 660) adjustmentFactor += 1.00;
+      else if (credit < 700) adjustmentFactor += 0.625;
+      else if (credit < 740) adjustmentFactor += 0.25;
+
+      if (computedDownPct < 5) adjustmentFactor += 0.25;
+      if (computedDownPct >= 20) adjustmentFactor -= 0.25; 
+    }
+
+    rateInput.value = (baseRate + adjustmentFactor).toFixed(3);
+  }
+
+  function handleSliderMovementValueUpdate(val) {
+    const lbl = document.getElementById('lblCycleVal');
+    if (parseFloat(val) > 30) lbl.textContent = "Full 30-Year Timeline (No Resets)";
+    else lbl.textContent = parseFloat(val).toFixed(1) + " Years";
+  }
+
+  function handleViewModeConfigurationChange(val) {
+    const sliderInput = document.getElementById('inCycleLength');
+    if (val === 'flat30') { sliderInput.value = 31; handleSliderMovementValueUpdate(31); } 
+    else { sliderInput.value = 10.3; handleSliderMovementValueUpdate(10.3); }
+  }
+
+  function calculateAmortizationMonthlyPayment(principal, annualRate) {
+    if (principal <= 0) return 0;
+    const monthlyRate = (annualRate / 100) / 12;
+    const totalPaymentsCount = 360;
+    if (monthlyRate === 0) return principal / totalPaymentsCount;
+    return principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPaymentsCount)) / (Math.pow(1 + monthlyRate, totalPaymentsCount) - 1);
+  }
+
+  function estimateFederalTaxBracketMarginalRate(income) {
+    if (income > 250000) return 0.32;
+    if (income > 100000) return 0.24;
+    if (income > 45000) return 0.22;
+    return 0.12;
+  }
+
+  function formatCurrency(num) {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+  }
+
+  function generateComparativeWealthTimeline() {
+    const startAge = parseInt(document.getElementById('inAge').value) || 30;
+    const income = parseFloat(document.getElementById('inIncome').value) || 0;
+    let baseRent = parseFloat(document.getElementById('inRent').value) || 0;
+    let basePrice = parseFloat(document.getElementById('inPrice').value) || 0;
+    const inputRateVal = parseFloat(document.getElementById('inRate').value) || 6.5;
+    const programType = document.getElementById('inLoanType').value;
+    const viewMode = document.getElementById('inViewMode').value;
+    
+    let targetCycleLength = parseFloat(document.getElementById('inCycleLength').value) || 10.3;
+    let executeCyclicResets = true;
+    if (targetCycleLength > 30 || viewMode === 'flat30') { executeCyclicResets = false; targetCycleLength = 999; }
+
+    const downValueFieldInput = parseFloat(document.getElementById('inDownValue').value) || 0;
+    const downUnitSelectField = document.getElementById('inDownUnit').value;
+    const appreciation = 4.5;
+    const rentInflation = 4.0;
+    const moveFreq = 3;
+    const moveCost = 2500;
+    const standardDeductionLimit = 15600;
+    const federalMarginalTaxBracket = estimateFederalTaxBracketMarginalRate(income);
+
+    let calculatedDownPaymentDollars = downValueFieldInput;
+    if (downUnitSelectField === '%') calculatedDownPaymentDollars = basePrice * (downValueFieldInput / 100);
+
+    let principalFirstMortgage = basePrice - calculatedDownPaymentDollars;
+    let initialUpfrontPremiumWrapped = 0;
+
+    if (programType === 'FHA') {
+      initialUpfrontPremiumWrapped = principalFirstMortgage * 0.0175;
+      principalFirstMortgage += initialUpfrontPremiumWrapped;
+    } else if (programType === 'VA') {
+      initialUpfrontPremiumWrapped = principalFirstMortgage * 0.0215;
+      principalFirstMortgage += initialUpfrontPremiumWrapped;
+      calculatedDownPaymentDollars = 0; 
+    }
+
+    let activeMonthlyPI = calculateAmortizationMonthlyPayment(principalFirstMortgage, inputRateVal);
+    let cumulativeBuyerOutflow = calculatedDownPaymentDollars;
+    let cumulativeRenterOutflow = 0;
+    let cycleTimerCounter = 0;
+    let lastRenderedPhaseLabel = '';
+    const maxTimelineYearsHorizon = (viewMode === 'flat30') ? 30 : Math.max(30, 85 - startAge);
+    const tableBodyOutput = document.getElementById('timelineTableBodyOutput');
+    let htmlBuffer = '';
+    let currentHomeValue = basePrice;
+    let activeLoanBalance = principalFirstMortgage;
+
+    for (let year = 1; year <= maxTimelineYearsHorizon; year++) {
+      const currentAgeIndex = startAge + year - 1;
+      cycleTimerCounter++;
+
+      if (viewMode !== 'flat30') {
+        let currentPhaseLabel = '';
+        if (currentAgeIndex < 40) currentPhaseLabel = "Career & Family Building Years (Ages 18-39)";
+        else if (currentAgeIndex < 55) currentPhaseLabel = "Peak Earning Years (Ages 40-54)";
+        else if (currentAgeIndex < 67) currentPhaseLabel = "Pre-Retirement & Wealth Consolidation (Ages 55-66)";
+        else currentPhaseLabel = "Retirement Horizon (Ages 67+)";
+
+        if (currentPhaseLabel !== lastRenderedPhaseLabel) {
+          htmlBuffer += `<tr class="phase-header-row"><td colspan="7">${currentPhaseLabel}</td></tr>`;
+          lastRenderedPhaseLabel = currentPhaseLabel;
+        }
+      }
+
+      let annualInterestPaidThisYear = 0;
+      let annualPmiPaidThisYear = 0;
+
+      if (year <= 30) {
+        for (let month = 1; month <= 12; month++) {
+          if (activeLoanBalance > 0) {
+            const monthlyInterestAccrual = activeLoanBalance * ((inputRateVal / 100) / 12);
+            const monthlyPrincipalAccrual = activeMonthlyPI - monthlyInterestAccrual;
+            annualInterestPaidThisYear += monthlyInterestAccrual;
+            activeLoanBalance -= monthlyPrincipalAccrual;
+            let currentLtvDownPct = downValueFieldInput;
+            if (downUnitSelectField === '$') currentLtvDownPct = (downValueFieldInput / basePrice) * 100;
+            if (programType === 'Conventional' && activeLoanBalance > (basePrice * 0.80) && currentLtvDownPct < 20) {
+              annualPmiPaidThisYear += ((basePrice - calculatedDownPaymentDollars) * 0.005) / 12;
+            } else if (programType === 'FHA') {
+              annualPmiPaidThisYear += (principalFirstMortgage * 0.0055) / 12;
+            }
+          }
+        }
+      }
+
+      if (activeLoanBalance < 0 || year > 30) activeLoanBalance = 0;
+
+      const computedPropertyTaxThisYear = currentHomeValue * 0.009;
+      let insuranceSlopeValue = 1200;
+      if (currentHomeValue > 500000) insuranceSlopeValue += (currentHomeValue - 500000) * (1800 / 1000000);
+      const maintenanceReservesCostThisYear = currentHomeValue * 0.01;
+
+      const itemizedDeductionSumTotal = annualInterestPaidThisYear + computedPropertyTaxThisYear;
+      let annualTaxSavingsBenefitValue = 0;
+      if (itemizedDeductionSumTotal > standardDeductionLimit) {
+        annualTaxSavingsBenefitValue = (itemizedDeductionSumTotal - standardDeductionLimit) * federalMarginalTaxBracket;
+      }
+
+      const actualMortgageCashFlowThisYear = (year <= 30 && activeLoanBalance > 0) ? (activeMonthlyPI * 12) : 0;
+      const grossBuyingCostsThisYear = actualMortgageCashFlowThisYear + annualPmiPaidThisYear + computedPropertyTaxThisYear + insuranceSlopeValue + maintenanceReservesCostThisYear;
+      cumulativeBuyerOutflow += (grossBuyingCostsThisYear - annualTaxSavingsBenefitValue);
+
+      let renterFrictionCostsThisYear = (baseRent * 12);
+      let flagMovingFrictionTrigger = false;
+      if (year % moveFreq === 0) {
+        renterFrictionCostsThisYear += moveCost;
+        flagMovingFrictionTrigger = true;
+      }
+      cumulativeRenterOutflow += renterFrictionCostsThisYear;
+
+      currentHomeValue = currentHomeValue * (1 + (appreciation / 100));
+      let accumulatedCurrentHomeEquity = currentHomeValue - activeLoanBalance;
+
+      let milestoneMarkupClass = '';
+      let narrativeNoteBlockText = `Includes an allocation of ${formatCurrency(maintenanceReservesCostThisYear)} for property maintenance and asset care variables.`;
+      if (annualTaxSavingsBenefitValue > 0) narrativeNoteBlockText += ` Estimated federal tax deductions reduce annual tax liability by ${formatCurrency(annualTaxSavingsBenefitValue)} for this year.`;
+      let downPctCheck = downValueFieldInput;
+      if (downUnitSelectField === '$') downPctCheck = (downValueFieldInput / basePrice) * 100;
+      if (programType === 'Conventional' && annualPmiPaidThisYear === 0 && downPctCheck < 20 && activeLoanBalance > 0 && year <= 30) narrativeNoteBlockText += ` Private mortgage insurance (PMI) requirements are removed as the remaining balance falls beneath the eighty percent loan-to-value threshold.`;
+      if (year > 30) narrativeNoteBlockText = `The mortgage loan is fully paid off. Remaining property expenses consist of local taxes, insurance, and routine home care upkeep.`;
+
+      if (executeCyclicResets && cycleTimerCounter >= Math.floor(targetCycleLength) && year < 30) {
+        milestoneMarkupClass = 'cycle-transition-row';
+        const salesTransactionFrictionCosts = currentHomeValue * 0.07;
+        const liquidatedNetProceedsEquityCash = currentHomeValue - activeLoanBalance - salesTransactionFrictionCosts;
+        basePrice = currentHomeValue; 
+        currentHomeValue = basePrice;
+        calculatedDownPaymentDollars = liquidatedNetProceedsEquityCash;
+        activeLoanBalance = basePrice - calculatedDownPaymentDollars;
+        if (programType === 'FHA') activeLoanBalance += (activeLoanBalance * 0.0175);
+        else if (programType === 'VA') activeLoanBalance += (activeLoanBalance * 0.0215);
+        activeMonthlyPI = calculateAmortizationMonthlyPayment(activeLoanBalance, inputRateVal);
+        cumulativeBuyerOutflow += salesTransactionFrictionCosts; 
+        accumulatedCurrentHomeEquity = currentHomeValue - activeLoanBalance;
+        narrativeNoteBlockText = `<span class="milestone-tag-badge badge-cycle">Property Sale</span> Based on average Washington state patterns, this year reflects selling the home, accounting for typical transaction closing fees, and rolling the net cash proceeds into a subsequent property purchase.`;
+        cycleTimerCounter = 0;
+      }
+
+      if (flagMovingFrictionTrigger && milestoneMarkupClass === '') narrativeNoteBlockText += ` Moving year: Includes an estimated ${formatCurrency(moveCost)} in relocation expenses.`;
+
+      if (!executeCyclicResets) {
+        if (year === 10) { milestoneMarkupClass = 'flat-milestone-row'; narrativeNoteBlockText = `<span class="milestone-tag-badge badge-flat">Tenure Baseline</span> This year matches the general ownership timeline duration tracked across local municipality properties.`; } 
+        else if (year === 15) { milestoneMarkupClass = 'flat-milestone-row'; narrativeNoteBlockText = `<span class="milestone-tag-badge">Amortization Crossover</span> At this point in the standard thirty year timeline, the monthly principal reduction exceeds the monthly interest portion of the payment.`; } 
+        else if (year === 30) { milestoneMarkupClass = 'flat-milestone-row'; narrativeNoteBlockText = `<span class="milestone-tag-badge badge-flat">Loan Completed</span> The primary mortgage is fully paid off. Subsequent property obligations are limited to property taxes and insurance distributions.`; }
+      }
+
+      const netWealthVarianceResult = accumulatedCurrentHomeEquity - (cumulativeBuyerOutflow - cumulativeRenterOutflow);
+      const avgMonthlyBuyerCost = grossBuyingCostsThisYear / 12;
+      const avgMonthlyRenterCost = renterFrictionCostsThisYear / 12;
+
+      htmlBuffer += `
+        <tr class="${milestoneMarkupClass}">
+          <td class="cell-year-header">Age ${currentAgeIndex}<br><span class="cell-year-sub">(Year ${year})</span></td>
+          <td>${formatCurrency(currentHomeValue)}</td>
+          <td>${activeLoanBalance > 0 ? formatCurrency(activeLoanBalance) : 'Paid Off'}</td>
+          <td class="cell-cost-negative">${formatCurrency(avgMonthlyBuyerCost)}/mo</td>
+          <td class="cell-cost-negative">${formatCurrency(avgMonthlyRenterCost)}/mo</td>
+          <td class="cell-wealth-positive">${formatCurrency(accumulatedCurrentHomeEquity)}</td>
+          <td class="${netWealthVarianceResult > 0 ? 'cell-wealth-positive' : 'cell-cost-negative'}">${netWealthVarianceResult > 0 ? 'Buyer +' + formatCurrency(netWealthVarianceResult) : 'Renter +' + formatCurrency(Math.abs(netWealthVarianceResult))}</td>
+        </tr>
+        <tr class="narrative-row"><td colspan="7"><span class="timeline-narrative-text">${narrativeNoteBlockText}</span></td></tr>
+      `;
+      baseRent = baseRent * (1 + (rentInflation / 100));
+    }
+
+    tableBodyOutput.innerHTML = htmlBuffer;
+    const resultsWrapper = document.getElementById('resultsCardWrapper');
+    resultsWrapper.style.display = 'block';
+    resultsWrapper.scrollIntoView({ behavior: 'smooth' });
+  }
+</script>

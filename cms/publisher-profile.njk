@@ -1,0 +1,145 @@
+---
+layout: layouts/base.njk
+pagination:
+  data: publishers
+  size: 1
+  alias: publisher
+permalink: /cms/publisher/{{ publisher.PublisherID | slugify }}/index.html
+eleventyComputed:
+  title: "{{ publisher.Name }} | Contributing Publisher | MySeattleSearch"
+  description: "Read dispatches, market insights, and regional analysis contributed by {{ publisher.Name }}."
+---
+
+<main class="layout-container layout-stack-main">
+
+  <section id="publisher-profile" data-nav-title="Publisher Profile" class="section-profile">
+    <article class="profile-single-card surface-bento">
+      
+      {# Section 1.0: Squircle Portrait Avatar #}
+      <div class="profile-avatar-wrapper">
+        {% if publisher.ProfilePhoto %}
+          <img src="{{ publisher.ProfilePhoto }}" alt="{{ publisher.Name }}" width="150" height="150" class="profile-avatar-img" loading="lazy">
+        {% else %}
+          <img src="/assets/brand/joe-sheldon-headshot.webp" alt="{{ publisher.Name }}" width="150" height="150" class="profile-avatar-img" loading="lazy">
+        {% endif %}
+      </div>
+      
+      {# Identity & Institutional Affiliation #}
+      <div class="text-overline people-role-tag">
+        {{ publisher.Title }}{% if publisher.OrgName %} &bull; {{ publisher.OrgName }}{% endif %}
+      </div>
+
+      <h1 class="profile-name-heading">
+        {{ publisher.Name }}
+      </h1>
+      
+      {# Section 2.0: Public Contact & Channel Coordinates #}
+      <div class="people-contact-meta">
+        {% if publisher.PhoneNumber %}
+          <a href="tel:{{ publisher.PhoneNumber }}" class="people-contact-link" aria-label="Call {{ publisher.Name }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            <span class="tabular-nums">{{ publisher.PhoneNumber }}</span>
+          </a>
+        {% endif %}
+        
+        {% if publisher.EmailAddress %}
+          <a href="mailto:{{ publisher.EmailAddress }}" class="people-contact-link" aria-label="Email {{ publisher.Name }}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect width="20" height="16" x="2" y="4" rx="2"/>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+            </svg>
+            <span>{{ publisher.EmailAddress }}</span>
+          </a>
+        {% endif %}
+        
+        {% if publisher.Website %}
+          <a href="{{ publisher.Website }}" target="_blank" rel="noopener noreferrer" class="people-contact-link" aria-label="Official Website for {{ publisher.Name }}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="2" y1="12" x2="22" y2="12"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            <span>Website</span>
+          </a>
+        {% endif %}
+
+        {% if publisher.YouTubeChannel %}
+          <a href="{{ publisher.YouTubeChannel }}" target="_blank" rel="noopener noreferrer" class="people-contact-link" aria-label="YouTube Channel for {{ publisher.Name }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/>
+              <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/>
+            </svg>
+            <span>YouTube</span>
+          </a>
+        {% endif %}
+
+        {% if publisher.OtherChannelLink %}
+          <a href="{{ publisher.OtherChannelLink }}" target="_blank" rel="noopener noreferrer" class="people-contact-link" aria-label="{{ publisher.OtherChannelName or 'Channel' }} for {{ publisher.Name }}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+            <span>{{ publisher.OtherChannelName or "Channel" }}</span>
+          </a>
+        {% endif %}
+
+        {% if publisher.Address %}
+          <span class="people-contact-link">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span>{{ publisher.Address }}</span>
+          </span>
+        {% endif %}
+      </div>
+      
+      {# Section 3.0: Editorial Narrative & Bio #}
+      {% if publisher.Description %}
+        <div class="section-divider"></div>
+        
+        <div class="profile-narrative-section">
+          <h2 class="text-widget-title profile-narrative-heading">
+            Background &amp; Focus
+          </h2>
+          <div class="text-body profile-prose-body">
+            {{ publisher.Description | safe }}
+          </div>
+        </div>
+      {% endif %}
+
+    </article>
+    
+    {# Section 4.0: Return Navigation Tray #}
+    <div class="action-tray-constrained">
+      <a href="/cms/notebook/" class="btn btn-secondary">
+        <span>&larr; Back to Notebook</span>
+      </a>
+    </div>
+
+  </section>
+
+</main>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "{{ publisher.Name }}",
+  {% if publisher.Title %}"jobTitle": "{{ publisher.Title }}",{% endif %}
+  {% if publisher.OrgName %}
+  "worksFor": {
+    "@type": "Organization",
+    "name": "{{ publisher.OrgName }}"
+  },
+  {% endif %}
+  {% if publisher.EmailAddress %}"email": "{{ publisher.EmailAddress }}",{% endif %}
+  {% if publisher.PhoneNumber %}"telephone": "{{ publisher.PhoneNumber }}",{% endif %}
+  {% if publisher.Website %}"url": "{{ publisher.Website }}",{% endif %}
+  {% if publisher.ProfilePhoto %}"image": "{{ publisher.ProfilePhoto }}",{% endif %}
+  "description": "{{ (publisher.Description | striptags | replace('\n', ' ') | truncate(200)) if publisher.Description else '' }}"
+}
+</script>
