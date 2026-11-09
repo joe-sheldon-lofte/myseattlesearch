@@ -23,7 +23,7 @@ permalink: /realestate/preferredprofessionals/index.html
         "name": "{{ vendor['Business/Vendor Name'] or vendor.name }}",
         "telephone": "{{ vendor['Phone Number'] or vendor.phone }}",
         "email": "{{ vendor.Email or vendor.email }}",
-        "url": "https://myseattlesearch.com/realestate/professionals/{{ ((vendor.ProID or vendor['Business/Vendor Name']) | lower | slugify) }}/"
+        "url": "https://myseattlesearch.com/realestate/preferredprofessionals/{{ ((vendor.ProID or vendor['Business/Vendor Name']) | lower | slugify) }}/"
       }
     }{% if not loop.last %},{% endif %}
     {% endfor %}
@@ -43,14 +43,11 @@ permalink: /realestate/preferredprofessionals/index.html
 
   <div class="section-divider"></div>
 
-  {# Section 3.0: High-Impact Consumer Advisory #}
-  <section id="consumer-notice" class="content-section-centered">
-    <div class="surface-bento callout-feature-card" style="border-left: 4px solid var(--status-amber); text-align: left; align-items: flex-start; padding: 1.5rem 2rem;">
-      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
-        <span class="status-led led-amber" aria-hidden="true"></span>
-        <strong style="font-size: 0.85rem; font-weight: 600; color: var(--premier-charcoal); letter-spacing: 0.06em; text-transform: uppercase;">Consumer Advisory</strong>
-      </div>
-      <p class="text-body-secondary" style="margin: 0; line-height: 1.6;">
+  {# Section 3.0: Clean Centered Consumer Advisory #}
+  <section id="consumer-notice" data-nav-title="Consumer Notice" class="content-section-centered">
+    <div class="surface-bento callout-feature-card">
+      <h2 class="text-overline">Consumer Advisory</h2>
+      <p class="text-body-secondary callout-feature-desc">
         While I have had positive experiences working with the professionals listed below, it is your responsibility to verify that they hold the proper, active credentials, licenses, and insurance policies required for your specific job before hiring.
       </p>
     </div>
@@ -58,18 +55,19 @@ permalink: /realestate/preferredprofessionals/index.html
 
   <div class="section-divider"></div>
 
-  {# Section 4.0: Integrated Filter Cloud & Directory Grid #}
-  <section id="professionals-directory" class="content-section-centered">
-    
-    {# Dynamic Multi-Row Filter Cloud (Auto-generated from professionals.json via groupby) #}
-    <div id="categoryFilterNav" role="tablist" aria-label="Filter Professionals by Category" style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.5rem; width: 100%; max-width: 960px; margin: 0 auto 2.5rem auto;">
-      <button type="button" class="neighborhood-nav-pill is-active" data-filter="all" role="tab" aria-selected="true" style="cursor: pointer;">
+  {# Section 4.0 & 5.0: Filter Cloud & Directory Grid #}
+  <section id="professionals-directory" data-nav-title="Profeesional Directory" class="content-section-centered">
+    <h2 class="text-section-title">Directory</h2>
+
+    {# Dynamic Multi-Row Filter Cloud #}
+    <div class="pro-filter-cloud" id="categoryFilterNav" role="tablist" aria-label="Filter Professionals by Category">
+      <button type="button" class="neighborhood-nav-pill is-active" data-filter="all" role="tab" aria-selected="true">
         <span>All ({{ vendor_list | length }})</span>
       </button>
-      {% for group in vendor_list | groupby('Category') %}
-        {% if group.grouper %}
-        <button type="button" class="neighborhood-nav-pill is-inactive" data-filter="{{ group.grouper | slugify }}" role="tab" aria-selected="false" style="cursor: pointer;">
-          <span>{{ group.grouper }}</span>
+      {% for category, items in vendor_list | groupby('Category') %}
+        {% if category %}
+        <button type="button" class="neighborhood-nav-pill is-inactive" data-filter="{{ category | slugify }}" role="tab" aria-selected="false">
+          <span>{{ category }} ({{ items | length }})</span>
         </button>
         {% endif %}
       {% endfor %}
@@ -96,9 +94,9 @@ permalink: /realestate/preferredprofessionals/index.html
               </span>
             {% endif %}
 
-            <h2 class="text-widget-title people-sec-name-heading">
+            <h3 class="text-widget-title people-sec-name-heading">
               {{ v_name }}
-            </h2>
+            </h3>
 
             {% if v_info %}
               <p class="text-body-secondary people-bio-text">
@@ -128,8 +126,8 @@ permalink: /realestate/preferredprofessionals/index.html
             </div>
           </div>
 
-          <div class="people-sec-cta-wrapper action-tray-constrained" style="margin-top: auto; width: 100%;">
-            <a href="/realestate/professionals/{{ v_pro_slug }}/" class="btn btn-primary">
+          <div class="people-sec-cta-wrapper action-tray-constrained">
+            <a href="/realestate/preferredprofessionals/{{ v_pro_slug }}/" class="btn btn-primary">
               <span>View Profile</span>
             </a>
           </div>

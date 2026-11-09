@@ -1,0 +1,51 @@
+---
+layout: layouts/base.njk
+title: "The Social Notebook | Joe Sheldon"
+description: "A collection of posts, notes, and articles written by Joe Sheldon, his team, and his network."
+permalink: /notebook/index.html
+---
+
+<main class="layout-container layout-stack-main">
+
+  {# Section 1.0 & 2.0: Notebook Header #}
+  <header class="surface-bento page-hero-bento">
+    <h1 class="text-page-title">The Social Notebook</h1>
+    <p class="text-body page-hero-lead">
+      A collection of posts, notes, and articles written by Joe, his team, and his network.
+    </p>
+  </header>
+
+  <div class="section-divider"></div>
+
+  {# Section 3.0: The Notebook Feed Widget #}
+  <section id="notebook-feed-stream" class="content-section-centered">
+    
+    {# Prepare D1 Data for the Component Contract #}
+    {% set active_posts = [] %}
+    {% for post in notebook %}
+      {# Only render posts that are not archived and not held #}
+      {% if post.archive != 1 and post.hold_status == 'active' %}
+        
+        {# Join D1 publisher_id with local publishers.json #}
+        {% set author_data = publishers[post.publisher_id] %}
+        
+        {% set mapped_post = {
+          "title": post.title,
+          "content": post.body,
+          "url": "/notebook/" ~ post.slug ~ "/",
+          "date": post.created_at | date("MMM D, YYYY"),
+          "author": author_data.name if author_data else "Joe Sheldon",
+          "author_role": author_data.role if author_data else "Redfin Senior Agent",
+          "overline": "FIELD DISPATCH"
+        } %}
+        {% set _ = active_posts.push(mapped_post) %}
+      {% endif %}
+    {% endfor %}
+
+    {# Inject into Canonical Widget #}
+    {% set notebook_posts = active_posts %}
+    {% include "components/widget/cms-notebook-feed.njk" %}
+
+  </section>
+
+</main>

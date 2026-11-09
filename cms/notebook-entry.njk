@@ -1,0 +1,60 @@
+---
+layout: layouts/base.njk
+pagination:
+  data: notebook
+  size: 1
+  alias: post
+permalink: /cms/notebook/{{ post.slug }}/index.html
+eleventyComputed:
+  title: "{{ post.title }} | The Social Notebook | Joe Sheldon"
+  description: "{{ post.body | striptags | truncate(150) }}"
+---
+
+<main class="layout-container layout-stack-main">
+  
+  <div class="content-section-centered">
+
+    {# Section 1.0 & 2.0: Single Post Entry (widget.cms.entry.single) #}
+    {% set single_entry_title = post.title %}
+    {% set single_entry_content = post.body %}
+    {% set single_entry_date = post.published_at %}
+    {% set single_entry_author = post.author %}
+    {% set single_entry_author_role = post.author_role %}
+    {% set single_entry_author_image = post.author_image %}
+    {% set single_entry_back_url = "/cms/notebook/" %}
+
+    {% include "components/widget/cms-entry-single.njk" %}
+
+    {# Section 3.0: External Link Preview (widget.cms.widget.linkpreview) #}
+    {% if post.external_links and post.external_links.length %}
+      {% set link_data = post.external_links[0] %}
+      <div style="margin-top: 2rem; width: 100%; text-align: left;">
+        {% set link_preview_url = link_data.url or link_data %}
+        {% set link_preview_title = link_data.title or post.title %}
+        {% set link_preview_domain = link_data.domain or "" %}
+        {% set link_preview_snippet = link_data.snippet or link_data.description or "" %}
+        {% include "components/widget/cms-widget-linkpreview.njk" %}
+      </div>
+    {% endif %}
+
+  </div>
+
+</main>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "{{ post.title | escape }}",
+  "datePublished": "{{ post.published_at }}",
+  "author": {
+    "@type": "Person",
+    "name": "{{ post.author }}"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "MySeattleSearch",
+    "url": "https://myseattlesearch.com"
+  }
+}
+</script>

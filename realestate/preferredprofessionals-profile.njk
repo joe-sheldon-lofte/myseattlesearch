@@ -1,0 +1,118 @@
+---
+layout: layouts/base.njk
+pagination:
+  data: professionals
+  size: 1
+  alias: pro
+permalink: /realestate/preferredprofessionals/{{ (pro.ProID or pro['Business/Vendor Name']) | slugify }}/index.html
+eleventyComputed:
+  title: "{{ pro['Business/Vendor Name'] }} | Preferred {{ pro.Category }} | Joe Sheldon"
+  description: "Connect with {{ pro['Business/Vendor Name'] }}, a preferred {{ pro.Category }} serving the Puget Sound real estate market."
+---
+
+<main class="layout-container layout-stack-main">
+
+  <section id="professional-profile" data-nav-title="Vendor Profile" class="section-profile">
+    <article class="profile-single-card surface-bento">
+      
+      {# Generic Architectural Icon Avatar (Since vendors lack headshots) #}
+      <div class="profile-avatar-wrapper">
+        <div class="avatar-squircle" style="background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--alpine-blue);">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="7" width="18" height="13" rx="2" ry="2"></rect>
+            <path d="M16 7V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3"></path>
+            <path d="M12 12h.01"></path>
+          </svg>
+        </div>
+      </div>
+      
+      <div class="text-overline people-role-tag">{{ pro.Category }}</div>
+      <h1 class="profile-name-heading">{{ pro['Business/Vendor Name'] }}</h1>
+      
+      {% if pro['Additional Info'] %}
+        <p class="text-body-secondary profile-prose-body" style="margin-top: 1rem; max-width: 580px;">
+          {{ pro['Additional Info'] }}
+        </p>
+      {% endif %}
+      
+      {# Contact Meta Cluster #}
+      <div class="people-contact-meta" style="margin-top: 1.75rem; margin-bottom: 0;">
+        {% if pro['Phone Number'] %}
+          {% set clean_phone = pro['Phone Number'] | replace('-', '') | replace(' ', '') | replace('(', '') | replace(')', '') %}
+          <a href="tel:{{ clean_phone }}" class="people-contact-link" aria-label="Call {{ pro['Business/Vendor Name'] }}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            <span>{{ pro['Phone Number'] }}</span>
+          </a>
+        {% endif %}
+        
+        {% if pro.Email %}
+          <a href="mailto:{{ pro.Email }}" class="people-contact-link" aria-label="Email {{ pro['Business/Vendor Name'] }}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect width="20" height="16" x="2" y="4" rx="2"/>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+            </svg>
+            <span>{{ pro.Email }}</span>
+          </a>
+        {% endif %}
+        
+        {% if pro.Website %}
+          <a href="{{ pro.Website }}" target="_blank" rel="noopener noreferrer" class="people-contact-link" aria-label="Visit official website for {{ pro['Business/Vendor Name'] }}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="2" y1="12" x2="22" y2="12"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            <span>Official Website</span>
+          </a>
+        {% endif %}
+      </div>
+      
+      <div class="section-divider"></div>
+      
+      {# Credentials Narrative Section #}
+      <div class="profile-narrative-section">
+        <h2 class="text-widget-title" style="margin-bottom: 0.75rem;">Licensing & Credentials</h2>
+        <p class="text-body-secondary profile-prose-body" style="font-size: 0.95rem;">
+          <strong class="text-primary-charcoal">Network Status:</strong> Pre-Vetted Preferred Vendor<br>
+          <strong class="text-primary-charcoal">Requirements Held:</strong> {{ pro['Legal Requirements'] | default('Active Washington State Business License') }}
+        </p>
+        
+        {% if pro['Legal Requirements Link'] %}
+          <div class="profile-cta-wrapper" style="margin-top: 2rem;">
+            <a href="{{ pro['Legal Requirements Link'] }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+              <span>Verify Active Credentials</span>
+            </a>
+          </div>
+        {% endif %}
+      </div>
+
+    </article>
+
+  </section>
+
+</main>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ProfessionalService",
+  "name": "{{ pro['Business/Vendor Name'] }}",
+  "address": {
+    "@type": "PostalAddress",
+    "addressRegion": "WA",
+    "addressCountry": "US"
+  },
+  {% if pro['Phone Number'] %}
+  "telephone": "{{ pro['Phone Number'] }}",
+  {% endif %}
+  {% if pro.Email %}
+  "email": "{{ pro.Email }}",
+  {% endif %}
+  {% if pro.Website %}
+  "url": "{{ pro.Website }}",
+  {% endif %}
+  "knowsAbout": "{{ pro.Category }}"
+}
+</script>

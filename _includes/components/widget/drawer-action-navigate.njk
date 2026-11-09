@@ -4,15 +4,13 @@
      aria-modal="true" 
      aria-label="Page Navigation">
   
-  {# Backdrop Scrim #}
   <div class="drawer-scrim" onclick="closeNavigateDrawer()"></div>
 
-  {# Slide-Up Panel #}
   <div class="drawer-panel">
     <div class="drawer-grab-handle" aria-hidden="true"></div>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-      <h3 class="text-widget-title" style="margin: 0; font-size: 1.15rem;">On This Page</h3>
+    <div class="card-header-split">
+      <h3 class="text-widget-title">On This Page</h3>
       <button type="button" 
               class="btn-drawer-close" 
               aria-label="Close navigation drawer" 
@@ -24,7 +22,6 @@
         <span>Return to Top</span>
         <span aria-hidden="true">&uarr;</span>
       </a>
-      {# Sections Populated Dynamically via JS #}
     </nav>
   </div>
 
@@ -38,12 +35,16 @@
       
       if (list && sections.length > 0 && list.children.length === 1) {
         sections.forEach(sec => {
-          const heading = sec.querySelector('h1, h2, h3');
-          const title = heading ? heading.textContent.trim() : sec.id;
+          // 1. Explicit data attribute > 2. Formal Section Title > 3. Native Heading > 4. Humanized ID slug
+          const formalTitle = sec.getAttribute('data-nav-title') 
+            || sec.querySelector('.text-section-title')?.textContent.trim()
+            || sec.querySelector('h1, h2')?.textContent.trim()
+            || sec.id.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            
           const link = document.createElement('a');
           link.href = '#' + sec.id;
           link.className = 'navigate-list-item';
-          link.innerHTML = `<span>${title}</span><span aria-hidden="true">&rarr;</span>`;
+          link.innerHTML = `<span>${formalTitle}</span><span aria-hidden="true">&rarr;</span>`;
           link.onclick = (e) => handleSectionJump(e, sec.id);
           list.appendChild(link);
         });
