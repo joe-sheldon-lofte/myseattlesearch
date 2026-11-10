@@ -58,7 +58,6 @@ permalink: /realestate/resources/dpafinder/index.html
     </div>
 
     <div class="section-grid-static grid-cols-2">
-      
       <div class="calc-field-group">
         <label for="citySelect">Where are you planning to buy?</label>
         <select id="citySelect"></select>
@@ -87,18 +86,15 @@ permalink: /realestate/resources/dpafinder/index.html
         </select>
       </div>
 
-      <div class="action-tray-constrained calc-span-full" style="margin-top: 1rem;">
+      <div class="calc-span-full calc-action-stack">
         <button type="button" class="btn btn-primary" onclick="evaluateDpaPrograms(false)">Find Matching Programs</button>
         <button type="button" class="btn btn-secondary" onclick="evaluateDpaPrograms(true)">Show All Available Programs</button>
       </div>
-      
     </div>
   </section>
 
   {# Section 2.0: Results Container #}
-  <section id="resultsSection" style="display: none; padding-top: 3rem;" data-nav-title="Programs">
-    
-    {# Strategic Executive Summary Banner #}
+  <section id="resultsSection" class="calc-results-stage" data-nav-title="Programs">
     <div class="surface-bento calc-summary-card">
       <h2 class="text-widget-title" id="txtResultsSummaryTitle">Potential Matches</h2>
       <div class="calc-stat-hero" id="txtTotalMatchesCount">0 Options Identified</div>
@@ -109,7 +105,6 @@ permalink: /realestate/resources/dpafinder/index.html
     </div>
     
     <div class="section-grid-static grid-cols-2" id="programsOutputContainer"></div>
-
   </section>
 
 </main>
@@ -253,7 +248,7 @@ permalink: /realestate/resources/dpafinder/index.html
         let websiteMarkup = '';
         if (officialWebsite && officialWebsite !== '' && officialWebsite !== '-') {
           websiteMarkup = `
-            <div class="action-tray-constrained" style="margin-top: 1.5rem;">
+            <div class="action-tray-constrained">
               <a href="${officialWebsite}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
                 <span>Explore Official Program &rarr;</span>
               </a>
@@ -262,35 +257,35 @@ permalink: /realestate/resources/dpafinder/index.html
         }
 
         matchesHtml += `
-          <article class="surface-bento pathway-item-card" style="display: flex; flex-direction: column; height: 100%;">
-            <div style="flex-grow: 1;">
-              <h3 class="text-widget-title" style="margin-bottom: 0.25rem;">${prog['Program Name']}</h3>
-              <div class="dpa-agency-badge">Administered by: ${prog['Administering Agency'] || 'Regional Authority'}</div>
-              
-              <div class="calc-stat-strip">
-                <div class="calc-stat-col">
-                  <span class="calc-stat-label">Assistance Type</span>
-                  <span class="calc-stat-val" style="font-size: 1rem;">${prog['Assistance Type'] || 'Deferred Loan'}</span>
-                </div>
-                <div class="calc-stat-col">
-                  <span class="calc-stat-label">Maximum Limit</span>
-                  <span class="calc-stat-val" style="font-size: 1rem;">${maxAmount}</span>
-                </div>
-                <div class="calc-stat-col">
-                  <span class="calc-stat-label">Max Income (${householdSize === 4 ? '4+' : householdSize} Person)</span>
-                  <span class="calc-stat-val" style="font-size: 1rem;">${displayCap}</span>
-                </div>
+          <article class="surface-bento pathway-item-card">
+            <div class="card-header-split">
+              <span class="text-overline text-accent-alpine">ASSISTANCE PROGRAM</span>
+              <span class="dpa-agency-badge">${prog['Administering Agency'] || 'Regional Authority'}</span>
+            </div>
+            
+            <h3 class="text-widget-title">${prog['Program Name']}</h3>
+            
+            <div class="calc-stat-strip">
+              <div class="calc-stat-col">
+                <span class="calc-stat-label">Assistance Type</span>
+                <span class="calc-stat-val">${prog['Assistance Type'] || 'Deferred Loan'}</span>
               </div>
-              
-              <p class="text-body-secondary pathway-item-desc" style="margin-top: 1.25rem;">${prog['Program Description'] || 'No additional local tracking notes specified.'}</p>
-              
-              ${extraStepsMarkup}
-              
-              <div class="dpa-geo-notes">
-                <strong>Geographic Eligibility:</strong><br>
-                Counties: ${prog['Eligible Counties'] || 'All'}<br>
-                Cities: ${prog['Eligible Cities'] || 'All'}
+              <div class="calc-stat-col">
+                <span class="calc-stat-label">Maximum Limit</span>
+                <span class="calc-stat-val">${maxAmount}</span>
               </div>
+              <div class="calc-stat-col">
+                <span class="calc-stat-label">Max Income (${householdSize === 4 ? '4+' : householdSize} Person)</span>
+                <span class="calc-stat-val">${displayCap}</span>
+              </div>
+            </div>
+            
+            <p class="text-body-secondary pathway-item-desc">${prog['Program Description'] || 'No additional local tracking notes specified.'}</p>
+            
+            ${extraStepsMarkup}
+            
+            <div class="dpa-geo-notes">
+              <strong>Geographic Eligibility:</strong> Counties: ${prog['Eligible Counties'] || 'All'} | Cities: ${prog['Eligible Cities'] || 'All'}
             </div>
             
             ${websiteMarkup}
