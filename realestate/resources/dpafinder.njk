@@ -1,0 +1,326 @@
+---
+layout: layouts/base.njk
+title: "Down Payment Assistance Finder | Joe Sheldon"
+description: "A self-screening tool to view local assistance programs, community grants, and deferred loans based on your target city and household profile."
+permalink: /realestate/resources/dpafinder/index.html
+---
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "@id": "https://myseattlesearch.com/realestate/resources/dpafinder/#directory",
+  "name": "Washington State & Greater Seattle Down Payment Assistance Directory",
+  "description": "Directory of Washington State Housing Finance Commission (WSHFC) grants, Covenant Homeownership programs, county down payment assistance, and low-down mortgage options.",
+  "url": "https://myseattlesearch.com/realestate/resources/dpafinder/",
+  "provider": {
+    "@type": "RealEstateAgent",
+    "@id": "https://myseattlesearch.com/#agent",
+    "name": "Joe Sheldon - Redfin Real Estate Agent"
+  },
+  "itemListElement": [
+    {% for prog in dpa_programs %}
+    {
+      "@type": "ListItem",
+      "position": {{ loop.index }},
+      "item": {
+        "@type": "FinancialProduct",
+        "name": {{ prog['Program Name'] | dump | safe if prog['Program Name'] else 'Down Payment Assistance Program' | dump | safe }},
+        "description": {{ prog['Program Description'] | dump | safe if prog['Program Description'] else '' | dump | safe }},
+        "category": {{ prog['Assistance Type'] | dump | safe if prog['Assistance Type'] else 'Down Payment Assistance' | dump | safe }},
+        "provider": {
+          "@type": "GovernmentOrganization",
+          "name": {{ prog['Administering Agency'] | dump | safe if prog['Administering Agency'] else 'State / Local Authority' | dump | safe }}
+        },
+        "url": {{ prog['Program Website'] | dump | safe if prog['Program Website'] else 'https://myseattlesearch.com/realestate/resources/dpafinder/' | dump | safe }}
+      }
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+
+<main class="layout-container layout-stack-main">
+
+  <header class="surface-bento page-hero-bento">
+    <h1 class="text-page-title">Down Payment Assistance Finder</h1>
+    <p class="text-body page-hero-lead">
+      A self-screening tool to view local assistance programs, community grants, and deferred loans based on your target city and household profile.
+    </p>
+  </header>
+
+  <div class="section-divider"></div>
+
+  {# Section 1.0: Strategy Control Card #}
+  <section id="wizard-inputs" data-nav-title="Screener" class="surface-bento">
+    <div class="card-header-split">
+      <h2 class="text-widget-title">Explore Program Options</h2>
+    </div>
+
+    <div class="section-grid-static grid-cols-2">
+      
+      <div class="calc-field-group">
+        <label for="citySelect">Where are you planning to buy?</label>
+        <select id="citySelect"></select>
+      </div>
+
+      <div class="calc-field-group">
+        <label for="inHouseholdSize">Total household size (number of people living in the home)</label>
+        <select id="inHouseholdSize">
+          <option value="1">1 Person</option>
+          <option value="2">2 People</option>
+          <option value="3">3 People</option>
+          <option value="4" selected>4 or More People</option>
+        </select>
+      </div>
+
+      <div class="calc-field-group">
+        <label for="inIncome">Total gross annual household income ($)</label>
+        <input type="number" id="inIncome" value="110000">
+      </div>
+
+      <div class="calc-field-group">
+        <label for="inFirstTime">Have you owned a primary home in the last 3 years?</label>
+        <select id="inFirstTime">
+          <option value="no" selected>No (Or haven't owned a home in 3 or more years)</option>
+          <option value="yes">Yes</option>
+        </select>
+      </div>
+
+      <div class="action-tray-constrained calc-span-full" style="margin-top: 1rem;">
+        <button type="button" class="btn btn-primary" onclick="evaluateDpaPrograms(false)">Find Matching Programs</button>
+        <button type="button" class="btn btn-secondary" onclick="evaluateDpaPrograms(true)">Show All Available Programs</button>
+      </div>
+      
+    </div>
+  </section>
+
+  {# Section 2.0: Results Container #}
+  <section id="resultsSection" style="display: none; padding-top: 3rem;" data-nav-title="Programs">
+    
+    {# Strategic Executive Summary Banner #}
+    <div class="surface-bento calc-summary-card">
+      <h2 class="text-widget-title" id="txtResultsSummaryTitle">Potential Matches</h2>
+      <div class="calc-stat-hero" id="txtTotalMatchesCount">0 Options Identified</div>
+      
+      <div class="dpa-advisory-disclaimer">
+        <strong>Important Notice:</strong> This directory provides a summary of community programs based on general baseline guidelines. This screen does not constitute a formal application, credit evaluation, or loan approval. Program funding allocations, matching rules, and qualifying thresholds vary over time. Researching available local resources and speaking directly with a licensed mortgage loan professional can help confirm individual eligibility and establish a qualified financing track.
+      </div>
+    </div>
+    
+    <div class="section-grid-static grid-cols-2" id="programsOutputContainer"></div>
+
+  </section>
+
+</main>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const citiesPath = '/data/city_data.json';
+    const dpaJsonPath = '/data/dpa_programs.json';
+
+    let dataStore = { cities: {}, programs: [] };
+
+    const cleanNum = (str) => {
+      if (str === null || str === undefined || str === 'NaN') return 0;
+      return parseFloat((str).toString().replace(/[^0-9.-]+/g, "")) || 0;
+    };
+    const formatCurrency = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+
+    async function fetchJSON(path) {
+      try { 
+        const res = await fetch(path); 
+        if (!res.ok) return []; 
+        const rawText = await res.text();
+        const cleanedText = rawText.replace(/:\s*NaN/g, ": null");
+        return JSON.parse(cleanedText); 
+      } catch (e) { 
+        return []; 
+      }
+    }
+
+    Promise.all([
+      fetchJSON(citiesPath), fetchJSON(dpaJsonPath)
+    ]).then(values => {
+      const cityRows = values[0] || [];
+      dataStore.programs = values[1] || [];
+
+      cityRows.forEach(row => {
+        if (row.City) {
+          dataStore.cities[row.City.trim().toLowerCase()] = {
+            city: row.City.trim(),
+            county: (row.County || '').trim(),
+            northSound: (row['North Sound'] || '').trim().toLowerCase() === 'x'
+          };
+        }
+      });
+
+      populateDropdown();
+    });
+
+    function populateDropdown() {
+      const select = document.getElementById('citySelect');
+      const groups = { 'North Sound': [], 'King County': [], 'Snohomish County': [] };
+
+      Object.values(dataStore.cities).sort((a,b) => a.city.localeCompare(b.city)).forEach(item => {
+        if (item.northSound) groups['North Sound'].push(item.city);
+        else if (item.county === 'King') groups['King County'].push(item.city);
+        else if (item.county === 'Snohomish') groups['Snohomish County'].push(item.city);
+      });
+
+      let html = '';
+      for (let group in groups) {
+        if (groups[group].length > 0) {
+          html += `<optgroup label="${group}">`;
+          groups[group].forEach(city => {
+            html += `<option value="${city}">${city}</option>`;
+          });
+          html += `</optgroup>`;
+        }
+      }
+      select.innerHTML = html;
+      
+      if (dataStore.programs.length > 0) {
+        evaluateDpaPrograms(false, true);
+      }
+    }
+
+    window.evaluateDpaPrograms = function(showAll = false, skipScroll = false) {
+      const targetCityName = document.getElementById('citySelect').value;
+      const cityObj = dataStore.cities[targetCityName.toLowerCase().trim()] || {};
+      const targetCountyName = cityObj.county || '';
+      
+      const householdSize = parseInt(document.getElementById('inHouseholdSize').value) || 4;
+      const userIncome = parseFloat(document.getElementById('inIncome').value) || 0;
+      const ownedRecently = document.getElementById('inFirstTime').value === 'yes';
+
+      const container = document.getElementById('programsOutputContainer');
+      container.innerHTML = '';
+
+      let matchesHtml = '';
+      let matchCount = 0;
+
+      dataStore.programs.forEach(prog => {
+        if (!showAll) {
+          const countiesList = prog['Eligible Counties'] ? prog['Eligible Counties'].toLowerCase() : '';
+          const citiesList = prog['Eligible Cities'] ? prog['Eligible Cities'].toLowerCase() : '';
+          
+          const countyMatch = countiesList.includes('all') || countiesList.includes('washington') || countiesList.includes(targetCountyName.toLowerCase());
+          const cityMatch = citiesList.includes('all') || citiesList.includes(targetCityName.toLowerCase());
+
+          if (!countyMatch || !cityMatch) return;
+
+          const fthbRequired = String(prog['First Time Buyer Required']).trim().toLowerCase() === 'yes';
+          if (fthbRequired && ownedRecently) return;
+
+          let incomeCapColumnKey = 'Income Limit 4 Person Plus';
+          if (householdSize === 1) incomeCapColumnKey = 'Income Limit 1 Person';
+          else if (householdSize === 2) incomeCapColumnKey = 'Income Limit 2 Person';
+          else if (householdSize === 3) incomeCapColumnKey = 'Income Limit 3 Person';
+
+          const rawIncomeCap = cleanNum(prog[incomeCapColumnKey]);
+          if (rawIncomeCap > 0 && userIncome > rawIncomeCap) return;
+        }
+
+        matchCount++;
+        
+        const rawMaxAmount = prog['Max Assistance Amount'] ? String(prog['Max Assistance Amount']).trim() : '';
+        const parsedMaxNum = cleanNum(rawMaxAmount);
+        
+        let maxAmount = 'Varies based on qualification';
+        if (parsedMaxNum > 0) {
+          maxAmount = formatCurrency(parsedMaxNum);
+        } else if (rawMaxAmount !== '' && rawMaxAmount !== '0') {
+          maxAmount = rawMaxAmount;
+        }
+
+        let incomeCapColumnKey = 'Income Limit 4 Person Plus';
+        if (householdSize === 1) incomeCapColumnKey = 'Income Limit 1 Person';
+        else if (householdSize === 2) incomeCapColumnKey = 'Income Limit 2 Person';
+        else if (householdSize === 3) incomeCapColumnKey = 'Income Limit 3 Person';
+
+        const rawIncomeCap = cleanNum(prog[incomeCapColumnKey]);
+        const displayCap = rawIncomeCap > 0 ? formatCurrency(rawIncomeCap) : 'No income cap specified';
+        
+        const extraSteps = prog['Mandatory Extra Steps'] ? String(prog['Mandatory Extra Steps']).trim() : '';
+        const officialWebsite = prog['Program Website'] ? String(prog['Program Website']).trim() : '';
+
+        let extraStepsMarkup = '';
+        if (extraSteps && extraSteps !== 'None' && extraSteps !== '-' && extraSteps !== 'NaN') {
+          extraStepsMarkup = `<div class="dpa-extra-step-alert"><strong>Prerequisite Note:</strong><br>${extraSteps}</div>`;
+        }
+
+        let websiteMarkup = '';
+        if (officialWebsite && officialWebsite !== '' && officialWebsite !== '-') {
+          websiteMarkup = `
+            <div class="action-tray-constrained" style="margin-top: 1.5rem;">
+              <a href="${officialWebsite}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+                <span>Explore Official Program &rarr;</span>
+              </a>
+            </div>
+          `;
+        }
+
+        matchesHtml += `
+          <article class="surface-bento pathway-item-card" style="display: flex; flex-direction: column; height: 100%;">
+            <div style="flex-grow: 1;">
+              <h3 class="text-widget-title" style="margin-bottom: 0.25rem;">${prog['Program Name']}</h3>
+              <div class="dpa-agency-badge">Administered by: ${prog['Administering Agency'] || 'Regional Authority'}</div>
+              
+              <div class="calc-stat-strip">
+                <div class="calc-stat-col">
+                  <span class="calc-stat-label">Assistance Type</span>
+                  <span class="calc-stat-val" style="font-size: 1rem;">${prog['Assistance Type'] || 'Deferred Loan'}</span>
+                </div>
+                <div class="calc-stat-col">
+                  <span class="calc-stat-label">Maximum Limit</span>
+                  <span class="calc-stat-val" style="font-size: 1rem;">${maxAmount}</span>
+                </div>
+                <div class="calc-stat-col">
+                  <span class="calc-stat-label">Max Income (${householdSize === 4 ? '4+' : householdSize} Person)</span>
+                  <span class="calc-stat-val" style="font-size: 1rem;">${displayCap}</span>
+                </div>
+              </div>
+              
+              <p class="text-body-secondary pathway-item-desc" style="margin-top: 1.25rem;">${prog['Program Description'] || 'No additional local tracking notes specified.'}</p>
+              
+              ${extraStepsMarkup}
+              
+              <div class="dpa-geo-notes">
+                <strong>Geographic Eligibility:</strong><br>
+                Counties: ${prog['Eligible Counties'] || 'All'}<br>
+                Cities: ${prog['Eligible Cities'] || 'All'}
+              </div>
+            </div>
+            
+            ${websiteMarkup}
+          </article>
+        `;
+      });
+
+      if (matchCount === 0) {
+        container.style.display = 'block';
+        container.innerHTML = `<div class="surface-bento callout-feature-card"><p class="text-body-secondary">No active program options match the current combination of income, city selection, or homeownership history parameters.</p></div>`;
+      } else {
+        container.style.display = 'grid';
+        container.innerHTML = matchesHtml;
+      }
+
+      const summaryTitleEl = document.getElementById('txtResultsSummaryTitle');
+      if (showAll) {
+        summaryTitleEl.textContent = "Complete Program Directory";
+        document.getElementById('txtTotalMatchesCount').textContent = `${matchCount} Total Programs Listed`;
+      } else {
+        summaryTitleEl.textContent = "Potential Matches";
+        document.getElementById('txtTotalMatchesCount').textContent = `${matchCount} Program ${matchCount === 1 ? 'Option' : 'Options'} Identified`;
+      }
+      
+      const resultsNode = document.getElementById('resultsSection');
+      resultsNode.style.display = 'block';
+      
+      if (!showAll && !skipScroll) {
+        resultsNode.scrollIntoView({ behavior: 'smooth' });
+      }
+    };
+  });
+</script>

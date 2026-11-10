@@ -1,0 +1,596 @@
+---
+layout: layouts/base.njk
+title: "Sellers Estimated Net Proceeds | Joe Sheldon"
+description: "Calculate estimated net cash proceeds from selling a home in Washington State, accounting for mortgage payoffs, state REET taxes, commissions, and escrow fees."
+permalink: /realestate/calculators/estnetproceeds/index.html
+---
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "@id": "https://myseattlesearch.com/realestate/calculators/estnetproceeds/#calculator",
+  "name": "Sellers Estimated Net Proceeds Calculator",
+  "url": "https://myseattlesearch.com/realestate/calculators/estnetproceeds/",
+  "description": "Calculate estimated net cash proceeds from selling a home in Washington State, accounting for mortgage payoffs, state REET taxes, commissions, and escrow fees.",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "All",
+  "author": {
+    "@type": "RealEstateAgent",
+    "@id": "https://myseattlesearch.com/#agent",
+    "name": "Joe Sheldon - Redfin Real Estate Agent"
+  },
+  "provider": {
+    "@type": "RealEstateAgent",
+    "@id": "https://myseattlesearch.com/#agent"
+  }
+}
+</script>
+
+<main class="layout-container layout-stack-main">
+
+  <header class="surface-bento page-hero-bento">
+    <h1 class="text-page-title">Sellers Estimated Net Proceeds</h1>
+    <p class="text-body page-hero-lead">
+      See exactly what you will walk away with after paying off existing loans and standard transaction costs.
+    </p>
+  </header>
+
+  <div class="section-divider"></div>
+
+  {# Section 1.0: Property & Transaction Inputs #}
+  <section id="net-proceeds-inputs" data-nav-title="Inputs" class="surface-bento">
+    <div class="card-header-split">
+      <h2 class="text-widget-title">Property &amp; Transaction Details</h2>
+    </div>
+
+    <div class="calc-form-grid-3col">
+      {# Row 1: Seller Name, Property Address, Target Sale Price #}
+      <div class="calc-field-group">
+        <label for="inSellerName">Seller Name</label>
+        <input type="text" id="inSellerName" placeholder="Leave blank or type name">
+      </div>
+
+      <div class="calc-field-group calc-autocomplete-wrap">
+        <label for="inSellerAddress">Property Address</label>
+        <input type="text" id="inSellerAddress" placeholder="Type address to search..." oninput="handleAddressAutocompleteSearch(this)" autocomplete="off">
+        <div id="addressSuggestions" class="calc-autocomplete-list" hidden></div>
+      </div>
+
+      <div class="calc-field-group">
+        <label for="inPrice">Target Sale Price ($)</label>
+        <input type="text" id="inPrice" placeholder="Enter price" oninput="formatPriceInput(this)">
+      </div>
+
+      {# Row 2: Target Closing Date, 1st Mortgage Payoff, 2nd Mortgage Payoff #}
+      <div class="calc-field-group">
+        <label for="inClosingDate">Target Closing Date</label>
+        <input type="date" id="inClosingDate">
+      </div>
+
+      <div class="calc-field-group">
+        <label for="inBalance">1st Mortgage Payoff ($)</label>
+        <input type="text" id="inBalance" placeholder="0" oninput="formatGeneralCurrencyInput(this)">
+      </div>
+
+      <div class="calc-field-group">
+        <label for="inBalance2">2nd Mortgage Payoff ($)</label>
+        <input type="text" id="inBalance2" placeholder="0" oninput="formatGeneralCurrencyInput(this)">
+      </div>
+
+      {# Row 3: County, Annual Property Tax, Current Tax Payments #}
+      <div class="calc-field-group">
+        <label for="inCounty">Property County</label>
+        <select id="inCounty">
+          <option value="King">King County</option>
+          <option value="Snohomish">Snohomish County</option>
+        </select>
+      </div>
+
+      <div class="calc-field-group">
+        <label for="inTaxAmount">Annual Property Tax ($)</label>
+        <input type="text" id="inTaxAmount" placeholder="Calculated at 0.9%" oninput="formatGeneralCurrencyInput(this); triggerTaxManualOverrideState();">
+      </div>
+
+      <div class="calc-field-group">
+        <label>Current Tax Payments</label>
+        <div class="calc-tax-checkboxes">
+          <label class="calc-checkbox-label">
+            <input type="checkbox" id="chkFirstHalf">
+            <span>First Half Paid</span>
+          </label>
+          <label class="calc-checkbox-label">
+            <input type="checkbox" id="chkSecondHalf">
+            <span>Second Half Paid</span>
+          </label>
+        </div>
+      </div>
+
+      {# Row 4: Listing Package & Buyer Agent Compensation #}
+      <div class="calc-field-group">
+        <label for="inListingPackage">Listing Package</label>
+        <select id="inListingPackage">
+          <option value="2.0">Base Listing Package (2.0%)</option>
+          <option value="3.0">Full Premium Concierge (3.0%)</option>
+        </select>
+      </div>
+
+      <div class="calc-field-group">
+        <label for="inBuyerComp">Buyer Agent Compensation (%)</label>
+        <input type="number" id="inBuyerComp" value="2.5" step="0.1">
+      </div>
+      
+      {# Empty div to force the 3-column grid to push the next full-span row down #}
+      <div></div>
+
+      {# Row 5: Settlement Options (Spans Full Width) #}
+      <div class="calc-field-group calc-span-full">
+        <label>Settlement Options</label>
+        <div class="calc-settlement-row-wide">
+          <div class="calc-settlement-item">
+            <label class="calc-checkbox-label">
+              <input type="checkbox" id="chkPreInspection">
+              <span>Pre-inspection ($)</span>
+            </label>
+            <input type="text" id="inPreInspectCost" value="550" oninput="formatGeneralCurrencyInput(this)" aria-label="Pre-inspection fee">
+          </div>
+          <div class="calc-settlement-item">
+            <label class="calc-checkbox-label">
+              <input type="checkbox" id="chkHoaCert">
+              <span>HOA Resale Cert ($)</span>
+            </label>
+            <input type="text" id="inHoaCertCost" value="300" oninput="formatGeneralCurrencyInput(this)" aria-label="HOA Certificate fee">
+          </div>
+        </div>
+      </div>
+
+      {# Row 6: The Two Additional Expenses Containers (Spans Full Width, Split 50/50) #}
+      <div class="calc-expenses-row calc-span-full">
+        <div class="calc-field-group">
+          <label for="inOtherLabel1">Additional Expenses 1</label>
+          <div class="calc-split-input-row">
+            <input type="text" id="inOtherLabel1" placeholder="Label (e.g. Septic Pumping)">
+            <input type="text" id="inOtherAmt1" placeholder="Amount ($)" oninput="formatGeneralCurrencyInput(this)">
+          </div>
+        </div>
+
+        <div class="calc-field-group">
+          <label for="inOtherLabel2">Additional Expenses 2</label>
+          <div class="calc-split-input-row">
+            <input type="text" id="inOtherLabel2" placeholder="Label (e.g. Work Orders)">
+            <input type="text" id="inOtherAmt2" placeholder="Amount ($)" oninput="formatGeneralCurrencyInput(this)">
+          </div>
+        </div>
+      </div>
+
+      {# Action Button Row #}
+      <div class="calc-action-row calc-span-full">
+        <button type="button" class="btn btn-primary calc-btn-submit" onclick="calculateNetProceeds()">Calculate Estimated Proceeds</button>
+      </div>
+    </div>
+  </section>
+
+  {# Section 2.0: Estimated Proceeds Ledger Output #}
+  <section id="resultsWrapper" class="calc-results-stage" data-nav-title="Estimated Proceeds">
+    
+    <div class="surface-bento calc-summary-card">
+      <h2 class="text-widget-title">Estimated Net Cash to Seller</h2>
+      <div class="calc-stat-hero" id="txtNetProceeds">$0</div>
+      <p class="text-body-secondary calc-prose-lead">Estimated liquid cash remaining after paying off mortgages, state excise taxes, commissions, and escrow closing costs.</p>
+    </div>
+
+    <div class="table-scroll-container">
+      <table class="timeline-data-table">
+        <thead>
+          <tr>
+            <th>Settlement Line Item</th>
+            <th>Credit to Seller</th>
+            <th>Cost to Seller</th>
+          </tr>
+        </thead>
+        <tbody id="ledgerTableBody"></tbody>
+      </table>
+    </div>
+
+    {# Interactive Scenario QR Code & Deep Link Card #}
+    <article class="surface-bento calc-share-card">
+      <div class="calc-qr-frame">
+        <img id="scenarioQrImg" src="" alt="Dynamic Scenario QR Code" class="calc-qr-code" width="100" height="100">
+      </div>
+      <div class="calc-share-info">
+        <span class="text-overline text-accent-alpine">Interactive Scenario</span>
+        <h3 class="text-widget-title">Save or Share This Calculation</h3>
+        <p class="text-body-secondary">Scan this QR code with a phone camera or copy the direct link to reload these exact property figures, balances, and closing date anytime.</p>
+        <div class="action-tray-constrained">
+          <button type="button" id="btnCopyWorksheetLink" onclick="copyWorksheetDeepLinkToClipboard()" class="btn btn-secondary">
+            <span>Copy Direct Link</span>
+          </button>
+        </div>
+      </div>
+    </article>
+
+    <div class="section-divider"></div>
+
+    {# Preferred Partner Block #}
+    <article class="surface-bento pathway-item-card">
+      <span class="text-overline text-accent-alpine">Preferred Settlement Partner</span>
+      <h3 class="text-widget-title">Rocket Close</h3>
+      <p class="text-body-secondary pathway-item-desc">
+        Title and escrow closing services for your transaction are coordinated through Rocket Close to ensure seamless deed recording and secure wire disbursements.
+      </p>
+    </article>
+
+    <div class="compliance-disclaimer-text">
+      Information Notice: Prorated allocations and transaction outlays listed are examples for general planning. Final settlement paperwork is verified by a licensed escrow officer before closing.
+    </div>
+
+  </section>
+
+</main>
+
+<script>
+  let isTaxManual = false;
+  let autocompleteDebounceTimer = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const today = new Date();
+    const defaultClosing = new Date();
+    defaultClosing.setDate(today.getDate() + 30);
+    
+    const monthStr = String(defaultClosing.getMonth() + 1).padStart(2, '0');
+    const dayStr = String(defaultClosing.getDate()).padStart(2, '0');
+    document.getElementById('inClosingDate').value = `${defaultClosing.getFullYear()}-${monthStr}-${dayStr}`;
+
+    const currentYear = today.getFullYear();
+    const aprilDueLimit = new Date(currentYear, 3, 30);
+    const octoberDueLimit = new Date(currentYear, 9, 31);
+
+    if (today > aprilDueLimit) {
+      document.getElementById('chkFirstHalf').checked = true;
+    }
+    if (today > octoberDueLimit) {
+      document.getElementById('chkSecondHalf').checked = true;
+    }
+
+    document.addEventListener('click', (e) => {
+      const suggestionsBox = document.getElementById('addressSuggestions');
+      if (!document.getElementById('inSellerAddress').contains(e.target) && !suggestionsBox.contains(e.target)) {
+        suggestionsBox.hidden = true;
+      }
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('p') || params.has('n') || params.has('ad')) {
+      if (params.get('n')) document.getElementById('inSellerName').value = params.get('n');
+      if (params.get('ad')) document.getElementById('inSellerAddress').value = params.get('ad');
+      if (params.get('p')) {
+        const priceVal = parseInt(params.get('p'), 10);
+        if (!isNaN(priceVal)) document.getElementById('inPrice').value = priceVal.toLocaleString('en-US');
+      }
+      if (params.get('b1')) {
+        const val = parseInt(params.get('b1'), 10);
+        if (!isNaN(val)) document.getElementById('inBalance').value = val.toLocaleString('en-US');
+      }
+      if (params.get('b2')) {
+        const val = parseInt(params.get('b2'), 10);
+        if (!isNaN(val)) document.getElementById('inBalance2').value = val.toLocaleString('en-US');
+      }
+      if (params.get('t')) {
+        const val = parseInt(params.get('t'), 10);
+        if (!isNaN(val)) document.getElementById('inTaxAmount').value = val.toLocaleString('en-US');
+        isTaxManual = true;
+      }
+      if (params.get('lp')) document.getElementById('inListingPackage').value = params.get('lp');
+      if (params.get('bc')) document.getElementById('inBuyerComp').value = params.get('bc');
+      if (params.get('l1')) document.getElementById('inOtherLabel1').value = params.get('l1');
+      if (params.get('v1')) {
+        const val = parseInt(params.get('v1'), 10);
+        if (!isNaN(val)) document.getElementById('inOtherAmt1').value = val.toLocaleString('en-US');
+      }
+      if (params.get('l2')) document.getElementById('inOtherLabel2').value = params.get('l2');
+      if (params.get('v2')) {
+        const val = parseInt(params.get('v2'), 10);
+        if (!isNaN(val)) document.getElementById('inOtherAmt2').value = val.toLocaleString('en-US');
+      }
+      if (params.get('pi') === '1') document.getElementById('chkPreInspection').checked = true;
+      if (params.get('piv')) {
+        const val = parseInt(params.get('piv'), 10);
+        if (!isNaN(val)) document.getElementById('inPreInspectCost').value = val.toLocaleString('en-US');
+      }
+      if (params.get('h') === '1') document.getElementById('chkHoaCert').checked = true;
+      if (params.get('hv')) {
+        const val = parseInt(params.get('hv'), 10);
+        if (!isNaN(val)) document.getElementById('inHoaCertCost').value = val.toLocaleString('en-US');
+      }
+
+      calculateNetProceeds();
+    }
+  });
+
+  function triggerTaxManualOverrideState() {
+    isTaxManual = true;
+  }
+
+  function handleAddressAutocompleteSearch(inputEl) {
+    clearTimeout(autocompleteDebounceTimer);
+    const suggestionsBox = document.getElementById('addressSuggestions');
+    const queryText = inputEl.value.trim();
+
+    if (queryText.length < 4) {
+      suggestionsBox.hidden = true;
+      return;
+    }
+
+    autocompleteDebounceTimer = setTimeout(async () => {
+      try {
+        const searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryText)}&countrycodes=us&limit=5`;
+        const res = await fetch(searchUrl, { headers: { 'Accept-Language': 'en' } });
+        if (!res.ok) return;
+        
+        const matches = await res.json();
+        if (matches.length === 0) {
+          suggestionsBox.hidden = true;
+          return;
+        }
+
+        suggestionsBox.innerHTML = matches.map(place => {
+          return `<div class="calc-autocomplete-item" onclick="selectAutocompleteAddress('${place.display_name.replace(/'/g, "\\'")}')">${place.display_name}</div>`;
+        }).join('');
+        suggestionsBox.hidden = false;
+      } catch (err) {
+        console.error("Location lookup network timeout:", err);
+      }
+    }, 400);
+  }
+
+  function selectAutocompleteAddress(selectedText) {
+    document.getElementById('inSellerAddress').value = selectedText;
+    document.getElementById('addressSuggestions').hidden = true;
+    
+    const cleanLower = selectedText.toLowerCase();
+    if (cleanLower.includes('snohomish')) {
+      document.getElementById('inCounty').value = 'Snohomish';
+    } else if (cleanLower.includes('king')) {
+      document.getElementById('inCounty').value = 'King';
+    }
+  }
+
+  function formatPriceInput(input) {
+    let value = input.value.replace(/[^0-9]/g, "");
+    if (value !== "") {
+      const numValue = parseInt(value, 10);
+      input.value = numValue.toLocaleString('en-US');
+      if (!isTaxManual) {
+        document.getElementById('inTaxAmount').value = Math.round(numValue * 0.009).toLocaleString('en-US');
+      }
+    } else {
+      if (!isTaxManual) {
+        document.getElementById('inTaxAmount').value = "";
+      }
+    }
+  }
+
+  function formatGeneralCurrencyInput(input) {
+    let value = input.value.replace(/[^0-9]/g, "");
+    if (value !== "") {
+      input.value = parseInt(value, 10).toLocaleString('en-US');
+    }
+  }
+
+  function parseFormattedValue(id) {
+    const rawStr = document.getElementById(id).value || '0';
+    return parseFloat(rawStr.replace(/[^0-9.-]+/g, "")) || 0;
+  }
+
+  function formatCurrency(value) {
+    if (value < 0) {
+      return '-$' + Math.round(Math.abs(value)).toLocaleString('en-US');
+    }
+    return '$' + Math.round(value).toLocaleString('en-US');
+  }
+
+  function calculateWashingtonStateREET(price) {
+    let reetStateTotal = 0;
+    const tier1Cap = 525000;
+    const tier2Cap = 1525000;
+    const tier3Cap = 3025000;
+    if (price <= tier1Cap) {
+      reetStateTotal += price * 0.0110;
+    } else {
+      reetStateTotal += tier1Cap * 0.0110;
+      if (price <= tier2Cap) {
+        reetStateTotal += (price - tier1Cap) * 0.0128;
+      } else {
+        reetStateTotal += (tier2Cap - tier1Cap) * 0.0128;
+        if (price <= tier3Cap) {
+          reetStateTotal += (price - tier2Cap) * 0.0275;
+        } else {
+          reetStateTotal += (tier3Cap - tier2Cap) * 0.0275;
+          reetStateTotal += (price - tier3Cap) * 0.0300;
+        }
+      }
+    }
+    const reetLocalTotal = price * 0.0050;
+    return reetStateTotal + reetLocalTotal;
+  }
+
+  function buildDeepLinkedScenarioUrl() {
+    return window.location.origin + window.location.pathname +
+      `?n=${encodeURIComponent(document.getElementById('inSellerName').value)}` +
+      `&ad=${encodeURIComponent(document.getElementById('inSellerAddress').value)}` +
+      `&p=${(document.getElementById('inPrice').value || '0').replace(/[^0-9]/g, "")}` +
+      `&b1=${(document.getElementById('inBalance').value || '0').replace(/[^0-9]/g, "")}` +
+      `&b2=${(document.getElementById('inBalance2').value || '0').replace(/[^0-9]/g, "")}` +
+      `&t=${(document.getElementById('inTaxAmount').value || '0').replace(/[^0-9]/g, "")}` +
+      `&lp=${document.getElementById('inListingPackage').value}` +
+      `&bc=${document.getElementById('inBuyerComp').value}` +
+      `&l1=${encodeURIComponent(document.getElementById('inOtherLabel1').value)}` +
+      `&v1=${(document.getElementById('inOtherAmt1').value || '0').replace(/[^0-9]/g, "")}` +
+      `&l2=${encodeURIComponent(document.getElementById('inOtherLabel2').value)}` +
+      `&v2=${(document.getElementById('inOtherAmt2').value || '0').replace(/[^0-9]/g, "")}` +
+      `&pi=${document.getElementById('chkPreInspection').checked ? '1' : '0'}` +
+      `&piv=${(document.getElementById('inPreInspectCost').value || '0').replace(/[^0-9]/g, "")}` +
+      `&h=${document.getElementById('chkHoaCert').checked ? '1' : '0'}` +
+      `&hv=${(document.getElementById('inHoaCertCost').value || '0').replace(/[^0-9]/g, "")}`;
+  }
+
+  function copyWorksheetDeepLinkToClipboard() {
+    const compiledLink = buildDeepLinkedScenarioUrl();
+    navigator.clipboard.writeText(compiledLink).then(() => {
+      const btn = document.getElementById('btnCopyWorksheetLink');
+      btn.innerHTML = "<span>✓ Link Copied!</span>";
+      setTimeout(() => {
+        btn.innerHTML = "<span>Copy Direct Link</span>";
+      }, 2000);
+    }).catch(err => {
+      console.error("Clipboard capture error:", err);
+    });
+  }
+
+  function calculateNetProceeds() {
+    const salePrice = parseFormattedValue('inPrice');
+    const mortgagePayoff = parseFormattedValue('inBalance');
+    const mortgagePayoff2 = parseFormattedValue('inBalance2');
+    
+    const listingPct = parseFloat(document.getElementById('inListingPackage').value) || 2.0;
+    const buyerAgentPct = parseFloat(document.getElementById('inBuyerComp').value) || 2.5;
+    const closingDateValue = document.getElementById('inClosingDate').value;
+
+    if (salePrice <= 0) {
+      alert("Please enter a valid property sale price.");
+      return;
+    }
+
+    const listingBrokerFee = salePrice * (listingPct / 100);
+    const buyerBrokerFee = salePrice * (buyerAgentPct / 100);
+    const realEstateExciseTax = calculateWashingtonStateREET(salePrice);
+
+    const escrowClosingCost = (salePrice * 0.0004) + 958.51;
+    const ownerTitlePolicyCost = (salePrice * 0.0012) + 1143.82;
+    const standardDocPrepFee = 100.00;
+    const localRecordingFilingFee = 303.50;
+    const calculatedTaxAmount = parseFormattedValue('inTaxAmount') || (salePrice * 0.009);
+    const closingDate = closingDateValue ? new Date(closingDateValue + 'T12:00:00') : new Date();
+    const closingYear = closingDate.getFullYear();
+    
+    const startOfYear = new Date(closingYear, 0, 1);
+    const millisecondsInDay = 24 * 60 * 60 * 1000;
+    const daysElapsed = Math.floor((closingDate - startOfYear) / millisecondsInDay) + 1;
+    const sellerResponsibleTax = (daysElapsed / 365) * calculatedTaxAmount;
+
+    const firstHalfPaid = document.getElementById('chkFirstHalf').checked;
+    const secondHalfPaid = document.getElementById('chkSecondHalf').checked;
+    
+    let totalTaxPaidBySeller = 0;
+    if (firstHalfPaid) totalTaxPaidBySeller += calculatedTaxAmount * 0.5;
+    if (secondHalfPaid) totalTaxPaidBySeller += calculatedTaxAmount * 0.5;
+
+    const taxProrationResult = sellerResponsibleTax - totalTaxPaidBySeller;
+
+    let totalCreditsTally = salePrice;
+    let totalCostsTally = mortgagePayoff + mortgagePayoff2 + listingBrokerFee + buyerBrokerFee + realEstateExciseTax + escrowClosingCost + ownerTitlePolicyCost + standardDocPrepFee + localRecordingFilingFee;
+
+    if (taxProrationResult < 0) {
+      totalCreditsTally += Math.abs(taxProrationResult);
+    } else {
+      totalCostsTally += taxProrationResult;
+    }
+
+    const otherLabel1 = document.getElementById('inOtherLabel1').value || 'Additional Expense 1';
+    const otherAmt1 = parseFormattedValue('inOtherAmt1');
+    if (otherAmt1 > 0) totalCostsTally += otherAmt1;
+
+    const otherLabel2 = document.getElementById('inOtherLabel2').value || 'Additional Expense 2';
+    const otherAmt2 = parseFormattedValue('inOtherAmt2');
+    if (otherAmt2 > 0) totalCostsTally += otherAmt2;
+
+    const preInspectChecked = document.getElementById('chkPreInspection').checked;
+    const preInspectCost = parseFormattedValue('inPreInspectCost');
+    if (preInspectChecked && preInspectCost > 0) totalCostsTally += preInspectCost;
+
+    const hoaCertChecked = document.getElementById('chkHoaCert').checked;
+    const hoaCertCost = parseFormattedValue('inHoaCertCost');
+    if (hoaCertChecked && hoaCertCost > 0) totalCostsTally += hoaCertCost;
+
+    const finalNetCashToSeller = totalCreditsTally - totalCostsTally;
+
+    document.getElementById('txtNetProceeds').textContent = formatCurrency(finalNetCashToSeller);
+    
+    const targetScenarioUrl = buildDeepLinkedScenarioUrl();
+    const qrImageNode = document.getElementById('scenarioQrImg');
+    if (qrImageNode) {
+      qrImageNode.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data=${encodeURIComponent(targetScenarioUrl)}`;
+    }
+
+    const tbody = document.getElementById('ledgerTableBody');
+    let ledgerBuffer = `
+      <tr class="table-row-heading"><td colspan="3">Gross Property Value</td></tr>
+      <tr><td>Contract Sale Price</td><td class="table-cell-credit">${formatCurrency(salePrice)}</td><td>$0</td></tr>
+    `;
+    if (mortgagePayoff > 0 || mortgagePayoff2 > 0) {
+      ledgerBuffer += `<tr class="table-row-heading"><td colspan="3">Outstanding Encumbrances</td></tr>`;
+      if (mortgagePayoff > 0) {
+        ledgerBuffer += `<tr><td>1st Mortgage Payoff Balance</td><td>$0</td><td class="table-cell-cost">${formatCurrency(mortgagePayoff)}</td></tr>`;
+      }
+      if (mortgagePayoff2 > 0) {
+        ledgerBuffer += `<tr><td>2nd Mortgage Payoff Balance</td><td>$0</td><td class="table-cell-cost">${formatCurrency(mortgagePayoff2)}</td></tr>`;
+      }
+    }
+
+    ledgerBuffer += `
+      <tr class="table-row-heading"><td colspan="3">Real Estate Transaction Compensation</td></tr>
+      <tr><td>Listing Package Fee (${listingPct.toFixed(1)}%)</td><td>$0</td><td class="table-cell-cost">${formatCurrency(listingBrokerFee)}</td></tr>
+      <tr><td>Buyer Agent Compensation Fee (${buyerAgentPct.toFixed(1)}%)</td><td>$0</td><td class="table-cell-cost">${formatCurrency(buyerBrokerFee)}</td></tr>
+      <tr class="table-row-heading"><td colspan="3">Government Taxes</td></tr>
+      <tr><td>Washington State Graduated REET Tax</td><td>$0</td><td class="table-cell-cost">${formatCurrency(realEstateExciseTax)}</td></tr>
+    `;
+    if (taxProrationResult !== 0) {
+      if (taxProrationResult < 0) {
+        ledgerBuffer += `<tr><td>Prorated Property Tax Credit<br><span class="text-body-secondary" style="font-size:0.75rem;">Reimbursement for pre-paid tax timelines</span></td><td class="table-cell-credit">${formatCurrency(Math.abs(taxProrationResult))}</td><td>$0</td></tr>`;
+      } else {
+        ledgerBuffer += `<tr><td>Prorated Property Tax Debit<br><span class="text-body-secondary" style="font-size:0.75rem;">Tax allocation through closing date</span></td><td>$0</td><td class="table-cell-cost">${formatCurrency(taxProrationResult)}</td></tr>`;
+      }
+    }
+
+    ledgerBuffer += `
+      <tr class="table-row-heading"><td colspan="3">Rocket Close Settlement &amp; Recording</td></tr>
+      <tr><td>Escrow Settlement Closing Fee</td><td>$0</td><td class="table-cell-cost">${formatCurrency(escrowClosingCost)}</td></tr>
+      <tr><td>Owner Title Insurance Policy Premium</td><td>$0</td><td class="table-cell-cost">${formatCurrency(ownerTitlePolicyCost)}</td></tr>
+      <tr><td>Document Preparation Fee</td><td>$0</td><td class="table-cell-cost">${formatCurrency(standardDocPrepFee)}</td></tr>
+      <tr><td>County Auditor Recording and Filing Fee</td><td>$0</td><td class="table-cell-cost">${formatCurrency(localRecordingFilingFee)}</td></tr>
+    `;
+    if ((preInspectChecked && preInspectCost > 0) || (hoaCertChecked && hoaCertCost > 0) || otherAmt1 > 0 || otherAmt2 > 0) {
+      ledgerBuffer += `<tr class="table-row-heading"><td colspan="3">Additional Settlement Details</td></tr>`;
+      if (preInspectChecked && preInspectCost > 0) {
+        ledgerBuffer += `<tr><td>Pre-inspection Expense</td><td>$0</td><td class="table-cell-cost">${formatCurrency(preInspectCost)}</td></tr>`;
+      }
+      if (hoaCertChecked && hoaCertCost > 0) {
+        ledgerBuffer += `<tr><td>HOA Resale Certificate Expense</td><td>$0</td><td class="table-cell-cost">${formatCurrency(hoaCertCost)}</td></tr>`;
+      }
+      if (otherAmt1 > 0) {
+        ledgerBuffer += `<tr><td>Additional Expense: ${otherLabel1}</td><td>$0</td><td class="table-cell-cost">${formatCurrency(otherAmt1)}</td></tr>`;
+      }
+      if (otherAmt2 > 0) {
+        ledgerBuffer += `<tr><td>Additional Expense: ${otherLabel2}</td><td>$0</td><td class="table-cell-cost">${formatCurrency(otherAmt2)}</td></tr>`;
+      }
+    }
+
+    ledgerBuffer += `
+      <tr class="table-row-total">
+        <td>Total Summary Tallies</td>
+        <td class="table-cell-credit">${formatCurrency(totalCreditsTally)}</td>
+        <td class="table-cell-cost">${formatCurrency(totalCostsTally)}</td>
+      </tr>
+      <tr class="table-row-heading">
+        <td>Estimated Net Cash to Seller</td>
+        <td colspan="2" class="table-cell-credit table-cell-align-right">
+          ${formatCurrency(finalNetCashToSeller)}
+        </td>
+      </tr>
+    `;
+    tbody.innerHTML = ledgerBuffer;
+    const resultsStage = document.getElementById('resultsWrapper');
+    resultsStage.style.display = 'block';
+    resultsStage.scrollIntoView({ behavior: 'smooth' });
+  }
+</script>
