@@ -1,0 +1,172 @@
+---
+layout: layouts/base.njk
+title: "Specialty Home Programs & Strategic Solutions | Joe Sheldon"
+description: "Directory of specialty home buying and selling programs, trade-in mortgages, cash bridge loans, equity unlock solutions, and pre-sale renovation floats."
+permalink: /realestate/resources/thirdpartyprograms/index.html
+---
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://myseattlesearch.com/realestate/resources/thirdpartyprograms/",
+      "url": "https://myseattlesearch.com/realestate/resources/thirdpartyprograms/",
+      "name": "Specialty Home Programs & Strategic Solutions",
+      "description": "Directory of specialty home buying and selling programs, trade-in mortgages, cash bridge loans, equity unlock solutions, and pre-sale renovation floats.",
+      "author": {
+        "@id": "https://myseattlesearch.com/#agent"
+      }
+    },
+    {
+      "@type": "ItemList",
+      "@id": "https://myseattlesearch.com/realestate/resources/thirdpartyprograms/#directory",
+      "name": "Specialty Home Programs & Strategic Solutions Directory",
+      "itemListElement": [
+        {% for p in thirdpartyprograms %}
+        {% if p.Display == 'Yes' %}
+        {
+          "@type": "ListItem",
+          "position": {{ loop.index }},
+          "item": {
+            "@type": "FinancialProduct",
+            "name": {{ p['Program Name'] | dump | safe if p['Program Name'] else 'Specialty Home Program' | dump | safe }},
+            "description": {{ p['Summary'] | dump | safe if p['Summary'] else '' | dump | safe }},
+            "category": {{ p['Category'] | dump | safe if p['Category'] else 'Specialty Track' | dump | safe }},
+            "provider": {
+              "@type": "FinancialService",
+              "name": {{ p['Program Name'] | dump | safe if p['Program Name'] else 'Provider' | dump | safe }}
+            },
+            "url": {{ p['Website URL'] | dump | safe if p['Website URL'] and 'http' in p['Website URL'] else 'https://myseattlesearch.com/realestate/resources/thirdpartyprograms/' | dump | safe }}
+          }
+        }{% if not loop.last %},{% endif %}
+        {% endif %}
+        {% endfor %}
+      ]
+    }
+  ]
+}
+</script>
+
+<main class="layout-container layout-stack-main">
+
+  <header class="surface-bento page-hero-bento">
+    <h1 class="text-page-title">Specialty Home Programs</h1>
+    <p class="text-body page-hero-lead">
+      Standard financing options don't fit every situation. Explore our direct integration pathways with specialty programs, trade-in mortgages, cash bridge options, and pre-sale renovation solutions built to optimize your leverage.
+    </p>
+  </header>
+
+  <div class="section-divider"></div>
+
+  <section class="content-section-centered">
+    <div class="pro-filter-cloud" id="programFilterNav" role="tablist" aria-label="Filter Programs by Audience">
+      <button type="button" class="neighborhood-nav-pill is-active" data-filter="all" role="tab" aria-selected="true">
+        <span>Show All Programs</span>
+      </button>
+      <button type="button" class="neighborhood-nav-pill is-inactive" data-filter="buyer" role="tab" aria-selected="false">
+        <span>For Home Buyers</span>
+      </button>
+      <button type="button" class="neighborhood-nav-pill is-inactive" data-filter="seller" role="tab" aria-selected="false">
+        <span>For Home Sellers</span>
+      </button>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="content-section-centered">
+    <div class="section-grid-static grid-cols-1" id="programsGrid">
+      {% for p in thirdpartyprograms %}
+      {% if p.Display == 'Yes' %}
+      <article class="surface-bento calc-strategy-card program-card" data-audience="{{ p['Target Audience'] | lower }}">
+        
+        <header class="text-center">
+          <div class="text-overline text-accent-alpine">{{ p.Category }}</div>
+          <h2 class="text-widget-title">{{ p['Program Name'] }}</h2>
+        </header>
+
+        <div class="calc-breakdown-row row-gross">
+          <span class="text-primary-charcoal">{{ p.Summary }}</span>
+        </div>
+
+        {% if p.Purpose %}
+          <div class="calc-field-group">
+            <p class="text-body">{{ p.Purpose }}</p>
+          </div>
+        {% endif %}
+
+        <div class="calc-stat-strip">
+          <div class="calc-stat-col">
+            <span class="calc-stat-label">Estimated Fees</span>
+            <span class="text-body">{{ p['Client Fees & Costs'] | default('Contact for custom estimate') }}</span>
+          </div>
+
+          <div class="calc-stat-col">
+            <span class="calc-stat-label">Primary Edge</span>
+            <span class="text-body">{{ p.Benefit | default('Enhanced negotiation power') }}</span>
+          </div>
+
+          <div class="calc-stat-col">
+            <span class="calc-stat-label">Property Criteria</span>
+            <span class="text-body">{{ p['Property Restrictions'] | default('Standard residential property guidelines apply') }}</span>
+          </div>
+
+          <div class="calc-stat-col">
+            <span class="calc-stat-label">Rocket Compatibility</span>
+            <span class="text-body">{{ p['Rocket Mortgage Compatibility'] | default('100% Compatible') }}</span>
+          </div>
+        </div>
+
+        {% if p['Website URL'] and 'http' in p['Website URL'] %}
+          <div class="action-tray-constrained">
+            <a href="{{ p['Website URL'] }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+              <span>Explore Official Program &rarr;</span>
+            </a>
+          </div>
+        {% elif p['Program Name'] == 'Notable' %}
+          <div class="action-tray-constrained">
+            <a href="https://www.notablefi.com/" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+              <span>Explore Notable Program &rarr;</span>
+            </a>
+          </div>
+        {% endif %}
+
+      </article>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+
+</main>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const filterNav = document.getElementById('programFilterNav');
+    const filterBtns = filterNav ? filterNav.querySelectorAll('.neighborhood-nav-pill') : [];
+    const cards = document.querySelectorAll('.program-card');
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filterVal = btn.getAttribute('data-filter');
+
+        filterBtns.forEach(b => {
+          b.classList.remove('is-active');
+          b.classList.add('is-inactive');
+          b.setAttribute('aria-selected', 'false');
+        });
+
+        btn.classList.remove('is-inactive');
+        btn.classList.add('is-active');
+        btn.setAttribute('aria-selected', 'true');
+
+        cards.forEach(card => {
+          const audience = (card.getAttribute('data-audience') || '').toLowerCase();
+          const matches = filterVal === 'all' || audience === 'both' || audience.includes(filterVal);
+          card.style.display = matches ? 'flex' : 'none';
+        });
+      });
+    });
+  });
+</script>

@@ -1,0 +1,431 @@
+---
+layout: layouts/base.njk
+title: "King & Snohomish County Property Health & Hazard Radar | Joe Sheldon"
+description: "Check any home in King or Snohomish County for environmental risks, soil contamination plumes, airport noise corridors, and WA resale safety mandates."
+permalink: /realestate/resources/healthhazardradar/index.html
+---
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://myseattlesearch.com/realestate/resources/healthhazardradar/",
+      "url": "https://myseattlesearch.com/realestate/resources/healthhazardradar/",
+      "name": "King & Snohomish County Property Health & Hazard Radar",
+      "description": "Interactive property hazard radar and localized environmental risk lookup tool for homebuyers and sellers across King and Snohomish counties.",
+      "author": {
+        "@id": "https://myseattlesearch.com/#agent"
+      },
+      "about": {
+        "@type": "Place",
+        "name": "King County and Snohomish County, Washington"
+      }
+    },
+    {
+      "@type": "Article",
+      "headline": "King & Snohomish County Property Health & Hazard Radar",
+      "author": {
+        "@id": "https://myseattlesearch.com/#agent"
+      },
+      "publisher": {
+        "@id": "https://myseattlesearch.com/#agent"
+      },
+      "mainEntityOfPage": "https://myseattlesearch.com/realestate/resources/healthhazardradar/"
+    }
+  ]
+}
+</script>
+
+<main class="layout-container layout-stack-main">
+
+  <header class="surface-bento page-hero-bento">
+    <h1 class="text-page-title">King &amp; Snohomish Property Health Radar</h1>
+    <p class="text-body page-hero-lead">
+      Screen any local property against Puget Sound environmental factors, industrial soil contamination plumes, airport flight corridors, structural age disclosures, and mandatory Washington State safety requirements.
+    </p>
+  </header>
+
+  <div class="section-divider"></div>
+
+  {# Section 3.0: Interactive Hazard Screener Viewport #}
+  <section id="hazard-screener" class="content-section-centered">
+    <div class="surface-bento">
+      <div class="card-header-split">
+        <h2 class="text-widget-title">Interactive Property Hazard Screener</h2>
+      </div>
+
+      <div class="section-grid-static grid-cols-2">
+        <div class="calc-field-group">
+          <label for="radarCitySelect">Select Municipality / City</label>
+          <select id="radarCitySelect">
+            {% if city_data %}
+              <optgroup label="King County">
+                {% for city in city_data %}
+                  {% if city.County == "King" or city.County == "King County" %}
+                    <option value="{{ city.City }}">{{ city.City }}</option>
+                  {% endif %}
+                {% endfor %}
+              </optgroup>
+              <optgroup label="Snohomish County">
+                {% for city in city_data %}
+                  {% if city.County == "Snohomish" or city.County == "Snohomish County" %}
+                    <option value="{{ city.City }}" {% if city.City == "Lynnwood" %}selected{% endif %}>{{ city.City }}</option>
+                  {% endif %}
+                {% endfor %}
+              </optgroup>
+            {% else %}
+              <option value="Lynnwood" selected>Lynnwood</option>
+              <option value="Seattle">Seattle</option>
+              <option value="Bellevue">Bellevue</option>
+              <option value="Edmonds">Edmonds</option>
+            {% endif %}
+          </select>
+        </div>
+
+        <div class="calc-field-group">
+          <label for="radarYearBuilt">Year Home Was Built</label>
+          <input type="number" id="radarYearBuilt" value="1975" min="1880" max="2026">
+          <div class="pro-filter-cloud">
+            <button type="button" class="neighborhood-nav-pill is-inactive radar-preset-btn" data-year="1972">
+              <span>Pre-1978</span>
+            </button>
+            <button type="button" class="neighborhood-nav-pill is-inactive radar-preset-btn" data-year="1985">
+              <span>1980s</span>
+            </button>
+            <button type="button" class="neighborhood-nav-pill is-inactive radar-preset-btn" data-year="1998">
+              <span>1990s</span>
+            </button>
+            <button type="button" class="neighborhood-nav-pill is-inactive radar-preset-btn" data-year="2015">
+              <span>2000+</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="calc-field-group">
+        <label>Property Systems &amp; Foundation Features</label>
+        <div class="calc-tax-checkboxes">
+          <label class="calc-checkbox-label">
+            <input type="checkbox" id="chkOilTank">
+            <span>Underground Fuel / Oil Tank</span>
+          </label>
+          <label class="calc-checkbox-label">
+            <input type="checkbox" id="chkSepticWell">
+            <span>Private Well or Septic System</span>
+          </label>
+          <label class="calc-checkbox-label">
+            <input type="checkbox" id="chkBasementCrawl" checked>
+            <span>Basement or Crawl Space</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <div class="calc-card-header portal-section-header">
+        <h3 class="text-widget-title">Identified Property Risk Factors</h3>
+        <span class="text-overline text-accent-alpine" id="radarResultsBadge">Evaluating parameters...</span>
+      </div>
+
+      <div class="section-grid-static grid-cols-2" id="radarResultsContainer"></div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  {# Section 4.0: Stacked Directory 1 — Environmental & Land Hazards #}
+  <section id="environmental-hazards" class="content-section-centered">
+    <h2 class="text-section-title">Environmental &amp; Land Hazards</h2>
+    <p class="text-body section-body-prose">
+      Macro geographic factors, airport flight corridors, historical industrial soil plumes, coastal bluffs, and regional drainage basins across Western Washington.
+    </p>
+
+    <div class="section-grid-static grid-cols-2">
+      
+      <article class="surface-bento calc-strategy-card">
+        <div class="text-overline text-accent-alpine">Underground Storage</div>
+        <h3 class="text-widget-title">Heating Oil Tanks &amp; PLIA Grants</h3>
+        <p class="text-body">
+          Decommissioning guidelines, soil contamination assessments, and Washington State Pollution Liability Insurance Agency (PLIA) remediation grants up to $75,000.
+        </p>
+        <div class="action-tray-constrained section-action-tray">
+          <a href="/realestate/resources/healthhazards/heating-oil-tanks/" class="btn btn-secondary">
+            <span>Read Oil Tank Guide &rarr;</span>
+          </a>
+        </div>
+      </article>
+
+      <article class="surface-bento calc-strategy-card">
+        <div class="text-overline text-accent-alpine">Aviation Noise &amp; Air Quality</div>
+        <h3 class="text-widget-title">Airport Flight Paths &amp; Corridors</h3>
+        <p class="text-body">
+          Flight tracking patterns, acoustic noise boundaries, and indoor air quality considerations surrounding Sea-Tac, Paine Field, Boeing Field (KBFI), and regional airfields.
+        </p>
+        <div class="action-tray-constrained section-action-tray">
+          <a href="/realestate/resources/healthhazards/airport-noise-flight-paths/" class="btn btn-secondary">
+            <span>Read Flight Path Guide &rarr;</span>
+          </a>
+        </div>
+      </article>
+
+      <article class="surface-bento calc-strategy-card">
+        <div class="text-overline text-accent-alpine">Soil Contamination</div>
+        <h3 class="text-widget-title">Smelter Plumes: Lead &amp; Arsenic</h3>
+        <p class="text-body">
+          Historical emissions from the Tacoma and Everett smelters deposited airborne particulates across West Seattle, South King, and Snohomish County. Learn Dirt Alert testing protocols.
+        </p>
+        <div class="action-tray-constrained section-action-tray">
+          <a href="/realestate/resources/healthhazards/smelter-plumes-soil/" class="btn btn-secondary">
+            <span>Read Smelter Soil Guide &rarr;</span>
+          </a>
+        </div>
+      </article>
+
+      <article class="surface-bento calc-strategy-card">
+        <div class="text-overline text-accent-alpine">Geological Stability</div>
+        <h3 class="text-widget-title">Bluffs, Landslides &amp; Floodplains</h3>
+        <p class="text-body">
+          Puget Sound coastal slope management, marine bluff setback requirements, river basin floodways, and historical King County underground coal mine hazard maps.
+        </p>
+        <div class="action-tray-constrained section-action-tray">
+          <a href="/realestate/resources/healthhazards/steep-slopes-landslides/" class="btn btn-secondary">
+            <span>Read Geologic Hazard Guide &rarr;</span>
+          </a>
+        </div>
+      </article>
+
+      <article class="surface-bento calc-strategy-card">
+        <div class="text-overline text-accent-alpine">Shoreline &amp; Lake Ecology</div>
+        <h3 class="text-widget-title">Beach Alerts &amp; Toxic Lake Algae</h3>
+        <p class="text-body">
+          Marine biotoxin monitoring across Puget Sound saltwater shorelines alongside seasonal freshwater cyanobacteria algae advisories for local lakes.
+        </p>
+        <div class="action-tray-constrained section-action-tray">
+          <a href="/realestate/resources/healthhazards/water-quality-beaches/" class="btn btn-secondary">
+            <span>Read Water Quality Guide &rarr;</span>
+          </a>
+        </div>
+      </article>
+
+      <article class="surface-bento calc-strategy-card">
+        <div class="text-overline text-accent-alpine">Industrial Cleanups</div>
+        <h3 class="text-widget-title">Superfund &amp; MTCA Cleanup Sites</h3>
+        <p class="text-body">
+          Federal EPA Superfund cleanups along the Lower Duwamish Waterway and Washington State Model Toxics Control Act (MTCA) property records investigation tools.
+        </p>
+        <div class="action-tray-constrained section-action-tray">
+          <a href="/realestate/resources/healthhazards/superfund-sites-duwamish/" class="btn btn-secondary">
+            <span>Read Superfund Site Guide &rarr;</span>
+          </a>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  {# Section 5.0: Stacked Directory 2 — Home & Property Health Risks #}
+  <section id="structural-health" class="content-section-centered">
+    <h2 class="text-section-title">Home &amp; Structural Health Risks</h2>
+    <p class="text-body section-body-prose">
+      Interior safety parameters, home age-based environmental disclosures, drinking water and septic evaluations, and mandatory Washington State resale codes.
+    </p>
+
+    <div class="section-grid-static grid-cols-2">
+      
+      <article class="surface-bento calc-strategy-card">
+        <div class="text-overline text-accent-alpine">Soil Gas Depressurization</div>
+        <h3 class="text-widget-title">Radon Gas Testing &amp; Mitigation</h3>
+        <p class="text-body">
+          Glacial till soil deposits and river gravel corridors create localized radon pockets. Review testing thresholds and sub-slab depressurization installation standards.
+        </p>
+        <div class="action-tray-constrained section-action-tray">
+          <a href="/realestate/resources/healthhazards/radon-gas/" class="btn btn-secondary">
+            <span>Read Radon Gas Guide &rarr;</span>
+          </a>
+        </div>
+      </article>
+
+      <article class="surface-bento calc-strategy-card">
+        <div class="text-overline text-accent-alpine">Age-Based Disclosures</div>
+        <h3 class="text-widget-title">Pre-1978 Lead &amp; Pre-1980 Asbestos</h3>
+        <p class="text-body">
+          Federal lead-based paint disclosure rules for pre-1978 homes, acoustic popcorn ceiling asbestos risks, and safe renovation guidelines for older properties.
+        </p>
+        <div class="action-tray-constrained section-action-tray">
+          <a href="/realestate/resources/healthhazards/lead-and-asbestos/" class="btn btn-secondary">
+            <span>Read Lead &amp; Asbestos Guide &rarr;</span>
+          </a>
+        </div>
+      </article>
+
+      <article class="surface-bento calc-strategy-card">
+        <div class="text-overline text-accent-alpine">Moisture &amp; Building Science</div>
+        <h3 class="text-widget-title">Mold, Moisture &amp; Attic Rain</h3>
+        <p class="text-body">
+          Crawl space vapor barrier integrity, exhaust fan ventilation standards, and winter temperature differentials that lead to condensation and attic mold formation.
+        </p>
+        <div class="action-tray-constrained section-action-tray">
+          <a href="/realestate/resources/healthhazards/mold-moisture-attic-rain/" class="btn btn-secondary">
+            <span>Read Mold &amp; Moisture Guide &rarr;</span>
+          </a>
+        </div>
+      </article>
+
+      <article class="surface-bento calc-strategy-card">
+        <div class="text-overline text-accent-alpine">Onsite Utilities</div>
+        <h3 class="text-widget-title">Well Water &amp; Septic RSS Inspections</h3>
+        <p class="text-body">
+          King and Snohomish County mandatory Septic Report of System Status (RSS) transfer requirements, drainfield maintenance, and private well potability tests.
+        </p>
+        <div class="action-tray-constrained section-action-tray">
+          <a href="/realestate/resources/healthhazards/wells-and-septic-systems/" class="btn btn-secondary">
+            <span>Read Well &amp; Septic Guide &rarr;</span>
+          </a>
+        </div>
+      </article>
+
+      <article class="surface-bento calc-strategy-card">
+        <div class="text-overline text-accent-alpine">State Mandates</div>
+        <h3 class="text-widget-title">WA Mandatory Resale Safety Codes</h3>
+        <p class="text-body">
+          Statutory smoke detector placement, carbon monoxide alarms on every floor, and water heater seismic double-strapping requirements enforced prior to closing.
+        </p>
+        <div class="action-tray-constrained section-action-tray">
+          <a href="/realestate/resources/healthhazards/wa-safety-code-requirements/" class="btn btn-secondary">
+            <span>Read Safety Code Guide &rarr;</span>
+          </a>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+</main>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const citySelect = document.getElementById('radarCitySelect');
+    const yearInput = document.getElementById('radarYearBuilt');
+    const chkOil = document.getElementById('chkOilTank');
+    const chkSeptic = document.getElementById('chkSepticWell');
+    const chkBasement = document.getElementById('chkBasementCrawl');
+    const presetBtns = document.querySelectorAll('.radar-preset-btn');
+    const container = document.getElementById('radarResultsContainer');
+    const badge = document.getElementById('radarResultsBadge');
+
+    let citiesDataset = [];
+    let masterHazardsDataset = [];
+
+    presetBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        presetBtns.forEach(b => {
+          b.classList.remove('is-active');
+          b.classList.add('is-inactive');
+        });
+        btn.classList.remove('is-inactive');
+        btn.classList.add('is-active');
+
+        yearInput.value = btn.getAttribute('data-year');
+        evaluateRadar();
+      });
+    });
+
+    [citySelect, yearInput, chkOil, chkSeptic, chkBasement].forEach(ctrl => {
+      if (!ctrl) return;
+      ctrl.addEventListener('change', evaluateRadar);
+      if (ctrl.tagName === 'INPUT' && ctrl.type === 'number') {
+        ctrl.addEventListener('input', evaluateRadar);
+      }
+    });
+
+    Promise.all([
+      fetch('/data/city_data.json').then(r => r.ok ? r.json() : []),
+      fetch('/data/hazards_master.json').then(r => r.ok ? r.json() : [])
+    ]).then(([cities, hazards]) => {
+      citiesDataset = Array.isArray(cities) ? cities : [];
+      masterHazardsDataset = Array.isArray(hazards) ? hazards : [];
+      evaluateRadar();
+    }).catch(err => {
+      console.warn('Radar data sync fallback engaged:', err);
+    });
+
+    function evaluateRadar() {
+      if (!masterHazardsDataset.length) return;
+
+      const cityName = citySelect ? citySelect.value : 'Lynnwood';
+      const year = parseInt(yearInput ? yearInput.value : 1975, 10) || 1975;
+      const hasOil = chkOil ? chkOil.checked : false;
+      const hasSeptic = chkSeptic ? chkSeptic.checked : false;
+      const hasBasement = chkBasement ? chkBasement.checked : true;
+
+      const cityObj = citiesDataset.find(c => c.City === cityName) || {};
+      const rawTags = cityObj['Health Hazards'] || cityObj['health_hazards'] || '';
+      const tags = rawTags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+
+      const matchedHazards = [];
+
+      masterHazardsDataset.forEach(item => {
+        let isMatch = false;
+
+        if (item.trigger_type === 'always') {
+          isMatch = true;
+        } else if (item.trigger_type === 'city_tag' && tags.includes(String(item.trigger_key).toLowerCase())) {
+          isMatch = true;
+        } else if (item.trigger_type === 'year_built_before' && year < parseInt(item.trigger_key, 10)) {
+          isMatch = true;
+        } else if (item.trigger_type === 'feature') {
+          if (item.trigger_key === 'has_oil_tank' && hasOil) isMatch = true;
+          if (item.trigger_key === 'has_septic_well' && hasSeptic) isMatch = true;
+          if (item.trigger_key === 'has_basement_crawl' && hasBasement) isMatch = true;
+        }
+
+        if (isMatch) matchedHazards.push(item);
+      });
+
+      renderRadar(matchedHazards, cityName, year);
+    }
+
+    function renderRadar(hazards, cityName, year) {
+      if (!container) return;
+
+      if (badge) {
+        badge.textContent = `${hazards.length} Factors Identified for ${cityName} (${year})`;
+      }
+
+      if (hazards.length === 0) {
+        container.innerHTML = `
+          <div class="calc-breakdown-row row-gross" style="grid-column: 1 / -1;">
+            <span class="text-body">No localized environmental hazards identified for this exact selection. Standard Washington State safety codes apply.</span>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = hazards.map(item => {
+        const canonicalUrl = (item.url || '#').replace('/resources/health-hazards/', '/realestate/resources/healthhazards/');
+        const catLabel = item.category ? item.category.toUpperCase() : 'PROPERTY FACTOR';
+
+        return `
+          <article class="surface-bento calc-strategy-card">
+            <header class="text-center">
+              <div class="text-overline text-accent-alpine">${catLabel}</div>
+              <h3 class="text-widget-title">${item.title}</h3>
+            </header>
+            <div class="calc-field-group">
+              <p class="text-body">${item.summary}</p>
+            </div>
+            <div class="action-tray-constrained section-action-tray">
+              <a href="${canonicalUrl}" class="btn btn-secondary">
+                <span>Read Full Guide &rarr;</span>
+              </a>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+  });
+</script>

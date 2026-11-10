@@ -53,6 +53,7 @@ def harvest_public_safety_hazards(): run_subscript("public_safety_hazards.py")
 def harvest_building_permits(): run_subscript("building_permits.py")
 def harvest_traffic_cameras(): run_subscript("traffic_cameras.py")
 def ping_matrix_keep_alive(): run_subscript("keep_alive_matrix.py")
+def harvest_entertainment(): run_subscript("entertainment.py")
 
 def main():
     print("==================================================")
@@ -67,6 +68,7 @@ def main():
     safe_task("6. Municipal Building Permits", harvest_building_permits)
     safe_task("7. Multi-Agency Traffic Cameras Mapping", harvest_traffic_cameras)
     safe_task("8. Matrix & OneHome Portal Keep-Alive", ping_matrix_keep_alive)
+    safe_task("9. Entertainment Hub (Rankings, Movies & Notable Actors)", harvest_entertainment)
 
     print("🎉 Weekly master harvesting sequence complete. Data fresh!")
 
