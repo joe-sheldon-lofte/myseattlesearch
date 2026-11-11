@@ -63,7 +63,7 @@ def harvest_weather_hourly(): run_subscript("harvest_weather_hourly.py")
 def harvest_transit_intercity(): run_subscript("transit_intercity.py")
 def harvest_sports_hourly(): run_subscript("sports_hourly.py")
 def harvest_sheets_master_sync(): run_subscript("sheets_master_sync.py")
-def harvest_cms_generator(): run_subscript("cms_generator.py")
+def harvest_cms_harvester(): run_subscript("cms_harvester.py")
 def harvest_news_rss_wire(): run_subscript("news_rss_wire.py")
 
 # Task 7: Cloudflare R2 Storage Accounting
@@ -113,7 +113,7 @@ def main():
     safe_task("2. Transit Radar & Intercity Delays", harvest_transit_intercity)
     safe_task("3. Hourly Live Sports Scoreboard", harvest_sports_hourly)
     safe_task("4. Sheets Master Sync & Workbook Downloads", harvest_sheets_master_sync)
-    safe_task("5. Headless CMS & Social Auto-Publisher", harvest_cms_generator)
+    safe_task("5. Headless CMS & Social Auto-Publisher", harvest_cms_harvester)
     safe_task("6. Local RSS Real Estate News Wire", harvest_news_rss_wire)
     safe_task("7. Cloudflare R2 Storage Accounting", run_r2_accounting)
 
