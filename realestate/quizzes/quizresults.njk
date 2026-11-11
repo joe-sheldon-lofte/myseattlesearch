@@ -1,0 +1,69 @@
+---
+layout: layouts/base.njk
+title: "Your Assessment Results | Joe Sheldon"
+description: "Review your personalized psychographic playbook and strategy recommendations."
+permalink: /realestate/quizzes/results/index.html
+---
+
+<main class="layout-container layout-stack-main">
+  <header class="surface-bento page-hero-bento">
+    <div class="text-overline text-accent-alpine" id="res-overline">Analyzing Strategy...</div>
+    <h1 class="text-page-title" id="res-heading">Generating Your Blueprint</h1>
+    <p class="text-body page-hero-lead" id="res-subheading"></p>
+  </header>
+
+  <div class="section-divider"></div>
+
+  <section class="content-section-centered" id="res-content-section" style="display: none;">
+    <article class="surface-bento calc-strategy-card">
+      <h2 class="text-widget-title">Your Playbook Overview</h2>
+      <p class="text-body" id="res-details" style="margin-bottom: 2rem;"></p>
+      
+      <div style="padding: 1.5rem; background: var(--color-surface-gray); border-radius: 12px; border-left: 4px solid var(--color-text-primary, #111);">
+        <h3 class="text-primary-charcoal" style="margin-top: 0; font-size: 1.15rem;">Strategic Directives</h3>
+        <p class="text-body" id="res-additional-details" style="margin-bottom: 0;"></p>
+      </div>
+      
+      <div class="action-tray-constrained section-action-tray" style="margin-top: 2.5rem; justify-content: center;">
+        <a href="/" class="btn btn-secondary">Return to Homepage</a>
+      </div>
+    </article>
+  </section>
+</main>
+
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+     const params = new URLSearchParams(window.location.search);
+     const quizId = params.get('quizId');
+     const resultKey = params.get('result');
+     
+     if(!quizId || !resultKey) {
+        document.getElementById('res-heading').textContent = "Result Not Found";
+        return;
+     }
+
+     try {
+         const res = await fetch('/data/quizzes.json');
+         const data = await res.json();
+         const quiz = data[quizId];
+         
+         if(!quiz) return;
+         
+         const match = quiz.routing.find(r => r.key === resultKey) || quiz.routing[0];
+         
+         document.getElementById('res-overline').textContent = quiz.name;
+         document.getElementById('res-heading').textContent = match.heading;
+         document.getElementById('res-subheading').textContent = match.subheading;
+         
+         document.getElementById('res-details').textContent = match.details;
+         
+         // Remove the hardcoded prefix from JSON since it's cleaner to handle via the layout headers
+         const cleanDetails = (match.additionalDetails || match.details).replace("Joe's Coaching Blueprint For You: ", "");
+         document.getElementById('res-additional-details').textContent = cleanDetails;
+         
+         document.getElementById('res-content-section').style.display = "block";
+     } catch (err) {
+         console.error("Result parsing fault:", err);
+     }
+  });
+</script>

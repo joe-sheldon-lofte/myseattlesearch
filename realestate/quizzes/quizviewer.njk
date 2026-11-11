@@ -1,0 +1,22 @@
+---
+layout: layouts/base.njk
+title: "Interactive Assessment | Joe Sheldon"
+description: "Complete your property strategy or lifestyle assessment."
+permalink: /realestate/quizzes/viewport/index.html
+---
+
+<script src="/assets/js/quiz-engine.js" type="module"></script>
+
+<main class="layout-container layout-stack-main">
+  <div id="quiz-mount">
+     <div class="surface-bento text-center text-primary-charcoal">Loading Assessment Engine...</div>
+  </div>
+</main>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+     const params = new URLSearchParams(window.location.search);
+     const quizId = params.get('quizId') || '1';
+     document.getElementById('quiz-mount').innerHTML = `<quiz-engine quiz-id="${quizId}"></quiz-engine>`;
+  });
+</script>

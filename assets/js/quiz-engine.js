@@ -5,16 +5,15 @@ class QuizEngine extends HTMLElement {
         this.currentStep = -1;
         this.leadInfo = { firstName: '', lastName: '', email: '', phone: '' };
         this.answers = [];
+        this.currentSelection = null;
     }
 
     async connectedCallback() {
         const quizIdAttr = this.getAttribute('quiz-id');
         if (!quizIdAttr) {
-            this.innerHTML = `<div style="color: var(--card-accent-color); font-weight:bold; padding:1rem; text-align:center;">Engine Error: Attribute 'quiz-id' is required.</div>`;
+            this.innerHTML = `<div class="surface-bento text-center"><p class="text-body">Engine Error: Attribute 'quiz-id' is required.</p></div>`;
             return;
         }
-        
-        this.innerHTML = `<div style="text-align:center; padding: 3rem; font-size:1.1rem; color: var(--premier-charcoal); opacity: 0.8;">Hydrating dynamic strategy options...</div>`;
         
         try {
             const response = await fetch('/data/quizzes.json');
@@ -22,82 +21,47 @@ class QuizEngine extends HTMLElement {
             this.quizData = data[quizIdAttr];
             
             if (!this.quizData) {
-                this.innerHTML = `<div style="color: var(--card-accent-color); font-weight:bold; padding:1rem; text-align:center;">Engine Error: Quiz ID ${quizIdAttr} not found.</div>`;
+                this.innerHTML = `<div class="surface-bento text-center"><p class="text-body">Engine Error: Quiz ID ${quizIdAttr} not found.</p></div>`;
                 return;
             }
-
-            if (!this.checkDateAvailability()) {
-                this.innerHTML = `
-                    <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:3rem 2.5rem; background: var(--white); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); text-align:center; border-top:6px solid var(--premier-beige);">
-                        <div style="font-size:3rem; margin-bottom:1rem;">📅</div>
-                        <h3 style="color: var(--premier-charcoal); margin:0 0 0.75rem 0;">Assessment Unavailable</h3>
-                        <p style="color: var(--premier-charcoal); opacity: 0.8; font-size:0.95rem; line-height:1.5; margin:0;">This strategy module is not available right now.</p>
-                    </div>`;
-                return;
-            }
-
             this.renderOnboarding();
         } catch (err) {
             console.error("Quiz Initialization Interrupted:", err);
-            this.innerHTML = `<div style="color: var(--card-accent-color); font-weight:bold; padding:1rem; text-align:center;">Failed to connect to template cache.</div>`;
+            this.innerHTML = `<div class="surface-bento text-center"><p class="text-body">Failed to connect to local template cache.</p></div>`;
         }
-    }
-
-    checkDateAvailability() {
-        if (!this.quizData.startDate && !this.quizData.endDate) return true;
-        const today = new Date();
-        today.setHours(0,0,0,0);
-
-        if (this.quizData.startDate) {
-            const start = new Date(this.quizData.startDate + "T00:00:00");
-            if (today < start) return false;
-        }
-        if (this.quizData.endDate) {
-            const end = new Date(this.quizData.endDate + "T00:00:00");
-            if (today > end) return false;
-        }
-        return true;
     }
 
     renderOnboarding() {
-        const reqStr = this.quizData.requiredFields || 'firstName,lastName,email';
-        const reqFields = reqStr.split(',').map(f => f.trim().toLowerCase());
-        
-        const isFNReq = reqFields.includes('firstname') ? 'required' : '';
-        const isLNReq = reqFields.includes('lastname') ? 'required' : '';
-        const isEMReq = reqFields.includes('email') ? 'required' : '';
-        const isPHReq = reqFields.includes('phone') ? 'required' : '';
-
         this.innerHTML = `
-            <div class="profile-card quiz-container-card" style="max-width:600px; margin:2rem auto; padding:2.5rem; background: var(--white); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); border-top: 6px solid var(--card-accent-color);">
-                <h2 style="text-align:center; color: var(--card-accent-color); margin-top:0; font-size:1.6rem; line-height:1.3;">${this.quizData.webTitle}</h2>
-                <p style="text-align:center; color: var(--premier-charcoal); opacity: 0.8; line-height:1.6; margin-bottom:2rem; font-size:0.98rem;">${this.quizData.introText}</p>
+            <div class="surface-bento calc-strategy-card" style="max-width: 600px; margin: 0 auto;">
+                <h2 class="text-widget-title text-center" style="font-size: 1.5rem;">${this.quizData.webTitle}</h2>
+                <p class="text-body text-center" style="margin-bottom: 2rem;">${this.quizData.introText}</p>
                 
-                <form id="quiz-lead-form" style="display:flex; flex-direction:column; gap:1.25rem;">
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
-                        <div>
-                            <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color: var(--premier-charcoal);">First Name ${isFNReq ? '*' : ''}</label>
-                            <input type="text" id="quiz-firstName" ${isFNReq} style="width:100%; padding:0.75rem; border:1px solid var(--premier-beige); border-radius:6px; box-sizing:border-box; font-size:0.95rem;">
+                <form id="quiz-lead-form" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                    <div class="section-grid-static grid-cols-2">
+                        <div class="calc-field-group">
+                            <label class="calc-field-label">First Name *</label>
+                            <input type="text" id="quiz-firstName" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-surface-gray); border-radius: 8px;">
                         </div>
-                        <div>
-                            <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color: var(--premier-charcoal);">Last Name ${isLNReq ? '*' : ''}</label>
-                            <input type="text" id="quiz-lastName" ${isLNReq} style="width:100%; padding:0.75rem; border:1px solid var(--premier-beige); border-radius:6px; box-sizing:border-box; font-size:0.95rem;">
+                        <div class="calc-field-group">
+                            <label class="calc-field-label">Last Name *</label>
+                            <input type="text" id="quiz-lastName" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-surface-gray); border-radius: 8px;">
                         </div>
                     </div>
-                    <div>
-                        <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color: var(--premier-charcoal);">Email Address ${isEMReq ? '*' : ''}</label>
-                        <input type="email" id="quiz-email" ${isEMReq} style="width:100%; padding:0.75rem; border:1px solid var(--premier-beige); border-radius:6px; box-sizing:border-box; font-size:0.95rem;">
+                    <div class="calc-field-group">
+                        <label class="calc-field-label">Email Address *</label>
+                        <input type="email" id="quiz-email" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-surface-gray); border-radius: 8px;">
                     </div>
-                    <div>
-                        <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:0.4rem; color: var(--premier-charcoal);">Phone Number ${isPHReq ? '*' : ''}</label>
-                        <input type="tel" id="quiz-phone" ${isPHReq} style="width:100%; padding:0.75rem; border:1px solid var(--premier-beige); border-radius:6px; box-sizing:border-box; font-size:0.95rem;">
+                    <div class="calc-field-group">
+                        <label class="calc-field-label">Phone Number (Optional)</label>
+                        <input type="tel" id="quiz-phone" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-surface-gray); border-radius: 8px;">
                     </div>
-                    <button type="submit" class="btn btn-primary" style="margin-top:1rem; padding:0.9rem; font-size:1rem; font-weight:bold; letter-spacing:0.5px; background-color: var(--card-accent-color); border-color: var(--card-accent-color); color: var(--white);">Start the Quiz</button>
+                    <button type="submit" class="btn btn-primary" style="margin-top: 1rem; width: 100%;">Start Assessment &rarr;</button>
                 </form>
             </div>
         `;
 
-        this.querySelector('#quiz-lead-form').addEventListener('submit', async (e) => {
+        this.querySelector('#quiz-lead-form').addEventListener('submit', (e) => {
             e.preventDefault();
             this.leadInfo = {
                 firstName: this.querySelector('#quiz-firstName').value.trim(),
@@ -105,82 +69,198 @@ class QuizEngine extends HTMLElement {
                 email: this.querySelector('#quiz-email').value.trim(),
                 phone: this.querySelector('#quiz-phone').value.trim()
             };
-            
             this.currentStep = 0;
-            this.innerHTML = `<div style="text-align:center; padding:4rem; color: var(--premier-charcoal); opacity: 0.8;">Initializing quiz engine module...</div>`;
-            
-            try {
-                const modulePath = `/quizzes/engines/${this.quizData.scoringType}.js`;
-                const engineModule = await import(modulePath);
-                engineModule.initializeQuizTrack(this);
-            } catch (err) {
-                console.error("Critical: Failed to resolve scoring module file:", err);
-                this.innerHTML = `<div style="color: var(--card-accent-color); font-weight:bold; padding:2rem; text-align:center;">Engine Error: Could not launch script logic file '/quizzes/engines/${this.quizData.scoringType}.js'.</div>`;
-            }
+            this.renderQuestion();
         });
     }
-}
 
-/**
- * 3. TESTIMONIAL REVIEW ENGINE (<local-reviews>)
- */
-class LocalReviews extends HTMLElement {
-    async connectedCallback() {
-        const limit = parseInt(this.getAttribute('limit')) || 3;
-        
-        let pageName = window.location.pathname.split('/').pop().toLowerCase().trim();
-        if (!pageName || pageName === "") pageName = "index.html";
+    renderQuestion() {
+        if (this.currentStep >= this.quizData.questions.length) {
+            this.processCalculationsAndSubmit();
+            return;
+        }
 
-        this.innerHTML = `<div class="reviews-component-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; width: 100%; margin: 2rem 0;">Loading reviews...</div>`;
-        const gridContainer = this.querySelector('.reviews-component-grid');
-
-        try {
-            const response = await fetch('/data/reviews.json');
-            if (!response.ok) throw new Error('Reviews payload retrieval failed');
-            const reviews = await response.json();
-
-            const validReviews = [];
-            for (const rev of reviews) {
-                const pageMarker = (rev[pageName] || '').trim().toLowerCase();
-                if (pageMarker === 'x') {
-                    const ratingValue = parseInt(rev['star rating'] || rev['rating']) || 5;
-                    validReviews.push({
-                        reviewer: rev['reviewer'] || 'Verified Client',
-                        rating: ratingValue,
-                        snippet: rev['snippet'] ? rev['snippet'].trim() : '',
-                        fullText: rev['full review'] || rev['fullText'] || ''
-                    });
-                }
-            }
-
-            if (validReviews.length === 0) { gridContainer.innerHTML = ''; return; }
-
-            for (let i = validReviews.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [validReviews[i], validReviews[j]] = [validReviews[j], validReviews[i]];
-            }
-
-            const selectedReviews = validReviews.slice(0, limit);
-
-            gridContainer.innerHTML = selectedReviews.map(rev => {
-                const stars = '★'.repeat(rev.rating) + '☆'.repeat(5 - rev.rating);
-                const snippetMarkup = rev.snippet && rev.snippet !== "" 
-                    ? `<h4 style="margin: 0 0 0.75rem 0; font-size: 1.05rem; font-style: italic; color: var(--premier-charcoal); line-height: 1.4;">"${rev.snippet}"</h4>`
-                    : '';
-
-                return `
-                    <div class="review-component-card" style="background: var(--white); padding: 1.75rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; flex-direction: column; border-top: 5px solid var(--card-accent-color);">
-                        <div style="color: var(--card-accent-color); font-size: 1rem; font-weight: 800; margin-bottom: 0.75rem; letter-spacing: 0.5px;">5.0 <span style="font-size: 1.1rem; letter-spacing: 1px;">${stars}</span></div>
-                        ${snippetMarkup}
-                        <p style="margin: 0 0 1.25rem 0; font-size: 0.95rem; color: var(--premier-charcoal); font-weight: 500; line-height: 1.6;">${rev.fullText}</p>
-                        <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--premier-charcoal); opacity: 0.7;">— ${rev.reviewer}</div>
-                    </div>
-                `;
-            }).join('');
-
-        } catch (error) {
-            console.error('Contextual reviews execution error:', error);
-            gridContainer.innerHTML = '';
+        if (this.quizData.scoringType === 'matrix_4quadrant') {
+            this.renderMatrixTemplate();
+        } else if (this.quizData.scoringType === 'score_tally') {
+            this.renderTallyTemplate();
         }
     }
+
+    renderMatrixTemplate() {
+        const qObj = this.quizData.questions[this.currentStep];
+        const pct = Math.round((this.currentStep / this.quizData.questions.length) * 100);
+        this.currentSelection = this.answers[this.currentStep] || null;
+
+        const btnsHtml = Array.from({length: 10}, (_, i) => i + 1).map(num => `
+            <button type="button" class="btn ${this.currentSelection === num ? 'btn-primary' : 'btn-secondary'} q-btn" data-val="${num}" style="flex: 1; min-width: 35px; padding: 0.75rem 0;">${num}</button>
+        `).join('');
+
+        this.innerHTML = `
+            <div class="surface-bento calc-strategy-card" style="max-width: 700px; margin: 0 auto;">
+                <div style="width: 100%; background: var(--color-surface-gray); height: 6px; border-radius: 3px; margin-bottom: 2rem; overflow: hidden;">
+                    <div style="width: ${pct}%; background: var(--color-text-primary, #111); height: 100%;"></div>
+                </div>
+                <div class="text-overline text-accent-alpine text-center">Statement ${this.currentStep + 1} of ${this.quizData.questions.length}</div>
+                <h3 class="text-widget-title text-center" style="font-size: 1.35rem; margin-bottom: 2rem; line-height: 1.5;">"${qObj.text}"</h3>
+                
+                <div style="display: flex; gap: 0.5rem; justify-content: space-between; flex-wrap: wrap; margin-bottom: 0.5rem;">
+                    ${btnsHtml}
+                </div>
+                <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 2rem;">
+                    <span class="text-overline text-accent-alpine">Completely Disagree</span>
+                    <span class="text-overline text-accent-alpine">Completely Agree</span>
+                </div>
+                
+                <div class="section-divider" style="margin: 1.5rem 0;"></div>
+                <div style="display: flex; justify-content: space-between;">
+                    <button type="button" id="q-back" class="btn btn-secondary" ${this.currentStep === 0 ? 'disabled' : ''}>&larr; Back</button>
+                    <button type="button" id="q-next" class="btn btn-primary" ${this.currentSelection === null ? 'disabled' : ''}>Next &rarr;</button>
+                </div>
+            </div>`;
+
+        this.bindNavEvents((btn) => this.currentSelection = parseInt(btn.getAttribute('data-val')));
+    }
+
+    renderTallyTemplate() {
+        const qObj = this.quizData.questions[this.currentStep];
+        const pct = Math.round((this.currentStep / this.quizData.questions.length) * 100);
+        this.currentSelection = this.answers[this.currentStep] || null;
+
+        const choices = qObj.bucket.split('|').map(c => c.trim());
+        const btnsHtml = choices.map((choice, index) => {
+            const pointsMatch = choice.match(/\[(\d+)\]/);
+            const points = pointsMatch ? parseInt(pointsMatch[1]) : 0;
+            const clearText = choice.replace(/\[\d+\]/, '').trim();
+            const isActive = this.currentSelection && this.currentSelection.index === index;
+            
+            return `<button type="button" class="btn ${isActive ? 'btn-primary' : 'btn-secondary'} q-btn" data-index="${index}" data-points="${points}" data-text="${clearText}" style="text-align: left; padding: 1.25rem; width: 100%; white-space: normal; height: auto;">${clearText}</button>`;
+        }).join('');
+
+        this.innerHTML = `
+            <div class="surface-bento calc-strategy-card" style="max-width: 650px; margin: 0 auto;">
+                <div style="width: 100%; background: var(--color-surface-gray); height: 6px; border-radius: 3px; margin-bottom: 2rem; overflow: hidden;">
+                    <div style="width: ${pct}%; background: var(--color-text-primary, #111); height: 100%;"></div>
+                </div>
+                <div class="text-overline text-accent-alpine text-center">Question ${this.currentStep + 1} of ${this.quizData.questions.length}</div>
+                <h3 class="text-widget-title text-center" style="font-size: 1.35rem; margin-bottom: 2rem;">${qObj.text}</h3>
+                
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 2rem;">
+                    ${btnsHtml}
+                </div>
+                
+                <div class="section-divider" style="margin: 1.5rem 0;"></div>
+                <div style="display: flex; justify-content: space-between;">
+                    <button type="button" id="q-back" class="btn btn-secondary" ${this.currentStep === 0 ? 'disabled' : ''}>&larr; Back</button>
+                    <button type="button" id="q-next" class="btn btn-primary" ${this.currentSelection === null ? 'disabled' : ''}>Next &rarr;</button>
+                </div>
+            </div>`;
+
+        this.bindNavEvents((btn) => {
+            this.currentSelection = {
+                index: parseInt(btn.getAttribute('data-index')),
+                points: parseInt(btn.getAttribute('data-points')),
+                text: btn.getAttribute('data-text')
+            };
+        });
+    }
+
+    bindNavEvents(selectionCallback) {
+        this.querySelectorAll('.q-btn').forEach(b => b.addEventListener('click', () => {
+            this.querySelectorAll('.q-btn').forEach(x => {
+                x.classList.remove('btn-primary');
+                x.classList.add('btn-secondary');
+            });
+            b.classList.remove('btn-secondary');
+            b.classList.add('btn-primary');
+            selectionCallback(b);
+            this.querySelector('#q-next').removeAttribute('disabled');
+        }));
+
+        this.querySelector('#q-next').addEventListener('click', () => {
+            this.answers[this.currentStep] = this.currentSelection;
+            this.currentStep++;
+            this.renderQuestion();
+        });
+
+        this.querySelector('#q-back').addEventListener('click', () => {
+            this.currentStep--;
+            this.renderQuestion();
+        });
+    }
+
+    async processCalculationsAndSubmit() {
+        this.innerHTML = `<div class="surface-bento text-center calc-strategy-card" style="max-width: 600px; margin: 0 auto;"><h3 class="text-widget-title">Securing Blueprint Configurations...</h3></div>`;
+        
+        let match;
+        let matchedKey;
+
+        // Algorithm 1: Matrix
+        if (this.quizData.scoringType === 'matrix_4quadrant') {
+            const tallies = { typeA: 0, typeB: 0, typeC: 0, typeD: 0, typeE: 0, typeF: 0 };
+            this.quizData.questions.forEach((q, idx) => {
+                const val = this.answers[idx] || 0;
+                if (tallies[q.bucket] !== undefined) tallies[q.bucket] += val;
+            });
+            matchedKey = 'typeA';
+            let maxVal = -1;
+            for (const [k, v] of Object.entries(tallies)) {
+                if (v > maxVal) { maxVal = v; matchedKey = k; }
+            }
+            match = this.quizData.routing.find(r => r.key === matchedKey) || this.quizData.routing[0];
+        } 
+        
+        // Algorithm 2: Tally Bracket
+        else if (this.quizData.scoringType === 'score_tally') {
+            let grandTotal = 0;
+            this.answers.forEach(ans => { grandTotal += (ans.points || 0); });
+            match = this.quizData.routing[0];
+            matchedKey = '0-0';
+            for (const route of this.quizData.routing) {
+                const ranges = route.key.split('-');
+                if (grandTotal >= parseInt(ranges[0]) && grandTotal <= parseInt(ranges[1])) {
+                    match = route;
+                    matchedKey = route.key;
+                    break;
+                }
+            }
+        }
+
+        const timestamp = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
+        const combinedUserTags = this.quizData.userTags ? `${this.quizData.userTags}, ${matchedKey}` : matchedKey;
+        const resultUrl = `https://myseattlesearch.com/realestate/quizzes/results/?quizId=${this.quizData.id}&result=${matchedKey}`;
+
+        // Standardized 17-Column Inbound Ledger
+        const rowData = [
+            timestamp, "quiz", this.leadInfo.firstName || "", this.leadInfo.lastName || "", 
+            this.leadInfo.email || "", this.leadInfo.phone || "", "", this.quizData.id || "", 
+            match.heading || matchedKey, combinedUserTags, "", "", "", "", "", "", ""
+        ];
+
+        const payload = {
+            quizId: this.quizData.id,
+            sheetName: "Inbound",
+            rowData: rowData,
+            emailData: {
+                to: this.leadInfo.email,
+                subject: this.quizData.emailSubject || "Your Assessment Results",
+                body: `Hi ${this.leadInfo.firstName},\n\nThank you for taking the ${this.quizData.name}!\n\nYour result is: ${match.heading}\n\nYou can view your full personalized playbook and results here:\n${resultUrl}\n\nTalk soon,\nJoe Sheldon`
+            }
+        };
+
+        try {
+            await fetch("https://myseattlesearch-quiz-gateway.joe-54b.workers.dev/", { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(payload) 
+            });
+        } catch (e) {
+            console.error("Gateway Bypass Active", e);
+        }
+
+        setTimeout(() => {
+            window.location.href = `/realestate/quizzes/results/?quizId=${this.quizData.id}&result=${matchedKey}`;
+        }, 600);
+    }
 }
+customElements.define('quiz-engine', QuizEngine);
