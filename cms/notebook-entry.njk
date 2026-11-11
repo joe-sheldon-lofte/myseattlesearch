@@ -1,9 +1,10 @@
 ---
 layout: layouts/base.njk
 pagination:
-  data: notebook
+  data: cms_notebook
   size: 1
   alias: post
+  addAllPagesToCollections: true
 permalink: /cms/notebook/{{ post.slug }}/index.html
 eleventyComputed:
   title: "{{ post.title }} | The Social Notebook | Joe Sheldon"
@@ -39,14 +40,23 @@ eleventyComputed:
 
       <div class="section-divider"></div>
 
+      {% set pub = post.publisher_id | getPublisher(publishers) %}
       <footer class="card-footer-strip">
-        <div class="profile-avatar-wrapper">
-          <img src="{{ post.author_image }}" alt="{{ post.author }}" width="44" height="44" class="avatar-squircle">
-          <div>
-            <strong class="text-primary-charcoal">{{ post.author }}</strong>
-            <span class="text-overline">{{ post.author_role }}</span>
+        {% if pub %}
+          <div class="profile-avatar-wrapper">
+            {% if pub.avatar or pub.image %}
+              <img src="{{ pub.avatar or pub.image }}" alt="{{ pub.name or pub.full_name }}" width="44" height="44" class="avatar-squircle">
+            {% endif %}
+            <div>
+              <strong class="text-primary-charcoal">{{ pub.name or pub.full_name }}</strong>
+              {% if pub.role %}
+                <span class="text-overline">{{ pub.role }}</span>
+              {% endif %}
+            </div>
           </div>
-        </div>
+        {% else %}
+          <div></div>
+        {% endif %}
 
         <div class="action-tray-constrained">
           <a href="/chat/?topic={{ post.title | urlencode }}" class="btn btn-secondary">
@@ -87,10 +97,17 @@ eleventyComputed:
   "@type": "BlogPosting",
   "headline": "{{ post.title | escape }}",
   "datePublished": "{{ post.published_at }}",
+  {% if pub %}
   "author": {
     "@type": "Person",
-    "name": "{{ post.author }}"
+    "name": "{{ (pub.name or pub.full_name) | escape }}"
   },
+  {% else %}
+  "author": {
+    "@type": "Organization",
+    "name": "MySeattleSearch"
+  },
+  {% endif %}
   "publisher": {
     "@type": "Organization",
     "name": "MySeattleSearch",

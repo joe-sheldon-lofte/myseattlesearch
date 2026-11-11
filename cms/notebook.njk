@@ -19,8 +19,9 @@ permalink: /cms/notebook/index.html
   <section id="notebook-feed" data-nav-title="Dispatches" class="content-section-centered">
     <div class="section-grid-static grid-cols-1">
       
-      {% for item in notebook %}
+      {% for item in cms_notebook %}
         {% if item.hold_status == 'active' %}
+          {% set pub = item.publisher_id | getPublisher(publishers) %}
           <article class="surface-bento pathway-item-card">
             
             <div class="card-header-split">
@@ -45,11 +46,15 @@ permalink: /cms/notebook/index.html
             </div>
 
             <div class="card-footer-strip text-body-secondary">
-              <div class="cms-card-byline">
-                <span>By </span>
-                <strong class="text-primary-charcoal">{{ item.author }}</strong>
-                <span> &bull; {{ item.author_role }}</span>
-              </div>
+              {% if pub %}
+                <div class="cms-card-byline">
+                  <span>By </span>
+                  <strong class="text-primary-charcoal">{{ pub.name or pub.full_name }}</strong>
+                  {% if pub.role %}<span> &bull; {{ pub.role }}</span>{% endif %}
+                </div>
+              {% else %}
+                <div></div>
+              {% endif %}
 
               <div class="action-tray-constrained">
                 <a href="/chat/?topic={{ item.title | urlencode }}" class="btn btn-secondary">
