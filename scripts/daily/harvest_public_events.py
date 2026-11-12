@@ -404,7 +404,11 @@ def harvest_ticketmaster_events(api_key, source_meta):
                 loc_name = venue.get("name", "")
                 city_name = venue.get("city", {}).get("name", "Seattle").lower()
 
-                tags = ["entertainment", "major-events", "tickets"]
+                tags_raw = source_meta.get("Tags", "")
+                tags = [t.strip().lower() for t in tags_raw.split(",") if t.strip()]
+                if "all" not in tags:
+                    tags.append("all")
+                tags.extend(["entertainment", "major-events", "tickets"])
                 if segment:
                     tags.append(slugify(segment))
                 if genre:
@@ -413,7 +417,7 @@ def harvest_ticketmaster_events(api_key, source_meta):
                     tags.extend(["family-friendly", "all-ages"])
 
                 events.append({
-                    "source_id": source_meta.get("SourceID", "pe-10"),
+                    "source_id": source_meta.get("SourceID", "pe-5"),
                     "source_name": "Ticketmaster Discovery",
                     "title": title,
                     "link": link,
