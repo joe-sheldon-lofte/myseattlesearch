@@ -243,7 +243,7 @@
 .climate-metric-value.val-sun { color: var(--status-amber); }
 .climate-metric-subtext { font-size: 0.7rem; color: var(--color-secondary-muted); }
 
-/* 7-Day Forecast (widget.weather.forecast.sevenday) */
+/* 7-Day Forecast & Cascading Accordions (widget.weather.forecast.sevenday) */
 .weather-forecast-sevenday-card { display: flex; flex-direction: column; gap: 1.25rem; width: 100%; padding: 1.75rem; background: #FFFFFF; border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06); box-sizing: border-box; }
 .forecast-header-row { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 0.75rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.85rem; }
 .forecast-title-stack { display: flex; flex-direction: column; gap: 0.15rem; }
@@ -265,6 +265,22 @@
 .forecast-uv-pill.uv-low { background: rgba(16, 185, 129, 0.1); color: var(--status-emerald); border-color: rgba(16, 185, 129, 0.2); }
 .forecast-uv-pill.uv-moderate { background: rgba(217, 119, 6, 0.1); color: var(--status-amber); border-color: rgba(217, 119, 6, 0.2); }
 .forecast-uv-pill.uv-high { background: rgba(217, 35, 42, 0.1); color: var(--pnw-red); border-color: rgba(217, 35, 42, 0.2); }
+
+.forecast-days-stack { display: flex; flex-direction: column; gap: 0.5rem; width: 100%; }
+.forecast-accordion-item { border: 1px solid var(--color-border-light); border-radius: 12px; background: var(--color-surface-gray); overflow: hidden; transition: background-color 0.15s ease, border-color 0.15s ease; }
+.forecast-accordion-item[open] { background: var(--color-background-universal); border-color: var(--alpine-blue); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
+.forecast-accordion-summary { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.9rem 1.25rem; cursor: pointer; list-style: none; user-select: none; }
+.forecast-accordion-summary::-webkit-details-marker { display: none; }
+.forecast-accordion-summary:hover { background-color: rgba(255, 255, 255, 0.7); }
+.forecast-acc-day { font-size: 0.95rem; font-weight: 500; color: var(--premier-charcoal); min-width: 64px; }
+.forecast-acc-icon { width: 28px; height: 28px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.forecast-acc-rain { min-width: 48px; font-size: 0.75rem; color: var(--alpine-blue); font-weight: 500; font-variant-numeric: tabular-nums; }
+.forecast-acc-temps { min-width: 80px; text-align: right; font-variant-numeric: tabular-nums; }
+.forecast-acc-high { font-weight: 500; font-size: 1rem; color: var(--premier-charcoal); }
+.forecast-acc-low { color: var(--color-secondary-muted); font-size: 0.85rem; margin-left: 0.25rem; }
+.forecast-acc-chevron { color: var(--color-secondary-muted); transition: transform 0.2s ease; flex-shrink: 0; }
+.forecast-accordion-item[open] .forecast-acc-chevron { transform: rotate(180deg); }
+.forecast-acc-details { padding: 1rem 1.25rem; border-top: 1px solid var(--color-border-light); font-size: 0.85rem; color: var(--color-secondary-muted); line-height: 1.5; }
 
 /* USGS River Status (widget.weather.river.status) */
 .weather-river-status-card { display: flex; flex-direction: column; justify-content: space-between; gap: 1.25rem; width: 100%; min-height: 200px; padding: 1.75rem; background: #FFFFFF; border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06); box-sizing: border-box; }

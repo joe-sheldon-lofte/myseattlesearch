@@ -1,5 +1,4 @@
 import os
-import io
 import re
 import time
 import sqlite3
@@ -7,12 +6,10 @@ import asyncio
 import argparse
 from urllib.parse import urljoin
 import httpx
-import boto3
 from bs4 import BeautifulSoup
-from PIL import Image
 
 MAX_SQL_BYTES = 75000
-D1_FLUSH_EVERY = 40
+D1_FLUSH_EVERY = 50
 USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
 
 
@@ -68,18 +65,28 @@ def init_checkpoint_db(db_path):
             status TEXT NOT NULL,
             gla INTEGER,
             style TEXT,
-            media_count INTEGER DEFAULT 0,
             updated_utc TEXT DEFAULT CURRENT_TIMESTAMP
         );
     """)
-    conn.execute("DELETE FROM harvest_log WHERE gla IS NULL;")
     conn.commit()
     return conn
 
 
 def get_completed_pins(conn):
-    cur = conn.execute("SELECT parcel_number FROM harvest_log WHERE status IN ('DONE', 'NO_STRUCTURE') AND gla IS NOT NULL;")
+    cur = conn.execute("SELECT parcel_number FROM harvest_log WHERE status IN ('DONE', 'NO_STRUCTURE');")
     return {row[0] for row in cur.fetchall()}
+
+
+def page_matches_pin(html_text, pin):
+    """Verifies the returned HTML actually belongs to the requested parcel number."""
+    clean_pin = str(pin).strip()
+    if clean_pin in html_text:
+        return True
+    if len(clean_pin) == 14 and clean_pin.isdigit():
+        hyphenated = f"{clean_pin[:6]}-{clean_pin[6:9]}-{clean_pin[9:12]}-{clean_pin[12:14]}"
+        if hyphenated in html_text:
+            return True
+    return False
 
 
 def normalize_snoco_style(raw_style, prop_type=None):
@@ -154,18 +161,6 @@ def normalize_snoco_condition(raw_cond):
     return None
 
 
-def find_parcel_info_link(html_text, base_url, pin):
-    """If search.aspx lands on SearchResults.aspx, extracts the link to ParcelInfo.aspx."""
-    soup = BeautifulSoup(html_text, "html.parser")
-    for a in soup.find_all("a", href=True):
-        href = a["href"].strip()
-        txt = a.get_text(" ", strip=True)
-        if "parcelinfo.aspx" in href.lower() or pin in txt:
-            if not href.lower().startswith("javascript:"):
-                return urljoin(base_url, href)
-    return None
-
-
 def extract_structure_actions(html_text, base_url):
     """
     Extracts ASP.NET __doPostBack payloads or direct URLs for 'View Detailed Structure Information'.
@@ -231,37 +226,8 @@ def extract_structure_actions(html_text, base_url):
     return actions
 
 
-def extract_images_from_html(html_text, base_url, default_type="EXTERIOR"):
-    soup = BeautifulSoup(html_text, "html.parser")
-    media_candidates = []
-    seen_urls = set()
-
-    for img in soup.find_all("img"):
-        src = (img.get("src") or "").strip()
-        if not src:
-            continue
-        low_src = src.lower()
-        alt_txt = (img.get("alt") or img.get("title") or "").lower()
-
-        if any(skip in low_src for skip in ["logo", "icon", "banner", "spacer", "btn", "button", "header", "footer", "pixel", "spinner", "help"]):
-            continue
-        if not any(ext in low_src for ext in [".jpg", ".jpeg", ".png", ".gif", ".bmp", "image", "photo", "sketch", "media", "handler", "output"]):
-            continue
-
-        full_url = urljoin(base_url, src)
-        if full_url in seen_urls:
-            continue
-        seen_urls.add(full_url)
-
-        is_sketch = ("sketch" in low_src) or ("sketch" in alt_txt) or ("floor" in alt_txt) or ("diagram" in low_src) or (default_type == "SKETCH")
-        media_type = "SKETCH" if is_sketch else "EXTERIOR"
-        media_candidates.append((media_type, full_url))
-
-    return media_candidates
-
-
-def parse_structure_detail_html(html_text, prop_type=None):
-    """Parses interior GLA, beds/baths, style, quality, and condition from Aumentum Detailed Structure page."""
+def parse_structure_html(html_text, prop_type=None, debug_kv=False, pin=""):
+    """Parses interior GLA, beds/baths, style, quality, and condition from Aumentum HTML."""
     soup = BeautifulSoup(html_text, "html.parser")
     kv_pairs = {}
 
@@ -283,6 +249,10 @@ def parse_structure_detail_html(html_text, prop_type=None):
                 for h, v in zip(headers, vals):
                     if h and v and len(h) <= 55:
                         kv_pairs.setdefault(h, v)
+
+    if debug_kv:
+        sample_items = list(kv_pairs.items())[:35]
+        print(f"[DEBUG {pin}] Extracted KV pairs ({len(kv_pairs)} total): {sample_items}")
 
     def find_val(keywords):
         for k, v in kv_pairs.items():
@@ -378,22 +348,6 @@ def parse_structure_detail_html(html_text, prop_type=None):
     }
 
 
-def encode_webp_bytes(raw_bytes, max_width=1200, quality=82):
-    """Converts raw JPEG/PNG/GIF/BMP bytes into an optimized WebP buffer."""
-    with Image.open(io.BytesIO(raw_bytes)) as im:
-        if im.width < 80 or im.height < 80:
-            return None
-        if im.mode not in ("RGB", "RGBA"):
-            im = im.convert("RGB")
-        if im.width > max_width:
-            ratio = max_width / float(im.width)
-            new_h = max(1, int(round(im.height * ratio)))
-            im = im.resize((max_width, new_h), Image.Resampling.LANCZOS)
-        out = io.BytesIO()
-        im.save(out, format="WEBP", quality=quality, method=4)
-        return out.getvalue()
-
-
 def fetch_target_queue(endpoint, headers, staging_dir, completed_pins, queue_file=None, sales_only=False, limit=None):
     """Uses primary-key keyset pagination (zero full-table sort) and caches queue to disk."""
     if queue_file and os.path.exists(queue_file):
@@ -416,7 +370,7 @@ def fetch_target_queue(endpoint, headers, staging_dir, completed_pins, queue_fil
         print(f"📋 Loaded {len(targets):,} remaining Snohomish parcels from cached queue ({cache_name}).")
         return targets[:limit] if limit else targets
 
-    print("🔍 Indexing Snohomish residential parcels via primary-key seek (avoids D1 sort overload)...")
+    print("🔍 Indexing Snohomish residential parcels via primary-key seek...")
     ordered = []
     seen = set()
     passes = ["AND last_sale_date IS NOT NULL"] if sales_only else [
@@ -465,108 +419,70 @@ def fetch_target_queue(endpoint, headers, staging_dir, completed_pins, queue_fil
     return targets[:limit] if limit else targets
 
 
-def flush_batches_to_d1(endpoint, headers, base_updates, media_rows):
-    if base_updates:
-        stmts = []
-        curr_bytes = 0
-        for pin, a in base_updates:
-            stmt = (
-                f"UPDATE base SET "
-                f"square_footage = COALESCE({sql_val(a['square_footage'])}, square_footage), "
-                f"year_built = COALESCE({sql_val(a['year_built'])}, year_built), "
-                f"bedrooms = COALESCE({sql_val(a['bedrooms'])}, bedrooms), "
-                f"bath_full = COALESCE({sql_val(a['bath_full'])}, bath_full), "
-                f"bath_half = COALESCE({sql_val(a['bath_half'])}, bath_half), "
-                f"building_grade = COALESCE({sql_val(a['building_grade'])}, building_grade), "
-                f"building_condition = COALESCE({sql_val(a['building_condition'])}, building_condition), "
-                f"building_style = COALESCE({sql_val(a['building_style'])}, building_style), "
-                f"updated_utc = CURRENT_TIMESTAMP "
-                f"WHERE parcel_number = {sql_val(pin)};"
-            )
-            b_len = len(stmt.encode("utf-8")) + 1
-            if stmts and (len(stmts) >= 120 or (curr_bytes + b_len) > MAX_SQL_BYTES):
-                execute_d1_sync(endpoint, headers, "\n".join(stmts))
-                stmts = []
-                curr_bytes = 0
-            stmts.append(stmt)
-            curr_bytes += b_len
-        if stmts:
+def flush_base_updates_to_d1(endpoint, headers, base_updates):
+    if not base_updates:
+        return
+
+    stmts = []
+    curr_bytes = 0
+    for pin, a in base_updates:
+        stmt = (
+            f"UPDATE base SET "
+            f"square_footage = COALESCE({sql_val(a['square_footage'])}, square_footage), "
+            f"year_built = COALESCE({sql_val(a['year_built'])}, year_built), "
+            f"bedrooms = COALESCE({sql_val(a['bedrooms'])}, bedrooms), "
+            f"bath_full = COALESCE({sql_val(a['bath_full'])}, bath_full), "
+            f"bath_half = COALESCE({sql_val(a['bath_half'])}, bath_half), "
+            f"building_grade = COALESCE({sql_val(a['building_grade'])}, building_grade), "
+            f"building_condition = COALESCE({sql_val(a['building_condition'])}, building_condition), "
+            f"building_style = COALESCE({sql_val(a['building_style'])}, building_style), "
+            f"updated_utc = CURRENT_TIMESTAMP "
+            f"WHERE parcel_number = {sql_val(pin)};"
+        )
+        b_len = len(stmt.encode("utf-8")) + 1
+        if stmts and (len(stmts) >= 120 or (curr_bytes + b_len) > MAX_SQL_BYTES):
             execute_d1_sync(endpoint, headers, "\n".join(stmts))
+            stmts = []
+            curr_bytes = 0
+        stmts.append(stmt)
+        curr_bytes += b_len
 
-    if media_rows:
-        def build_media_sql(tuples):
-            return f"""
-            INSERT OR IGNORE INTO parcel_media (
-                parcel_number, county, media_type, sequence_num, r2_key, source_url, created_utc
-            ) VALUES {",".join(tuples)};
-            """
-
-        overhead = len(build_media_sql(["()"]).encode("utf-8"))
-        tuples = []
-        curr_bytes = overhead
-        for m in media_rows:
-            t_str = (
-                f"({sql_val(m['parcel_number'])}, 'SNOHOMISH', {sql_val(m['media_type'])}, "
-                f"{sql_val(m['sequence_num'])}, {sql_val(m['r2_key'])}, {sql_val(m['source_url'])}, CURRENT_TIMESTAMP)"
-            )
-            b_len = len(t_str.encode("utf-8")) + 1
-            if tuples and (len(tuples) >= 150 or (curr_bytes + b_len) > MAX_SQL_BYTES):
-                execute_d1_sync(endpoint, headers, build_media_sql(tuples))
-                tuples = []
-                curr_bytes = overhead
-            tuples.append(t_str)
-            curr_bytes += b_len
-        if tuples:
-            execute_d1_sync(endpoint, headers, build_media_sql(tuples))
+    if stmts:
+        execute_d1_sync(endpoint, headers, "\n".join(stmts))
 
 
-async def process_parcel(client, sem, s3_client, r2_bucket, pin, prop_type, skip_media, debug_html=False):
-    entry_urls = [
-        f"https://www.snoco.org/proptax/search.aspx?parcel_number={pin}",
-        f"https://www.snoco.org/proptax/ParcelInfo.aspx?parcel_number={pin}",
-    ]
+async def process_parcel(client, sem, pin, prop_type, debug_html=False):
+    # Hit ParcelInfo.aspx directly so IIS issues the cookieless session redirect straight to the parcel
+    direct_url = f"https://www.snoco.org/proptax/ParcelInfo.aspx?parcel_number={pin}"
     async with sem:
-        await asyncio.sleep(0.06)
+        await asyncio.sleep(0.05)
         for attempt in range(3):
             try:
-                resp = None
-                for entry_url in entry_urls:
-                    r = await client.get(entry_url, follow_redirects=True, timeout=30.0)
-                    if "proptax" in str(r.url).lower() and r.status_code == 200:
-                        resp = r
-                        break
-                    resp = r
-
-                if resp is None:
-                    return pin, "ERROR", None, []
-
+                resp = await client.get(direct_url, follow_redirects=True, timeout=30.0)
                 final_url = str(resp.url)
+
                 if "proptax" not in final_url.lower():
                     if debug_html:
-                        print(f"\n[DEBUG {pin}] Maintenance/Portal redirect detected -> {final_url}")
-                    return pin, "MAINTENANCE", None, []
+                        print(f"\n[DEBUG {pin}] Maintenance redirect -> {final_url}")
+                    return pin, "MAINTENANCE", None
 
                 if resp.status_code in (429, 503):
                     await asyncio.sleep(2.0 * (attempt + 1))
                     continue
                 if resp.status_code != 200:
-                    return pin, "ERROR", None, []
+                    return pin, "ERROR", None
 
                 html_text = resp.text
-                if "searchresults.aspx" in final_url.lower() or "parcelinfo.aspx" not in final_url.lower():
-                    info_link = find_parcel_info_link(html_text, final_url, pin)
-                    if info_link:
-                        info_resp = await client.get(info_link, follow_redirects=True, timeout=25.0)
-                        if info_resp.status_code == 200 and "proptax" in str(info_resp.url).lower():
-                            html_text = info_resp.text
-                            final_url = str(info_resp.url)
+                if not page_matches_pin(html_text, pin):
+                    if debug_html:
+                        print(f"\n[DEBUG {pin}] PIN not found in page body at {final_url} (aborting safely)")
+                    return pin, "INVALID_PAGE", None
 
-                media_candidates = extract_images_from_html(html_text, final_url, default_type="EXTERIOR")
                 structure_actions = extract_structure_actions(html_text, final_url)
-                best_attrs = parse_structure_detail_html(html_text, prop_type)
+                best_attrs = parse_structure_html(html_text, prop_type, debug_kv=debug_html, pin=pin)
 
                 if debug_html:
-                    print(f"\n[DEBUG {pin}] Active URL: {final_url} | Structure actions: {len(structure_actions)}")
+                    print(f"[DEBUG {pin}] Active URL: {final_url} | Structure actions: {len(structure_actions)}")
 
                 for method, target_url, payload in structure_actions[:3]:
                     try:
@@ -587,7 +503,7 @@ async def process_parcel(client, sem, s3_client, r2_bucket, pin, prop_type, skip
                             )
 
                         if s_resp.status_code == 200 and "proptax" in str(s_resp.url).lower():
-                            s_attrs = parse_structure_detail_html(s_resp.text, prop_type)
+                            s_attrs = parse_structure_html(s_resp.text, prop_type, debug_kv=debug_html, pin=pin)
                             if debug_html:
                                 print(f"[DEBUG {pin}] Structure subpage parsed -> {s_attrs}")
                             if (s_attrs.get("square_footage") or 0) >= (best_attrs.get("square_footage") or 0):
@@ -598,56 +514,19 @@ async def process_parcel(client, sem, s3_client, r2_bucket, pin, prop_type, skip
                                 for k, v in s_attrs.items():
                                     if best_attrs.get(k) is None and v is not None:
                                         best_attrs[k] = v
-                            sketch_imgs = extract_images_from_html(s_resp.text, str(s_resp.url), default_type="SKETCH")
-                            media_candidates.extend(sketch_imgs)
                     except Exception as sub_err:
                         if debug_html:
                             print(f"[DEBUG {pin}] Subpage error: {sub_err}")
                         continue
 
-                uploaded_media = []
-                if not skip_media and media_candidates:
-                    seq_counters = {"EXTERIOR": 0, "SKETCH": 0}
-                    seen_img_urls = set()
-                    for media_type, img_url in media_candidates[:8]:
-                        if img_url in seen_img_urls:
-                            continue
-                        seen_img_urls.add(img_url)
-                        try:
-                            img_resp = await client.get(img_url, follow_redirects=True, timeout=20.0)
-                            if img_resp.status_code != 200 or not img_resp.content:
-                                continue
-                            webp_bytes = await asyncio.to_thread(encode_webp_bytes, img_resp.content)
-                            if not webp_bytes:
-                                continue
-                            seq_counters[media_type] += 1
-                            seq = seq_counters[media_type]
-                            r2_key = f"parcels/snohomish/{pin}/{media_type.lower()}-{seq}.webp"
-                            await asyncio.to_thread(
-                                s3_client.put_object,
-                                Bucket=r2_bucket,
-                                Key=r2_key,
-                                Body=webp_bytes,
-                                ContentType="image/webp",
-                            )
-                            uploaded_media.append({
-                                "parcel_number": pin,
-                                "media_type": media_type,
-                                "sequence_num": seq,
-                                "r2_key": r2_key,
-                                "source_url": img_url,
-                            })
-                        except Exception:
-                            continue
-
-                status = "DONE" if (best_attrs.get("square_footage") or uploaded_media) else "NO_STRUCTURE"
-                return pin, status, best_attrs, uploaded_media
+                status = "DONE" if best_attrs.get("square_footage") else "NO_STRUCTURE"
+                return pin, status, best_attrs
             except (httpx.RequestError, asyncio.TimeoutError):
                 if attempt == 2:
-                    return pin, "ERROR", None, []
+                    return pin, "ERROR", None
                 await asyncio.sleep(1.5 * (attempt + 1))
 
-    return pin, "ERROR", None, []
+    return pin, "ERROR", None
 
 
 async def run_harvester(args):
@@ -658,23 +537,12 @@ async def run_harvester(args):
     cf_account_id = os.environ.get("CF_ACCOUNT_ID")
     cf_api_token = os.environ.get("CF_D1_API_TOKEN")
     cf_db_id = os.environ.get("CF_DATABASE_PARCELDATA_ID")
-    r2_access_key = os.environ.get("R2_ACCESS_KEY_ID")
-    r2_secret_key = os.environ.get("R2_SECRET_ACCESS_KEY")
-    r2_bucket = os.environ.get("R2_BUCKET_NAME")
 
-    if not all([cf_account_id, cf_api_token, cf_db_id, r2_access_key, r2_secret_key, r2_bucket]):
-        raise ValueError("Missing Cloudflare D1 or R2 credentials in .dev.vars.")
+    if not all([cf_account_id, cf_api_token, cf_db_id]):
+        raise ValueError("Missing Cloudflare D1 credentials in .dev.vars.")
 
     endpoint = f"https://api.cloudflare.com/client/v4/accounts/{cf_account_id}/d1/database/{cf_db_id}/query"
     headers = {"Authorization": f"Bearer {cf_api_token}", "Content-Type": "application/json"}
-
-    s3_client = boto3.client(
-        "s3",
-        endpoint_url=f"https://{cf_account_id}.r2.cloudflarestorage.com",
-        aws_access_key_id=r2_access_key,
-        aws_secret_access_key=r2_secret_key,
-        region_name="auto",
-    )
 
     ckpt_path = os.path.join(staging_dir, "snoco_harvest.db")
     ckpt_conn = init_checkpoint_db(ckpt_path)
@@ -696,7 +564,6 @@ async def run_harvester(args):
 
     sem = asyncio.Semaphore(args.concurrency)
     pending_base = []
-    pending_media = []
     processed = 0
     total = len(targets)
 
@@ -705,49 +572,45 @@ async def run_harvester(args):
         while chunk_start < total:
             batch = targets[chunk_start:chunk_start + D1_FLUSH_EVERY]
             tasks = [
-                process_parcel(client, sem, s3_client, r2_bucket, pin, ptype, args.skip_media, args.debug_html)
+                process_parcel(client, sem, pin, ptype, args.debug_html)
                 for pin, ptype in batch
             ]
             results = await asyncio.gather(*tasks)
 
-            maintenance_hits = sum(1 for _, st, _, _ in results if st == "MAINTENANCE")
+            maintenance_hits = sum(1 for _, st, _ in results if st == "MAINTENANCE")
             if maintenance_hits >= max(1, len(batch) // 2):
-                print("\n⏸️ Snohomish Assessor portal is in nightly maintenance/offline mode. Pausing 60s before retrying batch...")
+                print("\n⏸️ Snohomish Assessor portal is in maintenance/offline mode. Pausing 60s before retrying batch...")
                 await asyncio.sleep(60)
                 continue
 
-            for pin, status, attrs, uploaded_media in results:
+            for pin, status, attrs in results:
                 processed += 1
                 if attrs and any(v is not None for v in attrs.values()):
                     pending_base.append((pin, attrs))
-                if uploaded_media:
-                    pending_media.extend(uploaded_media)
                 if status in ("DONE", "NO_STRUCTURE"):
                     ckpt_conn.execute(
-                        "INSERT OR REPLACE INTO harvest_log (parcel_number, status, gla, style, media_count, updated_utc) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP);",
-                        (pin, status, attrs.get("square_footage") if attrs else None, attrs.get("building_style") if attrs else None, len(uploaded_media)),
+                        "INSERT OR REPLACE INTO harvest_log (parcel_number, status, gla, style, updated_utc) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP);",
+                        (pin, status, attrs.get("square_footage") if attrs else None, attrs.get("building_style") if attrs else None),
                     )
 
             ckpt_conn.commit()
-            if pending_base or pending_media:
-                await asyncio.to_thread(flush_batches_to_d1, endpoint, headers, pending_base, pending_media)
+            if pending_base:
+                await asyncio.to_thread(flush_base_updates_to_d1, endpoint, headers, pending_base)
                 pending_base.clear()
-                pending_media.clear()
 
             chunk_start += D1_FLUSH_EVERY
-            print(f"\r🚀 Snohomish Harvested: {processed:,} / {total:,}", end="", flush=True)
+            print(f"\r🚀 Snohomish Attributes Harvested: {processed:,} / {total:,}", end="", flush=True)
 
-    print("\n✅ Snohomish County GLA + Media Harvest Complete.")
+    print("\n✅ Snohomish County Structural Attributes Harvest Complete.")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Async Snohomish County GLA, Style, Photo & Sketch Harvester.")
-    parser.add_argument("--concurrency", type=int, default=10, help="Concurrent HTTP workers (default: 10).")
+    parser = argparse.ArgumentParser(description="Async Snohomish County Interior GLA, Style & Hedonic Harvester (Attributes Only).")
+    parser.add_argument("--concurrency", type=int, default=12, help="Concurrent HTTP workers (default: 12).")
     parser.add_argument("--sales-only", action="store_true", help="Only harvest parcels with recent sales first.")
     parser.add_argument("--queue-file", type=str, default=None, help="Path to delta PIN queue file.")
-    parser.add_argument("--skip-media", action="store_true", help="Harvest structural GLA/style only without images.")
     parser.add_argument("--limit", type=int, default=None, help="Max parcels to process in this run.")
-    parser.add_argument("--debug-html", action="store_true", help="Print parsed structure attributes for debugging.")
+    parser.add_argument("--debug-html", action="store_true", help="Print parsed KV pairs and structure attributes.")
     args = parser.parse_args()
     asyncio.run(run_harvester(args))
 
