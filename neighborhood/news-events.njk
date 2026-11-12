@@ -236,9 +236,11 @@ permalink: "/neighborhood/{{ city.City | slugify }}/news-events/index.html"
         {% if (matched_news | length) > 0 %}
           <div>
             {% set city_name = active_neighborhood %}
+            {% set overline_text = active_neighborhood | upper %}
             {% set all_news_heading = active_neighborhood ~ " News" %}
             {% set all_news_items = matched_news %}
             {% set news_filter_tabs = active_news_tabs %}
+            {% set hide_category_tag = true %}
             {% include "components/widget/news-summary-list-all.njk" %}
           </div>
         {% endif %}

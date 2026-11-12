@@ -1,88 +1,121 @@
-{% set widget_id = news_widget_id or ("news-wire-" ~ (city_name | default("regional") | slugify)) %}
-{% set heading_text = all_news_heading or ((city_name ~ " News") if city_name else "Local News") %}
-{% set overline_label = overline_text or (city_name | upper if city_name else "REGIONAL WIRE") %}
-{% set items = all_news_items or [] %}
-{% set tabs = news_filter_tabs if news_filter_tabs is defined else [
+<!-- File: _includes/components/widget/news-summary-list-all.njk -->
+{# 
+  COMPONENT: Comprehensive Community News Wire & Categorized Feed (widget.news.summary.list.all)
+  PURPOSE: Full article feed with interactive topic filter pills and city-aware headlines.
+#}
+
+{% set city_label = city_name or active_neighborhood or (city.City if city else '') %}
+{% set heading_text = all_news_heading or news_heading or (city_label ~ " Community & Regional Coverage" if city_label else "All Regional Coverage") %}
+{% set overline_label = overline_text or ((city_label ~ " NEWS WIRE") if city_label else "REGIONAL NEWS WIRE") %}
+{% set news_feed = all_news_items or news_items or news_all_data or news %}
+{% set filter_tabs = news_filter_tabs if news_filter_tabs is defined else [
   { "slug": "business", "label": "Business" },
   { "slug": "real-estate", "label": "Real Estate" },
   { "slug": "goodnews", "label": "Good News" }
 ] %}
 
-{% if (items | length) > 0 %}
-<section id="{{ widget_id }}" class="surface-bento" aria-label="{{ heading_text }}">
-  <header class="airport-board-header">
-    <div class="airport-board-title-stack">
+{% if news_feed and (news_feed | length) > 0 %}
+<section class="widget-card news-summary-list-all-card" aria-label="{{ heading_text }}">
+  
+  {# Header Row #}
+  <header class="news-all-header">
+    <div class="news-all-title-stack">
       <span class="text-overline text-accent-alpine">{{ overline_label }}</span>
-      <h3 class="text-widget-title airport-board-title">{{ heading_text }}</h3>
+      <h3 class="text-widget-title news-all-headline">{{ heading_text }}</h3>
     </div>
-
-    {% if (tabs | length) > 0 %}
-      <div class="airport-board-filter-group" role="tablist" aria-label="Filter {{ heading_text }}">
-        <button type="button" class="btn-apt-tab is-active" data-news-filter="all" aria-pressed="true">All</button>
-        {% for tab in tabs %}
-          <button type="button" class="btn-apt-tab" data-news-filter="{{ tab.slug }}" aria-pressed="false">{{ tab.label }}</button>
-        {% endfor %}
-      </div>
+    {% if (filter_tabs | length) > 0 %}
+      <div class="news-filter-caption">Filter Wire by Topic</div>
     {% endif %}
   </header>
 
-  <div class="news-wire-stream">
-    {% for item in items %}
+  {# Topic Filter Pills #}
+  {% if (filter_tabs | length) > 0 %}
+    <nav class="news-filter-pills" role="tablist" aria-label="Filter wire by category">
+      <button type="button" class="btn-filter-pill is-active" data-filter="all" role="tab" aria-selected="true">All</button>
+      {% for tab in filter_tabs %}
+        <button type="button" class="btn-filter-pill" data-filter="{{ tab.slug }}" role="tab" aria-selected="false">{{ tab.label }}</button>
+      {% endfor %}
+    </nav>
+  {% endif %}
+
+  {# Full Article Stream #}
+  <div class="news-list-container">
+    {% for item in news_feed %}
       {% set item_url = item.url or item.link %}
-      {% set item_date = item.date_formatted or item.published %}
-      {% set item_tags = item.match_tags or (item.tags | join(" ") if item.tags else "") %}
       {% if item.title and item_url %}
-        <article class="flight-row news-wire-entry" data-news-tags="{{ item_tags }}">
-          <div class="text-overline">
-            {{ item.source | default("REGIONAL PRESS") }}{% if item_date %} &bull; {{ item_date }}{% endif %}{% if item.paywall %} &bull; SUBSCRIPTION{% endif %}
+        {% set item_cat = (item.category or (item.tags[0] if item.tags else '')) | lower %}
+        {% set item_tags_str = item.match_tags or (item.tags | join(' ') | lower if item.tags else item_cat) %}
+        <article class="news-wire-item" data-category="{{ item_cat }}" data-tags="{{ item_tags_str }}">
+          
+          <div class="news-wire-meta">
+            <span class="text-overline news-wire-source">{{ item.source | default("REGIONAL DISPATCH") }}</span>
+            {% if not hide_category_tag and item_cat %}
+              <span class="news-wire-dot" aria-hidden="true">&bull;</span>
+              <span class="news-wire-category-tag">{{ item_cat }}</span>
+            {% endif %}
           </div>
-          <h4 class="team-card-title">
-            <a href="{{ item_url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>
+
+          <h4 class="news-wire-title">
+            <a href="{{ item_url }}" class="news-wire-title-link" target="_blank" rel="noopener noreferrer">
+              {{ item.title | safe }}
+            </a>
           </h4>
+
           {% if item.excerpt %}
-            <p class="climate-summary-snippet">{{ item.excerpt }}</p>
+            <p class="text-body-secondary news-wire-excerpt">
+              {{ item.excerpt | safe }}
+            </p>
           {% endif %}
+
+          <div class="news-wire-footer">
+            <time class="news-wire-time">{{ item.date_formatted or item.published }}</time>
+            <a href="{{ item_url }}" class="news-read-link" target="_blank" rel="noopener noreferrer">
+              <span>Read Story</span>
+              <span aria-hidden="true">&rarr;</span>
+            </a>
+          </div>
+
         </article>
       {% endif %}
     {% endfor %}
   </div>
-</section>
 
-{% if (tabs | length) > 0 %}
-<script>
-(function() {
-  var root = document.getElementById("{{ widget_id }}");
-  if (!root) return;
-  var buttons = root.querySelectorAll("[data-news-filter]");
-  var articles = root.querySelectorAll("[data-news-tags]");
+  {# Client-Side Controller (Toggles display state classes) #}
+  {% if (filter_tabs | length) > 0 %}
+    <script>
+      (function() {
+        const container = document.currentScript ? document.currentScript.closest('.news-summary-list-all-card') : document.querySelector('.news-summary-list-all-card');
+        if (!container) return;
+        const pills = container.querySelectorAll('.btn-filter-pill');
+        const items = container.querySelectorAll('.news-wire-item');
 
-  buttons.forEach(function(btn) {
-    btn.addEventListener("click", function() {
-      var target = btn.getAttribute("data-news-filter");
-      buttons.forEach(function(b) {
-        var active = b === btn;
-        b.classList.toggle("is-active", active);
-        b.setAttribute("aria-pressed", active ? "true" : "false");
-      });
-      articles.forEach(function(el) {
-        if (target === "all") {
-          el.classList.remove("is-hidden");
-          return;
-        }
-        var tags = (el.getAttribute("data-news-tags") || "").toLowerCase().split(/\s+/);
-        el.classList.toggle("is-hidden", tags.indexOf(target.toLowerCase()) === -1);
-      });
-    });
-  });
-})();
-</script>
-{% endif %}
-{% else %}
-<section id="{{ widget_id }}" class="sports-stat-empty-shield" aria-label="{{ heading_text }}">
-  <div class="stat-empty-inner">
-    <span class="text-overline text-accent-alpine">{{ overline_label }}</span>
-    <h3 class="stat-empty-title">No Recent Articles</h3>
-    <p class="stat-empty-subtext">No verified news dispatches are currently indexed for {{ city_name | default("this area") }}.</p>
-  </div>
+        pills.forEach(pill => {
+          pill.addEventListener('click', function() {
+            pills.forEach(p => {
+              p.classList.remove('is-active');
+              p.setAttribute('aria-selected', 'false');
+            });
+            this.classList.add('is-active');
+            this.setAttribute('aria-selected', 'true');
+
+            const filter = this.getAttribute('data-filter');
+            items.forEach(item => {
+              if (filter === 'all') {
+                item.classList.remove('is-hidden');
+                return;
+              }
+              const tagList = (item.getAttribute('data-tags') || item.getAttribute('data-category') || '').toLowerCase().split(/\s+/);
+              if (tagList.indexOf(filter.toLowerCase()) !== -1) {
+                item.classList.remove('is-hidden');
+              } else {
+                item.classList.add('is-hidden');
+              }
+            });
+          });
+        });
+      })();
+    </script>
+  {% endif %}
+
 </section>
 {% endif %}
