@@ -145,11 +145,11 @@ def main():
     os.makedirs(DATA_DIR, exist_ok=True)
 
     account_id = os.environ.get("CF_ACCOUNT_ID")
-    database_id = os.environ.get("CF_D1_DATABASE_ID")
+    database_id = os.environ.get("CF_DATABASE_CMS_ID")
     api_token = os.environ.get("CF_API_TOKEN")
 
     if not all([account_id, database_id, api_token]):
-        print("❌ Missing Cloudflare D1 credentials (CF_ACCOUNT_ID, CF_D1_DATABASE_ID, CF_API_TOKEN). Exiting.")
+        print("❌ Missing Cloudflare D1 credentials (CF_ACCOUNT_ID, CF_DATABASE_CMS_ID, CF_API_TOKEN). Exiting.")
         return
 
     # 1. Real-Time News (30 days active OR is_evergreen = 1)

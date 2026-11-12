@@ -7,31 +7,43 @@ pagination:
   alias: city
 permalink: "/neighborhood/{{ city.City | slugify }}/index.html"
 ---
-
-{# Initialize core routing keys #}
 {% set city_slug = city.City | slugify %}
 {% set active_neighborhood = city.City %}
 
-{# Global build-time month resolution for FeatCat business cycling (1-12) #}
-{% set current_month = "11" %} 
-{% set active_featcat = "FeatCat" ~ current_month %}
+{% set last_upd = stats['Last Update'] if (stats and stats['Last Update']) else "Nov 12, 2026" %}
+{% set month_map = {
+  "Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4, "May": 5, "Jun": 6,
+  "Jul": 7, "Aug": 8, "Sep": 9, "Oct": 10, "Nov": 11, "Dec": 12
+} %}
+{% set upd_month_str = last_upd | truncate(3, true, "") %}
+{% set current_month = month_map[upd_month_str] | default(11) %}
+{% set mm_pad = ("0" ~ current_month) if current_month < 10 else ("" ~ current_month) %}
+{% set dd_raw = last_upd.split(' ')[1] | replace(',', '') if (' ' in last_upd) else "12" %}
+{% set dd_pad = ("0" ~ dd_raw) if (dd_raw | length) == 1 else dd_raw %}
+{% set today_mmdd = mm_pad ~ "-" ~ dd_pad %}
 
 <main class="layout-container layout-stack-main">
 
-  {# SECTION 1: CANONICAL HERO HEADER #}
+  {# ==========================================================================
+     SECTION 1: CANONICAL HERO HEADER
+     ========================================================================== #}
   <div id="neighborhood-hero" class="portal-section-header">
     {% set hero_img_main = city.HeroImageMain %}
     {% set hero_img_left = city.HeroImageLeft %}
     {% set hero_img_right = city.HeroImageRight %}
     {% set hero_welcome_label = "Welcome to the neighborhood" %}
-    {% include "components/widget/neighborhood-page-header.njk" ignore missing %}
+    {% include "components/widget/neighborhood-page-header.njk" %}
   </div>
 
-  {# SECTION 2: EXPLORE NAVIGATION PILLS #}
-  <section id="explore-neighborhood" class="portal-section-nav">
-    <h2 class="text-section-title section-title-clean">Explore {{ active_neighborhood }}</h2>
+  {# ==========================================================================
+     SECTION 2: EXPLORE NAVIGATION PILLS (Adaptive Centered Dock)
+     ========================================================================== #}
+  <section id="explore-neighborhood" class="portal-section-nav" aria-label="Explore {{ active_neighborhood }}">
+    <span class="text-overline text-accent-alpine section-overline-lead">
+      EXPLORE {{ active_neighborhood | upper }}
+    </span>
     <div class="neighborhood-nav-container">
-      <div class="neighborhood-nav-track" tabindex="0" role="navigation" aria-label="{{ active_neighborhood }} Subpages">
+      <nav class="neighborhood-nav-track" tabindex="0" aria-label="{{ active_neighborhood }} Subpages">
         <a href="/neighborhood/{{ city_slug }}/news-events/" class="neighborhood-nav-pill is-inactive">News &amp; Events</a>
         <a href="/neighborhood/{{ city_slug }}/weather/" class="neighborhood-nav-pill is-inactive">Weather</a>
         <a href="/neighborhood/{{ city_slug }}/transit-commute/" class="neighborhood-nav-pill is-inactive">Transit &amp; Commute</a>
@@ -40,131 +52,196 @@ permalink: "/neighborhood/{{ city.City | slugify }}/index.html"
         <a href="/neighborhood/{{ city_slug }}/real-estate/" class="neighborhood-nav-pill is-inactive">Real Estate</a>
         <a href="/neighborhood/school/{{ city['School District'] | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
         <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
-      </div>
+        <a href="/neighborhood/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit</a>
+      </nav>
     </div>
   </section>
 
   <hr class="section-divider">
 
-  {# SECTION 3: HAPPENING NOW (Compact Bento Grid) #}
+  {# ==========================================================================
+     SECTION 3: HAPPENING NOW (Half-Height 5-Tile Telemetry Strip)
+     ========================================================================== #}
+  {% set w_city = city_weather[city_slug] if city_weather else null %}
+  {% set t_live = transit_radar_live[city_slug] if transit_radar_live else null %}
+
+  {% set supply_val = null %}
+  {% if infosparks_stats and infosparks_stats.feeds %}
+    {% for feed_id, feed_obj in infosparks_stats.feeds %}
+      {% if feed_obj.meta and feed_obj.meta.metric == "Months Supply Closed" and feed_obj.meta.geographies and (city.City in feed_obj.meta.geographies) and feed_obj.data and (feed_obj.data | length) > 0 %}
+        {% set latest_row = feed_obj.data | last %}
+        {% if latest_row[city.City] is defined and latest_row[city.City] is not none %}
+          {% set supply_val = latest_row[city.City] %}
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+  {% if supply_val is none and redfin_stats %}
+    {% for r in redfin_stats %}
+      {% if r.city == city.City and r.months_of_supply is not none %}
+        {% set supply_val = r.months_of_supply %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
   <section id="happening-now" class="portal-section-glance">
     <h2 class="text-section-title section-title-clean">Happening Now</h2>
-    <div class="section-grid-static grid-cols-4">
-      
-      {# 3.1: Compact Weather Tile #}
-      {% set w_city = city_weather[city_slug] if city_weather else null %}
-      {% if w_city and w_city.current %}
-        <a href="/neighborhood/{{ city_slug }}/weather/" style="text-decoration: none; color: inherit;">
-          <div class="surface-bento" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; height: 100%; gap: 0.75rem;">
-            <div class="text-overline" style="letter-spacing: 0.1em; color: var(--color-secondary-muted);">WEATHER</div>
-            
-            <div style="display: flex; align-items: center; gap: 1rem;">
-              {% set weather_code = w_city.current.weather_code | int %}
-              <div style="width: 42px; height: 42px;">
-                <svg viewBox="0 0 32 32" fill="none" style="width: 100%; height: 100%; display: block; overflow: visible;">
-                  {% if weather_code >= 50 %}
-                    <path d="M7 19a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 19H7z" fill="#94A3B8" />
-                    <line x1="10" y1="22" x2="8" y2="27" stroke="#38BDF8" stroke-width="2" stroke-linecap="round" />
-                    <line x1="16" y1="22" x2="14" y2="27" stroke="#38BDF8" stroke-width="2" stroke-linecap="round" />
-                  {% elif weather_code == 3 %}
-                    <path d="M8 22a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 26 22H8z" fill="#94A3B8" />
-                  {% else %}
-                    <circle cx="16" cy="16" r="7" fill="#FBBF24" />
-                    <line x1="16" y1="4" x2="16" y2="7" stroke="#FBBF24" stroke-width="2.5" stroke-linecap="round" />
-                    <line x1="16" y1="25" x2="16" y2="28" stroke="#FBBF24" stroke-width="2.5" stroke-linecap="round" />
-                    <line x1="4" y1="16" x2="7" y2="16" stroke="#FBBF24" stroke-width="2.5" stroke-linecap="round" />
-                    <line x1="25" y1="16" x2="28" y2="16" stroke="#FBBF24" stroke-width="2.5" stroke-linecap="round" />
-                  {% endif %}
+    <div class="glance-five-grid">
+
+      {# 3.1: Current Weather #}
+      {% if w_city and w_city.current and w_city.current.temp_f is not none %}
+        {% set w_code = w_city.current.weather_code | int %}
+        {% set w_label = "Rain" if w_code >= 50 else ("Cloudy" if w_code == 3 else "Sunny") %}
+        <a href="/neighborhood/{{ city_slug }}/weather/" class="glance-tile-link">
+          <article class="glance-tile-card">
+            <span class="text-overline text-accent-alpine">CURRENT WEATHER</span>
+            <div class="glance-tile-body">
+              <div class="glance-weather-left">
+                <div class="glance-weather-icon" aria-hidden="true">
+                  <svg viewBox="0 0 32 32" fill="none" class="glance-weather-svg">
+                    {% if w_code >= 50 %}
+                      <path d="M7 19a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 19H7z" class="weather-vector-cloud" />
+                      <line x1="10" y1="22" x2="8" y2="27" class="weather-vector-rain" />
+                      <line x1="16" y1="22" x2="14" y2="27" class="weather-vector-rain" />
+                    {% elif w_code == 3 %}
+                      <path d="M8 22a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 26 22H8z" class="weather-vector-cloud" />
+                    {% else %}
+                      <circle cx="16" cy="16" r="7" class="weather-vector-sun-core" />
+                      <line x1="16" y1="4" x2="16" y2="7" class="weather-vector-sun-rays" />
+                      <line x1="16" y1="25" x2="16" y2="28" class="weather-vector-sun-rays" />
+                      <line x1="4" y1="16" x2="7" y2="16" class="weather-vector-sun-rays" />
+                      <line x1="25" y1="16" x2="28" y2="16" class="weather-vector-sun-rays" />
+                    {% endif %}
+                  </svg>
+                </div>
+                <span class="glance-temp-numeral">{{ w_city.current.temp_f | round }}&deg;</span>
+              </div>
+              <div class="glance-weather-right">
+                <span class="glance-status-primary">{{ w_label }}</span>
+                {% if w_city.forecast_7_day and w_city.forecast_7_day.temp_max and w_city.forecast_7_day.temp_min %}
+                  <span class="glance-status-sub">H: {{ w_city.forecast_7_day.temp_max[0] | round }}&deg; L: {{ w_city.forecast_7_day.temp_min[0] | round }}&deg;</span>
+                {% endif %}
+              </div>
+            </div>
+          </article>
+        </a>
+      {% endif %}
+
+      {# 3.2: Sunrise & Sunset #}
+      {% if w_city and w_city.astronomy and w_city.astronomy.sunrise_today and w_city.astronomy.sunset_today %}
+        {% set raw_rise = w_city.astronomy.sunrise_today %}
+        {% set raw_set = w_city.astronomy.sunset_today %}
+        {% set rise_h = raw_rise.split('T')[1].split(':')[0] | int %}
+        {% set rise_m = raw_rise.split('T')[1].split(':')[1] %}
+        {% set rise_mins = rise_h * 60 + (rise_m | int) %}
+        {% set rise_disp = (12 if rise_h == 0 else (rise_h if rise_h <= 12 else rise_h - 12)) ~ ':' ~ rise_m ~ (' AM' if rise_h < 12 else ' PM') %}
+
+        {% set set_h = raw_set.split('T')[1].split(':')[0] | int %}
+        {% set set_m = raw_set.split('T')[1].split(':')[1] %}
+        {% set set_mins = set_h * 60 + (set_m | int) %}
+        {% set set_disp = (12 if set_h == 0 else (set_h if set_h <= 12 else set_h - 12)) ~ ':' ~ set_m ~ (' AM' if set_h < 12 else ' PM') %}
+
+        {% set sun_angle = 90 %}
+        {% if w_city.last_updated and ('T' in w_city.last_updated) %}
+          {% set u_h = w_city.last_updated.split('T')[1].split(':')[0] | int %}
+          {% set u_m = w_city.last_updated.split('T')[1].split(':')[1] | int %}
+          {% set cur_h = (u_h - 8 + 24) % 24 %}
+          {% set cur_mins = cur_h * 60 + u_m %}
+          {% if cur_mins >= rise_mins and cur_mins <= set_mins %}
+            {% set sun_angle = (((cur_mins - rise_mins) / (set_mins - rise_mins)) * 180) | round(1) %}
+          {% else %}
+            {% set night_dur = (1440 - set_mins) + rise_mins %}
+            {% set elapsed = (cur_mins - set_mins) if cur_mins > set_mins else ((1440 - set_mins) + cur_mins) %}
+            {% set sun_angle = (180 + ((elapsed / night_dur) * 180)) | round(1) %}
+          {% endif %}
+        {% endif %}
+
+        <a href="/neighborhood/{{ city_slug }}/weather/" class="glance-tile-link">
+          <article class="glance-tile-card">
+            <span class="text-overline text-accent-alpine">SUNRISE &amp; SUNSET</span>
+            <div class="glance-solar-row">
+              <span class="glance-solar-time">{{ rise_disp }}</span>
+              <div class="glance-solar-dial" aria-hidden="true">
+                <svg viewBox="0 0 100 100" class="glance-solar-svg">
+                  <path d="M 10 50 A 40 40 0 0 1 90 50" class="glance-solar-day" />
+                  <path d="M 90 50 A 40 40 0 0 1 10 50" class="glance-solar-night" />
+                  <polygon points="6,54 14,54 10,45" class="glance-solar-arrow-rise" />
+                  <polygon points="86,46 94,46 90,55" class="glance-solar-arrow-set" />
+                  <g transform="rotate({{ sun_angle }}, 50, 50)">
+                    <circle cx="10" cy="50" r="5" class="glance-solar-dot" />
+                  </g>
                 </svg>
               </div>
-              <div style="font-size: 2.2rem; font-weight: 500; font-family: monospace; letter-spacing: -0.02em; line-height: 1;">{{ w_city.current.temp_f | round }}&deg;</div>
+              <span class="glance-solar-time">{{ set_disp }}</span>
             </div>
+          </article>
+        </a>
+      {% endif %}
 
-            <div style="font-size: 1rem; color: var(--color-secondary-muted);">
-              {{ "Rain" if weather_code >= 50 else ("Cloudy" if weather_code == 3 else "Sunny") }}
+      {# 3.3: Active Commute Score #}
+      {% if t_live and t_live.active_commute_score is not none %}
+        {% set c_val = t_live.active_commute_score | int %}
+        {% set c_tier = "score-tier-emerald" if c_val >= 80 else ("score-tier-alpine" if c_val >= 50 else "score-tier-crimson") %}
+        {% set c_label = "Light Traffic" if c_val >= 80 else ("Moderate Traffic" if c_val >= 50 else "Heavy Traffic") %}
+        <a href="/neighborhood/{{ city_slug }}/transit-commute/" class="glance-tile-link">
+          <article class="glance-tile-card">
+            <span class="text-overline text-accent-alpine">ACTIVE COMMUTE SCORE</span>
+            <div class="glance-score-row">
+              <span class="glance-score-badge {{ c_tier }}">{{ c_val }}</span>
+              <span class="glance-status-primary">{{ c_label }}</span>
             </div>
-            
-            {% if w_city.forecast_7_day and w_city.forecast_7_day.temp_max %}
-              <div style="font-size: 1rem; color: var(--color-secondary-muted);">
-                H: {{ w_city.forecast_7_day.temp_max[0] | round }}&deg; L: {{ w_city.forecast_7_day.temp_min[0] | round }}&deg;
+          </article>
+        </a>
+      {% endif %}
+
+      {# 3.4: Active Transit Score #}
+      {% if t_live and t_live.active_transit_score is not none %}
+        {% set tr_val = t_live.active_transit_score | int %}
+        {% set tr_tier = "score-tier-emerald" if tr_val >= 80 else ("score-tier-alpine" if tr_val >= 40 else "score-tier-crimson") %}
+        {% set tr_label = "High Service" if tr_val >= 80 else ("Moderate Service" if tr_val >= 40 else "Low Service") %}
+        <a href="/neighborhood/{{ city_slug }}/transit-commute/" class="glance-tile-link">
+          <article class="glance-tile-card">
+            <span class="text-overline text-accent-alpine">ACTIVE TRANSIT SCORE</span>
+            <div class="glance-score-row">
+              <span class="glance-score-badge {{ tr_tier }}">{{ tr_val }}</span>
+              <span class="glance-status-primary">{{ tr_label }}</span>
+            </div>
+          </article>
+        </a>
+      {% endif %}
+
+      {# 3.5: Real Estate Market Gauge #}
+      {% if supply_val is not none %}
+        {% set m_supply = supply_val | float %}
+        {% set m_capped = 6.0 if m_supply > 6.0 else (0.0 if m_supply < 0.0 else m_supply) %}
+        {% set m_angle = -90 + ((m_capped / 6.0) * 180) %}
+        {% set m_state = "Seller's Market" if m_supply < 2.0 else ("Balanced Market" if m_supply <= 4.0 else "Buyer's Market") %}
+        <a href="/neighborhood/{{ city_slug }}/real-estate/" class="glance-tile-link">
+          <article class="glance-tile-card">
+            <span class="text-overline text-accent-alpine">REAL ESTATE MARKET</span>
+            <div class="glance-gauge-row">
+              <div class="glance-gauge-stage" aria-hidden="true">
+                <svg viewBox="0 0 100 54" class="glance-gauge-svg">
+                  <defs>
+                    <linearGradient id="glanceMarketGrad-{{ city_slug }}" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#D9232A" />
+                      <stop offset="28%" stop-color="#D9232A" />
+                      <stop offset="38%" stop-color="#1E4D6B" />
+                      <stop offset="62%" stop-color="#1E4D6B" />
+                      <stop offset="72%" stop-color="#D9232A" />
+                      <stop offset="100%" stop-color="#D9232A" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M 10 48 A 40 40 0 0 1 90 48" fill="none" stroke="url(#glanceMarketGrad-{{ city_slug }})" stroke-width="11" stroke-linecap="round" />
+                  <g transform="translate(50, 48) rotate({{ m_angle }})">
+                    <polygon points="-2,0 2,0 0,-36" class="glance-gauge-needle" />
+                    <circle cx="0" cy="0" r="4" class="glance-gauge-needle" />
+                  </g>
+                </svg>
               </div>
-            {% endif %}
-          </div>
-        </a>
-      {% endif %}
-
-      {# 3.2: Sunrise / Sunset Dial #}
-      {% if w_city and w_city.astronomy %}
-        <a href="/neighborhood/{{ city_slug }}/weather/" style="text-decoration: none; color: inherit;">
-          <div class="surface-bento" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; height: 100%; gap: 1rem;">
-            <div class="text-overline" style="letter-spacing: 0.1em; color: var(--color-secondary-muted);">SUNRISE &amp; SUNSET</div>
-            
-            <div style="position: relative; width: 80px; height: 80px;">
-              <svg viewBox="0 0 100 100" style="width: 100%; height: 100%; overflow: visible; transform: rotate(-90deg);">
-                <path d="M 50 50 m -40 0 a 40 40 0 1 1 80 0" fill="none" stroke="#FBBF24" stroke-width="6" />
-                <path d="M 50 50 m 40 0 a 40 40 0 1 1 -80 0" fill="none" stroke="#1C1C1E" stroke-width="6" />
-                <polygon points="10,50 4,44 16,44" fill="#1C1C1E" transform="rotate(90, 10, 50)" />
-                <polygon points="90,50 84,44 96,44" fill="#FBBF24" transform="rotate(90, 90, 50)" />
-                <circle cx="50" cy="10" r="4" fill="#FBBF24" stroke="#1C1C1E" stroke-width="1.5" />
-              </svg>
+              <span class="glance-status-primary">{{ m_state }}</span>
             </div>
-
-            <div style="display: flex; justify-content: space-between; width: 100%; font-size: 0.95rem; font-weight: 500; padding: 0 0.5rem; font-family: monospace;">
-              <span>{{ w_city.astronomy.sunrise_today | replace("2026-10-25T", "") | default("6:08 AM") }}</span>
-              <span>{{ w_city.astronomy.sunset_today | replace("2026-10-25T", "") | default("8:18 PM") }}</span>
-            </div>
-          </div>
-        </a>
-      {% endif %}
-
-      {# 3.3: Active Commute Traffic Score #}
-      {% set t_live = transit_radar_live[city_slug] if transit_radar_live else null %}
-      {% if t_live and t_live.active_commute_score %}
-        <a href="/neighborhood/{{ city_slug }}/transit-commute/" style="text-decoration: none; color: inherit;">
-          <div class="surface-bento" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; height: 100%; gap: 1rem; text-align: center;">
-            <div class="text-overline" style="letter-spacing: 0.1em; color: var(--color-secondary-muted);">COMMUTE SCORE</div>
-            
-            {% set score_val = t_live.active_commute_score | int %}
-            {% set score_color = "var(--status-emerald)" if score_val >= 80 else ("var(--status-amber)" if score_val >= 50 else "var(--pnw-red)") %}
-            
-            <div style="width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: {{ score_color }}; color: #FFFFFF; font-size: 1.85rem; font-family: monospace; font-weight: 500;">
-              {{ score_val }}
-            </div>
-            
-            <div style="font-size: 1rem; font-weight: 500; color: {{ score_color }};">
-              {{ "Smooth Arterials" if score_val >= 80 else ("Moderate Traffic" if score_val >= 50 else "Arterial Congestion") }}
-            </div>
-          </div>
-        </a>
-      {% endif %}
-
-      {# 3.4: Real Estate Market Gauge #}
-      {% set local_stats = redfin_stats | selectattr("city", "equalto", city.City) | first if redfin_stats else null %}
-      {% if local_stats and local_stats.months_of_supply %}
-        <a href="/neighborhood/{{ city_slug }}/real-estate/" style="text-decoration: none; color: inherit;">
-          <div class="surface-bento" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; height: 100%; gap: 1rem;">
-            <div class="text-overline" style="letter-spacing: 0.1em; color: var(--color-secondary-muted);">REAL ESTATE MARKET</div>
-            
-            {% set m_supply = local_stats.months_of_supply | float %}
-            {% set m_angle = -90 + ((m_supply / 6) * 180) %}
-            {% set m_angle_capped = m_angle if m_angle <= 90 else 90 %}
-
-            <div style="position: relative; width: 100px; height: 50px;">
-              <svg viewBox="0 0 100 50" style="width: 100%; height: 100%; overflow: visible;">
-                <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#D9232A" stroke-width="12" stroke-linecap="round" />
-                <path d="M 33 22 A 40 40 0 0 1 67 22" fill="none" stroke="#3B82F6" stroke-width="12" />
-                
-                <g transform="translate(50, 50) rotate({{ m_angle_capped }})">
-                  <polygon points="-2,0 2,0 0,-38" fill="#1C1C1E" />
-                  <circle cx="0" cy="0" r="4" fill="#1C1C1E" />
-                </g>
-              </svg>
-            </div>
-
-            <div style="font-size: 1.05rem; font-weight: 500; color: var(--premier-charcoal); margin-top: 0.25rem;">
-              {{ "Seller's Market" if m_supply < 2 else ("Balanced Market" if m_supply <= 4 else "Buyer's Market") }}
-            </div>
-          </div>
+          </article>
         </a>
       {% endif %}
 
@@ -173,20 +250,61 @@ permalink: "/neighborhood/{{ city.City | slugify }}/index.html"
 
   <hr class="section-divider">
 
-  {# SECTION 4: FEATURED LOCAL BUSINESSES #}
-  {% set feat_cat_raw = city[active_featcat] if city[active_featcat] else "coffee" %}
-  {% set primary_cat = feat_cat_raw.split(',') | first | trim %}
-  {% set local_biz_list = city_businesses[city_slug].categories[primary_cat] if city_businesses and city_businesses[city_slug] and city_businesses[city_slug].categories else null %}
+  {# ==========================================================================
+     SECTION 4: FEATURED LOCAL BUSINESSES
+     ========================================================================== #}
+  {% set city_cats = city_businesses[city_slug].categories if (city_businesses and city_businesses[city_slug] and city_businesses[city_slug].categories) else null %}
+  {% set active_featcat_key = "FeatCat" ~ current_month %}
+  {% set feat_raw = city[active_featcat_key] | default("coffee") %}
+  {% set feat_tags = feat_raw.split(',') %}
+  {% set tag_aliases = {
+    "breakfast_brunch": "coffee",
+    "coffeeroasters": "coffee",
+    "desserts": "bakeries",
+    "icecream": "bakeries",
+    "gelato": "bakeries",
+    "italian": "pizza",
+    "tacos": "mexican",
+    "foodtrucks": "mexican",
+    "fishnchips": "seafood",
+    "beer_gardens": "breweries",
+    "pubs": "breweries",
+    "sportsbars": "breweries",
+    "vietnamese": "thai",
+    "ramen": "thai",
+    "newamerican": "steak"
+  } %}
 
-  {% if local_biz_list and local_biz_list.length > 0 %}
+  {% set resolved_biz_list = [] %}
+  {% set resolved_cat_name = "" %}
+  {% if city_cats %}
+    {% for raw_tag in feat_tags %}
+      {% set t_clean = raw_tag | trim | lower %}
+      {% set mapped_key = t_clean if city_cats[t_clean] is defined else tag_aliases[t_clean] %}
+      {% if (resolved_biz_list | length) == 0 and mapped_key and city_cats[mapped_key] and (city_cats[mapped_key] | length) > 0 %}
+        {% set resolved_biz_list = city_cats[mapped_key] %}
+        {% set resolved_cat_name = mapped_key %}
+      {% endif %}
+    {% endfor %}
+    {% if (resolved_biz_list | length) == 0 %}
+      {% for cat_k, cat_arr in city_cats %}
+        {% if (resolved_biz_list | length) == 0 and cat_arr and (cat_arr | length) > 0 %}
+          {% set resolved_biz_list = cat_arr %}
+          {% set resolved_cat_name = cat_k %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+  {% endif %}
+
+  {% if (resolved_biz_list | length) > 0 %}
     <section id="featured-businesses" class="portal-section-businesses">
       <h2 class="text-section-title section-title-clean">Featured Local Businesses</h2>
       <div class="horizontal-scroll-section scroll-variant-medium" tabindex="0">
-        {% for biz in local_biz_list | slice(0, 3) %}
-          {% if biz.name %}
+        {% for biz in resolved_biz_list %}
+          {% if biz.name and loop.index0 < 3 %}
             <div class="horizontal-scroll-item">
               {% set business_name = biz.name %}
-              {% set business_category = biz.category | default(primary_cat) %}
+              {% set business_category = resolved_cat_name or biz.category %}
               {% set business_price_level = biz.price_level %}
               {% set business_rating = biz.rating %}
               {% set business_reviews_count = biz.review_count %}
@@ -194,151 +312,160 @@ permalink: "/neighborhood/{{ city.City | slugify }}/index.html"
               {% set business_summary = biz.summary %}
               {% set business_image_url = biz.image_url %}
               {% set business_url = biz.url %}
-              {% include "components/widget/business-listing.njk" ignore missing %}
+              {% include "components/widget/business-listing.njk" %}
             </div>
           {% endif %}
         {% endfor %}
       </div>
     </section>
+
     <hr class="section-divider">
   {% endif %}
 
-  {# SECTION 5: RECENT NEWS (Clean Feed) #}
+  {# ==========================================================================
+     SECTION 5: NEWS & EVENTS (Full 1200px Side-by-Side 2-Column Split)
+     ========================================================================== #}
+  {% set news_region_primary = city['News Region'].split(',')[0] | trim | lower if city['News Region'] else city_slug %}
+  {% set filtered_news = [] %}
   {% if market_news %}
-    <section id="recent-news" class="portal-section-news-events section-widget">
-      <h2 class="text-section-title section-title-clean">Recent News</h2>
-      
-      <div class="surface-bento" style="padding: 1.5rem;">
-        <div style="display: flex; flex-direction: column;">
-          {% set count = 0 %}
-          {% for item in market_news %}
-            {% set item_cat = (item.category or (item.tags[0] if item.tags else 'local')) | lower %}
-            {% if (item_cat == news_region_slug or item_cat == city_slug) and count < 5 %}
-              {% set count = count + 1 %}
-              <article style="padding: 1rem 0; border-bottom: 1px solid var(--color-border-light);">
-                <div style="font-size: 0.65rem; color: var(--color-secondary-muted); text-transform: uppercase; margin-bottom: 0.25rem;">
-                  {{ item.source | default("REGIONAL DISPATCH") }} • {{ item.date_formatted | default(item.published) }}
-                </div>
-                <h4 style="margin: 0 0 0.5rem 0; font-size: 1.05rem; font-weight: 500;">
-                  <a href="{{ item.url | default(item.link) }}" target="_blank" rel="noopener noreferrer" style="color: var(--premier-charcoal); text-decoration: none;">
-                    {{ item.title }}
-                  </a>
-                </h4>
-                {% if item.excerpt %}
-                  <p style="margin: 0; font-size: 0.85rem; color: var(--color-secondary-muted); line-height: 1.4;">{{ item.excerpt }}</p>
-                {% endif %}
-              </article>
-            {% endif %}
-          {% endfor %}
-        </div>
-        <div style="margin-top: 1rem; text-align: center;">
-          <a href="/neighborhood/{{ city_slug }}/news-events/" style="font-size: 0.85rem; font-weight: 500; color: var(--alpine-blue); text-decoration: none;">See all news →</a>
-        </div>
+    {% for article in market_news %}
+      {% set a_tags = (article.tags | join(' ') | lower) if article.tags else '' %}
+      {% set a_cities = (article.cities | join(' ') | lower) if article.cities else '' %}
+      {% if (city_slug in a_tags) or (city_slug in a_cities) or (news_region_primary in a_tags) %}
+        {% set filtered_news = (filtered_news.push(article), filtered_news) %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% set county_tag = "county-" ~ (city.County | lower | replace(' ', '-')) %}
+  {% set city_tag = "city-" ~ city_slug %}
+  {% set events_source = public_events_feed if public_events_feed else public_events %}
+  {% set filtered_events = [] %}
+  {% if events_source %}
+    {% for ev in events_source %}
+      {% set ev_tags = (ev.tags | join(' ') | lower) if ev.tags else '' %}
+      {% set ev_city = (ev.city | lower) if ev.city else '' %}
+      {% if (ev_city == city_slug) or (ev_city == (city.City | lower)) or (city_tag in ev_tags) or (county_tag in ev_tags) %}
+        {% set filtered_events = (filtered_events.push(ev), filtered_events) %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% if (filtered_news | length) > 0 or (filtered_events | length) > 0 %}
+    <section id="news-events" class="portal-section-news-events">
+      <h2 class="text-section-title section-title-clean">News &amp; Events</h2>
+      <div class="section-grid-static grid-cols-2">
+
+        {% if (filtered_news | length) > 0 %}
+          <div>
+            {% set city_name = active_neighborhood %}
+            {% set news_heading = "Recent News" %}
+            {% set news_items = filtered_news %}
+            {% set predefined_category = null %}
+            {% set news_all_url = "/neighborhood/" ~ city_slug ~ "/news-events/" %}
+            {% include "components/widget/news-summary-list-five.njk" %}
+          </div>
+        {% endif %}
+
+        {% if (filtered_events | length) > 0 %}
+          <div>
+            {% set city_name = active_neighborhood %}
+            {% set events_heading = "Upcoming Events" %}
+            {% set events_items = filtered_events %}
+            {% set predefined_category = null %}
+            {% set events_all_url = "/neighborhood/" ~ city_slug ~ "/news-events/" %}
+            {% include "components/widget/events-summary-list-five.njk" %}
+          </div>
+        {% endif %}
+
       </div>
     </section>
+
     <hr class="section-divider">
   {% endif %}
 
-  {# SECTION 6: UPCOMING EVENTS (Clean Schedule) #}
-  {% set feed_source = public_events_feed if public_events_feed else public_events %}
-  {% if feed_source %}
-    <section id="upcoming-events" class="portal-section-news-events section-widget">
-      <h2 class="text-section-title section-title-clean">Upcoming Events</h2>
-      
-      <div class="surface-bento" style="padding: 1.5rem;">
-        <div style="display: flex; flex-direction: column;">
-          {% set count = 0 %}
-          {% for item in feed_source %}
-            {% set item_tags = (item.tags | join(' ')) | lower if item.tags else '' %}
-            {% if (item.city == city.City or event_region_slug in item_tags) and count < 5 %}
-              {% set count = count + 1 %}
-              <article style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--color-border-light);">
-                <div style="flex: 1;">
-                  <h4 style="margin: 0 0 0.25rem 0; font-size: 0.95rem; font-weight: 500;">
-                    {% if item.url or item.link %}
-                      <a href="{{ item.url | default(item.link) }}" target="_blank" rel="noopener noreferrer" style="color: var(--premier-charcoal); text-decoration: none;">
-                        {{ item.title }}
-                      </a>
-                    {% else %}
-                      {{ item.title }}
-                    {% endif %}
-                  </h4>
-                  {% if item.location or item['Location Name'] %}
-                    <div style="font-size: 0.75rem; color: var(--color-secondary-muted);">📍 {{ item.location | default(item['Location Name']) }}</div>
-                  {% endif %}
-                </div>
-                <div style="text-align: right; flex-shrink: 0;">
-                  <div style="font-size: 0.8rem; font-weight: 500; font-family: monospace; color: var(--alpine-blue);">{{ item.date | default(item.display_date) | default(item.Date) }}</div>
-                  {% if item.time or item.display_time or item['Start Time'] %}
-                    <div style="font-size: 0.75rem; color: var(--color-secondary-muted);">{{ item.time | default(item.display_time) | default(item['Start Time']) }}</div>
-                  {% endif %}
-                </div>
-              </article>
-            {% endif %}
-          {% endfor %}
-        </div>
-        <div style="margin-top: 1rem; text-align: center;">
-          <a href="/neighborhood/{{ city_slug }}/news-events/" style="font-size: 0.85rem; font-weight: 500; color: var(--alpine-blue); text-decoration: none;">See all events →</a>
-        </div>
-      </div>
-    </section>
-    <hr class="section-divider">
-  {% endif %}
-
-  {# SECTION 7: SPORTS #}
+  {# ==========================================================================
+     SECTION 6: SPORTS (Compact 3-Column Level Scoreboards)
+     ========================================================================== #}
   {% if sports_data and sports_data.teams %}
     <section id="local-sports" class="portal-section-sports">
       <h2 class="text-section-title section-title-clean">Sports</h2>
-      <div class="horizontal-scroll-section scroll-variant-medium" tabindex="0">
+      <div class="section-grid-static grid-cols-3 sports-compact-grid">
         {% set display_levels = ["Professional", "Minor League", "Collegiate"] %}
         {% for target_level in display_levels %}
-          {% set level_team = sports_data.teams | selectattr("level", "equalto", target_level) | first %}
-          {% set level_game = level_team.recentGames | first if level_team else null %}
-          
-          {% if level_game %}
-            <div class="horizontal-scroll-item">
-              <article class="surface-bento" style="padding: 1.5rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.75rem; margin-bottom: 1.15rem;">
-                  <span style="font-size: 0.7rem; color: var(--color-secondary-muted); text-transform: uppercase; font-weight: 500;">
-                    {{ level_team.sport | upper }} • {{ level_team.teamName | upper }}
-                  </span>
-                  <span style="font-size: 0.7rem; font-weight: 500; padding: 0.2rem 0.55rem; border-radius: 999px; background: var(--color-surface-gray); color: var(--premier-charcoal);">
-                    {{ level_game.status | upper }}
-                  </span>
-                </div>
-                
-                <div style="display: flex; flex-direction: column; gap: 0.85rem;">
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                      <span style="font-size: 1.05rem; font-weight: 500; color: var(--premier-charcoal);">{{ level_game.home_team }}</span>
-                      <span style="font-size: 0.75rem; color: var(--color-secondary-muted); margin-left: 0.5rem;">({{ level_team.currentRecord }})</span>
-                    </div>
-                    <span style="font-size: 1.35rem; font-weight: 500; font-family: monospace;">{{ level_game.home_score }}</span>
-                  </div>
-                  
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 1.05rem; font-weight: 500; color: var(--color-secondary-muted);">{{ level_game.away_team }}</span>
-                    <span style="font-size: 1.35rem; font-weight: 500; font-family: monospace; color: var(--color-secondary-muted);">{{ level_game.away_score }}</span>
-                  </div>
-                </div>
-                
-                <div style="margin-top: 1.25rem; padding-top: 0.85rem; border-top: 1px solid var(--color-border-light); text-align: right;">
-                  <a href="/sports/{{ level_team.slug }}/" style="font-size: 0.8rem; font-weight: 500; color: var(--alpine-blue); text-decoration: none;">Score Recap →</a>
-                </div>
-              </article>
+          {% set matched_team = null %}
+          {% for team in sports_data.teams %}
+            {% if not matched_team and team.level == target_level and team.recentGames and (team.recentGames | length) > 0 %}
+              {% set matched_team = team %}
+            {% endif %}
+          {% endfor %}
+
+          {% if matched_team %}
+            {% set latest_game = matched_team.recentGames[0] %}
+            <div>
+              {% set scorebox_header = (latest_game.league or matched_team.sport) ~ " • " ~ matched_team.teamName %}
+              {% set scorebox_status_text = (latest_game.status or "FINAL") | upper %}
+              {% set scorebox_local_name = latest_game.home_team %}
+              {% set scorebox_local_record = "(" ~ matched_team.currentRecord ~ ")" if matched_team.currentRecord else "" %}
+              {% set scorebox_local_score = latest_game.home_score %}
+              {% set scorebox_opp_name = latest_game.away_team %}
+              {% set scorebox_opp_record = "" %}
+              {% set scorebox_opp_score = latest_game.away_score %}
+              {% set scorebox_recap_url = "/sports/" ~ matched_team.slug ~ "/" %}
+              {% include "components/widget/sports-score-box.njk" %}
             </div>
           {% endif %}
         {% endfor %}
       </div>
     </section>
+
     <hr class="section-divider">
   {% endif %}
 
-  {# SECTION 8: ABOUT NEIGHBORHOOD #}
-  <section id="about-neighborhood" class="portal-section-editorial section-widget">
-    {% set editorial_headline = "About " ~ active_neighborhood %}
-    {% set editorial_overline = active_neighborhood | upper %}
-    {% include "components/widget/neighborhood-editorial.njk" ignore missing %}
-  </section>
+  {# ==========================================================================
+     SECTION 7: ABOUT NEIGHBORHOOD (Single Section Heading + Prose Card)
+     ========================================================================== #}
+  {% set active_ep = "EP12" %}
+  {% for m in range(1, 13) %}
+    {% set ep_date_str = city["EPDate" ~ m] %}
+    {% if ep_date_str and (ep_date_str | length) >= 10 %}
+      {% set ep_parts = ep_date_str.split('-') %}
+      {% set ep_mmdd = ep_parts[1] ~ "-" ~ ep_parts[2] %}
+      {% if today_mmdd >= ep_mmdd %}
+        {% set active_ep = "EP" ~ m %}
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+
+  {% set raw_editorial_md %}{% include "editorials/" ~ city_slug ~ ".md" ignore missing %}{% endset %}
+  {% set normalized_md = raw_editorial_md | replace("\r\n", "\n") %}
+  {% set ep_marker = active_ep ~ "**" %}
+  {% set editorial_html = "" %}
+  {% if normalized_md and (ep_marker in normalized_md) %}
+    {% set md_blocks = normalized_md.split("### **") %}
+    {% for block in md_blocks %}
+      {% if block.startsWith(ep_marker) %}
+        {% set clean_prose = block.replace(ep_marker, "") | trim %}
+        {% set para_list = clean_prose.split("\n\n") %}
+        {% for para in para_list %}
+          {% set p_trimmed = para | trim %}
+          {% if p_trimmed %}
+            {% set editorial_html = editorial_html ~ "<p>" ~ p_trimmed ~ "</p>" %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% if editorial_html %}
+    <section id="about-neighborhood" class="portal-section-editorial" aria-label="About {{ active_neighborhood }}">
+      <h2 class="text-section-title section-title-clean">About {{ active_neighborhood }}</h2>
+      <article class="surface-bento neighborhood-editorial-card">
+        <div class="editorial-prose-body text-body">
+          {{ editorial_html | safe }}
+        </div>
+      </article>
+    </section>
+  {% endif %}
 
 </main>
