@@ -37,7 +37,7 @@ def sql_val(val):
     return f"'{escaped}'"
 
 
-def execute_d1_sync(endpoint, headers, sql_block, retries=5):
+def execute_d1_sync(endpoint, headers, sql_block, retries=6):
     for attempt in range(retries):
         try:
             res = httpx.post(endpoint, headers=headers, json={"sql": sql_block}, timeout=90.0)
@@ -45,14 +45,17 @@ def execute_d1_sync(endpoint, headers, sql_block, retries=5):
             if data.get("success"):
                 return data
             err_str = str(data.get("errors", []))
-            if "busy" in err_str.lower() or "locked" in err_str.lower():
-                time.sleep(1.5 * (attempt + 1))
+            low_err = err_str.lower()
+            if any(tok in low_err for tok in ["busy", "locked", "7429", "overloaded", "too many resources"]):
+                wait_s = min(30.0, 4.0 * (attempt + 1))
+                print(f"\n⏳ D1 rate/resource window hit (retrying in {wait_s:.0f}s)...")
+                time.sleep(wait_s)
                 continue
             raise RuntimeError(f"D1 Query Failed: {err_str}")
         except (httpx.RequestError, ValueError):
             if attempt == retries - 1:
                 raise
-            time.sleep(1.5 * (attempt + 1))
+            time.sleep(3.0 * (attempt + 1))
     return {}
 
 
@@ -69,7 +72,6 @@ def init_checkpoint_db(db_path):
             updated_utc TEXT DEFAULT CURRENT_TIMESTAMP
         );
     """)
-    # Re-queue any records where GLA was not yet captured (including maintenance redirects)
     conn.execute("DELETE FROM harvest_log WHERE gla IS NULL;")
     conn.commit()
     return conn
@@ -392,44 +394,75 @@ def encode_webp_bytes(raw_bytes, max_width=1200, quality=82):
         return out.getvalue()
 
 
-def fetch_target_queue(endpoint, headers, completed_pins, queue_file=None, sales_only=False, limit=None):
+def fetch_target_queue(endpoint, headers, staging_dir, completed_pins, queue_file=None, sales_only=False, limit=None):
+    """Uses primary-key keyset pagination (zero full-table sort) and caches queue to disk."""
     if queue_file and os.path.exists(queue_file):
         with open(queue_file, "r", encoding="utf-8") as f:
             pins = [line.strip() for line in f if line.strip() and line.strip() not in completed_pins]
         print(f"📋 Loaded {len(pins):,} unharvested Snohomish pins from queue file: {queue_file}")
         return [(p, None) for p in (pins[:limit] if limit else pins)]
 
-    print("🔍 Querying Cloudflare D1 for unharvested Snohomish County residential parcels...")
-    where_sales = "AND last_sale_date IS NOT NULL" if sales_only else ""
-    targets = []
-    page_size = 50000
-    offset = 0
+    cache_name = "snoco_sales_queue.txt" if sales_only else "snoco_full_queue.txt"
+    cache_path = os.path.join(staging_dir, cache_name)
+    if os.path.exists(cache_path) and os.path.getsize(cache_path) > 0:
+        targets = []
+        with open(cache_path, "r", encoding="utf-8") as f:
+            for line in f:
+                parts = line.rstrip("\n").split("\t")
+                pin = parts[0].strip()
+                ptype = parts[1].strip() if len(parts) > 1 and parts[1].strip() else None
+                if pin and pin not in completed_pins:
+                    targets.append((pin, ptype))
+        print(f"📋 Loaded {len(targets):,} remaining Snohomish parcels from cached queue ({cache_name}).")
+        return targets[:limit] if limit else targets
 
-    while True:
-        sql = f"""
-        SELECT parcel_number, property_type
-        FROM base
-        WHERE county = 'SNOHOMISH'
-          AND property_type IN ('Single Family', 'Residential', 'Multi-Family', 'Condo', 'Townhouse')
-          AND (square_footage IS NULL OR square_footage = 0)
-          {where_sales}
-        ORDER BY CASE WHEN last_sale_date IS NOT NULL THEN 0 ELSE 1 END, parcel_number
-        LIMIT {page_size} OFFSET {offset};
-        """
-        data = execute_d1_sync(endpoint, headers, sql)
-        rows = data.get("result", [{}])[0].get("results", [])
-        if not rows:
-            break
-        for r in rows:
-            pin = r["parcel_number"]
-            if pin not in completed_pins:
-                targets.append((pin, r.get("property_type")))
-                if limit and len(targets) >= limit:
-                    return targets
-        offset += page_size
+    print("🔍 Indexing Snohomish residential parcels via primary-key seek (avoids D1 sort overload)...")
+    ordered = []
+    seen = set()
+    passes = ["AND last_sale_date IS NOT NULL"] if sales_only else [
+        "AND last_sale_date IS NOT NULL",
+        "AND last_sale_date IS NULL"
+    ]
+    page_size = 25000
 
+    for sale_filter in passes:
+        last_pin = ""
+        while True:
+            cursor_clause = f"AND parcel_number > {sql_val(last_pin)}" if last_pin else ""
+            sql = f"""
+            SELECT parcel_number, property_type
+            FROM base
+            WHERE county = 'SNOHOMISH'
+              AND property_type IN ('Single Family', 'Residential', 'Multi-Family', 'Condo', 'Townhouse')
+              AND (square_footage IS NULL OR square_footage = 0)
+              {sale_filter}
+              {cursor_clause}
+            ORDER BY parcel_number ASC
+            LIMIT {page_size};
+            """
+            data = execute_d1_sync(endpoint, headers, sql)
+            rows = data.get("result", [{}])[0].get("results", [])
+            if not rows:
+                break
+            for r in rows:
+                pin = r["parcel_number"]
+                last_pin = pin
+                if pin not in seen:
+                    seen.add(pin)
+                    ordered.append((pin, r.get("property_type")))
+            print(f"\r   Indexed {len(ordered):,} Snohomish residential parcels...", end="", flush=True)
+            time.sleep(0.35)
+
+    print()
+    if ordered:
+        os.makedirs(staging_dir, exist_ok=True)
+        with open(cache_path, "w", encoding="utf-8") as f:
+            for p, pt in ordered:
+                f.write(f"{p}\t{pt or ''}\n")
+
+    targets = [(p, pt) for p, pt in ordered if p not in completed_pins]
     print(f"🎯 Queued {len(targets):,} Snohomish residential parcels (recent sales prioritized first).")
-    return targets
+    return targets[:limit] if limit else targets
 
 
 def flush_batches_to_d1(endpoint, headers, base_updates, media_rows):
@@ -508,7 +541,6 @@ async def process_parcel(client, sem, s3_client, r2_bucket, pin, prop_type, skip
                     return pin, "ERROR", None, []
 
                 final_url = str(resp.url)
-                # Guard against Snohomish County nightly maintenance redirects to snohomishcountywa.gov
                 if "proptax" not in final_url.lower():
                     if debug_html:
                         print(f"\n[DEBUG {pin}] Maintenance/Portal redirect detected -> {final_url}")
@@ -652,6 +684,7 @@ async def run_harvester(args):
     targets = fetch_target_queue(
         endpoint,
         headers,
+        staging_dir,
         completed_pins,
         queue_file=args.queue_file,
         sales_only=args.sales_only,

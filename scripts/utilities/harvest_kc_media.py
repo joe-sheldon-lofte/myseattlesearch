@@ -38,7 +38,7 @@ def sql_val(val):
     return f"'{escaped}'"
 
 
-def execute_d1_sync(endpoint, headers, sql_block, retries=5):
+def execute_d1_sync(endpoint, headers, sql_block, retries=6):
     for attempt in range(retries):
         try:
             res = httpx.post(endpoint, headers=headers, json={"sql": sql_block}, timeout=90.0)
@@ -46,14 +46,17 @@ def execute_d1_sync(endpoint, headers, sql_block, retries=5):
             if data.get("success"):
                 return data
             err_str = str(data.get("errors", []))
-            if "busy" in err_str.lower() or "locked" in err_str.lower():
-                time.sleep(1.5 * (attempt + 1))
+            low_err = err_str.lower()
+            if any(tok in low_err for tok in ["busy", "locked", "7429", "overloaded", "too many resources"]):
+                wait_s = min(30.0, 4.0 * (attempt + 1))
+                print(f"\n⏳ D1 rate/resource window hit (retrying in {wait_s:.0f}s)...")
+                time.sleep(wait_s)
                 continue
             raise RuntimeError(f"D1 Query Failed: {err_str}")
         except (httpx.RequestError, ValueError):
             if attempt == retries - 1:
                 raise
-            time.sleep(1.5 * (attempt + 1))
+            time.sleep(3.0 * (attempt + 1))
     return {}
 
 
@@ -227,38 +230,66 @@ def encode_webp_bytes(raw_bytes, max_width=1200, quality=82):
         return out.getvalue()
 
 
-def fetch_kc_target_queue(endpoint, headers, completed_pins, sales_only=False, limit=None):
-    print("🔍 Querying Cloudflare D1 for King County residential parcels...")
-    where_sales = "AND last_sale_date IS NOT NULL" if sales_only else ""
-    targets = []
-    page_size = 50000
-    offset = 0
+def fetch_kc_target_queue(endpoint, headers, staging_dir, completed_pins, sales_only=False, limit=None):
+    """Uses primary-key keyset pagination (zero full-table sort) and caches queue to disk."""
+    cache_name = "kc_sales_queue.txt" if sales_only else "kc_full_queue.txt"
+    cache_path = os.path.join(staging_dir, cache_name)
 
-    while True:
-        sql = f"""
-        SELECT parcel_number
-        FROM base
-        WHERE county = 'KING'
-          AND property_type IN ('Single Family', 'Townhouse', 'Condo', 'Multi-Family', 'Residential')
-          AND minor_code != '0000'
-          {where_sales}
-        ORDER BY CASE WHEN last_sale_date IS NOT NULL THEN 0 ELSE 1 END, parcel_number
-        LIMIT {page_size} OFFSET {offset};
-        """
-        data = execute_d1_sync(endpoint, headers, sql)
-        rows = data.get("result", [{}])[0].get("results", [])
-        if not rows:
-            break
-        for r in rows:
-            pin = r["parcel_number"]
-            if pin not in completed_pins:
-                targets.append(pin)
-                if limit and len(targets) >= limit:
-                    return targets
-        offset += page_size
+    if os.path.exists(cache_path) and os.path.getsize(cache_path) > 0:
+        with open(cache_path, "r", encoding="utf-8") as f:
+            all_pins = [line.strip() for line in f if line.strip()]
+        targets = [p for p in all_pins if p not in completed_pins]
+        print(f"📋 Loaded {len(targets):,} remaining King County parcels from cached queue ({cache_name}).")
+        return targets[:limit] if limit else targets
 
+    print("🔍 Indexing King County residential parcels via primary-key seek (avoids D1 sort overload)...")
+    ordered_pins = []
+    seen_pins = set()
+
+    passes = ["AND last_sale_date IS NOT NULL"] if sales_only else [
+        "AND last_sale_date IS NOT NULL",
+        "AND last_sale_date IS NULL"
+    ]
+
+    page_size = 25000
+    for sale_filter in passes:
+        last_pin = ""
+        while True:
+            cursor_clause = f"AND parcel_number > {sql_val(last_pin)}" if last_pin else ""
+            sql = f"""
+            SELECT parcel_number
+            FROM base
+            WHERE county = 'KING'
+              AND property_type IN ('Single Family', 'Townhouse', 'Condo', 'Multi-Family', 'Residential')
+              AND minor_code != '0000'
+              {sale_filter}
+              {cursor_clause}
+            ORDER BY parcel_number ASC
+            LIMIT {page_size};
+            """
+            data = execute_d1_sync(endpoint, headers, sql)
+            rows = data.get("result", [{}])[0].get("results", [])
+            if not rows:
+                break
+            for r in rows:
+                pin = r["parcel_number"]
+                last_pin = pin
+                if pin not in seen_pins:
+                    seen_pins.add(pin)
+                    ordered_pins.append(pin)
+            print(f"\r   Indexed {len(ordered_pins):,} King County residential parcels...", end="", flush=True)
+            time.sleep(0.35)
+
+    print()
+    if ordered_pins:
+        os.makedirs(staging_dir, exist_ok=True)
+        with open(cache_path, "w", encoding="utf-8") as f:
+            for p in ordered_pins:
+                f.write(f"{p}\n")
+
+    targets = [p for p in ordered_pins if p not in completed_pins]
     print(f"🎯 Queued {len(targets):,} King County parcels for photo & sketch harvesting.")
-    return targets
+    return targets[:limit] if limit else targets
 
 
 def flush_media_to_d1(endpoint, headers, media_rows):
@@ -390,7 +421,7 @@ async def run_kc_harvester(args):
     completed_pins = get_completed_pins(ckpt_conn)
     print(f"💾 Checkpoint loaded: {len(completed_pins):,} King County parcels already harvested.")
 
-    targets = fetch_kc_target_queue(endpoint, headers, completed_pins, sales_only=args.sales_only, limit=args.limit)
+    targets = fetch_kc_target_queue(endpoint, headers, staging_dir, completed_pins, sales_only=args.sales_only, limit=args.limit)
     if not targets:
         print("✅ All queued King County parcels are already harvested.")
         return
