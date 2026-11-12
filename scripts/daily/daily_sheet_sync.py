@@ -180,9 +180,9 @@ def sync_professionals_to_d1(records):
 
 # --- Cloudflare R2 Asset Engine ---
 def get_r2_client():
-    account_id = os.environ.get("CF_ACCOUNT_ID")
-    access_key = os.environ.get("R2_ALL_ACCESS_TOKEN")
-    secret_key = os.environ.get("R2_ALL_SECRET_ACCESS_KEY")
+    account_id = (os.environ.get("CF_ACCOUNT_ID") or "").strip()
+    access_key = (os.environ.get("R2_ALL_ACCESS_KEY_ID") or os.environ.get("R2_ACCESS_KEY_ID") or "").strip()
+    secret_key = (os.environ.get("R2_ALL_SECRET_ACCESS_KEY") or os.environ.get("R2_SECRET_ACCESS_KEY") or "").strip()
     if not all([account_id, access_key, secret_key]): return None
     return boto3.client(
         's3',
@@ -197,7 +197,7 @@ def process_and_upload_image(image_url, mls_number, image_index, r2_client, driv
     if not image_url or not str(image_url).startswith("http"): return ""
     if "assets.myseattlesearch.com" in image_url: return image_url
 
-    bucket_name = os.environ.get("R2_BUCKET_NAME", "myseattlesearch-assets")
+    bucket_name = (os.environ.get("R2_BUCKET_NAME") or "myseattlesearch-assets").strip()
     r2_key = f"sales/{mls_number}-img-{image_index}.webp"
     public_url = f"https://assets.myseattlesearch.com/{r2_key}"
 
@@ -237,7 +237,7 @@ def process_and_upload_pdf(pdf_url, mls_number, pdf_index, r2_client, drive_serv
     file_id = extract_google_id(pdf_url)
     if not file_id: return pdf_url
 
-    bucket_name = os.environ.get("R2_BUCKET_NAME", "myseattlesearch-assets")
+    bucket_name = (os.environ.get("R2_BUCKET_NAME") or "myseattlesearch-assets").strip()
     try:
         file_meta = drive_service.files().get(fileId=file_id, fields="name").execute()
         original_filename = file_meta.get('name', f'document-{pdf_index}.pdf').replace(" ", "-")
