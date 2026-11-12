@@ -189,7 +189,8 @@ def get_r2_client():
         endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
         aws_access_key_id=access_key,
         aws_secret_access_key=secret_key,
-        config=Config(signature_version='s4')
+        region_name='auto',
+        config=Config(signature_version='s3v4')
     )
 
 def process_and_upload_image(image_url, mls_number, image_index, r2_client, drive_service):

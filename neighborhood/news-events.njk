@@ -1,0 +1,209 @@
+---
+layout: layouts/base.njk
+pagination:
+  data: city_data
+  size: 1
+  addAllPagesToCollections: true
+  alias: city
+permalink: "/neighborhood/{{ city.City | slugify }}/news-events/index.html"
+---
+{% set city_slug = city.City | slugify %}
+{% set active_neighborhood = city.City %}
+{% set primary_district = city['School District'].split(',')[0] | trim if city['School District'] else '' %}
+
+<main class="layout-container layout-stack-main">
+
+  {# ==========================================================================
+     SECTION 1: CANONICAL SUBPAGE HERO HEADER
+     ========================================================================== #}
+  <div id="neighborhood-hero" class="portal-section-header">
+    {% set hero_img_main = city.HeroImageMain %}
+    {% set hero_img_left = city.HeroImageLeft %}
+    {% set hero_img_right = city.HeroImageRight %}
+    {% set hero_welcome_label = "Welcome to the neighborhood" %}
+    {% set subpage_topic = "News & Events" %}
+    {% set subpage_topic_title = "News & Events" %}
+    {% include "components/widget/neighborhood-subpage-header.njk" %}
+  </div>
+
+  {# ==========================================================================
+     SECTION 2: EXPLORE NAVIGATION PILLS (Shuffled Subpage Dock)
+     ========================================================================== #}
+  <section id="explore-neighborhood" class="portal-section-nav" aria-label="Explore {{ active_neighborhood }}">
+    <span class="text-overline text-accent-alpine section-overline-lead">
+      EXPLORE {{ active_neighborhood | upper }}
+    </span>
+    <div class="neighborhood-nav-container">
+      <nav class="neighborhood-nav-track" tabindex="0" aria-label="{{ active_neighborhood }} Subpages">
+        <a href="/neighborhood/{{ city_slug }}/" class="neighborhood-nav-pill is-inactive">City Home</a>
+        <a href="/neighborhood/{{ city_slug }}/weather/" class="neighborhood-nav-pill is-inactive">Weather</a>
+        <a href="/neighborhood/{{ city_slug }}/transit-commute/" class="neighborhood-nav-pill is-inactive">Transit &amp; Commute</a>
+        <a href="/neighborhood/{{ city_slug }}/emergency-safety/" class="neighborhood-nav-pill is-inactive">Emergency &amp; Safety</a>
+        <a href="/neighborhood/{{ city_slug }}/municipal/" class="neighborhood-nav-pill is-inactive">Municipal</a>
+        <a href="/neighborhood/{{ city_slug }}/real-estate/" class="neighborhood-nav-pill is-inactive">Real Estate</a>
+        {% if primary_district %}
+          <a href="/neighborhood/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
+        {% endif %}
+        <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
+        <a href="/neighborhood/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit</a>
+      </nav>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 3: FULL NEWS WIRE & COMMUNITY EVENTS (1200px 2-Column Split)
+     ========================================================================== #}
+
+  {# 3A. Filter market_news.json by: (1) city_slug, (2) News Region, (3) business / real-estate / goodnews #}
+  {% set region_list = [] %}
+  {% if city['News Region'] %}
+    {% for r_raw in city['News Region'].split(',') %}
+      {% set r_clean = r_raw | trim | lower %}
+      {% if r_clean %}
+        {% set region_list = (region_list.push(r_clean), region_list) %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% set matched_news = [] %}
+  {% if market_news %}
+    {% for article in market_news %}
+      {% set is_news_match = false %}
+      {% set resolved_topic = "local" %}
+      {% set has_goodnews = false %}
+      {% set has_realestate = false %}
+      {% set has_business = false %}
+      {% set has_sports = false %}
+
+      {% if article.cities %}
+        {% for c_item in article.cities %}
+          {% if (c_item | trim | lower) == city_slug %}
+            {% set is_news_match = true %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+
+      {% if article.tags %}
+        {% for t_item in article.tags %}
+          {% set t_clean = t_item | trim | lower %}
+          {% if t_clean == city_slug or (t_clean in region_list) %}
+            {% set is_news_match = true %}
+          {% endif %}
+          {% if t_clean == "goodnews" %}
+            {% set is_news_match = true %}
+            {% set has_goodnews = true %}
+          {% elif t_clean == "real-estate" %}
+            {% set is_news_match = true %}
+            {% set has_realestate = true %}
+          {% elif t_clean == "business" %}
+            {% set is_news_match = true %}
+            {% set has_business = true %}
+          {% elif t_clean == "sports" %}
+            {% set has_sports = true %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+
+      {% if has_goodnews %}
+        {% set resolved_topic = "goodnews" %}
+      {% elif has_realestate %}
+        {% set resolved_topic = "real-estate" %}
+      {% elif has_business %}
+        {% set resolved_topic = "business" %}
+      {% elif has_sports %}
+        {% set resolved_topic = "sports" %}
+      {% endif %}
+
+      {% if is_news_match and article.title and (article.url or article.link) %}
+        {% set normalized_article = {
+          "title": article.title,
+          "url": article.url or article.link,
+          "source": article.source,
+          "category": resolved_topic,
+          "excerpt": article.excerpt,
+          "date_formatted": article.date_formatted or article.published
+        } %}
+        {% set matched_news = (matched_news.push(normalized_article), matched_news) %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {# 3B. Filter public_events_feed.json by: (1) city-[slug], (2) county-[county], (3) "all" #}
+  {% set city_tag = "city-" ~ city_slug %}
+  {% set county_tags = [] %}
+  {% if city.County %}
+    {% for co_raw in city.County.split(',') %}
+      {% set co_clean = co_raw | trim | lower | replace(' ', '-') %}
+      {% if co_clean %}
+        {% set county_tags = (county_tags.push("county-" ~ co_clean), county_tags) %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% set events_source = public_events_feed if public_events_feed else public_events %}
+  {% set matched_events = [] %}
+  {% if events_source %}
+    {% for ev in events_source %}
+      {% set is_event_match = false %}
+      {% set ev_city_clean = (ev.city | trim | lower) if ev.city else '' %}
+      {% if ev_city_clean == city_slug or ev_city_clean == (city.City | lower) %}
+        {% set is_event_match = true %}
+      {% endif %}
+
+      {% if ev.tags %}
+        {% for et_item in ev.tags %}
+          {% set et_clean = et_item | trim | lower %}
+          {% if et_clean == city_tag or (et_clean in county_tags) or et_clean == "all" %}
+            {% set is_event_match = true %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+
+      {% if is_event_match and ev.title %}
+        {% set normalized_event = {
+          "title": ev.title,
+          "url": ev.url or ev.link,
+          "date": ev.date or ev.display_date,
+          "time": ev.time or ev.display_time,
+          "location": ev.location,
+          "category": (ev.categories[0] if (ev.categories and (ev.categories | length) > 0) else (ev.category or "Community")),
+          "desc": ev.desc or ev.excerpt,
+          "tags": ev.tags
+        } %}
+        {% set matched_events = (matched_events.push(normalized_event), matched_events) %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% if (matched_news | length) > 0 or (matched_events | length) > 0 %}
+    <section id="news-events" class="portal-section-news-events">
+      <h2 class="text-section-title section-title-clean">{{ active_neighborhood }} News &amp; Events</h2>
+      <div class="section-grid-static {% if (matched_news | length) > 0 and (matched_events | length) > 0 %}grid-cols-2{% else %}grid-cols-1{% endif %}">
+
+        {# Left Column: Full Categorized News Wire #}
+        {% if (matched_news | length) > 0 %}
+          <div>
+            {% set city_name = active_neighborhood %}
+            {% set all_news_heading = active_neighborhood ~ " News" %}
+            {% set all_news_items = matched_news %}
+            {% include "components/widget/news-summary-list-all.njk" %}
+          </div>
+        {% endif %}
+
+        {# Right Column: Full Categorized Community Events Schedule #}
+        {% if (matched_events | length) > 0 %}
+          <div>
+            {% set events_city_name = active_neighborhood %}
+            {% set events_heading = active_neighborhood ~ " Events" %}
+            {% set events_all_data = matched_events %}
+            {% include "components/widget/events-summary-list-all.njk" %}
+          </div>
+        {% endif %}
+
+      </div>
+    </section>
+  {% endif %}
+
+</main>
