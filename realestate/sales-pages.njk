@@ -1,0 +1,255 @@
+---
+layout: layouts/base.njk
+pagination:
+  data: sales
+  size: 1
+  addAllPagesToCollections: true
+  alias: listing
+permalink: "/realestate/sales/{{ (listing.Address or listing.address) | slugify }}-{{ (listing['MLS Number'] or listing.mlsNumber) | slugify }}/index.html"
+---
+
+{% set addr = listing.Address or listing.address %}
+{% set mls = listing['MLS Number'] or listing.mlsNumber %}
+
+{% set viewport_images = [] %}
+{% for idx in [1, 2, 3, 4, 5] %}
+  {% set img_url = listing['Image URL ' + idx] %}
+  {% if img_url and img_url | trim != '' %}
+    {% set viewport_images = viewport_images.concat([{ url: img_url, alt: addr + ' - Photo ' + idx }]) %}
+  {% endif %}
+{% endfor %}
+
+{% set available_docs = [] %}
+{% if listing.pdfDownloads and listing.pdfDownloads.length > 0 %}
+  {% set available_docs = listing.pdfDownloads %}
+{% else %}
+  {% for idx in [1, 2, 3, 4, 5] %}
+    {% set pdf_url = listing['PDF URL ' + idx] %}
+    {% if pdf_url and pdf_url | trim != '' %}
+      {% set file_segment = pdf_url.split('/') | last %}
+      {% set clean_title = file_segment | replace('.pdf', '') | replace('-', ' ') %}
+      {% set available_docs = available_docs.concat([{ url: pdf_url, title: clean_title }]) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+<main class="layout-container layout-stack-main">
+  <div class="section-widget">
+
+    {% if viewport_images.length > 0 %}
+      {% set viewport_box_id = "listing-gallery-" + (mls | slugify) %}
+      {% set viewport_badge = "Represented " + listing.Representation %}
+      {% include "components/widget/image-viewport-box.njk" %}
+    {% endif %}
+
+    <header class="portal-section-header">
+      <h1 class="text-page-title">{{ addr }}</h1>
+      <p class="text-body-secondary">{{ listing.City or listing.city }}, {{ listing.State or "WA" }} {{ listing['Zip Code'] }}</p>
+    </header>
+
+    <div class="section-grid-static grid-cols-4">
+      <div class="stat-card">
+        <span class="stat-value">{{ listing.Bedrooms if listing.Bedrooms else (listing.beds if listing.beds else "0") }}</span>
+        <span class="stat-label">Beds</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{{ listing.Bathrooms if listing.Bathrooms else (listing.baths if listing.baths else "0") }}</span>
+        <span class="stat-label">Baths</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{{ (listing['Square Footage'] * 1).toLocaleString('en-US') if listing['Square Footage'] else (listing.sqft.toLocaleString() if listing.sqft else "0") }}</span>
+        <span class="stat-label">Sq. Ft.</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{{ listing['Year Built'] if listing['Year Built'] else "N/A" }}</span>
+        <span class="stat-label">Built</span>
+      </div>
+    </div>
+
+    <div class="action-tray-constrained">
+      <a href="{{ listing['Redfin Link'] if listing['Redfin Link'] else 'https://www.redfin.com' }}" target="_blank" rel="noopener" class="btn btn-secondary">View Property on Redfin &rarr;</a>
+    </div>
+
+    <section class="section-widget">
+      <h2 class="text-section-title">Timeline</h2>
+      <div class="surface-bento">
+        <div class="calc-breakdown-row row-gross">
+          <span class="calc-stat-label">Original List Price</span>
+          <strong class="calc-line-value value-gross">${{ (listing['Original Price'] * 1).toLocaleString('en-US') if listing['Original Price'] else ((listing['Listing Price'] * 1).toLocaleString('en-US') if listing['Listing Price'] else (listing.price if listing.price else "Pending")) }}</strong>
+        </div>
+        <div class="calc-breakdown-row">
+          <span class="calc-stat-label">Final Listing Price</span>
+          <strong class="calc-line-value value-gross">${{ (listing['Listing Price'] * 1).toLocaleString('en-US') if listing['Listing Price'] else (listing.price if listing.price else "Pending") }}</strong>
+        </div>
+        <div class="calc-breakdown-row row-gross">
+          <span class="calc-stat-label">Final Sold Price</span>
+          <strong class="calc-line-value value-gross">
+            {% set status_val = (listing.Status or listing.status or "") | trim %}
+            {% if status_val == "Sold" %}
+              ${{ (listing['Selling Price'] * 1).toLocaleString('en-US') if listing['Selling Price'] else listing.price }}
+            {% elif status_val == "Pending" %}
+              Pending
+            {% else %}
+              Active
+            {% endif %}
+          </strong>
+        </div>
+        <div class="calc-breakdown-row">
+          <span class="calc-stat-label">Days on Market</span>
+          <strong class="calc-line-value value-gross">{{ listing.DOM if listing.DOM else "-" }} Days</strong>
+        </div>
+        {% if status_val == "Sold" and listing['Selling Date'] %}
+          <div class="calc-breakdown-row row-gross">
+            <span class="calc-stat-label">Closed Date</span>
+            <strong class="calc-line-value value-gross">{{ listing['Selling Date'] }}</strong>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    {% if ((listing.Downloads or listing.downloads or "") | trim | lower == "yes") and available_docs.length > 0 %}
+      <section class="section-widget">
+        <div class="surface-bento calc-strategy-card">
+          <div class="affordability-panels-stack">
+            <div class="portal-identity-stack">
+              <span class="text-overline text-accent-alpine">Property Disclosures &amp; Reports</span>
+              <h2 class="text-widget-title">Secure Listing Documents</h2>
+              <p class="text-body-secondary">Access available documents for this home.</p>
+            </div>
+
+            <div id="triggerDocsWrap" class="action-tray-constrained">
+              <button type="button" id="triggerDocsBtn" class="btn btn-primary">Unlock Files &rarr;</button>
+            </div>
+
+            <form id="docsForm" class="affordability-panels-stack" hidden>
+              <div class="calc-form-grid-3col">
+                <div class="calc-field-group">
+                  <label for="dlName">Full Name *</label>
+                  <input type="text" id="dlName" required placeholder="Jane Doe">
+                </div>
+                <div class="calc-field-group">
+                  <label for="dlEmail">Email Address *</label>
+                  <input type="email" id="dlEmail" required placeholder="jane@example.com">
+                </div>
+                <div class="calc-field-group">
+                  <label for="dlRole">Are you an agent or a buyer? *</label>
+                  <select id="dlRole" required>
+                    <option value="">Select your role...</option>
+                    <option value="Buyer">Buyer</option>
+                    <option value="Real Estate Agent">Real Estate Agent</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div class="calc-field-group">
+                  <label for="dlPhone">Phone Number (Optional)</label>
+                  <input type="tel" id="dlPhone" placeholder="(206) 555-0199">
+                </div>
+                <div class="calc-field-group calc-field-span-2">
+                  <label for="dlOtherEmails">Additional Recipient Emails (Optional, comma-separated)</label>
+                  <input type="text" id="dlOtherEmails" placeholder="agent@realty.com, co-buyer@example.com">
+                </div>
+              </div>
+
+              <div class="calc-action-row">
+                <button type="submit" id="submitDocsBtn" class="btn btn-primary calc-btn-submit">Submit &amp; Unlock Files</button>
+              </div>
+            </form>
+
+            <div id="docsSuccess" class="affordability-panels-stack" hidden>
+              <p class="text-body text-accent-alpine">Files unlocked. Direct download links have also been sent to your email.</p>
+              {% for doc in available_docs %}
+                <a href="{{ doc.url }}" target="_blank" rel="noopener" download class="btn btn-secondary">Download {{ doc.title }} &rarr;</a>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </section>
+    {% endif %}
+
+  </div>
+</main>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const triggerWrap = document.getElementById("triggerDocsWrap");
+  const triggerBtn = document.getElementById("triggerDocsBtn");
+  const docsForm = document.getElementById("docsForm");
+  const docsSuccess = document.getElementById("docsSuccess");
+
+  if (!triggerBtn || !docsForm || !docsSuccess) return;
+
+  triggerBtn.addEventListener("click", function() {
+    if (triggerWrap) triggerWrap.hidden = true;
+    docsForm.hidden = false;
+  });
+
+  docsForm.addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    const submitBtn = document.getElementById("submitDocsBtn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Unlocking Files...";
+
+    const nameVal = document.getElementById("dlName").value.trim();
+    const emailVal = document.getElementById("dlEmail").value.trim();
+    const roleVal = document.getElementById("dlRole").value;
+    const phoneVal = document.getElementById("dlPhone").value.trim();
+    const otherEmailsVal = document.getElementById("dlOtherEmails").value.trim();
+
+    const propAddr = {{ addr | dump | safe }};
+    const mlsNum = {{ mls | dump | safe }};
+    const docItems = {{ available_docs | dump | safe }};
+
+    const recipientList = [emailVal]
+      .concat(otherEmailsVal.split(",").map(s => s.trim()).filter(Boolean))
+      .join(", ");
+
+    const docLinksText = docItems
+      .map(d => `${d.title}: ${d.url}`)
+      .join("\n");
+
+    const timestamp = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
+
+    const payload = {
+      sheetName: "Inbound",
+      rowData: [
+        timestamp,
+        "listingdownloads",
+        nameVal,
+        "",
+        emailVal,
+        phoneVal,
+        "",
+        String(mlsNum),
+        otherEmailsVal,
+        roleVal,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      emailData: {
+        to: recipientList,
+        subject: `Property Documents: ${propAddr}`,
+        body: `Hi ${nameVal},\n\nThank you for your interest in ${propAddr}. Here are your direct links to the available property documents:\n\n${docLinksText}\n\nYou can also view the full property record here:\n${window.location.href}\n\nLet me know if you have any questions!\n\nJoe Sheldon`
+      }
+    };
+
+    try {
+      await fetch("https://commgateway.myseattlesearch.com/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.error("Gateway dispatch notice:", err);
+    }
+
+    docsForm.hidden = true;
+    docsSuccess.hidden = false;
+  });
+});
+</script>

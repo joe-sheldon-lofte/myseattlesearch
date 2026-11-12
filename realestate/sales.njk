@@ -1,0 +1,269 @@
+---
+layout: layouts/base.njk
+title: "Track Record & Featured Listings | Joe Sheldon"
+permalink: /realestate/sales/index.html
+---
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+<main class="layout-container layout-stack-main">
+
+  <header class="surface-bento page-hero-bento">
+    <h1 class="text-page-title">Proven Local Success</h1>
+    <p class="text-body page-hero-lead">
+      A look at my track record helping home buyers and sellers achieve their goals across Western Washington. View my current active properties, homes under contract, and complete sales history.
+    </p>
+  </header>
+
+  <hr class="section-divider">
+
+  {% set active_count = 0 %}
+  {% set pending_count = 0 %}
+  {% for listing in sales %}
+    {% set status_val = (listing.Status or listing.status or "") | trim %}
+    {% if status_val == "Active" %}
+      {% set active_count = active_count + 1 %}
+    {% elif status_val == "Pending" %}
+      {% set pending_count = pending_count + 1 %}
+    {% endif %}
+  {% endfor %}
+
+  <section class="content-section-centered">
+    <h2 class="text-section-title">Featured Active Listings</h2>
+    {% if active_count > 0 %}
+      <div class="section-grid-static grid-cols-2">
+        {% for listing in sales %}
+          {% set status_val = (listing.Status or listing.status or "") | trim %}
+          {% if status_val == "Active" %}
+            {% set addr = listing.Address or listing.address %}
+            {% set mls = listing['MLS Number'] or listing.mlsNumber %}
+            <article class="surface-bento calc-strategy-card">
+              <div class="affordability-panels-stack">
+                <div class="media-frame media-frame-4-3">
+                  {% if listing['Image URL 1'] %}
+                    <img src="{{ listing['Image URL 1'] }}" alt="{{ addr }}" class="media-cover media-zoom" loading="lazy">
+                  {% endif %}
+                </div>
+                <div class="portal-identity-stack">
+                  <span class="text-overline text-accent-alpine">Represented {{ listing.Representation }}</span>
+                  <h3 class="text-widget-title">{{ addr }}</h3>
+                  <p class="text-body-secondary">{{ listing.City or listing.city }}, {{ listing.State or "WA" }}</p>
+                </div>
+                <p class="text-body-secondary">
+                  {{ listing.Bedrooms if listing.Bedrooms else listing.beds }} Beds • {{ listing.Bathrooms if listing.Bathrooms else listing.baths }} Baths • {{ (listing['Square Footage'] * 1).toLocaleString('en-US') if listing['Square Footage'] else (listing.sqft.toLocaleString() if listing.sqft else "0") }} Sq. Ft.
+                </p>
+                <div class="calc-breakdown-row row-gross">
+                  <span class="calc-stat-label">List Price</span>
+                  <strong class="calc-line-value value-gross">${{ (listing['Listing Price'] * 1).toLocaleString('en-US') if listing['Listing Price'] else (listing.price if listing.price else "Pending") }}</strong>
+                </div>
+                <a href="/realestate/sales/{{ addr | slugify }}-{{ mls | slugify }}/" class="btn btn-secondary">View Details</a>
+              </div>
+            </article>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="surface-bento">
+        <p class="text-body-secondary">No active showcase listings currently registered.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <hr class="section-divider">
+
+  <section class="content-section-centered">
+    <h2 class="text-section-title">Under Contract &amp; Pending</h2>
+    {% if pending_count > 0 %}
+      <div class="section-grid-static grid-cols-2">
+        {% for listing in sales %}
+          {% set status_val = (listing.Status or listing.status or "") | trim %}
+          {% if status_val == "Pending" %}
+            {% set addr = listing.Address or listing.address %}
+            {% set mls = listing['MLS Number'] or listing.mlsNumber %}
+            <article class="surface-bento calc-strategy-card">
+              <div class="affordability-panels-stack">
+                <div class="media-frame media-frame-4-3">
+                  {% if listing['Image URL 1'] %}
+                    <img src="{{ listing['Image URL 1'] }}" alt="{{ addr }}" class="media-cover media-zoom" loading="lazy">
+                  {% endif %}
+                </div>
+                <div class="portal-identity-stack">
+                  <span class="text-overline text-accent-alpine">Represented {{ listing.Representation }}</span>
+                  <h3 class="text-widget-title">{{ addr }}</h3>
+                  <p class="text-body-secondary">{{ listing.City or listing.city }}, {{ listing.State or "WA" }}</p>
+                </div>
+                <p class="text-body-secondary">
+                  {{ listing.Bedrooms if listing.Bedrooms else listing.beds }} Beds • {{ listing.Bathrooms if listing.Bathrooms else listing.baths }} Baths • {{ (listing['Square Footage'] * 1).toLocaleString('en-US') if listing['Square Footage'] else (listing.sqft.toLocaleString() if listing.sqft else "0") }} Sq. Ft.
+                </p>
+                <div class="calc-breakdown-row row-gross">
+                  <span class="calc-stat-label">List Price</span>
+                  <strong class="calc-line-value value-gross">${{ (listing['Listing Price'] * 1).toLocaleString('en-US') if listing['Listing Price'] else (listing.price if listing.price else "Pending") }}</strong>
+                </div>
+                <a href="/realestate/sales/{{ addr | slugify }}-{{ mls | slugify }}/" class="btn btn-secondary">View Details</a>
+              </div>
+            </article>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="surface-bento">
+        <p class="text-body-secondary">No pending transactions currently in escrow.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <hr class="section-divider">
+
+  <section class="content-section-centered">
+    <h2 class="text-section-title">All Sales</h2>
+    <div class="surface-bento sales-map-card">
+      <div id="sales-spatial-map" class="map-viewport-frame map-aspect-widescreen"></div>
+      <div class="sales-map-legend">
+        <div class="legend-chip">
+          <span class="sales-map-dot sales-pin-active"></span>
+          <span class="legend-label">Active</span>
+        </div>
+        <div class="legend-chip">
+          <span class="sales-map-dot sales-pin-pending"></span>
+          <span class="legend-label">Pending / Inspection</span>
+        </div>
+        <div class="legend-chip">
+          <span class="sales-map-dot sales-pin-sold"></span>
+          <span class="legend-label">Sold / Closed</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  <section class="content-section-centered">
+    <h2 class="text-section-title">Past Sales</h2>
+    <div class="surface-bento">
+      {% for listing in sales %}
+        {% set status_val = (listing.Status or listing.status or "") | trim %}
+        {% if status_val == "Sold" %}
+          {% set addr = listing.Address or listing.address %}
+          {% set mls = listing['MLS Number'] or listing.mlsNumber %}
+          <div class="calc-breakdown-row {% if loop.index0 % 2 == 0 %}row-gross{% endif %}">
+            <div class="calc-field-group">
+              <a href="/realestate/sales/{{ addr | slugify }}-{{ mls | slugify }}/" class="title-link">{{ addr }}</a>
+              <span class="text-body-secondary">{{ listing.City or listing.city }}, {{ listing.State or "WA" }}</span>
+            </div>
+            <div class="calc-stat-col">
+              <strong class="calc-line-value value-gross">${{ (listing['Selling Price'] * 1).toLocaleString('en-US') if listing['Selling Price'] else (listing.price if listing.price else "Pending") }}</strong>
+              <span class="text-overline text-accent-alpine">{{ listing.Representation }}</span>
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+
+</main>
+
+<script>
+document.addEventListener("DOMContentLoaded", async function() {
+  const mapContainer = document.getElementById("sales-spatial-map");
+  if (!mapContainer || typeof L === "undefined") return;
+
+  const mapInstance = L.map("sales-spatial-map", {
+    center: [47.75, -122.28],
+    zoom: 10,
+    scrollWheelZoom: false
+  });
+
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+    attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
+    maxZoom: 16
+  }).addTo(mapInstance);
+
+  let salesData = [];
+  {% if sales and sales.length %}
+    salesData = {{ sales | dump | safe }};
+  {% else %}
+    try {
+      const res = await fetch("/data/sales.json");
+      if (res.ok) {
+        salesData = await res.json();
+      }
+    } catch (err) {
+      console.warn("Local sales telemetry fallback engaged:", err);
+    }
+  {% endif %}
+
+  if (!Array.isArray(salesData) || !salesData.length) return;
+
+  const slugifyText = (str) => String(str || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s_-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  salesData.forEach(function(property) {
+    const rawLat = property.Latitude || property.latitude;
+    const rawLng = property.Longitude || property.longitude;
+    if (!rawLat || !rawLng) return;
+
+    const lat = parseFloat(rawLat);
+    const lng = parseFloat(rawLng);
+    if (isNaN(lat) || isNaN(lng)) return;
+
+    const statusStr = String(property.Status || property.status || "").trim().toLowerCase();
+
+    let markerColor = "#D9232A";
+    let statusLabel = "Sold / Closed";
+
+    if (statusStr.includes("active")) {
+      markerColor = "#10B981";
+      statusLabel = "Active";
+    } else if (statusStr.includes("pending")) {
+      markerColor = "#D97706";
+      statusLabel = "Pending";
+    }
+
+    const circleMarker = L.circleMarker([lat, lng], {
+      radius: 6,
+      fillColor: markerColor,
+      color: "#FFFFFF",
+      weight: 1.5,
+      opacity: 1,
+      fillOpacity: 0.9
+    });
+
+    const priceNum = statusStr.includes("sold")
+      ? (property["Selling Price"] || property.sellingPrice || property["Listing Price"] || property.listingPrice || 0)
+      : (property["Listing Price"] || property.listingPrice || property["Selling Price"] || property.sellingPrice || 0);
+    const cleanPrice = Number(String(priceNum).replace(/[^0-9.]/g, ""));
+    const priceFormatted = !isNaN(cleanPrice) && cleanPrice > 0
+      ? "$" + cleanPrice.toLocaleString("en-US")
+      : "Price Undisclosed";
+
+    const propAddress = property.Address || property.address || "Puget Sound Residence";
+    const propCity = property.City || property.city || "Washington";
+    const propMls = property["MLS Number"] || property.mlsNumber || "";
+    const detailUrl = propMls
+      ? `/realestate/sales/${slugifyText(propAddress)}-${slugifyText(propMls)}/`
+      : "#";
+
+    const popupHtml = `
+      <div class="map-popup-bubble">
+        <strong class="map-popup-address">${propAddress}</strong>
+        <span class="map-popup-sub">${propCity}, WA &bull; ${statusLabel}</span>
+        <div class="map-popup-footer">
+          <span class="map-popup-price">${priceFormatted}</span>
+          ${propMls ? `<a href="${detailUrl}" class="map-popup-link">Details &rarr;</a>` : ""}
+        </div>
+      </div>
+    `;
+
+    circleMarker.bindPopup(popupHtml).addTo(mapInstance);
+  });
+
+  setTimeout(function() {
+    mapInstance.invalidateSize();
+  }, 250);
+});
+</script>

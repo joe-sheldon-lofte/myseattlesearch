@@ -1,0 +1,111 @@
+---
+layout: layouts/base.njk
+title: "MoveDNA Archetype: The Analytical Optimizer | Joe Sheldon"
+description: "I evaluate my property's sale through hard metrics, absorption data, and objective pricing models. Find your blueprint instantly."
+permalink: /realestate/quizzes/movedna/seller-analytical-optimizer/index.html
+---
+
+<main class="layout-container layout-stack-main">
+  
+  <header class="surface-bento page-hero-bento">
+    <div class="text-overline text-accent-alpine">Your MoveDNA™ Profile Is Locked In</div>
+    <h1 class="text-page-title">The Analytical Optimizer</h1>
+    <p class="text-body page-hero-lead">The Market Mathematician</p>
+    
+    <div class="surface-bento" style="margin-top: 2rem; padding: 1.5rem;">
+      <h4 class="text-widget-title" style="margin-top: 0;">Your Customized Milestone Card</h4>
+      <canvas id="sharing-badge-canvas" width="450" height="180" style="max-width: 100%; height: auto; border-radius: 8px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.06); display: block; margin: 1rem auto; border: 1px solid var(--color-surface-gray);"></canvas>
+      <div class="action-tray-constrained section-action-tray" style="justify-content: center;">
+        <button id="download-badge-trigger" class="btn btn-secondary">Download My MoveDNA Card</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="section-divider"></div>
+
+  <section class="content-section-centered">
+    <article class="surface-bento calc-strategy-card">
+      <h2 class="text-widget-title">Your Psychological Blueprint</h2>
+      <p class="text-body">
+        Hey <span class="client-dynamic-name-marker">Mathematician</span>! Your results indicate that you view the sale of your home with a refreshing, analytical clarity. You don't guess at numbers or lean on high-pressure listing fluff—you evaluate success using local comps, regional absorption trends, and clear structural data. You crave a highly systematic listing timeline that eliminates manual operational errors from day one.
+      </p>
+    </article>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="content-section-centered">
+    <h2 class="text-section-title">Execution Traits &amp; Behavioral Hazards</h2>
+    <div class="section-grid-static grid-cols-2">
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">Core Motivation</h3>
+        <p class="text-body">Extracting every ounce of equity from your asset based on cold, logical market equilibrium while ensuring zero operational listing errors.</p>
+      </article>
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">Strategic Superpowers</h3>
+        <p class="text-body">Incredibly pragmatic pricing awareness, immaculate home maintenance files, and a perfectly objective, calm mindset when navigating buyer inspection repair requests.</p>
+      </article>
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">Hidden Blind Spots</h3>
+        <p class="text-body">Be careful not to discount the immense cash value of psychological staging or emotional curb appeal! Buyers don't just calculate square footage—they buy on feeling.</p>
+      </article>
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">How We Win Together</h3>
+        <p class="text-body">As your coach, I will back our strategy with an intensive, data-backed comparative pricing matrix and line up clean, pre-listing structural reports to remove buyer doubt.</p>
+      </article>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="content-section-centered">
+    <article class="surface-bento calc-strategy-card" style="background: var(--color-surface-gray); border-left: 4px solid var(--color-text-primary, #111);">
+      <div class="text-overline text-accent-alpine">ADVISORY BLUEPRINT</div>
+      <h3 class="text-widget-title" style="margin-top: 0.5rem;">Joe's Coaching Strategy</h3>
+      <p class="text-body" style="margin-bottom: 0;">
+        Our winning play is removing guesswork from the market. By presenting a pristine, data-documented, pre-inspected home to the open market, we will command a massive premium and easily shut down lowball repair negotiations before they start.
+      </p>
+    </article>
+  </section>
+
+</main>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const clientName = urlParams.get('name') || '';
+      if (clientName) {
+          document.querySelectorAll('.client-dynamic-name-marker').forEach(el => el.textContent = clientName);
+      }
+      const canvas = document.getElementById('sharing-badge-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#111111'; 
+      ctx.strokeRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#111111';
+      ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.fillText('MOVEDNA™ REAL ESTATE PROFILE', 25, 35);
+      ctx.fillStyle = '#333333';
+      ctx.font = '15px system-ui, sans-serif';
+      const userStr = clientName ? `I took Joe Sheldon's quiz and` : "I took Joe Sheldon's MoveDNA™ quiz and";
+      ctx.fillText(userStr, 25, 70);
+      ctx.fillText("my profile archetype is locked in as a:", 25, 95);
+      ctx.fillStyle = '#0a84ff'; 
+      ctx.font = 'italic bold 24px system-ui, sans-serif';
+      ctx.fillText('Analytical Optimizer!', 25, 135);
+      ctx.fillStyle = '#777777';
+      ctx.font = '11px system-ui, sans-serif';
+      ctx.fillText('Uncover your default strategy at myseattlesearch.com', 25, 160);
+
+      document.getElementById('download-badge-trigger').addEventListener('click', () => {
+          const dl = document.createElement('a');
+          dl.href = canvas.toDataURL('image/png');
+          dl.download = (clientName ? clientName.toLowerCase() + '-' : '') + 'movedna-optimizer.png';
+          document.body.appendChild(dl);
+          dl.click();
+          document.body.removeChild(dl);
+      });
+  });
+</script>

@@ -20,7 +20,6 @@ def slugify_neighborhood(raw_text):
     if not raw_text:
         return "unincorporated"
     val = str(raw_text).strip().lower()
-    # Strip trailing state declarations (e.g. " wa", ", wa", " wa 98101")
     val = re.sub(r'[\s,]+wa(?:\s+\d{5}(?:-\d{4})?)?$', '', val, flags=re.IGNORECASE)
     val = val.rstrip(' ,').strip()
     
@@ -77,31 +76,34 @@ def fetch_snohomish_deltas(days_back=35):
             if not pid:
                 continue
             total_val = attr.get("MKTTL") or (int(attr.get("MKLND") or 0) + int(attr.get("MKIMP") or 0))
+            lot_size = int(float(attr.get("GIS_SQ_FT") or 0)) if attr.get("GIS_SQ_FT") else None
+            
             normalized.append({
                 "parcel_number": pid,
                 "situs_address": attr.get("SITUSLINE1"),
                 "neighborhood_slug": slugify_neighborhood(attr.get("SITUSCITY")),
-                "square_footage": int(float(attr.get("GIS_SQ_FT") or 0)) if attr.get("GIS_SQ_FT") else None,
+                "lot_sqft": lot_size,
                 "assessed_value_total": int(total_val) if total_val else None,
-                "county": "Snohomish"
+                "county": "SNOHOMISH"
             })
         return normalized
     except Exception as e:
         print(f"   ⚠️ Snohomish delta query warning: {e}")
         return []
 
-def fetch_king_deltas(days_back=35):
-    """Downloads King County Assessor weekly update archives and parses new/updated parcels."""
+def fetch_king_deltas():
+    """Downloads King County Assessor weekly update archives and parses structural/value deltas."""
     print("📥 Downloading King County Assessor weekly data archives...")
     urls = {
         "parcel": "https://dorcdn.kingcounty.gov/datadownload/Parcel.zip",
+        "resbldg": "https://dorcdn.kingcounty.gov/datadownload/ResBldg.zip",
         "rpacct": "https://dorcdn.kingcounty.gov/datadownload/RPAcct_NoName.zip"
     }
     
     session = requests.Session()
     
     # 1. Download & Map Lot Square Footage from Parcel.zip
-    pin_sqft = {}
+    pin_lot_sqft = {}
     try:
         res_parcel = session.get(urls["parcel"], timeout=90)
         res_parcel.raise_for_status()
@@ -116,14 +118,52 @@ def fetch_king_deltas(days_back=35):
                     sqft = r.get('SqFtLot')
                     if sqft:
                         try:
-                            pin_sqft[pin] = int(float(sqft))
+                            pin_lot_sqft[pin] = int(float(sqft))
                         except (ValueError, TypeError):
                             pass
-        print(f"   Extracted {len(pin_sqft):,} lot geometry keys from King County.")
+        print(f"   Extracted {len(pin_lot_sqft):,} lot dimensions from King County.")
     except Exception as e:
         print(f"   ⚠️ King County Parcel.zip warning: {e}")
 
-    # 2. Download and Parse Tax Accounts from RPAcct_NoName.zip
+    # 2. Download & Map Structural/Hedonic Attributes from ResBldg.zip
+    pin_bldg = {}
+    try:
+        res_bldg = session.get(urls["resbldg"], timeout=90)
+        res_bldg.raise_for_status()
+        with zipfile.ZipFile(io.BytesIO(res_bldg.content)) as z:
+            target = [name for name in z.namelist() if name.endswith('.csv')][0]
+            with z.open(target) as f:
+                reader = csv.DictReader(io.TextIOWrapper(f, encoding='utf-8', errors='ignore'))
+                for r in reader:
+                    maj = str(r.get('Major', '')).strip().zfill(6)
+                    minr = str(r.get('Minor', '')).strip().zfill(4)
+                    pin = f"{maj}{minr}"
+                    
+                    try:
+                        living = int(float(r.get('SqFtTotLiving') or 0)) if r.get('SqFtTotLiving') else None
+                        beds = int(float(r.get('Bedrooms') or 0)) if r.get('Bedrooms') else None
+                        bfull = int(float(r.get('BathFullCount') or 0)) if r.get('BathFullCount') else None
+                        bhalf = int(float(r.get('BathHalfCount') or 0)) if r.get('BathHalfCount') else None
+                        bgrade = int(float(r.get('BldgGrade') or 0)) if r.get('BldgGrade') else None
+                        bcond = int(float(r.get('Condition') or 0)) if r.get('Condition') else None
+                        yr = int(float(r.get('YrBuilt') or 0)) if r.get('YrBuilt') else None
+                    except (ValueError, TypeError):
+                        continue
+
+                    pin_bldg[pin] = {
+                        "square_footage": living,
+                        "bedrooms": beds,
+                        "bath_full": bfull,
+                        "bath_half": bhalf,
+                        "building_grade": bgrade,
+                        "building_condition": bcond,
+                        "year_built": yr
+                    }
+        print(f"   Extracted {len(pin_bldg):,} residential structures from King County.")
+    except Exception as e:
+        print(f"   ⚠️ King County ResBldg.zip warning: {e}")
+
+    # 3. Download and Parse Tax Accounts from RPAcct_NoName.zip
     king_updates = []
     try:
         res_rpacct = session.get(urls["rpacct"], timeout=90)
@@ -148,13 +188,22 @@ def fetch_king_deltas(days_back=35):
                     except (ValueError, TypeError):
                         total_val = None
                         
+                    bldg = pin_bldg.get(pin, {})
+                    
                     king_updates.append({
                         "parcel_number": pin,
                         "situs_address": addr,
                         "neighborhood_slug": slug,
-                        "square_footage": pin_sqft.get(pin),
+                        "lot_sqft": pin_lot_sqft.get(pin),
+                        "square_footage": bldg.get("square_footage"),
+                        "bedrooms": bldg.get("bedrooms"),
+                        "bath_full": bldg.get("bath_full"),
+                        "bath_half": bldg.get("bath_half"),
+                        "building_grade": bldg.get("building_grade"),
+                        "building_condition": bldg.get("building_condition"),
+                        "year_built": bldg.get("year_built"),
                         "assessed_value_total": total_val,
-                        "county": "King"
+                        "county": "KING"
                     })
         print(f"   Compiled {len(king_updates):,} active King County parcel records.")
         return king_updates
@@ -176,18 +225,41 @@ def sync_upserts_to_d1(session, endpoint, headers, updates, batch_size=100):
             pin = sql_escape(item["parcel_number"])
             addr = sql_escape(item.get("situs_address"))
             slug = sql_escape(item.get("neighborhood_slug"))
-            sqft = sql_escape(item.get("square_footage"))
+            lot_sqft = sql_escape(item.get("lot_sqft"))
+            gla = sql_escape(item.get("square_footage"))
+            beds = sql_escape(item.get("bedrooms"))
+            bfull = sql_escape(item.get("bath_full"))
+            bhalf = sql_escape(item.get("bath_half"))
+            grade = sql_escape(item.get("building_grade"))
+            cond = sql_escape(item.get("building_condition"))
+            yr = sql_escape(item.get("year_built"))
             val = sql_escape(item.get("assessed_value_total"))
             county = sql_escape(item.get("county"))
 
             statements.append(f"""
-            INSERT INTO base (parcel_number, situs_address, neighborhood_slug, square_footage, assessed_value_total, county, updated_utc)
-            VALUES ({pin}, {addr}, {slug}, {sqft}, {val}, {county}, CURRENT_TIMESTAMP)
+            INSERT INTO base (
+                parcel_number, situs_address, neighborhood_slug, lot_sqft, 
+                square_footage, bedrooms, bath_full, bath_half, building_grade, 
+                building_condition, year_built, assessed_value_total, county, updated_utc
+            )
+            VALUES (
+                {pin}, {addr}, {slug}, {lot_sqft}, 
+                {gla}, {beds}, {bfull}, {bhalf}, {grade}, 
+                {cond}, {yr}, {val}, {county}, CURRENT_TIMESTAMP
+            )
             ON CONFLICT(parcel_number) DO UPDATE SET
               situs_address = COALESCE(excluded.situs_address, base.situs_address),
               neighborhood_slug = COALESCE(excluded.neighborhood_slug, base.neighborhood_slug),
+              lot_sqft = COALESCE(excluded.lot_sqft, base.lot_sqft),
               square_footage = COALESCE(excluded.square_footage, base.square_footage),
+              bedrooms = COALESCE(excluded.bedrooms, base.bedrooms),
+              bath_full = COALESCE(excluded.bath_full, base.bath_full),
+              bath_half = COALESCE(excluded.bath_half, base.bath_half),
+              building_grade = COALESCE(excluded.building_grade, base.building_grade),
+              building_condition = COALESCE(excluded.building_condition, base.building_condition),
+              year_built = COALESCE(excluded.year_built, base.year_built),
               assessed_value_total = COALESCE(excluded.assessed_value_total, base.assessed_value_total),
+              county = COALESCE(excluded.county, base.county),
               updated_utc = CURRENT_TIMESTAMP;
             """)
 
@@ -220,7 +292,7 @@ def main():
     sync_upserts_to_d1(session, endpoint, headers, snohomish_deltas)
 
     # 2. Harvest King County Deltas
-    king_deltas = fetch_king_deltas(days_back=35)
+    king_deltas = fetch_king_deltas()
     sync_upserts_to_d1(session, endpoint, headers, king_deltas)
 
 if __name__ == "__main__":

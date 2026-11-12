@@ -1,0 +1,111 @@
+---
+layout: layouts/base.njk
+title: "MoveDNA Archetype: The Strategic Maximizer | Joe Sheldon"
+description: "I view my home as a premium asset to be strategically packaged for maximum ROI check value. Find your blueprint instantly."
+permalink: /realestate/quizzes/movedna/seller-strategic-maximizer/index.html
+---
+
+<main class="layout-container layout-stack-main">
+  
+  <header class="surface-bento page-hero-bento">
+    <div class="text-overline text-accent-alpine">Your MoveDNA™ Profile Is Locked In</div>
+    <h1 class="text-page-title">The Strategic Maximizer</h1>
+    <p class="text-body page-hero-lead">The ROI Champion</p>
+    
+    <div class="surface-bento" style="margin-top: 2rem; padding: 1.5rem;">
+      <h4 class="text-widget-title" style="margin-top: 0;">Your Customized Milestone Card</h4>
+      <canvas id="sharing-badge-canvas" width="450" height="180" style="max-width: 100%; height: auto; border-radius: 8px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.06); display: block; margin: 1rem auto; border: 1px solid var(--color-surface-gray);"></canvas>
+      <div class="action-tray-constrained section-action-tray" style="justify-content: center;">
+        <button id="download-badge-trigger" class="btn btn-secondary">Download My MoveDNA Card</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="section-divider"></div>
+
+  <section class="content-section-centered">
+    <article class="surface-bento calc-strategy-card">
+      <h2 class="text-widget-title">Your Psychological Blueprint</h2>
+      <p class="text-body">
+        Hey <span class="client-dynamic-name-marker">Champion</span>! Your results demonstrate that you view your home as a premium financial asset to be masterfully leveraged. You are fully bought into high-end staging, cinematic marketing presentation, and aggressive negotiation plays. You don't just want to sell—you want to shatter neighborhood pricing records and walk away with the largest net proceed check possible.
+      </p>
+    </article>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="content-section-centered">
+    <h2 class="text-section-title">Execution Traits &amp; Behavioral Hazards</h2>
+    <div class="section-grid-static grid-cols-2">
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">Core Motivation</h3>
+        <p class="text-body">Securing premium top-dollar, engineering multi-offer bidding wars, and walking away with a record-shattering net proceed bank deposit.</p>
+      </article>
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">Strategic Superpowers</h3>
+        <p class="text-body">Incredibly competitive! You are highly willing to invest strategically in cosmetic prep for a high ROI, hyper-focused on media presentation, and masterful at handling intense contract negotiations.</p>
+      </article>
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">Hidden Blind Spots</h3>
+        <p class="text-body">Beware of deal gridlock! Because you fight tooth-and-nail for every cent, you risk causing an exceptional deal to collapse over a minor, petty buyer inspection repair credit request. Keep eyes on the macro prize.</p>
+      </article>
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">How We Win Together</h3>
+        <p class="text-body">As your coach, I will deploy a full multi-channel luxury presentation, leverage our Pay-At-Close capital updates pipeline, and orchestrate multiple buyer deadlines for maximum leverage.</p>
+      </article>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="content-section-centered">
+    <article class="surface-bento calc-strategy-card" style="background: var(--color-surface-gray); border-left: 4px solid var(--color-text-primary, #111);">
+      <div class="text-overline text-accent-alpine">ADVISORY BLUEPRINT</div>
+      <h3 class="text-widget-title" style="margin-top: 0.5rem;">Joe's Coaching Strategy</h3>
+      <p class="text-body" style="margin-bottom: 0;">
+        We will transform your home into an aspirational premium product. Through aggressive strategic list pricing, premium professional staging layouts, and high-impact digital campaign syndication budgets, we'll spark intense competitive urgency among buyers.
+      </p>
+    </article>
+  </section>
+
+</main>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const clientName = urlParams.get('name') || '';
+      if (clientName) {
+          document.querySelectorAll('.client-dynamic-name-marker').forEach(el => el.textContent = clientName);
+      }
+      const canvas = document.getElementById('sharing-badge-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#111111'; 
+      ctx.strokeRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#111111';
+      ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.fillText('MOVEDNA™ REAL ESTATE PROFILE', 25, 35);
+      ctx.fillStyle = '#333333';
+      ctx.font = '15px system-ui, sans-serif';
+      const userStr = clientName ? `I took Joe Sheldon's quiz and` : "I took Joe Sheldon's MoveDNA™ quiz and";
+      ctx.fillText(userStr, 25, 70);
+      ctx.fillText("my profile archetype is locked in as a:", 25, 95);
+      ctx.fillStyle = '#0a84ff'; 
+      ctx.font = 'italic bold 24px system-ui, sans-serif';
+      ctx.fillText('Strategic Maximizer!', 25, 135);
+      ctx.fillStyle = '#777777';
+      ctx.font = '11px system-ui, sans-serif';
+      ctx.fillText('Uncover your default strategy at myseattlesearch.com', 25, 160);
+
+      document.getElementById('download-badge-trigger').addEventListener('click', () => {
+          const dl = document.createElement('a');
+          dl.href = canvas.toDataURL('image/png');
+          dl.download = (clientName ? clientName.toLowerCase() + '-' : '') + 'movedna-maximizer.png';
+          document.body.appendChild(dl);
+          dl.click();
+          document.body.removeChild(dl);
+      });
+  });
+</script>

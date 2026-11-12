@@ -1,0 +1,111 @@
+---
+layout: layouts/base.njk
+title: "MoveDNA Archetype: The Hassle-Free Homeowner | Joe Sheldon"
+description: "I prioritize transaction convenience, absolute closing certainty, and minimal life disruption. Find your blueprint instantly."
+permalink: /realestate/quizzes/movedna/seller-hassle-free-homeowner/index.html
+---
+
+<main class="layout-container layout-stack-main">
+  
+  <header class="surface-bento page-hero-bento">
+    <div class="text-overline text-accent-alpine">Your MoveDNA™ Profile Is Locked In</div>
+    <h1 class="text-page-title">The Hassle-Free Homeowner</h1>
+    <p class="text-body page-hero-lead">The Efficiency Expert</p>
+    
+    <div class="surface-bento" style="margin-top: 2rem; padding: 1.5rem;">
+      <h4 class="text-widget-title" style="margin-top: 0;">Your Customized Milestone Card</h4>
+      <canvas id="sharing-badge-canvas" width="450" height="180" style="max-width: 100%; height: auto; border-radius: 8px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.06); display: block; margin: 1rem auto; border: 1px solid var(--color-surface-gray);"></canvas>
+      <div class="action-tray-constrained section-action-tray" style="justify-content: center;">
+        <button id="download-badge-trigger" class="btn btn-secondary">Download My MoveDNA Card</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="section-divider"></div>
+
+  <section class="content-section-centered">
+    <article class="surface-bento calc-strategy-card">
+      <h2 class="text-widget-title">Your Psychological Blueprint</h2>
+      <p class="text-body">
+        Hey <span class="client-dynamic-name-marker">Expert</span>! Your results reveal that you place a premium on transaction convenience, lifestyle tranquility, and speed. You despise intrusive open houses, endless showings, and back-and-forth repair arguments. For you, a clean, certain close with a clear timeline beats fighting over the last penny every single time.
+      </p>
+    </article>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="content-section-centered">
+    <h2 class="text-section-title">Execution Traits &amp; Behavioral Hazards</h2>
+    <div class="section-grid-static grid-cols-2">
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">Core Motivation</h3>
+        <p class="text-body">Executing a quiet, seamless, and completely certain sale with zero market surprises so you can step smoothly into your next chapter.</p>
+      </article>
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">Strategic Superpowers</h3>
+        <p class="text-body">Exceptional real-world realism! You are highly cooperative with closing terms, avoid sweating the small stuff, and possess an excellent ability to finalize transactions cleanly.</p>
+      </article>
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">Hidden Blind Spots</h3>
+        <p class="text-body">Watch out for money left on the table. Because you value speed and tranquility, you risk accepting lower-value terms too quickly just to avoid a minor, easily managed open market inconvenience.</p>
+      </article>
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">How We Win Together</h3>
+        <p class="text-body">As your coach, I will completely shield your daily routine by setting strict showing blocks, utilizing off-market institutional data, and handling the structural details for you.</p>
+      </article>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="content-section-centered">
+    <article class="surface-bento calc-strategy-card" style="background: var(--color-surface-gray); border-left: 4px solid var(--color-text-primary, #111);">
+      <div class="text-overline text-accent-alpine">ADVISORY BLUEPRINT</div>
+      <h3 class="text-widget-title" style="margin-top: 0.5rem;">Joe's Coaching Strategy</h3>
+      <p class="text-body" style="margin-bottom: 0;">
+        We will design a white-glove concierge listing process tailored entirely to your personal schedule. By utilizing highly structured showing windows, pre-vetted solid buyers, or swift corporate institutional routes, we will finalize a premium sale with absolute peace of mind.
+      </p>
+    </article>
+  </section>
+
+</main>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const clientName = urlParams.get('name') || '';
+      if (clientName) {
+          document.querySelectorAll('.client-dynamic-name-marker').forEach(el => el.textContent = clientName);
+      }
+      const canvas = document.getElementById('sharing-badge-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#111111'; 
+      ctx.strokeRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#111111';
+      ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.fillText('MOVEDNA™ REAL ESTATE PROFILE', 25, 35);
+      ctx.fillStyle = '#333333';
+      ctx.font = '15px system-ui, sans-serif';
+      const userStr = clientName ? `I took Joe Sheldon's quiz and` : "I took Joe Sheldon's MoveDNA™ quiz and";
+      ctx.fillText(userStr, 25, 70);
+      ctx.fillText("my profile archetype is locked in as a:", 25, 95);
+      ctx.fillStyle = '#0a84ff'; 
+      ctx.font = 'italic bold 24px system-ui, sans-serif';
+      ctx.fillText('Hassle-Free Homeowner!', 25, 135);
+      ctx.fillStyle = '#777777';
+      ctx.font = '11px system-ui, sans-serif';
+      ctx.fillText('Uncover your default strategy at myseattlesearch.com', 25, 160);
+
+      document.getElementById('download-badge-trigger').addEventListener('click', () => {
+          const dl = document.createElement('a');
+          dl.href = canvas.toDataURL('image/png');
+          dl.download = (clientName ? clientName.toLowerCase() + '-' : '') + 'movedna-hasslefree.png';
+          document.body.appendChild(dl);
+          dl.click();
+          document.body.removeChild(dl);
+      });
+  });
+</script>

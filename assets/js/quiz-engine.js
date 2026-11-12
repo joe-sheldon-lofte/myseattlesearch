@@ -195,7 +195,6 @@ class QuizEngine extends HTMLElement {
         let match;
         let matchedKey;
 
-        // Algorithm 1: Matrix
         if (this.quizData.scoringType === 'matrix_4quadrant') {
             const tallies = { typeA: 0, typeB: 0, typeC: 0, typeD: 0, typeE: 0, typeF: 0 };
             this.quizData.questions.forEach((q, idx) => {
@@ -210,7 +209,6 @@ class QuizEngine extends HTMLElement {
             match = this.quizData.routing.find(r => r.key === matchedKey) || this.quizData.routing[0];
         } 
         
-        // Algorithm 2: Tally Bracket
         else if (this.quizData.scoringType === 'score_tally') {
             let grandTotal = 0;
             this.answers.forEach(ans => { grandTotal += (ans.points || 0); });
@@ -228,9 +226,12 @@ class QuizEngine extends HTMLElement {
 
         const timestamp = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
         const combinedUserTags = this.quizData.userTags ? `${this.quizData.userTags}, ${matchedKey}` : matchedKey;
-        const resultUrl = `https://myseattlesearch.com/realestate/quizzes/results/?quizId=${this.quizData.id}&result=${matchedKey}`;
+        
+        // Final routing resolution
+        const finalDestPath = match.url.includes('?') ? `${match.url}&` : `${match.url}?`;
+        const encodedName = encodeURIComponent(this.leadInfo.firstName);
+        const resultUrl = `https://myseattlesearch.com${finalDestPath}quizId=${this.quizData.id}&result=${matchedKey}&name=${encodedName}`;
 
-        // Standardized 17-Column Inbound Ledger
         const rowData = [
             timestamp, "quiz", this.leadInfo.firstName || "", this.leadInfo.lastName || "", 
             this.leadInfo.email || "", this.leadInfo.phone || "", "", this.quizData.id || "", 
@@ -244,12 +245,12 @@ class QuizEngine extends HTMLElement {
             emailData: {
                 to: this.leadInfo.email,
                 subject: this.quizData.emailSubject || "Your Assessment Results",
-                body: `Hi ${this.leadInfo.firstName},\n\nThank you for taking the ${this.quizData.name}!\n\nYour result is: ${match.heading}\n\nYou can view your full personalized playbook and results here:\n${resultUrl}\n\nTalk soon,\nJoe Sheldon`
+                body: `Hi ${this.leadInfo.firstName},\n\nThank you for completing the ${this.quizData.name} quiz!\n\nYour result is: ${match.heading}\n${match.subheading}\n${match.details}\n\nYou can review your results and get more in depth information here: ${resultUrl}\n\nTalk soon!\n\nJoe`
             }
         };
 
         try {
-            await fetch("https://myseattlesearch-quiz-gateway.joe-54b.workers.dev/", { 
+            await fetch("https://commgateway.myseattlesearch.com/", { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
                 body: JSON.stringify(payload) 
@@ -259,7 +260,7 @@ class QuizEngine extends HTMLElement {
         }
 
         setTimeout(() => {
-            window.location.href = `/realestate/quizzes/results/?quizId=${this.quizData.id}&result=${matchedKey}`;
+            window.location.href = `${finalDestPath}quizId=${this.quizData.id}&result=${matchedKey}&name=${encodedName}`;
         }, 600);
     }
 }

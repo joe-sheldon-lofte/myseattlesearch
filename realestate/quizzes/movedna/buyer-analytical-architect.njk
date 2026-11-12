@@ -1,0 +1,111 @@
+---
+layout: layouts/base.njk
+title: "MoveDNA Archetype: The Analytical Architect | Joe Sheldon"
+description: "I balance my home search using logic, market trends, and hard facts. Find your real estate strategy blueprint instantly."
+permalink: /realestate/quizzes/movedna/buyer-analytical-architect/index.html
+---
+
+<main class="layout-container layout-stack-main">
+  
+  <header class="surface-bento page-hero-bento">
+    <div class="text-overline text-accent-alpine">Your MoveDNA™ Profile Is Locked In</div>
+    <h1 class="text-page-title">The Analytical Architect</h1>
+    <p class="text-body page-hero-lead">The Data-Driven Pragmatist</p>
+    
+    <div class="surface-bento" style="margin-top: 2rem; padding: 1.5rem;">
+      <h4 class="text-widget-title" style="margin-top: 0;">Your Customized Milestone Card</h4>
+      <canvas id="sharing-badge-canvas" width="450" height="180" style="max-width: 100%; height: auto; border-radius: 8px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.06); display: block; margin: 1rem auto; border: 1px solid var(--color-surface-gray);"></canvas>
+      <div class="action-tray-constrained section-action-tray" style="justify-content: center;">
+        <button id="download-badge-trigger" class="btn btn-secondary">Download My MoveDNA Card</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="section-divider"></div>
+
+  <section class="content-section-centered">
+    <article class="surface-bento calc-strategy-card">
+      <h2 class="text-widget-title">Your Psychological Blueprint</h2>
+      <p class="text-body">
+        Hey <span class="client-dynamic-name-marker">Strategist</span>! Your results show that you treat the real estate search with a sharp, brilliant eye for detail. You don't buy homes based on a fleeting "gut feeling"—you rely on historical charts, solid market metrics, and structural facts. You want to know that your future home isn't just beautiful, but a rock-solid investment that will grow your equity safely on day one.
+      </p>
+    </article>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="content-section-centered">
+    <h2 class="text-section-title">Execution Traits &amp; Behavioral Hazards</h2>
+    <div class="section-grid-static grid-cols-2">
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">Core Motivation</h3>
+        <p class="text-body">Protecting your hard-earned wealth and setting yourself up for financial freedom by making clean, factual real estate moves entirely free of emotional impulse decisions.</p>
+      </article>
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">Strategic Superpowers</h3>
+        <p class="text-body">You have fantastic local market awareness and are totally immune to pushy sales tricks. You excel at looking past fresh staging coats to spot real foundation or construction worth.</p>
+      </article>
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">Hidden Blind Spots</h3>
+        <p class="text-body">Watch out for "analysis paralysis"! Because you love 100% certainty, you risk overthinking a great opportunity and letting a gorgeous home slip away to a faster bidder in Seattle's quick market.</p>
+      </article>
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">How We Win Together</h3>
+        <p class="text-body">As your coach, I will supply you with extensive historical sales data, deep neighborhood property tax logs, and transparent inspection reports so you can make choices with absolute confidence.</p>
+      </article>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="content-section-centered">
+    <article class="surface-bento calc-strategy-card" style="background: var(--color-surface-gray); border-left: 4px solid var(--color-text-primary, #111);">
+      <div class="text-overline text-accent-alpine">ADVISORY BLUEPRINT</div>
+      <h3 class="text-widget-title" style="margin-top: 0.5rem;">Joe's Coaching Strategy</h3>
+      <p class="text-body" style="margin-bottom: 0;">
+        When we find a property you love, our winning strategy is using numbers as our shield. We will structure clean, logical offers that look past open-market hype, cutting straight to the physical mechanics of the home to make sure your offer represents incredible value.
+      </p>
+    </article>
+  </section>
+
+</main>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const clientName = urlParams.get('name') || '';
+      if (clientName) {
+          document.querySelectorAll('.client-dynamic-name-marker').forEach(el => el.textContent = clientName);
+      }
+      const canvas = document.getElementById('sharing-badge-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#111111'; // Design System Primary Charcoal Token
+      ctx.strokeRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#111111';
+      ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.fillText('MOVEDNA™ REAL ESTATE PROFILE', 25, 35);
+      ctx.fillStyle = '#333333';
+      ctx.font = '15px system-ui, sans-serif';
+      const userStr = clientName ? `I took Joe Sheldon's quiz and` : "I took Joe Sheldon's MoveDNA™ quiz and";
+      ctx.fillText(userStr, 25, 70);
+      ctx.fillText("my profile archetype is locked in as a:", 25, 95);
+      ctx.fillStyle = '#0a84ff'; // Design System Alpine Blue Token
+      ctx.font = 'italic bold 24px system-ui, sans-serif';
+      ctx.fillText('Analytical Architect!', 25, 135);
+      ctx.fillStyle = '#777777';
+      ctx.font = '11px system-ui, sans-serif';
+      ctx.fillText('Uncover your default strategy at myseattlesearch.com', 25, 160);
+
+      document.getElementById('download-badge-trigger').addEventListener('click', () => {
+          const dl = document.createElement('a');
+          dl.href = canvas.toDataURL('image/png');
+          dl.download = (clientName ? clientName.toLowerCase() + '-' : '') + 'movedna-architect.png';
+          document.body.appendChild(dl);
+          dl.click();
+          document.body.removeChild(dl);
+      });
+  });
+</script>

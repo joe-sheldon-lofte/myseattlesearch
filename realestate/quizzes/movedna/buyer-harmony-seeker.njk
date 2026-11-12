@@ -1,0 +1,111 @@
+---
+layout: layouts/base.njk
+title: "MoveDNA Archetype: The Harmony Seeker | Joe Sheldon"
+description: "I prioritize peace, neighborhood community, and family alignment throughout my home search. Find your blueprint instantly."
+permalink: /realestate/quizzes/movedna/buyer-harmony-seeker/index.html
+---
+
+<main class="layout-container layout-stack-main">
+  
+  <header class="surface-bento page-hero-bento">
+    <div class="text-overline text-accent-alpine">Your MoveDNA™ Profile Is Locked In</div>
+    <h1 class="text-page-title">The Harmony Seeker</h1>
+    <p class="text-body page-hero-lead">The Collaborative Relationship Builder</p>
+    
+    <div class="surface-bento" style="margin-top: 2rem; padding: 1.5rem;">
+      <h4 class="text-widget-title" style="margin-top: 0;">Your Customized Milestone Card</h4>
+      <canvas id="sharing-badge-canvas" width="450" height="180" style="max-width: 100%; height: auto; border-radius: 8px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.06); display: block; margin: 1rem auto; border: 1px solid var(--color-surface-gray);"></canvas>
+      <div class="action-tray-constrained section-action-tray" style="justify-content: center;">
+        <button id="download-badge-trigger" class="btn btn-secondary">Download My MoveDNA Card</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="section-divider"></div>
+
+  <section class="content-section-centered">
+    <article class="surface-bento calc-strategy-card">
+      <h2 class="text-widget-title">Your Psychological Blueprint</h2>
+      <p class="text-body">
+        Hey <span class="client-dynamic-name-marker">Connector</span>! Your results show that you treat a home search with a beautiful, deeply human perspective. For you, a home isn't just wood and brick—it's a sanctuary for relationships, peace, and family alignment. You evaluate properties based on their day-to-day livability and neighborhood community feel, wanting everyone involved in the process to feel trusted, respected, and heard.
+      </p>
+    </article>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="content-section-centered">
+    <h2 class="text-section-title">Execution Traits &amp; Behavioral Hazards</h2>
+    <div class="section-grid-static grid-cols-2">
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">Core Motivation</h3>
+        <p class="text-body">Creating a low-stress, highly transparent home-buying experience that ensures long-term lifestyle alignment and deep stability for your family.</p>
+      </article>
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">Strategic Superpowers</h3>
+        <p class="text-body">Incredible consensus builder! You are deeply attuned to the subtle layout details that affect everyday happiness, and your collaborative style makes listing agents love working with us.</p>
+      </article>
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">Hidden Blind Spots</h3>
+        <p class="text-body">Because you hate friction and value consensus, you risk avoiding necessary legal confrontations or letting a gorgeous home slip away simply to bypass an intense bidding war.</p>
+      </article>
+      <article class="surface-bento calc-strategy-card">
+        <h3 class="text-widget-title">How We Win Together</h3>
+        <p class="text-body">As your coach, I will supply a low-pressure, protective environment. I'll handle the aggressive negotiating mechanics in the background so you can focus purely on your family's future lifestyle comfort zone.</p>
+      </article>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="content-section-centered">
+    <article class="surface-bento calc-strategy-card" style="background: var(--color-surface-gray); border-left: 4px solid var(--color-text-primary, #111);">
+      <div class="text-overline text-accent-alpine">ADVISORY BLUEPRINT</div>
+      <h3 class="text-widget-title" style="margin-top: 0.5rem;">Joe's Coaching Strategy</h3>
+      <p class="text-body" style="margin-bottom: 0;">
+        Our winning path is collaborative communication. We will combine consultative guidance with detailed neighborhood integration data to find your pocket of peace. When writing offers, we'll craft win-win terms that sellers feel incredibly respected accepting.
+      </p>
+    </article>
+  </section>
+
+</main>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const clientName = urlParams.get('name') || '';
+      if (clientName) {
+          document.querySelectorAll('.client-dynamic-name-marker').forEach(el => el.textContent = clientName);
+      }
+      const canvas = document.getElementById('sharing-badge-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#111111'; 
+      ctx.strokeRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#111111';
+      ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.fillText('MOVEDNA™ REAL ESTATE PROFILE', 25, 35);
+      ctx.fillStyle = '#333333';
+      ctx.font = '15px system-ui, sans-serif';
+      const userStr = clientName ? `I took Joe Sheldon's quiz and` : "I took Joe Sheldon's MoveDNA™ quiz and";
+      ctx.fillText(userStr, 25, 70);
+      ctx.fillText("my profile archetype is locked in as a:", 25, 95);
+      ctx.fillStyle = '#0a84ff'; 
+      ctx.font = 'italic bold 24px system-ui, sans-serif';
+      ctx.fillText('Harmony Seeker!', 25, 135);
+      ctx.fillStyle = '#777777';
+      ctx.font = '11px system-ui, sans-serif';
+      ctx.fillText('Uncover your default strategy at myseattlesearch.com', 25, 160);
+
+      document.getElementById('download-badge-trigger').addEventListener('click', () => {
+          const dl = document.createElement('a');
+          dl.href = canvas.toDataURL('image/png');
+          dl.download = (clientName ? clientName.toLowerCase() + '-' : '') + 'movedna-harmonyseeker.png';
+          document.body.appendChild(dl);
+          dl.click();
+          document.body.removeChild(dl);
+      });
+  });
+</script>
