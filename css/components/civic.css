@@ -1,35 +1,35 @@
 /* File: css/components/civic.css */
 /* ==========================================================================
-   10. CIVIC INFRASTRUCTURE, MUNICIPAL BOARDS & ELECTIONS
+   10. CIVIC INFRASTRUCTURE, MUNICIPAL BOARDS, NEWS, EVENTS & SCHOOLS
    ========================================================================== */
 .municipal-directory-card,
 .municipal-agenda-card,
 .municipal-calendar-card,
-.municipal-broadcast-player-card {  
-  display: flex;  
-  flex-direction: column;  
-  gap: 1.25rem;  
-  width: 100%;  
-  padding: 1.5rem;  
-  background: #FFFFFF;  
-  border: 1px solid var(--color-border-light);  
-  border-radius: var(--border-radius-squircle);  
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);  
-  box-sizing: border-box;  
-}  
-  
+.municipal-broadcast-player-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  padding: 1.5rem;
+  background: #FFFFFF;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-squircle);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+}
+
 .municipal-directory-header,
 .municipal-header-strip,
 .calendar-header-strip,
-.broadcast-header-strip {  
-  border-bottom: 1px solid var(--color-border-light);  
-  padding-bottom: 0.75rem;  
-  display: flex;  
+.broadcast-header-strip {
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: 0.75rem;
+  display: flex;
   justify-content: space-between;
-  align-items: flex-start;  
-  gap: 1rem;  
-}  
-  
+  align-items: flex-start;
+  gap: 1rem;
+}
+
 .municipal-directory-title,
 .municipal-headline,
 .calendar-headline,
@@ -40,203 +40,993 @@
   color: var(--premier-charcoal);
   line-height: 1.3;
 }
-.municipal-directory-subtitle { font-size: 0.75rem; margin: 0; line-height: 1.4; color: var(--color-secondary-muted); }  
-  
-.municipal-grid-matrix {  
-  display: grid;  
-  grid-template-columns: repeat(2, 1fr);  
-  gap: 0.75rem;  
-  width: 100%;  
-}  
-  
-.municipal-portal-tile {  
-  display: flex;  
-  align-items: center;  
-  justify-content: space-between;  
-  padding: 0.85rem 1rem;  
-  background: var(--color-surface-gray);  
-  border: 1px solid var(--color-border-light);  
-  border-radius: 12px;  
-  text-decoration: none;  
-  box-sizing: border-box;  
-  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;  
-  min-height: 64px;  
-}  
-.municipal-portal-tile:hover {  
-  background: #FFFFFF;  
-  border-color: var(--alpine-blue);  
-  transform: translateY(-2px);  
-  box-shadow: 0 4px 12px rgba(30, 77, 107, 0.1);  
-}  
-.municipal-portal-tile:focus-visible { outline: 2px solid var(--alpine-blue); outline-offset: 2px; }  
-  
-.portal-identity-stack { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }  
-.portal-category-tag { font-size: 0.6rem; letter-spacing: 0.05em; color: var(--color-secondary-muted); text-transform: uppercase; transition: color 0.15s ease; }  
-.municipal-portal-tile:hover .portal-category-tag { color: var(--alpine-blue); }  
-.portal-label-text { font-size: 0.85rem; font-weight: 500; color: var(--premier-charcoal); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  
-  
-.portal-arrow-well {  
-  display: flex;  
-  align-items: center;  
-  justify-content: center;  
-  width: 26px;  
-  height: 26px;  
-  border-radius: 50%;  
-  background: #FFFFFF;  
-  border: 1px solid var(--color-border-light);  
-  color: var(--color-secondary-muted);  
-  flex-shrink: 0;  
-  margin-left: 0.5rem;  
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;  
-}  
-.municipal-portal-tile:hover .portal-arrow-well {  
-  background: var(--alpine-blue);  
-  border-color: var(--alpine-blue);  
-  color: #FFFFFF;  
-  transform: translate(1px, -1px);  
-}  
-.portal-arrow-icon { flex-shrink: 0; }  
+.municipal-directory-subtitle { font-size: 0.75rem; margin: 0; line-height: 1.4; color: var(--color-secondary-muted); }
+
+.municipal-grid-matrix {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.municipal-portal-tile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  background: var(--color-surface-gray);
+  border: 1px solid var(--color-border-light);
+  border-radius: 12px;
+  text-decoration: none;
+  box-sizing: border-box;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  min-height: 64px;
+}
+.municipal-portal-tile:hover {
+  background: #FFFFFF;
+  border-color: var(--alpine-blue);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(30, 77, 107, 0.1);
+}
+.municipal-portal-tile:focus-visible { outline: 2px solid var(--alpine-blue); outline-offset: 2px; }
+
+.portal-identity-stack { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.portal-category-tag { font-size: 0.6rem; letter-spacing: 0.05em; color: var(--color-secondary-muted); text-transform: uppercase; transition: color 0.15s ease; }
+.municipal-portal-tile:hover .portal-category-tag { color: var(--alpine-blue); }
+.portal-label-text { font-size: 0.85rem; font-weight: 500; color: var(--premier-charcoal); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.portal-arrow-well {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1px solid var(--color-border-light);
+  color: var(--color-secondary-muted);
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.municipal-portal-tile:hover .portal-arrow-well {
+  background: var(--alpine-blue);
+  border-color: var(--alpine-blue);
+  color: #FFFFFF;
+  transform: translate(1px, -1px);
+}
+.portal-arrow-icon { flex-shrink: 0; }
 .municipal-directory-footer { border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem; color: var(--color-secondary-muted); }
 
-.municipal-agenda-stack { display: flex; flex-direction: column; gap: 0.85rem; }  
-.agenda-entry-card {  
-  background: var(--color-surface-gray);  
-  border: 1px solid var(--color-border-light);  
-  border-radius: 12px;  
-  padding: 1rem 1.15rem;  
-  display: flex;  
-  flex-direction: column;  
-  gap: 0.5rem;  
-}  
-.agenda-entry-top { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }  
-.agenda-body-tag { font-size: 0.6rem; color: var(--color-secondary-default); letter-spacing: 0.05em; font-weight: 500; }  
-.agenda-entry-time { font-size: 0.75rem; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--color-secondary-muted); }  
-.agenda-entry-title { font-size: 1rem; font-weight: 500; color: var(--premier-charcoal); line-height: 1.35; margin: 0; }  
-.agenda-entry-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 0.25rem; font-size: 0.75rem; flex-wrap: wrap; gap: 0.5rem; }  
-  
-.agenda-download-link { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--color-secondary-default); font-weight: 500; text-decoration: none; transition: opacity 0.15s ease; }  
-.agenda-download-link:hover { opacity: 0.85; text-decoration: underline; }  
+/* Municipal Agendas */
+.municipal-agenda-stack { display: flex; flex-direction: column; gap: 0.85rem; }
+.agenda-entry-card {
+  background: var(--color-surface-gray);
+  border: 1px solid var(--color-border-light);
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.agenda-entry-top { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.agenda-body-tag { font-size: 0.6rem; color: var(--color-secondary-default); letter-spacing: 0.05em; font-weight: 500; }
+.agenda-entry-time { font-size: 0.75rem; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--color-secondary-muted); }
+.agenda-entry-title { font-size: 1rem; font-weight: 500; color: var(--premier-charcoal); line-height: 1.35; margin: 0; }
+.agenda-entry-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 0.25rem; font-size: 0.75rem; flex-wrap: wrap; gap: 0.5rem; }
+
+.agenda-download-link { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--color-secondary-default); font-weight: 500; text-decoration: none; transition: opacity 0.15s ease; }
+.agenda-download-link:hover { opacity: 0.85; text-decoration: underline; }
 .agenda-download-arrow { color: var(--color-secondary-default); flex-shrink: 0; }
 
-.badge-status-live {  
-  display: inline-flex;  
-  align-items: center;  
-  gap: 0.45rem;  
-  padding: 0.25rem 0.65rem;  
-  border-radius: var(--border-radius-pill);  
-  background: rgba(217, 35, 42, 0.12);  
-  color: var(--pnw-red);  
-  font-size: 0.7rem;  
-  font-weight: 500;  
-  letter-spacing: 0.04em;  
-  white-space: nowrap;  
-}  
-  
-.broadcast-live-dot {  
-  width: 7px;  
-  height: 7px;  
-  border-radius: 50%;  
-  background: var(--pnw-red);  
-  box-shadow: 0 0 6px rgba(217, 35, 42, 0.6);  
-  animation: pulseLiveLed 1.8s ease-in-out infinite;  
-  flex-shrink: 0;  
-}  
-  
-@keyframes pulseLiveLed {  
-  0%, 100% { opacity: 1; transform: scale(1); }  
-  50% { opacity: 0.4; transform: scale(0.85); }  
-}  
-  
-.broadcast-dormant-badge { font-size: 0.75rem; color: var(--color-secondary-muted); letter-spacing: 0.04em; white-space: nowrap; }  
-  
-.broadcast-viewport-stage {  
+/* Broadcast Video Player */
+.badge-status-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--border-radius-pill);
+  background: rgba(217, 35, 42, 0.12);
+  color: var(--pnw-red);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.broadcast-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pnw-red);
+  box-shadow: 0 0 6px rgba(217, 35, 42, 0.6);
+  animation: pulseLiveLed 1.8s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulseLiveLed {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.broadcast-dormant-badge { font-size: 0.75rem; color: var(--color-secondary-muted); letter-spacing: 0.04em; white-space: nowrap; }
+
+.broadcast-viewport-stage {
   position: relative;
-  width: 100%;  
-  aspect-ratio: 16 / 9;  
-  border-radius: 12px;  
-  overflow: hidden;  
-  background: #000000;  
-  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);  
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000000;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
   margin-bottom: 1rem;
-}  
-.broadcast-iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }  
-  
+}
+.broadcast-iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+
 .broadcast-standby-slate,
 .calendar-fallback-slate,
-.agenda-fallback-slate {  
-  display: flex;  
-  flex-direction: column;  
-  align-items: center;  
-  justify-content: center;  
-  text-align: center;  
-  padding: 2.5rem 1.5rem;  
-  background: var(--color-surface-gray);  
-  border: 1px solid var(--color-border-light);  
-  border-radius: 12px;  
-  gap: 0.75rem;  
-}  
+.agenda-fallback-slate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  background: var(--color-surface-gray);
+  border: 1px solid var(--color-border-light);
+  border-radius: 12px;
+  gap: 0.75rem;
+}
 .broadcast-standby-icon-well,
 .calendar-fallback-icon-well,
-.agenda-fallback-icon-well {  
-  display: flex;  
-  align-items: center;  
-  justify-content: center;  
-  width: 44px;  
-  height: 44px;  
-  border-radius: var(--border-radius-pill);  
-  background: rgba(30, 77, 107, 0.1);  
-  color: var(--alpine-blue);  
-}  
+.agenda-fallback-icon-well {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--border-radius-pill);
+  background: rgba(30, 77, 107, 0.1);
+  color: var(--alpine-blue);
+}
 .broadcast-standby-title,
 .calendar-fallback-title,
-.agenda-fallback-title { font-size: 1.05rem; font-weight: 500; margin: 0; color: var(--premier-charcoal); }  
+.agenda-fallback-title { font-size: 1.05rem; font-weight: 500; margin: 0; color: var(--premier-charcoal); }
 .broadcast-standby-subtext,
 .calendar-fallback-desc,
-.agenda-fallback-desc { font-size: 0.85rem; color: var(--color-secondary-muted); max-width: 52ch; line-height: 1.5; margin: 0 auto; }  
-  
+.agenda-fallback-desc { font-size: 0.85rem; color: var(--color-secondary-muted); max-width: 52ch; line-height: 1.5; margin: 0 auto; }
+
 .btn-broadcast-launch,
 .btn-calendar-fallback,
-.btn-agenda-fallback {  
-  display: inline-flex;  
-  align-items: center;  
-  gap: 0.45rem;  
-  padding: 0.5rem 1.15rem;  
-  border-radius: var(--border-radius-pill);  
-  background: var(--alpine-blue);  
-  color: #FFFFFF;  
-  font-size: 0.825rem;  
-  font-weight: 500;  
-  text-decoration: none;  
-  box-shadow: 0 4px 12px rgba(30, 77, 107, 0.25);  
-  transition: opacity 0.15s ease, transform 0.15s ease;  
+.btn-agenda-fallback {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1.15rem;
+  border-radius: var(--border-radius-pill);
+  background: var(--alpine-blue);
+  color: #FFFFFF;
+  font-size: 0.825rem;
+  font-weight: 500;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(30, 77, 107, 0.25);
+  transition: opacity 0.15s ease, transform 0.15s ease;
   margin-top: 0.5rem;
-}  
+}
 .btn-broadcast-launch:hover,
 .btn-calendar-fallback:hover,
-.btn-agenda-fallback:hover { opacity: 0.92; transform: translateY(-1px); }  
-  
-.broadcast-meta-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; font-size: 0.85rem; }  
-.broadcast-meta-lead { display: flex; flex-direction: column; gap: 0.15rem; }  
-.broadcast-stream-title { font-weight: 500; color: var(--premier-charcoal); }  
-.broadcast-stream-date { font-size: 0.75rem; color: var(--color-secondary-muted); }  
+.btn-agenda-fallback:hover { opacity: 0.92; transform: translateY(-1px); }
+
+.broadcast-meta-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; font-size: 0.85rem; }
+.broadcast-meta-lead { display: flex; flex-direction: column; gap: 0.15rem; }
+.broadcast-stream-title { font-weight: 500; color: var(--premier-charcoal); }
+.broadcast-stream-date { font-size: 0.75rem; color: var(--color-secondary-muted); }
 .broadcast-archive-link,
-.calendar-portal-link { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--alpine-blue); font-weight: 500; text-decoration: none; font-size: 0.8rem; transition: opacity 0.15s ease; }  
+.calendar-portal-link { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--alpine-blue); font-weight: 500; text-decoration: none; font-size: 0.8rem; transition: opacity 0.15s ease; }
 .broadcast-archive-link:hover,
-.calendar-portal-link:hover { opacity: 0.85; text-decoration: underline; }  
+.calendar-portal-link:hover { opacity: 0.85; text-decoration: underline; }
 .broadcast-archive-arrow { color: var(--alpine-blue); flex-shrink: 0; }
 
-.calendar-events-stack { display: flex; flex-direction: column; gap: 0.65rem; }  
-.calendar-event-row {  
-  display: flex;  
-  align-items: center;  
-  gap: 1.25rem;  
-  padding: 0.75rem 0.5rem;  
-  border-bottom: 1px solid var(--color-border-light);  
-}  
+/* Municipal Calendar */
+.calendar-events-stack { display: flex; flex-direction: column; gap: 0.65rem; }
+.calendar-event-row {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--color-border-light);
+}
 .calendar-event-row:last-child { border-bottom: none; }
-.calendar-date-stamp { flex: 0 0 75px; text-align: center; padding: 0.35rem 0.5rem; border-radius: 8px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); }  
-.calendar-date-text { font-size: 0.75rem; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--premier-charcoal); }  
-.calendar-event-details { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.2rem; }  
-.calendar-event-title { font-size: 0.95rem; font-weight: 500; color: var(--premier-charcoal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  
+.calendar-date-stamp { flex: 0 0 75px; text-align: center; padding: 0.35rem 0.5rem; border-radius: 8px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); }
+.calendar-date-text { font-size: 0.75rem; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--premier-charcoal); }
+.calendar-event-details { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.2rem; }
+.calendar-event-title { font-size: 0.95rem; font-weight: 500; color: var(--premier-charcoal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .calendar-event-meta { font-size: 0.75rem; color: var(--color-secondary-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .calendar-footer-strip { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid var(--color-border-light); font-size: 0.75rem; color: var(--color-secondary-muted); }
+
+/* ==========================================================================
+   NEWS COMPONENT SYSTEMS (.news-summary-list-card & .news-summary-list-all-card)
+   ========================================================================== */
+.news-summary-list-card,
+.news-summary-list-all-card {
+  padding: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.news-list-header,
+.news-all-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: 0.75rem;
+}
+
+.news-list-title-stack,
+.news-all-title-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.news-list-headline,
+.news-all-headline {
+  margin-top: 0.25rem;
+}
+
+.news-count-caption,
+.news-filter-caption {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-secondary-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.news-filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.btn-filter-pill {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: var(--border-radius-pill);
+  border: 1px solid var(--color-border-light);
+  background: var(--color-surface-gray);
+  color: var(--premier-charcoal);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-filter-pill:hover {
+  border-color: var(--alpine-blue);
+  color: var(--alpine-blue);
+  background: #FFFFFF;
+}
+.btn-filter-pill.is-active {
+  background: var(--alpine-blue);
+  color: #FFFFFF;
+  border-color: var(--alpine-blue);
+}
+
+.news-feed-stack,
+.news-list-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.news-feed-item,
+.news-wire-item {
+  padding: 1.15rem 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.news-feed-item:last-child,
+.news-wire-item:last-child {
+  border-bottom: none;
+}
+.news-feed-item.is-hidden,
+.news-wire-item.is-hidden {
+  display: none !important;
+}
+
+.news-item-source-row,
+.news-wire-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.65rem;
+  margin-bottom: 0.35rem;
+}
+
+.news-item-source,
+.news-wire-source {
+  color: var(--color-secondary-default);
+}
+
+.news-wire-dot {
+  color: var(--color-secondary-muted);
+}
+
+.news-wire-category-tag {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--color-secondary-muted);
+  background: var(--color-surface-gray);
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--border-radius-pill);
+  border: 1px solid var(--color-border-light);
+  text-transform: capitalize;
+}
+.news-wire-category-tag.is-locked {
+  background: var(--color-surface-gray);
+  color: var(--premier-charcoal);
+  font-weight: 600;
+  border-color: var(--color-border-light);
+}
+
+.news-item-title,
+.news-wire-title {
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1.35;
+  margin: 0 0 0.5rem 0;
+}
+
+.news-item-link,
+.news-wire-title-link {
+  color: var(--premier-charcoal);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.news-item-link:hover,
+.news-wire-title-link:hover {
+  color: var(--alpine-blue);
+}
+
+.news-item-excerpt,
+.news-wire-excerpt {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 0 0 0.75rem 0;
+}
+
+.news-item-meta-strip,
+.news-wire-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.news-item-time,
+.news-wire-time {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-secondary-muted);
+}
+
+.news-item-read-link,
+.news-read-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--alpine-blue);
+  text-decoration: none;
+}
+.news-item-read-link:hover,
+.news-read-link:hover {
+  text-decoration: underline;
+}
+.news-read-arrow {
+  color: var(--alpine-blue);
+  flex-shrink: 0;
+}
+
+.news-list-footer {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border-light);
+  text-align: center;
+}
+
+.news-all-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--alpine-blue);
+  text-decoration: none;
+}
+.news-all-action-link:hover {
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   EVENTS COMPONENT SYSTEMS (.events-summary-five-card & .events-summary-all-card)
+   ========================================================================== */
+.events-summary-five-card,
+.events-summary-all-card {
+  padding: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.events-list-header,
+.events-all-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: 0.75rem;
+}
+
+.events-list-title-stack,
+.events-all-title-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.events-list-headline,
+.events-all-headline {
+  margin-top: 0.25rem;
+}
+
+.events-count-caption,
+.events-filter-caption {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-secondary-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.events-category-tag {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--color-secondary-muted);
+  background: var(--color-surface-gray);
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--border-radius-pill);
+  border: 1px solid var(--color-border-light);
+}
+.events-category-tag.is-locked {
+  color: var(--premier-charcoal);
+  font-weight: 600;
+}
+
+.events-filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.events-five-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.events-five-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.events-five-row:last-child {
+  border-bottom: none;
+}
+
+.events-five-lead {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1 1 auto;
+}
+
+.events-five-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.events-title-link {
+  color: var(--premier-charcoal);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.events-title-link:hover {
+  color: var(--alpine-blue);
+}
+
+.events-five-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--color-secondary-muted);
+}
+.events-pin-icon { flex-shrink: 0; }
+
+.events-five-timing {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.events-five-date {
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-secondary-default);
+}
+
+.events-five-time {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-secondary-muted);
+}
+
+.events-category-pill {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--color-secondary-muted);
+  background: var(--color-surface-gray);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--border-radius-pill);
+  border: 1px solid var(--color-border-light);
+  margin-top: 0.25rem;
+}
+
+.events-all-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.events-all-item {
+  background: var(--color-surface-gray);
+  border: 1px solid var(--color-border-light);
+  border-radius: 12px;
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.events-all-item.is-hidden {
+  display: none !important;
+}
+
+.events-all-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.events-all-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.events-all-datetime {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-secondary-default);
+}
+
+.events-all-desc {
+  font-size: 0.825rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.events-all-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.events-all-location {
+  color: var(--color-secondary-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.events-all-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.events-view-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--alpine-blue);
+  font-weight: 500;
+  text-decoration: none;
+}
+.events-view-link:hover {
+  text-decoration: underline;
+}
+
+.events-list-footer {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border-light);
+  text-align: center;
+}
+
+.events-all-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--alpine-blue);
+  text-decoration: none;
+}
+.events-all-action-link:hover {
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   NESTED REGIONAL SCHOOL DIRECTORY & RANKINGS
+   ========================================================================== */
+.school-directory-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+}
+
+.school-county-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.school-county-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08));
+}
+
+.school-county-title {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--color-primary-default, #1C1C1E);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.school-county-count {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-secondary-muted, #6E6E73);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.school-districts-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.school-district-accordion {
+  background: var(--color-background-universal, #FFFFFF);
+  border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08));
+  border-radius: var(--border-radius-squircle, 18px);
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.school-district-accordion[open] {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+.school-district-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  background: var(--color-background-universal, #FFFFFF);
+  transition: background-color 0.15s ease;
+}
+.school-district-summary::-webkit-details-marker { display: none; }
+.school-district-summary:hover { background: var(--color-surface-gray, #F5F5F7); }
+
+.district-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.district-chevron-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--color-secondary-muted, #6E6E73);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+.school-district-accordion[open] .district-chevron-icon {
+  transform: rotate(90deg);
+}
+
+.district-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.district-name-text {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--color-primary-default, #1C1C1E);
+  text-decoration: none;
+}
+.district-name-text:hover {
+  color: var(--color-secondary-default, #1E4D6B);
+}
+
+.district-subtext {
+  font-size: 0.7rem;
+  color: var(--color-secondary-muted, #6E6E73);
+}
+
+.district-telemetry-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.district-psai-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--border-radius-pill, 9999px);
+  background: var(--color-surface-gray, #F5F5F7);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-primary-default, #1C1C1E);
+  font-variant-numeric: tabular-nums;
+}
+.district-psai-pill.is-benchmark-high {
+  background: rgba(16, 185, 129, 0.12);
+  color: #065F46;
+}
+.district-psai-pill.is-benchmark-low {
+  background: rgba(217, 35, 42, 0.08);
+  color: var(--color-tertiary-default, #D9232A);
+}
+
+.school-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.75rem;
+  padding: 0 1.25rem 1.25rem 1.25rem;
+  border-top: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.06));
+  background: var(--color-surface-gray, #F5F5F7);
+}
+
+.school-card-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  background: var(--color-background-universal, #FFFFFF);
+  border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08));
+  border-radius: calc(var(--border-radius-squircle, 18px) - 6px);
+  text-decoration: none;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.school-card-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-secondary-default, #1E4D6B);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.school-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.school-card-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-primary-default, #1C1C1E);
+  line-height: 1.25;
+}
+
+.school-type-pill {
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--border-radius-pill, 9999px);
+  background: var(--color-surface-gray, #F5F5F7);
+  color: var(--color-secondary-muted, #6E6E73);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.school-card-metrics {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--color-secondary-muted, #6E6E73);
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.school-psai-stat {
+  font-weight: 500;
+  color: var(--color-primary-default, #1C1C1E);
+  font-variant-numeric: tabular-nums;
+}
+
+.school-subject-pills {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.subject-mini-chip {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.65rem;
+  color: var(--color-secondary-muted, #6E6E73);
+}
+
+.text-muted { color: var(--color-secondary-muted); }
+
+/* School District Ranking Benchmark Card (widget.region.school.ranking) */
+.region-school-ranking-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+.school-ranking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: 0.85rem;
+}
+.school-district-title-stack { display: flex; flex-direction: column; gap: 0.15rem; }
+.school-district-title { margin: 0.15rem 0 0 0; }
+.school-district-name { font-size: 0.9rem; font-weight: 500; color: var(--alpine-blue); }
+.school-psai-badge-col { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; text-align: center; }
+.school-psai-badge {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--border-radius-squircle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--alpine-blue);
+  color: #FFFFFF;
+}
+.school-psai-badge.psai-tier-excellent { background: var(--status-emerald); }
+.school-psai-badge.psai-tier-proficient { background: var(--alpine-blue); }
+.school-psai-badge.psai-tier-moderate { background: var(--status-amber); }
+.school-psai-badge.psai-tier-attention { background: var(--pnw-red); }
+.school-psai-number { font-size: 1.45rem; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1; }
+.school-psai-label { font-size: 0.6rem; color: var(--color-secondary-muted); }
+.school-metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.85rem; }
+.school-metric-card { background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1rem; text-align: center; }
+.school-metric-value { font-size: 1.5rem; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--premier-charcoal); margin: 0.25rem 0; }
+.school-metric-subtext { font-size: 0.7rem; color: var(--color-secondary-muted); }
+.school-ranking-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.75rem; font-size: 0.75rem; color: var(--color-secondary-muted); }
+.school-schools-link { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--alpine-blue); font-weight: 500; text-decoration: none; }
+.school-schools-link:hover { text-decoration: underline; }
+
+/* School Map Cartridge & Vector Markers */
+.layer-schools {
+  background: rgba(30, 77, 107, 0.1);
+  color: var(--color-secondary-default, #1E4D6B);
+}
+
+.graphic-school-building {
+  display: block;
+  flex-shrink: 0;
+  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.map-school-marker-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--border-radius-pill, 9999px);
+  background: var(--color-background-universal, #FFFFFF);
+  border: 1.5px solid var(--color-secondary-default, #1E4D6B);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  color: var(--color-secondary-default, #1E4D6B);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.map-school-marker-container:hover {
+  transform: translateY(-2px) scale(1.08);
+  box-shadow: 0 6px 16px rgba(30, 77, 107, 0.25);
+  color: #10B981;
+  border-color: #10B981;
+}
+
+.map-district-centroid-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  background: rgba(28, 28, 30, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--border-radius-pill, 9999px);
+  color: #FFFFFF;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  pointer-events: auto;
+  cursor: pointer;
+}
+.map-district-centroid-badge:hover {
+  background: var(--color-secondary-default, #1E4D6B);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.district-centroid-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10B981;
+}
+
+@media (max-width: 640px) {
+  .municipal-grid-matrix { grid-template-columns: 1fr; gap: 0.5rem; }
+  .municipal-portal-tile { padding: 0.75rem 0.85rem; min-height: 56px; }
+  .school-cards-grid { grid-template-columns: 1fr; padding: 0 1rem 1rem 1rem; }
+  .school-metrics-grid { grid-template-columns: 1fr; }
+  .district-telemetry-right .district-psai-pill span:not(:last-child) { display: none; }
+}

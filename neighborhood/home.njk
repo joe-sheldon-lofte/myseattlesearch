@@ -1,0 +1,224 @@
+---
+layout: layouts/base.njk
+pagination:
+  data: city_data
+  size: 1
+  addAllPagesToCollections: true
+  alias: city
+permalink: "/neighborhood/{{ city.City | slugify }}/index.html"
+---
+
+{# Initialize core routing keys to pass into all peripheral widgets #}
+{% set city_slug = city.City | slugify %}
+{% set active_neighborhood = city.City %}
+
+{# Dynamically determine current month (1-12) for FeatCat business cycling #}
+{% set current_month = "11" %} 
+{% set active_featcat = "FeatCat" ~ current_month %}
+
+<main class="layout-container layout-stack-main">
+
+  {# SECTION 1.0: Canonical Neighborhood Header #}
+  {% set hero_img_main = city.HeroImageMain %}
+  {% set hero_img_left = city.HeroImageLeft %}
+  {% set hero_img_right = city.HeroImageRight %}
+  {% set hero_welcome_label = "Welcome to the neighborhood" %}
+  <div class="portal-section-header">
+    {% include "components/widget/neighborhood-page-header.njk" %}
+  </div>
+
+  <hr class="section-divider">
+
+  {# SECTION 2.0: Happening Now (Horizontal Telemetry Scroll) #}
+  <section class="portal-section-glance">
+    <h2 class="text-section-title section-title-clean">Happening Now</h2>
+    <div class="horizontal-scroll-section scroll-variant-small" tabindex="0">
+      
+      {# Pos 1: Current Weather #}
+      <div class="horizontal-scroll-item">
+        {% set widget_weather_temp = "48" %}
+        {% set widget_weather_condition = "Rain" %}
+        {% set widget_weather_summary = "Rain" %}
+        {% include "components/widget/weather-current-widget.njk" ignore missing %}
+      </div>
+
+      {# Pos 2: Sunrise/Sunset #}
+      <div class="horizontal-scroll-item">
+        {% include "components/widget/weather-sunrise-sunset.njk" ignore missing %}
+      </div>
+
+      {# Pos 3: ActiveCommute Score #}
+      <div class="horizontal-scroll-item">
+        {% set score_activecommute_val = 85 %}
+        {% include "components/score/custom-activecommute.njk" ignore missing %}
+      </div>
+
+      {# Pos 4: ActiveTransit Score #}
+      <div class="horizontal-scroll-item">
+        {% set score_activetransit_val = 72 %}
+        {% include "components/score/custom-activetransit.njk" ignore missing %}
+      </div>
+
+      {# Pos 5: Market Balance Gauge #}
+      <div class="horizontal-scroll-item">
+        {% set current_months_supply = 2.1 %}
+        {% include "components/widget/realestate-market-balance-gauge.njk" ignore missing %}
+      </div>
+
+      {# Pos 6: Latest Game Summary (Fallback to local telemetry if no game logic defined) #}
+      <div class="horizontal-scroll-item">
+        {% set game_summary_team_local = "Seahawks" %}
+        {% set game_summary_team_away = "49ers" %}
+        {% set game_summary_score_local = "24" %}
+        {% set game_summary_score_away = "21" %}
+        {% set game_summary_league = "NFL" %}
+        {% set game_summary_date = "Nov 15" %}
+        {% set game_summary_status = "FINAL" %}
+        {% set game_summary_venue = "Lumen Field, Seattle, WA" %}
+        {% include "components/widget/sports-game-summary.njk" ignore missing %}
+      </div>
+
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# SECTION 3.0: Portal Navigation (Horizontal Track) #}
+  <section class="portal-section-nav">
+    <h2 class="text-section-title section-title-clean">Explore {{ active_neighborhood }}</h2>
+    <div class="neighborhood-nav-container">
+      <div class="neighborhood-nav-track" tabindex="0">
+        <a href="/neighborhood/{{ city_slug }}/news-events/" class="neighborhood-nav-pill is-inactive">News &amp; Events</a>
+        <a href="/neighborhood/{{ city_slug }}/weather/" class="neighborhood-nav-pill is-inactive">Weather</a>
+        <a href="/neighborhood/{{ city_slug }}/transit-commute/" class="neighborhood-nav-pill is-inactive">Transit &amp; Commute</a>
+        <a href="/neighborhood/{{ city_slug }}/emergency-safety/" class="neighborhood-nav-pill is-inactive">Emergency &amp; Safety</a>
+        <a href="/neighborhood/{{ city_slug }}/municipal/" class="neighborhood-nav-pill is-inactive">Municipal</a>
+        <a href="/neighborhood/{{ city_slug }}/real-estate/" class="neighborhood-nav-pill is-inactive">Real Estate</a>
+        <a href="/neighborhood/school/{{ city['School District'] | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
+        <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
+        <a href="/neighborhood/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit</a>
+      </div>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# SECTION 4.0: Featured Local Businesses (Horizontal Medium Scroll) #}
+  <section class="portal-section-businesses">
+    <h2 class="text-section-title section-title-clean">Featured Local Businesses</h2>
+    <div class="horizontal-scroll-section scroll-variant-medium" tabindex="0">
+      
+      {# Pos 1 #}
+      <div class="horizontal-scroll-item">
+        {% set business_name = "Local Coffee Roasters" %}
+        {% set business_category = city[active_featcat] | default("Coffee") %}
+        {% set business_price_level = "$$" %}
+        {% set business_rating = "4.8" %}
+        {% set business_reviews_count = "124" %}
+        {% set business_address = "Downtown " ~ active_neighborhood %}
+        {% include "components/widget/business-listing.njk" ignore missing %}
+      </div>
+
+      {# Pos 2 #}
+      <div class="horizontal-scroll-item">
+        {% set business_name = "Neighborhood Bakery" %}
+        {% set business_category = "Desserts" %}
+        {% set business_price_level = "$" %}
+        {% set business_rating = "4.9" %}
+        {% set business_reviews_count = "88" %}
+        {% set business_address = "Main Street " ~ active_neighborhood %}
+        {% include "components/widget/business-listing.njk" ignore missing %}
+      </div>
+
+      {# Pos 3 #}
+      <div class="horizontal-scroll-item">
+        {% set business_name = "Artisan Italian" %}
+        {% set business_category = "Pizza" %}
+        {% set business_price_level = "$$$" %}
+        {% set business_rating = "4.7" %}
+        {% set business_reviews_count = "210" %}
+        {% set business_address = "Arts District " ~ active_neighborhood %}
+        {% include "components/widget/business-listing.njk" ignore missing %}
+      </div>
+
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# SECTION 5.0: Recent News (Stacked Vertical) #}
+  <section class="portal-section-news-events section-widget">
+    <h2 class="text-section-title section-title-clean">Recent News</h2>
+    {% set city_name = active_neighborhood %}
+    {% set news_all_url = "/neighborhood/" ~ city_slug ~ "/news-events/" %}
+    {% include "components/widget/news-summary-list-five.njk" ignore missing %}
+  </section>
+
+  <hr class="section-divider">
+
+  {# SECTION 6.0: Upcoming Events (Stacked Vertical) #}
+  <section class="portal-section-news-events section-widget">
+    <h2 class="text-section-title section-title-clean">Upcoming Events</h2>
+    {% set events_all_url = "/neighborhood/" ~ city_slug ~ "/news-events/" %}
+    {% include "components/widget/events-summary-list-five.njk" ignore missing %}
+  </section>
+
+  <hr class="section-divider">
+
+  {# SECTION 7.0: Sports (Horizontal Medium Scroll) #}
+  <section class="portal-section-sports">
+    <h2 class="text-section-title section-title-clean">Local Sports Action</h2>
+    <div class="horizontal-scroll-section scroll-variant-medium" tabindex="0">
+      
+      {# Pos 1: Pro #}
+      <div class="horizontal-scroll-item">
+        {% set scorebox_header = "NFL • SEATTLE SEAHAWKS" %}
+        {% set scorebox_status_text = "FINAL" %}
+        {% set scorebox_local_name = "Seattle Seahawks" %}
+        {% set scorebox_local_record = "(6-4)" %}
+        {% set scorebox_local_score = "24" %}
+        {% set scorebox_opp_name = "San Francisco 49ers" %}
+        {% set scorebox_opp_score = "21" %}
+        {% set scorebox_recap_url = "/sports/seattle-seahawks/" %}
+        {% include "components/widget/sports-score-box.njk" ignore missing %}
+      </div>
+
+      {# Pos 2: Minor #}
+      <div class="horizontal-scroll-item">
+        {% set scorebox_header = "TRIPLE-A • TACOMA RAINIERS" %}
+        {% set scorebox_status_text = "FINAL" %}
+        {% set scorebox_local_name = "Tacoma Rainiers" %}
+        {% set scorebox_local_record = "(82-68)" %}
+        {% set scorebox_local_score = "5" %}
+        {% set scorebox_opp_name = "Reno Aces" %}
+        {% set scorebox_opp_score = "3" %}
+        {% set scorebox_recap_url = "/sports/tacoma-rainiers/" %}
+        {% include "components/widget/sports-score-box.njk" ignore missing %}
+      </div>
+
+      {# Pos 3: College #}
+      <div class="horizontal-scroll-item">
+        {% set scorebox_header = "NCAA • WASHINGTON HUSKIES" %}
+        {% set scorebox_status_text = "IN PROGRESS" %}
+        {% set scorebox_local_name = "Washington Huskies" %}
+        {% set scorebox_local_record = "(7-3)" %}
+        {% set scorebox_local_score = "14" %}
+        {% set scorebox_opp_name = "Oregon Ducks" %}
+        {% set scorebox_opp_score = "10" %}
+        {% set scorebox_recap_url = "/sports/washington-huskies/" %}
+        {% include "components/widget/sports-score-box.njk" ignore missing %}
+      </div>
+
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# SECTION 8.0: Neighborhood Editorial (Stacked Vertical) #}
+  <section class="portal-section-editorial section-widget">
+    {% set editorial_headline = "About " ~ active_neighborhood %}
+    {% set editorial_overline = "LOCAL PERSPECTIVE • " ~ active_neighborhood | upper %}
+    {% include "components/widget/neighborhood-editorial.njk" ignore missing %}
+  </section>
+
+</main>

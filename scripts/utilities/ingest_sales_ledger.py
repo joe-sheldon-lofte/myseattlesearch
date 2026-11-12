@@ -2,6 +2,7 @@ import os
 import csv
 import hashlib
 import datetime
+import argparse
 from collections import Counter
 import requests
 
@@ -64,31 +65,67 @@ def execute_d1_query(session, endpoint, headers, sql_block):
     return data
 
 
+def parse_price(raw_price):
+    if raw_price is None:
+        return 0
+    cleaned = str(raw_price).replace("$", "").replace(",", "").strip()
+    if not cleaned:
+        return 0
+    try:
+        return int(float(cleaned))
+    except (ValueError, TypeError):
+        return 0
+
+
 def normalize_date(raw_date):
+    """Returns (iso_date_str, is_month_only) or (None, False)."""
     if not raw_date:
-        return None
+        return None, False
     s = str(raw_date).strip()
 
     # Handle Unix epoch milliseconds (common in ArcGIS REST CSV exports)
-    if s.isdigit() and len(s) >= 12:
+    if s.replace(".", "", 1).isdigit() and len(s.split(".")[0]) >= 12:
         try:
-            dt = datetime.datetime.fromtimestamp(int(s) / 1000.0, tz=datetime.timezone.utc)
-            return dt.strftime("%Y-%m-%d")
+            dt = datetime.datetime.fromtimestamp(float(s) / 1000.0, tz=datetime.timezone.utc)
+            return dt.strftime("%Y-%m-%d"), False
         except (ValueError, OSError):
-            return None
+            return None, False
 
     # Handle ISO strings (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)
     if len(s) >= 10 and s[4] == "-" and s[7] == "-":
-        return s[:10]
+        return s[:10], False
 
-    # Handle MM/DD/YYYY
+    # Handle MMM-YYYY (e.g., "Oct-2025", "Feb-2026")
+    try:
+        dt = datetime.datetime.strptime(s, "%b-%Y")
+        return dt.strftime("%Y-%m-01"), True
+    except ValueError:
+        pass
+
+    # Handle MM/DD/YYYY or YYYY/MM/DD
     parts = s.split(" ")[0].split("/")
     if len(parts) == 3:
+        if len(parts[0]) == 4 and parts[0].isdigit():
+            y, m, d = parts[0], parts[1].zfill(2), parts[2].zfill(2)
+            return f"{y}-{m}-{d}", False
         m, d, y = parts[0].zfill(2), parts[1].zfill(2), parts[2]
         if len(y) == 4 and y.isdigit():
-            return f"{y}-{m}-{d}"
+            return f"{y}-{m}-{d}", False
 
-    return None
+    return None, False
+
+
+def is_snoco_residential_class(prop_class_str):
+    """Checks WA DOR residential property use codes (110-129 single/multi 2-4, 140-149 condos)."""
+    if not prop_class_str:
+        return True
+    digits = "".join(ch for ch in prop_class_str if ch.isdigit())
+    if not digits:
+        return True
+    code = int(digits)
+    if code == 119:  # Manufactured home park (commercial/land-lease)
+        return False
+    return (110 <= code <= 129) or (140 <= code <= 149)
 
 
 def ensure_dedup_index(session, endpoint, headers):
@@ -139,15 +176,11 @@ def parse_king_sales(staging_dir, valid_pins, cutoff_date):
             if pin not in valid_pins:
                 continue
 
-            iso_date = normalize_date(r.get("DocumentDate"))
+            iso_date, _ = normalize_date(r.get("DocumentDate"))
             if not iso_date or iso_date < cutoff_date:
                 continue
 
-            try:
-                price = int(float(str(r.get("SalePrice") or 0).strip()))
-            except (ValueError, TypeError):
-                continue
-
+            price = parse_price(r.get("SalePrice"))
             if price < MIN_SALE_PRICE:
                 continue
 
@@ -199,6 +232,7 @@ def parse_snohomish_sales(staging_dir, valid_pins, cutoff_date):
         print("⚠️ Missing snoco-sales.csv in data/staging/. Skipping Snohomish County sales.")
         return []
 
+    month_cutoff = cutoff_date[:7] + "-01"
     print(f"📂 Parsing Snohomish County snoco-sales.csv (date >= {cutoff_date}, price >= ${MIN_SALE_PRICE:,})...")
     raw_rows = []
     date_price_counts = Counter()
@@ -206,19 +240,24 @@ def parse_snohomish_sales(staging_dir, valid_pins, cutoff_date):
     with open(sales_path, "r", encoding="utf-8", errors="ignore") as f:
         reader = csv.DictReader(f)
         for r in reader:
-            pin = str(r.get("PARCEL_ID") or "").strip().replace("-", "")
+            raw_pin = str(r.get("PARCEL_ID") or "").strip().replace("-", "")
+            if not raw_pin:
+                continue
+            pin = raw_pin.zfill(14) if raw_pin.isdigit() else raw_pin
             if pin not in valid_pins:
+                if raw_pin in valid_pins:
+                    pin = raw_pin
+                else:
+                    continue
+
+            iso_date, is_month_only = normalize_date(r.get("TRNSF_DATE"))
+            if not iso_date:
+                continue
+            effective_cutoff = month_cutoff if is_month_only else cutoff_date
+            if iso_date < effective_cutoff:
                 continue
 
-            iso_date = normalize_date(r.get("TRNSF_DATE"))
-            if not iso_date or iso_date < cutoff_date:
-                continue
-
-            try:
-                price = int(float(str(r.get("SALE_PRICE") or 0).strip()))
-            except (ValueError, TypeError):
-                continue
-
+            price = parse_price(r.get("SALE_PRICE"))
             if price < MIN_SALE_PRICE:
                 continue
 
@@ -236,8 +275,16 @@ def parse_snohomish_sales(staging_dir, valid_pins, cutoff_date):
 
         is_multi_parcel = date_price_counts[(iso_date, price)] > 1
         prop_class = str(r.get("PROP_CLASS") or "").strip()
-        warning_code = "MULTI_PARCEL" if is_multi_parcel else None
-        is_arms_length = 0 if is_multi_parcel else 1
+        is_residential = is_snoco_residential_class(prop_class)
+
+        warnings = []
+        if is_multi_parcel:
+            warnings.append("MULTI_PARCEL")
+        if not is_residential:
+            warnings.append(f"NON_RES_CLASS_{prop_class}")
+
+        warning_code = " ".join(warnings) if warnings else None
+        is_arms_length = 0 if warnings else 1
 
         transactions.append({
             "parcel_number": pin,
@@ -347,6 +394,11 @@ def insert_sales_and_update_base(session, endpoint, headers, transactions):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Ingest King & Snohomish sales into Cloudflare D1.")
+    parser.add_argument("--snoco-only", action="store_true", help="Skip King County and ingest Snohomish County sales only.")
+    parser.add_argument("--kc-only", action="store_true", help="Skip Snohomish County and ingest King County sales only.")
+    args = parser.parse_args()
+
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     load_dev_vars(base_dir)
 
@@ -372,8 +424,10 @@ def main():
     valid_pins = fetch_valid_parcel_keys(session, endpoint, headers)
 
     all_sales = []
-    all_sales.extend(parse_king_sales(staging_dir, valid_pins, cutoff_date))
-    all_sales.extend(parse_snohomish_sales(staging_dir, valid_pins, cutoff_date))
+    if not args.snoco_only:
+        all_sales.extend(parse_king_sales(staging_dir, valid_pins, cutoff_date))
+    if not args.kc_only:
+        all_sales.extend(parse_snohomish_sales(staging_dir, valid_pins, cutoff_date))
 
     insert_sales_and_update_base(session, endpoint, headers, all_sales)
 

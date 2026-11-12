@@ -1,19 +1,19 @@
 /* File: css/components/people.css */
 /* ==========================================================================
-   16. PEOPLE, PROFILES & DIRECTORIES
+   16. PEOPLE, PROFILES, DIRECTORIES & BUSINESS LISTINGS
    ========================================================================== */
-.people-card-primary, 
-.people-card-secondary {  
-  display: flex;  
-  flex-direction: column;  
-  justify-content: space-between;  
-  width: 100%;  
-  background: var(--color-background-universal, #FFFFFF);  
-  border: 1px solid var(--color-border-light);  
-  border-radius: var(--border-radius-squircle);  
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);  
-  text-align: center;  
-  box-sizing: border-box;  
+.people-card-primary,
+.people-card-secondary {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  background: var(--color-background-universal, #FFFFFF);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-squircle);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  text-align: center;
+  box-sizing: border-box;
   padding: 2rem 1.5rem;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
               box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
@@ -36,27 +36,27 @@
 }
 
 /* SQUIRCLE AVATAR GEOMETRY (Zero Circular Borders) */
-.people-avatar-wrapper, 
-.people-sec-avatar-wrapper, 
-.profile-avatar-wrapper { 
-  position: relative; 
-  width: 150px; 
-  height: 150px; 
-  margin: 0 auto 1.25rem auto; 
-}  
+.people-avatar-wrapper,
+.people-sec-avatar-wrapper,
+.profile-avatar-wrapper {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  margin: 0 auto 1.25rem auto;
+}
 
-.people-avatar-img, 
-.people-sec-avatar-img, 
-.profile-avatar-img { 
-  width: 150px; 
-  height: 150px; 
-  border-radius: var(--border-radius-squircle, 18px); 
-  object-fit: cover; 
-  object-position: center; 
-  border: 1px solid var(--color-border-light); 
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); 
-  display: block; 
-}  
+.people-avatar-img,
+.people-sec-avatar-img,
+.profile-avatar-img {
+  width: 150px;
+  height: 150px;
+  border-radius: var(--border-radius-squircle, 18px);
+  object-fit: cover;
+  object-position: center;
+  border: 1px solid var(--color-border-light);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  display: block;
+}
 
 .people-role-tag,
 .people-sec-role-tag {
@@ -64,28 +64,27 @@
   color: var(--color-secondary-muted);
 }
 
-.people-name-heading, 
-.people-sec-name-heading { 
-  font-size: 1.35rem; 
-  font-weight: 500; 
-  color: var(--premier-charcoal); 
-  margin: 0 0 0.5rem 0; 
-  line-height: 1.25; 
-}  
-
-.people-bio-text { 
-  font-size: 0.88rem; 
-  line-height: 1.6; 
-  color: var(--color-secondary-muted); 
-  margin: 0 0 1.25rem 0; 
-  max-width: 440px; 
+.people-name-heading,
+.people-sec-name-heading {
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--premier-charcoal);
+  margin: 0 0 0.5rem 0;
+  line-height: 1.25;
 }
 
-/* GENEROUS CONTACT SPACING (Prevents Button Collisions) */
+.people-bio-text {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--color-secondary-muted);
+  margin: 0 0 1.25rem 0;
+  max-width: 440px;
+}
+
+/* GENEROUS CONTACT SPACING */
 .people-verification-cluster,
 .people-sec-contact-cluster,
-.people-contact-meta,
-.people-sec-contact-cluster {
+.people-contact-meta {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -129,6 +128,7 @@
   margin-top: auto;
 }
 
+/* Single Profile View */
 .profile-single-card {
   display: flex;
   flex-direction: column;
@@ -184,49 +184,152 @@
   white-space: pre-line;
 }
 
-.people-license-text {
+.profile-stage-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) 1fr;
+  gap: 2rem;
+  align-items: start;
   width: 100%;
-  font-size: 0.75rem;
-  color: var(--color-secondary-muted);
-  margin-top: 0.25rem;
 }
 
-.people-cta-wrapper,
-.people-sec-cta-wrapper {
-  width: 100%;
+.profile-aside-card,
+.profile-narrative-card {
+  padding: 2rem;
+  background: #FFFFFF;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-squircle);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
 }
 
 /* UNIFIED ALPINE BLUE PILL BUTTONS */
 .btn-people-primary,
-.btn-people-secondary {  
-  display: inline-flex;  
-  align-items: center;  
-  justify-content: center;  
-  gap: 0.45rem;  
-  width: 100%;  
-  padding: 0.75rem 1.5rem;  
-  background-color: var(--alpine-blue, #1E4D6B);  
-  color: #FFFFFF !important;  
-  border-radius: var(--border-radius-pill, 9999px);  
-  font-size: 0.9rem;  
-  font-weight: 500;  
-  text-decoration: none;  
-  border: 1px solid transparent;  
-  box-shadow: 0 2px 8px rgba(30, 77, 107, 0.2);  
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);  
-  box-sizing: border-box;  
-  cursor: pointer;  
-}  
+.btn-people-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--alpine-blue, #1E4D6B);
+  color: #FFFFFF !important;
+  border-radius: var(--border-radius-pill, 9999px);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  border: 1px solid transparent;
+  box-shadow: 0 2px 8px rgba(30, 77, 107, 0.2);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  cursor: pointer;
+}
 
 .btn-people-primary:hover,
-.btn-people-secondary:hover { 
-  opacity: 0.92; 
-  box-shadow: 0 4px 12px rgba(30, 77, 107, 0.28); 
-  transform: translateY(-1px); 
+.btn-people-secondary:hover {
+  opacity: 0.92;
+  box-shadow: 0 4px 12px rgba(30, 77, 107, 0.28);
+  transform: translateY(-1px);
 }
 
 .team-subgrid-spacing {
   margin-top: 1.5rem;
 }
 
+/* People Directory Grid & Filter Pills (widget.people.directory.grid) */
+.people-directory-grid-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  width: 100%;
+  padding: 2rem;
+  background: #FFFFFF;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-squircle);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+}
 
+.directory-header-center {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.directory-page-title { margin: 0; }
+
+.directory-disclosure-banner {
+  background: var(--color-surface-gray);
+  border-left: 3px solid var(--alpine-blue);
+  border-radius: 8px;
+  padding: 0.85rem 1.15rem;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--color-secondary-default);
+}
+
+.directory-disclosure-tag {
+  font-weight: 500;
+  color: var(--premier-charcoal);
+}
+
+.directory-filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-dir-pill {
+  padding: 0.45rem 1rem;
+  border-radius: var(--border-radius-pill);
+  border: 1px solid var(--color-border-light);
+  background: var(--color-surface-gray);
+  color: var(--premier-charcoal);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-dir-pill:hover {
+  border-color: var(--alpine-blue);
+  color: var(--alpine-blue);
+  background: #FFFFFF;
+}
+
+.btn-dir-pill.is-active {
+  background: var(--alpine-blue);
+  border-color: var(--alpine-blue);
+  color: #FFFFFF;
+}
+
+.directory-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+  align-items: stretch;
+  width: 100%;
+}
+
+.directory-item-slot {
+  display: flex;
+}
+
+.directory-item-slot.is-hidden {
+  display: none !important;
+}
+
+/* Local Business Place Cards (widget.business.listing) */
+.business-listing-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.75rem;
+  height: 100%;
+  width: 100%;
+}
+
+.business-listing-card .media-frame {
+  margin-bottom: 0.85rem;
+}

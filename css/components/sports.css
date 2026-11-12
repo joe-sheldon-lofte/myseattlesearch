@@ -1,15 +1,79 @@
 /* File: css/components/sports.css */
-/* Sports Hub & Scoreboards (Declaration 2 Standard) */
+/* ==========================================================================
+   SPORTS HUBS, SCOREBOARDS, TEAM DIRECTORIES & AVIATION BOARDS
+   ========================================================================== */
 .sports-hub-hero { position: relative; display: flex; align-items: flex-end; min-height: 280px; padding: 3rem 1.5rem; background-color: var(--color-primary-default, #1C1C1E); border-bottom: 2px solid var(--color-primary-default, #1C1C1E); }
 .sports-hero-scrim { position: absolute; inset: 0; background: rgba(28, 28, 30, 0.28); }
 .sports-hero-content { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; width: 100%; }
 .sports-hero-subtitle { font-size: 1rem; font-weight: 400; color: var(--color-surface-gray, #F5F5F7); margin-top: 0.5rem; max-width: 600px; }
 .sports-content-container { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem 6rem; display: flex; flex-direction: column; gap: 3.5rem; }
 .sports-nav-strip { display: flex; flex-wrap: wrap; gap: 0.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08)); }
-.sports-section { display: flex; flex-direction: column; gap: 1.5rem; }
+.sports-section,
+.sports-team-directory-section { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; }
 .sports-score-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem; }
 .sports-team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
 
+/* Sports Category Link Tiles (widget.sports.category.link) */
+.sports-category-link-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  aspect-ratio: 1 / 1;
+  min-height: 200px;
+  padding: 1.5rem;
+  background: #FFFFFF;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-squircle);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  text-decoration: none;
+  box-sizing: border-box;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sports-category-link-card:hover { transform: translateY(-2px); border-color: var(--alpine-blue); box-shadow: 0 12px 32px rgba(30, 77, 107, 0.12); }
+.sports-cat-body { display: flex; flex-direction: column; gap: 0.65rem; }
+.sports-cat-header { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.sports-cat-icon-frame { width: 40px; height: 40px; border-radius: 12px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--alpine-blue); }
+.sports-cat-overline { color: var(--alpine-blue); }
+.sports-cat-title { margin: 0; }
+.sports-cat-desc { margin: 0; line-height: 1.5; }
+.sports-cat-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.75rem; font-size: 0.8rem; font-weight: 500; color: var(--alpine-blue); }
+.sports-cat-action-label { font-weight: 500; }
+.sports-cat-arrow { flex-shrink: 0; }
+
+/* Compact Game Summary Tile (widget.sports.game.summary) */
+.sports-game-summary-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem;
+  width: 100%;
+  background: #FFFFFF;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-squircle);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+}
+.sports-game-header { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.65rem; }
+.sports-game-meta { display: flex; align-items: center; gap: 0.4rem; }
+.sports-game-league { color: var(--alpine-blue); }
+.sports-game-dot { color: var(--color-secondary-muted); font-size: 0.75rem; }
+.sports-game-date { font-size: 0.75rem; color: var(--color-secondary-muted); font-variant-numeric: tabular-nums; }
+.sports-game-status-pill { font-size: 0.68rem; font-weight: 500; font-variant-numeric: tabular-nums; padding: 0.2rem 0.55rem; border-radius: var(--border-radius-pill); border: 1px solid var(--color-border-light); white-space: nowrap; }
+.sports-game-status-pill.status-game-final { background: var(--color-surface-gray); color: var(--premier-charcoal); }
+.sports-game-status-pill.status-game-live { background: rgba(16, 185, 129, 0.12); color: var(--status-emerald); border-color: rgba(16, 185, 129, 0.3); }
+.sports-game-status-pill.status-game-upcoming { background: rgba(30, 77, 107, 0.08); color: var(--alpine-blue); border-color: rgba(30, 77, 107, 0.25); }
+.sports-game-matchup { display: flex; flex-direction: column; gap: 0.6rem; }
+.sports-team-row { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
+.sports-team-name { font-size: 1rem; font-weight: 500; color: var(--premier-charcoal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sports-team-name.team-away { color: var(--color-secondary-muted); }
+.sports-team-score { font-size: 1.3rem; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--premier-charcoal); }
+.sports-team-score.score-away { color: var(--color-secondary-muted); }
+.sports-game-footer { border-top: 1px solid var(--color-border-light); padding-top: 0.65rem; font-size: 0.75rem; color: var(--color-secondary-muted); }
+.sports-venue-cluster { display: inline-flex; align-items: center; gap: 0.35rem; }
+.sports-venue-pin-icon { flex-shrink: 0; color: var(--alpine-blue); }
+
+/* Sports Team Cards (widget.sports.team.list) */
 .sports-team-card {
   display: flex;
   flex-direction: column;
@@ -37,7 +101,12 @@
 .btn-team-details { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; font-weight: 500; color: var(--color-secondary-default, #1E4D6B); text-decoration: none; padding: 0.4rem 0.85rem; border-radius: var(--border-radius-pill, 9999px); background: var(--color-surface-gray, #F5F5F7); transition: background-color 0.15s ease, color 0.15s ease; }
 .btn-team-details:hover { background: var(--color-secondary-default, #1E4D6B); color: #FFFFFF; }
 
+/* Athletic Score Box (widget.sports.score.box) */
 .sports-score-box-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 190px;
   padding: 1.5rem;
   width: 100%;
   background: #FFFFFF;
@@ -53,19 +122,23 @@
 .score-box-status-pill.status-live { background: rgba(16, 185, 129, 0.12); color: var(--status-emerald); border-color: rgba(16, 185, 129, 0.3); }
 .score-box-status-pill.status-scheduled { background: rgba(30, 77, 107, 0.08); color: var(--alpine-blue); border-color: rgba(30, 77, 107, 0.25); }
 
-.score-box-teams-stack { display: flex; flex-direction: column; gap: 0.85rem; }
-.score-box-team-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.score-box-teams-stack { display: flex; flex-direction: column; gap: 0.65rem; }
+.score-box-team-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.55rem 0.75rem; border-radius: 8px; box-sizing: border-box; }
+.score-box-team-row.row-local { background: var(--color-surface-gray); border-left: 3px solid var(--alpine-blue); }
+.score-box-team-row.row-opp { background: #FFFFFF; border: 1px solid var(--color-border-light); }
 .score-box-team-info { display: flex; align-items: baseline; gap: 0.5rem; min-width: 0; }
 .score-box-team-name { font-size: 1.05rem; font-weight: 500; color: var(--premier-charcoal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .score-box-team-record { font-size: 0.75rem; font-variant-numeric: tabular-nums; color: var(--color-secondary-muted); }
-.score-box-score-value { font-size: 1.35rem; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--premier-charcoal); }
+.score-box-score-value { font-size: 1.35rem; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--premier-charcoal); line-height: 1; margin-left: 0.75rem; }
 .score-box-team-name.name-opp, .score-box-score-value.score-opp { color: var(--color-secondary-muted); }
 
 .score-box-footer { margin-top: 1.25rem; padding-top: 0.85rem; border-top: 1px solid var(--color-border-light); display: flex; justify-content: space-between; align-items: center; }
 .score-box-recap-link { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; font-weight: 500; color: var(--alpine-blue); text-decoration: none; }
 .score-box-recap-link:hover { text-decoration: underline; }
+.score-box-recap-arrow { color: var(--alpine-blue); flex-shrink: 0; }
 .score-box-default-note { font-size: 0.7rem; color: var(--color-secondary-muted); }
 
+/* Stat Leaders, Player Ledger & Team Stats */
 .sports-leaders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem; }
 .sports-leader-card { display: flex; flex-direction: column; justify-content: space-between; padding: 1.25rem; background: var(--color-background-universal, #FFFFFF); border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08)); border-radius: var(--border-radius-squircle, 18px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06); }
 .leader-card-top { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 0.75rem; border-bottom: 1px solid rgba(0, 0, 0, 0.05); margin-bottom: 1rem; }
@@ -89,6 +162,7 @@
 .player-cell-name { font-weight: 500; }
 .th-num, .td-num { text-align: right; font-variant-numeric: tabular-nums; }
 .th-pos, .td-pos { text-align: center; }
+.font-medium { font-weight: 500; }
 
 .sports-team-stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.25rem; }
 .team-stat-tile { display: flex; flex-direction: column; justify-content: space-between; padding: 1.25rem; background: var(--color-background-universal, #FFFFFF); border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08)); border-radius: var(--border-radius-squircle, 18px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06); transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
@@ -97,14 +171,44 @@
 .team-stat-metric { font-size: 1.75rem; font-weight: 500; color: var(--color-primary-default, #1C1C1E); line-height: 1.1; font-variant-numeric: tabular-nums; }
 .team-stat-subtext { font-size: 0.75rem; color: var(--color-secondary-default, #1E4D6B); margin-top: 0.35rem; }
 
-.regional-airport-board-card { display: flex; flex-direction: column; gap: 1.25rem; width: 100%; padding: 1.75rem; background: #FFFFFF; border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06); box-sizing: border-box; }  
-.airport-board-table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }  
-.airport-board-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left; }  
-.airport-board-table th { padding: 0.5rem 0.75rem; font-weight: 500; letter-spacing: 0.05em; white-space: nowrap; border-bottom: 2px solid var(--color-border-light); color: var(--color-secondary-muted); }  
-.flight-row td { padding: 0.65rem 0.75rem; white-space: nowrap; border-bottom: 1px solid var(--color-border-light); }  
-.flight-row:hover { background-color: rgba(247, 245, 240, 0.5); }  
-.flight-row.is-hidden { display: none !important; }  
-.apt-status-pill.status-good { background: rgba(16, 185, 129, 0.1); color: var(--status-emerald); border-color: rgba(16, 185, 129, 0.2); }  
-.apt-status-pill.status-active { background: rgba(30, 77, 107, 0.1); color: var(--alpine-blue); border-color: rgba(30, 77, 107, 0.2); }  
-.apt-status-pill.status-warning { background: rgba(217, 119, 6, 0.1); color: var(--status-amber); border-color: rgba(217, 119, 6, 0.2); }  
+/* Zero-Fallback Empty Shield */
+.sports-stat-empty-shield { display: flex; align-items: center; justify-content: center; padding: 3rem 1.5rem; background: var(--color-background-universal, #FFFFFF); border: 1px dashed var(--color-border-light, rgba(0, 0, 0, 0.14)); border-radius: var(--border-radius-squircle, 18px); text-align: center; }
+.stat-empty-inner { max-width: 440px; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+.stat-empty-title { font-size: 1.15rem; font-weight: 500; color: var(--color-primary-default, #1C1C1E); margin: 0; }
+.stat-empty-subtext { font-size: 0.85rem; color: var(--color-secondary-muted, #6E6E73); line-height: 1.4; margin: 0; }
+.stat-empty-badge { display: inline-block; margin-top: 0.75rem; padding: 0.25rem 0.65rem; border-radius: var(--border-radius-pill, 9999px); background: var(--color-surface-gray, #F5F5F7); font-size: 0.7rem; font-weight: 500; letter-spacing: 0.08em; color: var(--color-secondary-muted, #6E6E73); }
+
+/* Regional Airport Flight Board (widget.regional.airport.status) */
+.regional-airport-board-card { display: flex; flex-direction: column; gap: 1.25rem; width: 100%; padding: 1.75rem; background: #FFFFFF; border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06); box-sizing: border-box; }
+.airport-board-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.85rem; }
+.airport-board-title-stack { display: flex; flex-direction: column; gap: 0.15rem; }
+.airport-board-title { margin: 0.15rem 0 0 0; }
+.airport-board-subtitle { font-size: 0.8rem; color: var(--color-secondary-muted); }
+.airport-board-filter-group { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.btn-apt-tab { padding: 0.35rem 0.85rem; font-size: 0.75rem; font-weight: 500; border-radius: var(--border-radius-pill); border: 1px solid var(--color-border-light); background: var(--color-surface-gray); color: var(--premier-charcoal); cursor: pointer; transition: all 0.15s ease; }
+.btn-apt-tab:hover { border-color: var(--alpine-blue); color: var(--alpine-blue); background: #FFFFFF; }
+.btn-apt-tab.is-active { background: var(--alpine-blue); color: #FFFFFF; border-color: var(--alpine-blue); }
+.airport-board-table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.airport-board-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left; }
+.airport-board-table th { padding: 0.5rem 0.75rem; font-weight: 500; letter-spacing: 0.05em; white-space: nowrap; border-bottom: 2px solid var(--color-border-light); color: var(--color-secondary-muted); }
+.flight-row td { padding: 0.65rem 0.75rem; white-space: nowrap; border-bottom: 1px solid var(--color-border-light); }
+.flight-row:hover { background-color: rgba(245, 245, 247, 0.7); }
+.flight-row.is-hidden { display: none !important; }
+.cell-apt-hub { font-weight: 500; color: var(--alpine-blue); }
+.cell-apt-flight { font-weight: 500; font-variant-numeric: tabular-nums; color: var(--premier-charcoal); }
+.cell-apt-destination { color: var(--premier-charcoal); }
+.cell-apt-time { font-variant-numeric: tabular-nums; color: var(--color-secondary-muted); }
+.cell-apt-gate { text-align: center; font-variant-numeric: tabular-nums; color: var(--color-secondary-muted); }
+.cell-apt-status { text-align: right; }
+.apt-status-pill { display: inline-block; padding: 0.2rem 0.55rem; border-radius: var(--border-radius-pill); font-size: 0.7rem; font-weight: 500; border: 1px solid transparent; }
+.apt-status-pill.status-good { background: rgba(16, 185, 129, 0.1); color: var(--status-emerald); border-color: rgba(16, 185, 129, 0.2); }
+.apt-status-pill.status-active { background: rgba(30, 77, 107, 0.1); color: var(--alpine-blue); border-color: rgba(30, 77, 107, 0.2); }
+.apt-status-pill.status-warning { background: rgba(217, 119, 6, 0.1); color: var(--status-amber); border-color: rgba(217, 119, 6, 0.2); }
 .apt-status-pill.status-alert { background: rgba(217, 35, 42, 0.1); color: var(--pnw-red); border-color: rgba(217, 35, 42, 0.2); }
+.airport-board-footer { border-top: 1px solid var(--color-border-light); padding-top: 0.75rem; font-size: 0.75rem; color: var(--color-secondary-muted); }
+
+@media (max-width: 640px) {
+  .sports-score-grid,
+  .sports-team-grid { grid-template-columns: 1fr; }
+  .sports-team-stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
