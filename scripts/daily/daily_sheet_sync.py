@@ -13,6 +13,12 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+except ImportError:
+    pass
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
@@ -186,7 +192,7 @@ def get_r2_client():
         config=Config(signature_version='s4')
     )
 
-def process_and_upload_image(image_url, mls_number, image_index, r2_client):
+def process_and_upload_image(image_url, mls_number, image_index, r2_client, drive_service):
     if not image_url or not str(image_url).startswith("http"): return ""
     if "assets.myseattlesearch.com" in image_url: return image_url
 
@@ -195,9 +201,23 @@ def process_and_upload_image(image_url, mls_number, image_index, r2_client):
     public_url = f"https://assets.myseattlesearch.com/{r2_key}"
 
     try:
-        req = requests.get(image_url, timeout=10)
-        req.raise_for_status()
-        img = Image.open(io.BytesIO(req.content))
+        if is_google_drive_link(image_url):
+            file_id = extract_google_id(image_url)
+            if not file_id: return image_url
+
+            request = drive_service.files().get_media(fileId=file_id)
+            fh = io.BytesIO()
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while done is False:
+                status, done = downloader.next_chunk()
+            fh.seek(0)
+            img = Image.open(fh)
+        else:
+            req = requests.get(image_url, timeout=10)
+            req.raise_for_status()
+            img = Image.open(io.BytesIO(req.content))
+
         if img.mode in ("RGBA", "P"): img = img.convert("RGB")
         img.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
         webp_buffer = io.BytesIO()
@@ -327,7 +347,7 @@ def main():
                     img_key = f"Image URL {i}"
                     raw_url = row_dict.get(img_key, "")
                     if raw_url and "assets.myseattlesearch.com" not in raw_url:
-                        processed_url = process_and_upload_image(raw_url, mls_number, i, r2_client)
+                        processed_url = process_and_upload_image(raw_url, mls_number, i, r2_client, drive_service)
                         if processed_url != raw_url:
                             row_dict[img_key] = processed_url
                             sheet_writebacks.append({'range': f"Sales!{get_col_letter(headers.index(img_key))}{idx + 2}", 'values': [[processed_url]]})

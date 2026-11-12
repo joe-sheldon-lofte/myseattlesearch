@@ -58,7 +58,11 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/ _data/
+          for dir in data _data; do
+            if [ -d "$dir" ]; then
+              git add "$dir/"
+            fi
+          done
           if git diff --staged --quiet; then
             echo "No daily data changes detected. Skipping commit."
           else
