@@ -436,7 +436,7 @@
   color: var(--color-primary-default, #1C1C1E);
 }
 
-/* Subpage Neighborhood Navigation Pills (Top-Clip Safe) */
+/* Subpage Neighborhood Navigation Pills (Adaptive Centered Dock + Top-Clip Safe) */
 .neighborhood-nav-container {
   width: 100%;
   border-radius: var(--border-radius-squircle);
@@ -453,10 +453,8 @@
   justify-content: center;
   flex-wrap: wrap;
   gap: 0.5rem;
-  padding: 3px 2px;
+  padding: 4px 2px;
 }
-
-.neighborhood-nav-track::-webkit-scrollbar { display: none; }
 
 .neighborhood-nav-pill {
   flex: 0 0 auto;
@@ -468,6 +466,34 @@
   white-space: nowrap;
   box-sizing: border-box;
   transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+@media (max-width: 768px) {
+  .neighborhood-nav-container {
+    position: relative;
+    padding: 0.45rem 0.5rem;
+  }
+
+  .neighborhood-nav-track {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 1.5rem;
+    -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 90%, transparent 100%);
+    mask-image: linear-gradient(90deg, #000 0%, #000 90%, transparent 100%);
+  }
+
+  .neighborhood-nav-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .neighborhood-nav-pill {
+    scroll-snap-align: start;
+  }
 }
 
 .neighborhood-nav-pill.is-active {
