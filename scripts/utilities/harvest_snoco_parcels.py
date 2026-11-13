@@ -4,13 +4,15 @@ import time
 import sqlite3
 import asyncio
 import argparse
-from urllib.parse import urljoin
+from datetime import datetime
+from zoneinfo import ZoneInfo
 import httpx
-from bs4 import BeautifulSoup
 
 MAX_SQL_BYTES = 75000
 D1_FLUSH_EVERY = 50
-USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+PACIFIC_TZ = ZoneInfo("America/Los_Angeles")
+BASE_PORTAL = "https://wa-snohomish.publicaccessnow.com"
+USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0.1 Safari/605.1.15"
 
 
 def load_dev_vars(root_dir):
@@ -77,18 +79,6 @@ def get_completed_pins(conn):
     return {row[0] for row in cur.fetchall()}
 
 
-def page_matches_pin(html_text, pin):
-    """Verifies the returned HTML actually belongs to the requested parcel number."""
-    clean_pin = str(pin).strip()
-    if clean_pin in html_text:
-        return True
-    if len(clean_pin) == 14 and clean_pin.isdigit():
-        hyphenated = f"{clean_pin[:6]}-{clean_pin[6:9]}-{clean_pin[9:12]}-{clean_pin[12:14]}"
-        if hyphenated in html_text:
-            return True
-    return False
-
-
 def normalize_snoco_style(raw_style, prop_type=None):
     if prop_type == "Condo":
         return "Condo"
@@ -96,7 +86,8 @@ def normalize_snoco_style(raw_style, prop_type=None):
         return "Townhouse"
     if not raw_style:
         return None
-    s = str(raw_style).strip().lower()
+    cleaned = re.sub(r'^R\d+\s*:\s*\d*\s*', '', str(raw_style).strip(), flags=re.IGNORECASE).strip()
+    s = cleaned.lower()
     if "town" in s:
         return "Townhouse"
     if "condo" in s:
@@ -107,9 +98,9 @@ def normalize_snoco_style(raw_style, prop_type=None):
         return "1.5-Story"
     if "2" in s or "two" in s or "2.5" in s or "3" in s or "multi" in s:
         return "2-Story"
-    if "1" in s or "one" in s or "rambl" in s or "ranch" in s or "single" in s:
+    if "1" in s or "one" in s or "rambl" in s or "ranch" in s or "single" in s or "sty" in s:
         return "1-Story"
-    return raw_style.strip()[:40]
+    return cleaned[:40] if cleaned else None
 
 
 def normalize_snoco_grade(raw_qual):
@@ -161,191 +152,23 @@ def normalize_snoco_condition(raw_cond):
     return None
 
 
-def extract_structure_actions(html_text, base_url):
-    """
-    Extracts ASP.NET __doPostBack payloads or direct URLs for 'View Detailed Structure Information'.
-    Returns a list of tuples: ('POST', post_url, form_data) or ('GET', target_url, None).
-    """
-    soup = BeautifulSoup(html_text, "html.parser")
-    form = soup.find("form")
-    base_form_data = {}
-    form_action_url = base_url
-
-    if form:
-        action_attr = (form.get("action") or "").strip()
-        if action_attr:
-            form_action_url = urljoin(base_url, action_attr)
-        for inp in form.find_all("input"):
-            name = inp.get("name")
-            if not name:
-                continue
-            inp_type = (inp.get("type") or "text").lower()
-            if inp_type in ("submit", "button", "image", "reset", "file"):
-                continue
-            if inp_type in ("checkbox", "radio") and not inp.has_attr("checked"):
-                continue
-            base_form_data[name] = inp.get("value") or ""
-
-    actions = []
-    seen = set()
-
-    for tag in soup.find_all(["a", "input", "button"]):
-        txt = (tag.get_text(" ", strip=True) or tag.get("value") or "").lower()
-        href = (tag.get("href") or "").strip()
-        onclick = (tag.get("onclick") or "").strip()
-        combined_js = f"{href} {onclick}"
-
-        if not any(kw in txt or kw in combined_js.lower() for kw in ["detailed structure", "structure information", "structure"]):
-            continue
-
-        m = re.search(r'__doPostBack\(\s*[\'"]([^\'"]+)[\'"]\s*,\s*[\'"]([^\'"]*)[\'"]\s*\)', combined_js)
-        if m and form:
-            target, arg = m.group(1), m.group(2)
-            key = ("POST", target, arg)
-            if key not in seen:
-                seen.add(key)
-                payload = dict(base_form_data)
-                payload["__EVENTTARGET"] = target
-                payload["__EVENTARGUMENT"] = arg
-                actions.append(("POST", form_action_url, payload))
-        elif tag.name in ("input", "button") and (tag.get("type") or "").lower() == "submit" and tag.get("name") and form:
-            btn_name = tag["name"]
-            key = ("POST", btn_name, "")
-            if key not in seen:
-                seen.add(key)
-                payload = dict(base_form_data)
-                payload[btn_name] = tag.get("value") or "View Detailed Structure Information"
-                actions.append(("POST", form_action_url, payload))
-        elif href and not href.lower().startswith("javascript:") and not href.startswith("#"):
-            full_url = urljoin(base_url, href)
-            key = ("GET", full_url, "")
-            if key not in seen:
-                seen.add(key)
-                actions.append(("GET", full_url, None))
-
-    return actions
-
-
-def parse_structure_html(html_text, prop_type=None, debug_kv=False, pin=""):
-    """Parses interior GLA, beds/baths, style, quality, and condition from Aumentum HTML."""
-    soup = BeautifulSoup(html_text, "html.parser")
-    kv_pairs = {}
-
-    for tr in soup.find_all("tr"):
-        cells = [c.get_text(" ", strip=True) for c in tr.find_all(["th", "td"])]
-        if len(cells) >= 2:
-            for idx in range(len(cells) - 1):
-                label = cells[idx].rstrip(":").strip().lower()
-                val = cells[idx + 1].strip()
-                if label and val and len(label) <= 55:
-                    kv_pairs.setdefault(label, val)
-
-    for tbl in soup.find_all("table"):
-        rows = tbl.find_all("tr")
-        for r_idx in range(len(rows) - 1):
-            headers = [c.get_text(" ", strip=True).rstrip(":").strip().lower() for c in rows[r_idx].find_all(["th", "td"])]
-            vals = [c.get_text(" ", strip=True) for c in rows[r_idx + 1].find_all(["th", "td"])]
-            if len(headers) == len(vals) and len(headers) >= 2:
-                for h, v in zip(headers, vals):
-                    if h and v and len(h) <= 55:
-                        kv_pairs.setdefault(h, v)
-
-    if debug_kv:
-        sample_items = list(kv_pairs.items())[:35]
-        print(f"[DEBUG {pin}] Extracted KV pairs ({len(kv_pairs)} total): {sample_items}")
-
-    def find_val(keywords):
-        for k, v in kv_pairs.items():
-            for kw in keywords:
-                if kw in k and v and v.lower() not in {"n/a", "none", "-", "0", "0.00"}:
-                    return v
-        return None
-
-    gla = None
-    raw_gla = find_val([
-        "total living area", "finished area", "living area", "gross living",
-        "total finished", "above grade", "main floor area", "base area", "sq ft", "square feet"
-    ])
-    if raw_gla:
-        digits = re.sub(r"[^0-9.]", "", raw_gla)
-        if digits:
-            try:
-                val_int = int(float(digits))
-                if 150 <= val_int <= 45000:
-                    gla = val_int
-            except ValueError:
-                pass
-
-    if not gla:
-        floor_sum = 0
-        for k, v in kv_pairs.items():
-            if any(fk in k for fk in ["1st floor", "first floor", "2nd floor", "second floor", "upper floor", "finished basement", "bsmt fin", "half story"]):
-                digits = re.sub(r"[^0-9.]", "", v)
-                if digits:
-                    try:
-                        val_int = int(float(digits))
-                        if 50 <= val_int <= 25000:
-                            floor_sum += val_int
-                    except ValueError:
-                        pass
-        if 150 <= floor_sum <= 45000:
-            gla = floor_sum
-
-    if not gla:
-        m = re.search(
-            r"(?:Total Living Area|Living Area|Finished Area|Gross Area)\s*:?\s*([0-9,]{3,6})",
-            soup.get_text(" "),
-            re.IGNORECASE,
-        )
-        if m:
-            val_int = int(m.group(1).replace(",", ""))
-            if 150 <= val_int <= 45000:
-                gla = val_int
-
-    year_built = None
-    raw_yb = find_val(["year built", "yr built", "effective year"])
-    if raw_yb:
-        m = re.search(r"(18\d{2}|19\d{2}|20[0-3]\d)", raw_yb)
-        if m:
-            year_built = int(m.group(1))
-
-    bedrooms = None
-    raw_beds = find_val(["bedroom", "beds"])
-    if raw_beds:
-        m = re.search(r"(\d+)", raw_beds)
-        if m:
-            bedrooms = int(m.group(1))
-
-    bath_full = None
-    bath_half = None
-    raw_full = find_val(["full or 3/4", "full bath", "baths full", "3/4 bath", "bathrooms", "baths"])
-    if raw_full:
-        m_float = re.search(r"(\d+)(?:\.(\d+))?", raw_full)
-        if m_float:
-            bath_full = int(m_float.group(1))
-            if m_float.group(2) and int(m_float.group(2)) > 0:
-                bath_half = 1
-    raw_half = find_val(["1/2 bath", "half bath", "baths half"])
-    if raw_half:
-        m_h = re.search(r"(\d+)", raw_half)
-        if m_h:
-            bath_half = int(m_h.group(1))
-
-    raw_style = find_val(["style", "bldg style", "building style", "story", "stories"])
-    style = normalize_snoco_style(raw_style, prop_type)
-    grade = normalize_snoco_grade(find_val(["quality", "grade", "construction quality"]))
-    condition = normalize_snoco_condition(find_val(["condition", "bldg condition"]))
-
-    return {
-        "square_footage": gla,
-        "year_built": year_built,
-        "bedrooms": bedrooms,
-        "bath_full": bath_full,
-        "bath_half": bath_half,
-        "building_grade": grade,
-        "building_condition": condition,
-        "building_style": style,
-    }
+def parse_datadisplay_rows(payload):
+    """Flattens Aumentum DataDisplay groups[].rows[].values[] into a list of row dicts."""
+    rows_out = []
+    if not isinstance(payload, dict):
+        return rows_out
+    for grp in payload.get("groups") or []:
+        for row in grp.get("rows") or []:
+            row_dict = {}
+            for cell in row.get("values") or []:
+                col = cell.get("column")
+                if col:
+                    row_dict[col] = cell.get("value")
+                    if cell.get("hyperlink"):
+                        row_dict[f"{col}__hyperlink"] = cell.get("hyperlink")
+            if row_dict:
+                rows_out.append(row_dict)
+    return rows_out
 
 
 def fetch_target_queue(endpoint, headers, staging_dir, completed_pins, queue_file=None, sales_only=False, limit=None):
@@ -451,77 +274,230 @@ def flush_base_updates_to_d1(endpoint, headers, base_updates):
         execute_d1_sync(endpoint, headers, "\n".join(stmts))
 
 
+async def bootstrap_portal_cookies(client):
+    """Initializes AWSALB / ASPXANONYMOUS session cookies on wa-snohomish.publicaccessnow.com."""
+    try:
+        await client.get(
+            f"{BASE_PORTAL}/PropertyInformation/PropertySearch.aspx",
+            follow_redirects=True,
+            timeout=25.0,
+        )
+    except Exception:
+        pass
+
+
 async def process_parcel(client, sem, pin, prop_type, debug_html=False):
-    # Hit ParcelInfo.aspx directly so IIS issues the cookieless session redirect straight to the parcel
-    direct_url = f"https://www.snoco.org/proptax/ParcelInfo.aspx?parcel_number={pin}"
+    today_str = datetime.now(PACIFIC_TZ).strftime("%Y-%m-%d")
     async with sem:
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(0.04)
         for attempt in range(3):
             try:
-                resp = await client.get(direct_url, follow_redirects=True, timeout=30.0)
-                final_url = str(resp.url)
-
-                if "proptax" not in final_url.lower():
-                    if debug_html:
-                        print(f"\n[DEBUG {pin}] Maintenance redirect -> {final_url}")
-                    return pin, "MAINTENANCE", None
-
-                if resp.status_code in (429, 503):
+                # 1. QuickSearch API -> resolve internal Altkey (a)
+                qs_url = f"{BASE_PORTAL}/DesktopModules/QuickSearch/API/Module/GetData?_m=470"
+                qs_headers = {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/plain, */*",
+                    "ModuleId": "470",
+                    "TabId": "38",
+                    "Origin": BASE_PORTAL,
+                    "Referer": f"{BASE_PORTAL}/PropertyInformation/PropertySearch.aspx",
+                }
+                qs_resp = await client.post(
+                    qs_url,
+                    json={"keywords": pin, "page": 1},
+                    headers=qs_headers,
+                    timeout=20.0,
+                )
+                if qs_resp.status_code in (429, 503):
                     await asyncio.sleep(2.0 * (attempt + 1))
                     continue
-                if resp.status_code != 200:
-                    return pin, "ERROR", None
+                if qs_resp.status_code != 200:
+                    await bootstrap_portal_cookies(client)
+                    continue
 
-                html_text = resp.text
-                if not page_matches_pin(html_text, pin):
+                qs_json = qs_resp.json()
+                items = qs_json.get("items") or []
+                if not items:
                     if debug_html:
-                        print(f"\n[DEBUG {pin}] PIN not found in page body at {final_url} (aborting safely)")
-                    return pin, "INVALID_PAGE", None
+                        print(f"[DEBUG {pin}] QuickSearch returned 0 items.")
+                    return pin, "NO_STRUCTURE", None
 
-                structure_actions = extract_structure_actions(html_text, final_url)
-                best_attrs = parse_structure_html(html_text, prop_type, debug_kv=debug_html, pin=pin)
+                matched_fields = None
+                for it in items:
+                    flds = it.get("fields") or {}
+                    if str(flds.get("ParcelID", "")).strip() == pin or str(flds.get("PrimaryKey", "")).strip() == pin:
+                        matched_fields = flds
+                        break
+                if matched_fields is None:
+                    matched_fields = items[0].get("fields") or {}
+
+                altkey = matched_fields.get("Altkey")
+                if not altkey:
+                    return pin, "NO_STRUCTURE", None
+
+                # 2. Buildings List (_m=694) -> resolve Building ID (b), Style, YearBuilt & daily date token (d)
+                summary_ref = f"{BASE_PORTAL}/PropertyInformation/PropertySearch/PropertyAccountSummary.aspx?p={pin}&a={altkey}&m={pin}"
+                bldg_list_url = (
+                    f"{BASE_PORTAL}/API/DataDisplay/DataSources/GetData"
+                    f"?p={pin}&a={altkey}&m={pin}&itemsPerPage=15&page=1&_m=694"
+                )
+                bl_resp = await client.get(
+                    bldg_list_url,
+                    headers={
+                        "Accept": "application/json, text/plain, */*",
+                        "ModuleId": "694",
+                        "TabId": "39",
+                        "Referer": summary_ref,
+                    },
+                    timeout=20.0,
+                )
+                if bl_resp.status_code != 200:
+                    if attempt == 2:
+                        return pin, "ERROR", None
+                    await asyncio.sleep(1.0)
+                    continue
+
+                bldg_rows = parse_datadisplay_rows(bl_resp.json())
+                if not bldg_rows:
+                    if debug_html:
+                        print(f"[DEBUG {pin}] Altkey={altkey} | 0 buildings listed in _m=694 (vacant/land).")
+                    return pin, "NO_STRUCTURE", None
+
+                total_gla = 0
+                total_beds = 0
+                total_full_baths = 0
+                total_half_baths = 0
+                best_style = normalize_snoco_style(None, prop_type)
+                best_year_built = None
+                best_grade = None
+                best_condition = None
+                primary_gla = -1
+
+                for brow in bldg_rows[:3]:
+                    raw_bname = brow.get("BuildingName")
+                    raw_yb = brow.get("YearBuilt")
+                    href = brow.get("BuildingName__hyperlink") or ""
+
+                    m_b = re.search(r'[?&]b=(\d+)', href)
+                    if not m_b:
+                        continue
+                    b_id = m_b.group(1)
+
+                    m_d = re.search(r'[?&]d=(\d{4}-\d{2}-\d{2})', href)
+                    date_token = m_d.group(1) if m_d else today_str
+
+                    detail_ref = (
+                        f"{BASE_PORTAL}/PropertyInformation/PropertySearch/PropertyAccountSummary/BuildingDetail.aspx"
+                        f"?b={b_id}&a={altkey}&p={pin}&d={date_token}"
+                    )
+
+                    # 3. Improvement Area, Quality & Condition (_m=593)
+                    imp_url = (
+                        f"{BASE_PORTAL}/API/DataDisplay/DataSources/GetData"
+                        f"?b={b_id}&a={altkey}&p={pin}&d={date_token}&itemsPerPage=25&page=1&_m=593"
+                    )
+                    # 4. Room & Bath Counts (_m=522)
+                    room_url = (
+                        f"{BASE_PORTAL}/API/DataDisplay/DataSources/GetData"
+                        f"?b={b_id}&a={altkey}&p={pin}&d={date_token}&itemsPerPage=25&page=1&_m=522"
+                    )
+
+                    imp_resp, room_resp = await asyncio.gather(
+                        client.get(
+                            imp_url,
+                            headers={"Accept": "application/json, text/plain, */*", "ModuleId": "593", "TabId": "105", "Referer": detail_ref},
+                            timeout=20.0,
+                        ),
+                        client.get(
+                            room_url,
+                            headers={"Accept": "application/json, text/plain, */*", "ModuleId": "522", "TabId": "105", "Referer": detail_ref},
+                            timeout=20.0,
+                        ),
+                    )
+
+                    b_gla = 0
+                    b_qual = None
+                    b_cond = None
+                    b_yb = None
+
+                    if imp_resp.status_code == 200:
+                        imp_json = imp_resp.json()
+                        for tot in imp_json.get("totals") or []:
+                            if tot.get("column") == "FinishedArea":
+                                digits = re.sub(r"[^0-9.]", "", str(tot.get("value") or ""))
+                                if digits:
+                                    b_gla = int(float(digits))
+
+                        imp_rows = parse_datadisplay_rows(imp_json)
+                        row_fin_sum = 0
+                        for irow in imp_rows:
+                            fin_digits = re.sub(r"[^0-9.]", "", str(irow.get("FinishedArea") or ""))
+                            fin_val = int(float(fin_digits)) if fin_digits else 0
+                            if fin_val > 0:
+                                row_fin_sum += fin_val
+                                if b_qual is None:
+                                    b_qual = normalize_snoco_grade(irow.get("QualityDescr"))
+                                if b_cond is None:
+                                    b_cond = normalize_snoco_condition(irow.get("ConditionDescr"))
+                                if b_yb is None and irow.get("YearBuilt"):
+                                    m_y = re.search(r"(18\d{2}|19\d{2}|20[0-3]\d)", str(irow.get("YearBuilt")))
+                                    if m_y:
+                                        b_yb = int(m_y.group(1))
+                        if b_gla == 0 and row_fin_sum > 0:
+                            b_gla = row_fin_sum
+
+                    if b_yb is None and raw_yb:
+                        m_y = re.search(r"(18\d{2}|19\d{2}|20[0-3]\d)", str(raw_yb))
+                        if m_y:
+                            b_yb = int(m_y.group(1))
+
+                    if b_gla > 0:
+                        total_gla += b_gla
+                        if b_gla > primary_gla:
+                            primary_gla = b_gla
+                            parsed_style = normalize_snoco_style(raw_bname, prop_type)
+                            if parsed_style:
+                                best_style = parsed_style
+                            if b_yb:
+                                best_year_built = b_yb
+                            if b_qual:
+                                best_grade = b_qual
+                            if b_cond:
+                                best_condition = b_cond
+
+                    if room_resp.status_code == 200:
+                        room_rows = parse_datadisplay_rows(room_resp.json())
+                        for rrow in room_rows:
+                            desc = str(rrow.get("Description") or "").strip().lower()
+                            u_digits = re.sub(r"[^0-9]", "", str(rrow.get("Units") or ""))
+                            if not u_digits:
+                                continue
+                            units = int(u_digits)
+                            if "bedroom" in desc:
+                                total_beds += units
+                            elif "full bath" in desc or "3/4 bath" in desc or "three quarter bath" in desc:
+                                total_full_baths += units
+                            elif "half bath" in desc or "1/2 bath" in desc:
+                                total_half_baths += units
+
+                attrs = {
+                    "square_footage": total_gla if 150 <= total_gla <= 45000 else None,
+                    "year_built": best_year_built,
+                    "bedrooms": total_beds if total_beds > 0 else None,
+                    "bath_full": total_full_baths if total_full_baths > 0 else None,
+                    "bath_half": total_half_baths if total_half_baths > 0 else None,
+                    "building_grade": best_grade,
+                    "building_condition": best_condition,
+                    "building_style": best_style,
+                }
 
                 if debug_html:
-                    print(f"[DEBUG {pin}] Active URL: {final_url} | Structure actions: {len(structure_actions)}")
+                    print(f"[DEBUG {pin}] Altkey={altkey} | Parsed -> {attrs}")
 
-                for method, target_url, payload in structure_actions[:3]:
-                    try:
-                        if method == "POST":
-                            s_resp = await client.post(
-                                target_url,
-                                data=payload,
-                                headers={"Referer": final_url},
-                                follow_redirects=True,
-                                timeout=25.0,
-                            )
-                        else:
-                            s_resp = await client.get(
-                                target_url,
-                                headers={"Referer": final_url},
-                                follow_redirects=True,
-                                timeout=25.0,
-                            )
+                status = "DONE" if attrs["square_footage"] else "NO_STRUCTURE"
+                return pin, status, attrs
 
-                        if s_resp.status_code == 200 and "proptax" in str(s_resp.url).lower():
-                            s_attrs = parse_structure_html(s_resp.text, prop_type, debug_kv=debug_html, pin=pin)
-                            if debug_html:
-                                print(f"[DEBUG {pin}] Structure subpage parsed -> {s_attrs}")
-                            if (s_attrs.get("square_footage") or 0) >= (best_attrs.get("square_footage") or 0):
-                                for k, v in s_attrs.items():
-                                    if v is not None:
-                                        best_attrs[k] = v
-                            else:
-                                for k, v in s_attrs.items():
-                                    if best_attrs.get(k) is None and v is not None:
-                                        best_attrs[k] = v
-                    except Exception as sub_err:
-                        if debug_html:
-                            print(f"[DEBUG {pin}] Subpage error: {sub_err}")
-                        continue
-
-                status = "DONE" if best_attrs.get("square_footage") else "NO_STRUCTURE"
-                return pin, status, best_attrs
-            except (httpx.RequestError, asyncio.TimeoutError):
+            except (httpx.RequestError, asyncio.TimeoutError, ValueError):
                 if attempt == 2:
                     return pin, "ERROR", None
                 await asyncio.sleep(1.5 * (attempt + 1))
@@ -567,7 +543,12 @@ async def run_harvester(args):
     processed = 0
     total = len(targets)
 
-    async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}, limits=httpx.Limits(max_connections=args.concurrency + 4)) as client:
+    async with httpx.AsyncClient(
+        headers={"User-Agent": USER_AGENT},
+        limits=httpx.Limits(max_connections=args.concurrency * 2 + 4),
+    ) as client:
+        await bootstrap_portal_cookies(client)
+
         chunk_start = 0
         while chunk_start < total:
             batch = targets[chunk_start:chunk_start + D1_FLUSH_EVERY]
@@ -576,12 +557,6 @@ async def run_harvester(args):
                 for pin, ptype in batch
             ]
             results = await asyncio.gather(*tasks)
-
-            maintenance_hits = sum(1 for _, st, _ in results if st == "MAINTENANCE")
-            if maintenance_hits >= max(1, len(batch) // 2):
-                print("\n⏸️ Snohomish Assessor portal is in maintenance/offline mode. Pausing 60s before retrying batch...")
-                await asyncio.sleep(60)
-                continue
 
             for pin, status, attrs in results:
                 processed += 1
@@ -605,12 +580,12 @@ async def run_harvester(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Async Snohomish County Interior GLA, Style & Hedonic Harvester (Attributes Only).")
+    parser = argparse.ArgumentParser(description="Async Snohomish County JSON API Harvester (Attributes Only).")
     parser.add_argument("--concurrency", type=int, default=12, help="Concurrent HTTP workers (default: 12).")
     parser.add_argument("--sales-only", action="store_true", help="Only harvest parcels with recent sales first.")
     parser.add_argument("--queue-file", type=str, default=None, help="Path to delta PIN queue file.")
     parser.add_argument("--limit", type=int, default=None, help="Max parcels to process in this run.")
-    parser.add_argument("--debug-html", action="store_true", help="Print parsed KV pairs and structure attributes.")
+    parser.add_argument("--debug-html", action="store_true", help="Print parsed JSON attributes for each parcel.")
     args = parser.parse_args()
     asyncio.run(run_harvester(args))
 

@@ -1,0 +1,549 @@
+---
+layout: layouts/base.njk
+pagination:
+  data: city_data
+  size: 1
+  addAllPagesToCollections: true
+  alias: city
+permalink: "/neighborhood/{{ city.City | slugify }}/weather/index.html"
+---
+{% set city_slug = city.City | slugify %}
+{% set active_neighborhood = city.City %}
+{% set primary_district = city['School District'].split(',')[0] | trim if city['School District'] else '' %}
+
+<main class="layout-container layout-stack-main">
+
+  {# ==========================================================================
+     SECTION 1: CANONICAL NEIGHBORHOOD HERO HEADER
+     ========================================================================== #}
+  <div id="neighborhood-hero" class="portal-section-header">
+    {% set hero_img_main = city.HeroImageMain %}
+    {% set hero_img_left = city.HeroImageLeft %}
+    {% set hero_img_right = city.HeroImageRight %}
+    {% set hero_welcome_label = "Welcome to the neighborhood" %}
+    {% set subpage_topic = "Weather" %}
+    {% include "components/widget/neighborhood-page-header.njk" %}
+  </div>
+
+  {# ==========================================================================
+     SECTION 2: EXPLORE NAVIGATION PILLS (Shuffled Subpage Dock)
+     ========================================================================== #}
+  <section id="explore-neighborhood" class="portal-section-nav" aria-label="Explore {{ active_neighborhood }}">
+    <span class="text-overline text-accent-alpine section-overline-lead">
+      EXPLORE {{ active_neighborhood | upper }}
+    </span>
+    <div class="neighborhood-nav-container">
+      <nav class="neighborhood-nav-track" tabindex="0" aria-label="{{ active_neighborhood }} Subpages">
+        <a href="/neighborhood/{{ city_slug }}/" class="neighborhood-nav-pill is-inactive">City Home</a>
+        <a href="/neighborhood/{{ city_slug }}/news-events/" class="neighborhood-nav-pill is-inactive">News &amp; Events</a>
+        <a href="/neighborhood/{{ city_slug }}/transit-commute/" class="neighborhood-nav-pill is-inactive">Transit &amp; Commute</a>
+        <a href="/neighborhood/{{ city_slug }}/emergency-safety/" class="neighborhood-nav-pill is-inactive">Emergency &amp; Safety</a>
+        <a href="/neighborhood/{{ city_slug }}/municipal/" class="neighborhood-nav-pill is-inactive">Municipal</a>
+        <a href="/neighborhood/{{ city_slug }}/real-estate/" class="neighborhood-nav-pill is-inactive">Real Estate</a>
+        {% if primary_district %}
+          <a href="/neighborhood/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
+        {% endif %}
+        <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
+        <a href="/neighborhood/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit</a>
+      </nav>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 3: CURRENT CONDITIONS & COMPACT ATMOSPHERIC VITALS
+     ========================================================================== #}
+  {% set w_city = city_weather[city_slug] if city_weather else null %}
+  {% set show_tides = false %}
+  {% if w_city and w_city.marine_tides and w_city.marine_tides.reference_station and w_city.marine_tides.today_predictions and (w_city.marine_tides.today_predictions | length) > 0 %}
+    {% set show_tides = true %}
+  {% endif %}
+
+  <section id="current-weather" class="portal-section-glance">
+    <h2 class="text-section-title section-title-clean">Current Conditions</h2>
+
+    <div class="section-grid-static grid-cols-1 weather-primary-row">
+      {% if w_city and w_city.current %}
+        {% set current_weather_temp = w_city.current.temp_f | round %}
+        {% set w_code = w_city.current.weather_code | int %}
+        {% set current_weather_condition = "Rain" if w_code >= 50 else ("Cloudy" if w_code == 3 else "Fair") %}
+        {% set current_weather_high = w_city.forecast_7_day.temp_max[0] | round if (w_city.forecast_7_day and w_city.forecast_7_day.temp_max) else "N/A" %}
+        {% set current_weather_low = w_city.forecast_7_day.temp_min[0] | round if (w_city.forecast_7_day and w_city.forecast_7_day.temp_min) else "N/A" %}
+        {% set current_weather_wind = (w_city.current.wind_speed_mph | round) ~ ' MPH' %}
+        {% set current_weather_humidity = (w_city.current.humidity_pct | round) ~ '%' %}
+        {% include "components/widget/weather-current-display.njk" ignore missing %}
+      {% endif %}
+    </div>
+
+    <div class="section-grid-static {% if show_tides %}grid-cols-4{% else %}grid-cols-3{% endif %}">
+
+      {# 3.1: Compact Air Quality Index Squircle #}
+      {% if w_city and w_city.air_quality and w_city.air_quality.us_aqi is not none %}
+        {% set aqi_num = w_city.air_quality.us_aqi | round %}
+        {% set aqi_tier = "score-tier-emerald" if aqi_num <= 50 else ("score-tier-amber" if aqi_num <= 100 else "score-tier-crimson") %}
+        <article class="weather-compact-tile" aria-label="Air Quality Index">
+          <span class="text-overline text-accent-alpine">AIR QUALITY INDEX</span>
+          <div class="weather-score-lockup">
+            <span class="weather-score-squircle {{ aqi_tier }}">{{ aqi_num }}</span>
+            <div class="weather-score-meta">
+              <span class="weather-score-primary">{{ w_city.air_quality.status_label or "Good" }}</span>
+              {% if w_city.air_quality.parameter %}
+                <span class="weather-score-secondary">Primary: {{ w_city.air_quality.parameter }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+      {% endif %}
+
+      {# 3.2: Compact UV Index Squircle #}
+      {% if w_city and w_city.current and w_city.current.uv_index is not none %}
+        {% set uv_num = w_city.current.uv_index | round %}
+        {% set uv_tier = "score-tier-emerald" if uv_num <= 2 else ("score-tier-amber" if uv_num <= 5 else "score-tier-crimson") %}
+        <article class="weather-compact-tile" aria-label="UV Index">
+          <span class="text-overline text-accent-alpine">UV INDEX</span>
+          <div class="weather-score-lockup">
+            <span class="weather-score-squircle {{ uv_tier }}">{{ uv_num }}</span>
+            <div class="weather-score-meta">
+              <span class="weather-score-primary">{{ w_city.current.uv_label or "Low" }}</span>
+              <span class="weather-score-secondary">Solar Exposure</span>
+            </div>
+          </div>
+        </article>
+      {% endif %}
+
+      {# 3.3: Compact Horizontal Solar Ring (Matching Homepage Dial) #}
+      {% if w_city and w_city.astronomy and w_city.astronomy.sunrise_today and w_city.astronomy.sunset_today %}
+        {% set raw_rise = w_city.astronomy.sunrise_today %}
+        {% set raw_set = w_city.astronomy.sunset_today %}
+        {% set rise_h = raw_rise.split('T')[1].split(':')[0] | int %}
+        {% set rise_m = raw_rise.split('T')[1].split(':')[1] %}
+        {% set rise_mins = rise_h * 60 + (rise_m | int) %}
+        {% set rise_disp = (12 if rise_h == 0 else (rise_h if rise_h <= 12 else rise_h - 12)) ~ ':' ~ rise_m ~ (' AM' if rise_h < 12 else ' PM') %}
+
+        {% set set_h = raw_set.split('T')[1].split(':')[0] | int %}
+        {% set set_m = raw_set.split('T')[1].split(':')[1] %}
+        {% set set_mins = set_h * 60 + (set_m | int) %}
+        {% set set_disp = (12 if set_h == 0 else (set_h if set_h <= 12 else set_h - 12)) ~ ':' ~ set_m ~ (' AM' if set_h < 12 else ' PM') %}
+
+        {% set sun_angle = 90 %}
+        {% if w_city.last_updated and ('T' in w_city.last_updated) %}
+          {% set u_h = w_city.last_updated.split('T')[1].split(':')[0] | int %}
+          {% set u_m = w_city.last_updated.split('T')[1].split(':')[1] | int %}
+          {% set cur_h = (u_h - 8 + 24) % 24 %}
+          {% set cur_mins = cur_h * 60 + u_m %}
+          {% if cur_mins >= rise_mins and cur_mins <= set_mins %}
+            {% set sun_angle = (((cur_mins - rise_mins) / (set_mins - rise_mins)) * 180) | round(1) %}
+          {% else %}
+            {% set night_dur = (1440 - set_mins) + rise_mins %}
+            {% set elapsed = (cur_mins - set_mins) if cur_mins > set_mins else ((1440 - set_mins) + cur_mins) %}
+            {% set sun_angle = (180 + ((elapsed / night_dur) * 180)) | round(1) %}
+          {% endif %}
+        {% endif %}
+
+        <article class="weather-compact-tile" aria-label="Sunrise and Sunset">
+          <span class="text-overline text-accent-alpine">SUNRISE &amp; SUNSET</span>
+          <div class="glance-solar-row">
+            <span class="glance-solar-time">{{ rise_disp }}</span>
+            <div class="glance-solar-dial" aria-hidden="true">
+              <svg viewBox="0 0 100 100" class="glance-solar-svg">
+                <path d="M 10 50 A 40 40 0 0 1 90 50" class="glance-solar-day" />
+                <path d="M 90 50 A 40 40 0 0 1 10 50" class="glance-solar-night" />
+                <polygon points="6,54 14,54 10,45" class="glance-solar-arrow-rise" />
+                <polygon points="86,46 94,46 90,55" class="glance-solar-arrow-set" />
+                <g transform="rotate({{ sun_angle }}, 50, 50)">
+                  <circle cx="10" cy="50" r="5" class="glance-solar-dot" />
+                </g>
+              </svg>
+            </div>
+            <span class="glance-solar-time">{{ set_disp }}</span>
+          </div>
+        </article>
+      {% endif %}
+
+      {# 3.4: Compact 3-Band Marine Tides Card (Coastal / Puget Sound Cities Only) #}
+      {% if show_tides %}
+        {% set h_tide = null %}
+        {% set l_tide = null %}
+        {% for pred in w_city.marine_tides.today_predictions %}
+          {% if not h_tide and pred.type == "High" %}
+            {% set h_tide = pred %}
+          {% elif not l_tide and pred.type == "Low" %}
+            {% set l_tide = pred %}
+          {% endif %}
+        {% endfor %}
+
+        {% set tide_high_time = h_tide.time if (h_tide and h_tide.time) else "TBD" %}
+        {% if 'T' in tide_high_time %}
+          {% set ht_p = tide_high_time.split('T')[1].split(':') %}
+          {% set ht_h = ht_p[0] | int %}
+          {% set tide_high_time = (12 if ht_h == 0 else (ht_h if ht_h <= 12 else ht_h - 12)) ~ ':' ~ ht_p[1] ~ (' AM' if ht_h < 12 else ' PM') %}
+        {% endif %}
+
+        {% set tide_low_time = l_tide.time if (l_tide and l_tide.time) else "TBD" %}
+        {% if 'T' in tide_low_time %}
+          {% set lt_p = tide_low_time.split('T')[1].split(':') %}
+          {% set lt_h = lt_p[0] | int %}
+          {% set tide_low_time = (12 if lt_h == 0 else (lt_h if lt_h <= 12 else lt_h - 12)) ~ ':' ~ lt_p[1] ~ (' AM' if lt_h < 12 else ' PM') %}
+        {% endif %}
+
+        {% set first_pred_type = w_city.marine_tides.today_predictions[0].type if (w_city.marine_tides.today_predictions | length) > 0 else "High" %}
+        {% set tide_rising = (first_pred_type == "High") %}
+
+        <article class="weather-tide-compact-card" aria-label="Marine Tides">
+          <div class="tide-band-high">
+            <span class="tide-band-label">NEXT HIGH {{ tide_high_time }}</span>
+            <span class="tide-band-height">{% if h_tide %}{{ h_tide.height_ft }} ft{% endif %}</span>
+          </div>
+
+          <svg viewBox="0 0 300 16" preserveAspectRatio="none" class="tide-wave-divider" aria-hidden="true">
+            <path d="M0,4 C75,14 225,-4 300,6 L300,16 L0,16 Z" class="tide-wave-divider-path" />
+          </svg>
+
+          <div class="tide-band-mid">
+            <span class="tide-mid-station">Reference Station:<br>{{ w_city.marine_tides.reference_station }}</span>
+            <span class="tide-mid-trend">
+              {% if tide_rising %}&#9650; Tide<br>Rising{% else %}&#9660; Tide<br>Falling{% endif %}
+            </span>
+          </div>
+
+          <div class="tide-band-low">
+            <span class="tide-band-label">NEXT LOW {{ tide_low_time }}</span>
+            <span class="tide-band-height">{% if l_tide %}{{ l_tide.height_ft }} ft{% endif %}</span>
+          </div>
+        </article>
+      {% endif %}
+
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 4: 7-DAY FORECAST (Cascading Accordion)
+     ========================================================================== #}
+  <section id="extended-forecast" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">7-Day Outlook</h2>
+    {% include "components/widget/weather-forecast-accordion.njk" %}
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 5: INTERACTIVE WEATHER MAP (6-Layer ESRI + IEM/NOAA Stack)
+     ========================================================================== #}
+  <section id="weather-map" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">Live Radar &amp; Cloud Cover</h2>
+
+    <div class="weather-map-card">
+      <header class="weather-map-header">
+        <h3 class="text-widget-title weather-map-title">Regional Weather Map</h3>
+        <div class="airport-board-filter-group" role="tablist" aria-label="Map Layers">
+          <button type="button" class="btn-apt-tab is-active" data-weather-layer="radar" aria-pressed="true">Radar</button>
+          <button type="button" class="btn-apt-tab" data-weather-layer="clouds" aria-pressed="false">Cloud Cover</button>
+          <button type="button" class="btn-apt-tab" data-weather-layer="precip" aria-pressed="false">1-Hr Rainfall</button>
+          <button type="button" class="btn-apt-tab" data-weather-layer="wind" aria-pressed="false">Surface Wind</button>
+          <button type="button" class="btn-apt-tab" data-weather-layer="alerts" aria-pressed="false">NWS Alerts</button>
+          <button type="button" class="btn-apt-tab" data-weather-layer="stations" aria-pressed="false">Gauges &amp; Tides</button>
+        </div>
+      </header>
+
+      <div class="weather-map-stage">
+        <div id="weatherMapNode"
+             class="weather-map-canvas"
+             data-lat="{{ city.Latitude | default(47.6062) }}"
+             data-lng="{{ city.Longitude | default(-122.3321) }}"
+             data-city="{{ active_neighborhood }}"></div>
+
+        {# Floating Playback Dock #}
+        <div class="map-playback-dock">
+          <button type="button" id="weatherLoopBtn" class="btn-map-play" aria-label="Play radar loop" aria-pressed="false">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+          </button>
+          <div id="weatherTimelineTrack" class="map-timeline-track" role="slider" aria-label="Radar timeline" aria-valuemin="0" aria-valuemax="9" aria-valuenow="9">
+            {% for i in range(0, 10) %}
+              <div class="timeline-tick {% if loop.last %}is-active{% endif %}" data-frame="{{ i }}"></div>
+            {% endfor %}
+          </div>
+          <span id="weatherTimestampBadge" class="map-timestamp-badge">LIVE</span>
+        </div>
+
+        <div class="map-attribution-pill">NOAA / NWS / ESRI</div>
+      </div>
+    </div>
+  </section>
+
+  {# ==========================================================================
+     SECTION 6: REGIONAL RIVER GAUGES (Root city_weather._regional_water_gauges)
+     ========================================================================== #}
+  {% set regional_gauges = city_weather._regional_water_gauges if (city_weather and city_weather._regional_water_gauges) else [] %}
+  {% if (regional_gauges | length) > 0 %}
+    <hr class="section-divider">
+
+    <section id="river-gauges" class="portal-section-widget">
+      <h2 class="text-section-title section-title-clean">Regional River Status</h2>
+
+      <div class="section-grid-static grid-cols-3">
+        {% set unique_stations = [] %}
+        {% for reading in regional_gauges %}
+          {% if reading.site_name and (reading.site_name not in unique_stations) %}
+            {% set _ = unique_stations.push(reading.site_name) %}
+
+            {% set flow_cfs = "N/A" %}
+            {% set gauge_ft = "N/A" %}
+            {% set obs_time = reading.reading_time %}
+
+            {% for r in regional_gauges %}
+              {% if r.site_name == reading.site_name %}
+                {% if r.unit == "ft3/s" %}{% set flow_cfs = r.reading %}{% endif %}
+                {% if r.unit == "ft" %}{% set gauge_ft = r.reading %}{% endif %}
+              {% endif %}
+            {% endfor %}
+
+            {% set obs_disp = "Recent" %}
+            {% if obs_time and ('T' in obs_time) %}
+              {% set obs_parts = obs_time.split('T')[1].split(':') %}
+              {% set obs_h = obs_parts[0] | int %}
+              {% set obs_disp = (12 if obs_h == 0 else (obs_h if obs_h <= 12 else obs_h - 12)) ~ ':' ~ obs_parts[1] ~ (' AM' if obs_h < 12 else ' PM') %}
+            {% endif %}
+
+            <article class="river-metric-tile">
+              <div class="river-metric-overline">{{ reading.site_name }}</div>
+              <div class="river-metric-figure val-flow">
+                {{ flow_cfs }} <span class="river-metric-unit">cfs</span>
+              </div>
+              <div class="river-footer-row river-station-footer">
+                <span>Stage: <strong class="river-stage-value">{{ gauge_ft }} ft</strong></span>
+                <span>{{ obs_disp }}</span>
+              </div>
+            </article>
+
+          {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+</main>
+
+<script id="weatherStationsPayload" type="application/json">
+{
+  "city": {{ active_neighborhood | dump | safe }},
+  "lat": {{ city.Latitude | default(47.6062) }},
+  "lng": {{ city.Longitude | default(-122.3321) }},
+  "tideStation": {{ (w_city.marine_tides.reference_station if (w_city and w_city.marine_tides) else "") | dump | safe }},
+  "gauges": {{ regional_gauges | dump | safe }}
+}
+</script>
+
+<script>
+(function() {
+  function initWeatherMap() {
+    var mapEl = document.getElementById("weatherMapNode");
+    if (!mapEl || typeof L === "undefined") return;
+
+    var payload = {};
+    try {
+      var raw = document.getElementById("weatherStationsPayload");
+      if (raw) payload = JSON.parse(raw.textContent);
+    } catch (e) {}
+
+    var lat = parseFloat(mapEl.getAttribute("data-lat")) || payload.lat || 47.6062;
+    var lng = parseFloat(mapEl.getAttribute("data-lng")) || payload.lng || -122.3321;
+    var cityName = payload.city || mapEl.getAttribute("data-city") || "Seattle";
+
+    var map = L.map("weatherMapNode", {
+      center: [lat, lng],
+      zoom: 10,
+      scrollWheelZoom: false
+    });
+
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+      attribution: "Esri, HERE, Garmin, NOAA, USGS",
+      maxZoom: 16
+    }).addTo(map);
+
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 16,
+      pane: "overlayPane"
+    }).addTo(map);
+
+    var frameOffsets = ["-m45m", "-m40m", "-m35m", "-m30m", "-m25m", "-m20m", "-m15m", "-m10m", "-m05m", ""];
+    var frameLabels = ["-45m", "-40m", "-35m", "-30m", "-25m", "-20m", "-15m", "-10m", "-5m", "LIVE"];
+    var currentFrame = 9;
+    var isPlaying = false;
+    var loopTimer = null;
+
+    var radarFrames = frameOffsets.map(function(suffix) {
+      return L.tileLayer("https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913" + suffix + "/{z}/{x}/{y}.png", {
+        opacity: 0,
+        maxZoom: 14
+      });
+    });
+
+    var cloudFrames = frameOffsets.map(function(suffix) {
+      return L.tileLayer("https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/goes-ir-4km-900913" + suffix + "/{z}/{x}/{y}.png", {
+        opacity: 0,
+        maxZoom: 12
+      });
+    });
+
+    var precipLayer = L.tileLayer("https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/q2-n1p-900913/{z}/{x}/{y}.png", {
+      opacity: 0.55,
+      maxZoom: 14
+    });
+
+    var windLayer = L.tileLayer.wms("https://mesonet.agron.iastate.edu/cgi-bin/wms/us/metar.cgi", {
+      layers: "metar_wind",
+      format: "image/png",
+      transparent: true,
+      opacity: 0.85
+    });
+
+    var alertsLayer = L.layerGroup();
+    var alertsLoaded = false;
+
+    var stationsLayer = L.layerGroup();
+    var popupLines = ["<strong>" + cityName + "</strong>"];
+    if (payload.tideStation) popupLines.push("Tide Station: " + payload.tideStation);
+    L.circleMarker([lat, lng], {
+      radius: 7,
+      fillColor: "#1E4D6B",
+      color: "#FFFFFF",
+      weight: 2,
+      fillOpacity: 0.95
+    }).bindPopup(popupLines.join("<br>")).addTo(stationsLayer);
+
+    if (Array.isArray(payload.gauges)) {
+      var seenSites = {};
+      payload.gauges.forEach(function(g) {
+        if (!g || !g.site_name || seenSites[g.site_name]) return;
+        seenSites[g.site_name] = true;
+        var gLat = parseFloat(g.latitude || g.lat);
+        var gLng = parseFloat(g.longitude || g.lon || g.lng);
+        if (!isNaN(gLat) && !isNaN(gLng)) {
+          L.circleMarker([gLat, gLng], {
+            radius: 6,
+            fillColor: "#10B981",
+            color: "#FFFFFF",
+            weight: 2,
+            fillOpacity: 0.95
+          }).bindPopup("<strong>" + g.site_name + "</strong><br>USGS River Gauge").addTo(stationsLayer);
+        }
+      });
+    }
+
+    var layerState = {
+      radar: true,
+      clouds: false,
+      precip: false,
+      wind: false,
+      alerts: false,
+      stations: false
+    };
+
+    radarFrames.forEach(function(layer) { layer.addTo(map); });
+    cloudFrames.forEach(function(layer) { layer.addTo(map); });
+
+    var ticks = document.querySelectorAll("#weatherTimelineTrack .timeline-tick");
+    var badge = document.getElementById("weatherTimestampBadge");
+    var playBtn = document.getElementById("weatherLoopBtn");
+
+    function renderFrame(idx) {
+      currentFrame = idx;
+      radarFrames.forEach(function(layer, i) {
+        layer.setOpacity(layerState.radar && i === idx ? 0.65 : 0);
+      });
+      cloudFrames.forEach(function(layer, i) {
+        layer.setOpacity(layerState.clouds && i === idx ? 0.45 : 0);
+      });
+      ticks.forEach(function(t, i) {
+        t.classList.toggle("is-active", i === idx);
+      });
+      if (badge) badge.textContent = frameLabels[idx];
+    }
+
+    function loadAlertsOnce() {
+      if (alertsLoaded) return;
+      alertsLoaded = true;
+      fetch("https://api.weather.gov/alerts/active?area=WA")
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (!data || !data.features) return;
+          L.geoJSON(data, {
+            style: function(feature) {
+              var sev = (feature.properties && feature.properties.severity) || "";
+              var col = sev === "Severe" || sev === "Extreme" ? "#D9232A" : (sev === "Moderate" ? "#D97706" : "#1E4D6B");
+              return { color: col, weight: 2, fillOpacity: 0.16 };
+            },
+            onEachFeature: function(feature, layer) {
+              var p = feature.properties || {};
+              layer.bindPopup("<strong>" + (p.event || "Weather Advisory") + "</strong><br>" + (p.headline || ""));
+            }
+          }).addTo(alertsLayer);
+        })
+        .catch(function() {});
+    }
+
+    document.querySelectorAll("[data-weather-layer]").forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        var key = btn.getAttribute("data-weather-layer");
+        layerState[key] = !layerState[key];
+        btn.classList.toggle("is-active", layerState[key]);
+        btn.setAttribute("aria-pressed", layerState[key] ? "true" : "false");
+
+        if (key === "radar" || key === "clouds") renderFrame(currentFrame);
+        if (key === "precip") layerState.precip ? precipLayer.addTo(map) : map.removeLayer(precipLayer);
+        if (key === "wind") layerState.wind ? windLayer.addTo(map) : map.removeLayer(windLayer);
+        if (key === "alerts") {
+          if (layerState.alerts) { loadAlertsOnce(); alertsLayer.addTo(map); }
+          else { map.removeLayer(alertsLayer); }
+        }
+        if (key === "stations") layerState.stations ? stationsLayer.addTo(map) : map.removeLayer(stationsLayer);
+      });
+    });
+
+    ticks.forEach(function(tick) {
+      tick.addEventListener("click", function() {
+        var idx = parseInt(tick.getAttribute("data-frame"), 10);
+        renderFrame(idx);
+      });
+    });
+
+    if (playBtn) {
+      playBtn.addEventListener("click", function() {
+        isPlaying = !isPlaying;
+        playBtn.setAttribute("aria-pressed", isPlaying ? "true" : "false");
+        playBtn.innerHTML = isPlaying
+          ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>'
+          : '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+        if (isPlaying) {
+          loopTimer = setInterval(function() {
+            renderFrame((currentFrame + 1) % frameOffsets.length);
+          }, 650);
+        } else {
+          clearInterval(loopTimer);
+        }
+      });
+    }
+
+    renderFrame(9);
+  }
+
+  if (typeof L !== "undefined") {
+    initWeatherMap();
+  } else {
+    var link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+    document.head.appendChild(link);
+
+    var script = document.createElement("script");
+    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    script.onload = initWeatherMap;
+    document.body.appendChild(script);
+  }
+})();
+</script>
