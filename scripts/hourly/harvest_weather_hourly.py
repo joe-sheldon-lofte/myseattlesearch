@@ -138,15 +138,26 @@ def clean_coord(val):
 
 
 def safe_float(val, digits=None):
-    if val is None or val == "" or str(val).strip() == "-999999":
+    """Parses numeric values while rejecting NaN/Inf and NOAA/USGS sentinel codes (<= -900)."""
+    if val is None or val == "":
         return None
     try:
         f = float(str(val).strip())
-        if math.isnan(f) or math.isinf(f):
+        if math.isnan(f) or math.isinf(f) or f <= -900.0:
             return None
         return round(f, digits) if digits is not None else f
     except (ValueError, TypeError):
         return None
+
+
+def clean_wsdot_text(val):
+    """Normalizes WSDOT operator strings by collapsing whitespace and stripping single-clause trailing periods."""
+    if not val:
+        return ""
+    text = re.sub(r"\s+", " ", str(val)).strip()
+    if text.endswith(".") and not re.search(r"(?<!\d)[.!?]\s+\S", text):
+        text = text[:-1].strip()
+    return text
 
 
 def normalize_gauge_name(raw_name):
@@ -571,8 +582,8 @@ def harvest_mountain_passes(session):
         restrictions_list = []
 
         if matched_wsdot:
-            road_cond = str(matched_wsdot.get("RoadCondition") or "").strip()
-            weather_cond = str(matched_wsdot.get("WeatherCondition") or "").strip()
+            road_cond = clean_wsdot_text(matched_wsdot.get("RoadCondition"))
+            weather_cond = clean_wsdot_text(matched_wsdot.get("WeatherCondition"))
             wsdot_temp = safe_float(matched_wsdot.get("TemperatureInFahrenheit"), 0)
             if wsdot_temp is not None:
                 wsdot_temp = int(wsdot_temp)
@@ -585,9 +596,9 @@ def harvest_mountain_passes(session):
             r1 = matched_wsdot.get("RestrictionOne") or {}
             r2 = matched_wsdot.get("RestrictionTwo") or {}
             r1_dir = str(r1.get("TravelDirection") or "").strip()
-            r1_text = str(r1.get("RestrictionText") or "").strip()
+            r1_text = clean_wsdot_text(r1.get("RestrictionText"))
             r2_dir = str(r2.get("TravelDirection") or "").strip()
-            r2_text = str(r2.get("RestrictionText") or "").strip()
+            r2_text = clean_wsdot_text(r2.get("RestrictionText"))
 
             for d_lbl, r_txt in ((r1_dir, r1_text), (r2_dir, r2_text)):
                 if d_lbl or r_txt:
@@ -682,7 +693,7 @@ def harvest_weather_data():
     today_local_str = local_now.strftime("%Y-%m-%d")
     begin_tide_str = local_now.strftime("%Y%m%d")
 
-    print("⛅ Harvesting 11-Day Weather, 7-Day AQI, 11-Day Tides, River Baselines & Mountain Passes...", flush=True)
+    print("⛅ Harvesting 11-Day Weather, 6-Day AQI, 11-Day Tides, River Baselines & Mountain Passes...", flush=True)
     session = requests.Session()
     session.headers.update(BROWSER_HEADERS)
 
@@ -756,7 +767,7 @@ def harvest_weather_data():
         except Exception as e:
             print(f"   ⚠️ NOAA Tides notice [{st_key}]: {e}", flush=True)
 
-    # 3. Fetch Regional US AQI & PM2.5 Current + 7-Day Daily Forecast (Open-Meteo CAMS)
+    # 3. Fetch Regional US AQI & PM2.5 Current + 6-Day Daily Forecast (Open-Meteo CAMS)
     city_aqi_map = {}
     regional_hubs = [
         {"name": "Seattle-Bellevue-Kent Valley", "lat": 47.6062, "lon": -122.3321},
@@ -769,7 +780,7 @@ def harvest_weather_data():
         "longitude": ",".join([str(h["lon"]) for h in regional_hubs]),
         "current": "us_aqi,pm2_5",
         "hourly": "us_aqi,pm2_5",
-        "forecast_days": 7,
+        "forecast_days": 6,
         "timezone": "America/Los_Angeles"
     }
     try:
@@ -801,7 +812,10 @@ def harvest_weather_data():
                         if p_val is not None:
                             bucket["pm_max"] = p_val if bucket["pm_max"] is None else max(bucket["pm_max"], p_val)
 
-                    f_dates = sorted(daily_peaks.keys())
+                    f_dates = [
+                        d for d in sorted(daily_peaks.keys())
+                        if daily_peaks[d]["aqi_max"] is not None or daily_peaks[d]["pm_max"] is not None
+                    ][:6]
                     f_aqi_max = [daily_peaks[d]["aqi_max"] for d in f_dates]
                     f_pm_max = [daily_peaks[d]["pm_max"] for d in f_dates]
                     f_labels = [get_aqi_category(val) for val in f_aqi_max]
@@ -812,7 +826,7 @@ def harvest_weather_data():
                         "pm2_5": pm_num,
                         "category": get_aqi_category(aqi_num),
                         "parameter": "PM2.5" if (aqi_num is not None or pm_num is not None) else None,
-                        "forecast_7_day": {
+                        "forecast_6_day": {
                             "dates": f_dates,
                             "us_aqi_max": f_aqi_max,
                             "pm2_5_max": f_pm_max,
@@ -889,7 +903,7 @@ def harvest_weather_data():
                 "status_label": aqi_info.get("category"),
                 "parameter": aqi_info.get("parameter"),
                 "reporting_area": aqi_info.get("reporting_area"),
-                "forecast_7_day": aqi_info.get("forecast_7_day", {"dates": [], "us_aqi_max": [], "pm2_5_max": [], "status_label": []})
+                "forecast_6_day": aqi_info.get("forecast_6_day", {"dates": [], "us_aqi_max": [], "pm2_5_max": [], "status_label": []})
             },
             "marine_tides": {
                 "reference_station": assigned_station.replace("-", " ").title(),

@@ -55,8 +55,10 @@ permalink: "/neighborhood/{{ city.City | slugify }}/weather/index.html"
      SECTION 3: CURRENT CONDITIONS & COMPACT ATMOSPHERIC VITALS
      ========================================================================== #}
   {% set w_city = city_weather[city_slug] if city_weather else null %}
+  {% set fc_main = w_city.forecast_11_day if (w_city and w_city.forecast_11_day) else (w_city.forecast_7_day if w_city else null) %}
+  {% set tide_list = w_city.marine_tides.predictions_11_day if (w_city and w_city.marine_tides and w_city.marine_tides.predictions_11_day) else (w_city.marine_tides.today_predictions if (w_city and w_city.marine_tides) else []) %}
   {% set show_tides = false %}
-  {% if w_city and w_city.marine_tides and w_city.marine_tides.reference_station and w_city.marine_tides.today_predictions and (w_city.marine_tides.today_predictions | length) > 0 %}
+  {% if w_city and w_city.marine_tides and w_city.marine_tides.reference_station and (tide_list | length) > 0 %}
     {% set show_tides = true %}
   {% endif %}
 
@@ -67,9 +69,18 @@ permalink: "/neighborhood/{{ city.City | slugify }}/weather/index.html"
       {% if w_city and w_city.current %}
         {% set current_weather_temp = w_city.current.temp_f | round %}
         {% set w_code = w_city.current.weather_code | int %}
-        {% set current_weather_condition = "Rain" if w_code >= 50 else ("Cloudy" if w_code == 3 else "Fair") %}
-        {% set current_weather_high = w_city.forecast_7_day.temp_max[0] | round if (w_city.forecast_7_day and w_city.forecast_7_day.temp_max) else "N/A" %}
-        {% set current_weather_low = w_city.forecast_7_day.temp_min[0] | round if (w_city.forecast_7_day and w_city.forecast_7_day.temp_min) else "N/A" %}
+        {% set current_weather_condition = "Clear" %}
+        {% if w_code in [95, 96, 99] %}{% set current_weather_condition = "Thunderstorm" %}
+        {% elif w_code in [71, 73, 75, 77, 85, 86] %}{% set current_weather_condition = "Snow" %}
+        {% elif w_code in [61, 63, 65, 66, 67, 80, 81, 82] %}{% set current_weather_condition = "Rain" %}
+        {% elif w_code in [51, 53, 55, 56, 57] %}{% set current_weather_condition = "Drizzle" %}
+        {% elif w_code in [45, 48] %}{% set current_weather_condition = "Fog" %}
+        {% elif w_code == 3 %}{% set current_weather_condition = "Overcast" %}
+        {% elif w_code == 2 %}{% set current_weather_condition = "Partly Cloudy" %}
+        {% elif w_code == 1 %}{% set current_weather_condition = "Mostly Clear" %}
+        {% endif %}
+        {% set current_weather_high = fc_main.temp_max[0] | round if (fc_main and fc_main.temp_max) else "N/A" %}
+        {% set current_weather_low = fc_main.temp_min[0] | round if (fc_main and fc_main.temp_min) else "N/A" %}
         {% set current_weather_wind = (w_city.current.wind_speed_mph | round) ~ ' MPH' %}
         {% set current_weather_humidity = (w_city.current.humidity_pct | round) ~ '%' %}
         {% include "components/widget/weather-current-display.njk" ignore missing %}
@@ -169,74 +180,18 @@ permalink: "/neighborhood/{{ city.City | slugify }}/weather/index.html"
         </article>
       {% endif %}
 
-      {# 3.4: Compact 3-Band Marine Tides Card (Upcoming Predictions Only) #}
+      {# 3.4: Compact 3-Band Marine Tides Card (Uses time_formatted & predictions_11_day) #}
       {% if show_tides %}
-        {% set now_mins = 0 %}
-        {% if w_city.last_updated and (('T' in w_city.last_updated) or (' ' in w_city.last_updated)) %}
-          {% set tu_t = w_city.last_updated.split('T')[1] if ('T' in w_city.last_updated) else w_city.last_updated.split(' ')[1] %}
-          {% set tu_h = tu_t.split(':')[0] | int %}
-          {% set tu_m = tu_t.split(':')[1] | int %}
-          {% set now_mins = ((tu_h - 8 + 24) % 24) * 60 + tu_m %}
-        {% endif %}
-
         {% set h_tide = null %}
         {% set l_tide = null %}
-        {% set next_any_type = "" %}
-
-        {% for pred in w_city.marine_tides.today_predictions %}
-          {% set p_mins = 9999 %}
-          {% if pred.time %}
-            {% set pt_str = pred.time.split('T')[1] if ('T' in pred.time) else (pred.time.split(' ')[1] if (' ' in pred.time and ('-' in pred.time.split(' ')[0])) else pred.time) %}
-            {% if ':' in pt_str %}
-              {% set clean_t = pt_str | upper | replace('AM', '') | replace('PM', '') | trim %}
-              {% set cp = clean_t.split(':') %}
-              {% set ch = cp[0] | int %}
-              {% set cm = cp[1] | int %}
-              {% if ('PM' in (pt_str | upper)) and ch != 12 %}{% set ch = ch + 12 %}{% endif %}
-              {% if ('AM' in (pt_str | upper)) and ch == 12 %}{% set ch = 0 %}{% endif %}
-              {% set p_mins = ch * 60 + cm %}
-            {% endif %}
-          {% endif %}
-
-          {% if p_mins >= now_mins %}
-            {% if not next_any_type %}{% set next_any_type = pred.type %}{% endif %}
-            {% if not h_tide and pred.type == "High" %}{% set h_tide = pred %}{% endif %}
-            {% if not l_tide and pred.type == "Low" %}{% set l_tide = pred %}{% endif %}
-          {% endif %}
-        {% endfor %}
-
-        {% set future_preds = w_city.marine_tides.tomorrow_predictions if w_city.marine_tides.tomorrow_predictions else w_city.marine_tides.today_predictions %}
-        {% for pred in future_preds %}
-          {% if not next_any_type %}{% set next_any_type = pred.type %}{% endif %}
+        {% for pred in tide_list %}
           {% if not h_tide and pred.type == "High" %}{% set h_tide = pred %}{% endif %}
           {% if not l_tide and pred.type == "Low" %}{% set l_tide = pred %}{% endif %}
         {% endfor %}
 
-        {% set tide_high_time = "TBD" %}
-        {% if h_tide and h_tide.time %}
-          {% set ht_raw = h_tide.time.split('T')[1] if ('T' in h_tide.time) else (h_tide.time.split(' ')[1] if (' ' in h_tide.time and ('-' in h_tide.time.split(' ')[0])) else h_tide.time) %}
-          {% if ':' in ht_raw and ('AM' not in (ht_raw | upper)) and ('PM' not in (ht_raw | upper)) %}
-            {% set ht_p = ht_raw.split(':') %}
-            {% set ht_h = ht_p[0] | int %}
-            {% set tide_high_time = (12 if ht_h == 0 else (ht_h if ht_h <= 12 else ht_h - 12)) ~ ':' ~ ht_p[1] ~ (' AM' if ht_h < 12 else ' PM') %}
-          {% else %}
-            {% set tide_high_time = ht_raw %}
-          {% endif %}
-        {% endif %}
-
-        {% set tide_low_time = "TBD" %}
-        {% if l_tide and l_tide.time %}
-          {% set lt_raw = l_tide.time.split('T')[1] if ('T' in l_tide.time) else (l_tide.time.split(' ')[1] if (' ' in l_tide.time and ('-' in l_tide.time.split(' ')[0])) else l_tide.time) %}
-          {% if ':' in lt_raw and ('AM' not in (lt_raw | upper)) and ('PM' not in (lt_raw | upper)) %}
-            {% set lt_p = lt_raw.split(':') %}
-            {% set lt_h = lt_p[0] | int %}
-            {% set tide_low_time = (12 if lt_h == 0 else (lt_h if lt_h <= 12 else lt_h - 12)) ~ ':' ~ lt_p[1] ~ (' AM' if lt_h < 12 else ' PM') %}
-          {% else %}
-            {% set tide_low_time = lt_raw %}
-          {% endif %}
-        {% endif %}
-
-        {% set tide_rising = (next_any_type == "High") %}
+        {% set tide_high_time = h_tide.time_formatted if (h_tide and h_tide.time_formatted) else "TBD" %}
+        {% set tide_low_time = l_tide.time_formatted if (l_tide and l_tide.time_formatted) else "TBD" %}
+        {% set tide_rising = (tide_list[0].type == "High") if (tide_list | length) > 0 else true %}
 
         <article id="weatherTideCard" class="weather-tide-compact-card" aria-label="Marine Tides">
           <div class="tide-band-high">
@@ -268,17 +223,17 @@ permalink: "/neighborhood/{{ city.City | slugify }}/weather/index.html"
   <hr class="section-divider">
 
   {# ==========================================================================
-     SECTION 4: 7-DAY FORECAST (Cascading Accordion)
+     SECTION 4: 10-DAY OUTLOOK (Cascading Accordion)
      ========================================================================== #}
   <section id="extended-forecast" class="portal-section-widget">
-    <h2 class="text-section-title section-title-clean">7-Day Outlook</h2>
+    <h2 class="text-section-title section-title-clean">10-Day Outlook</h2>
     {% include "components/widget/weather-forecast-accordion.njk" %}
   </section>
 
   <hr class="section-divider">
 
   {# ==========================================================================
-     SECTION 5: INTERACTIVE WEATHER MAP (Smooth NOAA MRMS + City Pin + Live Wind)
+     SECTION 5: INTERACTIVE WEATHER MAP (Smooth NOAA MRMS + City Pin + Wind)
      ========================================================================== #}
   <section id="weather-map" class="portal-section-widget">
     <h2 class="text-section-title section-title-clean">Live Radar &amp; Cloud Cover</h2>
@@ -323,180 +278,252 @@ permalink: "/neighborhood/{{ city.City | slugify }}/weather/index.html"
     </div>
   </section>
 
-  <hr class="section-divider">
-
   {# ==========================================================================
-     SECTION 6: CASCADE MOUNTAIN PASS CONDITIONS (Ready for _mountain_passes)
+     SECTION 6: CASCADE MOUNTAIN PASS CONDITIONS (5-Pass Accordion + 10-Day Outlook)
      ========================================================================== #}
-  {% set pass_catalog = [
-    { "slug": "snoqualmie-pass", "name": "Snoqualmie Pass", "route": "I-90", "elevation": "3,022 ft" },
-    { "slug": "stevens-pass", "name": "Stevens Pass", "route": "US-2", "elevation": "4,061 ft" },
-    { "slug": "chinook-pass", "name": "Chinook Pass", "route": "SR-410", "elevation": "5,430 ft" },
-    { "slug": "north-cascades-hwy", "name": "North Cascades Hwy", "route": "SR-20", "elevation": "5,477 ft" }
-  ] %}
-  {% set raw_passes = city_weather._mountain_passes if (city_weather and city_weather._mountain_passes) else null %}
+  {% set pass_weekday_abbr = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] %}
+  {% set pass_sakamoto_t = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4] %}
 
-  <section id="mountain-passes" class="portal-section-widget">
-    <h2 class="text-section-title section-title-clean">Mountain Pass Conditions</h2>
+  {% if weather_mountain_passes and (weather_mountain_passes | length) > 0 %}
+    <hr class="section-divider">
 
-    <div class="section-grid-static grid-cols-4">
-      {% for p_meta in pass_catalog %}
-        {% set p_data = null %}
-        {% if raw_passes %}
-          {% if raw_passes[p_meta.slug] is defined %}
-            {% set p_data = raw_passes[p_meta.slug] %}
-          {% elif raw_passes | length %}
-            {% for item in raw_passes %}
-              {% if (item.slug and (item.slug | slugify) == p_meta.slug) or (item.name and (item.name | slugify) == p_meta.slug) %}
-                {% set p_data = item %}
+    <section id="mountain-passes" class="portal-section-widget">
+      <h2 class="text-section-title section-title-clean">Mountain Pass Conditions</h2>
+
+      <div class="weather-passes-card">
+        <header class="forecast-header-row">
+          <div class="forecast-title-stack">
+            <span class="text-overline text-accent-alpine">CASCADE CORRIDORS</span>
+            <h3 class="forecast-card-title text-widget-title">WSDOT Pass Status &amp; 10-Day Forecast</h3>
+          </div>
+        </header>
+
+        <div class="pass-accordion-stack">
+          {% for pass in weather_mountain_passes %}
+            {% set p_status = pass.pass_status or "Open" %}
+            {% set p_status_lower = p_status | lower %}
+            {% set p_badge_cls = "status-closed" if (pass.is_seasonal_closure or "clos" in p_status_lower) else ("status-restricted" if ("restrict" in p_status_lower or "advis" in p_status_lower or "chain" in p_status_lower) else "status-open") %}
+
+            {% set eb_text = "No restrictions" %}
+            {% set wb_text = "No restrictions" %}
+            {% if pass.restrictions %}
+              {% for r_item in pass.restrictions %}
+                {% if r_item.direction == "Eastbound" %}{% set eb_text = r_item.text %}{% endif %}
+                {% if r_item.direction == "Westbound" %}{% set wb_text = r_item.text %}{% endif %}
+              {% endfor %}
+            {% endif %}
+
+            {% set has_active_restrict = (eb_text != "No restrictions") or (wb_text != "No restrictions") %}
+            {% set restrict_summary = ("EB: " ~ eb_text) if (eb_text == wb_text) else ("EB: " ~ eb_text ~ " · WB: " ~ wb_text) %}
+            {% set p_fc = pass.forecast_11_day %}
+
+            <details class="pass-accordion-item">
+              <summary class="pass-accordion-summary">
+                <div class="pass-id-col">
+                  <div class="pass-badges-row">
+                    <span class="pass-route-pill">{{ pass.highway }}</span>
+                    <span class="pass-elevation-tag">{{ pass.elevation_ft }} ft</span>
+                    <span class="pass-status-pill {{ p_badge_cls }}">{{ p_status }}</span>
+                  </div>
+                  <h4 class="pass-name-heading">{{ pass.name }}</h4>
+                </div>
+
+                <div class="pass-conditions-col">
+                  <div class="pass-road-line">
+                    <span>{{ pass.road_condition }}</span>
+                    {% if pass.current and pass.current.roadside_weather %}
+                      <span class="pass-road-sep">&bull;</span>
+                      <span class="pass-weather-sub">{{ pass.current.roadside_weather }}</span>
+                    {% endif %}
+                  </div>
+                  <div class="pass-restrictions-line {% if has_active_restrict %}is-restricted{% endif %}">
+                    {{ restrict_summary }}
+                  </div>
+                </div>
+
+                <div class="pass-telemetry-col">
+                  <div class="pass-temp-stack">
+                    <span class="pass-temp-hero">{% if pass.current and pass.current.temp_f is not none %}{{ pass.current.temp_f | round }}&deg;F{% else %}--&deg;{% endif %}</span>
+                    {% if pass.current and pass.current.summit_wind_mph is not none %}
+                      <span class="pass-wind-caption">Wind {{ pass.current.summit_wind_mph | round }} mph</span>
+                    {% endif %}
+                  </div>
+
+                  <svg class="forecast-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+              </summary>
+
+              {% if p_fc and p_fc.dates %}
+                <div class="pass-acc-details">
+                  <div class="pass-forecast-subbar">
+                    <span class="text-overline text-accent-alpine">10-DAY PASS OUTLOOK</span>
+                    {% if pass.current and pass.current.temp_source %}
+                      <span class="forecast-model-attribution">Telemetry: {{ pass.current.temp_source }}</span>
+                    {% endif %}
+                  </div>
+
+                  <div class="pass-forecast-grid">
+                    {% for pd_str in p_fc.dates %}
+                      {% if loop.index0 < 10 %}
+                        {% set pd_parts = pd_str.split('-') %}
+                        {% set pd_y = pd_parts[0] | int %}
+                        {% set pd_m = pd_parts[1] | int %}
+                        {% set pd_d = pd_parts[2] | int %}
+                        {% set p_calc_y = (pd_y - 1) if pd_m < 3 else pd_y %}
+                        {% set p_dow = (p_calc_y + (p_calc_y // 4) - (p_calc_y // 100) + (p_calc_y // 400) + pass_sakamoto_t[pd_m - 1] + pd_d) % 7 %}
+                        {% set p_day_lbl = "Today" if loop.first else pass_weekday_abbr[p_dow] %}
+                        {% set p_date_lbl = pd_m ~ "/" ~ pd_d %}
+
+                        {% set p_code = (p_fc.weather_code[loop.index0] | int) if p_fc.weather_code else 3 %}
+                        {% set p_hi = p_fc.temp_max[loop.index0] | round %}
+                        {% set p_lo = p_fc.temp_min[loop.index0] | round %}
+                        {% set p_pop = p_fc.precip_prob_max[loop.index0] | round %}
+                        {% set p_snow = (p_fc.snowfall_in[loop.index0] | float) if p_fc.snowfall_in else 0 %}
+
+                        <div class="pass-day-cell">
+                          <span class="pass-day-name">{{ p_day_lbl }}</span>
+                          <span class="pass-day-date">{{ p_date_lbl }}</span>
+
+                          <div class="forecast-acc-icon" aria-hidden="true">
+                            <svg viewBox="0 0 32 32" fill="none" class="forecast-condition-svg">
+                              {% if p_code in [71, 73, 75, 77, 85, 86] %}
+                                <path d="M7 18a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 18H7z" class="weather-vector-cloud" />
+                                <circle cx="11" cy="23" r="1.5" class="weather-vector-cloud" />
+                                <circle cx="16" cy="26" r="1.5" class="weather-vector-cloud" />
+                                <circle cx="21" cy="23" r="1.5" class="weather-vector-cloud" />
+                              {% elif p_code in [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82] %}
+                                <path d="M7 19a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 19H7z" class="weather-vector-cloud" />
+                                <line x1="11" y1="22" x2="9" y2="27" class="weather-vector-rain" />
+                                <line x1="16" y1="22" x2="14" y2="27" class="weather-vector-rain" />
+                                <line x1="21" y1="22" x2="19" y2="27" class="weather-vector-rain" />
+                              {% elif p_code in [45, 48] %}
+                                <line x1="6" y1="12" x2="26" y2="12" class="weather-vector-cloud" />
+                                <line x1="4" y1="17" x2="28" y2="17" class="weather-vector-cloud" />
+                                <line x1="7" y1="22" x2="25" y2="22" class="weather-vector-cloud" />
+                              {% elif p_code in [2, 3] %}
+                                <path d="M8 22a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 26 22H8z" class="weather-vector-cloud" />
+                              {% else %}
+                                <circle cx="16" cy="16" r="7" class="weather-vector-sun-core" />
+                                <line x1="16" y1="4" x2="16" y2="7" class="weather-vector-sun-rays" />
+                                <line x1="16" y1="25" x2="16" y2="28" class="weather-vector-sun-rays" />
+                                <line x1="4" y1="16" x2="7" y2="16" class="weather-vector-sun-rays" />
+                                <line x1="25" y1="16" x2="28" y2="16" class="weather-vector-sun-rays" />
+                              {% endif %}
+                            </svg>
+                          </div>
+
+                          <div class="pass-day-temps">{{ p_hi }}&deg;<span class="pass-day-low">{{ p_lo }}&deg;</span></div>
+                          <span class="pass-day-precip">{{ p_pop }}% precip</span>
+                          <span class="pass-day-snow {% if p_snow <= 0 %}is-none{% endif %}">
+                            {% if p_snow > 0 %}{{ p_snow }}" snow{% else %}0" snow{% endif %}
+                          </span>
+                        </div>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                </div>
               {% endif %}
-            {% endfor %}
-          {% endif %}
-        {% endif %}
-
-        {% set p_temp = (p_data.temp_f | round) ~ "°F" if (p_data and p_data.temp_f is not none) else "--°" %}
-        {% set p_cond = p_data.condition if (p_data and p_data.condition) else "Awaiting Pass Data" %}
-        {% set p_traction = p_data.restrictions if (p_data and p_data.restrictions) else (p_data.traction if (p_data and p_data.traction) else "WSDOT Feed Pending") %}
-        {% set p_snow = (p_data.snow_24h_in ~ '" 24h') if (p_data and p_data.snow_24h_in is not none) else "" %}
-
-        <article class="pass-condition-card" aria-label="{{ p_meta.name }} Weather">
-          <div class="pass-header-row">
-            <span class="pass-route-pill">{{ p_meta.route }}</span>
-            <span class="pass-elevation-tag">{{ p_meta.elevation }}</span>
-          </div>
-
-          <div class="pass-title-block">
-            <h3 class="pass-name-heading">{{ p_meta.name }}</h3>
-          </div>
-
-          <div class="pass-temp-row">
-            <span class="pass-temp-hero">{{ p_temp }}</span>
-            <span class="pass-condition-summary">{{ p_cond }}</span>
-          </div>
-
-          <div class="pass-footer-row">
-            <span>Traction: <strong class="pass-traction-val">{{ p_traction }}</strong></span>
-            {% if p_snow %}<span>{{ p_snow }}</span>{% endif %}
-          </div>
-        </article>
-      {% endfor %}
-    </div>
-  </section>
+            </details>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+  {% endif %}
 
   {# ==========================================================================
-     SECTION 7: REGIONAL RIVER GAUGES (With Seasonal Normal Baseline Context)
+     SECTION 7: REGIONAL RIVER STATUS (Universal White Bento Cards)
      ========================================================================== #}
-  {% set regional_gauges = city_weather._regional_water_gauges if (city_weather and city_weather._regional_water_gauges) else [] %}
-  {% if (regional_gauges | length) > 0 %}
+  {% if river_gauges and (river_gauges | length) > 0 %}
     <hr class="section-divider">
 
     <section id="river-gauges" class="portal-section-widget">
       <h2 class="text-section-title section-title-clean">Regional River Status</h2>
 
       <div class="section-grid-static grid-cols-3">
-        {% set unique_stations = [] %}
-        {% for reading in regional_gauges %}
-          {% if reading.site_name and (reading.site_name not in unique_stations) %}
-            {% set _ = unique_stations.push(reading.site_name) %}
+        {% for gauge in river_gauges %}
+          {% set clean_station = gauge.name | replace("Nf ", "NF ") | replace("Sf ", "SF ") %}
+          {% set watershed_label = clean_station.split(" River")[0] ~ " River" if (" River" in clean_station) else clean_station %}
 
-            {% set flow_cfs = null %}
-            {% set gauge_ft = null %}
-            {% set obs_time = reading.reading_time %}
-            {% set script_normal_cfs = reading.normal_cfs or reading.median_cfs %}
-            {% set script_flood_ft = reading.flood_stage_ft %}
+          {# Guard against USGS -9999.0 missing flood stage sentinel values #}
+          {% set valid_minor_flood = (gauge.minor_flood_ft is not none and (gauge.minor_flood_ft | float) > 0) %}
+          {% set valid_action_stage = (gauge.action_stage_ft is not none and (gauge.action_stage_ft | float) > 0) %}
+          {% set is_flood_event = (valid_minor_flood and gauge.flood_status in ["Minor Flood", "Moderate Flood", "Major Flood"]) or (valid_action_stage and gauge.flood_status == "Action Stage") %}
+          {% set display_status = gauge.flood_status if is_flood_event else (gauge.flow_status or "Normal") %}
 
-            {% for r in regional_gauges %}
-              {% if r.site_name == reading.site_name %}
-                {% if r.unit == "ft3/s" %}{% set flow_cfs = r.reading %}{% endif %}
-                {% if r.unit == "ft" %}{% set gauge_ft = r.reading %}{% endif %}
-                {% if r.normal_cfs or r.median_cfs %}{% set script_normal_cfs = r.normal_cfs or r.median_cfs %}{% endif %}
-                {% if r.flood_stage_ft %}{% set script_flood_ft = r.flood_stage_ft %}{% endif %}
-              {% endif %}
-            {% endfor %}
-
-            {# Match station against established Puget Sound USGS seasonal flow baselines #}
-            {% set s_lower = reading.site_name | lower %}
-            {% set norm_low = 0 %}
-            {% set norm_high = 0 %}
-            {% set flood_ref = script_flood_ft if script_flood_ft else 0 %}
-
-            {% if "snohomish" in s_lower %}
-              {% set norm_low = 3500 %}{% set norm_high = 14000 %}{% if not flood_ref %}{% set flood_ref = 25.0 %}{% endif %}
-            {% elif "skykomish" in s_lower %}
-              {% set norm_low = 1800 %}{% set norm_high = 7500 %}{% if not flood_ref %}{% set flood_ref = 15.0 %}{% endif %}
-            {% elif "snoqualmie" in s_lower %}
-              {% set norm_low = 1500 %}{% set norm_high = 6500 %}{% if not flood_ref %}{% set flood_ref = 54.0 %}{% endif %}
-            {% elif "stillaguamish" in s_lower %}
-              {% set norm_low = 1200 %}{% set norm_high = 5500 %}{% if not flood_ref %}{% set flood_ref = 14.0 %}{% endif %}
-            {% elif "green river" in s_lower %}
-              {% set norm_low = 700 %}{% set norm_high = 3200 %}{% if not flood_ref %}{% set flood_ref = 12.0 %}{% endif %}
-            {% elif "cedar river" in s_lower %}
-              {% set norm_low = 350 %}{% set norm_high = 1400 %}{% if not flood_ref %}{% set flood_ref = 12.0 %}{% endif %}
-            {% elif "puyallup" in s_lower %}
-              {% set norm_low = 1600 %}{% set norm_high = 5200 %}{% if not flood_ref %}{% set flood_ref = 27.0 %}{% endif %}
-            {% elif "white river" in s_lower %}
-              {% set norm_low = 800 %}{% set norm_high = 2800 %}
-            {% elif "sammamish" in s_lower %}
-              {% set norm_low = 150 %}{% set norm_high = 850 %}
-            {% elif "issaquah" in s_lower %}
-              {% set norm_low = 40 %}{% set norm_high = 320 %}
-            {% endif %}
-
-            {% set status_label = "Active Gauge" %}
-            {% set status_class = "status-river-normal" %}
-            {% set flow_num = (flow_cfs | float) if flow_cfs is not none else -1 %}
-            {% set stage_num = (gauge_ft | float) if gauge_ft is not none else -1 %}
-
-            {% if flood_ref and stage_num >= flood_ref %}
-              {% set status_label = "Flood Stage" %}
-              {% set status_class = "status-river-alert" %}
-            {% elif norm_high > 0 and flow_num >= 0 %}
-              {% if flow_num > (norm_high * 1.35) %}
-                {% set status_label = "High Flow" %}
-                {% set status_class = "status-river-warning" %}
-              {% elif flow_num > norm_high %}
-                {% set status_label = "Above Normal" %}
-                {% set status_class = "status-river-warning" %}
-              {% elif flow_num < (norm_low * 0.6) %}
-                {% set status_label = "Low Flow" %}
-                {% set status_class = "status-river-nodata" %}
-              {% else %}
-                {% set status_label = "Normal Flow" %}
-                {% set status_class = "status-river-normal" %}
-              {% endif %}
-            {% endif %}
-
-            {% set obs_disp = "Recent" %}
-            {% if obs_time and (('T' in obs_time) or (' ' in obs_time)) %}
-              {% set obs_t = obs_time.split('T')[1] if ('T' in obs_time) else obs_time.split(' ')[1] %}
-              {% set obs_parts = obs_t.split(':') %}
-              {% set obs_h = obs_parts[0] | int %}
-              {% set obs_disp = (12 if obs_h == 0 else (obs_h if obs_h <= 12 else obs_h - 12)) ~ ':' ~ obs_parts[1] ~ (' AM' if obs_h < 12 else ' PM') %}
-            {% endif %}
-
-            <article class="river-metric-tile">
-              <div class="river-tile-top">
-                <div class="river-metric-overline">{{ reading.site_name }}</div>
-                <span class="river-status-pill {{ status_class }}">{{ status_label }}</span>
-              </div>
-
-              <div class="river-metric-figure val-flow">
-                {{ flow_cfs if flow_cfs is not none else "N/A" }} <span class="river-metric-unit">cfs</span>
-              </div>
-
-              {% if script_normal_cfs %}
-                <div class="river-baseline-note">Seasonal Normal: {{ script_normal_cfs }} cfs{% if flood_ref %} &bull; Flood: {{ flood_ref }} ft{% endif %}</div>
-              {% elif norm_high > 0 %}
-                <div class="river-baseline-note">Typical Range: {{ norm_low }}&ndash;{{ norm_high }} cfs{% if flood_ref %} &bull; Flood: {{ flood_ref }} ft{% endif %}</div>
-              {% endif %}
-
-              <div class="river-footer-row river-station-footer">
-                <span>Stage: <strong class="river-stage-value">{{ gauge_ft if gauge_ft is not none else "N/A" }} ft</strong></span>
-                <span>{{ obs_disp }}</span>
-              </div>
-            </article>
-
+          {% set status_cls = "status-river-normal" %}
+          {% if is_flood_event %}
+            {% set status_cls = "status-river-alert" if ("Flood" in display_status) else "status-river-warning" %}
+          {% elif display_status in ["Above Normal", "High", "High Flow"] %}
+            {% set status_cls = "status-river-warning" %}
+          {% elif display_status in ["Below Normal", "Low", "Low Flow"] %}
+            {% set status_cls = "status-river-nodata" %}
           {% endif %}
+
+          {# Compute SVG coordinates for P25-P75 normal band & current flow marker #}
+          {% set cur_cfs = (gauge.discharge_cfs | float) if gauge.discharge_cfs is not none else 0 %}
+          {% set p25_cfs = (gauge.p25_discharge_cfs | float) if gauge.p25_discharge_cfs is not none else 0 %}
+          {% set p75_cfs = (gauge.p75_discharge_cfs | float) if gauge.p75_discharge_cfs is not none else 0 %}
+          {% set scale_top = (p75_cfs * 1.35) if (p75_cfs * 1.35) > (cur_cfs * 1.1) else (cur_cfs * 1.1) %}
+          {% if scale_top <= 0 %}{% set scale_top = 100 %}{% endif %}
+
+          {% set p25_x = ((p25_cfs / scale_top) * 200) | round(1) %}
+          {% set p75_x = ((p75_cfs / scale_top) * 200) | round(1) %}
+          {% set p75_w = (p75_x - p25_x) if (p75_x > p25_x) else 4 %}
+          {% set raw_cur_x = ((cur_cfs / scale_top) * 200) | round(1) %}
+          {% set cur_x = 6 if raw_cur_x < 6 else (194 if raw_cur_x > 194 else raw_cur_x) %}
+
+          {% set obs_disp = "Recent" %}
+          {% if gauge.reading_time and ('T' in gauge.reading_time) %}
+            {% set obs_t = gauge.reading_time.split('T')[1].split(':') %}
+            {% set obs_h = obs_t[0] | int %}
+            {% set obs_disp = (12 if obs_h == 0 else (obs_h if obs_h <= 12 else obs_h - 12)) ~ ':' ~ obs_t[1] ~ (' AM' if obs_h < 12 else ' PM') %}
+          {% endif %}
+
+          <article class="river-bento-card">
+            <div class="river-card-header">
+              <span class="river-watershed-tag">{{ watershed_label }}</span>
+              <span class="river-status-pill {{ status_cls }}">{{ display_status }}</span>
+            </div>
+
+            <h3 class="river-station-heading">{{ clean_station }}</h3>
+
+            <div class="river-dual-metrics">
+              <div class="river-metric-col">
+                <span class="river-metric-sublabel">Discharge</span>
+                <div class="river-flow-hero">
+                  {{ gauge.discharge_cfs | round }} <span class="river-metric-unit">cfs</span>
+                </div>
+                {% if gauge.pct_of_normal is not none %}
+                  <span class="river-pct-caption">{{ gauge.pct_of_normal }}% of seasonal normal</span>
+                {% endif %}
+              </div>
+
+              <div class="river-metric-col">
+                <span class="river-metric-sublabel">Gage Stage</span>
+                <div class="river-stage-hero">
+                  {{ gauge.gage_height_ft }} <span class="river-metric-unit">ft</span>
+                </div>
+                {% if valid_minor_flood %}
+                  <span class="river-pct-caption">Flood: {{ gauge.minor_flood_ft }} ft</span>
+                {% endif %}
+              </div>
+            </div>
+
+            {% if p75_cfs > 0 %}
+              <svg viewBox="0 0 200 10" preserveAspectRatio="none" class="river-meter-svg" aria-hidden="true">
+                <rect x="0" y="3" width="200" height="4" rx="2" class="river-meter-track" />
+                <rect x="{{ p25_x }}" y="3" width="{{ p75_w }}" height="4" rx="2" class="river-meter-normal-band" />
+                <circle cx="{{ cur_x }}" cy="5" r="4" class="river-meter-marker" />
+              </svg>
+            {% endif %}
+
+            <div class="river-card-footer">
+              <span>Normal: {{ gauge.normal_discharge_cfs | round }} cfs ({{ p25_cfs | round }}&ndash;{{ p75_cfs | round }})</span>
+              <span>{{ obs_disp }}</span>
+            </div>
+          </article>
         {% endfor %}
       </div>
     </section>
@@ -506,10 +533,13 @@ permalink: "/neighborhood/{{ city.City | slugify }}/weather/index.html"
 
 {% if show_tides %}
 <script id="weatherTidesPayload" type="application/json">
-{
-  "today": {{ w_city.marine_tides.today_predictions | dump | safe }},
-  "tomorrow": {{ (w_city.marine_tides.tomorrow_predictions if w_city.marine_tides.tomorrow_predictions else []) | dump | safe }}
-}
+[
+  {% for p in tide_list %}
+    {% if loop.index0 < 16 %}
+      {{ p | dump | safe }}{% if not loop.last and loop.index0 < 15 %},{% endif %}
+    {% endif %}
+  {% endfor %}
+]
 </script>
 {% endif %}
 
@@ -541,57 +571,28 @@ permalink: "/neighborhood/{{ city.City | slugify }}/weather/index.html"
   var tideRaw = document.getElementById("weatherTidesPayload");
   if (tideRaw) {
     try {
-      var tideData = JSON.parse(tideRaw.textContent);
-      var todayStr = loadNow.getFullYear() + "-" +
-        String(loadNow.getMonth() + 1).padStart(2, "0") + "-" +
-        String(loadNow.getDate()).padStart(2, "0");
+      var preds = JSON.parse(tideRaw.textContent);
+      var nowEpoch = loadNow.getTime();
 
       function parsePredEpoch(str) {
         if (!str) return null;
         var s = str.trim();
-        var datePart = todayStr;
-        var timePart = s;
-        if (s.indexOf("T") !== -1) {
-          var pT = s.split("T");
-          datePart = pT[0];
-          timePart = pT[1];
-        } else if (s.indexOf(" ") !== -1 && s.split(" ")[0].indexOf("-") !== -1) {
-          var pS = s.split(" ");
-          datePart = pS[0];
-          timePart = pS[1];
-        }
-        var upper = timePart.toUpperCase();
-        var isPM = upper.indexOf("PM") !== -1;
-        var isAM = upper.indexOf("AM") !== -1;
-        var clean = upper.replace("AM", "").replace("PM", "").trim();
-        var hm = clean.split(":");
-        var h = parseInt(hm[0], 10);
-        var m = parseInt(hm[1], 10);
-        if (isPM && h !== 12) h += 12;
-        if (isAM && h === 12) h = 0;
-        var ymd = datePart.split("-");
-        if (ymd.length === 3) {
-          return new Date(parseInt(ymd[0], 10), parseInt(ymd[1], 10) - 1, parseInt(ymd[2], 10), h, m, 0).getTime();
-        }
-        return new Date(loadNow.getFullYear(), loadNow.getMonth(), loadNow.getDate(), h, m, 0).getTime();
+        var parts = s.indexOf("T") !== -1 ? s.split("T") : s.split(" ");
+        if (parts.length < 2) return null;
+        var ymd = parts[0].split("-");
+        var hm = parts[1].split(":");
+        if (ymd.length < 3 || hm.length < 2) return null;
+        return new Date(
+          parseInt(ymd[0], 10),
+          parseInt(ymd[1], 10) - 1,
+          parseInt(ymd[2], 10),
+          parseInt(hm[0], 10),
+          parseInt(hm[1], 10),
+          0
+        ).getTime();
       }
 
-      function formatClock12(str) {
-        if (!str) return "TBD";
-        var s = str.trim();
-        var tPart = s;
-        if (s.indexOf("T") !== -1) tPart = s.split("T")[1];
-        else if (s.indexOf(" ") !== -1 && s.split(" ")[0].indexOf("-") !== -1) tPart = s.split(" ")[1];
-        if (tPart.toUpperCase().indexOf("AM") !== -1 || tPart.toUpperCase().indexOf("PM") !== -1) return tPart;
-        var hm = tPart.split(":");
-        var h = parseInt(hm[0], 10);
-        var dispH = h === 0 ? 12 : (h <= 12 ? h : h - 12);
-        return dispH + ":" + hm[1] + (h < 12 ? " AM" : " PM");
-      }
-
-      var nowEpoch = loadNow.getTime();
-      var allPreds = [].concat(tideData.today || [], tideData.tomorrow || []);
-      var upcoming = allPreds.filter(function(p) {
+      var upcoming = (preds || []).filter(function(p) {
         var ep = parsePredEpoch(p.time);
         return ep !== null && ep >= nowEpoch;
       });
@@ -607,11 +608,11 @@ permalink: "/neighborhood/{{ city.City | slugify }}/weather/index.html"
       var trLbl = document.getElementById("tideTrendLabel");
 
       if (nextHigh && hLbl && hVal) {
-        hLbl.textContent = "NEXT HIGH " + formatClock12(nextHigh.time);
+        hLbl.textContent = "NEXT HIGH " + (nextHigh.time_formatted || nextHigh.time);
         hVal.textContent = nextHigh.height_ft + " ft";
       }
       if (nextLow && lLbl && lVal) {
-        lLbl.textContent = "NEXT LOW " + formatClock12(nextLow.time);
+        lLbl.textContent = "NEXT LOW " + (nextLow.time_formatted || nextLow.time);
         lVal.textContent = nextLow.height_ft + " ft";
       }
       if (nextAny && trLbl) {
@@ -645,7 +646,6 @@ permalink: "/neighborhood/{{ city.City | slugify }}/weather/index.html"
       pane: "overlayPane"
     }).addTo(map);
 
-    /* Active City Anchor Pin */
     var cityPinIcon = L.divIcon({
       className: "city-anchor-divicon",
       html: '<div class="city-anchor-pin"><span class="city-anchor-dot"></span><span>' + cityName + '</span></div>',
@@ -654,7 +654,6 @@ permalink: "/neighborhood/{{ city.City | slugify }}/weather/index.html"
     });
     L.marker([lat, lng], { icon: cityPinIcon, interactive: false, zIndexOffset: 900 }).addTo(map);
 
-    /* Quality-Controlled Smooth MRMS Radar WMS (10 5-minute frames) */
     var latestAnchor = new Date(Math.floor((Date.now() - 5 * 60000) / (5 * 60000)) * (5 * 60000));
     var frameLabels = [];
     var radarFrames = [];
