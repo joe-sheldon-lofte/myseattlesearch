@@ -26,7 +26,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
   </div>
 
   {# ==========================================================================
-     SECTION 2: EXPLORE NAVIGATION PILLS (Shuffled Subpage Dock)
+     SECTION 2: EXPLORE NAVIGATION PILLS
      ========================================================================== #}
   <section id="explore-neighborhood" class="portal-section-nav" aria-label="Explore {{ active_neighborhood }}">
     <span class="text-overline text-accent-alpine section-overline-lead">
@@ -52,7 +52,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
   <hr class="section-divider">
 
   {# ==========================================================================
-     SECTION 3: CURRENT ACTIVE TRANSIT STATUSES (Minimalist Scores + 4 Uniform Tiles)
+     SECTION 3: CURRENT ACTIVE TRANSIT STATUSES (SSG Minimalist Scores + Tiles)
      ========================================================================== #}
   {% set live_transit = transit_radar_live[city_slug] if transit_radar_live else null %}
 
@@ -163,7 +163,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
   <hr class="section-divider">
 
   {# ==========================================================================
-     SECTION 4: CURRENT ACTIVE COMMUTE TIMES (Static Off-Peak Baselines + Live Matrix Overlay)
+     SECTION 4: CURRENT ACTIVE COMMUTE TIMES (6 Hubs: SSG Baselines + Edge Matrix)
      ========================================================================== #}
   {% set city_baseline = null %}
   {% if commute_hub_baselines %}
@@ -179,7 +179,8 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
     { id: "bellevue", name: "Downtown Bellevue" },
     { id: "redmond", name: "Microsoft Redmond Campus" },
     { id: "everett", name: "Boeing Everett Factory" },
-    { id: "renton", name: "Boeing Renton Factory" }
+    { id: "renton", name: "Boeing Renton Factory" },
+    { id: "kent", name: "Kent Valley Logistics Hub" }
   ] %}
 
   <section id="employment-hubs" class="portal-section-widget">
@@ -200,10 +201,8 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
 
           <div class="commute-hub-card"
                data-hub-id="{{ hub.id }}"
-               data-offpeak-drive="{{ d_off }}"
-               data-offpeak-transit="{{ t_off }}"
-               data-return-offpeak-drive="{{ rd_off }}"
-               data-return-offpeak-transit="{{ rt_off }}">
+               data-offpeak-drive="{{ d_off }}">
+
             <div class="commute-hub-header">
               <div>
                 <h4 class="commute-hub-title">{{ hub.name }}</h4>
@@ -214,51 +213,43 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
               <div class="commute-friction-badge is-hidden" data-hub-badge></div>
             </div>
 
-            <div class="commute-leg-block">
-              <div class="text-overline commute-leg-overline">
-                MORNING COMMUTE: {{ active_neighborhood | upper }} &rarr; HUB
-              </div>
-              <div class="commute-modes-grid">
-                <div class="commute-metric-cell">
-                  <span class="commute-metric-label">LIVE DRIVE</span>
-                  <div class="commute-metric-value" data-hub-field="drive_live">{{ (d_off ~ " min") if d_off else "--" }}</div>
-                  {% if d_off %}
+            {% if d_off %}
+              <div class="commute-leg-block">
+                <div class="text-overline commute-leg-overline">MORNING COMMUTE: {{ active_neighborhood | upper }} &rarr; HUB</div>
+                <div class="commute-modes-grid">
+                  <div class="commute-metric-cell">
+                    <span class="commute-metric-label">LIVE DRIVE</span>
+                    <div class="commute-metric-value" data-hub-field="drive_live">--</div>
                     <span class="text-body-secondary commute-sub-metric">Off-peak: {{ d_off }} min</span>
-                  {% endif %}
-                </div>
-
-                <div class="commute-metric-cell">
-                  <span class="commute-metric-label text-accent-alpine">EST. TRANSIT</span>
-                  <div class="commute-metric-value text-accent-alpine" data-hub-field="transit_live">{{ (t_off ~ " min") if t_off else "--" }}</div>
-                  {% if t_off %}
+                  </div>
+                  <div class="commute-metric-cell">
+                    <span class="commute-metric-label text-accent-alpine">EST. TRANSIT</span>
+                    <div class="commute-metric-value text-accent-alpine" data-hub-field="transit_live">--</div>
                     <span class="text-body-secondary commute-sub-metric">Off-peak: {{ t_off }} min</span>
-                  {% endif %}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div class="commute-leg-block">
-              <div class="text-overline commute-leg-overline">
-                EVENING RETURN: HUB &rarr; {{ active_neighborhood | upper }}
-              </div>
-              <div class="commute-modes-grid">
-                <div class="commute-metric-cell">
-                  <span class="commute-metric-label">LIVE DRIVE</span>
-                  <div class="commute-metric-value" data-hub-field="return_drive_live">{{ (rd_off ~ " min") if rd_off else "--" }}</div>
-                  {% if rd_off %}
+              <div class="commute-leg-block">
+                <div class="text-overline commute-leg-overline">EVENING RETURN: HUB &rarr; {{ active_neighborhood | upper }}</div>
+                <div class="commute-modes-grid">
+                  <div class="commute-metric-cell">
+                    <span class="commute-metric-label">LIVE DRIVE</span>
+                    <div class="commute-metric-value" data-hub-field="return_drive_live">--</div>
                     <span class="text-body-secondary commute-sub-metric">Off-peak: {{ rd_off }} min</span>
-                  {% endif %}
-                </div>
-
-                <div class="commute-metric-cell">
-                  <span class="commute-metric-label text-accent-alpine">EST. TRANSIT</span>
-                  <div class="commute-metric-value text-accent-alpine" data-hub-field="return_transit_live">{{ (rt_off ~ " min") if rt_off else "--" }}</div>
-                  {% if rt_off %}
+                  </div>
+                  <div class="commute-metric-cell">
+                    <span class="commute-metric-label text-accent-alpine">EST. TRANSIT</span>
+                    <div class="commute-metric-value text-accent-alpine" data-hub-field="return_transit_live">--</div>
                     <span class="text-body-secondary commute-sub-metric">Off-peak: {{ rt_off }} min</span>
-                  {% endif %}
+                  </div>
                 </div>
               </div>
-            </div>
+            {% else %}
+              <div class="commute-pending-state">
+                <span class="text-body-secondary commute-sub-metric">Corridor data unavailable</span>
+              </div>
+            {% endif %}
           </div>
         {% endfor %}
       </div>
@@ -268,7 +259,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
   <hr class="section-divider">
 
   {# ==========================================================================
-     SECTION 5: MULTI-LAYER TRANSIT MAP (Live Traffic First + Solid Blue CT Bus)
+     SECTION 5: MULTI-LAYER TRANSIT MAP
      ========================================================================== #}
   <section id="transit-map" class="portal-section-widget">
     <h2 class="text-section-title section-title-clean">Live Vehicle Tracker &amp; Traffic Flow</h2>
@@ -307,7 +298,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
   <hr class="section-divider">
 
   {# ==========================================================================
-     SECTION 6: WASHINGTON STATE FERRIES (10 Routes from ferry_schedules.json + Live Spaces)
+     SECTION 6: WASHINGTON STATE FERRIES (All Collapsed by Default + Live Telemetry Status)
      ========================================================================== #}
   <section id="wsdot-ferries" class="portal-section-widget">
     <h2 class="text-section-title section-title-clean">Washington State Ferries</h2>
@@ -324,7 +315,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
   <hr class="section-divider">
 
   {# ==========================================================================
-     SECTION 7: REGIONAL AIRPORT STATUS (SEA & PAE via Edge Gateway)
+     SECTION 7: REGIONAL AIRPORT STATUS (Status Pill Hidden Until Live Sync)
      ========================================================================== #}
   <section id="airport-status" class="portal-section-widget">
     <h2 class="text-section-title section-title-clean">Regional Airport Status</h2>
@@ -336,12 +327,12 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
             <h4 class="apt-name-heading">Seattle-Tacoma International</h4>
             <span class="apt-code-tag">SEA</span>
           </div>
-          <span class="ferry-status-pill status-ontime apt-faa-status">Normal Operations</span>
+          <span class="ferry-status-pill is-hidden apt-faa-status"></span>
         </div>
         <div class="apt-metar-grid">
           <div class="apt-metar-block">
             <span class="apt-metar-label">Flight Rules</span>
-            <span class="apt-flight-rules-pill vfr apt-rule-val">VFR</span>
+            <span class="apt-flight-rules-pill vfr apt-rule-val">--</span>
           </div>
           <div class="apt-metar-block">
             <span class="apt-metar-label">Surface Wind</span>
@@ -364,12 +355,12 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
             <h4 class="apt-name-heading">Paine Field (Everett)</h4>
             <span class="apt-code-tag">PAE</span>
           </div>
-          <span class="ferry-status-pill status-ontime apt-faa-status">Normal Operations</span>
+          <span class="ferry-status-pill is-hidden apt-faa-status"></span>
         </div>
         <div class="apt-metar-grid">
           <div class="apt-metar-block">
             <span class="apt-metar-label">Flight Rules</span>
-            <span class="apt-flight-rules-pill vfr apt-rule-val">VFR</span>
+            <span class="apt-flight-rules-pill vfr apt-rule-val">--</span>
           </div>
           <div class="apt-metar-block">
             <span class="apt-metar-label">Surface Wind</span>
@@ -391,7 +382,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
   <hr class="section-divider">
 
   {# ==========================================================================
-     SECTION 8: WSDOT CONSTRUCTION ADVISORIES (Static SSG)
+     SECTION 8: WSDOT CONSTRUCTION ADVISORIES
      ========================================================================== #}
   {% set construction_data = city_construction[city_slug] if city_construction else null %}
   {% set alert_list = construction_data.alerts if (construction_data and construction_data.alerts) else [] %}
@@ -452,7 +443,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
   </section>
 
   {# ==========================================================================
-     SECTION 9: TRANSIT RELIABILITY (168-Hour Weekly Accordion)
+     SECTION 9: TRANSIT RELIABILITY (168-Hour Weekly Accordion — All Collapsed by Default)
      ========================================================================== #}
   {% set transit_hist_raw = transit_radar_history[city_slug] if transit_radar_history else [] %}
   {% if (transit_hist_raw | length) > 0 %}
@@ -532,7 +523,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
 
         <div class="transit-days-stack">
           {% for day in transit_history_days %}
-            <details class="transit-day-accordion" {% if loop.first %}open{% endif %}>
+            <details class="transit-day-accordion">
               <summary class="transit-day-summary">
                 <div class="transit-day-lead">
                   <svg class="transit-toggle-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -579,7 +570,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
   {% endif %}
 
   {# ==========================================================================
-     SECTION 10: NEIGHBORHOOD CONNECTIVITY (Minimalist Walk / Bike / Transit Scores)
+     SECTION 10: NEIGHBORHOOD CONNECTIVITY (Minimalist Scores)
      ========================================================================== #}
   {% set walkscore = walk_transit_bike_scores[active_neighborhood] if walk_transit_bike_scores else null %}
   {% if walkscore %}
@@ -593,7 +584,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
           {% set w_val = walkscore.walkscore | round %}
           {% set w_badge = "score-tier-emerald" if w_val >= 90 else ("score-tier-alpine" if w_val >= 70 else ("score-tier-amber" if w_val >= 50 else "score-tier-crimson")) %}
           {% set w_text = "text-tier-emerald" if w_val >= 90 else ("text-tier-alpine" if w_val >= 70 else ("text-tier-amber" if w_val >= 50 else "text-tier-crimson")) %}
-          {% set w_label = walkscore.description or ("Very Walkable" if w_val >= 70 else "Somewhat Walkable") %}
+          {% set w_label = "Walker's Paradise" if w_val >= 90 else ("Very Walkable" if w_val >= 70 else ("Somewhat Walkable" if w_val >= 50 else "Car-Dependent")) %}
 
           <article class="transit-minimal-score-card" aria-label="WalkScore Walkability: {{ w_val }}, {{ w_label }}">
             <h3 class="transit-minimal-score-title">WalkScore&reg; Walkability</h3>
@@ -610,7 +601,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
           {% set b_val = walkscore.bike.score | round %}
           {% set b_badge = "score-tier-emerald" if b_val >= 90 else ("score-tier-alpine" if b_val >= 70 else ("score-tier-amber" if b_val >= 50 else "score-tier-crimson")) %}
           {% set b_text = "text-tier-emerald" if b_val >= 90 else ("text-tier-alpine" if b_val >= 70 else ("text-tier-amber" if b_val >= 50 else "text-tier-crimson")) %}
-          {% set b_label = walkscore.bike.description or ("Very Bikeable" if b_val >= 70 else "Bikeable") %}
+          {% set b_label = "Biker's Paradise" if b_val >= 90 else ("Very Bikeable" if b_val >= 70 else ("Bikeable" if b_val >= 50 else "Somewhat Bikeable")) %}
 
           <article class="transit-minimal-score-card" aria-label="BikeScore Cycling Index: {{ b_val }}, {{ b_label }}">
             <h3 class="transit-minimal-score-title">BikeScore&reg; Cycling Index</h3>
@@ -627,7 +618,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
           {% set tr_val = walkscore.transit.score | round %}
           {% set tr_badge = "score-tier-emerald" if tr_val >= 90 else ("score-tier-alpine" if tr_val >= 70 else ("score-tier-amber" if tr_val >= 50 else "score-tier-crimson")) %}
           {% set tr_text = "text-tier-emerald" if tr_val >= 90 else ("text-tier-alpine" if tr_val >= 70 else ("text-tier-amber" if tr_val >= 50 else "text-tier-crimson")) %}
-          {% set tr_label = walkscore.transit.description or ("Excellent Transit" if tr_val >= 70 else "Good Transit") %}
+          {% set tr_label = "Rider's Paradise" if tr_val >= 90 else ("Excellent Transit" if tr_val >= 70 else ("Good Transit" if tr_val >= 50 else "Some Transit")) %}
 
           <article class="transit-minimal-score-card" aria-label="TransitScore Access: {{ tr_val }}, {{ tr_label }}">
             <h3 class="transit-minimal-score-title">TransitScore&reg; Access</h3>
@@ -736,7 +727,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
     return '<svg class="transit-marker-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="19" width="18" height="2.5" rx="1" fill="#FF6B00"/><path d="M5.5 19L10.5 4a1.6 1.6 0 0 1 3 0l5 15H5.5z" fill="#FF6B00"/><polygon points="7.2,16.5 16.8,16.5 16,14 8,14" fill="#FFFFFF"/><polygon points="8.6,12 15.4,12 14.6,9.5 9.4,9.5" fill="#FFFFFF"/></svg>';
   }
 
-  /* 1. Render Static 24-Hour Ferry Schedules Immediately & Overlay Live Drive-Up Spaces */
+  /* 1. Render Static 24-Hour Ferry Schedules (All Collapsed) + Live Edge Status & Spaces */
   function initFerries(ferriesLayer) {
     const container = document.getElementById("ferryAccordionContainer");
     const rawNode = document.getElementById("ferrySchedulesPayload");
@@ -772,28 +763,35 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
       });
     }
 
-    function renderAccordion(liveVessels) {
-      container.innerHTML = routes.map((r, idx) => {
+    function renderAccordion(liveVessels, hasLiveTelemetry) {
+      const openSlugs = new Set(
+        Array.from(container.querySelectorAll("details[open]")).map(el => el.getAttribute("data-route-slug"))
+      );
+
+      container.innerHTML = routes.map(r => {
         const terms = r.terminals || [];
         const isMultiStop = terms.length > 2;
         const disruptions = Array.isArray(r.disruptions) ? r.disruptions : [];
         const hasDisruption = disruptions.length > 0;
 
-        /* Check if any active vessel on this route is running > 10 min behind scheduled departure */
-        const activeRouteVessel = (liveVessels || []).find(v =>
-          terms.some(t => t.id === v.departingId) && terms.some(t => t.id === v.arrivingId)
-        );
-        let isDelayed = false;
-        if (activeRouteVessel && activeRouteVessel.scheduledDepMs && activeRouteVessel.leftDockMs) {
-          if ((activeRouteVessel.leftDockMs - activeRouteVessel.scheduledDepMs) > 10 * 60000) {
-            isDelayed = true;
+        /* Only show a status pill when confirmed by live WSDOT vessel telemetry or active route disruption */
+        let statusPillHtml = "";
+        if (hasDisruption) {
+          statusPillHtml = '<span class="ferry-status-pill status-canceled">Service Alert</span>';
+        } else if (hasLiveTelemetry) {
+          const activeRouteVessel = (liveVessels || []).find(v =>
+            terms.some(t => t.id === v.departingId) && terms.some(t => t.id === v.arrivingId)
+          );
+          if (activeRouteVessel) {
+            const isDelayed = activeRouteVessel.scheduledDepMs && activeRouteVessel.leftDockMs &&
+              ((activeRouteVessel.leftDockMs - activeRouteVessel.scheduledDepMs) > 10 * 60000);
+            statusPillHtml = isDelayed
+              ? '<span class="ferry-status-pill status-delayed">Delayed</span>'
+              : '<span class="ferry-status-pill status-ontime">On Time</span>';
           }
         }
 
-        const pillCls = hasDisruption ? "status-canceled" : (isDelayed ? "status-delayed" : "status-ontime");
-        const pillText = hasDisruption ? "Service Alert" : (isDelayed ? "Delayed" : "On Time");
         const vesselNames = (r.vessels || []).map(v => "M/V " + v).join(", ");
-
         let summaryHtml = "";
         let drawerHtml = "";
 
@@ -837,16 +835,15 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
             <div class="ferry-docks-grid">
               <div class="ferry-dock-block">
                 <div class="ferry-dock-header">Departing ${tA.name} (Next 24 Hours)</div>
-                ${rowsA}
+                ${rowsA || '<div class="ferry-schedule-row"><span class="ferry-sched-vessel">Departure data unavailable</span></div>'}
               </div>
               <div class="ferry-dock-block">
                 <div class="ferry-dock-header">Departing ${tB.name} (Next 24 Hours)</div>
-                ${rowsB}
+                ${rowsB || '<div class="ferry-schedule-row"><span class="ferry-sched-vessel">Departure data unavailable</span></div>'}
               </div>
             </div>
           `;
         } else {
-          /* Multi-terminal San Juan Islands route (ana-sj) */
           const fromAna = r.sailings.filter(s => s.fromId === 1);
           const fromIslands = r.sailings.filter(s => s.fromId !== 1);
           const next2Ana = [...new Set(fromAna.map(s => formatClock(s.depMs)))].slice(0, 2).join(", ");
@@ -876,7 +873,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
             <div class="ferry-docks-grid is-single-col">
               <div class="ferry-dock-block">
                 <div class="ferry-dock-header">All Scheduled Sailings (Next 24 Hours)</div>
-                ${allRows}
+                ${allRows || '<div class="ferry-schedule-row"><span class="ferry-sched-vessel">Departure data unavailable</span></div>'}
               </div>
             </div>
           `;
@@ -892,23 +889,18 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
         ).join("");
 
         return `
-          <details class="pass-accordion-item" ${idx === 0 ? "open" : ""}>
+          <details class="pass-accordion-item" data-route-slug="${r.slug}" ${openSlugs.has(r.slug) ? "open" : ""}>
             <summary class="ferry-accordion-summary">
               <div class="ferry-route-col">
-                <div class="pass-badges-row">
-                  <span class="ferry-status-pill ${pillCls}">${pillText}</span>
-                </div>
+                ${statusPillHtml ? `<div class="pass-badges-row">${statusPillHtml}</div>` : ""}
                 <div class="ferry-route-name">${routeTitleHtml}</div>
                 ${vesselNames ? `<span class="ferry-vessels-caption">${vesselNames}</span>` : ""}
               </div>
-
               <div class="ferry-next-sailings-col">${summaryHtml}</div>
-
               <svg class="forecast-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </summary>
-
             <div class="ferry-acc-details">
               ${disruptionHtml}
               ${drawerHtml}
@@ -918,10 +910,8 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
       }).join("");
     }
 
-    /* Initial synchronous paint from static ferry_schedules.json */
-    renderAccordion([]);
+    renderAccordion([], false);
 
-    /* Fetch live drive-up vehicle spaces & vessel coordinates from Edge Worker */
     fetch(`${apiBase}/transit/ferries`)
       .then(res => (res.ok ? res.json() : null))
       .then(payload => {
@@ -940,7 +930,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
           });
         });
 
-        renderAccordion(liveVessels);
+        renderAccordion(liveVessels, true);
 
         if (ferriesLayer && liveVessels.length > 0) {
           ferriesLayer.clearLayers();
@@ -961,7 +951,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
       .catch(() => {});
   }
 
-  /* 2. Hydrate Live Employment Hub Commute Times (Single Matrix v2 Request) */
+  /* 2. Hydrate Live Employment Hub Commute Times (Matrix v2 Request) */
   async function hydrateHubs() {
     const hubGrid = document.querySelector(".commute-hubs-grid");
     if (!hubGrid) return;
@@ -984,6 +974,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
           const fLabel = friction <= 15 ? "Low Drag" : (friction <= 30 ? "Moderate" : "Heavy Delay");
           badge.className = `commute-friction-badge ${fCls}`;
           badge.innerHTML = `<span>+${friction}%</span><span>${fLabel}</span>`;
+          badge.classList.remove("is-hidden");
         }
 
         const fDrive = card.querySelector('[data-hub-field="drive_live"]');
@@ -999,7 +990,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
     } catch (e) {}
   }
 
-  /* 3. Hydrate Airport Status (SEA & PAE) */
+  /* 3. Hydrate Airport Status (SEA & PAE — Reveal Pill Only After Live Response) */
   async function hydrateAirports() {
     try {
       const res = await fetch(`${apiBase}/transit/airports`);
@@ -1030,12 +1021,14 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
         }
 
         const statusBadge = card.querySelector(".apt-faa-status");
-        if (delays[code]) {
-          statusBadge.textContent = delays[code];
-          statusBadge.className = "ferry-status-pill status-delayed apt-faa-status";
-        } else {
-          statusBadge.textContent = "Normal Operations";
-          statusBadge.className = "ferry-status-pill status-ontime apt-faa-status";
+        if (statusBadge && (m || delays[code])) {
+          if (delays[code]) {
+            statusBadge.textContent = delays[code];
+            statusBadge.className = "ferry-status-pill status-delayed apt-faa-status";
+          } else {
+            statusBadge.textContent = "Normal Operations";
+            statusBadge.className = "ferry-status-pill status-ontime apt-faa-status";
+          }
         }
       });
     } catch (e) {}

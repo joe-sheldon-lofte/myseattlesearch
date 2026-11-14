@@ -6,11 +6,14 @@ File: scripts/hourly/transit_intercity.py
 Purpose:
   1. Ingests live ground transit vehicles from OneBusAway (King & Snohomish agencies)
      with request pacing and retry logic to avoid HTTP 429 throttling.
-  2. Queries Mapbox Directions API (mapbox/driving-traffic) for real-time traffic
+  2. Calculates Active Transit Score (0-100) and Active On-Time Score (0-100, within
+     -60s early to +300s late tolerance) per municipality.
+  3. Queries Mapbox Directions API (mapbox/driving-traffic) for real-time traffic
      duration vs. typical duration across city diagonal coordinates, and calculates
      Active Commute Score (0-100).
-  3. Outputs consolidated ground telemetry to data/transit_radar_live.json.
-  4. Harvests 48-hour WSDOT Ferry schedules, assigned vessel names, disruptions/alerts,
+  4. Outputs live telemetry to data/transit_radar_live.json and appends a rolling
+     168-hour (7-day) snapshot per city to data/transit_radar_history.json.
+  5. Harvests 48-hour WSDOT Ferry schedules, assigned vessel names, disruptions/alerts,
      and terminal coordinates across all active WSF routes into data/ferry_schedules.json.
 """
 
@@ -41,10 +44,16 @@ CITY_BOUNDARIES_PATH = os.path.join(DATA_DIR, "city_boundaries.json")
 COMMUTE_BASELINE_PATH = os.path.join(DATA_DIR, "city_commute_baseline.json")
 TRANSIT_DATA_PATH = os.path.join(DATA_DIR, "transit_data.json")
 OUTPUT_RADAR_PATH = os.path.join(DATA_DIR, "transit_radar_live.json")
+OUTPUT_HISTORY_PATH = os.path.join(DATA_DIR, "transit_radar_history.json")
 OUTPUT_FERRY_PATH = os.path.join(DATA_DIR, "ferry_schedules.json")
 
 # Ground transit agencies serving King & Snohomish Counties
 ONEBUSAWAY_AGENCIES = ["1", "29", "23", "13", "10", "3", "40"]
+
+# Puget Sound on-time tolerance window in seconds (-1 min early to +5 min late)
+ON_TIME_EARLY_LIMIT_SEC = -60
+ON_TIME_LATE_LIMIT_SEC = 300
+HISTORY_MAX_HOURS = 168
 
 # WSDOT Ferries REST API endpoints
 WSF_SCHEDULE_BASE = "https://www.wsdot.wa.gov/Ferries/API/Schedule/rest"
@@ -234,6 +243,18 @@ def classify_vehicle_mode(vehicle, route_seat_map, mode_seat_map):
 
     return "bus", mode_seat_map.get("bus", 40)
 
+def is_vehicle_on_time(vehicle):
+    """Evaluates whether a OneBusAway vehicle is within -60s early to +300s late tolerance."""
+    trip_status = vehicle.get("tripStatus") or {}
+    raw_dev = trip_status.get("scheduleDeviation")
+    if raw_dev is None:
+        return True
+    try:
+        dev_sec = float(raw_dev)
+        return ON_TIME_EARLY_LIMIT_SEC <= dev_sec <= ON_TIME_LATE_LIMIT_SEC
+    except (ValueError, TypeError):
+        return True
+
 def fetch_oba_agency_vehicles(session, agency_id, oba_key):
     url = f"https://api.pugetsound.onebusaway.org/api/where/vehicles-for-agency/{agency_id}.json?key={oba_key}"
     for attempt in range(2):
@@ -285,6 +306,55 @@ def calculate_active_commute_score(live_mins, base_mins):
     
     penalty = (ratio - 1.0) * 100.0 * 1.5
     return max(0, min(100, int(round(100.0 - penalty))))
+
+def update_transit_history(history_path, city_history_snapshots, run_utc):
+    """
+    Appends the current top-of-hour UTC snapshot to data/transit_radar_history.json
+    and trims each municipality's buffer to the most recent 168 hourly entries.
+    """
+    existing_history = {}
+    if os.path.exists(history_path):
+        try:
+            with open(history_path, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
+                if isinstance(loaded, dict):
+                    existing_history = loaded
+        except Exception as e:
+            print(f"⚠️ Existing transit_radar_history.json notice (initializing fresh buffer): {e}")
+
+    hour_bucket = run_utc.replace(minute=0, second=0, microsecond=0)
+    hour_iso = hour_bucket.isoformat()
+    day_of_week = hour_bucket.strftime("%A")
+    hour_of_day = hour_bucket.hour
+
+    for slug, snap in city_history_snapshots.items():
+        series = existing_history.get(slug)
+        if not isinstance(series, list):
+            series = []
+
+        entry = {
+            "timestamp": hour_iso,
+            "day_of_week": day_of_week,
+            "hour_of_day": hour_of_day,
+            "active_transit_score": snap["active_transit_score"],
+            "active_on_time_score": snap["active_on_time_score"],
+            "active_vehicles": snap["active_vehicles"],
+            "active_seats": snap["active_seats"],
+            "data_available": snap["data_available"],
+        }
+
+        if series and isinstance(series[-1], dict) and series[-1].get("timestamp") == hour_iso:
+            series[-1] = entry
+        else:
+            series.append(entry)
+
+        existing_history[slug] = series[-HISTORY_MAX_HOURS:]
+
+    os.makedirs(os.path.dirname(history_path), exist_ok=True)
+    with open(history_path, "w", encoding="utf-8") as f:
+        json.dump(existing_history, f, indent=2, ensure_ascii=False)
+
+    print(f"💾 Updated 168-hour rolling transit history for {len(city_history_snapshots)} cities ➔ {history_path}")
 
 def fetch_wsf_json(session, url):
     for attempt in range(3):
@@ -379,13 +449,11 @@ def harvest_wsdot_ferry_schedules(session, wsdot_key):
 
             entry = routes_by_id[rid]
 
-            # Capture route-level service disruptions
             for dis in r_obj.get("ServiceDisruptions") or []:
                 d_text = strip_html_tags(dis.get("DisruptionDescription") or dis.get("PublishStatus") or "")
                 if d_text and d_text not in entry["service_disruptions"]:
                     entry["service_disruptions"].append(d_text)
 
-            # Fetch full daily schedule & assigned vessels for this route + trip_date
             sched_raw = fetch_wsf_json(
                 session,
                 f"{WSF_SCHEDULE_BASE}/schedule/{trip_date}/{rid}?apiaccesscode={wsdot_key}"
@@ -451,7 +519,6 @@ def harvest_wsdot_ferry_schedules(session, wsdot_key):
         print("⚠️ No WSDOT Ferry routes returned; preserving existing data/ferry_schedules.json.")
         return
 
-    # Format final route-keyed payload
     routes_output = {}
     total_sailings = 0
     for rid, rdata in sorted(routes_by_id.items(), key=lambda kv: kv[1]["route_slug"]):
@@ -490,7 +557,8 @@ def harvest_wsdot_ferry_schedules(session, wsdot_key):
     print(f"💾 Saved 48-hour WSDOT Ferry schedules ({len(routes_output)} routes, {total_sailings} sailings) ➔ {OUTPUT_FERRY_PATH}")
 
 def main():
-    print("🚌 Ingesting Live Ground Transit Vehicles, Commute Radar & WSDOT Ferry Schedules...")
+    print("🚌 Ingesting Live Ground Transit Vehicles, History Buffer, Commute Radar & WSDOT Ferry Schedules...")
+    run_utc = datetime.now(timezone.utc)
     session = requests.Session()
     session.headers.update(HEADERS)
 
@@ -541,10 +609,14 @@ def main():
         active_vehicles.extend(v_list)
         time.sleep(0.35)
 
+    oba_data_available = len(active_vehicles) > 0
+
     city_counts = {
         c["slug"]: {
             "name": c["name"],
             "total_active_seats": 0,
+            "active_vehicles": 0,
+            "on_time_vehicles": 0,
             "counts": {"bus": 0, "light_rail": 0, "commuter_rail": 0, "monorail": 0}
         }
         for c in city_polygons
@@ -553,11 +625,15 @@ def main():
     for v in active_vehicles:
         loc = v.get("location") or v.get("lastKnownLocation") or {}
         lat, lon = loc.get("lat") or loc.get("latitude"), loc.get("lon") or loc.get("lng") or loc.get("longitude")
-        if lat is None or lon is None: continue
-        try: v_lat, v_lon = float(lat), float(lon)
-        except (ValueError, TypeError): continue
+        if lat is None or lon is None:
+            continue
+        try:
+            v_lat, v_lon = float(lat), float(lon)
+        except (ValueError, TypeError):
+            continue
 
         mode, seats = classify_vehicle_mode(v, route_seat_map, mode_seat_map)
+        on_time = is_vehicle_on_time(v)
 
         for c in city_polygons:
             min_lng, min_lat, max_lng, max_lat = c["bbox"]
@@ -565,26 +641,44 @@ def main():
                 if is_point_in_geojson_geometry(v_lon, v_lat, c["geometry"]):
                     slug = c["slug"]
                     city_counts[slug]["total_active_seats"] += seats
+                    city_counts[slug]["active_vehicles"] += 1
+                    if on_time:
+                        city_counts[slug]["on_time_vehicles"] += 1
                     city_counts[slug]["counts"][mode] = city_counts[slug]["counts"].get(mode, 0) + 1
                     break
 
-    # 2. Assemble Live Telemetry & Scores Across Municipalities
+    # 2. Assemble Live Telemetry, Scores & History Snapshots Across Municipalities
     output_radar = {}
+    city_history_snapshots = {}
+
     for c_obj in city_items:
         raw_name = c_obj.get("City") or c_obj.get("name") or ""
-        if not raw_name: continue
+        if not raw_name:
+            continue
 
         city_name = str(raw_name).strip()
         slug = slugify(city_name)
         
-        try: pop_val = int(c_obj.get("FallbackPopulation") or c_obj.get("population") or 0)
-        except (ValueError, TypeError): pop_val = 0
+        try:
+            pop_val = int(c_obj.get("FallbackPopulation") or c_obj.get("population") or 0)
+        except (ValueError, TypeError):
+            pop_val = 0
 
-        c_data = city_counts.get(slug, {"name": city_name, "total_active_seats": 0, "counts": {}})
+        c_data = city_counts.get(
+            slug,
+            {"name": city_name, "total_active_seats": 0, "active_vehicles": 0, "on_time_vehicles": 0, "counts": {}}
+        )
         total_seats = c_data["total_active_seats"]
+        v_count = c_data["active_vehicles"]
+        ot_count = c_data["on_time_vehicles"]
 
         seats_per_1k = total_seats / (pop_val / 1000.0) if pop_val > 0 else 0.0
         active_transit_score = min(100, max(0, int(round((seats_per_1k / 50.0) * 100.0))))
+
+        if v_count > 0:
+            active_on_time_score = int(round((ot_count / v_count) * 100.0))
+        else:
+            active_on_time_score = 100
 
         # Live Mapbox Congestion Drive Time vs Typical Duration
         b_info = commute_baselines.get(slug, {})
@@ -605,9 +699,11 @@ def main():
             "name": city_name,
             "population": pop_val,
             "active_transit_score": active_transit_score,
+            "active_on_time_score": active_on_time_score,
             "active_commute_score": active_commute_score,
             "live_commute_minutes": live_mins or base_mins,
             "baseline_commute_minutes": base_mins,
+            "active_vehicles": v_count,
             "total_active_seats": total_seats,
             "seats_per_1000": round(seats_per_1k, 1),
             "vehicle_counts": {
@@ -616,8 +712,25 @@ def main():
                 "commuter_rail": counts.get("commuter_rail", 0),
                 "monorail": counts.get("monorail", 0)
             },
-            "last_updated": datetime.now(timezone.utc).isoformat()
+            "last_updated": run_utc.isoformat()
         }
+
+        if oba_data_available:
+            city_history_snapshots[slug] = {
+                "active_transit_score": active_transit_score,
+                "active_on_time_score": active_on_time_score,
+                "active_vehicles": v_count,
+                "active_seats": total_seats,
+                "data_available": True,
+            }
+        else:
+            city_history_snapshots[slug] = {
+                "active_transit_score": None,
+                "active_on_time_score": None,
+                "active_vehicles": 0,
+                "active_seats": 0,
+                "data_available": False,
+            }
 
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(OUTPUT_RADAR_PATH, "w", encoding="utf-8") as f:
@@ -625,7 +738,10 @@ def main():
 
     print(f"💾 Saved live ground transit & Mapbox commute score for {len(output_radar)} cities ➔ {OUTPUT_RADAR_PATH}")
 
-    # 3. Harvest 48-Hour WSDOT Ferry Schedules, Vessels & Terminal Coordinates
+    # 3. Update 168-Hour Rolling Transit History Buffer
+    update_transit_history(OUTPUT_HISTORY_PATH, city_history_snapshots, run_utc)
+
+    # 4. Harvest 48-Hour WSDOT Ferry Schedules, Vessels & Terminal Coordinates
     harvest_wsdot_ferry_schedules(session, wsdot_key)
 
 if __name__ == "__main__":
