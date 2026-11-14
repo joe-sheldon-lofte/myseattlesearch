@@ -52,7 +52,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
   <hr class="section-divider">
 
   {# ==========================================================================
-     SECTION 3: CURRENT ACTIVE TRANSIT STATUSES (Simplified Scores + 4 Uniform Tiles)
+     SECTION 3: CURRENT ACTIVE TRANSIT STATUSES (Minimalist Scores + 4 Uniform Tiles)
      ========================================================================== #}
   {% set live_transit = transit_radar_live[city_slug] if transit_radar_live else null %}
 
@@ -66,21 +66,13 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
         {% set c_text = "text-tier-emerald" if c_val >= 80 else ("text-tier-alpine" if c_val >= 50 else "text-tier-crimson") %}
         {% set c_label = "Free-Flow Traffic" if c_val >= 80 else ("Moderate Traffic" if c_val >= 50 else "Heavy Congestion") %}
 
-        <article class="widget-card score-bento-card" aria-label="Active Commute Score: {{ c_val }} out of 100, {{ c_label }}">
-          <header class="score-header-split">
-            <div class="score-title-stack">
-              <span class="text-overline text-accent-alpine">LOCAL TRAFFIC VELOCITY</span>
-              <h3 class="text-widget-title score-card-title">Active Commute Score</h3>
-            </div>
-          </header>
-          <div class="score-display-row">
+        <article class="transit-minimal-score-card" aria-label="Active Commute Score: {{ c_val }}, {{ c_label }}">
+          <h3 class="transit-minimal-score-title">Active Commute Score</h3>
+          <div class="transit-minimal-score-row">
             <div class="score-squircle-badge {{ c_badge }}">
               <span class="score-digit">{{ c_val }}</span>
             </div>
-            <div class="score-label-stack">
-              <div class="score-state-label {{ c_text }}">{{ c_label }}</div>
-              <div class="score-detail-text">Live arterial travel times normalized against uncongested baselines.</div>
-            </div>
+            <div class="transit-minimal-score-label {{ c_text }}">{{ c_label }}</div>
           </div>
         </article>
       {% endif %}
@@ -91,21 +83,13 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
         {% set t_text = "text-tier-emerald" if t_val >= 80 else ("text-tier-alpine" if t_val >= 40 else "text-tier-crimson") %}
         {% set t_label = "Frequent Service" if t_val >= 80 else ("Steady Service" if t_val >= 40 else "Limited Service") %}
 
-        <article class="widget-card score-bento-card" aria-label="Active Transit Score: {{ t_val }} out of 100, {{ t_label }}">
-          <header class="score-header-split">
-            <div class="score-title-stack">
-              <span class="text-overline text-accent-alpine">GROUND TRANSIT CAPACITY</span>
-              <h3 class="text-widget-title score-card-title">Active Transit Score</h3>
-            </div>
-          </header>
-          <div class="score-display-row">
+        <article class="transit-minimal-score-card" aria-label="Active Transit Score: {{ t_val }}, {{ t_label }}">
+          <h3 class="transit-minimal-score-title">Active Transit Score</h3>
+          <div class="transit-minimal-score-row">
             <div class="score-squircle-badge {{ t_badge }}">
               <span class="score-digit">{{ t_val }}</span>
             </div>
-            <div class="score-label-stack">
-              <div class="score-state-label {{ t_text }}">{{ t_label }}</div>
-              <div class="score-detail-text">Active transit seating capacity normalized per 1,000 local residents.</div>
-            </div>
+            <div class="transit-minimal-score-label {{ t_text }}">{{ t_label }}</div>
           </div>
         </article>
       {% endif %}
@@ -117,7 +101,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
     {% set seat_cnt = (live_transit.total_active_seats | default(0)) | localeString %}
 
     <div class="section-grid-static grid-cols-4">
-      <article class="widget-card transit-stat-card" aria-label="Active Buses in {{ active_neighborhood }}: {{ bus_cnt }}">
+      <article class="transit-stat-card" aria-label="Active Buses in {{ active_neighborhood }}: {{ bus_cnt }}">
         <div class="transit-stat-icon-wrap" aria-hidden="true">
           <svg class="transit-stat-svg" viewBox="0 0 24 24" fill="none">
             <path d="M4 11V6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v5H4z" fill="#29856B"/>
@@ -133,7 +117,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
         <span class="transit-stat-overline">ACTIVE BUSES IN {{ active_neighborhood | upper }}</span>
       </article>
 
-      <article class="widget-card transit-stat-card" aria-label="Active Light Rail in {{ active_neighborhood }}: {{ lr_cnt }}">
+      <article class="transit-stat-card" aria-label="Active Light Rail in {{ active_neighborhood }}: {{ lr_cnt }}">
         <div class="transit-stat-icon-wrap" aria-hidden="true">
           <svg class="transit-stat-svg" viewBox="0 0 24 24" fill="none">
             <path d="M3 13V8a3 3 0 0 1 3-3h9l5 4.5V13H3z" fill="#002E6D"/>
@@ -148,7 +132,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
         <span class="transit-stat-overline">ACTIVE LIGHT RAIL IN {{ active_neighborhood | upper }}</span>
       </article>
 
-      <article class="widget-card transit-stat-card" aria-label="Active Sounder Train in {{ active_neighborhood }}: {{ cr_cnt }}">
+      <article class="transit-stat-card" aria-label="Active Sounder Train in {{ active_neighborhood }}: {{ cr_cnt }}">
         <div class="transit-stat-icon-wrap" aria-hidden="true">
           <svg class="transit-stat-svg" viewBox="0 0 24 24" fill="none">
             <path d="M3 13V8a3 3 0 0 1 3-3h9l5 4.5V13H3z" fill="#002E6D"/>
@@ -163,7 +147,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
         <span class="transit-stat-overline">ACTIVE SOUNDER TRAIN IN {{ active_neighborhood | upper }}</span>
       </article>
 
-      <article class="widget-card transit-stat-card" aria-label="Active Transit Seats in {{ active_neighborhood }}: {{ seat_cnt }}">
+      <article class="transit-stat-card" aria-label="Active Transit Seats in {{ active_neighborhood }}: {{ seat_cnt }}">
         <div class="transit-stat-icon-wrap" aria-hidden="true">
           <svg class="transit-stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="8" r="3"/>
@@ -179,37 +163,101 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
   <hr class="section-divider">
 
   {# ==========================================================================
-     SECTION 4: CURRENT ACTIVE COMMUTE TIMES (2-Column Wide Bento Cards)
+     SECTION 4: CURRENT ACTIVE COMMUTE TIMES (Static Off-Peak Baselines + Live Matrix Overlay)
      ========================================================================== #}
+  {% set city_baseline = null %}
+  {% if commute_hub_baselines %}
+    {% for row in commute_hub_baselines %}
+      {% if row.City == active_neighborhood %}
+        {% set city_baseline = row %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
   {% set canonical_hubs = [
-    { id: "slu", name: "South Lake Union (Seattle)", lat: 47.6253, lon: -122.3375 },
-    { id: "bellevue", name: "Downtown Bellevue", lat: 47.6101, lon: -122.2015 },
-    { id: "redmond", name: "Microsoft Redmond Campus", lat: 47.6423, lon: -122.1368 },
-    { id: "everett", name: "Boeing Everett Factory", lat: 47.9253, lon: -122.2715 },
-    { id: "renton", name: "Boeing Renton Factory", lat: 47.4915, lon: -122.2155 },
-    { id: "kent", name: "Kent Valley Logistics Hub", lat: 47.3809, lon: -122.2348 }
+    { id: "slu", name: "South Lake Union (Seattle)" },
+    { id: "bellevue", name: "Downtown Bellevue" },
+    { id: "redmond", name: "Microsoft Redmond Campus" },
+    { id: "everett", name: "Boeing Everett Factory" },
+    { id: "renton", name: "Boeing Renton Factory" }
   ] %}
 
   <section id="employment-hubs" class="portal-section-widget">
     <h2 class="text-section-title section-title-clean">Current Active Commute Times</h2>
 
-    <div class="widget-card commute-hub-container"
-         data-origin-neighborhood="{{ active_neighborhood }}"
-         {% if city.Latitude and city.Longitude %}data-origin-lat="{{ city.Latitude }}" data-origin-lon="{{ city.Longitude }}"{% endif %}>
+    <div class="commute-hub-container">
       <div class="card-header-split">
         <h3 class="text-widget-title">{{ active_neighborhood }} to Major Employment Hubs</h3>
       </div>
 
       <div class="commute-hubs-grid">
         {% for hub in canonical_hubs %}
-          <div class="commute-hub-card" data-hub-id="{{ hub.id }}" data-hub-lat="{{ hub.lat }}" data-hub-lon="{{ hub.lon }}">
+          {% set dist_mi = city_baseline[hub.id ~ "_distance_mi"] if city_baseline else "" %}
+          {% set d_off = city_baseline[hub.id ~ "_drive_offpeak_min"] if city_baseline else "" %}
+          {% set t_off = city_baseline[hub.id ~ "_transit_offpeak_min"] if city_baseline else "" %}
+          {% set rd_off = city_baseline[hub.id ~ "_return_drive_offpeak_min"] if city_baseline else "" %}
+          {% set rt_off = city_baseline[hub.id ~ "_return_transit_offpeak_min"] if city_baseline else "" %}
+
+          <div class="commute-hub-card"
+               data-hub-id="{{ hub.id }}"
+               data-offpeak-drive="{{ d_off }}"
+               data-offpeak-transit="{{ t_off }}"
+               data-return-offpeak-drive="{{ rd_off }}"
+               data-return-offpeak-transit="{{ rt_off }}">
             <div class="commute-hub-header">
               <div>
                 <h4 class="commute-hub-title">{{ hub.name }}</h4>
+                {% if dist_mi %}
+                  <span class="text-body-secondary commute-sub-metric">{{ dist_mi }} mi</span>
+                {% endif %}
+              </div>
+              <div class="commute-friction-badge is-hidden" data-hub-badge></div>
+            </div>
+
+            <div class="commute-leg-block">
+              <div class="text-overline commute-leg-overline">
+                MORNING COMMUTE: {{ active_neighborhood | upper }} &rarr; HUB
+              </div>
+              <div class="commute-modes-grid">
+                <div class="commute-metric-cell">
+                  <span class="commute-metric-label">LIVE DRIVE</span>
+                  <div class="commute-metric-value" data-hub-field="drive_live">{{ (d_off ~ " min") if d_off else "--" }}</div>
+                  {% if d_off %}
+                    <span class="text-body-secondary commute-sub-metric">Off-peak: {{ d_off }} min</span>
+                  {% endif %}
+                </div>
+
+                <div class="commute-metric-cell">
+                  <span class="commute-metric-label text-accent-alpine">EST. TRANSIT</span>
+                  <div class="commute-metric-value text-accent-alpine" data-hub-field="transit_live">{{ (t_off ~ " min") if t_off else "--" }}</div>
+                  {% if t_off %}
+                    <span class="text-body-secondary commute-sub-metric">Off-peak: {{ t_off }} min</span>
+                  {% endif %}
+                </div>
               </div>
             </div>
-            <div class="commute-pending-state">
-              <span class="text-body-secondary commute-sub-metric">Corridor telemetry syncing…</span>
+
+            <div class="commute-leg-block">
+              <div class="text-overline commute-leg-overline">
+                EVENING RETURN: HUB &rarr; {{ active_neighborhood | upper }}
+              </div>
+              <div class="commute-modes-grid">
+                <div class="commute-metric-cell">
+                  <span class="commute-metric-label">LIVE DRIVE</span>
+                  <div class="commute-metric-value" data-hub-field="return_drive_live">{{ (rd_off ~ " min") if rd_off else "--" }}</div>
+                  {% if rd_off %}
+                    <span class="text-body-secondary commute-sub-metric">Off-peak: {{ rd_off }} min</span>
+                  {% endif %}
+                </div>
+
+                <div class="commute-metric-cell">
+                  <span class="commute-metric-label text-accent-alpine">EST. TRANSIT</span>
+                  <div class="commute-metric-value text-accent-alpine" data-hub-field="return_transit_live">{{ (rt_off ~ " min") if rt_off else "--" }}</div>
+                  {% if rt_off %}
+                    <span class="text-body-secondary commute-sub-metric">Off-peak: {{ rt_off }} min</span>
+                  {% endif %}
+                </div>
+              </div>
             </div>
           </div>
         {% endfor %}
@@ -220,7 +268,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
   <hr class="section-divider">
 
   {# ==========================================================================
-     SECTION 5: MULTI-LAYER TRANSIT MAP (Live Traffic First + Custom Agency SVGs)
+     SECTION 5: MULTI-LAYER TRANSIT MAP (Live Traffic First + Solid Blue CT Bus)
      ========================================================================== #}
   <section id="transit-map" class="portal-section-widget">
     <h2 class="text-section-title section-title-clean">Live Vehicle Tracker &amp; Traffic Flow</h2>
@@ -259,7 +307,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
   <hr class="section-divider">
 
   {# ==========================================================================
-     SECTION 6: WASHINGTON STATE FERRIES (Proximity-Sorted 9-Route Accordion)
+     SECTION 6: WASHINGTON STATE FERRIES (10 Routes from ferry_schedules.json + Live Spaces)
      ========================================================================== #}
   <section id="wsdot-ferries" class="portal-section-widget">
     <h2 class="text-section-title section-title-clean">Washington State Ferries</h2>
@@ -269,11 +317,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
         <h3 class="forecast-card-title text-widget-title">Terminal Sailing Space &amp; Schedules</h3>
       </header>
 
-      <div id="ferryAccordionContainer" class="pass-accordion-stack">
-        <div class="commute-pending-state">
-          <span class="text-body-secondary commute-sub-metric">Syncing WSDOT terminal schedules…</span>
-        </div>
-      </div>
+      <div id="ferryAccordionContainer" class="pass-accordion-stack"></div>
     </div>
   </section>
 
@@ -292,7 +336,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
             <h4 class="apt-name-heading">Seattle-Tacoma International</h4>
             <span class="apt-code-tag">SEA</span>
           </div>
-          <span class="ferry-status-pill status-ontime apt-faa-status">Syncing...</span>
+          <span class="ferry-status-pill status-ontime apt-faa-status">Normal Operations</span>
         </div>
         <div class="apt-metar-grid">
           <div class="apt-metar-block">
@@ -320,7 +364,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
             <h4 class="apt-name-heading">Paine Field (Everett)</h4>
             <span class="apt-code-tag">PAE</span>
           </div>
-          <span class="ferry-status-pill status-ontime apt-faa-status">Syncing...</span>
+          <span class="ferry-status-pill status-ontime apt-faa-status">Normal Operations</span>
         </div>
         <div class="apt-metar-grid">
           <div class="apt-metar-block">
@@ -535,7 +579,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
   {% endif %}
 
   {# ==========================================================================
-     SECTION 10: NEIGHBORHOOD CONNECTIVITY (Simplified Walk / Bike / Transit Scores)
+     SECTION 10: NEIGHBORHOOD CONNECTIVITY (Minimalist Walk / Bike / Transit Scores)
      ========================================================================== #}
   {% set walkscore = walk_transit_bike_scores[active_neighborhood] if walk_transit_bike_scores else null %}
   {% if walkscore %}
@@ -551,20 +595,13 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
           {% set w_text = "text-tier-emerald" if w_val >= 90 else ("text-tier-alpine" if w_val >= 70 else ("text-tier-amber" if w_val >= 50 else "text-tier-crimson")) %}
           {% set w_label = walkscore.description or ("Very Walkable" if w_val >= 70 else "Somewhat Walkable") %}
 
-          <article class="widget-card score-bento-card" aria-label="WalkScore Walkability: {{ w_val }} out of 100, {{ w_label }}">
-            <header class="score-header-split">
-              <div class="score-title-stack">
-                <span class="text-overline text-accent-alpine">PEDESTRIAN MOBILITY</span>
-                <h3 class="text-widget-title score-card-title">WalkScore&reg; Walkability</h3>
-              </div>
-            </header>
-            <div class="score-display-row">
+          <article class="transit-minimal-score-card" aria-label="WalkScore Walkability: {{ w_val }}, {{ w_label }}">
+            <h3 class="transit-minimal-score-title">WalkScore&reg; Walkability</h3>
+            <div class="transit-minimal-score-row">
               <div class="score-squircle-badge {{ w_badge }}">
                 <span class="score-digit">{{ w_val }}</span>
               </div>
-              <div class="score-label-stack">
-                <div class="score-state-label {{ w_text }}">{{ w_label }}</div>
-              </div>
+              <div class="transit-minimal-score-label {{ w_text }}">{{ w_label }}</div>
             </div>
           </article>
         {% endif %}
@@ -575,20 +612,13 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
           {% set b_text = "text-tier-emerald" if b_val >= 90 else ("text-tier-alpine" if b_val >= 70 else ("text-tier-amber" if b_val >= 50 else "text-tier-crimson")) %}
           {% set b_label = walkscore.bike.description or ("Very Bikeable" if b_val >= 70 else "Bikeable") %}
 
-          <article class="widget-card score-bento-card" aria-label="BikeScore Cycling Index: {{ b_val }} out of 100, {{ b_label }}">
-            <header class="score-header-split">
-              <div class="score-title-stack">
-                <span class="text-overline text-accent-alpine">CYCLING &amp; MICRO-MOBILITY</span>
-                <h3 class="text-widget-title score-card-title">BikeScore&reg; Cycling Index</h3>
-              </div>
-            </header>
-            <div class="score-display-row">
+          <article class="transit-minimal-score-card" aria-label="BikeScore Cycling Index: {{ b_val }}, {{ b_label }}">
+            <h3 class="transit-minimal-score-title">BikeScore&reg; Cycling Index</h3>
+            <div class="transit-minimal-score-row">
               <div class="score-squircle-badge {{ b_badge }}">
                 <span class="score-digit">{{ b_val }}</span>
               </div>
-              <div class="score-label-stack">
-                <div class="score-state-label {{ b_text }}">{{ b_label }}</div>
-              </div>
+              <div class="transit-minimal-score-label {{ b_text }}">{{ b_label }}</div>
             </div>
           </article>
         {% endif %}
@@ -599,23 +629,13 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
           {% set tr_text = "text-tier-emerald" if tr_val >= 90 else ("text-tier-alpine" if tr_val >= 70 else ("text-tier-amber" if tr_val >= 50 else "text-tier-crimson")) %}
           {% set tr_label = walkscore.transit.description or ("Excellent Transit" if tr_val >= 70 else "Good Transit") %}
 
-          <article class="widget-card score-bento-card" aria-label="TransitScore Access: {{ tr_val }} out of 100, {{ tr_label }}">
-            <header class="score-header-split">
-              <div class="score-title-stack">
-                <span class="text-overline text-accent-alpine">PUBLIC TRANSPORTATION</span>
-                <h3 class="text-widget-title score-card-title">TransitScore&reg; Access</h3>
-              </div>
-            </header>
-            <div class="score-display-row">
+          <article class="transit-minimal-score-card" aria-label="TransitScore Access: {{ tr_val }}, {{ tr_label }}">
+            <h3 class="transit-minimal-score-title">TransitScore&reg; Access</h3>
+            <div class="transit-minimal-score-row">
               <div class="score-squircle-badge {{ tr_badge }}">
                 <span class="score-digit">{{ tr_val }}</span>
               </div>
-              <div class="score-label-stack">
-                <div class="score-state-label {{ tr_text }}">{{ tr_label }}</div>
-                {% if walkscore.transit.summary %}
-                  <div class="score-detail-text">{{ walkscore.transit.summary }}</div>
-                {% endif %}
-              </div>
+              <div class="transit-minimal-score-label {{ tr_text }}">{{ tr_label }}</div>
             </div>
           </article>
         {% endif %}
@@ -642,12 +662,47 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
 {{ alert_list | dump | safe }}
 </script>
 
+<script id="ferrySchedulesPayload" type="application/json">
+[
+  {% if ferry_schedules and ferry_schedules.routes %}
+    {% for r_key, r_obj in ferry_schedules.routes %}
+      {
+        "slug": {{ r_obj.route_slug | dump | safe }},
+        "routeId": {{ r_obj.route_id }},
+        "description": {{ r_obj.description | dump | safe }},
+        "vessels": {{ r_obj.assigned_vessels | dump | safe }},
+        "disruptions": {{ (r_obj.service_disruptions or []) | dump | safe }},
+        "terminals": [
+          {% for t in r_obj.terminals %}
+            { "id": {{ t.terminal_id }}, "name": {{ t.name | dump | safe }}, "lat": {{ t.latitude }}, "lon": {{ t.longitude }} }{% if not loop.last %},{% endif %}
+          {% endfor %}
+        ],
+        "sailings": [
+          {% for d_key, d_obj in r_obj.schedules %}
+            {% for s in d_obj.sailings %}
+              {
+                "fromId": {{ s.departing_terminal_id }},
+                "from": {{ s.departing_terminal_name | dump | safe }},
+                "toId": {{ s.arriving_terminal_id }},
+                "to": {{ s.arriving_terminal_name | dump | safe }},
+                "dep": {{ s.departing_time | dump | safe }},
+                "vessel": {{ (s.vessel_name or "") | dump | safe }}
+              },
+            {% endfor %}
+          {% endfor %}
+          null
+        ]
+      }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  {% endif %}
+]
+</script>
+
 <script>
 (function() {
   const apiBase = "https://livedata.myseattlesearch.com/api";
   const mapLat = parseFloat("{{ city.Latitude | default(47.6062) }}");
   const mapLon = parseFloat("{{ city.Longitude | default(-122.3321) }}");
-  const cityName = "{{ active_neighborhood }}";
 
   function haversineMiles(lat1, lon1, lat2, lon2) {
     const toRad = d => d * Math.PI / 180;
@@ -658,10 +713,10 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  /* Custom Agency SVG Generators (Zero Inline Style Attributes) */
+  /* Custom Agency SVG Generators (Solid Blue Community Transit Bus) */
   function buildBusSvg(agency) {
     let top = "#005596";
-    let bot = "#FFFFFF";
+    let bot = "#005596";
     if (agency === "metro") { top = "#29856B"; bot = "#E5B575"; }
     else if (agency === "everett") { top = "#C60C30"; bot = "#565A5C"; }
     else if (agency === "sound") { top = "#002E6D"; bot = "#0091B3"; }
@@ -681,7 +736,232 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
     return '<svg class="transit-marker-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="19" width="18" height="2.5" rx="1" fill="#FF6B00"/><path d="M5.5 19L10.5 4a1.6 1.6 0 0 1 3 0l5 15H5.5z" fill="#FF6B00"/><polygon points="7.2,16.5 16.8,16.5 16,14 8,14" fill="#FFFFFF"/><polygon points="8.6,12 15.4,12 14.6,9.5 9.4,9.5" fill="#FFFFFF"/></svg>';
   }
 
-  /* 1. Hydrate Employment Hubs (Delayed 400ms to prevent UI contention) */
+  /* 1. Render Static 24-Hour Ferry Schedules Immediately & Overlay Live Drive-Up Spaces */
+  function initFerries(ferriesLayer) {
+    const container = document.getElementById("ferryAccordionContainer");
+    const rawNode = document.getElementById("ferrySchedulesPayload");
+    if (!container || !rawNode) return;
+
+    let routes = [];
+    try {
+      routes = JSON.parse(rawNode.textContent) || [];
+    } catch (e) {
+      return;
+    }
+
+    const nowMs = Date.now();
+    const horizonMs = nowMs + 24 * 3600 * 1000;
+
+    routes.forEach(r => {
+      r.sailings = (r.sailings || [])
+        .filter(s => s && s.dep)
+        .map(s => ({ ...s, depMs: Date.parse(s.dep), spaces: null }))
+        .filter(s => !isNaN(s.depMs) && s.depMs >= (nowMs - 5 * 60000) && s.depMs <= horizonMs)
+        .sort((a, b) => a.depMs - b.depMs);
+
+      r.minDist = Math.min(...(r.terminals || []).map(t => haversineMiles(mapLat, mapLon, t.lat, t.lon)));
+    });
+
+    routes.sort((a, b) => a.minDist - b.minDist);
+
+    function formatClock(ms) {
+      return new Date(ms).toLocaleTimeString("en-US", {
+        timeZone: "America/Los_Angeles",
+        hour: "numeric",
+        minute: "2-digit"
+      });
+    }
+
+    function renderAccordion(liveVessels) {
+      container.innerHTML = routes.map((r, idx) => {
+        const terms = r.terminals || [];
+        const isMultiStop = terms.length > 2;
+        const disruptions = Array.isArray(r.disruptions) ? r.disruptions : [];
+        const hasDisruption = disruptions.length > 0;
+
+        /* Check if any active vessel on this route is running > 10 min behind scheduled departure */
+        const activeRouteVessel = (liveVessels || []).find(v =>
+          terms.some(t => t.id === v.departingId) && terms.some(t => t.id === v.arrivingId)
+        );
+        let isDelayed = false;
+        if (activeRouteVessel && activeRouteVessel.scheduledDepMs && activeRouteVessel.leftDockMs) {
+          if ((activeRouteVessel.leftDockMs - activeRouteVessel.scheduledDepMs) > 10 * 60000) {
+            isDelayed = true;
+          }
+        }
+
+        const pillCls = hasDisruption ? "status-canceled" : (isDelayed ? "status-delayed" : "status-ontime");
+        const pillText = hasDisruption ? "Service Alert" : (isDelayed ? "Delayed" : "On Time");
+        const vesselNames = (r.vessels || []).map(v => "M/V " + v).join(", ");
+
+        let summaryHtml = "";
+        let drawerHtml = "";
+
+        if (!isMultiStop && terms.length === 2) {
+          const tA = terms[0];
+          const tB = terms[1];
+          const sailA = r.sailings.filter(s => s.fromId === tA.id);
+          const sailB = r.sailings.filter(s => s.fromId === tB.id);
+
+          const next2A = sailA.slice(0, 2).map(s => formatClock(s.depMs)).join(", ");
+          const next2B = sailB.slice(0, 2).map(s => formatClock(s.depMs)).join(", ");
+
+          if (next2A) {
+            summaryHtml += `<div class="ferry-sailing-row"><span class="ferry-sailing-label">From ${tA.name}:</span><span class="ferry-sailing-times">${next2A}</span></div>`;
+          }
+          if (next2B) {
+            summaryHtml += `<div class="ferry-sailing-row"><span class="ferry-sailing-label">From ${tB.name}:</span><span class="ferry-sailing-times">${next2B}</span></div>`;
+          }
+
+          const rowsA = sailA.map(s => `
+            <div class="ferry-schedule-row">
+              <span class="ferry-sched-time">${formatClock(s.depMs)}</span>
+              <div>
+                <span class="ferry-sched-vessel">${s.vessel}</span>
+                ${s.spaces !== null ? `<span class="ferry-sched-spaces">${s.spaces} spaces</span>` : ""}
+              </div>
+            </div>
+          `).join("");
+
+          const rowsB = sailB.map(s => `
+            <div class="ferry-schedule-row">
+              <span class="ferry-sched-time">${formatClock(s.depMs)}</span>
+              <div>
+                <span class="ferry-sched-vessel">${s.vessel}</span>
+                ${s.spaces !== null ? `<span class="ferry-sched-spaces">${s.spaces} spaces</span>` : ""}
+              </div>
+            </div>
+          `).join("");
+
+          drawerHtml = `
+            <div class="ferry-docks-grid">
+              <div class="ferry-dock-block">
+                <div class="ferry-dock-header">Departing ${tA.name} (Next 24 Hours)</div>
+                ${rowsA}
+              </div>
+              <div class="ferry-dock-block">
+                <div class="ferry-dock-header">Departing ${tB.name} (Next 24 Hours)</div>
+                ${rowsB}
+              </div>
+            </div>
+          `;
+        } else {
+          /* Multi-terminal San Juan Islands route (ana-sj) */
+          const fromAna = r.sailings.filter(s => s.fromId === 1);
+          const fromIslands = r.sailings.filter(s => s.fromId !== 1);
+          const next2Ana = [...new Set(fromAna.map(s => formatClock(s.depMs)))].slice(0, 2).join(", ");
+          const next2Isl = [...new Set(fromIslands.map(s => formatClock(s.depMs)))].slice(0, 2).join(", ");
+
+          if (next2Ana) {
+            summaryHtml += `<div class="ferry-sailing-row"><span class="ferry-sailing-label">From Anacortes:</span><span class="ferry-sailing-times">${next2Ana}</span></div>`;
+          }
+          if (next2Isl) {
+            summaryHtml += `<div class="ferry-sailing-row"><span class="ferry-sailing-label">From San Juans:</span><span class="ferry-sailing-times">${next2Isl}</span></div>`;
+          }
+
+          const allRows = r.sailings.map(s => `
+            <div class="ferry-schedule-row">
+              <div>
+                <span class="ferry-sched-time">${formatClock(s.depMs)}</span>
+                <span class="ferry-sched-leg">${s.from} &rarr; ${s.to}</span>
+              </div>
+              <div>
+                <span class="ferry-sched-vessel">${s.vessel}</span>
+                ${s.spaces !== null ? `<span class="ferry-sched-spaces">${s.spaces} spaces</span>` : ""}
+              </div>
+            </div>
+          `).join("");
+
+          drawerHtml = `
+            <div class="ferry-docks-grid is-single-col">
+              <div class="ferry-dock-block">
+                <div class="ferry-dock-header">All Scheduled Sailings (Next 24 Hours)</div>
+                ${allRows}
+              </div>
+            </div>
+          `;
+        }
+
+        const routeParts = (r.description || "").split("/");
+        const routeTitleHtml = routeParts.length === 2
+          ? `<span>${routeParts[0].trim()}</span><span class="ferry-route-arrow" aria-hidden="true">&#8644;</span><span>${routeParts[1].trim()}</span>`
+          : `<span>${r.description}</span>`;
+
+        const disruptionHtml = disruptions.map(d =>
+          `<div class="ferry-disruption-banner">${d.text || d.title || ""}</div>`
+        ).join("");
+
+        return `
+          <details class="pass-accordion-item" ${idx === 0 ? "open" : ""}>
+            <summary class="ferry-accordion-summary">
+              <div class="ferry-route-col">
+                <div class="pass-badges-row">
+                  <span class="ferry-status-pill ${pillCls}">${pillText}</span>
+                </div>
+                <div class="ferry-route-name">${routeTitleHtml}</div>
+                ${vesselNames ? `<span class="ferry-vessels-caption">${vesselNames}</span>` : ""}
+              </div>
+
+              <div class="ferry-next-sailings-col">${summaryHtml}</div>
+
+              <svg class="forecast-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </summary>
+
+            <div class="ferry-acc-details">
+              ${disruptionHtml}
+              ${drawerHtml}
+            </div>
+          </details>
+        `;
+      }).join("");
+    }
+
+    /* Initial synchronous paint from static ferry_schedules.json */
+    renderAccordion([]);
+
+    /* Fetch live drive-up vehicle spaces & vessel coordinates from Edge Worker */
+    fetch(`${apiBase}/transit/ferries`)
+      .then(res => (res.ok ? res.json() : null))
+      .then(payload => {
+        if (!payload) return;
+        const liveSpaces = Array.isArray(payload.spaces) ? payload.spaces : [];
+        const liveVessels = Array.isArray(payload.vessels) ? payload.vessels : [];
+
+        routes.forEach(r => {
+          r.sailings.forEach(s => {
+            const match = liveSpaces.find(sp =>
+              sp.fromId === s.fromId && sp.toId === s.toId && Math.abs(sp.depMs - s.depMs) <= 360000
+            );
+            if (match && typeof match.driveUpSpaces === "number") {
+              s.spaces = match.driveUpSpaces;
+            }
+          });
+        });
+
+        renderAccordion(liveVessels);
+
+        if (ferriesLayer && liveVessels.length > 0) {
+          ferriesLayer.clearLayers();
+          liveVessels.forEach(v => {
+            if (!v.lat || !v.lon) return;
+            const icon = L.divIcon({
+              className: "transit-vehicle-divicon",
+              html: `<div class="transit-svg-badge badge-ferry">${buildFerrySvg()}<span>${v.name || "WSF"}</span></div>`,
+              iconSize: [0, 0],
+              iconAnchor: [0, 0]
+            });
+            L.marker([v.lat, v.lon], { icon })
+              .bindPopup(`<strong>M/V ${v.name || "Ferry"}</strong><br>${v.route || "Puget Sound Route"}<br>Speed: ${Math.round(v.speed || 0)} kts`)
+              .addTo(ferriesLayer);
+          });
+        }
+      })
+      .catch(() => {});
+  }
+
+  /* 2. Hydrate Live Employment Hub Commute Times (Single Matrix v2 Request) */
   async function hydrateHubs() {
     const hubGrid = document.querySelector(".commute-hubs-grid");
     if (!hubGrid) return;
@@ -689,181 +969,33 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
       const res = await fetch(`${apiBase}/transit/commute?lat=${mapLat}&lon=${mapLon}`);
       if (!res.ok) return;
       const data = await res.json();
+
       hubGrid.querySelectorAll(".commute-hub-card").forEach(card => {
         const hId = card.getAttribute("data-hub-id");
-        const m = data[hId];
-        if (!m) return;
+        const live = data[hId];
+        if (!live) return;
 
-        const header = card.querySelector(".commute-hub-header");
-        let distEl = header.querySelector(".commute-sub-metric");
-        if (!distEl) {
-          distEl = document.createElement("span");
-          distEl.className = "text-body-secondary commute-sub-metric";
-          header.firstElementChild.appendChild(distEl);
-        }
-        distEl.textContent = m.miles || "";
+        const dOff = parseFloat(card.getAttribute("data-offpeak-drive") || "0");
+        const badge = card.querySelector("[data-hub-badge]");
 
-        let badge = header.querySelector(".commute-friction-badge");
-        if (!badge) {
-          badge = document.createElement("div");
-          header.appendChild(badge);
+        if (badge && live.drive_live_min && dOff > 0) {
+          const friction = Math.max(0, Math.round(((live.drive_live_min - dOff) / dOff) * 100));
+          const fCls = friction <= 15 ? "friction-low" : (friction <= 30 ? "friction-moderate" : "friction-high");
+          const fLabel = friction <= 15 ? "Low Drag" : (friction <= 30 ? "Moderate" : "Heavy Delay");
+          badge.className = `commute-friction-badge ${fCls}`;
+          badge.innerHTML = `<span>+${friction}%</span><span>${fLabel}</span>`;
         }
-        const fCls = m.friction <= 15 ? "friction-low" : (m.friction <= 30 ? "friction-moderate" : "friction-high");
-        badge.className = `commute-friction-badge ${fCls}`;
-        badge.innerHTML = `<span>+${m.friction}%</span><span>${m.friction_label}</span>`;
 
-        const pending = card.querySelector(".commute-pending-state");
-        if (pending) {
-          pending.outerHTML = `
-            <div class="commute-leg-block">
-              <div class="text-overline commute-leg-overline">MORNING COMMUTE: ${cityName.toUpperCase()} &rarr; HUB</div>
-              <div class="commute-modes-grid">
-                <div class="commute-metric-cell">
-                  <span class="commute-metric-label">LIVE DRIVE</span>
-                  <div class="commute-metric-value">${m.drive_live || "--"}</div>
-                  <span class="text-body-secondary commute-sub-metric">Off-peak: ${m.drive_offpeak || "--"}</span>
-                </div>
-                <div class="commute-metric-cell">
-                  <span class="commute-metric-label text-accent-alpine">EST. TRANSIT</span>
-                  <div class="commute-metric-value text-accent-alpine">${m.transit_live || "--"}</div>
-                  <span class="text-body-secondary commute-sub-metric">Off-peak: ${m.transit_offpeak || "--"}</span>
-                </div>
-              </div>
-            </div>
-            <div class="commute-leg-block">
-              <div class="text-overline commute-leg-overline">EVENING RETURN: HUB &rarr; ${cityName.toUpperCase()}</div>
-              <div class="commute-modes-grid">
-                <div class="commute-metric-cell">
-                  <span class="commute-metric-label">LIVE DRIVE</span>
-                  <div class="commute-metric-value">${m.return_drive_live || m.drive_live || "--"}</div>
-                  <span class="text-body-secondary commute-sub-metric">Off-peak: ${m.return_drive_offpeak || m.drive_offpeak || "--"}</span>
-                </div>
-                <div class="commute-metric-cell">
-                  <span class="commute-metric-label text-accent-alpine">EST. TRANSIT</span>
-                  <div class="commute-metric-value text-accent-alpine">${m.return_transit_live || m.transit_live || "--"}</div>
-                  <span class="text-body-secondary commute-sub-metric">Off-peak: ${m.return_transit_offpeak || m.transit_offpeak || "--"}</span>
-                </div>
-              </div>
-            </div>
-          `;
-        }
+        const fDrive = card.querySelector('[data-hub-field="drive_live"]');
+        const fTransit = card.querySelector('[data-hub-field="transit_live"]');
+        const rDrive = card.querySelector('[data-hub-field="return_drive_live"]');
+        const rTransit = card.querySelector('[data-hub-field="return_transit_live"]');
+
+        if (fDrive && live.drive_live_min) fDrive.textContent = `${live.drive_live_min} min`;
+        if (fTransit && live.transit_live_min) fTransit.textContent = `${live.transit_live_min} min`;
+        if (rDrive && live.return_drive_live_min) rDrive.textContent = `${live.return_drive_live_min} min`;
+        if (rTransit && live.return_transit_live_min) rTransit.textContent = `${live.return_transit_live_min} min`;
       });
-    } catch (e) {}
-  }
-
-  /* 2. Hydrate Washington State Ferries (9 Routes Sorted by Proximity) */
-  let cachedFerryData = null;
-  async function hydrateFerries(ferriesLayer) {
-    const container = document.getElementById("ferryAccordionContainer");
-    try {
-      const res = await fetch(`${apiBase}/transit/ferries`);
-      if (!res.ok) return;
-      const payload = await res.json();
-      cachedFerryData = payload;
-      const routes = Array.isArray(payload.routes) ? payload.routes : [];
-
-      routes.sort((a, b) => {
-        const dA = Math.min(
-          haversineMiles(mapLat, mapLon, a.originLat, a.originLon),
-          haversineMiles(mapLat, mapLon, a.destLat, a.destLon)
-        );
-        const dB = Math.min(
-          haversineMiles(mapLat, mapLon, b.originLat, b.originLon),
-          haversineMiles(mapLat, mapLon, b.destLat, b.destLon)
-        );
-        return dA - dB;
-      });
-
-      if (container && routes.length > 0) {
-        container.innerHTML = routes.map((r, idx) => {
-          const isDelayed = (r.status || "").toLowerCase().includes("delay");
-          const isAlert = (r.status || "").toLowerCase().includes("cancel") || (r.status || "").toLowerCase().includes("suspen");
-          const pillCls = isAlert ? "status-canceled" : (isDelayed ? "status-delayed" : "status-ontime");
-
-          const outNext2 = (r.originSailings || []).slice(0, 2).map(s => s.time).join(", ") || "Check WSDOT";
-          const inNext2 = (r.destSailings || []).slice(0, 2).map(s => s.time).join(", ") || "Check WSDOT";
-
-          const outFull = (r.originSailings || []).map(s => `
-            <div class="ferry-schedule-row">
-              <span class="ferry-sched-time">${s.time}</span>
-              <div>
-                <span class="ferry-sched-vessel">${s.vessel || ""}</span>
-                <span class="ferry-sched-spaces">${s.spaces !== null && s.spaces !== undefined ? (s.spaces + " spaces") : ""}</span>
-              </div>
-            </div>
-          `).join("") || '<div class="ferry-schedule-row"><span class="ferry-sched-vessel">Departure data unavailable</span></div>';
-
-          const inFull = (r.destSailings || []).map(s => `
-            <div class="ferry-schedule-row">
-              <span class="ferry-sched-time">${s.time}</span>
-              <div>
-                <span class="ferry-sched-vessel">${s.vessel || ""}</span>
-                <span class="ferry-sched-spaces">${s.spaces !== null && s.spaces !== undefined ? (s.spaces + " spaces") : ""}</span>
-              </div>
-            </div>
-          `).join("") || '<div class="ferry-schedule-row"><span class="ferry-sched-vessel">Departure data unavailable</span></div>';
-
-          return `
-            <details class="pass-accordion-item" ${idx === 0 ? "open" : ""}>
-              <summary class="ferry-accordion-summary">
-                <div class="ferry-route-col">
-                  <div class="pass-badges-row">
-                    <span class="ferry-status-pill ${pillCls}">${r.status || "On Time"}</span>
-                    <span class="ferry-crossing-time">${r.crossingMin || 30} min crossing</span>
-                  </div>
-                  <div class="ferry-route-name">
-                    <span>${r.origin}</span>
-                    <span class="ferry-route-arrow" aria-hidden="true">&#8644;</span>
-                    <span>${r.destination}</span>
-                  </div>
-                </div>
-
-                <div class="ferry-next-sailings-col">
-                  <div class="ferry-sailing-row">
-                    <span class="ferry-sailing-label">From ${r.origin}:</span>
-                    <span class="ferry-sailing-times">${outNext2}</span>
-                  </div>
-                  <div class="ferry-sailing-row">
-                    <span class="ferry-sailing-label">From ${r.destination}:</span>
-                    <span class="ferry-sailing-times">${inNext2}</span>
-                  </div>
-                </div>
-
-                <svg class="forecast-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </summary>
-
-              <div class="ferry-acc-details">
-                <div class="ferry-dock-block">
-                  <div class="ferry-dock-header">Departing ${r.origin}</div>
-                  ${outFull}
-                </div>
-                <div class="ferry-dock-block">
-                  <div class="ferry-dock-header">Departing ${r.destination}</div>
-                  ${inFull}
-                </div>
-              </div>
-            </details>
-          `;
-        }).join("");
-      }
-
-      if (ferriesLayer && Array.isArray(payload.vessels)) {
-        ferriesLayer.clearLayers();
-        payload.vessels.forEach(v => {
-          if (!v.lat || !v.lon) return;
-          const icon = L.divIcon({
-            className: "transit-vehicle-divicon",
-            html: `<div class="transit-svg-badge badge-ferry">${buildFerrySvg()}<span>${v.name || "WSF"}</span></div>`,
-            iconSize: [0, 0],
-            iconAnchor: [0, 0]
-          });
-          L.marker([v.lat, v.lon], { icon })
-            .bindPopup(`<strong>M/V ${v.name || "Ferry"}</strong><br>${v.route || "Puget Sound Route"}<br>Speed: ${Math.round(v.speed || 0)} kts`)
-            .addTo(ferriesLayer);
-        });
-      }
     } catch (e) {}
   }
 
@@ -909,10 +1041,13 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
     } catch (e) {}
   }
 
-  /* 4. Multi-Layer Transit Map (Live Traffic ON by Default + Custom Agency SVGs) */
+  /* 4. Multi-Layer Transit Map */
   function initTransitMap() {
     const mapEl = document.getElementById("transitMapNode");
-    if (!mapEl || typeof L === "undefined") return;
+    if (!mapEl || typeof L === "undefined") {
+      initFerries(null);
+      return;
+    }
 
     const map = L.map("transitMapNode", {
       center: [mapLat, mapLon],
@@ -1066,23 +1201,17 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
           if (layerState.trains) syncVehicles();
         }
         if (key === "ferries") {
-          if (layerState.ferries) {
-            if (!cachedFerryData) hydrateFerries(ferriesLayer);
-            ferriesLayer.addTo(map);
-          } else {
-            map.removeLayer(ferriesLayer);
-          }
+          layerState.ferries ? ferriesLayer.addTo(map) : map.removeLayer(ferriesLayer);
         }
         if (key === "construction") layerState.construction ? constructionLayer.addTo(map) : map.removeLayer(constructionLayer);
       });
     });
 
-    hydrateFerries(ferriesLayer);
+    initFerries(ferriesLayer);
     startPolling();
   }
 
-  /* Stagger Employment Hub fetch by 400ms after initial paint */
-  setTimeout(hydrateHubs, 400);
+  hydrateHubs();
   hydrateAirports();
 
   if (typeof L !== "undefined") {

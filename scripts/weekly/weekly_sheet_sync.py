@@ -34,7 +34,7 @@ def main():
         "Team", "Reviews", "ThirdPartyPrograms", "MatrixKeepAlive",
         "BuyerGuide", "SellerGuide", "GuideFAQs", "ElectionSchedule", "CommuteHubBaselines"
     ]
-    ranges = [f"{tab}!A:Z" for tab in tabs]
+    ranges = [f"{tab}!A:ZZ" for tab in tabs]
     res = sheets_service.spreadsheets().values().batchGet(spreadsheetId=master_sheet_id, ranges=ranges).execute()
     data = dict(zip(tabs, res.get('valueRanges', [])))
 
