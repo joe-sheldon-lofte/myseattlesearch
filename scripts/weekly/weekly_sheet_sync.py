@@ -32,7 +32,7 @@ def main():
 
     tabs = [
         "Team", "Reviews", "ThirdPartyPrograms", "MatrixKeepAlive",
-        "BuyerGuide", "SellerGuide", "GuideFAQs", "ElectionSchedule"
+        "BuyerGuide", "SellerGuide", "GuideFAQs", "ElectionSchedule", "CommuteHubBaselines"
     ]
     ranges = [f"{tab}!A:Z" for tab in tabs]
     res = sheets_service.spreadsheets().values().batchGet(spreadsheetId=master_sheet_id, ranges=ranges).execute()
@@ -46,6 +46,7 @@ def main():
         ("SellerGuide", "seller_guide.json"),
         ("GuideFAQs", "guide_faqs.json"),
         ("ElectionSchedule", "election_schedule.json")
+        ("CommuteHubBaselines", "commute_hub_baselines.json")
     ]
     for tab_name, json_name in mappings:
         rows = data.get(tab_name, {}).get('values', [])
