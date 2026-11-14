@@ -1,0 +1,1101 @@
+---
+layout: layouts/base.njk
+pagination:
+  data: city_data
+  size: 1
+  addAllPagesToCollections: true
+  alias: city
+permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
+---
+{% set city_slug = city.City | slugify %}
+{% set active_neighborhood = city.City %}
+{% set primary_district = city['School District'].split(',')[0] | trim if city['School District'] else '' %}
+
+<main class="layout-container layout-stack-main">
+
+  {# ==========================================================================
+     SECTION 1: CANONICAL NEIGHBORHOOD HERO HEADER
+     ========================================================================== #}
+  <div id="neighborhood-hero" class="portal-section-header">
+    {% set hero_img_main = city.HeroImageMain %}
+    {% set hero_img_left = city.HeroImageLeft %}
+    {% set hero_img_right = city.HeroImageRight %}
+    {% set hero_welcome_label = "Welcome to the neighborhood" %}
+    {% set subpage_topic = "Transit & Commute" %}
+    {% include "components/widget/neighborhood-page-header.njk" %}
+  </div>
+
+  {# ==========================================================================
+     SECTION 2: EXPLORE NAVIGATION PILLS (Shuffled Subpage Dock)
+     ========================================================================== #}
+  <section id="explore-neighborhood" class="portal-section-nav" aria-label="Explore {{ active_neighborhood }}">
+    <span class="text-overline text-accent-alpine section-overline-lead">
+      EXPLORE {{ active_neighborhood | upper }}
+    </span>
+    <div class="neighborhood-nav-container">
+      <nav class="neighborhood-nav-track" tabindex="0" aria-label="{{ active_neighborhood }} Subpages">
+        <a href="/neighborhood/{{ city_slug }}/" class="neighborhood-nav-pill is-inactive">City Home</a>
+        <a href="/neighborhood/{{ city_slug }}/news-events/" class="neighborhood-nav-pill is-inactive">News &amp; Events</a>
+        <a href="/neighborhood/{{ city_slug }}/weather/" class="neighborhood-nav-pill is-inactive">Weather</a>
+        <a href="/neighborhood/{{ city_slug }}/emergency-safety/" class="neighborhood-nav-pill is-inactive">Emergency &amp; Safety</a>
+        <a href="/neighborhood/{{ city_slug }}/municipal/" class="neighborhood-nav-pill is-inactive">Municipal</a>
+        <a href="/neighborhood/{{ city_slug }}/real-estate/" class="neighborhood-nav-pill is-inactive">Real Estate</a>
+        {% if primary_district %}
+          <a href="/neighborhood/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
+        {% endif %}
+        <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
+        <a href="/neighborhood/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit</a>
+      </nav>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 3: CURRENT ACTIVE TRANSIT STATUSES (Simplified Scores + 4 Uniform Tiles)
+     ========================================================================== #}
+  {% set live_transit = transit_radar_live[city_slug] if transit_radar_live else null %}
+
+  <section id="current-transit-scores" class="portal-section-glance">
+    <h2 class="text-section-title section-title-clean">Current Active Transit Statuses</h2>
+
+    <div class="section-grid-static grid-cols-2 weather-primary-row">
+      {% if live_transit and live_transit.active_commute_score is not none %}
+        {% set c_val = live_transit.active_commute_score | round %}
+        {% set c_badge = "score-tier-emerald" if c_val >= 80 else ("score-tier-alpine" if c_val >= 50 else "score-tier-crimson") %}
+        {% set c_text = "text-tier-emerald" if c_val >= 80 else ("text-tier-alpine" if c_val >= 50 else "text-tier-crimson") %}
+        {% set c_label = "Free-Flow Traffic" if c_val >= 80 else ("Moderate Traffic" if c_val >= 50 else "Heavy Congestion") %}
+
+        <article class="widget-card score-bento-card" aria-label="Active Commute Score: {{ c_val }} out of 100, {{ c_label }}">
+          <header class="score-header-split">
+            <div class="score-title-stack">
+              <span class="text-overline text-accent-alpine">LOCAL TRAFFIC VELOCITY</span>
+              <h3 class="text-widget-title score-card-title">Active Commute Score</h3>
+            </div>
+          </header>
+          <div class="score-display-row">
+            <div class="score-squircle-badge {{ c_badge }}">
+              <span class="score-digit">{{ c_val }}</span>
+            </div>
+            <div class="score-label-stack">
+              <div class="score-state-label {{ c_text }}">{{ c_label }}</div>
+              <div class="score-detail-text">Live arterial travel times normalized against uncongested baselines.</div>
+            </div>
+          </div>
+        </article>
+      {% endif %}
+
+      {% if live_transit and live_transit.active_transit_score is not none %}
+        {% set t_val = live_transit.active_transit_score | round %}
+        {% set t_badge = "score-tier-emerald" if t_val >= 80 else ("score-tier-alpine" if t_val >= 40 else "score-tier-crimson") %}
+        {% set t_text = "text-tier-emerald" if t_val >= 80 else ("text-tier-alpine" if t_val >= 40 else "text-tier-crimson") %}
+        {% set t_label = "Frequent Service" if t_val >= 80 else ("Steady Service" if t_val >= 40 else "Limited Service") %}
+
+        <article class="widget-card score-bento-card" aria-label="Active Transit Score: {{ t_val }} out of 100, {{ t_label }}">
+          <header class="score-header-split">
+            <div class="score-title-stack">
+              <span class="text-overline text-accent-alpine">GROUND TRANSIT CAPACITY</span>
+              <h3 class="text-widget-title score-card-title">Active Transit Score</h3>
+            </div>
+          </header>
+          <div class="score-display-row">
+            <div class="score-squircle-badge {{ t_badge }}">
+              <span class="score-digit">{{ t_val }}</span>
+            </div>
+            <div class="score-label-stack">
+              <div class="score-state-label {{ t_text }}">{{ t_label }}</div>
+              <div class="score-detail-text">Active transit seating capacity normalized per 1,000 local residents.</div>
+            </div>
+          </div>
+        </article>
+      {% endif %}
+    </div>
+
+    {% set bus_cnt = (live_transit.vehicle_counts.buses | default(0)) if (live_transit and live_transit.vehicle_counts) else 0 %}
+    {% set lr_cnt = (live_transit.vehicle_counts.light_rail | default(0)) if (live_transit and live_transit.vehicle_counts) else 0 %}
+    {% set cr_cnt = (live_transit.vehicle_counts.commuter_rail | default(0)) if (live_transit and live_transit.vehicle_counts) else 0 %}
+    {% set seat_cnt = (live_transit.total_active_seats | default(0)) | localeString %}
+
+    <div class="section-grid-static grid-cols-4">
+      <article class="widget-card transit-stat-card" aria-label="Active Buses in {{ active_neighborhood }}: {{ bus_cnt }}">
+        <div class="transit-stat-icon-wrap" aria-hidden="true">
+          <svg class="transit-stat-svg" viewBox="0 0 24 24" fill="none">
+            <path d="M4 11V6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v5H4z" fill="#29856B"/>
+            <rect x="6" y="5" width="12" height="4.5" rx="1" fill="#FFFFFF" opacity="0.95"/>
+            <path d="M4 11v6a2 2 0 0 0 2 2h1v2a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2h4v2a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2h1a2 2 0 0 0 2-2v-6H4z" fill="#E5B575"/>
+            <circle cx="7" cy="14" r="1.25" fill="#FFFFFF"/>
+            <circle cx="17" cy="14" r="1.25" fill="#FFFFFF"/>
+            <rect x="6" y="19" width="2" height="2" rx="0.5" fill="#1C1C1E"/>
+            <rect x="16" y="19" width="2" height="2" rx="0.5" fill="#1C1C1E"/>
+          </svg>
+        </div>
+        <div class="transit-stat-figure">{{ bus_cnt }}</div>
+        <span class="transit-stat-overline">ACTIVE BUSES IN {{ active_neighborhood | upper }}</span>
+      </article>
+
+      <article class="widget-card transit-stat-card" aria-label="Active Light Rail in {{ active_neighborhood }}: {{ lr_cnt }}">
+        <div class="transit-stat-icon-wrap" aria-hidden="true">
+          <svg class="transit-stat-svg" viewBox="0 0 24 24" fill="none">
+            <path d="M3 13V8a3 3 0 0 1 3-3h9l5 4.5V13H3z" fill="#002E6D"/>
+            <path d="M6 7h3v3.5H6zM11 7h3v3.5h-3zM16 7h2.5l2 3.5H16z" fill="#FFFFFF" opacity="0.95"/>
+            <path d="M3 13v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4H3z" fill="#0091B3"/>
+            <circle cx="19" cy="14" r="1" fill="#FACC15"/>
+            <circle cx="6" cy="19" r="1.5" fill="#1C1C1E"/>
+            <circle cx="18" cy="19" r="1.5" fill="#1C1C1E"/>
+          </svg>
+        </div>
+        <div class="transit-stat-figure">{{ lr_cnt }}</div>
+        <span class="transit-stat-overline">ACTIVE LIGHT RAIL IN {{ active_neighborhood | upper }}</span>
+      </article>
+
+      <article class="widget-card transit-stat-card" aria-label="Active Sounder Train in {{ active_neighborhood }}: {{ cr_cnt }}">
+        <div class="transit-stat-icon-wrap" aria-hidden="true">
+          <svg class="transit-stat-svg" viewBox="0 0 24 24" fill="none">
+            <path d="M3 13V8a3 3 0 0 1 3-3h9l5 4.5V13H3z" fill="#002E6D"/>
+            <path d="M6 7h3v3.5H6zM11 7h3v3.5h-3zM16 7h2.5l2 3.5H16z" fill="#FFFFFF" opacity="0.95"/>
+            <path d="M3 13v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4H3z" fill="#9AB6D3"/>
+            <circle cx="19" cy="14" r="1" fill="#FACC15"/>
+            <circle cx="6" cy="19" r="1.5" fill="#1C1C1E"/>
+            <circle cx="18" cy="19" r="1.5" fill="#1C1C1E"/>
+          </svg>
+        </div>
+        <div class="transit-stat-figure">{{ cr_cnt }}</div>
+        <span class="transit-stat-overline">ACTIVE SOUNDER TRAIN IN {{ active_neighborhood | upper }}</span>
+      </article>
+
+      <article class="widget-card transit-stat-card" aria-label="Active Transit Seats in {{ active_neighborhood }}: {{ seat_cnt }}">
+        <div class="transit-stat-icon-wrap" aria-hidden="true">
+          <svg class="transit-stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="3"/>
+            <path d="M6 4v10a2 2 0 0 0 2 2h10v2"/>
+          </svg>
+        </div>
+        <div class="transit-stat-figure">{{ seat_cnt }}</div>
+        <span class="transit-stat-overline">ACTIVE TRANSIT SEATS IN {{ active_neighborhood | upper }}</span>
+      </article>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 4: CURRENT ACTIVE COMMUTE TIMES (2-Column Wide Bento Cards)
+     ========================================================================== #}
+  {% set canonical_hubs = [
+    { id: "slu", name: "South Lake Union (Seattle)", lat: 47.6253, lon: -122.3375 },
+    { id: "bellevue", name: "Downtown Bellevue", lat: 47.6101, lon: -122.2015 },
+    { id: "redmond", name: "Microsoft Redmond Campus", lat: 47.6423, lon: -122.1368 },
+    { id: "everett", name: "Boeing Everett Factory", lat: 47.9253, lon: -122.2715 },
+    { id: "renton", name: "Boeing Renton Factory", lat: 47.4915, lon: -122.2155 },
+    { id: "kent", name: "Kent Valley Logistics Hub", lat: 47.3809, lon: -122.2348 }
+  ] %}
+
+  <section id="employment-hubs" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">Current Active Commute Times</h2>
+
+    <div class="widget-card commute-hub-container"
+         data-origin-neighborhood="{{ active_neighborhood }}"
+         {% if city.Latitude and city.Longitude %}data-origin-lat="{{ city.Latitude }}" data-origin-lon="{{ city.Longitude }}"{% endif %}>
+      <div class="card-header-split">
+        <h3 class="text-widget-title">{{ active_neighborhood }} to Major Employment Hubs</h3>
+      </div>
+
+      <div class="commute-hubs-grid">
+        {% for hub in canonical_hubs %}
+          <div class="commute-hub-card" data-hub-id="{{ hub.id }}" data-hub-lat="{{ hub.lat }}" data-hub-lon="{{ hub.lon }}">
+            <div class="commute-hub-header">
+              <div>
+                <h4 class="commute-hub-title">{{ hub.name }}</h4>
+              </div>
+            </div>
+            <div class="commute-pending-state">
+              <span class="text-body-secondary commute-sub-metric">Corridor telemetry syncing…</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 5: MULTI-LAYER TRANSIT MAP (Live Traffic First + Custom Agency SVGs)
+     ========================================================================== #}
+  <section id="transit-map" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">Live Vehicle Tracker &amp; Traffic Flow</h2>
+
+    <div class="weather-map-card">
+      <header class="weather-map-header">
+        <h3 class="text-widget-title weather-map-title">{{ active_neighborhood }} Transit Map</h3>
+        <div class="airport-board-filter-group" role="tablist" aria-label="Map Layers">
+          <button type="button" class="btn-apt-tab is-active" data-layer-toggle="traffic" aria-pressed="true">Live Traffic</button>
+          <button type="button" class="btn-apt-tab is-active" data-layer-toggle="buses" aria-pressed="true">Buses</button>
+          <button type="button" class="btn-apt-tab is-active" data-layer-toggle="trains" aria-pressed="true">Trains</button>
+          <button type="button" class="btn-apt-tab" data-layer-toggle="ferries" aria-pressed="false">Ferries</button>
+          <button type="button" class="btn-apt-tab" data-layer-toggle="construction" aria-pressed="false">Construction</button>
+        </div>
+      </header>
+
+      <div class="weather-map-stage">
+        <div id="transitMapNode"
+             class="weather-map-canvas"
+             data-lat="{{ city.Latitude | default(47.6062) }}"
+             data-lng="{{ city.Longitude | default(-122.3321) }}"
+             data-city="{{ active_neighborhood }}"></div>
+
+        <div class="map-playback-dock">
+          <span class="toll-live-indicator">
+            <span class="toll-live-pulse-dot" aria-hidden="true"></span>
+            <span id="transitMapStatusText">Live Tracker Active</span>
+          </span>
+        </div>
+
+        <div class="map-attribution-pill">OneBusAway / TomTom / WSDOT / ESRI</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 6: WASHINGTON STATE FERRIES (Proximity-Sorted 9-Route Accordion)
+     ========================================================================== #}
+  <section id="wsdot-ferries" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">Washington State Ferries</h2>
+
+    <div class="weather-passes-card ferry-accordion-card">
+      <header class="forecast-header-row">
+        <h3 class="forecast-card-title text-widget-title">Terminal Sailing Space &amp; Schedules</h3>
+      </header>
+
+      <div id="ferryAccordionContainer" class="pass-accordion-stack">
+        <div class="commute-pending-state">
+          <span class="text-body-secondary commute-sub-metric">Syncing WSDOT terminal schedules…</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 7: REGIONAL AIRPORT STATUS (SEA & PAE via Edge Gateway)
+     ========================================================================== #}
+  <section id="airport-status" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">Regional Airport Status</h2>
+
+    <div class="airport-status-grid">
+      <article id="aptCardSEA" class="airport-status-card" aria-label="Seattle-Tacoma International Airport Status">
+        <div class="apt-card-header">
+          <div>
+            <h4 class="apt-name-heading">Seattle-Tacoma International</h4>
+            <span class="apt-code-tag">SEA</span>
+          </div>
+          <span class="ferry-status-pill status-ontime apt-faa-status">Syncing...</span>
+        </div>
+        <div class="apt-metar-grid">
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Flight Rules</span>
+            <span class="apt-flight-rules-pill vfr apt-rule-val">VFR</span>
+          </div>
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Surface Wind</span>
+            <span class="apt-metar-val apt-wind-val">--</span>
+          </div>
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Visibility</span>
+            <span class="apt-metar-val apt-vis-val">--</span>
+          </div>
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Ceiling / Temp</span>
+            <span class="apt-metar-val apt-ceil-val">--</span>
+          </div>
+        </div>
+      </article>
+
+      <article id="aptCardPAE" class="airport-status-card" aria-label="Paine Field Airport Status">
+        <div class="apt-card-header">
+          <div>
+            <h4 class="apt-name-heading">Paine Field (Everett)</h4>
+            <span class="apt-code-tag">PAE</span>
+          </div>
+          <span class="ferry-status-pill status-ontime apt-faa-status">Syncing...</span>
+        </div>
+        <div class="apt-metar-grid">
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Flight Rules</span>
+            <span class="apt-flight-rules-pill vfr apt-rule-val">VFR</span>
+          </div>
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Surface Wind</span>
+            <span class="apt-metar-val apt-wind-val">--</span>
+          </div>
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Visibility</span>
+            <span class="apt-metar-val apt-vis-val">--</span>
+          </div>
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Ceiling / Temp</span>
+            <span class="apt-metar-val apt-ceil-val">--</span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 8: WSDOT CONSTRUCTION ADVISORIES (Static SSG)
+     ========================================================================== #}
+  {% set construction_data = city_construction[city_slug] if city_construction else null %}
+  {% set alert_list = construction_data.alerts if (construction_data and construction_data.alerts) else [] %}
+  {% set total_alerts = construction_data.alert_count if (construction_data and construction_data.alert_count is defined) else (alert_list | length) %}
+
+  <section id="construction-alerts" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">WSDOT Construction Advisories</h2>
+
+    <div class="widget-card construction-alerts-card" aria-label="{{ active_neighborhood }} Construction">
+      <header class="construction-alerts-header">
+        <div class="construction-alerts-title-stack">
+          <h3 class="text-widget-title construction-alerts-headline">{{ active_neighborhood }} Construction</h3>
+        </div>
+        {% if total_alerts > 0 %}
+          <span class="construction-count-badge status-alert">
+            {{ total_alerts }} ACTIVE {% if total_alerts == 1 %}ADVISORY{% else %}ADVISORIES{% endif %}
+          </span>
+        {% else %}
+          <span class="construction-count-badge status-clear">ALL CLEAR</span>
+        {% endif %}
+      </header>
+
+      {% if total_alerts > 0 and (alert_list | length) > 0 %}
+        <div class="construction-alerts-stream">
+          {% for item in alert_list %}
+            {% set priority_lower = (item.priority | default('low')) | lower %}
+            {% set priority_class = "priority-high" if ('highest' in priority_lower or 'high' in priority_lower) else ("priority-medium" if 'medium' in priority_lower else "priority-low") %}
+            <article class="construction-alert-tile">
+              <div class="construction-alert-meta">
+                <span class="construction-priority-pill {{ priority_class }}">{{ item.priority | default('Advisory') | upper }}</span>
+                <span class="construction-category-label">{{ item.event_category | default('Construction') }}</span>
+                {% if item.alert_id %}
+                  <span class="construction-meta-dot" aria-hidden="true">&bull;</span>
+                  <span class="construction-alert-id">{{ item.alert_id | upper }}</span>
+                {% endif %}
+              </div>
+              <p class="construction-alert-text">{{ item.headline | trim }}</p>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="construction-empty-state">
+          <div class="construction-empty-icon-well" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+          <div class="construction-empty-content">
+            <h4 class="construction-empty-heading">No Active Construction Delays</h4>
+            <p class="text-body-secondary construction-empty-desc">
+              State highways and primary corridors within {{ active_neighborhood }} are currently free of active WSDOT lane reductions or closures.
+            </p>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  {# ==========================================================================
+     SECTION 9: TRANSIT RELIABILITY (168-Hour Weekly Accordion)
+     ========================================================================== #}
+  {% set transit_hist_raw = transit_radar_history[city_slug] if transit_radar_history else [] %}
+  {% if (transit_hist_raw | length) > 0 %}
+    <hr class="section-divider">
+
+    <section id="historical-reliability" class="portal-section-widget">
+      <h2 class="text-section-title section-title-clean">Transit Reliability</h2>
+
+      {% set month_abbrs = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] %}
+      {% set days_order = [] %}
+      {% for hr in transit_hist_raw %}
+        {% if hr.day_of_week and (hr.day_of_week not in days_order) %}
+          {% set _ = days_order.push(hr.day_of_week) %}
+        {% endif %}
+      {% endfor %}
+
+      {% set transit_history_days = [] %}
+      {% for dname in days_order %}
+        {% set s_sum = 0 %}
+        {% set s_cnt = 0 %}
+        {% set o_sum = 0 %}
+        {% set o_cnt = 0 %}
+        {% set day_date_disp = "" %}
+        {% set hourly_rows = [] %}
+
+        {% for hr in transit_hist_raw %}
+          {% if hr.day_of_week == dname %}
+            {% if not day_date_disp and hr.timestamp and ('T' in hr.timestamp) %}
+              {% set ymd = hr.timestamp.split('T')[0].split('-') %}
+              {% set m_idx = ymd[1] | int %}
+              {% set d_num = ymd[2] | int %}
+              {% set day_date_disp = month_abbrs[m_idx] ~ " " ~ d_num %}
+            {% endif %}
+
+            {% if hr.active_transit_score is not none %}
+              {% set s_sum = s_sum + (hr.active_transit_score | float) %}
+              {% set s_cnt = s_cnt + 1 %}
+            {% endif %}
+            {% if hr.active_on_time_score is not none %}
+              {% set o_sum = o_sum + (hr.active_on_time_score | float) %}
+              {% set o_cnt = o_cnt + 1 %}
+            {% endif %}
+
+            {% set hh = hr.hour_of_day | int %}
+            {% set h_disp = (12 if hh == 0 else (hh if hh <= 12 else hh - 12)) ~ (":00 AM" if hh < 12 else ":00 PM") %}
+            {% set is_avail = hr.data_available and (hr.active_transit_score is not none) %}
+            {% set ot_num = (hr.active_on_time_score | round) if (hr.active_on_time_score is not none) else -1 %}
+            {% set st_label = "No Service" if not is_avail else ("Normal" if ot_num >= 80 else ("Minor Delay" if ot_num >= 65 else "Friction")) %}
+            {% set st_type = "nodata" if not is_avail else ("normal" if ot_num >= 80 else ("warning" if ot_num >= 65 else "alert")) %}
+
+            {% set _ = hourly_rows.push({
+              "hour": h_disp,
+              "score": (hr.active_transit_score | round) if (hr.active_transit_score is not none) else "--",
+              "ontime": (ot_num ~ "%") if (ot_num >= 0) else "--",
+              "status": st_label,
+              "status_type": st_type
+            }) %}
+          {% endif %}
+        {% endfor %}
+
+        {% set avg_score = ((s_sum / s_cnt) | round) if s_cnt > 0 else "--" %}
+        {% set avg_ontime = (((o_sum / o_cnt) | round) ~ "%") if o_cnt > 0 else "--" %}
+        {% set _ = transit_history_days.push({
+          "day": dname,
+          "date": day_date_disp,
+          "score": avg_score,
+          "ontime": avg_ontime,
+          "hourly": hourly_rows
+        }) %}
+      {% endfor %}
+
+      <div class="widget-card transit-historical-log-card" aria-label="{{ active_neighborhood }} Transit Score & Schedule Reliability">
+        <header class="transit-hist-header">
+          <h3 class="text-widget-title transit-hist-title">{{ active_neighborhood }} Transit Score &amp; Schedule Reliability</h3>
+          <div class="transit-audit-badge">7-Day Audit Log</div>
+        </header>
+
+        <div class="transit-days-stack">
+          {% for day in transit_history_days %}
+            <details class="transit-day-accordion" {% if loop.first %}open{% endif %}>
+              <summary class="transit-day-summary">
+                <div class="transit-day-lead">
+                  <svg class="transit-toggle-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  <span class="transit-day-name">{{ day.day }}</span>
+                  {% if day.date %}<span class="transit-day-date">{{ day.date }}</span>{% endif %}
+                </div>
+                <div class="transit-day-metrics">
+                  <span><span class="metric-score-label">Score:</span> <span class="metric-score-val">{{ day.score }}</span></span>
+                  <span><span class="metric-ontime-label">On-Time:</span> <span class="metric-ontime-val">{{ day.ontime }}</span></span>
+                </div>
+              </summary>
+
+              {% if day.hourly and (day.hourly | length) > 0 %}
+                <div class="transit-hourly-pane">
+                  <table class="transit-hourly-table">
+                    <thead>
+                      <tr>
+                        <th>Hour</th>
+                        <th>Transit Score</th>
+                        <th>On-Time Rate</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for h in day.hourly %}
+                        <tr>
+                          <td class="cell-hour-stamp">{{ h.hour }}</td>
+                          <td class="cell-hour-score">{{ h.score }}</td>
+                          <td class="cell-hour-ontime">{{ h.ontime }}</td>
+                          <td class="cell-hour-status status-{{ h.status_type }}">{{ h.status }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              {% endif %}
+            </details>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
+  {# ==========================================================================
+     SECTION 10: NEIGHBORHOOD CONNECTIVITY (Simplified Walk / Bike / Transit Scores)
+     ========================================================================== #}
+  {% set walkscore = walk_transit_bike_scores[active_neighborhood] if walk_transit_bike_scores else null %}
+  {% if walkscore %}
+    <hr class="section-divider">
+
+    <section id="walkscore-metrics" class="portal-section-glance">
+      <h2 class="text-section-title section-title-clean">Neighborhood Connectivity</h2>
+
+      <div class="section-grid-static grid-cols-3">
+        {% if walkscore.walkscore is not none %}
+          {% set w_val = walkscore.walkscore | round %}
+          {% set w_badge = "score-tier-emerald" if w_val >= 90 else ("score-tier-alpine" if w_val >= 70 else ("score-tier-amber" if w_val >= 50 else "score-tier-crimson")) %}
+          {% set w_text = "text-tier-emerald" if w_val >= 90 else ("text-tier-alpine" if w_val >= 70 else ("text-tier-amber" if w_val >= 50 else "text-tier-crimson")) %}
+          {% set w_label = walkscore.description or ("Very Walkable" if w_val >= 70 else "Somewhat Walkable") %}
+
+          <article class="widget-card score-bento-card" aria-label="WalkScore Walkability: {{ w_val }} out of 100, {{ w_label }}">
+            <header class="score-header-split">
+              <div class="score-title-stack">
+                <span class="text-overline text-accent-alpine">PEDESTRIAN MOBILITY</span>
+                <h3 class="text-widget-title score-card-title">WalkScore&reg; Walkability</h3>
+              </div>
+            </header>
+            <div class="score-display-row">
+              <div class="score-squircle-badge {{ w_badge }}">
+                <span class="score-digit">{{ w_val }}</span>
+              </div>
+              <div class="score-label-stack">
+                <div class="score-state-label {{ w_text }}">{{ w_label }}</div>
+              </div>
+            </div>
+          </article>
+        {% endif %}
+
+        {% if walkscore.bike and walkscore.bike.score is not none %}
+          {% set b_val = walkscore.bike.score | round %}
+          {% set b_badge = "score-tier-emerald" if b_val >= 90 else ("score-tier-alpine" if b_val >= 70 else ("score-tier-amber" if b_val >= 50 else "score-tier-crimson")) %}
+          {% set b_text = "text-tier-emerald" if b_val >= 90 else ("text-tier-alpine" if b_val >= 70 else ("text-tier-amber" if b_val >= 50 else "text-tier-crimson")) %}
+          {% set b_label = walkscore.bike.description or ("Very Bikeable" if b_val >= 70 else "Bikeable") %}
+
+          <article class="widget-card score-bento-card" aria-label="BikeScore Cycling Index: {{ b_val }} out of 100, {{ b_label }}">
+            <header class="score-header-split">
+              <div class="score-title-stack">
+                <span class="text-overline text-accent-alpine">CYCLING &amp; MICRO-MOBILITY</span>
+                <h3 class="text-widget-title score-card-title">BikeScore&reg; Cycling Index</h3>
+              </div>
+            </header>
+            <div class="score-display-row">
+              <div class="score-squircle-badge {{ b_badge }}">
+                <span class="score-digit">{{ b_val }}</span>
+              </div>
+              <div class="score-label-stack">
+                <div class="score-state-label {{ b_text }}">{{ b_label }}</div>
+              </div>
+            </div>
+          </article>
+        {% endif %}
+
+        {% if walkscore.transit and walkscore.transit.score is not none %}
+          {% set tr_val = walkscore.transit.score | round %}
+          {% set tr_badge = "score-tier-emerald" if tr_val >= 90 else ("score-tier-alpine" if tr_val >= 70 else ("score-tier-amber" if tr_val >= 50 else "score-tier-crimson")) %}
+          {% set tr_text = "text-tier-emerald" if tr_val >= 90 else ("text-tier-alpine" if tr_val >= 70 else ("text-tier-amber" if tr_val >= 50 else "text-tier-crimson")) %}
+          {% set tr_label = walkscore.transit.description or ("Excellent Transit" if tr_val >= 70 else "Good Transit") %}
+
+          <article class="widget-card score-bento-card" aria-label="TransitScore Access: {{ tr_val }} out of 100, {{ tr_label }}">
+            <header class="score-header-split">
+              <div class="score-title-stack">
+                <span class="text-overline text-accent-alpine">PUBLIC TRANSPORTATION</span>
+                <h3 class="text-widget-title score-card-title">TransitScore&reg; Access</h3>
+              </div>
+            </header>
+            <div class="score-display-row">
+              <div class="score-squircle-badge {{ tr_badge }}">
+                <span class="score-digit">{{ tr_val }}</span>
+              </div>
+              <div class="score-label-stack">
+                <div class="score-state-label {{ tr_text }}">{{ tr_label }}</div>
+                {% if walkscore.transit.summary %}
+                  <div class="score-detail-text">{{ walkscore.transit.summary }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </article>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
+
+</main>
+
+{% set boundary_geom = null %}
+{% if city_boundaries and city_boundaries.features %}
+  {% for feat in city_boundaries.features %}
+    {% if feat.properties and feat.properties.slug == city_slug %}
+      {% set boundary_geom = feat.geometry %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+<script id="boundaryPayload" type="application/json">
+{{ boundary_geom | dump | safe }}
+</script>
+
+<script id="constructionPayload" type="application/json">
+{{ alert_list | dump | safe }}
+</script>
+
+<script>
+(function() {
+  const apiBase = "https://livedata.myseattlesearch.com/api";
+  const mapLat = parseFloat("{{ city.Latitude | default(47.6062) }}");
+  const mapLon = parseFloat("{{ city.Longitude | default(-122.3321) }}");
+  const cityName = "{{ active_neighborhood }}";
+
+  function haversineMiles(lat1, lon1, lat2, lon2) {
+    const toRad = d => d * Math.PI / 180;
+    const R = 3958.8;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  /* Custom Agency SVG Generators (Zero Inline Style Attributes) */
+  function buildBusSvg(agency) {
+    let top = "#005596";
+    let bot = "#FFFFFF";
+    if (agency === "metro") { top = "#29856B"; bot = "#E5B575"; }
+    else if (agency === "everett") { top = "#C60C30"; bot = "#565A5C"; }
+    else if (agency === "sound") { top = "#002E6D"; bot = "#0091B3"; }
+    return `<svg class="transit-marker-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 11V6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v5H4z" fill="${top}"/><rect x="6" y="5" width="12" height="4.5" rx="1" fill="#FFFFFF" opacity="0.95"/><path d="M4 11v6a2 2 0 0 0 2 2h1v2a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2h4v2a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2h1a2 2 0 0 0 2-2v-6H4z" fill="${bot}"/><circle cx="7" cy="14" r="1.25" fill="#FFFFFF"/><circle cx="17" cy="14" r="1.25" fill="#FFFFFF"/><rect x="6" y="19" width="2" height="2" rx="0.5" fill="#1C1C1E"/><rect x="16" y="19" width="2" height="2" rx="0.5" fill="#1C1C1E"/></svg>`;
+  }
+
+  function buildTrainSvg(mode) {
+    const bot = mode === "sounder" ? "#9AB6D3" : "#0091B3";
+    return `<svg class="transit-marker-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 13V8a3 3 0 0 1 3-3h9l5 4.5V13H3z" fill="#002E6D"/><path d="M6 7h3v3.5H6zM11 7h3v3.5h-3zM16 7h2.5l2 3.5H16z" fill="#FFFFFF" opacity="0.95"/><path d="M3 13v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4H3z" fill="${bot}"/><circle cx="19" cy="14" r="1" fill="#FACC15"/><circle cx="6" cy="19" r="1.5" fill="#1C1C1E"/><circle cx="18" cy="19" r="1.5" fill="#1C1C1E"/></svg>`;
+  }
+
+  function buildFerrySvg() {
+    return '<svg class="transit-marker-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="11.25" y="4.5" width="1.5" height="4" rx="0.5" fill="#005A36"/><polygon points="4,14 6,8.5 18,8.5 20,14" fill="#FFFFFF" stroke="#005A36" stroke-width="0.75"/><rect x="7" y="10" width="1.5" height="1.5" rx="0.25" fill="#005A36"/><rect x="9.5" y="10" width="1.5" height="1.5" rx="0.25" fill="#005A36"/><rect x="13" y="10" width="1.5" height="1.5" rx="0.25" fill="#005A36"/><rect x="15.5" y="10" width="1.5" height="1.5" rx="0.25" fill="#005A36"/><polygon points="1.5,17 3,14 21,14 22.5,17 19.5,18 4.5,18" fill="#005A36"/><line x1="2" y1="20" x2="22" y2="20" stroke="#1E4D6B" stroke-width="1" stroke-linecap="round" opacity="0.6"/></svg>';
+  }
+
+  function buildConeSvg() {
+    return '<svg class="transit-marker-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="19" width="18" height="2.5" rx="1" fill="#FF6B00"/><path d="M5.5 19L10.5 4a1.6 1.6 0 0 1 3 0l5 15H5.5z" fill="#FF6B00"/><polygon points="7.2,16.5 16.8,16.5 16,14 8,14" fill="#FFFFFF"/><polygon points="8.6,12 15.4,12 14.6,9.5 9.4,9.5" fill="#FFFFFF"/></svg>';
+  }
+
+  /* 1. Hydrate Employment Hubs (Delayed 400ms to prevent UI contention) */
+  async function hydrateHubs() {
+    const hubGrid = document.querySelector(".commute-hubs-grid");
+    if (!hubGrid) return;
+    try {
+      const res = await fetch(`${apiBase}/transit/commute?lat=${mapLat}&lon=${mapLon}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      hubGrid.querySelectorAll(".commute-hub-card").forEach(card => {
+        const hId = card.getAttribute("data-hub-id");
+        const m = data[hId];
+        if (!m) return;
+
+        const header = card.querySelector(".commute-hub-header");
+        let distEl = header.querySelector(".commute-sub-metric");
+        if (!distEl) {
+          distEl = document.createElement("span");
+          distEl.className = "text-body-secondary commute-sub-metric";
+          header.firstElementChild.appendChild(distEl);
+        }
+        distEl.textContent = m.miles || "";
+
+        let badge = header.querySelector(".commute-friction-badge");
+        if (!badge) {
+          badge = document.createElement("div");
+          header.appendChild(badge);
+        }
+        const fCls = m.friction <= 15 ? "friction-low" : (m.friction <= 30 ? "friction-moderate" : "friction-high");
+        badge.className = `commute-friction-badge ${fCls}`;
+        badge.innerHTML = `<span>+${m.friction}%</span><span>${m.friction_label}</span>`;
+
+        const pending = card.querySelector(".commute-pending-state");
+        if (pending) {
+          pending.outerHTML = `
+            <div class="commute-leg-block">
+              <div class="text-overline commute-leg-overline">MORNING COMMUTE: ${cityName.toUpperCase()} &rarr; HUB</div>
+              <div class="commute-modes-grid">
+                <div class="commute-metric-cell">
+                  <span class="commute-metric-label">LIVE DRIVE</span>
+                  <div class="commute-metric-value">${m.drive_live || "--"}</div>
+                  <span class="text-body-secondary commute-sub-metric">Off-peak: ${m.drive_offpeak || "--"}</span>
+                </div>
+                <div class="commute-metric-cell">
+                  <span class="commute-metric-label text-accent-alpine">EST. TRANSIT</span>
+                  <div class="commute-metric-value text-accent-alpine">${m.transit_live || "--"}</div>
+                  <span class="text-body-secondary commute-sub-metric">Off-peak: ${m.transit_offpeak || "--"}</span>
+                </div>
+              </div>
+            </div>
+            <div class="commute-leg-block">
+              <div class="text-overline commute-leg-overline">EVENING RETURN: HUB &rarr; ${cityName.toUpperCase()}</div>
+              <div class="commute-modes-grid">
+                <div class="commute-metric-cell">
+                  <span class="commute-metric-label">LIVE DRIVE</span>
+                  <div class="commute-metric-value">${m.return_drive_live || m.drive_live || "--"}</div>
+                  <span class="text-body-secondary commute-sub-metric">Off-peak: ${m.return_drive_offpeak || m.drive_offpeak || "--"}</span>
+                </div>
+                <div class="commute-metric-cell">
+                  <span class="commute-metric-label text-accent-alpine">EST. TRANSIT</span>
+                  <div class="commute-metric-value text-accent-alpine">${m.return_transit_live || m.transit_live || "--"}</div>
+                  <span class="text-body-secondary commute-sub-metric">Off-peak: ${m.return_transit_offpeak || m.transit_offpeak || "--"}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      });
+    } catch (e) {}
+  }
+
+  /* 2. Hydrate Washington State Ferries (9 Routes Sorted by Proximity) */
+  let cachedFerryData = null;
+  async function hydrateFerries(ferriesLayer) {
+    const container = document.getElementById("ferryAccordionContainer");
+    try {
+      const res = await fetch(`${apiBase}/transit/ferries`);
+      if (!res.ok) return;
+      const payload = await res.json();
+      cachedFerryData = payload;
+      const routes = Array.isArray(payload.routes) ? payload.routes : [];
+
+      routes.sort((a, b) => {
+        const dA = Math.min(
+          haversineMiles(mapLat, mapLon, a.originLat, a.originLon),
+          haversineMiles(mapLat, mapLon, a.destLat, a.destLon)
+        );
+        const dB = Math.min(
+          haversineMiles(mapLat, mapLon, b.originLat, b.originLon),
+          haversineMiles(mapLat, mapLon, b.destLat, b.destLon)
+        );
+        return dA - dB;
+      });
+
+      if (container && routes.length > 0) {
+        container.innerHTML = routes.map((r, idx) => {
+          const isDelayed = (r.status || "").toLowerCase().includes("delay");
+          const isAlert = (r.status || "").toLowerCase().includes("cancel") || (r.status || "").toLowerCase().includes("suspen");
+          const pillCls = isAlert ? "status-canceled" : (isDelayed ? "status-delayed" : "status-ontime");
+
+          const outNext2 = (r.originSailings || []).slice(0, 2).map(s => s.time).join(", ") || "Check WSDOT";
+          const inNext2 = (r.destSailings || []).slice(0, 2).map(s => s.time).join(", ") || "Check WSDOT";
+
+          const outFull = (r.originSailings || []).map(s => `
+            <div class="ferry-schedule-row">
+              <span class="ferry-sched-time">${s.time}</span>
+              <div>
+                <span class="ferry-sched-vessel">${s.vessel || ""}</span>
+                <span class="ferry-sched-spaces">${s.spaces !== null && s.spaces !== undefined ? (s.spaces + " spaces") : ""}</span>
+              </div>
+            </div>
+          `).join("") || '<div class="ferry-schedule-row"><span class="ferry-sched-vessel">Departure data unavailable</span></div>';
+
+          const inFull = (r.destSailings || []).map(s => `
+            <div class="ferry-schedule-row">
+              <span class="ferry-sched-time">${s.time}</span>
+              <div>
+                <span class="ferry-sched-vessel">${s.vessel || ""}</span>
+                <span class="ferry-sched-spaces">${s.spaces !== null && s.spaces !== undefined ? (s.spaces + " spaces") : ""}</span>
+              </div>
+            </div>
+          `).join("") || '<div class="ferry-schedule-row"><span class="ferry-sched-vessel">Departure data unavailable</span></div>';
+
+          return `
+            <details class="pass-accordion-item" ${idx === 0 ? "open" : ""}>
+              <summary class="ferry-accordion-summary">
+                <div class="ferry-route-col">
+                  <div class="pass-badges-row">
+                    <span class="ferry-status-pill ${pillCls}">${r.status || "On Time"}</span>
+                    <span class="ferry-crossing-time">${r.crossingMin || 30} min crossing</span>
+                  </div>
+                  <div class="ferry-route-name">
+                    <span>${r.origin}</span>
+                    <span class="ferry-route-arrow" aria-hidden="true">&#8644;</span>
+                    <span>${r.destination}</span>
+                  </div>
+                </div>
+
+                <div class="ferry-next-sailings-col">
+                  <div class="ferry-sailing-row">
+                    <span class="ferry-sailing-label">From ${r.origin}:</span>
+                    <span class="ferry-sailing-times">${outNext2}</span>
+                  </div>
+                  <div class="ferry-sailing-row">
+                    <span class="ferry-sailing-label">From ${r.destination}:</span>
+                    <span class="ferry-sailing-times">${inNext2}</span>
+                  </div>
+                </div>
+
+                <svg class="forecast-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </summary>
+
+              <div class="ferry-acc-details">
+                <div class="ferry-dock-block">
+                  <div class="ferry-dock-header">Departing ${r.origin}</div>
+                  ${outFull}
+                </div>
+                <div class="ferry-dock-block">
+                  <div class="ferry-dock-header">Departing ${r.destination}</div>
+                  ${inFull}
+                </div>
+              </div>
+            </details>
+          `;
+        }).join("");
+      }
+
+      if (ferriesLayer && Array.isArray(payload.vessels)) {
+        ferriesLayer.clearLayers();
+        payload.vessels.forEach(v => {
+          if (!v.lat || !v.lon) return;
+          const icon = L.divIcon({
+            className: "transit-vehicle-divicon",
+            html: `<div class="transit-svg-badge badge-ferry">${buildFerrySvg()}<span>${v.name || "WSF"}</span></div>`,
+            iconSize: [0, 0],
+            iconAnchor: [0, 0]
+          });
+          L.marker([v.lat, v.lon], { icon })
+            .bindPopup(`<strong>M/V ${v.name || "Ferry"}</strong><br>${v.route || "Puget Sound Route"}<br>Speed: ${Math.round(v.speed || 0)} kts`)
+            .addTo(ferriesLayer);
+        });
+      }
+    } catch (e) {}
+  }
+
+  /* 3. Hydrate Airport Status (SEA & PAE) */
+  async function hydrateAirports() {
+    try {
+      const res = await fetch(`${apiBase}/transit/airports`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const metars = Array.isArray(data.metar) ? data.metar : [];
+      const delays = data.delays || {};
+
+      ["SEA", "PAE"].forEach(code => {
+        const card = document.getElementById(`aptCard${code}`);
+        if (!card) return;
+
+        const m = metars.find(x => x.icaoId === `K${code}`);
+        if (m) {
+          const cat = (m.fltcat || m.fltCat || "VFR").toLowerCase();
+          const rulePill = card.querySelector(".apt-rule-val");
+          rulePill.textContent = cat.toUpperCase();
+          rulePill.className = `apt-flight-rules-pill ${cat} apt-rule-val`;
+
+          const wdir = m.wdir !== undefined ? `${m.wdir}°` : "VRB";
+          const wspd = m.wspd !== undefined ? `${m.wspd} kt` : "Calm";
+          card.querySelector(".apt-wind-val").textContent = `${wdir} at ${wspd}`;
+          card.querySelector(".apt-vis-val").textContent = m.visib !== undefined ? `${m.visib} sm` : "10+ sm";
+
+          const tempF = m.temp !== undefined ? `${Math.round(m.temp * 9 / 5 + 32)}°F` : "";
+          const ceilStr = m.ceil ? `${m.ceil}00 ft` : "Clear";
+          card.querySelector(".apt-ceil-val").textContent = tempF ? `${ceilStr} · ${tempF}` : ceilStr;
+        }
+
+        const statusBadge = card.querySelector(".apt-faa-status");
+        if (delays[code]) {
+          statusBadge.textContent = delays[code];
+          statusBadge.className = "ferry-status-pill status-delayed apt-faa-status";
+        } else {
+          statusBadge.textContent = "Normal Operations";
+          statusBadge.className = "ferry-status-pill status-ontime apt-faa-status";
+        }
+      });
+    } catch (e) {}
+  }
+
+  /* 4. Multi-Layer Transit Map (Live Traffic ON by Default + Custom Agency SVGs) */
+  function initTransitMap() {
+    const mapEl = document.getElementById("transitMapNode");
+    if (!mapEl || typeof L === "undefined") return;
+
+    const map = L.map("transitMapNode", {
+      center: [mapLat, mapLon],
+      zoom: 12,
+      scrollWheelZoom: false
+    });
+
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+      attribution: "Esri, HERE, Garmin",
+      maxZoom: 16
+    }).addTo(map);
+
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 16,
+      pane: "overlayPane"
+    }).addTo(map);
+
+    let boundaryRings = [];
+    let paddedBounds = null;
+    const bPayload = document.getElementById("boundaryPayload");
+    if (bPayload) {
+      try {
+        const geom = JSON.parse(bPayload.textContent);
+        if (geom) {
+          const cityPolygon = L.geoJSON(geom, {
+            style: { color: "#1E4D6B", weight: 2.5, fillColor: "#1E4D6B", fillOpacity: 0.05 }
+          }).addTo(map);
+          const b = cityPolygon.getBounds();
+          map.fitBounds(b, { padding: [20, 20] });
+          paddedBounds = b.pad(0.08);
+
+          if (geom.type === "Polygon") boundaryRings.push(geom.coordinates[0]);
+          if (geom.type === "MultiPolygon") geom.coordinates.forEach(poly => boundaryRings.push(poly[0]));
+        }
+      } catch (e) {}
+    }
+
+    function isInsideCityArea(lat, lon) {
+      if (!paddedBounds) return haversineMiles(mapLat, mapLon, lat, lon) <= 4.5;
+      if (!paddedBounds.contains([lat, lon])) return false;
+      for (let r = 0; r < boundaryRings.length; r++) {
+        const ring = boundaryRings[r];
+        let inside = false;
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+          const xi = ring[i][0], yi = ring[i][1];
+          const xj = ring[j][0], yj = ring[j][1];
+          const intersect = ((yi > lat) !== (yj > lat)) && (lon < (xj - xi) * (lat - yi) / ((yj - yi) || 1e-9) + xi);
+          if (intersect) inside = !inside;
+        }
+        if (inside) return true;
+      }
+      return paddedBounds.contains([lat, lon]);
+    }
+
+    const trafficLayer = L.tileLayer(`${apiBase}/tiles/traffic/{z}/{x}/{y}.png`, { opacity: 0.82, maxZoom: 16 }).addTo(map);
+    const busesLayer = L.layerGroup().addTo(map);
+    const trainsLayer = L.layerGroup().addTo(map);
+    const ferriesLayer = L.layerGroup();
+    const constructionLayer = L.layerGroup();
+
+    const cPayload = document.getElementById("constructionPayload");
+    if (cPayload) {
+      try {
+        const alerts = JSON.parse(cPayload.textContent);
+        alerts.forEach((a, idx) => {
+          const aLat = a.latitude || (mapLat + ((idx % 5) - 2) * 0.004);
+          const aLon = a.longitude || (mapLon + (((idx * 2) % 5) - 2) * 0.005);
+          const cIcon = L.divIcon({
+            className: "transit-vehicle-divicon",
+            html: `<div class="transit-svg-badge badge-construction">${buildConeSvg()}<span>Work Zone</span></div>`,
+            iconSize: [0, 0],
+            iconAnchor: [0, 0]
+          });
+          L.marker([aLat, aLon], { icon: cIcon })
+            .bindPopup(`<strong>${a.event_category || "Construction"}</strong><br>${a.headline || ""}`)
+            .addTo(constructionLayer);
+        });
+      } catch (e) {}
+    }
+
+    const statusText = document.getElementById("transitMapStatusText");
+    const layerState = { traffic: true, buses: true, trains: true, ferries: false, construction: false };
+    let pollTimer = null;
+
+    async function syncVehicles() {
+      if (!layerState.buses && !layerState.trains) {
+        busesLayer.clearLayers();
+        trainsLayer.clearLayers();
+        return;
+      }
+      try {
+        const res = await fetch(`${apiBase}/transit/vehicles`);
+        if (!res.ok) return;
+        const data = await res.json();
+        busesLayer.clearLayers();
+        trainsLayer.clearLayers();
+
+        data.forEach(v => {
+          if (!v.lat || !v.lon || !isInsideCityArea(v.lat, v.lon)) return;
+          const isRail = v.mode === "lightrail" || v.mode === "sounder";
+          if (isRail && !layerState.trains) return;
+          if (!isRail && !layerState.buses) return;
+
+          const label = v.route || (isRail ? "Link" : "Bus");
+          const svgMarkup = isRail ? buildTrainSvg(v.mode) : buildBusSvg(v.agency);
+          const icon = L.divIcon({
+            className: "transit-vehicle-divicon",
+            html: `<div class="transit-svg-badge">${svgMarkup}<span>${label}</span></div>`,
+            iconSize: [0, 0],
+            iconAnchor: [0, 0]
+          });
+
+          const marker = L.marker([v.lat, v.lon], { icon })
+            .bindPopup(`<strong>${v.agencyName || "Transit"} &bull; ${label}</strong><br>${v.headsign || "In Service"}`);
+
+          if (isRail) trainsLayer.addLayer(marker);
+          else busesLayer.addLayer(marker);
+        });
+
+        const d = new Date();
+        const hr = d.getHours() % 12 || 12;
+        const ampm = d.getHours() < 12 ? "AM" : "PM";
+        if (statusText) statusText.textContent = `Updated ${hr}:${String(d.getMinutes()).padStart(2, "0")} ${ampm}`;
+      } catch (e) {}
+    }
+
+    function startPolling() {
+      clearInterval(pollTimer);
+      if (document.visibilityState === "visible") {
+        syncVehicles();
+        pollTimer = setInterval(syncVehicles, 30000);
+      }
+    }
+
+    document.addEventListener("visibilitychange", startPolling);
+
+    document.querySelectorAll("[data-layer-toggle]").forEach(btn => {
+      btn.addEventListener("click", function() {
+        const key = btn.getAttribute("data-layer-toggle");
+        layerState[key] = !layerState[key];
+        btn.classList.toggle("is-active", layerState[key]);
+        btn.setAttribute("aria-pressed", layerState[key] ? "true" : "false");
+
+        if (key === "traffic") layerState.traffic ? trafficLayer.addTo(map) : map.removeLayer(trafficLayer);
+        if (key === "buses") {
+          layerState.buses ? busesLayer.addTo(map) : map.removeLayer(busesLayer);
+          if (layerState.buses) syncVehicles();
+        }
+        if (key === "trains") {
+          layerState.trains ? trainsLayer.addTo(map) : map.removeLayer(trainsLayer);
+          if (layerState.trains) syncVehicles();
+        }
+        if (key === "ferries") {
+          if (layerState.ferries) {
+            if (!cachedFerryData) hydrateFerries(ferriesLayer);
+            ferriesLayer.addTo(map);
+          } else {
+            map.removeLayer(ferriesLayer);
+          }
+        }
+        if (key === "construction") layerState.construction ? constructionLayer.addTo(map) : map.removeLayer(constructionLayer);
+      });
+    });
+
+    hydrateFerries(ferriesLayer);
+    startPolling();
+  }
+
+  /* Stagger Employment Hub fetch by 400ms after initial paint */
+  setTimeout(hydrateHubs, 400);
+  hydrateAirports();
+
+  if (typeof L !== "undefined") {
+    initTransitMap();
+  } else {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+    document.head.appendChild(link);
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    script.onload = initTransitMap;
+    document.body.appendChild(script);
+  }
+})();
+</script>

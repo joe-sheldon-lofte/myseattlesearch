@@ -1,6 +1,7 @@
 import os
 import re
 import time
+import random
 import sqlite3
 import asyncio
 import argparse
@@ -10,6 +11,7 @@ import httpx
 
 MAX_SQL_BYTES = 75000
 D1_FLUSH_EVERY = 50
+CONNECTION_RECYCLE_EVERY = 450
 PACIFIC_TZ = ZoneInfo("America/Los_Angeles")
 BASE_PORTAL = "https://wa-snohomish.publicaccessnow.com"
 USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0.1 Safari/605.1.15"
@@ -47,7 +49,7 @@ def execute_d1_sync(endpoint, headers, sql_block, retries=6):
             low_err = err_str.lower()
             if any(tok in low_err for tok in ["busy", "locked", "7429", "overloaded", "too many resources"]):
                 wait_s = min(30.0, 4.0 * (attempt + 1))
-                print(f"\n⏳ D1 rate/resource window hit (retrying in {wait_s:.0f}s)...")
+                print(f"\n⏳ D1 rate/resource window hit (retrying in {wait_s:.0f}s)...", flush=True)
                 time.sleep(wait_s)
                 continue
             raise RuntimeError(f"D1 Query Failed: {err_str}")
@@ -60,7 +62,7 @@ def execute_d1_sync(endpoint, headers, sql_block, retries=6):
 
 def init_checkpoint_db(db_path):
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, check_same_thread=False)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS harvest_log (
             parcel_number TEXT PRIMARY KEY,
@@ -274,23 +276,67 @@ def flush_base_updates_to_d1(endpoint, headers, base_updates):
         execute_d1_sync(endpoint, headers, "\n".join(stmts))
 
 
-async def bootstrap_portal_cookies(client):
-    """Initializes AWSALB / ASPXANONYMOUS session cookies on wa-snohomish.publicaccessnow.com."""
-    try:
-        await client.get(
-            f"{BASE_PORTAL}/PropertyInformation/PropertySearch.aspx",
-            follow_redirects=True,
-            timeout=25.0,
-        )
-    except Exception:
-        pass
+def build_portal_client(concurrency):
+    return httpx.AsyncClient(
+        headers={"User-Agent": USER_AGENT},
+        limits=httpx.Limits(max_connections=concurrency * 2 + 4, max_keepalive_connections=concurrency),
+    )
 
 
-async def process_parcel(client, sem, pin, prop_type, debug_html=False):
+class PortalSessionManager:
+    """Manages fresh TCP connection pools, cookie bootstrapping, and WAF circuit-breaker cooldowns."""
+    def __init__(self, concurrency):
+        self.concurrency = concurrency
+        self.client = build_portal_client(concurrency)
+        self._lock = asyncio.Lock()
+        self._last_recycle = 0.0
+        self.consecutive_errors = 0
+
+    async def recycle_client(self, force=False, cooldown_s=0.0):
+        async with self._lock:
+            now = time.monotonic()
+            if not force and (now - self._last_recycle) < 8.0:
+                return
+            if cooldown_s > 0:
+                await asyncio.sleep(cooldown_s)
+            try:
+                await self.client.aclose()
+            except Exception:
+                pass
+            self.client = build_portal_client(self.concurrency)
+            try:
+                await self.client.get(
+                    f"{BASE_PORTAL}/PropertyInformation/PropertySearch.aspx",
+                    follow_redirects=True,
+                    timeout=25.0,
+                )
+            except Exception:
+                pass
+            self._last_recycle = time.monotonic()
+            self.consecutive_errors = 0
+
+    def record_success(self):
+        self.consecutive_errors = 0
+
+    async def record_error(self):
+        self.consecutive_errors += 1
+        if self.consecutive_errors >= 10:
+            print("\n⏸️  Portal WAF cooldown (20s) + full TCP/cookie pool reset...", flush=True)
+            await self.recycle_client(force=True, cooldown_s=20.0)
+
+    async def close(self):
+        try:
+            await self.client.aclose()
+        except Exception:
+            pass
+
+
+async def process_parcel(session_mgr, sem, pin, prop_type, debug_html=False):
     today_str = datetime.now(PACIFIC_TZ).strftime("%Y-%m-%d")
     async with sem:
-        await asyncio.sleep(0.04)
-        for attempt in range(3):
+        await asyncio.sleep(random.uniform(0.10, 0.26))
+        for attempt in range(4):
+            client = session_mgr.client
             try:
                 # 1. QuickSearch API -> resolve internal Altkey (a)
                 qs_url = f"{BASE_PORTAL}/DesktopModules/QuickSearch/API/Module/GetData?_m=470"
@@ -308,11 +354,9 @@ async def process_parcel(client, sem, pin, prop_type, debug_html=False):
                     headers=qs_headers,
                     timeout=20.0,
                 )
-                if qs_resp.status_code in (429, 503):
-                    await asyncio.sleep(2.0 * (attempt + 1))
-                    continue
                 if qs_resp.status_code != 200:
-                    await bootstrap_portal_cookies(client)
+                    await session_mgr.recycle_client()
+                    await asyncio.sleep(random.uniform(1.0, 2.2) * (attempt + 1))
                     continue
 
                 qs_json = qs_resp.json()
@@ -320,6 +364,7 @@ async def process_parcel(client, sem, pin, prop_type, debug_html=False):
                 if not items:
                     if debug_html:
                         print(f"[DEBUG {pin}] QuickSearch returned 0 items.")
+                    session_mgr.record_success()
                     return pin, "NO_STRUCTURE", None
 
                 matched_fields = None
@@ -333,6 +378,7 @@ async def process_parcel(client, sem, pin, prop_type, debug_html=False):
 
                 altkey = matched_fields.get("Altkey")
                 if not altkey:
+                    session_mgr.record_success()
                     return pin, "NO_STRUCTURE", None
 
                 # 2. Buildings List (_m=694) -> resolve Building ID (b), Style, YearBuilt & daily date token (d)
@@ -352,15 +398,15 @@ async def process_parcel(client, sem, pin, prop_type, debug_html=False):
                     timeout=20.0,
                 )
                 if bl_resp.status_code != 200:
-                    if attempt == 2:
-                        return pin, "ERROR", None
-                    await asyncio.sleep(1.0)
+                    await session_mgr.recycle_client()
+                    await asyncio.sleep(random.uniform(1.0, 2.2) * (attempt + 1))
                     continue
 
                 bldg_rows = parse_datadisplay_rows(bl_resp.json())
                 if not bldg_rows:
                     if debug_html:
                         print(f"[DEBUG {pin}] Altkey={altkey} | 0 buildings listed in _m=694 (vacant/land).")
+                    session_mgr.record_success()
                     return pin, "NO_STRUCTURE", None
 
                 total_gla = 0
@@ -372,6 +418,7 @@ async def process_parcel(client, sem, pin, prop_type, debug_html=False):
                 best_grade = None
                 best_condition = None
                 primary_gla = -1
+                subrequest_failed = False
 
                 for brow in bldg_rows[:3]:
                     raw_bname = brow.get("BuildingName")
@@ -415,36 +462,39 @@ async def process_parcel(client, sem, pin, prop_type, debug_html=False):
                         ),
                     )
 
+                    if imp_resp.status_code != 200 or room_resp.status_code != 200:
+                        subrequest_failed = True
+                        break
+
                     b_gla = 0
                     b_qual = None
                     b_cond = None
                     b_yb = None
 
-                    if imp_resp.status_code == 200:
-                        imp_json = imp_resp.json()
-                        for tot in imp_json.get("totals") or []:
-                            if tot.get("column") == "FinishedArea":
-                                digits = re.sub(r"[^0-9.]", "", str(tot.get("value") or ""))
-                                if digits:
-                                    b_gla = int(float(digits))
+                    imp_json = imp_resp.json()
+                    for tot in imp_json.get("totals") or []:
+                        if tot.get("column") == "FinishedArea":
+                            digits = re.sub(r"[^0-9.]", "", str(tot.get("value") or ""))
+                            if digits:
+                                b_gla = int(float(digits))
 
-                        imp_rows = parse_datadisplay_rows(imp_json)
-                        row_fin_sum = 0
-                        for irow in imp_rows:
-                            fin_digits = re.sub(r"[^0-9.]", "", str(irow.get("FinishedArea") or ""))
-                            fin_val = int(float(fin_digits)) if fin_digits else 0
-                            if fin_val > 0:
-                                row_fin_sum += fin_val
-                                if b_qual is None:
-                                    b_qual = normalize_snoco_grade(irow.get("QualityDescr"))
-                                if b_cond is None:
-                                    b_cond = normalize_snoco_condition(irow.get("ConditionDescr"))
-                                if b_yb is None and irow.get("YearBuilt"):
-                                    m_y = re.search(r"(18\d{2}|19\d{2}|20[0-3]\d)", str(irow.get("YearBuilt")))
-                                    if m_y:
-                                        b_yb = int(m_y.group(1))
-                        if b_gla == 0 and row_fin_sum > 0:
-                            b_gla = row_fin_sum
+                    imp_rows = parse_datadisplay_rows(imp_json)
+                    row_fin_sum = 0
+                    for irow in imp_rows:
+                        fin_digits = re.sub(r"[^0-9.]", "", str(irow.get("FinishedArea") or ""))
+                        fin_val = int(float(fin_digits)) if fin_digits else 0
+                        if fin_val > 0:
+                            row_fin_sum += fin_val
+                            if b_qual is None:
+                                b_qual = normalize_snoco_grade(irow.get("QualityDescr"))
+                            if b_cond is None:
+                                b_cond = normalize_snoco_condition(irow.get("ConditionDescr"))
+                            if b_yb is None and irow.get("YearBuilt"):
+                                m_y = re.search(r"(18\d{2}|19\d{2}|20[0-3]\d)", str(irow.get("YearBuilt")))
+                                if m_y:
+                                    b_yb = int(m_y.group(1))
+                    if b_gla == 0 and row_fin_sum > 0:
+                        b_gla = row_fin_sum
 
                     if b_yb is None and raw_yb:
                         m_y = re.search(r"(18\d{2}|19\d{2}|20[0-3]\d)", str(raw_yb))
@@ -465,20 +515,24 @@ async def process_parcel(client, sem, pin, prop_type, debug_html=False):
                             if b_cond:
                                 best_condition = b_cond
 
-                    if room_resp.status_code == 200:
-                        room_rows = parse_datadisplay_rows(room_resp.json())
-                        for rrow in room_rows:
-                            desc = str(rrow.get("Description") or "").strip().lower()
-                            u_digits = re.sub(r"[^0-9]", "", str(rrow.get("Units") or ""))
-                            if not u_digits:
-                                continue
-                            units = int(u_digits)
-                            if "bedroom" in desc:
-                                total_beds += units
-                            elif "full bath" in desc or "3/4 bath" in desc or "three quarter bath" in desc:
-                                total_full_baths += units
-                            elif "half bath" in desc or "1/2 bath" in desc:
-                                total_half_baths += units
+                    room_rows = parse_datadisplay_rows(room_resp.json())
+                    for rrow in room_rows:
+                        desc = str(rrow.get("Description") or "").strip().lower()
+                        u_digits = re.sub(r"[^0-9]", "", str(rrow.get("Units") or ""))
+                        if not u_digits:
+                            continue
+                        units = int(u_digits)
+                        if "bedroom" in desc:
+                            total_beds += units
+                        elif "full bath" in desc or "3/4 bath" in desc or "three quarter bath" in desc:
+                            total_full_baths += units
+                        elif "half bath" in desc or "1/2 bath" in desc:
+                            total_half_baths += units
+
+                if subrequest_failed:
+                    await session_mgr.recycle_client()
+                    await asyncio.sleep(random.uniform(1.0, 2.2) * (attempt + 1))
+                    continue
 
                 attrs = {
                     "square_footage": total_gla if 150 <= total_gla <= 45000 else None,
@@ -494,14 +548,15 @@ async def process_parcel(client, sem, pin, prop_type, debug_html=False):
                 if debug_html:
                     print(f"[DEBUG {pin}] Altkey={altkey} | Parsed -> {attrs}")
 
+                session_mgr.record_success()
                 status = "DONE" if attrs["square_footage"] else "NO_STRUCTURE"
                 return pin, status, attrs
 
             except (httpx.RequestError, asyncio.TimeoutError, ValueError):
-                if attempt == 2:
-                    return pin, "ERROR", None
-                await asyncio.sleep(1.5 * (attempt + 1))
+                await session_mgr.recycle_client()
+                await asyncio.sleep(random.uniform(1.2, 2.5) * (attempt + 1))
 
+    await session_mgr.record_error()
     return pin, "ERROR", None
 
 
@@ -541,25 +596,35 @@ async def run_harvester(args):
     sem = asyncio.Semaphore(args.concurrency)
     pending_base = []
     processed = 0
+    done_cnt = 0
+    empty_cnt = 0
+    err_cnt = 0
+    since_recycle = 0
     total = len(targets)
 
-    async with httpx.AsyncClient(
-        headers={"User-Agent": USER_AGENT},
-        limits=httpx.Limits(max_connections=args.concurrency * 2 + 4),
-    ) as client:
-        await bootstrap_portal_cookies(client)
+    session_mgr = PortalSessionManager(args.concurrency)
+    await session_mgr.recycle_client(force=True)
 
+    try:
         chunk_start = 0
         while chunk_start < total:
             batch = targets[chunk_start:chunk_start + D1_FLUSH_EVERY]
             tasks = [
-                process_parcel(client, sem, pin, ptype, args.debug_html)
+                process_parcel(session_mgr, sem, pin, ptype, args.debug_html)
                 for pin, ptype in batch
             ]
             results = await asyncio.gather(*tasks)
 
             for pin, status, attrs in results:
                 processed += 1
+                since_recycle += 1
+                if status == "DONE":
+                    done_cnt += 1
+                elif status == "NO_STRUCTURE":
+                    empty_cnt += 1
+                else:
+                    err_cnt += 1
+
                 if attrs and any(v is not None for v in attrs.values()):
                     pending_base.append((pin, attrs))
                 if status in ("DONE", "NO_STRUCTURE"):
@@ -573,15 +638,25 @@ async def run_harvester(args):
                 await asyncio.to_thread(flush_base_updates_to_d1, endpoint, headers, pending_base)
                 pending_base.clear()
 
-            chunk_start += D1_FLUSH_EVERY
-            print(f"\r🚀 Snohomish Attributes Harvested: {processed:,} / {total:,}", end="", flush=True)
+            if since_recycle >= CONNECTION_RECYCLE_EVERY and (chunk_start + D1_FLUSH_EVERY) < total:
+                await session_mgr.recycle_client(force=True, cooldown_s=2.0)
+                since_recycle = 0
 
-    print("\n✅ Snohomish County Structural Attributes Harvest Complete.")
+            chunk_start += D1_FLUSH_EVERY
+            print(
+                f"\r🚀 Snohomish Parcels: {processed:,} / {total:,} | Done: {done_cnt:,} | Empty: {empty_cnt:,} | Err: {err_cnt:,}",
+                end="",
+                flush=True,
+            )
+    finally:
+        await session_mgr.close()
+
+    print(f"\n✅ Snohomish County Structural Attributes Harvest Complete (Done: {done_cnt:,}, Empty: {empty_cnt:,}, Errors: {err_cnt:,}).")
 
 
 def main():
     parser = argparse.ArgumentParser(description="Async Snohomish County JSON API Harvester (Attributes Only).")
-    parser.add_argument("--concurrency", type=int, default=12, help="Concurrent HTTP workers (default: 12).")
+    parser.add_argument("--concurrency", type=int, default=3, help="Concurrent HTTP workers (default: 3).")
     parser.add_argument("--sales-only", action="store_true", help="Only harvest parcels with recent sales first.")
     parser.add_argument("--queue-file", type=str, default=None, help="Path to delta PIN queue file.")
     parser.add_argument("--limit", type=int, default=None, help="Max parcels to process in this run.")

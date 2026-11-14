@@ -3,70 +3,66 @@
    14. TRANSIT, COMMUTE & HIGHWAY TOLLING
    ========================================================================== */
 
-/* Universal Transit Stat Cards */
-.transit-stat-card,
-.transit-stat-item-card {  
-  display: flex;  
-  background: #FFFFFF;  
-  border: 1px solid var(--color-border-light);  
-  border-radius: var(--border-radius-squircle);  
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);  
-  box-sizing: border-box;  
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;  
-}  
-.transit-stat-card:hover,
-.transit-stat-item-card:hover { transform: translateY(-2px); border-color: var(--alpine-blue); box-shadow: 0 12px 28px rgba(30, 77, 107, 0.08); }  
+/* Universal Transit Stat Cards (Unified Centered Icon-Top Layout) */
+.transit-stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  min-height: 176px;
+  padding: 1.5rem 1.25rem;
+  background: var(--color-background-universal);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-squircle);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+}
+.transit-stat-card:hover { transform: translateY(-2px); border-color: var(--alpine-blue); box-shadow: 0 12px 28px rgba(30, 77, 107, 0.08); }
 
-.transit-stat-item-card { align-items: center; gap: 1rem; width: 100%; padding: 1.25rem 1.5rem; }
-.transit-stat-icon-frame { width: 44px; height: 44px; border-radius: 10px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--alpine-blue); transition: all 0.2s ease; }  
-.transit-stat-item-card:hover .transit-stat-icon-frame { background: rgba(30, 77, 107, 0.08); border-color: rgba(30, 77, 107, 0.2); }  
-.transit-stat-content { display: flex; flex-direction: column; gap: 0.15rem; }
-.transit-stat-number { font-size: 1.75rem; font-weight: 500; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--premier-charcoal); letter-spacing: -0.02em; }  
-.transit-stat-descriptor { font-size: 0.75rem; font-weight: 500; color: var(--alpine-blue); line-height: 1.3; letter-spacing: 0.02em; }  
-  
-.transit-stat-card { flex-direction: column; align-items: center; justify-content: center; text-align: center; width: 100%; min-height: 180px; padding: 1.5rem 1.25rem; }  
-.transit-stat-icon-wrap { width: 44px; height: 44px; border-radius: 12px; background: var(--color-surface-gray); border: 1px solid var(--color-border-light); display: flex; align-items: center; justify-content: center; color: var(--alpine-blue); margin-bottom: 0.75rem; flex-shrink: 0; }  
-.transit-stat-svg { width: 24px; height: 24px; display: block; }  
-.transit-stat-figure { font-size: clamp(2rem, 3.5vw, 2.5rem); font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--premier-charcoal); margin-bottom: 0.35rem; }
-.transit-stat-overline { font-size: 0.75rem; font-weight: 500; color: var(--color-secondary-muted); text-transform: uppercase; letter-spacing: 0.06em; line-height: 1.3; }
-.transit-stat-caption, .transit-stat-context-note { font-size: 0.75rem; color: var(--color-secondary-muted); margin-top: 0.5rem; }
+.transit-stat-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--color-surface-gray);
+  border: 1px solid var(--color-border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--alpine-blue);
+  margin-bottom: 0.75rem;
+  flex-shrink: 0;
+}
+.transit-stat-svg { width: 24px; height: 24px; display: block; }
+.transit-stat-figure { font-size: clamp(2rem, 3.5vw, 2.5rem); font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--premier-charcoal); margin-bottom: 0.45rem; }
+.transit-stat-overline { font-size: 0.72rem; font-weight: 500; color: var(--color-secondary-muted); text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.3; }
 
-/* Employment Hub Commute Matrix */
-.commute-hub-container { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; padding: 1.75rem; background: #FFFFFF; border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06); box-sizing: border-box; }
-.commute-hubs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem; width: 100%; }
-.commute-hub-card { background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; gap: 1.25rem; transition: border-color 0.15s ease, background 0.15s ease; }
-.commute-hub-card:hover { background: #FFFFFF; border-color: var(--alpine-blue); }
-.commute-hub-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.85rem; }
-.commute-hub-title { margin: 0 0 0.25rem 0; font-size: 1.05rem; font-weight: 500; color: var(--premier-charcoal); }
+/* Employment Hub Commute Matrix (2-Column Wide Layout) */
+.commute-hub-container { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; padding: 1.75rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06); box-sizing: border-box; }
+.commute-hubs-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; width: 100%; }
+.commute-hub-card { background: var(--color-surface-gray); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; gap: 1.15rem; transition: border-color 0.15s ease, background 0.15s ease; }
+.commute-hub-card:hover { background: var(--color-background-universal); border-color: var(--alpine-blue); }
+.commute-hub-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.85rem; }
+.commute-hub-title { margin: 0 0 0.2rem 0; font-size: 1.05rem; font-weight: 500; color: var(--premier-charcoal); }
 .commute-sub-metric { font-size: 0.75rem; color: var(--color-secondary-muted); font-variant-numeric: tabular-nums; }
-.commute-friction-badge { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.7rem; font-weight: 500; font-variant-numeric: tabular-nums; padding: 0.25rem 0.65rem; border-radius: var(--border-radius-pill); border: 1px solid transparent; }
+.commute-friction-badge { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.7rem; font-weight: 500; font-variant-numeric: tabular-nums; padding: 0.25rem 0.65rem; border-radius: var(--border-radius-pill); border: 1px solid transparent; white-space: nowrap; flex-shrink: 0; }
 .commute-friction-badge.friction-low { background: rgba(16, 185, 129, 0.1); color: var(--status-emerald); border-color: rgba(16, 185, 129, 0.2); }
 .commute-friction-badge.friction-moderate { background: rgba(217, 119, 6, 0.1); color: var(--status-amber); border-color: rgba(217, 119, 6, 0.2); }
 .commute-friction-badge.friction-high { background: rgba(217, 35, 42, 0.1); color: var(--pnw-red); border-color: rgba(217, 35, 42, 0.2); }
 
-.commute-leg-block { display: flex; flex-direction: column; gap: 0.65rem; }
+.commute-leg-block { display: flex; flex-direction: column; gap: 0.6rem; }
 .commute-leg-overline { font-size: 0.65rem; color: var(--color-secondary-muted); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
 .commute-modes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-.commute-metric-cell { background: #FFFFFF; border: 1px solid var(--color-border-light); border-radius: 8px; padding: 0.75rem; display: flex; flex-direction: column; align-items: flex-start; }
+.commute-metric-cell { background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 8px; padding: 0.75rem; display: flex; flex-direction: column; align-items: flex-start; }
 .commute-metric-label { font-size: 0.65rem; font-weight: 600; color: var(--color-secondary-muted); letter-spacing: 0.05em; }
 .commute-metric-value { font-size: 1.15rem; font-weight: 500; color: var(--premier-charcoal); font-variant-numeric: tabular-nums; margin-top: 0.15rem; }
 .commute-pending-state { display: flex; justify-content: center; align-items: center; padding: 2rem 0; font-style: italic; }
 
 /* Transit Historical Log Component */
-.transit-historical-log-card {
-  padding: 1.75rem;
-  width: 100%;
-  background: #FFFFFF;
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--border-radius-squircle);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-.transit-hist-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.85rem; }
-.transit-hist-title-stack { display: flex; flex-direction: column; gap: 0.15rem; }
+.transit-historical-log-card { padding: 1.75rem; width: 100%; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06); box-sizing: border-box; display: flex; flex-direction: column; gap: 1.25rem; }
+.transit-hist-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.85rem; }
 .transit-hist-title { margin: 0; font-size: 1.15rem; font-weight: 500; color: var(--premier-charcoal); }
 .transit-audit-badge { font-size: 0.7rem; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: 0.04em; padding: 0.25rem 0.65rem; border-radius: var(--border-radius-pill); border: 1px solid var(--color-border-light); background: var(--color-surface-gray); color: var(--color-secondary-muted); text-transform: uppercase; white-space: nowrap; }
 
@@ -92,34 +88,83 @@
 .cell-hour-status.status-normal { color: var(--status-emerald); }
 .cell-hour-status.status-warning { color: var(--status-amber); }
 .cell-hour-status.status-alert { color: var(--pnw-red); }
+.cell-hour-status.status-nodata { color: var(--color-secondary-muted); }
 
-/* Regional Tolling Matrix */
-.transit-tolling-matrix-card { display: flex; flex-direction: column; gap: 1.25rem; width: 100%; padding: 1.75rem; background: #FFFFFF; border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06); box-sizing: border-box; }  
-.toll-matrix-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.85rem; }
-.toll-matrix-title-stack { display: flex; flex-direction: column; gap: 0.15rem; }
-.toll-matrix-title { margin: 0; }
-.toll-live-indicator { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.75rem; font-weight: 500; color: var(--status-emerald); background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); padding: 0.2rem 0.65rem; border-radius: var(--border-radius-pill); white-space: nowrap; }  
-.toll-live-pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--status-emerald); box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25); }  
-.toll-matrix-table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }  
-.toll-matrix-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left; }  
-.toll-matrix-table th { padding: 0.65rem 0.75rem; font-weight: 500; letter-spacing: 0.05em; white-space: nowrap; border-bottom: 2px solid var(--color-border-light); color: var(--color-secondary-muted); }  
-.toll-matrix-row td, .toll-matrix-row th { padding: 0.75rem; white-space: nowrap; border-bottom: 1px solid var(--color-border-light); }  
-.toll-matrix-row:hover { background-color: rgba(247, 245, 240, 0.5); }  
-.cell-toll-corridor { font-weight: 500; color: var(--premier-charcoal); }
-.cell-toll-current { text-align: right; font-variant-numeric: tabular-nums; font-size: 1rem; font-weight: 500; color: var(--alpine-blue); }  
-.cell-toll-peak, .cell-toll-offpeak { text-align: right; font-variant-numeric: tabular-nums; color: var(--color-secondary-muted); font-weight: 500; }  
-.cell-toll-status { text-align: center; }
-.toll-status-pill { font-size: 0.7rem; font-weight: 500; letter-spacing: 0.04em; padding: 0.2rem 0.55rem; border-radius: var(--border-radius-pill); border: 1px solid transparent; text-transform: uppercase; white-space: nowrap; }
-.toll-status-pill.status-peak { background: rgba(217, 35, 42, 0.08); border-color: rgba(217, 35, 42, 0.2); color: var(--pnw-red); }  
-.toll-status-pill.status-dynamic { background: rgba(30, 77, 107, 0.08); border-color: rgba(30, 77, 107, 0.2); color: var(--alpine-blue); }
-.toll-matrix-footer { display: flex; justify-content: flex-end; align-items: center; border-top: 1px solid var(--color-border-light); padding-top: 0.85rem; font-size: 0.75rem; color: var(--color-secondary-muted); }
+/* ==========================================================================
+   15. CUSTOM TRANSIT MAP MARKERS, FERRIES ACCORDION & AIRPORT CARDS
+   ========================================================================== */
+.transit-vehicle-divicon { background: transparent; border: none; }
+.transit-svg-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.14rem 0.45rem 0.14rem 0.22rem;
+  border-radius: var(--border-radius-pill);
+  background: var(--color-background-universal);
+  border: 1.5px solid var(--alpine-blue);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  font-size: 0.66rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--premier-charcoal);
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+}
+.transit-svg-badge.badge-ferry { border-color: #005A36; }
+.transit-svg-badge.badge-construction { border-color: #FF6B00; }
+.transit-marker-icon { display: block; width: 18px; height: 18px; flex-shrink: 0; }
 
-/* Washington State Ferries */
-.ferry-status-card { display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; width: 100%; padding: 1.5rem; background: #FFFFFF; border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06); box-sizing: border-box; }  
-.ferry-route-title { margin-top: 0.25rem; font-size: 1.15rem; font-weight: 500; color: var(--color-primary-default); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }  
-.ferry-leg-card { background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: 12px; padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }  
-.ferry-departure-time { font-size: 1.15rem; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--color-primary-default); margin-top: 0.15rem; }  
+/* Stacked Proximity Ferry Accordion */
+.ferry-accordion-card { padding: 1.5rem; gap: 0.85rem; }
+.ferry-accordion-summary { display: grid; grid-template-columns: minmax(190px, 1.25fr) minmax(260px, 2fr) auto; align-items: center; gap: 1.25rem; padding: 1rem 1.35rem; cursor: pointer; list-style: none; user-select: none; }
+.ferry-accordion-summary::-webkit-details-marker { display: none; }
+.ferry-accordion-summary:hover { background-color: rgba(255, 255, 255, 0.72); }
+
+.ferry-route-col { display: flex; flex-direction: column; gap: 0.25rem; }
+.ferry-route-name { font-size: 1.05rem; font-weight: 500; color: var(--color-primary-default); display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.ferry-route-arrow { color: var(--color-secondary-muted); }
+.ferry-crossing-time { font-size: 0.75rem; color: var(--color-secondary-muted); }
+
+.ferry-next-sailings-col { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.ferry-sailing-row { display: flex; align-items: baseline; gap: 0.5rem; }
+.ferry-sailing-label { color: var(--color-secondary-muted); min-width: 115px; }
+.ferry-sailing-times { font-weight: 500; color: var(--premier-charcoal); }
+
 .ferry-status-pill { font-size: 0.7rem; font-weight: 500; letter-spacing: 0.04em; padding: 0.2rem 0.55rem; border-radius: var(--border-radius-pill); text-transform: uppercase; white-space: nowrap; }
-.ferry-status-pill.status-ontime { background: rgba(16, 185, 129, 0.12); color: var(--status-emerald); border: 1px solid rgba(16, 185, 129, 0.25); }  
-.ferry-status-pill.status-delayed { background: rgba(245, 158, 11, 0.15); color: var(--status-amber); border: 1px solid rgba(245, 158, 11, 0.25); }  
+.ferry-status-pill.status-ontime { background: rgba(16, 185, 129, 0.12); color: var(--status-emerald); border: 1px solid rgba(16, 185, 129, 0.25); }
+.ferry-status-pill.status-delayed { background: rgba(245, 158, 11, 0.15); color: var(--status-amber); border: 1px solid rgba(245, 158, 11, 0.25); }
 .ferry-status-pill.status-canceled { background: rgba(217, 35, 42, 0.12); color: var(--pnw-red); border: 1px solid rgba(217, 35, 42, 0.25); }
+
+.ferry-acc-details { padding: 1.25rem 1.35rem 1.5rem; border-top: 1px solid var(--color-border-light); background: var(--color-background-universal); display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.ferry-dock-block { display: flex; flex-direction: column; gap: 0.5rem; }
+.ferry-dock-header { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-primary-default); border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.4rem; margin-bottom: 0.2rem; }
+.ferry-schedule-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.84rem; font-variant-numeric: tabular-nums; padding: 0.32rem 0; border-bottom: 1px solid rgba(0, 0, 0, 0.04); }
+.ferry-sched-time { font-weight: 500; color: var(--premier-charcoal); }
+.ferry-sched-vessel { color: var(--color-secondary-muted); font-size: 0.76rem; }
+.ferry-sched-spaces { font-weight: 500; color: var(--alpine-blue); font-size: 0.76rem; margin-left: 0.65rem; }
+
+/* 2-Card Airport Status Grid */
+.airport-status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; width: 100%; }
+.airport-status-card { display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; padding: 1.5rem; background: var(--color-background-universal); border: 1px solid var(--color-border-light); border-radius: var(--border-radius-squircle); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06); box-sizing: border-box; }
+.apt-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; }
+.apt-code-tag { display: inline-block; margin-top: 0.25rem; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em; color: var(--alpine-blue); background: rgba(30, 77, 107, 0.08); padding: 0.16rem 0.5rem; border-radius: 6px; }
+.apt-name-heading { margin: 0; font-size: 1.15rem; font-weight: 500; color: var(--premier-charcoal); }
+
+.apt-metar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; padding-top: 0.85rem; border-top: 1px solid var(--color-border-light); }
+.apt-metar-block { display: flex; flex-direction: column; gap: 0.2rem; }
+.apt-metar-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-secondary-muted); font-weight: 500; }
+.apt-metar-val { font-size: 0.85rem; font-weight: 500; color: var(--premier-charcoal); font-variant-numeric: tabular-nums; }
+.apt-flight-rules-pill { display: inline-block; width: fit-content; padding: 0.15rem 0.5rem; border-radius: var(--border-radius-pill); font-size: 0.68rem; font-weight: 600; }
+.apt-flight-rules-pill.vfr { background: rgba(16, 185, 129, 0.14); color: var(--status-emerald); }
+.apt-flight-rules-pill.mvfr { background: rgba(59, 130, 246, 0.14); color: #2563EB; }
+.apt-flight-rules-pill.ifr, .apt-flight-rules-pill.lifr { background: rgba(217, 35, 42, 0.14); color: var(--pnw-red); }
+
+@media (max-width: 1024px) {
+  .ferry-accordion-summary { grid-template-columns: 1fr auto; }
+  .ferry-next-sailings-col { grid-column: 1 / -1; order: 3; }
+  .ferry-acc-details { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .commute-hubs-grid { grid-template-columns: 1fr; }
+}
