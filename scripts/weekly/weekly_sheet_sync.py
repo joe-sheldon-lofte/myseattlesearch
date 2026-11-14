@@ -45,7 +45,7 @@ def main():
         ("BuyerGuide", "buyer_guide.json"),
         ("SellerGuide", "seller_guide.json"),
         ("GuideFAQs", "guide_faqs.json"),
-        ("ElectionSchedule", "election_schedule.json")
+        ("ElectionSchedule", "election_schedule.json"),
         ("CommuteHubBaselines", "commute_hub_baselines.json")
     ]
     for tab_name, json_name in mappings:
