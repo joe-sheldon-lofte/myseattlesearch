@@ -21,8 +21,8 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
     {% set hero_img_left = city.HeroImageLeft %}
     {% set hero_img_right = city.HeroImageRight %}
     {% set hero_welcome_label = "Welcome to the neighborhood" %}
-    {% set subpage_topic = "Transit & Commute" %}
-    {% include "components/widget/neighborhood-page-header.njk" %}
+    {% set subpage_title = "Transit & Commute" %}
+    {% include "components/widget/neighborhood-subpage-header.njk" %}
   </div>
 
   {# ==========================================================================
@@ -379,10 +379,150 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
     </div>
   </section>
 
+  {# ==========================================================================
+     SECTION 8: CASCADE MOUNTAIN PASSES (5 Passes — Collapsed Accordion + 5-Day Forecast)
+     ========================================================================== #}
+  {% if weather_mountain_passes and (weather_mountain_passes | length) > 0 %}
+    <hr class="section-divider">
+
+    {% set pass_month_abbrs = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] %}
+
+    <section id="mountain-passes" class="portal-section-widget">
+      <h2 class="text-section-title section-title-clean">Cascade Mountain Passes</h2>
+
+      <div class="weather-passes-card ferry-accordion-card">
+        <header class="forecast-header-row">
+          <h3 class="forecast-card-title text-widget-title">Summit Road Conditions &amp; 5-Day Forecast</h3>
+        </header>
+
+        <div class="pass-accordion-stack">
+          {% for pass in weather_mountain_passes %}
+            {% set status_raw = pass.pass_status | default('') %}
+            {% set status_low = status_raw | lower %}
+            {% set pass_pill_cls = "status-canceled" if (pass.is_seasonal_closure or 'closed' in status_low) else ("status-delayed" if ('restriction' in status_low or 'advisory' in status_low or 'chain' in status_low or 'traction' in status_low) else "status-ontime") %}
+
+            <details class="pass-accordion-item">
+              <summary class="ferry-accordion-summary">
+                <div class="ferry-route-col">
+                  {% if status_raw %}
+                    <div class="pass-badges-row">
+                      <span class="ferry-status-pill {{ pass_pill_cls }}">{{ status_raw }}</span>
+                    </div>
+                  {% endif %}
+                  <div class="ferry-route-name">
+                    <span>{{ pass.name }}</span>
+                  </div>
+                  {% if pass.elevation_ft %}
+                    <span class="ferry-vessels-caption">Elevation {{ pass.elevation_ft | localeString }} ft</span>
+                  {% endif %}
+                </div>
+
+                <div class="ferry-next-sailings-col">
+                  {% if pass.road_condition %}
+                    <div class="ferry-sailing-row">
+                      <span class="ferry-sailing-label">Road Condition:</span>
+                      <span class="ferry-sailing-times">{{ pass.road_condition }}</span>
+                    </div>
+                  {% endif %}
+                  {% if pass.current and pass.current.temp_f is not none %}
+                    <div class="ferry-sailing-row">
+                      <span class="ferry-sailing-label">Current Summit:</span>
+                      <span class="ferry-sailing-times">
+                        {{ pass.current.temp_f | round }}&deg;F{% if pass.current.roadside_weather %} &bull; {{ pass.current.roadside_weather }}{% endif %}{% if pass.current.summit_wind_mph is not none %} &bull; Wind {{ pass.current.summit_wind_mph | round }} mph{% endif %}
+                      </span>
+                    </div>
+                  {% endif %}
+                </div>
+
+                <svg class="forecast-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </summary>
+
+              <div class="ferry-acc-details">
+                <div class="ferry-docks-grid">
+                  {# Left Column: Directional Travel Restrictions & Summit Weather #}
+                  <div class="ferry-dock-block">
+                    <div class="ferry-dock-header">Travel Restrictions &amp; Summit Weather</div>
+                    {% if pass.restrictions and (pass.restrictions | length) > 0 %}
+                      {% for rest in pass.restrictions %}
+                        <div class="ferry-schedule-row">
+                          <span class="ferry-sched-time">{{ rest.direction }}</span>
+                          <span class="ferry-sched-vessel">{{ rest.text }}</span>
+                        </div>
+                      {% endfor %}
+                    {% endif %}
+                    {% if pass.current %}
+                      {% if pass.current.temp_f is not none %}
+                        <div class="ferry-schedule-row">
+                          <span class="ferry-sched-time">Summit Temp</span>
+                          <div>
+                            <span class="ferry-sched-vessel">{{ pass.current.temp_f | round }}&deg;F</span>
+                            {% if pass.current.temp_source %}<span class="ferry-sched-spaces">{{ pass.current.temp_source }}</span>{% endif %}
+                          </div>
+                        </div>
+                      {% endif %}
+                      {% if pass.current.roadside_weather %}
+                        <div class="ferry-schedule-row">
+                          <span class="ferry-sched-time">Conditions</span>
+                          <span class="ferry-sched-vessel">{{ pass.current.roadside_weather }}</span>
+                        </div>
+                      {% endif %}
+                      {% if pass.current.summit_wind_mph is not none %}
+                        <div class="ferry-schedule-row">
+                          <span class="ferry-sched-time">Summit Wind</span>
+                          <span class="ferry-sched-vessel">{{ pass.current.summit_wind_mph }} mph</span>
+                        </div>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+
+                  {# Right Column: 5-Day Summit Forecast #}
+                  {% set fc = pass.forecast_11_day %}
+                  {% if fc and fc.dates and (fc.dates | length) > 0 %}
+                    <div class="ferry-dock-block">
+                      <div class="ferry-dock-header">5-Day Summit Forecast</div>
+                      {% for d_str in fc.dates %}
+                        {% if loop.index0 < 5 %}
+                          {% set idx = loop.index0 %}
+                          {% set p_ymd = d_str.split('-') %}
+                          {% set p_date_disp = (pass_month_abbrs[p_ymd[1] | int] ~ " " ~ (p_ymd[2] | int)) if (p_ymd | length) == 3 else d_str %}
+                          {% set w_code = fc.weather_code[idx] if fc.weather_code else -1 %}
+                          {% set w_label = "Clear" if w_code == 0 else ("Partly Cloudy" if w_code in [1, 2] else ("Overcast" if w_code == 3 else ("Fog" if w_code in [45, 48] else ("Freezing Drizzle" if w_code in [56, 57] else ("Drizzle" if w_code in [51, 53, 55] else ("Freezing Rain" if w_code in [66, 67] else ("Rain" if w_code in [61, 63, 65, 80, 81, 82] else ("Snow" if w_code in [71, 73, 75, 77, 85, 86] else ("Thunderstorms" if w_code in [95, 96, 99] else ""))))))))) %}
+
+                          <div class="ferry-schedule-row">
+                            <div>
+                              <span class="ferry-sched-time">{{ p_date_disp }}</span>
+                              {% if w_label %}<span class="ferry-sched-leg">{{ w_label }}</span>{% endif %}
+                            </div>
+                            <div>
+                              {% if fc.temp_max and fc.temp_min %}
+                                <span class="ferry-sched-vessel">{{ fc.temp_max[idx] | round }}&deg; / {{ fc.temp_min[idx] | round }}&deg;</span>
+                              {% endif %}
+                              {% if fc.snowfall_in and fc.snowfall_in[idx] > 0 %}
+                                <span class="ferry-sched-spaces">{{ fc.snowfall_in[idx] }} in snow</span>
+                              {% elif fc.precip_prob_max and fc.precip_prob_max[idx] is not none %}
+                                <span class="ferry-sched-spaces">{{ fc.precip_prob_max[idx] }}% precip</span>
+                              {% endif %}
+                            </div>
+                          </div>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </details>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
   <hr class="section-divider">
 
   {# ==========================================================================
-     SECTION 8: WSDOT CONSTRUCTION ADVISORIES
+     SECTION 9: WSDOT CONSTRUCTION ADVISORIES
      ========================================================================== #}
   {% set construction_data = city_construction[city_slug] if city_construction else null %}
   {% set alert_list = construction_data.alerts if (construction_data and construction_data.alerts) else [] %}
@@ -443,7 +583,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
   </section>
 
   {# ==========================================================================
-     SECTION 9: TRANSIT RELIABILITY (168-Hour Weekly Accordion — All Collapsed by Default)
+     SECTION 10: TRANSIT RELIABILITY (168-Hour Weekly Accordion — All Collapsed by Default)
      ========================================================================== #}
   {% set transit_hist_raw = transit_radar_history[city_slug] if transit_radar_history else [] %}
   {% if (transit_hist_raw | length) > 0 %}
@@ -570,7 +710,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
   {% endif %}
 
   {# ==========================================================================
-     SECTION 10: NEIGHBORHOOD CONNECTIVITY (Minimalist Scores)
+     SECTION 11: NEIGHBORHOOD CONNECTIVITY (Minimalist Scores)
      ========================================================================== #}
   {% set walkscore = walk_transit_bike_scores[active_neighborhood] if walk_transit_bike_scores else null %}
   {% if walkscore %}

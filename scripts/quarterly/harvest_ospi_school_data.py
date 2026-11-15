@@ -3,6 +3,9 @@
 import os
 import re
 import json
+import time
+import random
+import argparse
 import urllib.parse
 import urllib3
 import requests
@@ -13,8 +16,10 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # Directory Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(BASE_DIR, "data")
+STAGING_DIR = os.path.join(DATA_DIR, "staging")
 CITY_DATA_JSON = os.path.join(DATA_DIR, "city_data.json")
 OUTPUT_JSON = os.path.join(DATA_DIR, "ospi_school_data.json")
+REDFIN_CACHE_JSON = os.path.join(STAGING_DIR, "redfin_school_url_cache.json")
 
 # Primary and Fallback OSPI Socrata Endpoints (Data.WA.gov Report Card Assessment Series)
 OSPI_ASSESSMENT_ENDPOINTS = [
@@ -22,11 +27,15 @@ OSPI_ASSESSMENT_ENDPOINTS = [
     "https://data.wa.gov/resource/x73g-mrqp.json"   # OSPI Report Card Assessment (2023-24)
 ]
 
-# OSPI School Facilities & Directory Endpoint (Contains Physical Address, Lat, Lon, Websites)
-OSPI_DIRECTORY_ENDPOINT = "https://data.wa.gov/resource/5ypr-e9i6.json"
+# Federal NCES EDGE Public School Characteristics FeatureServer (Compiled from OSPI State Submission)
+# Contains Physical Street Address, City, ZIP, Exact Coordinates & Individual School Building Websites
+NCES_DIRECTORY_ENDPOINTS = [
+    "https://services1.arcgis.com/Ua5sjt3LWTPigjyD/arcgis/rest/services/School_Characteristics_Current/FeatureServer/1/query",
+    "https://services1.arcgis.com/Ua5sjt3LWTPigjyD/arcgis/rest/services/School_Characteristics_Current/FeatureServer/0/query",
+]
 
 HTTP_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
     "Accept": "application/json"
 }
 
@@ -34,6 +43,67 @@ HTTP_HEADERS = {
 STATE_MATH_BASELINE = 40.0
 STATE_ELA_BASELINE = 51.0
 STATE_SCIENCE_BASELINE = 43.0
+
+NCES_MISSING_TOKENS = {"", "n", "m", "na", "n/a", "null", "none", "-", "missing", "not applicable", "suppressed"}
+
+
+def is_valid_nces_str(val):
+    if val is None:
+        return False
+    return str(val).strip().lower() not in NCES_MISSING_TOKENS
+
+
+def format_street_address(raw_addr):
+    if not is_valid_nces_str(raw_addr):
+        return ""
+    s = re.sub(r"\s+", " ", str(raw_addr).strip())
+    if s.isupper():
+        dirs = {"N", "S", "E", "W", "NE", "NW", "SE", "SW", "PO"}
+        ordinals = re.compile(r"^(\d+)(ST|ND|RD|TH)$", re.IGNORECASE)
+        formatted = []
+        for tok in s.split(" "):
+            up = tok.upper().rstrip(",")
+            comma = "," if tok.endswith(",") else ""
+            if up in dirs:
+                formatted.append(up + comma)
+            elif ordinals.match(up):
+                m = ordinals.match(up)
+                formatted.append(f"{m.group(1)}{m.group(2).lower()}{comma}")
+            else:
+                formatted.append(tok.capitalize())
+        return " ".join(formatted)
+    return s
+
+
+def format_city_name(raw_city):
+    if not is_valid_nces_str(raw_city):
+        return ""
+    s = re.sub(r"\s+", " ", str(raw_city).strip())
+    if s.isupper():
+        return " ".join(w.capitalize() for w in s.split(" "))
+    return s
+
+
+def normalize_school_key(name):
+    if not name:
+        return ""
+    s = str(name).lower().strip()
+    s = re.sub(r"\([^)]*\)", "", s)
+    s = re.sub(r"\b(elementary|middle|junior high|jr high|senior high|sr high|high|school|academy|center|program)\b", "", s)
+    s = re.sub(r"[^a-z0-9]+", "", s)
+    return s
+
+
+def normalize_website_url(raw_url):
+    if not is_valid_nces_str(raw_url):
+        return ""
+    url = str(raw_url).strip()
+    if not url or "." not in url or " " in url:
+        return ""
+    if not url.startswith(("http://", "https://")):
+        url = f"https://{url}"
+    return url
+
 
 def load_city_district_mappings():
     """
@@ -73,18 +143,20 @@ def load_city_district_mappings():
 
     return city_map, district_web_fallbacks
 
+
 def safe_float(val):
     """Safely extracts a numeric float from strings with percentages or comparison characters."""
     if val is None or val == "":
         return None
     s = str(val).strip().lower()
-    if s in ["null", "n/a", "suppressed", "s", "*", "none", "-", "count unavailable"]:
+    if s in ["null", "n/a", "suppressed", "s", "*", "none", "-", "count unavailable", "m", "n"]:
         return None
     try:
         clean_str = s.replace("%", "").replace(">", "").replace("<", "").replace(",", "").strip()
         return float(clean_str)
     except (ValueError, TypeError):
         return None
+
 
 def parse_percentage(val):
     """
@@ -97,6 +169,7 @@ def parse_percentage(val):
     if 0.0 < v <= 1.0:
         v = v * 100.0
     return round(v, 1)
+
 
 def calculate_psai_score(math_pct, ela_pct, science_pct):
     """
@@ -124,127 +197,219 @@ def calculate_psai_score(math_pct, ela_pct, science_pct):
 
     return psai, active_benchmark
 
+
 def fetch_school_directory_geography():
     """
-    Queries the OSPI State School Directory to index physical addresses, coordinates,
-    and official websites for both schools and parent districts.
+    Queries the NCES EDGE Public School Characteristics FeatureServer (compiled from OSPI)
+    to index physical street addresses, true municipalities, ZIP codes, coordinates,
+    and individual school building websites across King & Snohomish counties.
     """
-    print("Ingesting OSPI Physical School Directory, Geocodes & Websites...")
-    geo_lookup = {}
+    print("Ingesting NCES / OSPI Physical School Directory, Geocodes & Building Websites...")
+    by_code = {}
+    by_name = {}
     district_web_lookup = {}
-    limit = 50000
-    params = {
-        "$where": "county in ('King', 'Snohomish')",
-        "$limit": limit
-    }
 
-    try:
-        resp = requests.get(OSPI_DIRECTORY_ENDPOINT, headers=HTTP_HEADERS, params=params, timeout=25, verify=False)
-        if resp.status_code == 200:
-            records = resp.json()
-            for r in records:
-                scode = str(r.get("school_code", r.get("schoolcode", r.get("building_code", "")))).strip()
-                org_id = str(r.get("school_organization_id", r.get("schoolorganizationid", ""))).strip()
-                dcode = str(r.get("district_code", r.get("districtcode", ""))).strip()
-                dname = str(r.get("district_name", r.get("districtname", ""))).strip()
-                
-                # Extract coordinates
-                lat = safe_float(r.get("latitude", r.get("lat")))
-                lon = safe_float(r.get("longitude", r.get("lon", r.get("long"))))
-                
-                # Check nested Socrata location objects if present
-                if lat is None and "location_1" in r and isinstance(r["location_1"], dict):
-                    lat = safe_float(r["location_1"].get("latitude"))
-                    lon = safe_float(r["location_1"].get("longitude"))
+    for endpoint in NCES_DIRECTORY_ENDPOINTS:
+        features = []
+        offset = 0
+        page_size = 1000
+        while True:
+            params = {
+                "where": "LSTATE = 'WA' AND NMCNTY IN ('King County', 'Snohomish County')",
+                "outFields": "*",
+                "returnGeometry": "true",
+                "outSR": "4326",
+                "resultOffset": offset,
+                "resultRecordCount": page_size,
+                "f": "json",
+            }
+            try:
+                resp = requests.get(endpoint, headers=HTTP_HEADERS, params=params, timeout=30, verify=False)
+                if resp.status_code != 200:
+                    print(f"  Notice: Directory endpoint returned HTTP {resp.status_code} ({endpoint})")
+                    break
+                payload = resp.json()
+                if "error" in payload:
+                    print(f"  Notice: Directory query error: {payload['error']}")
+                    break
+                batch = payload.get("features") or []
+                features.extend(batch)
+                if not payload.get("exceededTransferLimit") or len(batch) < page_size:
+                    break
+                offset += len(batch)
+            except Exception as e:
+                print(f"  Warning: Directory query notice on {endpoint}: {e}")
+                break
 
-                address = str(r.get("address", r.get("street_address", r.get("physical_address", "")))).strip()
-                city = str(r.get("city", "")).strip()
-                zip_code = str(r.get("zip", r.get("zip_code", ""))).strip()
+        if not features:
+            continue
 
-                # Extract school website URL
-                school_web = str(r.get("school_website", r.get("website", r.get("url", r.get("web_page", ""))))).strip()
-                if school_web and not school_web.startswith("http"):
-                    school_web = f"https://{school_web}"
+        for feat in features:
+            raw_attrs = feat.get("attributes") or {}
+            geom = feat.get("geometry") or {}
+            a = {str(k).upper(): v for k, v in raw_attrs.items()}
 
-                # Extract district website URL
-                dist_web = str(r.get("district_website", r.get("district_url", ""))).strip()
-                if dist_web and not dist_web.startswith("http"):
-                    dist_web = f"https://{dist_web}"
+            st_schid = str(a.get("ST_SCHID") or "").strip()
+            scode = ""
+            if st_schid:
+                parts = [p.strip() for p in st_schid.split("-") if p.strip()]
+                if parts:
+                    scode = parts[-1].lstrip("0") or parts[-1]
 
-                if dcode and dist_web:
-                    district_web_lookup[dcode] = dist_web
-                if dname and dist_web:
-                    district_web_lookup[dname] = dist_web
+            st_leaid = str(a.get("ST_LEAID") or "").strip()
+            dcode = ""
+            if st_leaid:
+                dparts = [p.strip() for p in st_leaid.split("-") if p.strip()]
+                if dparts:
+                    dcode = dparts[-1]
 
-                geo_payload = {
-                    "address": address,
-                    "city": city,
-                    "zip": zip_code,
-                    "latitude": lat,
-                    "longitude": lon,
-                    "school_website": school_web,
-                    "district_website": dist_web
-                }
+            sch_name = str(a.get("SCH_NAME") or "").strip()
+            lea_name = str(a.get("LEA_NAME") or "").strip()
+            county_raw = str(a.get("NMCNTY") or "").replace(" County", "").strip()
 
-                if scode:
-                    geo_lookup[scode] = geo_payload
-                if org_id:
-                    geo_lookup[f"org_{org_id}"] = geo_payload
+            street1 = format_street_address(a.get("LSTREET1"))
+            street2 = format_street_address(a.get("LSTREET2"))
+            address = f"{street1}, {street2}" if (street1 and street2) else street1
 
-            print(f"  Indexed geography & websites for {len(geo_lookup)} physical school facilities.")
-        else:
-            print(f"  Warning: Directory endpoint returned HTTP {resp.status_code}. Fallback mechanisms will engage.")
-    except Exception as e:
-        print(f"  Warning: Unable to fetch OSPI directory stream: {e}")
+            city = format_city_name(a.get("LCITY"))
+            zip_raw = str(a.get("LZIP") or "").strip()
+            zip_code = zip_raw[:5] if is_valid_nces_str(zip_raw) else ""
 
-    return geo_lookup, district_web_lookup
+            lat = safe_float(a.get("LATCOD"))
+            lon = safe_float(a.get("LONCOD"))
+            if lat is None and geom.get("y") is not None:
+                lat = safe_float(geom.get("y"))
+            if lon is None and geom.get("x") is not None:
+                lon = safe_float(geom.get("x"))
+            if lat is not None:
+                lat = round(lat, 6)
+            if lon is not None:
+                lon = round(lon, 6)
 
-def resolve_redfin_school_data(school_name, district_name, county):
-    """Queries Redfin's autocomplete API for search URLs and municipal city locations."""
-    if not school_name:
-        return {"redfin_url": "", "city": district_name, "lat": None, "lon": None}
+            school_web = normalize_website_url(a.get("WEBSITE"))
 
-    query_str = f"{school_name} {district_name} WA"
-    encoded_query = urllib.parse.quote(query_str)
-    endpoint = f"https://www.redfin.com/stingray/do/location-autocomplete?location={encoded_query}&v=2"
+            geo_payload = {
+                "address": address,
+                "city": city,
+                "zip": zip_code,
+                "latitude": lat,
+                "longitude": lon,
+                "school_website": school_web,
+            }
 
-    resolved_info = {"redfin_url": "", "city": district_name, "lat": None, "lon": None}
+            if scode and scode not in by_code:
+                by_code[scode] = geo_payload
 
-    try:
-        resp = requests.get(endpoint, headers=HTTP_HEADERS, timeout=4, verify=False)
-        if resp.status_code == 200:
-            clean_text = resp.text.replace("{}&&", "").strip()
-            data = json.loads(clean_text)
-            payload = data.get("payload", {})
-            exact_match = payload.get("exactMatch", {})
+            norm_sch = normalize_school_key(sch_name)
+            if norm_sch:
+                if dcode:
+                    by_name.setdefault((dcode, norm_sch), geo_payload)
+                if county_raw:
+                    by_name.setdefault((county_raw.lower(), norm_sch), geo_payload)
 
-            if exact_match and exact_match.get("url"):
-                resolved_info["redfin_url"] = f"https://www.redfin.com{exact_match.get('url')}"
-                if exact_match.get("subText"):
-                    sub_parts = exact_match.get("subText").split(",")
-                    if len(sub_parts) > 0:
-                        resolved_info["city"] = sub_parts[0].strip()
-                if exact_match.get("lat") and exact_match.get("long"):
-                    resolved_info["lat"] = safe_float(exact_match.get("lat"))
-                    resolved_info["lon"] = safe_float(exact_match.get("long"))
-                return resolved_info
+            if dcode and school_web and f"domain_{dcode}" not in district_web_lookup:
+                m_dom = re.match(r"^(https?://[^/]+)", school_web)
+                if m_dom and any(tok in m_dom.group(1) for tok in ("wednet", "schools", "org")):
+                    district_web_lookup[f"domain_{dcode}"] = m_dom.group(1)
+            if lea_name and f"domain_{dcode}" in district_web_lookup:
+                district_web_lookup.setdefault(f"domain_{lea_name}", district_web_lookup[f"domain_{dcode}"])
 
-            for section in payload.get("sections", []):
-                for row in section.get("rows", []):
-                    if row.get("url") and ("school" in row.get("type", "").lower() or "school" in row.get("url", "").lower()):
-                        resolved_info["redfin_url"] = f"https://www.redfin.com{row.get('url')}"
-                        if row.get("subText"):
-                            sub_parts = row.get("subText").split(",")
-                            if len(sub_parts) > 0:
-                                resolved_info["city"] = sub_parts[0].strip()
-                        if row.get("lat") and row.get("long"):
-                            resolved_info["lat"] = safe_float(row.get("lat"))
-                            resolved_info["lon"] = safe_float(row.get("long"))
-                        return resolved_info
-    except Exception:
-        pass
+        if by_code:
+            print(f"  Indexed physical addresses, coordinates & websites for {len(by_code)} schools from NCES/OSPI.")
+            break
 
-    return resolved_info
+    return by_code, by_name, district_web_lookup
+
+
+class RedfinSchoolResolver:
+    """
+    Resolves canonical Redfin /school/<id>/... URLs using Redfin's location-autocomplete
+    endpoint with persistent local JSON caching so quarterly runs accumulate coverage
+    without re-querying already-resolved schools.
+    """
+    def __init__(self, cache_path, enabled=True):
+        self.cache_path = cache_path
+        self.enabled = enabled
+        self.cache = {}
+        self.dirty = False
+        self.consecutive_blocks = 0
+
+        if os.path.exists(cache_path):
+            try:
+                with open(cache_path, "r", encoding="utf-8") as f:
+                    loaded = json.load(f)
+                    if isinstance(loaded, dict):
+                        self.cache = loaded
+            except Exception:
+                pass
+
+    def save_cache(self):
+        if not self.dirty:
+            return
+        os.makedirs(os.path.dirname(self.cache_path), exist_ok=True)
+        with open(self.cache_path, "w", encoding="utf-8") as f:
+            json.dump(self.cache, f, indent=2, ensure_ascii=False)
+        self.dirty = False
+
+    def resolve(self, school_code, school_name, city_name, county):
+        cached_url = self.cache.get(school_code, "")
+        if cached_url:
+            return {"redfin_url": cached_url, "city": "", "lat": None, "lon": None}
+
+        if not self.enabled or not school_name or self.consecutive_blocks >= 6:
+            return {"redfin_url": "", "city": "", "lat": None, "lon": None}
+
+        loc_hint = city_name if city_name else f"{county} County"
+        query_str = f"{school_name}, {loc_hint}, WA"
+        encoded_query = urllib.parse.quote(query_str)
+        endpoint = f"https://www.redfin.com/stingray/do/location-autocomplete?location={encoded_query}&v=2"
+
+        try:
+            time.sleep(random.uniform(0.45, 0.85))
+            resp = requests.get(endpoint, headers=HTTP_HEADERS, timeout=7, verify=False)
+            if resp.status_code in (403, 429):
+                self.consecutive_blocks += 1
+                if self.consecutive_blocks == 6:
+                    print("  Notice: Redfin rate limit reached; preserving cached URLs and continuing directory harvest.")
+                return {"redfin_url": "", "city": "", "lat": None, "lon": None}
+
+            if resp.status_code == 200:
+                self.consecutive_blocks = 0
+                clean_text = resp.text.replace("{}&&", "").strip()
+                if clean_text.startswith("{"):
+                    data = json.loads(clean_text)
+                    payload = data.get("payload") or {}
+
+                    candidates = []
+                    exact_match = payload.get("exactMatch")
+                    if isinstance(exact_match, dict) and exact_match.get("url"):
+                        candidates.append(exact_match)
+                    for section in payload.get("sections") or []:
+                        for row in section.get("rows") or []:
+                            if isinstance(row, dict) and row.get("url"):
+                                candidates.append(row)
+
+                    for cand in candidates:
+                        url_path = str(cand.get("url") or "")
+                        if "/school/" in url_path.lower():
+                            full_url = f"https://www.redfin.com{url_path}"
+                            self.cache[school_code] = full_url
+                            self.dirty = True
+                            parsed_city = ""
+                            sub_text = str(cand.get("subText") or "")
+                            if sub_text:
+                                parsed_city = sub_text.split(",")[0].strip()
+                            return {
+                                "redfin_url": full_url,
+                                "city": parsed_city,
+                                "lat": safe_float(cand.get("lat")),
+                                "lon": safe_float(cand.get("long")),
+                            }
+        except Exception:
+            pass
+
+        return {"redfin_url": "", "city": "", "lat": None, "lon": None}
+
 
 def sniff_schema_fields(sample_records):
     """Dynamic schema field inspector across Socrata release cycles."""
@@ -308,6 +473,7 @@ def sniff_schema_fields(sample_records):
         "count_expected": count_expected_key
     }
 
+
 def fetch_ospi_endpoint_records(endpoint):
     """Pages through a Socrata endpoint with resilient county field probing."""
     records = []
@@ -355,6 +521,7 @@ def fetch_ospi_endpoint_records(endpoint):
 
     return records
 
+
 def fetch_all_ospi_records():
     """Queries all configured OSPI Report Card Socrata REST endpoints."""
     print("Querying OSPI Assessment Data from Data.WA.gov...")
@@ -368,6 +535,7 @@ def fetch_all_ospi_records():
 
     print(f"  Compiled {len(all_records)} total assessment records.")
     return all_records
+
 
 def process_ospi_data(records):
     """Processes raw assessment records into structured school and district maps."""
@@ -412,7 +580,6 @@ def process_ospi_data(records):
                     "district_name": dname,
                     "district_code": dcode,
                     "county": county,
-                    "city": dname,
                     "school_type": stype
                 }
                 school_raw_scores[scode] = {"math": {}, "ela": {}, "science": {}}
@@ -510,16 +677,21 @@ def process_ospi_data(records):
 
     return schools_map, districts_map
 
+
 def main():
+    parser = argparse.ArgumentParser(description="OSPI & NCES Master School Data Harvester.")
+    parser.add_argument("--skip-redfin", action="store_true", help="Skip Redfin school URL autocomplete lookups.")
+    args = parser.parse_args()
+
     print("==================================================")
-    print("     OSPI MASTER SCHOOL DATA HARVESTER (V5.1)     ")
+    print("     OSPI MASTER SCHOOL DATA HARVESTER (V6.1)     ")
     print("==================================================")
 
     os.makedirs(DATA_DIR, exist_ok=True)
     city_mapping, district_web_fallbacks = load_city_district_mappings()
 
-    # Step A: Ingest Geospatial Coordinates, Physical Street Addresses & Websites
-    geo_directory, district_web_lookup = fetch_school_directory_geography()
+    # Step A: Ingest Physical Street Addresses, Cities, ZIPs, Coordinates & Building Websites
+    geo_by_code, geo_by_name, district_web_lookup = fetch_school_directory_geography()
 
     # Step B: Ingest State Assessment Performance Data
     raw_records = fetch_all_ospi_records()
@@ -531,31 +703,48 @@ def main():
 
     total_schools = len(schools_map)
     print(f"\nDiscovered {total_schools} unique public schools across King & Snohomish counties.")
-    print("Resolving Geospatial Attributes, Websites, Redfin URLs & PSAI Scores...")
+    print("Resolving Geospatial Attributes, Individual Building Websites, Redfin URLs & PSAI Scores...")
 
+    redfin_resolver = RedfinSchoolResolver(REDFIN_CACHE_JSON, enabled=not args.skip_redfin)
     compiled_schools = []
 
     for idx, (scode, school_data) in enumerate(schools_map.items(), 1):
-        redfin_info = resolve_redfin_school_data(
-            school_data["school_name"], 
-            school_data["district_name"], 
-            school_data["county"]
+        norm_scode = scode.lstrip("0") or scode
+        norm_sname = normalize_school_key(school_data["school_name"])
+        dcode = school_data["district_code"]
+        county = school_data["county"]
+
+        geo_info = (
+            geo_by_code.get(norm_scode)
+            or geo_by_name.get((dcode, norm_sname))
+            or geo_by_name.get((county.lower(), norm_sname))
+            or {}
         )
 
-        # Cross-reference geocoding & websites: Directory lookup first, Redfin/fallback second
-        geo_info = geo_directory.get(scode, geo_directory.get(f"org_{school_data['ospi_org_id']}", {}))
-        
         street_address = geo_info.get("address", "")
-        city_name = geo_info.get("city") or redfin_info["city"]
+        city_name = geo_info.get("city", "")
         zip_code = geo_info.get("zip", "")
-        lat_coord = geo_info.get("latitude") or redfin_info["lat"]
-        lon_coord = geo_info.get("longitude") or redfin_info["lon"]
-        
-        # School website resolution: State directory -> fallback to district portal or Redfin URL
+        lat_coord = geo_info.get("latitude")
+        lon_coord = geo_info.get("longitude")
+
+        # Resolve canonical Redfin school URL using actual city & county context
+        redfin_info = redfin_resolver.resolve(scode, school_data["school_name"], city_name, county)
+        if not city_name and redfin_info.get("city"):
+            city_name = redfin_info["city"]
+        if lat_coord is None and redfin_info.get("lat") is not None:
+            lat_coord = redfin_info["lat"]
+        if lon_coord is None and redfin_info.get("lon") is not None:
+            lon_coord = redfin_info["lon"]
+
+        # Individual school building website first; district website fallback only if facility has none
         school_web_url = geo_info.get("school_website", "")
         if not school_web_url:
-            dist_fallback = district_web_lookup.get(school_data["district_code"], district_web_lookup.get(school_data["district_name"], district_web_fallbacks.get(school_data["district_name"], "")))
-            school_web_url = dist_fallback or redfin_info["redfin_url"]
+            school_web_url = (
+                district_web_fallbacks.get(school_data["district_name"])
+                or district_web_lookup.get(f"domain_{dcode}")
+                or district_web_lookup.get(f"domain_{school_data['district_name']}")
+                or ""
+            )
 
         m_score = school_data.get("latest_math_pct")
         e_score = school_data.get("latest_ela_pct")
@@ -568,8 +757,8 @@ def main():
             "school_code": scode,
             "ospi_org_id": school_data["ospi_org_id"],
             "district_name": school_data["district_name"],
-            "district_code": school_data["district_code"],
-            "county": school_data["county"],
+            "district_code": dcode,
+            "county": county,
             "address": street_address,
             "city": city_name,
             "zip": zip_code,
@@ -587,8 +776,10 @@ def main():
 
         compiled_schools.append(school_entry)
         if idx % 100 == 0 or idx == total_schools:
+            redfin_resolver.save_cache()
             print(f"  [Progress] {idx}/{total_schools} schools enriched with addresses, coordinates & websites...")
 
+    redfin_resolver.save_cache()
     compiled_schools.sort(key=lambda s: (s["county"], s["district_name"], s["school_name"]))
 
     # Step C: Compile District Summaries
@@ -616,12 +807,12 @@ def main():
 
         psai_score, psai_benchmark = calculate_psai_score(m_score, e_score, s_score)
 
-        # District website resolution: State feed lookup -> city_data.json fallback
         dcode = ddata["district_code"]
         district_website = (
-            district_web_lookup.get(dcode) or 
-            district_web_lookup.get(dname) or 
-            district_web_fallbacks.get(dname, "")
+            district_web_fallbacks.get(dname)
+            or district_web_lookup.get(f"domain_{dcode}")
+            or district_web_lookup.get(f"domain_{dname}")
+            or ""
         )
 
         compiled_districts[dname] = {
@@ -692,6 +883,11 @@ def main():
         print("\nWarning: 0 schools computed valid PSAI scores. Aborting write.")
         return
 
+    geo_count = sum(1 for s in compiled_schools if s["latitude"] is not None and s["longitude"] is not None)
+    addr_count = sum(1 for s in compiled_schools if s["address"])
+    web_count = sum(1 for s in compiled_schools if s["website_url"])
+    redfin_count = sum(1 for s in compiled_schools if s["redfin_search_url"])
+
     master_output = {
         "schools": compiled_schools,
         "districts": compiled_districts,
@@ -701,10 +897,12 @@ def main():
     with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
         json.dump(master_output, f, indent=2, ensure_ascii=False)
 
-    print(f"\nMaster harvesting complete with verified geocoding, addresses & websites!")
+    print(f"\nMaster harvesting complete!")
     print(f"  Compiled {len(compiled_schools)} individual school facilities.")
+    print(f"  Addresses populated: {addr_count}/{len(compiled_schools)} | Geocodes: {geo_count}/{len(compiled_schools)} | Websites: {web_count}/{len(compiled_schools)} | Redfin URLs: {redfin_count}/{len(compiled_schools)}")
     print(f"  Compiled {len(compiled_districts)} school districts.")
     print(f"  Saved master dataset to: {OUTPUT_JSON}")
+
 
 if __name__ == "__main__":
     main()

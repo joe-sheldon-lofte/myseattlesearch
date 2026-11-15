@@ -1,0 +1,881 @@
+---
+layout: layouts/base.njk
+permalink: "/neighborhood/region/transit-commute/index.html"
+title: "Puget Sound Regional Transit & Commute | MySeattleSearch"
+---
+{% set city_slug = "region" %}
+{% set active_neighborhood = "Puget Sound Region" %}
+
+<main class="layout-container layout-stack-main">
+
+  {# ==========================================================================
+     SECTION 1: CANONICAL REGIONAL HERO HEADER
+     ========================================================================== #}
+  <div id="neighborhood-hero" class="portal-section-header">
+    {% set city = { "City": "Puget Sound Region" } %}
+    {% set hero_welcome_label = "King & Snohomish Counties" %}
+    {% set subpage_title = "Regional Transit & Commute" %}
+    {% include "components/widget/neighborhood-subpage-header.njk" %}
+  </div>
+
+  {# ==========================================================================
+     SECTION 2: EXPLORE NAVIGATION PILLS
+     ========================================================================== #}
+  <section id="explore-neighborhood" class="portal-section-nav" aria-label="Explore {{ active_neighborhood }}">
+    <span class="text-overline text-accent-alpine section-overline-lead">
+      EXPLORE {{ active_neighborhood | upper }}
+    </span>
+    <div class="neighborhood-nav-container">
+      <nav class="neighborhood-nav-track" tabindex="0" aria-label="{{ active_neighborhood }} Subpages">
+        <a href="/neighborhood/region/" class="neighborhood-nav-pill is-inactive">Regional Home</a>
+        <a href="/neighborhood/region/news/" class="neighborhood-nav-pill is-inactive">Regional News</a>
+        <a href="/neighborhood/region/events/" class="neighborhood-nav-pill is-inactive">Regional Events</a>
+        <a href="/neighborhood/region/emergency-safety/" class="neighborhood-nav-pill is-inactive">Emergency &amp; Safety</a>
+        <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
+      </nav>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 3: MULTI-LAYER REGIONAL TRANSIT MAP (No City Boundary Outline)
+     ========================================================================== #}
+  <section id="transit-map" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">Live Vehicle Tracker &amp; Traffic Flow</h2>
+
+    <div class="weather-map-card">
+      <header class="weather-map-header">
+        <h3 class="text-widget-title weather-map-title">Puget Sound Regional Transit Map</h3>
+        <div class="airport-board-filter-group" role="tablist" aria-label="Map Layers">
+          <button type="button" class="btn-apt-tab is-active" data-layer-toggle="traffic" aria-pressed="true">Live Traffic</button>
+          <button type="button" class="btn-apt-tab is-active" data-layer-toggle="buses" aria-pressed="true">Buses</button>
+          <button type="button" class="btn-apt-tab is-active" data-layer-toggle="trains" aria-pressed="true">Trains</button>
+          <button type="button" class="btn-apt-tab" data-layer-toggle="ferries" aria-pressed="false">Ferries</button>
+          <button type="button" class="btn-apt-tab" data-layer-toggle="construction" aria-pressed="false">Construction</button>
+        </div>
+      </header>
+
+      <div class="weather-map-stage">
+        <div id="transitMapNode"
+             class="weather-map-canvas"
+             data-lat="47.6205"
+             data-lng="-122.2500"
+             data-city="{{ active_neighborhood }}"></div>
+
+        <div class="map-playback-dock">
+          <span class="toll-live-indicator">
+            <span class="toll-live-pulse-dot" aria-hidden="true"></span>
+            <span id="transitMapStatusText">Live Tracker Active</span>
+          </span>
+        </div>
+
+        <div class="map-attribution-pill">OneBusAway / TomTom / WSDOT / ESRI</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 4: WASHINGTON STATE FERRIES (All Collapsed by Default + Live Telemetry)
+     ========================================================================== #}
+  <section id="wsdot-ferries" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">Washington State Ferries</h2>
+
+    <div class="weather-passes-card ferry-accordion-card">
+      <header class="forecast-header-row">
+        <h3 class="forecast-card-title text-widget-title">Terminal Sailing Space &amp; Schedules</h3>
+      </header>
+
+      <div id="ferryAccordionContainer" class="pass-accordion-stack"></div>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 5: REGIONAL AIRPORT STATUS (Status Pill Hidden Until Live Sync)
+     ========================================================================== #}
+  <section id="airport-status" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">Regional Airport Status</h2>
+
+    <div class="airport-status-grid">
+      <article id="aptCardSEA" class="airport-status-card" aria-label="Seattle-Tacoma International Airport Status">
+        <div class="apt-card-header">
+          <div>
+            <h4 class="apt-name-heading">Seattle-Tacoma International</h4>
+            <span class="apt-code-tag">SEA</span>
+          </div>
+          <span class="ferry-status-pill is-hidden apt-faa-status"></span>
+        </div>
+        <div class="apt-metar-grid">
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Flight Rules</span>
+            <span class="apt-flight-rules-pill vfr apt-rule-val">--</span>
+          </div>
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Surface Wind</span>
+            <span class="apt-metar-val apt-wind-val">--</span>
+          </div>
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Visibility</span>
+            <span class="apt-metar-val apt-vis-val">--</span>
+          </div>
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Ceiling / Temp</span>
+            <span class="apt-metar-val apt-ceil-val">--</span>
+          </div>
+        </div>
+      </article>
+
+      <article id="aptCardPAE" class="airport-status-card" aria-label="Paine Field Airport Status">
+        <div class="apt-card-header">
+          <div>
+            <h4 class="apt-name-heading">Paine Field (Everett)</h4>
+            <span class="apt-code-tag">PAE</span>
+          </div>
+          <span class="ferry-status-pill is-hidden apt-faa-status"></span>
+        </div>
+        <div class="apt-metar-grid">
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Flight Rules</span>
+            <span class="apt-flight-rules-pill vfr apt-rule-val">--</span>
+          </div>
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Surface Wind</span>
+            <span class="apt-metar-val apt-wind-val">--</span>
+          </div>
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Visibility</span>
+            <span class="apt-metar-val apt-vis-val">--</span>
+          </div>
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Ceiling / Temp</span>
+            <span class="apt-metar-val apt-ceil-val">--</span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  {# ==========================================================================
+     SECTION 6: CASCADE MOUNTAIN PASSES (5 Passes — Collapsed Accordion + 5-Day Forecast)
+     ========================================================================== #}
+  {% if weather_mountain_passes and (weather_mountain_passes | length) > 0 %}
+    <hr class="section-divider">
+
+    {% set pass_month_abbrs = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] %}
+
+    <section id="mountain-passes" class="portal-section-widget">
+      <h2 class="text-section-title section-title-clean">Cascade Mountain Passes</h2>
+
+      <div class="weather-passes-card ferry-accordion-card">
+        <header class="forecast-header-row">
+          <h3 class="forecast-card-title text-widget-title">Summit Road Conditions &amp; 5-Day Forecast</h3>
+        </header>
+
+        <div class="pass-accordion-stack">
+          {% for pass in weather_mountain_passes %}
+            {% set status_raw = pass.pass_status | default('') %}
+            {% set status_low = status_raw | lower %}
+            {% set pass_pill_cls = "status-canceled" if (pass.is_seasonal_closure or 'closed' in status_low) else ("status-delayed" if ('restriction' in status_low or 'advisory' in status_low or 'chain' in status_low or 'traction' in status_low) else "status-ontime") %}
+
+            <details class="pass-accordion-item">
+              <summary class="ferry-accordion-summary">
+                <div class="ferry-route-col">
+                  {% if status_raw %}
+                    <div class="pass-badges-row">
+                      <span class="ferry-status-pill {{ pass_pill_cls }}">{{ status_raw }}</span>
+                    </div>
+                  {% endif %}
+                  <div class="ferry-route-name">
+                    <span>{{ pass.name }}</span>
+                  </div>
+                  {% if pass.elevation_ft %}
+                    <span class="ferry-vessels-caption">Elevation {{ pass.elevation_ft | localeString }} ft</span>
+                  {% endif %}
+                </div>
+
+                <div class="ferry-next-sailings-col">
+                  {% if pass.road_condition %}
+                    <div class="ferry-sailing-row">
+                      <span class="ferry-sailing-label">Road Condition:</span>
+                      <span class="ferry-sailing-times">{{ pass.road_condition }}</span>
+                    </div>
+                  {% endif %}
+                  {% if pass.current and pass.current.temp_f is not none %}
+                    <div class="ferry-sailing-row">
+                      <span class="ferry-sailing-label">Current Summit:</span>
+                      <span class="ferry-sailing-times">
+                        {{ pass.current.temp_f | round }}&deg;F{% if pass.current.roadside_weather %} &bull; {{ pass.current.roadside_weather }}{% endif %}{% if pass.current.summit_wind_mph is not none %} &bull; Wind {{ pass.current.summit_wind_mph | round }} mph{% endif %}
+                      </span>
+                    </div>
+                  {% endif %}
+                </div>
+
+                <svg class="forecast-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </summary>
+
+              <div class="ferry-acc-details">
+                <div class="ferry-docks-grid">
+                  {# Left Column: Directional Travel Restrictions & Summit Weather #}
+                  <div class="ferry-dock-block">
+                    <div class="ferry-dock-header">Travel Restrictions &amp; Summit Weather</div>
+                    {% if pass.restrictions and (pass.restrictions | length) > 0 %}
+                      {% for rest in pass.restrictions %}
+                        <div class="ferry-schedule-row">
+                          <span class="ferry-sched-time">{{ rest.direction }}</span>
+                          <span class="ferry-sched-vessel">{{ rest.text }}</span>
+                        </div>
+                      {% endfor %}
+                    {% endif %}
+                    {% if pass.current %}
+                      {% if pass.current.temp_f is not none %}
+                        <div class="ferry-schedule-row">
+                          <span class="ferry-sched-time">Summit Temp</span>
+                          <div>
+                            <span class="ferry-sched-vessel">{{ pass.current.temp_f | round }}&deg;F</span>
+                            {% if pass.current.temp_source %}<span class="ferry-sched-spaces">{{ pass.current.temp_source }}</span>{% endif %}
+                          </div>
+                        </div>
+                      {% endif %}
+                      {% if pass.current.roadside_weather %}
+                        <div class="ferry-schedule-row">
+                          <span class="ferry-sched-time">Conditions</span>
+                          <span class="ferry-sched-vessel">{{ pass.current.roadside_weather }}</span>
+                        </div>
+                      {% endif %}
+                      {% if pass.current.summit_wind_mph is not none %}
+                        <div class="ferry-schedule-row">
+                          <span class="ferry-sched-time">Summit Wind</span>
+                          <span class="ferry-sched-vessel">{{ pass.current.summit_wind_mph }} mph</span>
+                        </div>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+
+                  {# Right Column: 5-Day Summit Forecast #}
+                  {% set fc = pass.forecast_11_day %}
+                  {% if fc and fc.dates and (fc.dates | length) > 0 %}
+                    <div class="ferry-dock-block">
+                      <div class="ferry-dock-header">5-Day Summit Forecast</div>
+                      {% for d_str in fc.dates %}
+                        {% if loop.index0 < 5 %}
+                          {% set idx = loop.index0 %}
+                          {% set p_ymd = d_str.split('-') %}
+                          {% set p_date_disp = (pass_month_abbrs[p_ymd[1] | int] ~ " " ~ (p_ymd[2] | int)) if (p_ymd | length) == 3 else d_str %}
+                          {% set w_code = fc.weather_code[idx] if fc.weather_code else -1 %}
+                          {% set w_label = "Clear" if w_code == 0 else ("Partly Cloudy" if w_code in [1, 2] else ("Overcast" if w_code == 3 else ("Fog" if w_code in [45, 48] else ("Freezing Drizzle" if w_code in [56, 57] else ("Drizzle" if w_code in [51, 53, 55] else ("Freezing Rain" if w_code in [66, 67] else ("Rain" if w_code in [61, 63, 65, 80, 81, 82] else ("Snow" if w_code in [71, 73, 75, 77, 85, 86] else ("Thunderstorms" if w_code in [95, 96, 99] else ""))))))))) %}
+
+                          <div class="ferry-schedule-row">
+                            <div>
+                              <span class="ferry-sched-time">{{ p_date_disp }}</span>
+                              {% if w_label %}<span class="ferry-sched-leg">{{ w_label }}</span>{% endif %}
+                            </div>
+                            <div>
+                              {% if fc.temp_max and fc.temp_min %}
+                                <span class="ferry-sched-vessel">{{ fc.temp_max[idx] | round }}&deg; / {{ fc.temp_min[idx] | round }}&deg;</span>
+                              {% endif %}
+                              {% if fc.snowfall_in and fc.snowfall_in[idx] > 0 %}
+                                <span class="ferry-sched-spaces">{{ fc.snowfall_in[idx] }} in snow</span>
+                              {% elif fc.precip_prob_max and fc.precip_prob_max[idx] is not none %}
+                                <span class="ferry-sched-spaces">{{ fc.precip_prob_max[idx] }}% precip</span>
+                              {% endif %}
+                            </div>
+                          </div>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </details>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 7: WSDOT CONSTRUCTION ADVISORIES (King & Snohomish Counties)
+     ========================================================================== #}
+  {% set regional_alerts = [] %}
+  {% set seen_alert_keys = [] %}
+  {% if city_construction and city_data %}
+    {% for c_row in city_data %}
+      {% set c_county = c_row.County | default('') %}
+      {% if ('King' in c_county) or ('Snohomish' in c_county) %}
+        {% set c_key = c_row.City | slugify %}
+        {% set c_data = city_construction[c_key] %}
+        {% if c_data and c_data.alerts %}
+          {% for item in c_data.alerts %}
+            {% set dedup_key = item.alert_id or item.headline %}
+            {% if dedup_key and (dedup_key not in seen_alert_keys) %}
+              {% set _ = seen_alert_keys.push(dedup_key) %}
+              {% set _ = regional_alerts.push(item) %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+  {% set total_alerts = regional_alerts | length %}
+
+  <section id="construction-alerts" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">WSDOT Construction Advisories</h2>
+
+    <div class="widget-card construction-alerts-card" aria-label="King &amp; Snohomish County Construction">
+      <header class="construction-alerts-header">
+        <div class="construction-alerts-title-stack">
+          <h3 class="text-widget-title construction-alerts-headline">King &amp; Snohomish County Construction</h3>
+        </div>
+        {% if total_alerts > 0 %}
+          <span class="construction-count-badge status-alert">
+            {{ total_alerts }} ACTIVE {% if total_alerts == 1 %}ADVISORY{% else %}ADVISORIES{% endif %}
+          </span>
+        {% else %}
+          <span class="construction-count-badge status-clear">ALL CLEAR</span>
+        {% endif %}
+      </header>
+
+      {% if total_alerts > 0 %}
+        <div class="construction-alerts-stream">
+          {% for item in regional_alerts %}
+            {% set priority_lower = (item.priority | default('low')) | lower %}
+            {% set priority_class = "priority-high" if ('highest' in priority_lower or 'high' in priority_lower) else ("priority-medium" if 'medium' in priority_lower else "priority-low") %}
+            <article class="construction-alert-tile">
+              <div class="construction-alert-meta">
+                <span class="construction-priority-pill {{ priority_class }}">{{ item.priority | default('Advisory') | upper }}</span>
+                <span class="construction-category-label">{{ item.event_category | default('Construction') }}</span>
+                {% if item.alert_id %}
+                  <span class="construction-meta-dot" aria-hidden="true">&bull;</span>
+                  <span class="construction-alert-id">{{ item.alert_id | upper }}</span>
+                {% endif %}
+              </div>
+              <p class="construction-alert-text">{{ item.headline | trim }}</p>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="construction-empty-state">
+          <div class="construction-empty-icon-well" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+          <div class="construction-empty-content">
+            <h4 class="construction-empty-heading">No Active Construction Delays</h4>
+            <p class="text-body-secondary construction-empty-desc">
+              State highways and primary corridors across King and Snohomish Counties are currently free of active WSDOT lane reductions or closures.
+            </p>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+</main>
+
+<script id="constructionPayload" type="application/json">
+{{ regional_alerts | dump | safe }}
+</script>
+
+<script id="ferrySchedulesPayload" type="application/json">
+[
+  {% if ferry_schedules and ferry_schedules.routes %}
+    {% for r_key, r_obj in ferry_schedules.routes %}
+      {
+        "slug": {{ r_obj.route_slug | dump | safe }},
+        "routeId": {{ r_obj.route_id }},
+        "description": {{ r_obj.description | dump | safe }},
+        "vessels": {{ r_obj.assigned_vessels | dump | safe }},
+        "disruptions": {{ (r_obj.service_disruptions or []) | dump | safe }},
+        "terminals": [
+          {% for t in r_obj.terminals %}
+            { "id": {{ t.terminal_id }}, "name": {{ t.name | dump | safe }}, "lat": {{ t.latitude }}, "lon": {{ t.longitude }} }{% if not loop.last %},{% endif %}
+          {% endfor %}
+        ],
+        "sailings": [
+          {% for d_key, d_obj in r_obj.schedules %}
+            {% for s in d_obj.sailings %}
+              {
+                "fromId": {{ s.departing_terminal_id }},
+                "from": {{ s.departing_terminal_name | dump | safe }},
+                "toId": {{ s.arriving_terminal_id }},
+                "to": {{ s.arriving_terminal_name | dump | safe }},
+                "dep": {{ s.departing_time | dump | safe }},
+                "vessel": {{ (s.vessel_name or "") | dump | safe }}
+              },
+            {% endfor %}
+          {% endfor %}
+          null
+        ]
+      }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  {% endif %}
+]
+</script>
+
+<script>
+(function() {
+  const apiBase = "https://livedata.myseattlesearch.com/api";
+  const mapLat = 47.6205;
+  const mapLon = -122.2500;
+
+  function haversineMiles(lat1, lon1, lat2, lon2) {
+    const toRad = d => d * Math.PI / 180;
+    const R = 3958.8;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  /* Custom Agency SVG Generators (Solid Blue Community Transit Bus) */
+  function buildBusSvg(agency) {
+    let top = "#005596";
+    let bot = "#005596";
+    if (agency === "metro") { top = "#29856B"; bot = "#E5B575"; }
+    else if (agency === "everett") { top = "#C60C30"; bot = "#565A5C"; }
+    else if (agency === "sound") { top = "#002E6D"; bot = "#0091B3"; }
+    return `<svg class="transit-marker-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 11V6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v5H4z" fill="${top}"/><rect x="6" y="5" width="12" height="4.5" rx="1" fill="#FFFFFF" opacity="0.95"/><path d="M4 11v6a2 2 0 0 0 2 2h1v2a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2h4v2a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2h1a2 2 0 0 0 2-2v-6H4z" fill="${bot}"/><circle cx="7" cy="14" r="1.25" fill="#FFFFFF"/><circle cx="17" cy="14" r="1.25" fill="#FFFFFF"/><rect x="6" y="19" width="2" height="2" rx="0.5" fill="#1C1C1E"/><rect x="16" y="19" width="2" height="2" rx="0.5" fill="#1C1C1E"/></svg>`;
+  }
+
+  function buildTrainSvg(mode) {
+    const bot = mode === "sounder" ? "#9AB6D3" : "#0091B3";
+    return `<svg class="transit-marker-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 13V8a3 3 0 0 1 3-3h9l5 4.5V13H3z" fill="#002E6D"/><path d="M6 7h3v3.5H6zM11 7h3v3.5h-3zM16 7h2.5l2 3.5H16z" fill="#FFFFFF" opacity="0.95"/><path d="M3 13v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4H3z" fill="${bot}"/><circle cx="19" cy="14" r="1" fill="#FACC15"/><circle cx="6" cy="19" r="1.5" fill="#1C1C1E"/><circle cx="18" cy="19" r="1.5" fill="#1C1C1E"/></svg>`;
+  }
+
+  function buildFerrySvg() {
+    return '<svg class="transit-marker-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="11.25" y="4.5" width="1.5" height="4" rx="0.5" fill="#005A36"/><polygon points="4,14 6,8.5 18,8.5 20,14" fill="#FFFFFF" stroke="#005A36" stroke-width="0.75"/><rect x="7" y="10" width="1.5" height="1.5" rx="0.25" fill="#005A36"/><rect x="9.5" y="10" width="1.5" height="1.5" rx="0.25" fill="#005A36"/><rect x="13" y="10" width="1.5" height="1.5" rx="0.25" fill="#005A36"/><rect x="15.5" y="10" width="1.5" height="1.5" rx="0.25" fill="#005A36"/><polygon points="1.5,17 3,14 21,14 22.5,17 19.5,18 4.5,18" fill="#005A36"/><line x1="2" y1="20" x2="22" y2="20" stroke="#1E4D6B" stroke-width="1" stroke-linecap="round" opacity="0.6"/></svg>';
+  }
+
+  function buildConeSvg() {
+    return '<svg class="transit-marker-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="19" width="18" height="2.5" rx="1" fill="#FF6B00"/><path d="M5.5 19L10.5 4a1.6 1.6 0 0 1 3 0l5 15H5.5z" fill="#FF6B00"/><polygon points="7.2,16.5 16.8,16.5 16,14 8,14" fill="#FFFFFF"/><polygon points="8.6,12 15.4,12 14.6,9.5 9.4,9.5" fill="#FFFFFF"/></svg>';
+  }
+
+  /* 1. Render Static 24-Hour Ferry Schedules (All Collapsed) + Live Edge Status & Spaces */
+  function initFerries(ferriesLayer) {
+    const container = document.getElementById("ferryAccordionContainer");
+    const rawNode = document.getElementById("ferrySchedulesPayload");
+    if (!container || !rawNode) return;
+
+    let routes = [];
+    try {
+      routes = JSON.parse(rawNode.textContent) || [];
+    } catch (e) {
+      return;
+    }
+
+    const nowMs = Date.now();
+    const horizonMs = nowMs + 24 * 3600 * 1000;
+
+    routes.forEach(r => {
+      r.sailings = (r.sailings || [])
+        .filter(s => s && s.dep)
+        .map(s => ({ ...s, depMs: Date.parse(s.dep), spaces: null }))
+        .filter(s => !isNaN(s.depMs) && s.depMs >= (nowMs - 5 * 60000) && s.depMs <= horizonMs)
+        .sort((a, b) => a.depMs - b.depMs);
+
+      r.minDist = Math.min(...(r.terminals || []).map(t => haversineMiles(mapLat, mapLon, t.lat, t.lon)));
+    });
+
+    routes.sort((a, b) => a.minDist - b.minDist);
+
+    function formatClock(ms) {
+      return new Date(ms).toLocaleTimeString("en-US", {
+        timeZone: "America/Los_Angeles",
+        hour: "numeric",
+        minute: "2-digit"
+      });
+    }
+
+    function renderAccordion(liveVessels, hasLiveTelemetry) {
+      const openSlugs = new Set(
+        Array.from(container.querySelectorAll("details[open]")).map(el => el.getAttribute("data-route-slug"))
+      );
+
+      container.innerHTML = routes.map(r => {
+        const terms = r.terminals || [];
+        const isMultiStop = terms.length > 2;
+        const disruptions = Array.isArray(r.disruptions) ? r.disruptions : [];
+        const hasDisruption = disruptions.length > 0;
+
+        let statusPillHtml = "";
+        if (hasDisruption) {
+          statusPillHtml = '<span class="ferry-status-pill status-canceled">Service Alert</span>';
+        } else if (hasLiveTelemetry) {
+          const activeRouteVessel = (liveVessels || []).find(v =>
+            terms.some(t => t.id === v.departingId) && terms.some(t => t.id === v.arrivingId)
+          );
+          if (activeRouteVessel) {
+            const isDelayed = activeRouteVessel.scheduledDepMs && activeRouteVessel.leftDockMs &&
+              ((activeRouteVessel.leftDockMs - activeRouteVessel.scheduledDepMs) > 10 * 60000);
+            statusPillHtml = isDelayed
+              ? '<span class="ferry-status-pill status-delayed">Delayed</span>'
+              : '<span class="ferry-status-pill status-ontime">On Time</span>';
+          }
+        }
+
+        const vesselNames = (r.vessels || []).map(v => "M/V " + v).join(", ");
+        let summaryHtml = "";
+        let drawerHtml = "";
+
+        if (!isMultiStop && terms.length === 2) {
+          const tA = terms[0];
+          const tB = terms[1];
+          const sailA = r.sailings.filter(s => s.fromId === tA.id);
+          const sailB = r.sailings.filter(s => s.fromId === tB.id);
+
+          const next2A = sailA.slice(0, 2).map(s => formatClock(s.depMs)).join(", ");
+          const next2B = sailB.slice(0, 2).map(s => formatClock(s.depMs)).join(", ");
+
+          if (next2A) {
+            summaryHtml += `<div class="ferry-sailing-row"><span class="ferry-sailing-label">From ${tA.name}:</span><span class="ferry-sailing-times">${next2A}</span></div>`;
+          }
+          if (next2B) {
+            summaryHtml += `<div class="ferry-sailing-row"><span class="ferry-sailing-label">From ${tB.name}:</span><span class="ferry-sailing-times">${next2B}</span></div>`;
+          }
+
+          const rowsA = sailA.map(s => `
+            <div class="ferry-schedule-row">
+              <span class="ferry-sched-time">${formatClock(s.depMs)}</span>
+              <div>
+                <span class="ferry-sched-vessel">${s.vessel}</span>
+                ${s.spaces !== null ? `<span class="ferry-sched-spaces">${s.spaces} spaces</span>` : ""}
+              </div>
+            </div>
+          `).join("");
+
+          const rowsB = sailB.map(s => `
+            <div class="ferry-schedule-row">
+              <span class="ferry-sched-time">${formatClock(s.depMs)}</span>
+              <div>
+                <span class="ferry-sched-vessel">${s.vessel}</span>
+                ${s.spaces !== null ? `<span class="ferry-sched-spaces">${s.spaces} spaces</span>` : ""}
+              </div>
+            </div>
+          `).join("");
+
+          drawerHtml = `
+            <div class="ferry-docks-grid">
+              <div class="ferry-dock-block">
+                <div class="ferry-dock-header">Departing ${tA.name} (Next 24 Hours)</div>
+                ${rowsA || '<div class="ferry-schedule-row"><span class="ferry-sched-vessel">Departure data unavailable</span></div>'}
+              </div>
+              <div class="ferry-dock-block">
+                <div class="ferry-dock-header">Departing ${tB.name} (Next 24 Hours)</div>
+                ${rowsB || '<div class="ferry-schedule-row"><span class="ferry-sched-vessel">Departure data unavailable</span></div>'}
+              </div>
+            </div>
+          `;
+        } else {
+          const fromAna = r.sailings.filter(s => s.fromId === 1);
+          const fromIslands = r.sailings.filter(s => s.fromId !== 1);
+          const next2Ana = [...new Set(fromAna.map(s => formatClock(s.depMs)))].slice(0, 2).join(", ");
+          const next2Isl = [...new Set(fromIslands.map(s => formatClock(s.depMs)))].slice(0, 2).join(", ");
+
+          if (next2Ana) {
+            summaryHtml += `<div class="ferry-sailing-row"><span class="ferry-sailing-label">From Anacortes:</span><span class="ferry-sailing-times">${next2Ana}</span></div>`;
+          }
+          if (next2Isl) {
+            summaryHtml += `<div class="ferry-sailing-row"><span class="ferry-sailing-label">From San Juans:</span><span class="ferry-sailing-times">${next2Isl}</span></div>`;
+          }
+
+          const allRows = r.sailings.map(s => `
+            <div class="ferry-schedule-row">
+              <div>
+                <span class="ferry-sched-time">${formatClock(s.depMs)}</span>
+                <span class="ferry-sched-leg">${s.from} &rarr; ${s.to}</span>
+              </div>
+              <div>
+                <span class="ferry-sched-vessel">${s.vessel}</span>
+                ${s.spaces !== null ? `<span class="ferry-sched-spaces">${s.spaces} spaces</span>` : ""}
+              </div>
+            </div>
+          `).join("");
+
+          drawerHtml = `
+            <div class="ferry-docks-grid is-single-col">
+              <div class="ferry-dock-block">
+                <div class="ferry-dock-header">All Scheduled Sailings (Next 24 Hours)</div>
+                ${allRows || '<div class="ferry-schedule-row"><span class="ferry-sched-vessel">Departure data unavailable</span></div>'}
+              </div>
+            </div>
+          `;
+        }
+
+        const routeParts = (r.description || "").split("/");
+        const routeTitleHtml = routeParts.length === 2
+          ? `<span>${routeParts[0].trim()}</span><span class="ferry-route-arrow" aria-hidden="true">&#8644;</span><span>${routeParts[1].trim()}</span>`
+          : `<span>${r.description}</span>`;
+
+        const disruptionHtml = disruptions.map(d =>
+          `<div class="ferry-disruption-banner">${d.text || d.title || ""}</div>`
+        ).join("");
+
+        return `
+          <details class="pass-accordion-item" data-route-slug="${r.slug}" ${openSlugs.has(r.slug) ? "open" : ""}>
+            <summary class="ferry-accordion-summary">
+              <div class="ferry-route-col">
+                ${statusPillHtml ? `<div class="pass-badges-row">${statusPillHtml}</div>` : ""}
+                <div class="ferry-route-name">${routeTitleHtml}</div>
+                ${vesselNames ? `<span class="ferry-vessels-caption">${vesselNames}</span>` : ""}
+              </div>
+              <div class="ferry-next-sailings-col">${summaryHtml}</div>
+              <svg class="forecast-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </summary>
+            <div class="ferry-acc-details">
+              ${disruptionHtml}
+              ${drawerHtml}
+            </div>
+          </details>
+        `;
+      }).join("");
+    }
+
+    renderAccordion([], false);
+
+    fetch(`${apiBase}/transit/ferries`)
+      .then(res => (res.ok ? res.json() : null))
+      .then(payload => {
+        if (!payload) return;
+        const liveSpaces = Array.isArray(payload.spaces) ? payload.spaces : [];
+        const liveVessels = Array.isArray(payload.vessels) ? payload.vessels : [];
+
+        routes.forEach(r => {
+          r.sailings.forEach(s => {
+            const match = liveSpaces.find(sp =>
+              sp.fromId === s.fromId && sp.toId === s.toId && Math.abs(sp.depMs - s.depMs) <= 360000
+            );
+            if (match && typeof match.driveUpSpaces === "number") {
+              s.spaces = match.driveUpSpaces;
+            }
+          });
+        });
+
+        renderAccordion(liveVessels, true);
+
+        if (ferriesLayer && liveVessels.length > 0) {
+          ferriesLayer.clearLayers();
+          liveVessels.forEach(v => {
+            if (!v.lat || !v.lon) return;
+            const icon = L.divIcon({
+              className: "transit-vehicle-divicon",
+              html: `<div class="transit-svg-badge badge-ferry">${buildFerrySvg()}<span>${v.name || "WSF"}</span></div>`,
+              iconSize: [0, 0],
+              iconAnchor: [0, 0]
+            });
+            L.marker([v.lat, v.lon], { icon })
+              .bindPopup(`<strong>M/V ${v.name || "Ferry"}</strong><br>${v.route || "Puget Sound Route"}<br>Speed: ${Math.round(v.speed || 0)} kts`)
+              .addTo(ferriesLayer);
+          });
+        }
+      })
+      .catch(() => {});
+  }
+
+  /* 2. Hydrate Airport Status (SEA & PAE — Reveal Pill Only After Live Response) */
+  async function hydrateAirports() {
+    try {
+      const res = await fetch(`${apiBase}/transit/airports`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const metars = Array.isArray(data.metar) ? data.metar : [];
+      const delays = data.delays || {};
+
+      ["SEA", "PAE"].forEach(code => {
+        const card = document.getElementById(`aptCard${code}`);
+        if (!card) return;
+
+        const m = metars.find(x => x.icaoId === `K${code}`);
+        if (m) {
+          const cat = (m.fltcat || m.fltCat || "VFR").toLowerCase();
+          const rulePill = card.querySelector(".apt-rule-val");
+          rulePill.textContent = cat.toUpperCase();
+          rulePill.className = `apt-flight-rules-pill ${cat} apt-rule-val`;
+
+          const wdir = m.wdir !== undefined ? `${m.wdir}°` : "VRB";
+          const wspd = m.wspd !== undefined ? `${m.wspd} kt` : "Calm";
+          card.querySelector(".apt-wind-val").textContent = `${wdir} at ${wspd}`;
+          card.querySelector(".apt-vis-val").textContent = m.visib !== undefined ? `${m.visib} sm` : "10+ sm";
+
+          const tempF = m.temp !== undefined ? `${Math.round(m.temp * 9 / 5 + 32)}°F` : "";
+          const ceilStr = m.ceil ? `${m.ceil}00 ft` : "Clear";
+          card.querySelector(".apt-ceil-val").textContent = tempF ? `${ceilStr} · ${tempF}` : ceilStr;
+        }
+
+        const statusBadge = card.querySelector(".apt-faa-status");
+        if (statusBadge && (m || delays[code])) {
+          if (delays[code]) {
+            statusBadge.textContent = delays[code];
+            statusBadge.className = "ferry-status-pill status-delayed apt-faa-status";
+          } else {
+            statusBadge.textContent = "Normal Operations";
+            statusBadge.className = "ferry-status-pill status-ontime apt-faa-status";
+          }
+        }
+      });
+    } catch (e) {}
+  }
+
+  /* 3. Multi-Layer Regional Transit Map (No City Perimeter Outline) */
+  function initTransitMap() {
+    const mapEl = document.getElementById("transitMapNode");
+    if (!mapEl || typeof L === "undefined") {
+      initFerries(null);
+      return;
+    }
+
+    const map = L.map("transitMapNode", {
+      center: [mapLat, mapLon],
+      zoom: 10,
+      scrollWheelZoom: false
+    });
+
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+      attribution: "Esri, HERE, Garmin",
+      maxZoom: 16
+    }).addTo(map);
+
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 16,
+      pane: "overlayPane"
+    }).addTo(map);
+
+    function isInPugetSoundRegion(lat, lon) {
+      return lat >= 47.10 && lat <= 48.35 && lon >= -122.70 && lon <= -121.25;
+    }
+
+    const trafficLayer = L.tileLayer(`${apiBase}/tiles/traffic/{z}/{x}/{y}.png`, { opacity: 0.82, maxZoom: 16 }).addTo(map);
+    const busesLayer = L.layerGroup().addTo(map);
+    const trainsLayer = L.layerGroup().addTo(map);
+    const ferriesLayer = L.layerGroup();
+    const constructionLayer = L.layerGroup();
+
+    const cPayload = document.getElementById("constructionPayload");
+    if (cPayload) {
+      try {
+        const alerts = JSON.parse(cPayload.textContent);
+        alerts.forEach(a => {
+          if (!a.latitude || !a.longitude) return;
+          const cIcon = L.divIcon({
+            className: "transit-vehicle-divicon",
+            html: `<div class="transit-svg-badge badge-construction">${buildConeSvg()}<span>Work Zone</span></div>`,
+            iconSize: [0, 0],
+            iconAnchor: [0, 0]
+          });
+          L.marker([a.latitude, a.longitude], { icon: cIcon })
+            .bindPopup(`<strong>${a.event_category || "Construction"}</strong><br>${a.headline || ""}`)
+            .addTo(constructionLayer);
+        });
+      } catch (e) {}
+    }
+
+    const statusText = document.getElementById("transitMapStatusText");
+    const layerState = { traffic: true, buses: true, trains: true, ferries: false, construction: false };
+    let pollTimer = null;
+
+    async function syncVehicles() {
+      if (!layerState.buses && !layerState.trains) {
+        busesLayer.clearLayers();
+        trainsLayer.clearLayers();
+        return;
+      }
+      try {
+        const res = await fetch(`${apiBase}/transit/vehicles`);
+        if (!res.ok) return;
+        const data = await res.json();
+        busesLayer.clearLayers();
+        trainsLayer.clearLayers();
+
+        data.forEach(v => {
+          if (!v.lat || !v.lon || !isInPugetSoundRegion(v.lat, v.lon)) return;
+          const isRail = v.mode === "lightrail" || v.mode === "sounder";
+          if (isRail && !layerState.trains) return;
+          if (!isRail && !layerState.buses) return;
+
+          const label = v.route || (isRail ? "Link" : "Bus");
+          const svgMarkup = isRail ? buildTrainSvg(v.mode) : buildBusSvg(v.agency);
+          const icon = L.divIcon({
+            className: "transit-vehicle-divicon",
+            html: `<div class="transit-svg-badge">${svgMarkup}<span>${label}</span></div>`,
+            iconSize: [0, 0],
+            iconAnchor: [0, 0]
+          });
+
+          const marker = L.marker([v.lat, v.lon], { icon })
+            .bindPopup(`<strong>${v.agencyName || "Transit"} &bull; ${label}</strong><br>${v.headsign || "In Service"}`);
+
+          if (isRail) trainsLayer.addLayer(marker);
+          else busesLayer.addLayer(marker);
+        });
+
+        const d = new Date();
+        const hr = d.getHours() % 12 || 12;
+        const ampm = d.getHours() < 12 ? "AM" : "PM";
+        if (statusText) statusText.textContent = `Updated ${hr}:${String(d.getMinutes()).padStart(2, "0")} ${ampm}`;
+      } catch (e) {}
+    }
+
+    function startPolling() {
+      clearInterval(pollTimer);
+      if (document.visibilityState === "visible") {
+        syncVehicles();
+        pollTimer = setInterval(syncVehicles, 30000);
+      }
+    }
+
+    document.addEventListener("visibilitychange", startPolling);
+
+    document.querySelectorAll("[data-layer-toggle]").forEach(btn => {
+      btn.addEventListener("click", function() {
+        const key = btn.getAttribute("data-layer-toggle");
+        layerState[key] = !layerState[key];
+        btn.classList.toggle("is-active", layerState[key]);
+        btn.setAttribute("aria-pressed", layerState[key] ? "true" : "false");
+
+        if (key === "traffic") layerState.traffic ? trafficLayer.addTo(map) : map.removeLayer(trafficLayer);
+        if (key === "buses") {
+          layerState.buses ? busesLayer.addTo(map) : map.removeLayer(busesLayer);
+          if (layerState.buses) syncVehicles();
+        }
+        if (key === "trains") {
+          layerState.trains ? trainsLayer.addTo(map) : map.removeLayer(trainsLayer);
+          if (layerState.trains) syncVehicles();
+        }
+        if (key === "ferries") {
+          layerState.ferries ? ferriesLayer.addTo(map) : map.removeLayer(ferriesLayer);
+        }
+        if (key === "construction") layerState.construction ? constructionLayer.addTo(map) : map.removeLayer(constructionLayer);
+      });
+    });
+
+    initFerries(ferriesLayer);
+    startPolling();
+  }
+
+  hydrateAirports();
+
+  if (typeof L !== "undefined") {
+    initTransitMap();
+  } else {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+    document.head.appendChild(link);
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    script.onload = initTransitMap;
+    document.body.appendChild(script);
+  }
+})();
+</script>

@@ -1,0 +1,85 @@
+---
+layout: layouts/base.njk
+permalink: "/neighborhood/region/events/index.html"
+title: "Upcoming Events Across Puget Sound | MySeattleSearch"
+---
+{% set city_slug = "region" %}
+{% set active_neighborhood = "Puget Sound Region" %}
+
+<main class="layout-container layout-stack-main">
+
+  {# ==========================================================================
+     SECTION 1: CANONICAL REGIONAL HERO HEADER & EXPLORE DOCK
+     ========================================================================== #}
+  <div id="neighborhood-hero" class="portal-section-header">
+    {% set city = { "City": "Puget Sound Region" } %}
+    {% set hero_welcome_label = "King & Snohomish Counties" %}
+    {% set subpage_title = "Regional Events" %}
+    {% include "components/widget/neighborhood-subpage-header.njk" %}
+  </div>
+
+  <section id="explore-neighborhood" class="portal-section-nav" aria-label="Explore {{ active_neighborhood }}">
+    <span class="text-overline text-accent-alpine section-overline-lead">
+      EXPLORE {{ active_neighborhood | upper }}
+    </span>
+    <div class="neighborhood-nav-container">
+      <nav class="neighborhood-nav-track" tabindex="0" aria-label="{{ active_neighborhood }} Subpages">
+        <a href="/neighborhood/region/" class="neighborhood-nav-pill is-inactive">Regional Home</a>
+        <a href="/neighborhood/region/news/" class="neighborhood-nav-pill is-inactive">Regional News</a>
+        <a href="/neighborhood/region/emergency-safety/" class="neighborhood-nav-pill is-inactive">Emergency &amp; Safety</a>
+        <a href="/neighborhood/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit</a>
+        <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
+      </nav>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 2: UPCOMING EVENTS ACROSS PUGET SOUND (Category-Filtered Schedule)
+     ========================================================================== #}
+  {% set events_source = public_events_feed if public_events_feed else public_events %}
+  {% set matched_events = [] %}
+
+  {% if events_source %}
+    {% for ev in events_source %}
+      {% if ev.title %}
+        {% set clean_category_tags = [] %}
+        {% if ev.tags %}
+          {% for et_item in ev.tags %}
+            {% if et_item is string %}
+              {% set et_clean = et_item | trim | lower %}
+              {% if et_clean and et_clean.slice(0, 5) != "city-" and et_clean.slice(0, 7) != "county-" and et_clean != "all" %}
+                {% set _ = clean_category_tags.push(et_item | trim) %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+
+        {% set primary_cat = (ev.categories[0] if (ev.categories and (ev.categories | length) > 0) else (ev.category or "Community")) %}
+
+        {% set _ = matched_events.push({
+          "title": ev.title,
+          "url": ev.url or ev.link,
+          "date": ev.date or ev.display_date,
+          "time": ev.time or ev.display_time,
+          "location": ev.location,
+          "category": primary_cat,
+          "desc": ev.desc or ev.excerpt,
+          "tags": clean_category_tags
+        }) %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% if (matched_events | length) > 0 %}
+    <section id="regional-events" class="portal-section-news-events">
+      <h2 class="text-section-title section-title-clean">Upcoming Events Across Puget Sound</h2>
+      {% set events_city_name = active_neighborhood %}
+      {% set events_heading = "Puget Sound Events" %}
+      {% set events_all_data = matched_events %}
+      {% include "components/widget/events-summary-list-all.njk" %}
+    </section>
+  {% endif %}
+
+</main>

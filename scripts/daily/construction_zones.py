@@ -10,13 +10,28 @@ CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 CITY_BOUNDARIES_PATH = os.path.join(DATA_DIR, "city_boundaries.json")
 OUT_PATH = os.path.join(DATA_DIR, "city_construction.json")
 
+
+def load_dev_vars():
+    dev_vars_path = os.path.join(BASE_DIR, ".dev.vars")
+    if os.path.exists(dev_vars_path):
+        with open(dev_vars_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
 def slugify(text):
-    if not text: return ""
+    if not text:
+        return ""
     text = str(text).lower().strip()
-    out = [ch if ch.isalnum() else '-' for ch in text]
+    out = [ch if ch.isalnum() else "-" for ch in text]
     res = "".join(out)
-    while '--' in res: res = res.replace('--', '-')
-    return res.strip('-')
+    while "--" in res:
+        res = res.replace("--", "-")
+    return res.strip("-")
+
 
 def http_get_json_simple(url, timeout=25):
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -29,22 +44,33 @@ def http_get_json_simple(url, timeout=25):
         print(f"HTTP GET Error [{url[:60]}...]: {e}")
     return None
 
+
 def haversine_distance(lat1, lon1, lat2, lon2):
     R = 3958.8
     dlat, dlon = math.radians(lat2 - lat1), math.radians(lon2 - lon1)
-    a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+    a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
 
 def get_geometry_bbox(geometry):
     g_type, coords = geometry.get("type"), geometry.get("coordinates", [])
     all_pts = []
     if g_type == "Polygon":
-        for ring in coords: all_pts.extend(ring)
+        for ring in coords:
+            all_pts.extend(ring)
     elif g_type == "MultiPolygon":
         for poly in coords:
-            for ring in poly: all_pts.extend(ring)
-    if not all_pts: return None
-    return (min(pt[1] for pt in all_pts), min(pt[0] for pt in all_pts), max(pt[1] for pt in all_pts), max(pt[0] for pt in all_pts))
+            for ring in poly:
+                all_pts.extend(ring)
+    if not all_pts:
+        return None
+    return (
+        min(pt[1] for pt in all_pts),
+        min(pt[0] for pt in all_pts),
+        max(pt[1] for pt in all_pts),
+        max(pt[0] for pt in all_pts),
+    )
+
 
 def point_in_ring(lat, lon, ring):
     inside = False
@@ -54,9 +80,11 @@ def point_in_ring(lat, lon, ring):
         xi, yi = ring[i][0], ring[i][1]
         xj, yj = ring[j][0], ring[j][1]
         intersect = ((yi > lat) != (yj > lat)) and (lon < (xj - xi) * (lat - yi) / (yj - yi + 1e-12) + xi)
-        if intersect: inside = not inside
+        if intersect:
+            inside = not inside
         j = i
     return inside
+
 
 def point_in_geometry(lat, lon, geometry):
     g_type, coords = geometry.get("type"), geometry.get("coordinates", [])
@@ -70,8 +98,10 @@ def point_in_geometry(lat, lon, geometry):
                     return True
     return False
 
+
 def load_city_boundaries():
-    if not os.path.exists(CITY_BOUNDARIES_PATH): return []
+    if not os.path.exists(CITY_BOUNDARIES_PATH):
+        return []
     with open(CITY_BOUNDARIES_PATH, "r", encoding="utf-8") as f:
         data = json.load(f)
     indexed = []
@@ -82,6 +112,7 @@ def load_city_boundaries():
         if slug and bbox:
             indexed.append({"slug": slug, "bbox": bbox, "geometry": feat.get("geometry", {})})
     return indexed
+
 
 def match_city_for_alert(lat, lon, city_boundaries, cities):
     for city in city_boundaries:
@@ -98,7 +129,9 @@ def match_city_for_alert(lat, lon, city_boundaries, cities):
                 min_dist, closest_city = dist, c["slug"]
     return closest_city
 
+
 def main():
+    load_dev_vars()
     print("🚧 Harvesting Active WSDOT Construction & Work Zones...")
     if not os.path.exists(CITY_DATA_PATH):
         print("ℹ️ city_data.json missing. Skipping construction alerts.")
@@ -136,18 +169,35 @@ def main():
             loc_obj = a.get("StartRoadWayLocation") or a.get("StartRoadwayLocation") or {}
             alat = loc_obj.get("Latitude") if isinstance(loc_obj, dict) else a.get("Latitude")
             alon = loc_obj.get("Longitude") if isinstance(loc_obj, dict) else a.get("Longitude")
-            
-            if alat is None or alon is None: continue
-            try: alat, alon = float(alat), float(alon)
-            except (ValueError, TypeError): continue
+
+            if alat is None or alon is None:
+                continue
+            try:
+                alat, alon = float(alat), float(alon)
+            except (ValueError, TypeError):
+                continue
+
+            if alat == 0.0 or alon == 0.0:
+                continue
+
+            end_obj = a.get("EndRoadWayLocation") or a.get("EndRoadwayLocation") or {}
+            end_lat = end_obj.get("Latitude") if isinstance(end_obj, dict) else None
+            end_lon = end_obj.get("Longitude") if isinstance(end_obj, dict) else None
+            road_name = loc_obj.get("RoadName") if isinstance(loc_obj, dict) else None
 
             alert_obj = {
                 "alert_id": f"wsdot-{a.get('AlertID')}",
                 "headline": a.get("HeadlineDescription", "Roadwork Alert"),
                 "priority": a.get("Priority", "Low"),
                 "event_category": a.get("EventCategory", "Construction"),
-                "start_time": a.get("StartTime"), "end_time": a.get("EndTime"),
-                "description": a.get("ExtendedDescription", "")
+                "road_name": road_name,
+                "latitude": round(alat, 6),
+                "longitude": round(alon, 6),
+                "end_latitude": round(float(end_lat), 6) if end_lat not in (None, 0, 0.0) else None,
+                "end_longitude": round(float(end_lon), 6) if end_lon not in (None, 0, 0.0) else None,
+                "start_time": a.get("StartTime"),
+                "end_time": a.get("EndTime"),
+                "description": a.get("ExtendedDescription", ""),
             }
 
             matched_slug = match_city_for_alert(alat, alon, city_boundaries, cities)
@@ -157,14 +207,20 @@ def main():
                 total_alerts += 1
 
     output = {
-        slug: {"name": details["name"], "alert_count": details["alert_count"], "alerts": details["alerts"], "last_updated": datetime.now(timezone.utc).isoformat()}
+        slug: {
+            "name": details["name"],
+            "alert_count": details["alert_count"],
+            "alerts": details["alerts"],
+            "last_updated": datetime.now(timezone.utc).isoformat(),
+        }
         for slug, details in city_map.items()
     }
 
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(OUT_PATH, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
-    print(f"💾 Saved {total_alerts} active construction alerts to {OUT_PATH}")
+    print(f"💾 Saved {total_alerts} active construction alerts with coordinates to {OUT_PATH}")
+
 
 if __name__ == "__main__":
     main()
