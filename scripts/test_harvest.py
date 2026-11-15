@@ -61,10 +61,10 @@ def main():
     print("      MYSEATTLESEARCH TEST HARVEST RUNNER         ")
     print("==================================================\n")
 
-    # Seed Entertainment Hub Data (TVmaze + Wikidata) into Cloudflare D1
+    # Ingest OpenStreetMap Municipal Amenities into data/city_amenities.json
     run_test_task(
-        "Seed Entertainment Hub Database (D1)",
-        lambda: run_test_subscript(os.path.join("utilities", "seed_entertainment_data.py"))
+        "Municipal OSM Amenities Ingestion",
+        lambda: run_test_subscript(os.path.join("monthly", "osm_amenities.py"))
     )
 
     print("🎉 Test suite run complete!")
