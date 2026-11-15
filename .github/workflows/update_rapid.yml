@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   actions: write
 
 jobs:
@@ -36,19 +36,20 @@ jobs:
           CF_D1_API_TOKEN: ${{ secrets.CF_D1_API_TOKEN }}
           CF_DATABASE_TELEMETRY_ID: ${{ secrets.CF_DATABASE_TELEMETRY_ID }}
         run: |
+          set +e
           python scripts/harvest_rapid.py
-          # Capture specific exit code 22 from compile_alerts.py (indicates state change)
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
-        continue-on-error: true
+          EXIT_CODE=$?
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          exit 0
 
-      - name: Trigger Instant GitHub Pages Build
+      - name: Trigger Instant GitHub Pages Build on Alert Change
         if: steps.harvest.outputs.exit_code == '22'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "🚨 Emergency state change detected. Triggering instant SSG rebuild."
+          echo "Emergency alert state changed. Triggering Deploy Eleventy Hub..."
           gh workflow run "deploy-site.yml" --ref main
 
-      - name: Fail Workflow on Real Errors
+      - name: Fail Workflow on Harvester Error
         if: steps.harvest.outputs.exit_code != '0' && steps.harvest.outputs.exit_code != '22'
         run: exit 1

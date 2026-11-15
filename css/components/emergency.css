@@ -314,3 +314,357 @@
   .pulsepoint-viewport-mask { aspect-ratio: 4 / 3; min-height: 520px !important; }
   .pulsepoint-viewport-mask iframe { top: -188px !important; height: calc(100% + 188px) !important; }
 }
+
+/* File: css/components/emergency.css */
+/* ==========================================================================
+   16. EMERGENCY & SAFETY: COLOR-CODED HAZARD ACCORDION, MAP & PULSEPOINT
+   ========================================================================== */
+
+/* Active Emergency Information 5-Row Accordion Card */
+.emergency-accordion-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 1.5rem;
+  background: var(--color-background-universal);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-squircle);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+}
+
+.emergency-acc-item {
+  border: 1px solid var(--color-border-light);
+  border-radius: 12px;
+  background: var(--color-surface-gray);
+  overflow: hidden;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.emergency-acc-item[open] {
+  background: var(--color-background-universal);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+/* Color-Coded Active Alert Outlines (Matched to Hazard Map Layers) */
+.emergency-acc-item.is-alert-school { border: 1.5px solid #F59E0B; }
+.emergency-acc-item.is-alert-weather { border: 1.5px solid #7C3AED; }
+.emergency-acc-item.is-alert-power { border: 1.5px solid #0284C7; }
+.emergency-acc-item.is-alert-earthquake { border: 1.5px solid #EA580C; }
+.emergency-acc-item.is-alert-wildfire { border: 1.5px solid #D9232A; }
+
+.emergency-acc-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.emergency-acc-summary::-webkit-details-marker { display: none; }
+.emergency-acc-summary:hover { background-color: rgba(255, 255, 255, 0.72); }
+
+.emergency-acc-lead {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.emergency-acc-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--color-background-universal);
+  border: 1px solid var(--color-border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--alpine-blue);
+  flex-shrink: 0;
+}
+
+.emergency-acc-item.is-alert-school .emergency-acc-icon { color: #D97706; border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.1); }
+.emergency-acc-item.is-alert-weather .emergency-acc-icon { color: #7C3AED; border-color: rgba(124, 58, 237, 0.35); background: rgba(124, 58, 237, 0.1); }
+.emergency-acc-item.is-alert-power .emergency-acc-icon { color: #0284C7; border-color: rgba(2, 132, 199, 0.35); background: rgba(2, 132, 199, 0.1); }
+.emergency-acc-item.is-alert-earthquake .emergency-acc-icon { color: #EA580C; border-color: rgba(234, 88, 12, 0.35); background: rgba(234, 88, 12, 0.1); }
+.emergency-acc-item.is-alert-wildfire .emergency-acc-icon { color: #D9232A; border-color: rgba(217, 35, 42, 0.35); background: rgba(217, 35, 42, 0.1); }
+
+.emergency-acc-title {
+  font-size: 0.98rem;
+  font-weight: 500;
+  color: var(--premier-charcoal);
+}
+
+.emergency-acc-status-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.emergency-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-secondary-muted);
+}
+
+.emergency-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.emergency-status-dot.dot-optimal { background: var(--status-emerald); box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
+.emergency-status-dot.dot-school { background: #F59E0B; box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25); }
+.emergency-status-dot.dot-weather { background: #7C3AED; box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.25); }
+.emergency-status-dot.dot-power { background: #0284C7; box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.25); }
+.emergency-status-dot.dot-earthquake { background: #EA580C; box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.25); }
+.emergency-status-dot.dot-wildfire { background: #D9232A; box-shadow: 0 0 0 2px rgba(217, 35, 42, 0.25); }
+
+.emergency-status-text.text-school { color: #B45309; }
+.emergency-status-text.text-weather { color: #6D28D9; }
+.emergency-status-text.text-power { color: #0369A1; }
+.emergency-status-text.text-earthquake { color: #C2410C; }
+.emergency-status-text.text-wildfire { color: var(--pnw-red); }
+
+.emergency-acc-chevron {
+  color: var(--color-secondary-muted);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+.emergency-acc-item[open] .emergency-acc-chevron { transform: rotate(180deg); }
+
+.emergency-acc-drawer {
+  padding: 1.15rem 1.25rem 1.35rem;
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-background-universal);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.emergency-alert-entry {
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: var(--color-surface-gray);
+  border: 1px solid var(--color-border-light);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.emergency-alert-entry-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.emergency-alert-entry-title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--premier-charcoal);
+}
+
+.emergency-alert-entry-meta {
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--color-secondary-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.emergency-alert-entry-body {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--premier-charcoal);
+}
+
+.emergency-drawer-empty {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--color-secondary-muted);
+}
+
+/* Emergency Map Container & Custom Hazard Marker Badges */
+.emergency-map-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: var(--color-background-universal);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-squircle);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.emergency-map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.emergency-map-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--premier-charcoal);
+}
+
+.emergency-map-stage {
+  position: relative;
+  width: 100%;
+  height: 500px;
+}
+
+.emergency-map-canvas {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.emergency-marker-divicon { background: transparent; border: none; }
+.emergency-map-pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--color-background-universal);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.24);
+  transform: translate(-50%, -50%);
+}
+.emergency-map-pin.pin-school { border: 2px solid #F59E0B; color: #D97706; }
+.emergency-map-pin.pin-power { border: 2px solid #0284C7; color: #0284C7; }
+.emergency-map-pin.pin-earthquake { border: 2px solid #EA580C; color: #EA580C; }
+.emergency-map-pin.pin-wildfire { border: 2px solid #D9232A; color: #D9232A; }
+
+/* Unmasked PulsePoint Embed Card */
+.pulsepoint-widget-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  padding: 1.5rem;
+  background: var(--color-background-universal);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-squircle);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+}
+
+.pulsepoint-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: 0.85rem;
+}
+
+.pulsepoint-card-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--premier-charcoal);
+}
+
+.btn-pulsepoint-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-primary-default);
+  background: var(--color-surface-gray);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-pill);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-pulsepoint-reset:hover {
+  background: var(--color-background-universal);
+  border-color: var(--alpine-blue);
+}
+
+.pulsepoint-unmapped-pill {
+  padding: 0.22rem 0.65rem;
+  border-radius: var(--border-radius-pill);
+  background: var(--color-surface-gray);
+  border: 1px solid var(--color-border-light);
+  color: var(--color-secondary-muted);
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pulsepoint-viewport {
+  width: 100%;
+  min-height: 620px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-surface-gray);
+  border: 1px solid var(--color-border-light);
+}
+
+.pulsepoint-viewport iframe {
+  width: 100%;
+  height: 620px;
+  border: none;
+  display: block;
+}
+
+.pulsepoint-offline-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  min-height: 320px;
+  border-radius: 12px;
+  background: var(--color-surface-gray);
+  border: 1px dashed var(--color-border-light);
+}
+
+.pulsepoint-offline-title {
+  margin: 0 0 0.35rem 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--premier-charcoal);
+}
+
+.pulsepoint-offline-desc {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-secondary-muted);
+}
+
+@media (max-width: 768px) {
+  .emergency-map-stage { height: 420px; }
+  .pulsepoint-viewport,
+  .pulsepoint-viewport iframe {
+    height: 520px;
+    min-height: 520px;
+  }
+}

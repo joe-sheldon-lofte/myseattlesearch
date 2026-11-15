@@ -11,10 +11,23 @@ permalink: "/neighborhood/{{ city.City | slugify }}/emergency-safety/index.html"
 {% set active_neighborhood = city.City %}
 {% set primary_district = city['School District'].split(',')[0] | trim if city['School District'] else '' %}
 
+{% set local_alerts = active_alerts.neighborhoods[city_slug] if (active_alerts and active_alerts.neighborhoods) else null %}
+{% set school_reports = local_alerts.school_reports if (local_alerts and local_alerts.school_reports) else [] %}
+{% set weather_alerts = local_alerts.weather_alerts if (local_alerts and local_alerts.weather_alerts) else [] %}
+{% set power_incidents = local_alerts.power_incidents if (local_alerts and local_alerts.power_incidents) else [] %}
+{% set quake_list = local_alerts.earthquakes if (local_alerts and local_alerts.earthquakes) else [] %}
+{% set fire_list = local_alerts.wildfires if (local_alerts and local_alerts.wildfires) else [] %}
+
+{% set school_cnt = school_reports | length %}
+{% set weather_cnt = weather_alerts | length %}
+{% set power_cnt = power_incidents | length %}
+{% set quake_cnt = quake_list | length %}
+{% set fire_cnt = fire_list | length %}
+
 <main class="layout-container layout-stack-main">
 
   {# ==========================================================================
-     SECTION 1: CANONICAL NEIGHBORHOOD HERO HEADER
+     SECTION 1: CANONICAL NEIGHBORHOOD HERO HEADER & EXPLORE DOCK
      ========================================================================== #}
   <div id="neighborhood-hero" class="portal-section-header">
     {% set hero_img_main = city.HeroImageMain %}
@@ -25,9 +38,6 @@ permalink: "/neighborhood/{{ city.City | slugify }}/emergency-safety/index.html"
     {% include "components/widget/neighborhood-page-header.njk" %}
   </div>
 
-  {# ==========================================================================
-     SECTION 2: EXPLORE NAVIGATION PILLS
-     ========================================================================== #}
   <section id="explore-neighborhood" class="portal-section-nav" aria-label="Explore {{ active_neighborhood }}">
     <span class="text-overline text-accent-alpine section-overline-lead">
       EXPLORE {{ active_neighborhood | upper }}
@@ -37,13 +47,14 @@ permalink: "/neighborhood/{{ city.City | slugify }}/emergency-safety/index.html"
         <a href="/neighborhood/{{ city_slug }}/" class="neighborhood-nav-pill is-inactive">City Home</a>
         <a href="/neighborhood/{{ city_slug }}/news-events/" class="neighborhood-nav-pill is-inactive">News &amp; Events</a>
         <a href="/neighborhood/{{ city_slug }}/weather/" class="neighborhood-nav-pill is-inactive">Weather</a>
+        <a href="/neighborhood/{{ city_slug }}/transit-commute/" class="neighborhood-nav-pill is-inactive">Transit &amp; Commute</a>
         <a href="/neighborhood/{{ city_slug }}/municipal/" class="neighborhood-nav-pill is-inactive">Municipal</a>
         <a href="/neighborhood/{{ city_slug }}/real-estate/" class="neighborhood-nav-pill is-inactive">Real Estate</a>
         {% if primary_district %}
           <a href="/neighborhood/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
         {% endif %}
-        <a href="/neighborhood/{{ city_slug }}/transit-commute/" class="neighborhood-nav-pill is-inactive">Transit &amp; Commute</a>
         <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
+        <a href="/neighborhood/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit</a>
       </nav>
     </div>
   </section>
@@ -51,88 +62,510 @@ permalink: "/neighborhood/{{ city.City | slugify }}/emergency-safety/index.html"
   <hr class="section-divider">
 
   {# ==========================================================================
-     SECTION 3: FIRE & EMS LIVE DISPATCH (PulsePoint 100% Embed)
+     SECTION 2: ACTIVE EMERGENCY INFORMATION (Color-Coded 5-Row Accordion)
      ========================================================================== #}
-  <section id="live-dispatch-monitor" class="portal-section-widget">
-    <h2 class="text-section-title section-title-clean">Fire and EMS Live Dispatch</h2>
-    {% include "components/widget/map-pulsepoint.njk" ignore missing %}
+  <section id="active-emergency-info" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">Active Emergency Information</h2>
+
+    <div class="emergency-accordion-card">
+
+      {# 1. SCHOOL CLOSURES (#F59E0B Amber Gold) #}
+      <details class="emergency-acc-item {% if school_cnt > 0 %}is-alert-school{% endif %}" {% if school_cnt > 0 %}open{% endif %}>
+        <summary class="emergency-acc-summary">
+          <div class="emergency-acc-lead">
+            <span class="emergency-acc-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 8 L14 5 L18 5 L18 8 Z"/>
+                <path d="M16 2 L16 5"/>
+                <path d="M4 14 L16 8 L28 14 Z"/>
+                <rect x="6" y="14" width="20" height="14" rx="1"/>
+                <path d="M13 28 V21 H19 V28"/>
+              </svg>
+            </span>
+            <span class="emergency-acc-title">School Closures</span>
+          </div>
+
+          <div class="emergency-acc-status-group">
+            <span class="emergency-status-indicator">
+              <span class="emergency-status-dot {% if school_cnt > 0 %}dot-school{% else %}dot-optimal{% endif %}" aria-hidden="true"></span>
+              <span class="emergency-status-text {% if school_cnt > 0 %}text-school{% endif %}">
+                {% if school_cnt > 0 %}
+                  {{ school_cnt }} School {% if school_cnt == 1 %}Alert{% else %}Alerts{% endif %}
+                {% else %}
+                  No active alerts
+                {% endif %}
+              </span>
+            </span>
+            <svg class="emergency-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </summary>
+
+        <div class="emergency-acc-drawer">
+          {% if school_cnt > 0 %}
+            {% for rep in school_reports %}
+              <article class="emergency-alert-entry">
+                <div class="emergency-alert-entry-head">
+                  <h3 class="emergency-alert-entry-title">{{ rep.org_name }}</h3>
+                  {% if rep.category %}<span class="emergency-alert-entry-meta">{{ rep.category }}</span>{% endif %}
+                </div>
+                {% if rep.detail %}<p class="emergency-alert-entry-body">{{ rep.detail }}</p>{% endif %}
+                {% if rep.tomorrow_note %}<p class="emergency-alert-entry-body"><strong>Tomorrow:</strong> {{ rep.tomorrow_note }}</p>{% endif %}
+              </article>
+            {% endfor %}
+          {% else %}
+            <p class="emergency-drawer-empty">No active school closures or schedule delays reported for {{ active_neighborhood }}.</p>
+          {% endif %}
+        </div>
+      </details>
+
+      {# 2. SEVERE WEATHER (#7C3AED Electric Violet) #}
+      <details class="emergency-acc-item {% if weather_cnt > 0 %}is-alert-weather{% endif %}" {% if weather_cnt > 0 %}open{% endif %}>
+        <summary class="emergency-acc-summary">
+          <div class="emergency-acc-lead">
+            <span class="emergency-acc-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86a2 2 0 0 1 3.42 0l8.29 14.14A2 2 0 0 1 20.29 21H3.71a2 2 0 0 1-1.71-3L10.29 3.86z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </span>
+            <span class="emergency-acc-title">Severe Weather</span>
+          </div>
+
+          <div class="emergency-acc-status-group">
+            <span class="emergency-status-indicator">
+              <span class="emergency-status-dot {% if weather_cnt > 0 %}dot-weather{% else %}dot-optimal{% endif %}" aria-hidden="true"></span>
+              <span class="emergency-status-text {% if weather_cnt > 0 %}text-weather{% endif %}">
+                {% if weather_cnt > 0 %}
+                  {{ weather_cnt }} Severe Weather {% if weather_cnt == 1 %}Alert{% else %}Alerts{% endif %}
+                {% else %}
+                  No active alerts
+                {% endif %}
+              </span>
+            </span>
+            <svg class="emergency-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </summary>
+
+        <div class="emergency-acc-drawer">
+          {% if weather_cnt > 0 %}
+            {% for wx in weather_alerts %}
+              <article class="emergency-alert-entry">
+                <div class="emergency-alert-entry-head">
+                  <h3 class="emergency-alert-entry-title">{{ wx.event }}</h3>
+                  {% if wx.severity %}<span class="emergency-alert-entry-meta">{{ wx.severity | upper }}</span>{% endif %}
+                </div>
+                {% if wx.headline %}<p class="emergency-alert-entry-body">{{ wx.headline }}</p>{% endif %}
+                {% if wx.instruction %}<p class="emergency-alert-entry-body">{{ wx.instruction }}</p>{% endif %}
+              </article>
+            {% endfor %}
+          {% else %}
+            <p class="emergency-drawer-empty">No active National Weather Service watches or warnings for {{ active_neighborhood }}.</p>
+          {% endif %}
+        </div>
+      </details>
+
+      {# 3. POWER OUTAGES (#0284C7 Electric Blue) #}
+      <details class="emergency-acc-item {% if power_cnt > 0 %}is-alert-power{% endif %}" {% if power_cnt > 0 %}open{% endif %}>
+        <summary class="emergency-acc-summary">
+          <div class="emergency-acc-lead">
+            <span class="emergency-acc-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+                <path d="M10.29 3.86a2 2 0 0 1 3.42 0l8.29 14.14A2 2 0 0 1 20.29 21H3.71a2 2 0 0 1-1.71-3L10.29 3.86z"/>
+                <path d="M12.5 7.5L8.5 13.5h3.5l-1 5 5-6.5h-3.5l1.5-4.5z" fill="currentColor" stroke="none"/>
+              </svg>
+            </span>
+            <span class="emergency-acc-title">Power Outages</span>
+          </div>
+
+          <div class="emergency-acc-status-group">
+            <span class="emergency-status-indicator">
+              <span class="emergency-status-dot {% if power_cnt > 0 %}dot-power{% else %}dot-optimal{% endif %}" aria-hidden="true"></span>
+              <span class="emergency-status-text {% if power_cnt > 0 %}text-power{% endif %}">
+                {% if power_cnt > 0 %}
+                  {{ power_cnt }} Power Outage {% if power_cnt == 1 %}Alert{% else %}Alerts{% endif %}
+                {% else %}
+                  No active alerts
+                {% endif %}
+              </span>
+            </span>
+            <svg class="emergency-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </summary>
+
+        <div class="emergency-acc-drawer">
+          {% if power_cnt > 0 %}
+            {% for inc in power_incidents %}
+              <article class="emergency-alert-entry">
+                <div class="emergency-alert-entry-head">
+                  <h3 class="emergency-alert-entry-title">{{ inc.provider }} &mdash; {{ inc.customers_affected }} Customers Affected</h3>
+                  <span class="emergency-alert-entry-meta">{{ inc.status }}</span>
+                </div>
+                <p class="emergency-alert-entry-body">
+                  Cause: {{ inc.cause }}{% if inc.est_restoration %} &bull; Est. Restoration: {{ inc.est_restoration }}{% endif %}
+                </p>
+              </article>
+            {% endfor %}
+          {% else %}
+            <p class="emergency-drawer-empty">No active utility power outages detected within {{ active_neighborhood }}.</p>
+          {% endif %}
+        </div>
+      </details>
+
+      {# 4. EARTHQUAKES (#EA580C Burnt Orange) #}
+      <details class="emergency-acc-item {% if quake_cnt > 0 %}is-alert-earthquake{% endif %}" {% if quake_cnt > 0 %}open{% endif %}>
+        <summary class="emergency-acc-summary">
+          <div class="emergency-acc-lead">
+            <span class="emergency-acc-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 12h5l2-5 3 10 3-10 2 5h5"/>
+              </svg>
+            </span>
+            <span class="emergency-acc-title">Earthquakes</span>
+          </div>
+
+          <div class="emergency-acc-status-group">
+            <span class="emergency-status-indicator">
+              <span class="emergency-status-dot {% if quake_cnt > 0 %}dot-earthquake{% else %}dot-optimal{% endif %}" aria-hidden="true"></span>
+              <span class="emergency-status-text {% if quake_cnt > 0 %}text-earthquake{% endif %}">
+                {% if quake_cnt > 0 %}
+                  {{ quake_cnt }} Seismic {% if quake_cnt == 1 %}Alert{% else %}Alerts{% endif %}
+                {% else %}
+                  No active alerts
+                {% endif %}
+              </span>
+            </span>
+            <svg class="emergency-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </summary>
+
+        <div class="emergency-acc-drawer">
+          {% if quake_cnt > 0 %}
+            {% for q in quake_list %}
+              <article class="emergency-alert-entry">
+                <div class="emergency-alert-entry-head">
+                  <h3 class="emergency-alert-entry-title">M{{ q.magnitude }} Earthquake &mdash; {{ q.place }}</h3>
+                  <span class="emergency-alert-entry-meta">{{ q.distance_miles }} mi away</span>
+                </div>
+                {% if q.depth is not none %}<p class="emergency-alert-entry-body">Depth: {{ q.depth | round(1) }} km</p>{% endif %}
+              </article>
+            {% endfor %}
+          {% else %}
+            <p class="emergency-drawer-empty">No recent felt seismic activity within range of {{ active_neighborhood }}.</p>
+          {% endif %}
+        </div>
+      </details>
+
+      {# 5. WILDFIRES (#D9232A PNW Crimson) #}
+      <details class="emergency-acc-item {% if fire_cnt > 0 %}is-alert-wildfire{% endif %}" {% if fire_cnt > 0 %}open{% endif %}>
+        <summary class="emergency-acc-summary">
+          <div class="emergency-acc-lead">
+            <span class="emergency-acc-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2c-.5 2.5-3 5-3 8 0 3.3 2.7 6 6 6s6-2.7 6-6c0-2-1-3.5-2-4.5.5 1.5 0 3.5-1.5 4.5-.5-2-2-3.5-2.5-5.5-.5 1-1 2-1 3-1.5-1-2-3.5-2-5.5z" fill="#DC2626"/>
+                <path d="M12 9c-.3 1.5-1.8 3-1.8 4.8 0 2 1.6 3.6 3.6 3.6s3.6-1.6 3.6-3.6c0-1.2-.6-2.1-1.2-2.7.3.9 0 2.1-.9 2.7-.3-1.2-1.2-2.1-1.5-3.3-.3.6-.6 1.2-.6 1.8-.9-.6-1.2-2.1-1.2-3.3z" fill="#FBBF24"/>
+              </svg>
+            </span>
+            <span class="emergency-acc-title">Wildfires</span>
+          </div>
+
+          <div class="emergency-acc-status-group">
+            <span class="emergency-status-indicator">
+              <span class="emergency-status-dot {% if fire_cnt > 0 %}dot-wildfire{% else %}dot-optimal{% endif %}" aria-hidden="true"></span>
+              <span class="emergency-status-text {% if fire_cnt > 0 %}text-wildfire{% endif %}">
+                {% if fire_cnt > 0 %}
+                  {{ fire_cnt }} Wildfire {% if fire_cnt == 1 %}Alert{% else %}Alerts{% endif %}
+                {% else %}
+                  No active alerts
+                {% endif %}
+              </span>
+            </span>
+            <svg class="emergency-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </summary>
+
+        <div class="emergency-acc-drawer">
+          {% if fire_cnt > 0 %}
+            {% for f in fire_list %}
+              <article class="emergency-alert-entry">
+                <div class="emergency-alert-entry-head">
+                  <h3 class="emergency-alert-entry-title">{{ f.name }}</h3>
+                  <span class="emergency-alert-entry-meta">{{ f.distance_miles }} mi away</span>
+                </div>
+                <p class="emergency-alert-entry-body">
+                  {{ f.acres }} acres{% if f.containment_percent is not none %} &bull; {{ f.containment_percent }}% contained{% endif %}
+                </p>
+              </article>
+            {% endfor %}
+          {% else %}
+            <p class="emergency-drawer-empty">No active wildland fire incidents within range of {{ active_neighborhood }}.</p>
+          {% endif %}
+        </div>
+      </details>
+
+    </div>
   </section>
 
   <hr class="section-divider">
 
   {# ==========================================================================
-     SECTION 4: ACTIVE EMERGENCY INFORMATION (SSG Populated via R2 Active Alerts)
+     SECTION 3: REGIONAL EMERGENCY HAZARDS MAP (Smart Toggles & Auto-Framing)
      ========================================================================== #}
-  <section id="active-hazards" class="portal-section-widget">
-    <h2 class="text-section-title section-title-clean">Active Emergency Information</h2>
+  <section id="emergency-hazards-map" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">Emergency Hazards Map</h2>
 
-    {# Fetch static SSG alert state compiled by compile_alerts.py #}
-    {% set global_alerts = active_alerts.global if active_alerts else null %}
-    {% set local_alerts = active_alerts.neighborhoods[city_slug] if (active_alerts and active_alerts.neighborhoods) else null %}
+    <div class="emergency-map-card">
+      <header class="emergency-map-header">
+        <h3 class="emergency-map-title">{{ active_neighborhood }} Hazard &amp; Outage Radar</h3>
+        <div class="airport-board-filter-group" role="tablist" aria-label="Emergency Map Layers">
+          <button type="button" class="btn-apt-tab {% if school_cnt > 0 %}is-active{% endif %}" data-hazard-toggle="school" aria-pressed="{{ 'true' if school_cnt > 0 else 'false' }}">School Closures</button>
+          <button type="button" class="btn-apt-tab {% if weather_cnt > 0 %}is-active{% endif %}" data-hazard-toggle="weather" aria-pressed="{{ 'true' if weather_cnt > 0 else 'false' }}">Severe Weather</button>
+          <button type="button" class="btn-apt-tab {% if power_cnt > 0 %}is-active{% endif %}" data-hazard-toggle="power" aria-pressed="{{ 'true' if power_cnt > 0 else 'false' }}">Power Outages</button>
+          <button type="button" class="btn-apt-tab {% if quake_cnt > 0 %}is-active{% endif %}" data-hazard-toggle="earthquake" aria-pressed="{{ 'true' if quake_cnt > 0 else 'false' }}">Earthquakes</button>
+          <button type="button" class="btn-apt-tab {% if fire_cnt > 0 %}is-active{% endif %}" data-hazard-toggle="wildfire" aria-pressed="{{ 'true' if fire_cnt > 0 else 'false' }}">Wildfires</button>
+        </div>
+      </header>
 
-    <div class="section-grid-static grid-cols-4">
-      
-      {# 1. Power Outages #}
-      {% set power_active = local_alerts.power_outage if local_alerts else false %}
-      <article class="transit-stat-card" aria-label="Power Outage Status">
-        <div class="transit-stat-icon-wrap" aria-hidden="true" style="{% if power_active %}color: var(--pnw-red); border-color: rgba(217, 35, 42, 0.25); background: rgba(217, 35, 42, 0.1);{% endif %}">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round">
-            <path d="M10.29 3.86a2 2 0 0 1 3.42 0l8.29 14.14A2 2 0 0 1 20.29 21H3.71a2 2 0 0 1-1.71-3L10.29 3.86z"/>
-            <path d="M12.5 7.5L8.5 13.5h3.5l-1 5 5-6.5h-3.5l1.5-4.5z" fill="currentColor" stroke="none"/>
-          </svg>
-        </div>
-        <div class="transit-stat-figure" style="{% if power_active %}color: var(--pnw-red);{% endif %}">
-          {% if power_active %}Active Alert{% else %}Monitoring{% endif %}
-        </div>
-        <span class="transit-stat-overline">REGIONAL POWER GRID</span>
-      </article>
+      <div class="emergency-map-stage">
+        <div id="emergencyMapNode"
+             class="emergency-map-canvas"
+             data-lat="{{ city.Latitude | default(47.6062) }}"
+             data-lng="{{ city.Longitude | default(-122.3321) }}"></div>
 
-      {# 2. Severe Weather #}
-      {% set weather_active = local_alerts.weather if local_alerts else false %}
-      <article class="transit-stat-card" aria-label="Severe Weather Status">
-        <div class="transit-stat-icon-wrap" aria-hidden="true" style="{% if weather_active %}color: var(--pnw-red); border-color: rgba(217, 35, 42, 0.25); background: rgba(217, 35, 42, 0.1);{% endif %}">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10.29 3.86a2 2 0 0 1 3.42 0l8.29 14.14A2 2 0 0 1 20.29 21H3.71a2 2 0 0 1-1.71-3L10.29 3.86z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/>
-            <line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-        </div>
-        <div class="transit-stat-figure" style="{% if weather_active %}color: var(--pnw-red);{% endif %}">
-          {% if weather_active %}Active Alert{% else %}Monitoring{% endif %}
-        </div>
-        <span class="transit-stat-overline">SEVERE WEATHER ALERTS</span>
-      </article>
-
-      {# 3. Earthquakes #}
-      {% set quake_active = local_alerts.earthquake if local_alerts else false %}
-      <article class="transit-stat-card" aria-label="Earthquake Status">
-        <div class="transit-stat-icon-wrap" aria-hidden="true" style="{% if quake_active %}color: var(--pnw-red); border-color: rgba(217, 35, 42, 0.25); background: rgba(217, 35, 42, 0.1);{% endif %}">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M2 12h5l2 -5l3 10l3 -10l2 5h5"/>
-          </svg>
-        </div>
-        <div class="transit-stat-figure" style="{% if quake_active %}color: var(--pnw-red);{% endif %}">
-          {% if quake_active %}Active Alert{% else %}Monitoring{% endif %}
-        </div>
-        <span class="transit-stat-overline">SEISMIC ACTIVITY</span>
-      </article>
-
-      {# 4. Wildfires #}
-      {% set fire_active = local_alerts.wildfire if local_alerts else false %}
-      <article class="transit-stat-card" aria-label="Wildfire Status">
-        <div class="transit-stat-icon-wrap" aria-hidden="true" style="{% if fire_active %}color: var(--pnw-red); border-color: rgba(217, 35, 42, 0.25); background: rgba(217, 35, 42, 0.1);{% endif %}">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2c-.5 2.5-3 5-3 8 0 3.3 2.7 6 6 6s6-2.7 6-6c0-2-1-3.5-2-4.5.5 1.5 0 3.5-1.5 4.5-.5-2-2-3.5-2.5-5.5-.5 1-1 2-1 3-1.5-1-2-3.5-2-5.5z"/>
-            <path d="M12 9c-.3 1.5-1.8 3-1.8 4.8 0 2 1.6 3.6 3.6 3.6s3.6-1.6 3.6-3.6c0-1.2-.6-2.1-1.2-2.7.3.9 0 2.1-.9 2.7-.3-1.2-1.2-2.1-1.5-3.3-.3.6-.6 1.2-.6 1.8-.9-.6-1.2-2.1-1.2-3.3z" fill="currentColor" stroke="none"/>
-          </svg>
-        </div>
-        <div class="transit-stat-figure" style="{% if fire_active %}color: var(--pnw-red);{% endif %}">
-          {% if fire_active %}Active Alert{% else %}Monitoring{% endif %}
-        </div>
-        <span class="transit-stat-overline">WILDLAND FIRES</span>
-      </article>
-
+        <div class="map-attribution-pill">NWS / USGS / NIFC / SCL / PSE / FlashAlert / ESRI</div>
+      </div>
     </div>
   </section>
 
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 4: FIRE AND EMS LIVE DISPATCH (Unmasked PulsePoint Embed)
+     ========================================================================== #}
+  <section id="live-dispatch-monitor" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">Fire and EMS Live Dispatch</h2>
+    {% include "components/widget/map-pulsepoint.njk" %}
+  </section>
+
 </main>
+
+{% set boundary_geom = null %}
+{% if city_boundaries and city_boundaries.features %}
+  {% for feat in city_boundaries.features %}
+    {% if feat.properties and feat.properties.slug == city_slug %}
+      {% set boundary_geom = feat.geometry %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+<script id="boundaryPayload" type="application/json">
+{{ boundary_geom | dump | safe }}
+</script>
+
+<script id="emergencyAlertsPayload" type="application/json">
+{{ (local_alerts if local_alerts else {}) | dump | safe }}
+</script>
+
+<script>
+(function() {
+  /* PulsePoint Refresh Feed Button Handler */
+  document.querySelectorAll("[data-pulsepoint-reset]").forEach(btn => {
+    btn.addEventListener("click", function() {
+      const frameId = btn.getAttribute("data-pulsepoint-reset");
+      const frame = document.getElementById(frameId);
+      if (frame) {
+        const currentSrc = frame.src;
+        frame.src = "about:blank";
+        setTimeout(() => { frame.src = currentSrc; }, 60);
+      }
+    });
+  });
+
+  function initEmergencyMap() {
+    const mapEl = document.getElementById("emergencyMapNode");
+    if (!mapEl || typeof L === "undefined") return;
+
+    const mapLat = parseFloat(mapEl.getAttribute("data-lat") || "47.6062");
+    const mapLon = parseFloat(mapEl.getAttribute("data-lng") || "-122.3321");
+
+    const map = L.map("emergencyMapNode", {
+      center: [mapLat, mapLon],
+      zoom: 12,
+      scrollWheelZoom: false
+    });
+
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+      attribution: "Esri, HERE, Garmin",
+      maxZoom: 16
+    }).addTo(map);
+
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 16,
+      pane: "overlayPane"
+    }).addTo(map);
+
+    const framingBounds = L.latLngBounds([[mapLat, mapLon]]);
+
+    /* 1. Alpine Blue City Boundary Perimeter */
+    const bPayload = document.getElementById("boundaryPayload");
+    if (bPayload) {
+      try {
+        const geom = JSON.parse(bPayload.textContent);
+        if (geom) {
+          const cityPoly = L.geoJSON(geom, {
+            style: { color: "#1E4D6B", weight: 2.5, fillColor: "#1E4D6B", fillOpacity: 0.05 }
+          }).addTo(map);
+          framingBounds.extend(cityPoly.getBounds());
+        }
+      } catch (e) {}
+    }
+
+    let alerts = {};
+    const aPayload = document.getElementById("emergencyAlertsPayload");
+    if (aPayload) {
+      try {
+        alerts = JSON.parse(aPayload.textContent) || {};
+      } catch (e) {}
+    }
+
+    const layers = {
+      school: L.layerGroup(),
+      weather: L.layerGroup(),
+      power: L.layerGroup(),
+      earthquake: L.layerGroup(),
+      wildfire: L.layerGroup()
+    };
+
+    function makePin(pinClass, svgInner) {
+      return L.divIcon({
+        className: "emergency-marker-divicon",
+        html: `<div class="emergency-map-pin ${pinClass}">${svgInner}</div>`,
+        iconSize: [0, 0],
+        iconAnchor: [0, 0]
+      });
+    }
+
+    /* Layer 1: School Closures (#F59E0B Amber Gold) */
+    const schoolReports = Array.isArray(alerts.school_reports) ? alerts.school_reports : [];
+    schoolReports.forEach(rep => {
+      if (rep.scope === "school" && rep.latitude && rep.longitude) {
+        const icon = makePin("pin-school", '<svg width="16" height="16" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 14 L16 8 L28 14 Z"/><rect x="6" y="14" width="20" height="14" rx="1"/></svg>');
+        const m = L.marker([rep.latitude, rep.longitude], { icon }).bindPopup(`<strong>${rep.school_name || rep.org_name}</strong><br>${rep.detail || ""}`);
+        layers.school.addLayer(m);
+        framingBounds.extend([rep.latitude, rep.longitude]);
+      } else if (rep.geometry) {
+        const poly = L.geoJSON(rep.geometry, {
+          style: { color: "#D97706", weight: 2, fillColor: "#F59E0B", fillOpacity: 0.16 }
+        }).bindPopup(`<strong>${rep.org_name}</strong><br>${rep.detail || ""}`);
+        layers.school.addLayer(poly);
+        framingBounds.extend(poly.getBounds());
+      }
+    });
+
+    /* Layer 2: Severe Weather (#7C3AED Electric Violet) */
+    const weatherList = Array.isArray(alerts.weather_alerts) ? alerts.weather_alerts : [];
+    weatherList.forEach(wx => {
+      if (wx.geometry) {
+        const poly = L.geoJSON(wx.geometry, {
+          style: { color: "#7C3AED", weight: 2, fillColor: "#7C3AED", fillOpacity: 0.15 }
+        }).bindPopup(`<strong>${wx.event}</strong><br>${wx.headline || ""}`);
+        layers.weather.addLayer(poly);
+        framingBounds.extend(poly.getBounds());
+      }
+    });
+
+    /* Layer 3: Power Outages (#0284C7 Electric Blue: Point for <10 customers, Polygon for >=10) */
+    const powerList = Array.isArray(alerts.power_incidents) ? alerts.power_incidents : [];
+    powerList.forEach(inc => {
+      const cust = Number(inc.customers_affected || 0);
+      const popupHtml = `<strong>${inc.provider} (${cust} Customers)</strong><br>Cause: ${inc.cause || "Investigating"}`;
+      if (cust >= 10 && inc.geometry) {
+        const poly = L.geoJSON(inc.geometry, {
+          style: { color: "#0284C7", weight: 2, fillColor: "#0284C7", fillOpacity: 0.22 }
+        }).bindPopup(popupHtml);
+        layers.power.addLayer(poly);
+        framingBounds.extend(poly.getBounds());
+      } else if (inc.latitude && inc.longitude) {
+        const icon = makePin("pin-power", '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>');
+        const m = L.marker([inc.latitude, inc.longitude], { icon }).bindPopup(popupHtml);
+        layers.power.addLayer(m);
+        framingBounds.extend([inc.latitude, inc.longitude]);
+      }
+    });
+
+    /* Layer 4: Earthquakes (#EA580C Burnt Orange) */
+    const quakeList = Array.isArray(alerts.earthquakes) ? alerts.earthquakes : [];
+    quakeList.forEach(q => {
+      if (!q.latitude || !q.longitude) return;
+      const icon = makePin("pin-earthquake", '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12h5l2-5 3 10 3-10 2 5h5"/></svg>');
+      const m = L.marker([q.latitude, q.longitude], { icon })
+        .bindPopup(`<strong>M${q.magnitude} Earthquake</strong><br>${q.place || ""}<br>${q.distance_miles} mi away`);
+      layers.earthquake.addLayer(m);
+      framingBounds.extend([q.latitude, q.longitude]);
+    });
+
+    /* Layer 5: Wildfires (#D9232A PNW Crimson) */
+    const fireList = Array.isArray(alerts.wildfires) ? alerts.wildfires : [];
+    fireList.forEach(f => {
+      if (!f.latitude || !f.longitude) return;
+      const icon = makePin("pin-wildfire", '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c-.5 2.5-3 5-3 8 0 3.3 2.7 6 6 6s6-2.7 6-6c0-2-1-3.5-2-4.5.5 1.5 0 3.5-1.5 4.5-.5-2-2-3.5-2.5-5.5-.5 1-1 2-1 3-1.5-1-2-3.5-2-5.5z"/></svg>');
+      const m = L.marker([f.latitude, f.longitude], { icon })
+        .bindPopup(`<strong>${f.name}</strong><br>${f.acres} acres &bull; ${f.distance_miles} mi away`);
+      layers.wildfire.addLayer(m);
+      framingBounds.extend([f.latitude, f.longitude]);
+    });
+
+    /* Enable Only Active Alert Layers on Load & Wire Toggle Buttons */
+    const activeState = {
+      school: schoolReports.length > 0,
+      weather: weatherList.length > 0,
+      power: powerList.length > 0,
+      earthquake: quakeList.length > 0,
+      wildfire: fireList.length > 0
+    };
+
+    Object.keys(activeState).forEach(key => {
+      if (activeState[key]) layers[key].addTo(map);
+    });
+
+    document.querySelectorAll("[data-hazard-toggle]").forEach(btn => {
+      btn.addEventListener("click", function() {
+        const key = btn.getAttribute("data-hazard-toggle");
+        activeState[key] = !activeState[key];
+        btn.classList.toggle("is-active", activeState[key]);
+        btn.setAttribute("aria-pressed", activeState[key] ? "true" : "false");
+        if (activeState[key]) layers[key].addTo(map);
+        else map.removeLayer(layers[key]);
+      });
+    });
+
+    /* Auto-Fit Map Bounds to Capture City + Any Active Out-of-City Alerts */
+    if (framingBounds.isValid()) {
+      map.fitBounds(framingBounds, { padding: [28, 28], maxZoom: 13 });
+    }
+  }
+
+  if (typeof L !== "undefined") {
+    initEmergencyMap();
+  } else {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+    document.head.appendChild(link);
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    script.onload = initEmergencyMap;
+    document.body.appendChild(script);
+  }
+})();
+</script>
