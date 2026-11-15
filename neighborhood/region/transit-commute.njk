@@ -95,20 +95,24 @@ title: "Puget Sound Regional Transit & Commute | MySeattleSearch"
   <hr class="section-divider">
 
   {# ==========================================================================
-     SECTION 5: REGIONAL AIRPORT STATUS (Status Pill Hidden Until Live Sync)
+     SECTION 5: REGIONAL AIRPORT STATUS, FLIGHT BOARDS & LIVE FLIGHT TRACKER
      ========================================================================== #}
   <section id="airport-status" class="portal-section-widget">
-    <h2 class="text-section-title section-title-clean">Regional Airport Status</h2>
+    <h2 class="text-section-title section-title-clean">Regional Airport Status &amp; Flight Tracker</h2>
 
-    <div class="airport-status-grid">
-      <article id="aptCardSEA" class="airport-status-card" aria-label="Seattle-Tacoma International Airport Status">
+    <div class="airport-status-stack">
+
+      {# 5A. SEATTLE-TACOMA INTERNATIONAL AIRPORT (SEA) #}
+      <article id="aptCardSEA" class="airport-status-card is-stacked" aria-label="Seattle-Tacoma International Airport Status and Flight Board">
         <div class="apt-card-header">
-          <div>
-            <h4 class="apt-name-heading">Seattle-Tacoma International</h4>
+          <div class="apt-title-row">
+            <h3 class="apt-name-heading">Seattle-Tacoma International</h3>
             <span class="apt-code-tag">SEA</span>
           </div>
           <span class="ferry-status-pill is-hidden apt-faa-status"></span>
         </div>
+
+        {# Live METAR Weather Conditions #}
         <div class="apt-metar-grid">
           <div class="apt-metar-block">
             <span class="apt-metar-label">Flight Rules</span>
@@ -125,18 +129,45 @@ title: "Puget Sound Regional Transit & Commute | MySeattleSearch"
           <div class="apt-metar-block">
             <span class="apt-metar-label">Ceiling / Temp</span>
             <span class="apt-metar-val apt-ceil-val">--</span>
+          </div>
+        </div>
+
+        {# Integrated Avionio Departures & Arrivals Board (SEA) #}
+        <div class="avionio-widget">
+          <iframe id="avionio-frame-sea"
+                  class="avionio-iframe"
+                  height="650"
+                  scrolling="no"
+                  src="https://www.avionio.com/widget/en/sea/departures"
+                  loading="lazy"
+                  title="SEA Seattle-Tacoma Live Departures and Arrivals"></iframe>
+          <div class="avionio-attribution-bar">
+            <a class="avionio-attribution-link"
+               href="https://www.avionio.com/en/airport/sea/departures"
+               title="SEA • Seattle Tacoma - Live Departures"
+               target="_blank"
+               rel="noopener noreferrer">SEA &bull; Seattle Tacoma - Live Departures</a>
+            <span class="avionio-heart" aria-hidden="true">&#9829;</span>
+            <a class="avionio-attribution-link"
+               href="https://www.avionio.com/en"
+               target="_blank"
+               rel="noopener noreferrer"
+               title="Airport arrivals and departures worldwide">Avionio.com</a>
           </div>
         </div>
       </article>
 
-      <article id="aptCardPAE" class="airport-status-card" aria-label="Paine Field Airport Status">
+      {# 5B. PAINE FIELD / SNOHOMISH COUNTY AIRPORT (PAE) #}
+      <article id="aptCardPAE" class="airport-status-card is-stacked" aria-label="Paine Field Airport Status and Flight Board">
         <div class="apt-card-header">
-          <div>
-            <h4 class="apt-name-heading">Paine Field (Everett)</h4>
+          <div class="apt-title-row">
+            <h3 class="apt-name-heading">Paine Field (Everett)</h3>
             <span class="apt-code-tag">PAE</span>
           </div>
           <span class="ferry-status-pill is-hidden apt-faa-status"></span>
         </div>
+
+        {# Live METAR Weather Conditions #}
         <div class="apt-metar-grid">
           <div class="apt-metar-block">
             <span class="apt-metar-label">Flight Rules</span>
@@ -155,7 +186,54 @@ title: "Puget Sound Regional Transit & Commute | MySeattleSearch"
             <span class="apt-metar-val apt-ceil-val">--</span>
           </div>
         </div>
+
+        {# Integrated Avionio Departures & Arrivals Board (PAE) #}
+        <div class="avionio-widget">
+          <iframe id="avionio-frame-pae"
+                  class="avionio-iframe"
+                  height="650"
+                  scrolling="no"
+                  src="https://www.avionio.com/widget/en/pae/departures"
+                  loading="lazy"
+                  title="PAE Seattle Snohomish County Live Departures and Arrivals"></iframe>
+          <div class="avionio-attribution-bar">
+            <a class="avionio-attribution-link"
+               href="https://www.avionio.com/en/airport/pae/departures"
+               title="PAE • Seattle Snohomish County - Live Departures"
+               target="_blank"
+               rel="noopener noreferrer">PAE &bull; Seattle Snohomish County - Live Departures</a>
+            <span class="avionio-heart" aria-hidden="true">&#9829;</span>
+            <a class="avionio-attribution-link"
+               href="https://www.avionio.com/en"
+               target="_blank"
+               rel="noopener noreferrer"
+               title="Airport arrivals and departures worldwide">Avionio.com</a>
+          </div>
+        </div>
       </article>
+
+      {# 5C. REGIONAL LIVE FLIGHT TRACKER RADAR (AvioADSB) #}
+      <article id="liveFlightTrackerCard" class="airport-status-card is-stacked" aria-label="Puget Sound Live Flight Tracker">
+        <div class="apt-card-header">
+          <div class="apt-title-row">
+            <h3 class="apt-name-heading">Puget Sound Live Flight Tracker</h3>
+            <span class="apt-code-tag">ADS-B</span>
+          </div>
+          <span class="toll-live-indicator">
+            <span class="toll-live-pulse-dot" aria-hidden="true"></span>
+            <span>Live Airspace</span>
+          </span>
+        </div>
+
+        <div class="avioadsb-widget">
+          <iframe class="avioadsb-iframe"
+                  src="https://avioadsb.org/embed/map?lat=47.6357&amp;lon=-122.1149&amp;zoom=7.5&amp;accent=1e4d6b&amp;compact=1"
+                  title="Live flight tracker map by AvioADSB"
+                  loading="lazy"
+                  referrerpolicy="strict-origin-when-cross-origin"></iframe>
+        </div>
+      </article>
+
     </div>
   </section>
 
@@ -437,6 +515,39 @@ title: "Puget Sound Regional Transit & Commute | MySeattleSearch"
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
+  /* Avionio Multi-Frame Dynamic Height Resize */
+  window.addEventListener("message", function(e) {
+    if (typeof e.data !== "string") return;
+    if (e.data.indexOf("avionioHeight:") === -1 && e.data.indexOf("avionioHeightScroll:") === -1) return;
+
+    const frames = [
+      document.getElementById("avionio-frame-sea"),
+      document.getElementById("avionio-frame-pae")
+    ].filter(Boolean);
+
+    const targetFrame = frames.find(f => f.contentWindow === e.source);
+    if (!targetFrame) return;
+
+    if (e.data.indexOf("avionioHeight:") > -1) {
+      const nextH = parseInt(e.data.split("avionioHeight:")[1], 10);
+      if (!isNaN(nextH)) {
+        const px = `${nextH + 30}px`;
+        targetFrame.height = px;
+        targetFrame.style.height = px;
+      }
+    } else if (e.data.indexOf("avionioHeightScroll:") > -1) {
+      const nextH = parseInt(e.data.split("avionioHeightScroll:")[1], 10);
+      if (!isNaN(nextH)) {
+        const px = `${nextH + 30}px`;
+        const se = document.documentElement || document.body;
+        const sp = se.scrollTop - (se.scrollHeight - se.clientHeight);
+        targetFrame.height = px;
+        targetFrame.style.height = px;
+        se.scrollTop = sp + se.scrollHeight - se.clientHeight;
+      }
+    }
+  }, false);
+
   /* Custom Agency SVG Generators (Solid Blue Community Transit Bus) */
   function buildBusSvg(agency) {
     let top = "#005596";
@@ -683,7 +794,7 @@ title: "Puget Sound Regional Transit & Commute | MySeattleSearch"
       .catch(() => {});
   }
 
-  /* 2. Hydrate Airport Status (SEA & PAE — Reveal Pill Only After Live Response) */
+  /* 2. Hydrate Airport Weather & FAA Status (SEA & PAE — Reveal Pill Only After Live Response) */
   async function hydrateAirports() {
     try {
       const res = await fetch(`${apiBase}/transit/airports`);

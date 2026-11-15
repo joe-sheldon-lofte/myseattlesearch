@@ -1,0 +1,663 @@
+---
+layout: layouts/base.njk
+pagination:
+  data: city_data
+  size: 1
+  addAllPagesToCollections: true
+  alias: city
+permalink: "/neighborhood/{{ city.City | slugify }}/municipal/index.html"
+---
+{% set city_slug = city.City | slugify %}
+{% set active_neighborhood = city.City %}
+{% set primary_district = city['School District'].split(',')[0] | trim if city['School District'] else '' %}
+
+<main class="layout-container layout-stack-main">
+
+  {# ==========================================================================
+     SECTION 1: CANONICAL NEIGHBORHOOD SUBPAGE HERO HEADER
+     ========================================================================== #}
+  <div id="neighborhood-hero" class="portal-section-header">
+    {% set hero_img_main = city.HeroImageMain %}
+    {% set hero_img_left = city.HeroImageLeft %}
+    {% set hero_img_right = city.HeroImageRight %}
+    {% set hero_welcome_label = "Welcome to the neighborhood" %}
+    {% set subpage_title = "Municipal" %}
+    {% include "components/widget/neighborhood-subpage-header.njk" %}
+  </div>
+
+  {# ==========================================================================
+     SECTION 2: EXPLORE NAVIGATION PILLS
+     ========================================================================== #}
+  <section id="explore-neighborhood" class="portal-section-nav" aria-label="Explore {{ active_neighborhood }}">
+    <span class="text-overline text-accent-alpine section-overline-lead">
+      EXPLORE {{ active_neighborhood | upper }}
+    </span>
+    <div class="neighborhood-nav-container">
+      <nav class="neighborhood-nav-track" tabindex="0" aria-label="{{ active_neighborhood }} Subpages">
+        <a href="/neighborhood/{{ city_slug }}/" class="neighborhood-nav-pill is-inactive">City Home</a>
+        <a href="/neighborhood/{{ city_slug }}/news-events/" class="neighborhood-nav-pill is-inactive">News &amp; Events</a>
+        <a href="/neighborhood/{{ city_slug }}/weather/" class="neighborhood-nav-pill is-inactive">Weather</a>
+        <a href="/neighborhood/{{ city_slug }}/transit-commute/" class="neighborhood-nav-pill is-inactive">Transit &amp; Commute</a>
+        <a href="/neighborhood/{{ city_slug }}/emergency-safety/" class="neighborhood-nav-pill is-inactive">Emergency &amp; Safety</a>
+        <a href="/neighborhood/{{ city_slug }}/real-estate/" class="neighborhood-nav-pill is-inactive">Real Estate</a>
+        {% if primary_district %}
+          <a href="/neighborhood/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
+        {% endif %}
+        <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
+        <a href="/neighborhood/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit</a>
+      </nav>
+    </div>
+  </section>
+
+  {# ==========================================================================
+     SECTION 3: OFFICIAL MUNICIPAL LINKS
+     ========================================================================== #}
+  {% set city_web = city['City Website'] | default('') | trim %}
+  {% set police_web = city['Police URL'] | default('') | trim %}
+  {% set crisis_web = city['Crisis URL'] | default('') | trim %}
+  {% set permit_web = city['Permit URL'] | default('') | trim %}
+
+  {% set has_muni_links = (city_web and city_web != 'NO DATA') or (police_web and police_web != 'NO DATA') or (crisis_web and crisis_web != 'NO DATA') or (permit_web and permit_web != 'NO DATA') %}
+
+  {% if has_muni_links %}
+    <hr class="section-divider">
+
+    <section id="municipal-links" class="portal-section-widget">
+      <h2 class="text-section-title section-title-clean">Municipal Links</h2>
+
+      <div class="municipal-links-bar">
+        {% if city_web and city_web != 'NO DATA' %}
+          <a href="{{ city_web }}" class="municipal-ext-pill" target="_blank" rel="noopener noreferrer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/>
+            </svg>
+            <span>City Website</span>
+          </a>
+        {% endif %}
+
+        {% if police_web and police_web != 'NO DATA' %}
+          <a href="{{ police_web }}" class="municipal-ext-pill" target="_blank" rel="noopener noreferrer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <span>Police Department</span>
+          </a>
+        {% endif %}
+
+        {% if crisis_web and crisis_web != 'NO DATA' %}
+          <a href="{{ crisis_web }}" class="municipal-ext-pill" target="_blank" rel="noopener noreferrer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            <span>Crisis Services</span>
+          </a>
+        {% endif %}
+
+        {% if permit_web and permit_web != 'NO DATA' %}
+          <a href="{{ permit_web }}" class="municipal-ext-pill" target="_blank" rel="noopener noreferrer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            <span>Permits &amp; Planning</span>
+          </a>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 4: [CITY-NAME]'S MUNICIPAL SERVICES & CIVIC LIVABILITY (3x3 Grid)
+     ========================================================================== #}
+  {% set crime = crime_stats[active_neighborhood] if crime_stats else null %}
+  {% set safety = public_safety_emergency[active_neighborhood] if public_safety_emergency else null %}
+  {% set fire = safety.fire_service if (safety and safety.fire_service) else null %}
+  {% set med = safety.emergency_medical if (safety and safety.emergency_medical) else null %}
+  {% set surv = surveillance_stats[active_neighborhood] if surveillance_stats else null %}
+  {% set tax = city_tax_trends[city_slug] if city_tax_trends else null %}
+  {% set ev = city_ev_scores[city_slug] if city_ev_scores else null %}
+  {% set amen_entry = city_amenities[city_slug] if city_amenities else null %}
+  {% set amen_scores = amen_entry.scores if (amen_entry and amen_entry.scores) else null %}
+  {% set amen_counts = amen_entry.amenities if (amen_entry and amen_entry.amenities) else null %}
+
+  <section id="municipal-services" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">{{ active_neighborhood }}'s Emergency &amp; Municipal Services</h2>
+
+    <div class="municipal-services-grid">
+
+      {# 1. Crime & Public Safety #}
+      <article class="municipal-metric-card" aria-label="Crime and Public Safety">
+        <div class="municipal-card-top">
+          <div>
+            <span class="municipal-card-overline">PUBLIC SAFETY</span>
+            <h3 class="municipal-card-title">Crime &amp; Safety Rates</h3>
+          </div>
+          <div class="municipal-card-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+        </div>
+
+        {% if crime %}
+          <div class="municipal-crime-split">
+            <div class="municipal-crime-cell">
+              <div class="municipal-crime-val">{{ crime.per_capita_violent_rate }}</div>
+              <span class="municipal-crime-sub">Violent / 1k</span>
+            </div>
+            <div class="municipal-crime-cell">
+              <div class="municipal-crime-val">{{ crime.per_capita_property_rate }}</div>
+              <span class="municipal-crime-sub">Property / 1k</span>
+            </div>
+          </div>
+          <div class="municipal-card-footer">
+            <span class="municipal-agency-label">{{ crime.police_agency }}</span>
+            {% if crime.granular_crime_link %}
+              <a href="{{ crime.granular_crime_link }}" class="municipal-inline-link" target="_blank" rel="noopener noreferrer">Crime Map &rarr;</a>
+            {% endif %}
+          </div>
+        {% else %}
+          <span class="municipal-pending-badge">Data Review Pending</span>
+        {% endif %}
+      </article>
+
+      {# 2. Fire Protection (WSRB Class) #}
+      <article class="municipal-metric-card" aria-label="Fire Protection Rating">
+        <div class="municipal-card-top">
+          <div>
+            <span class="municipal-card-overline">FIRE PROTECTION</span>
+            <h3 class="municipal-card-title">WSRB Protection Class</h3>
+          </div>
+          <div class="municipal-card-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2c-.5 2.5-3 5-3 8 0 3.3 2.7 6 6 6s6-2.7 6-6c0-2-1-3.5-2-4.5.5 1.5 0 3.5-1.5 4.5-.5-2-2-3.5-2.5-5.5-.5 1-1 2-1 3-1.5-1-2-3.5-2-5.5z"/>
+            </svg>
+          </div>
+        </div>
+
+        {% if fire %}
+          {% set wsrb = fire.wsrb_protection_class %}
+          {% if wsrb is not none %}
+            {% set f_badge = "score-tier-emerald" if wsrb <= 2 else ("score-tier-alpine" if wsrb <= 4 else "score-tier-amber") %}
+            <div class="municipal-score-row">
+              <div class="score-squircle-badge {{ f_badge }}">
+                <span class="score-digit">{{ wsrb }}</span>
+              </div>
+              <div class="municipal-score-copy">
+                <span class="municipal-score-headline">Class {{ wsrb }} Rating</span>
+                <span class="municipal-score-detail">{{ fire.homeowners_insurance_impact }}</span>
+              </div>
+            </div>
+          {% else %}
+            <span class="municipal-pending-badge">{{ fire.homeowners_insurance_impact | default("Data Review Pending") }}</span>
+          {% endif %}
+          <div class="municipal-card-footer">
+            <span class="municipal-agency-label">{{ fire.agency_name }}</span>
+          </div>
+        {% else %}
+          <span class="municipal-pending-badge">Data Review Pending</span>
+        {% endif %}
+      </article>
+
+      {# 3. Emergency Medical & Nearest Hospital #}
+      <article class="municipal-metric-card" aria-label="Emergency Medical Facility">
+        <div class="municipal-card-top">
+          <div>
+            <span class="municipal-card-overline">EMERGENCY MEDICAL</span>
+            <h3 class="municipal-card-title">Nearest Hospital</h3>
+          </div>
+          <div class="municipal-card-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 8v8"/><path d="M8 12h8"/>
+            </svg>
+          </div>
+        </div>
+
+        {% if med %}
+          <div class="municipal-score-copy">
+            <span class="municipal-score-headline">{{ med.nearest_hospital_facility }}</span>
+            <span class="municipal-score-detail">{{ med.distance_proximity_miles }} Miles &bull; {{ med.cms_hospital_quality_rating }}</span>
+          </div>
+          <div class="municipal-card-footer">
+            <span class="municipal-agency-label">CMS Hospital Quality Benchmark</span>
+          </div>
+        {% else %}
+          <span class="municipal-pending-badge">Data Review Pending</span>
+        {% endif %}
+      </article>
+
+      {# 4. Surveillance Index #}
+      <article class="municipal-metric-card" aria-label="Public Surveillance Index">
+        <div class="municipal-card-top">
+          <div>
+            <span class="municipal-card-overline">CIVIC PRIVACY</span>
+            <h3 class="municipal-card-title">Surveillance Index</h3>
+          </div>
+          <div class="municipal-card-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </div>
+        </div>
+
+        {% if surv and surv.surveillance_score is not none %}
+          {% set s_val = surv.surveillance_score | round %}
+          {% set s_badge = "score-tier-emerald" if s_val <= 35 else ("score-tier-alpine" if s_val <= 65 else ("score-tier-amber" if s_val <= 85 else "score-tier-crimson")) %}
+          {% set s_label = "Low Density" if s_val <= 35 else ("Moderate Density" if s_val <= 65 else ("Elevated Density" if s_val <= 85 else "High Density")) %}
+          {% set inv = surv.infrastructure_inventories if surv.infrastructure_inventories else {} %}
+          <div class="municipal-score-row">
+            <div class="score-squircle-badge {{ s_badge }}">
+              <span class="score-digit">{{ s_val }}</span>
+            </div>
+            <div class="municipal-score-copy">
+              <span class="municipal-score-headline">{{ s_label }}</span>
+              <span class="municipal-score-detail">{{ inv.detected_alpr_cameras | default(0) }} ALPR &bull; {{ inv.detected_traffic_cameras | default(0) }} Traffic &bull; {{ inv.detected_general_cctv | default(0) }} CCTV</span>
+            </div>
+          </div>
+          <div class="municipal-card-footer">
+            <span class="municipal-agency-label">{{ surv.serving_agency }}</span>
+          </div>
+        {% else %}
+          <span class="municipal-pending-badge">Insufficient Volunteer Mapping</span>
+          {% if surv and surv.serving_agency %}
+            <div class="municipal-card-footer">
+              <span class="municipal-agency-label">{{ surv.serving_agency }}</span>
+            </div>
+          {% endif %}
+        {% endif %}
+      </article>
+
+      {# 5. Property Tax Stability #}
+      <article class="municipal-metric-card" aria-label="Property Tax Stability Index">
+        <div class="municipal-card-top">
+          <div>
+            <span class="municipal-card-overline">MUNICIPAL FISCAL</span>
+            <h3 class="municipal-card-title">Property Tax Stability</h3>
+          </div>
+          <div class="municipal-card-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
+        </div>
+
+        {% if tax and tax.tax_stability_index is not none %}
+          {% set tx_val = tax.tax_stability_index | round %}
+          {% set tx_badge = "score-tier-emerald" if tx_val >= 75 else ("score-tier-alpine" if tx_val >= 55 else ("score-tier-amber" if tx_val >= 40 else "score-tier-crimson")) %}
+          <div class="municipal-score-row">
+            <div class="score-squircle-badge {{ tx_badge }}">
+              <span class="score-digit">{{ tx_val }}</span>
+            </div>
+            <div class="municipal-score-copy">
+              <span class="municipal-score-headline">{{ tax.trajectory_rating }}</span>
+              <span class="municipal-score-detail">5-Yr Growth: +{{ tax.five_year_growth_pct }}% (${{ tax.median_tax_2026 | localeString }} Median)</span>
+            </div>
+          </div>
+          <div class="municipal-card-footer">
+            <span class="municipal-agency-label">2021&ndash;2026 Levy Trajectory</span>
+          </div>
+        {% else %}
+          <span class="municipal-pending-badge">Data Review Pending</span>
+        {% endif %}
+      </article>
+
+      {# 6. EV Infrastructure #}
+      <article class="municipal-metric-card" aria-label="EV Charging Infrastructure Score">
+        <div class="municipal-card-top">
+          <div>
+            <span class="municipal-card-overline">CLEAN MOBILITY</span>
+            <h3 class="municipal-card-title">EV Infrastructure</h3>
+          </div>
+          <div class="municipal-card-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </div>
+        </div>
+
+        {% if ev and ev.ev_charge_score is not none %}
+          {% set ev_val = ev.ev_charge_score | round %}
+          {% set ev_badge = "score-tier-emerald" if ev_val >= 80 else ("score-tier-alpine" if ev_val >= 50 else ("score-tier-amber" if ev_val >= 20 else "score-tier-crimson")) %}
+          {% set ev_label = "High Charger Density" if ev_val >= 80 else ("Established Network" if ev_val >= 50 else ("Developing Network" if ev_val >= 20 else "Limited Public Ports")) %}
+          <div class="municipal-score-row">
+            <div class="score-squircle-badge {{ ev_badge }}">
+              <span class="score-digit">{{ ev_val }}</span>
+            </div>
+            <div class="municipal-score-copy">
+              <span class="municipal-score-headline">{{ ev_label }}</span>
+              <span class="municipal-score-detail">{{ ev.level_2_ports | default(0) }} Level 2 &bull; {{ ev.dc_fast_ports | default(0) }} DC Fast Ports</span>
+            </div>
+          </div>
+          <div class="municipal-card-footer">
+            <span class="municipal-agency-label">AFDC Public Charging Station Index</span>
+          </div>
+        {% else %}
+          <span class="municipal-pending-badge">Data Review Pending</span>
+        {% endif %}
+      </article>
+
+      {# 7. ParkScore #}
+      <article class="municipal-metric-card" aria-label="ParkScore Index">
+        <div class="municipal-card-top">
+          <div>
+            <span class="municipal-card-overline">PARKS &amp; OPEN SPACE</span>
+            <h3 class="municipal-card-title">ParkScore</h3>
+          </div>
+          <div class="municipal-card-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L5 12h4l-3 7h12l-3-7h4L12 2z"/><line x1="12" y1="19" x2="12" y2="22"/>
+            </svg>
+          </div>
+        </div>
+
+        {% if amen_scores and amen_scores.park_score is not none %}
+          {% set pk_val = amen_scores.park_score | round %}
+          {% set pk_badge = "score-tier-emerald" if pk_val >= 75 else ("score-tier-alpine" if pk_val >= 50 else ("score-tier-amber" if pk_val >= 25 else "score-tier-crimson")) %}
+          {% set pk_cnt = amen_counts.parks | default(0) %}
+          <div class="municipal-score-row">
+            <div class="score-squircle-badge {{ pk_badge }}">
+              <span class="score-digit">{{ pk_val }}</span>
+            </div>
+            <div class="municipal-score-copy">
+              <span class="municipal-score-headline">{{ pk_cnt }} Public {{ "Park" if pk_cnt == 1 else "Parks" }}</span>
+              <span class="municipal-score-detail">Per-Capita Green Space Access</span>
+            </div>
+          </div>
+          <div class="municipal-card-footer">
+            <span class="municipal-agency-label">{{ active_neighborhood }} Parks &amp; Trails</span>
+          </div>
+        {% else %}
+          <span class="municipal-pending-badge">Data Review Pending</span>
+        {% endif %}
+      </article>
+
+      {# 8. ShoreScore #}
+      <article class="municipal-metric-card" aria-label="ShoreScore Waterfront Index">
+        <div class="municipal-card-top">
+          <div>
+            <span class="municipal-card-overline">WATERFRONT &amp; BEACHES</span>
+            <h3 class="municipal-card-title">ShoreScore</h3>
+          </div>
+          <div class="municipal-card-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M2 18c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>
+            </svg>
+          </div>
+        </div>
+
+        {% if amen_scores and amen_scores.shore_score is not none %}
+          {% set sh_val = amen_scores.shore_score | round %}
+          {% set sh_badge = "score-tier-emerald" if sh_val >= 65 else ("score-tier-alpine" if sh_val >= 35 else ("score-tier-amber" if sh_val >= 1 else "score-tier-crimson")) %}
+          {% set sh_cnt = amen_counts.beaches | default(0) %}
+          <div class="municipal-score-row">
+            <div class="score-squircle-badge {{ sh_badge }}">
+              <span class="score-digit">{{ sh_val }}</span>
+            </div>
+            <div class="municipal-score-copy">
+              <span class="municipal-score-headline">{{ sh_cnt }} Public {{ "Beach" if sh_cnt == 1 else "Beaches" }}</span>
+              <span class="municipal-score-detail">{{ "Saltwater & Lakefront Access" if sh_cnt > 0 else "Inland Municipality" }}</span>
+            </div>
+          </div>
+          <div class="municipal-card-footer">
+            <span class="municipal-agency-label">Shoreline Recreation Index</span>
+          </div>
+        {% else %}
+          <span class="municipal-pending-badge">Data Review Pending</span>
+        {% endif %}
+      </article>
+
+      {# 9. BarkScore #}
+      <article class="municipal-metric-card" aria-label="BarkScore Pet Livability Index">
+        <div class="municipal-card-top">
+          <div>
+            <span class="municipal-card-overline">PET LIVABILITY</span>
+            <h3 class="municipal-card-title">BarkScore</h3>
+          </div>
+          <div class="municipal-card-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="4" cy="8" r="2"/><path d="M7.5 14.5C7.5 12.5 9.5 11 11 11s3.5 1.5 3.5 3.5c0 2.5-1.5 4.5-3.5 4.5s-3.5-2-3.5-4.5z"/>
+            </svg>
+          </div>
+        </div>
+
+        {% if amen_scores and amen_scores.bark_score is not none %}
+          {% set bk_val = amen_scores.bark_score | round %}
+          {% set bk_badge = "score-tier-emerald" if bk_val >= 70 else ("score-tier-alpine" if bk_val >= 45 else ("score-tier-amber" if bk_val >= 20 else "score-tier-crimson")) %}
+          {% set dp_cnt = amen_counts.dog_parks | default(0) %}
+          {% set ps_cnt = amen_counts.pet_stores | default(0) %}
+          <div class="municipal-score-row">
+            <div class="score-squircle-badge {{ bk_badge }}">
+              <span class="score-digit">{{ bk_val }}</span>
+            </div>
+            <div class="municipal-score-copy">
+              <span class="municipal-score-headline">{{ dp_cnt }} Dog {{ "Park" if dp_cnt == 1 else "Parks" }}</span>
+              <span class="municipal-score-detail">{{ ps_cnt }} Local Pet {{ "Store" if ps_cnt == 1 else "Stores" }}</span>
+            </div>
+          </div>
+          <div class="municipal-card-footer">
+            <span class="municipal-agency-label">Off-Leash &amp; Pet Infrastructure</span>
+          </div>
+        {% else %}
+          <span class="municipal-pending-badge">Data Review Pending</span>
+        {% endif %}
+      </article>
+
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 5: MUNICIPAL VIDEO STREAMS (municipal_feeds.json)
+     ========================================================================== #}
+  {% set city_video_feeds = [] %}
+  {% set seen_video_ids = [] %}
+  {% if municipal_feeds %}
+    {% for f in municipal_feeds %}
+      {% if f.City == active_neighborhood and f.Scope == 'city' and f.Active == 'Yes' and f.Category == 'Video Stream' %}
+        {% set vid_key = f['Source Identifier'] or f['Fallback Portal URL'] %}
+        {% if vid_key and (vid_key not in seen_video_ids) %}
+          {% set _ = seen_video_ids.push(vid_key) %}
+          {% set _ = city_video_feeds.push(f) %}
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% set primary_video = null %}
+  {% for vf in city_video_feeds %}
+    {% if not primary_video and vf['Feed Format'] == 'youtube_channel' %}
+      {% set primary_video = vf %}
+    {% endif %}
+  {% endfor %}
+  {% if not primary_video and (city_video_feeds | length) > 0 %}
+    {% set primary_video = city_video_feeds[0] %}
+  {% endif %}
+
+  <section id="municipal-video-streams" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">Municipal Video Streams</h2>
+
+    <div class="municipal-broadcast-card">
+      <header class="municipal-broadcast-header">
+        <h3 class="municipal-broadcast-title">
+          {{ primary_video['Feed Name'] if primary_video else (active_neighborhood ~ ' Council Broadcasts') }}
+        </h3>
+        {% if primary_video and primary_video['Fallback Portal URL'] %}
+          <a href="{{ primary_video['Fallback Portal URL'] }}" class="municipal-inline-link" target="_blank" rel="noopener noreferrer">
+            Open Official Media Portal &rarr;
+          </a>
+        {% endif %}
+      </header>
+
+      {% if primary_video %}
+        {% set v_fmt = primary_video['Feed Format'] %}
+        {% set v_id = primary_video['Source Identifier'] | default('') | trim %}
+
+        {% if v_fmt == 'youtube_channel' and v_id.slice(0, 2) == 'UC' %}
+          <div class="municipal-video-frame-wrap">
+            <iframe
+              src="https://www.youtube-nocookie.com/embed/videoseries?list=UU{{ v_id.slice(2) }}"
+              title="{{ primary_video['Feed Name'] }}"
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen>
+            </iframe>
+          </div>
+        {% else %}
+          <div class="municipal-portal-launcher">
+            <h4 class="municipal-portal-launcher-title">{{ primary_video['Feed Name'] }}</h4>
+            <p class="municipal-portal-launcher-desc">
+              {{ primary_video['Public Description'] or primary_video['Schedule Text'] or ('Watch live and archived municipal council broadcasts on ' ~ active_neighborhood ~ "'s official video portal.") }}
+            </p>
+            {% set portal_href = primary_video['Fallback Portal URL'] or city_web %}
+            {% if portal_href and portal_href != 'NO DATA' %}
+              <a href="{{ portal_href }}" class="municipal-portal-cta" target="_blank" rel="noopener noreferrer">
+                Launch Live &amp; Archived Meetings &rarr;
+              </a>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="municipal-empty-well">
+          <h4 class="municipal-empty-title">Video Broadcast Feed Not Currently Available</h4>
+          <p class="municipal-empty-desc">
+            {{ active_neighborhood }} does not currently publish an embeddable public council video stream.
+          </p>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 6: MUNICIPAL MEETING INFORMATION (Civic Calendar + Council Agendas)
+     ========================================================================== #}
+  {% set city_tag = "city-" ~ city_slug %}
+  {% set events_source = public_events_feed if public_events_feed else public_events %}
+  {% set municipal_events = [] %}
+
+  {% if events_source %}
+    {% for ev in events_source %}
+      {% if ev.title and ev.tags %}
+        {% set has_city_tag = false %}
+        {% set has_muni_tag = false %}
+        {% for t in ev.tags %}
+          {% if t is string %}
+            {% set t_low = t | trim | lower %}
+            {% if t_low == city_tag %}{% set has_city_tag = true %}{% endif %}
+            {% if t_low == "municipal" %}{% set has_muni_tag = true %}{% endif %}
+          {% endif %}
+        {% endfor %}
+
+        {% if has_city_tag and has_muni_tag %}
+          {% set raw_link = ev.link | default('') | trim %}
+          {% set raw_excerpt = ev.excerpt | default('') | trim %}
+          {% set resolved_url = raw_link if raw_link.slice(0, 4) == 'http' else (raw_excerpt if raw_excerpt.slice(0, 4) == 'http' else '') %}
+
+          {% set _ = municipal_events.push({
+            "title": ev.title,
+            "url": resolved_url,
+            "date": ev.display_date or ev.date,
+            "time": ev.display_time or ev.time,
+            "location": ev.location
+          }) %}
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% set council_portal = null %}
+  {% set calendar_portal = null %}
+  {% if municipal_feeds %}
+    {% for f in municipal_feeds %}
+      {% if f.City == active_neighborhood and f.Scope == 'city' and f.Active == 'Yes' %}
+        {% if not council_portal and f.Category == 'City Council' %}
+          {% set council_portal = f %}
+        {% endif %}
+        {% if not calendar_portal and (f.Category == 'Municipal iCal' or f.Category == 'Community Events' or f.Category == 'Municipal RSS') %}
+          {% set calendar_portal = f %}
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  <section id="municipal-meetings" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">Municipal Meeting Information</h2>
+
+    <div class="municipal-meetings-grid">
+
+      {# Left Column: Municipal Civic Calendar (public_events_feed filtered by city-[slug] + municipal) #}
+      <div class="municipal-meeting-card">
+        <div>
+          <header class="municipal-meeting-header">
+            <h3 class="municipal-meeting-title">{{ active_neighborhood }} Civic Calendar</h3>
+            {% set cal_fallback = (calendar_portal['Fallback Portal URL'] if calendar_portal else '') or city_web %}
+            {% if cal_fallback and cal_fallback != 'NO DATA' %}
+              <a href="{{ cal_fallback }}" class="municipal-inline-link" target="_blank" rel="noopener noreferrer">City Calendar &rarr;</a>
+            {% endif %}
+          </header>
+
+          {% if (municipal_events | length) > 0 %}
+            <div class="municipal-events-list">
+              {% for mev in municipal_events %}
+                {% if loop.index0 < 8 %}
+                  {% set href_target = mev.url or cal_fallback %}
+                  <a href="{{ href_target }}" class="municipal-event-row" target="_blank" rel="noopener noreferrer">
+                    <span class="municipal-event-meta">
+                      {{ mev.date }}{% if mev.time and mev.time != '12:00 AM' %} &bull; {{ mev.time }}{% endif %}
+                    </span>
+                    <span class="municipal-event-name">{{ mev.title }}</span>
+                    {% if mev.location %}
+                      <span class="municipal-event-loc">{{ mev.location }}</span>
+                    {% endif %}
+                  </a>
+                {% endif %}
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="municipal-empty-well">
+              <h4 class="municipal-empty-title">No Upcoming Municipal Calendar Items</h4>
+              <p class="municipal-empty-desc">
+                No scheduled public meetings or civic calendar entries are currently posted for {{ active_neighborhood }}.
+              </p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Right Column: Council Agendas & Minutes Placeholder #}
+      <div class="municipal-meeting-card">
+        <div>
+          <header class="municipal-meeting-header">
+            <h3 class="municipal-meeting-title">Agendas &amp; Minutes</h3>
+            {% if council_portal and council_portal['Fallback Portal URL'] %}
+              <a href="{{ council_portal['Fallback Portal URL'] }}" class="municipal-inline-link" target="_blank" rel="noopener noreferrer">
+                Legislative Portal &rarr;
+              </a>
+            {% endif %}
+          </header>
+
+          <div class="municipal-empty-well">
+            <h4 class="municipal-empty-title">Agenda Feed Not Currently Available</h4>
+            <p class="municipal-empty-desc">
+              {% if council_portal and council_portal['Fallback Portal URL'] %}
+                Direct automated agenda packets are unavailable. View official council packets and minutes on the {{ council_portal['Feed Name'] }}.
+              {% else %}
+                Direct automated council agenda packets are not currently available for {{ active_neighborhood }}.
+              {% endif %}
+            </p>
+            {% if council_portal and council_portal['Fallback Portal URL'] %}
+              <a href="{{ council_portal['Fallback Portal URL'] }}" class="municipal-portal-cta" target="_blank" rel="noopener noreferrer">
+                Open {{ council_portal['Feed Name'] }} &rarr;
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</main>

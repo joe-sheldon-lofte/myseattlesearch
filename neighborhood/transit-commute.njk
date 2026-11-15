@@ -14,7 +14,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
 <main class="layout-container layout-stack-main">
 
   {# ==========================================================================
-     SECTION 1: CANONICAL NEIGHBORHOOD HERO HEADER
+     SECTION 1: CANONICAL NEIGHBORHOOD SUBPAGE HERO HEADER
      ========================================================================== #}
   <div id="neighborhood-hero" class="portal-section-header">
     {% set hero_img_main = city.HeroImageMain %}
@@ -315,20 +315,24 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
   <hr class="section-divider">
 
   {# ==========================================================================
-     SECTION 7: REGIONAL AIRPORT STATUS (Status Pill Hidden Until Live Sync)
+     SECTION 7: REGIONAL AIRPORT STATUS & LIVE FLIGHT BOARDS (Full-Width Stacked)
      ========================================================================== #}
   <section id="airport-status" class="portal-section-widget">
-    <h2 class="text-section-title section-title-clean">Regional Airport Status</h2>
+    <h2 class="text-section-title section-title-clean">Regional Airport Status &amp; Flight Boards</h2>
 
-    <div class="airport-status-grid">
-      <article id="aptCardSEA" class="airport-status-card" aria-label="Seattle-Tacoma International Airport Status">
+    <div class="airport-status-stack">
+
+      {# 7A. SEATTLE-TACOMA INTERNATIONAL AIRPORT (SEA) #}
+      <article id="aptCardSEA" class="airport-status-card is-stacked" aria-label="Seattle-Tacoma International Airport Status and Flight Board">
         <div class="apt-card-header">
-          <div>
-            <h4 class="apt-name-heading">Seattle-Tacoma International</h4>
+          <div class="apt-title-row">
+            <h3 class="apt-name-heading">Seattle-Tacoma International</h3>
             <span class="apt-code-tag">SEA</span>
           </div>
           <span class="ferry-status-pill is-hidden apt-faa-status"></span>
         </div>
+
+        {# Live METAR Weather Conditions #}
         <div class="apt-metar-grid">
           <div class="apt-metar-block">
             <span class="apt-metar-label">Flight Rules</span>
@@ -345,18 +349,67 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
           <div class="apt-metar-block">
             <span class="apt-metar-label">Ceiling / Temp</span>
             <span class="apt-metar-val apt-ceil-val">--</span>
+          </div>
+        </div>
+
+        {# Live Travel Time from Active Neighborhood to SEA #}
+        <div class="apt-travel-strip">
+          <div class="apt-travel-route">
+            <span class="apt-travel-overline">LIVE AIRPORT ACCESS</span>
+            <span class="apt-travel-heading">{{ active_neighborhood }} &rarr; SEA Airport</span>
+          </div>
+          <div class="apt-travel-metrics">
+            <div class="apt-travel-cell">
+              <span class="apt-travel-label">LIVE DRIVE</span>
+              <span class="apt-travel-value" data-apt-drive="sea">--</span>
+            </div>
+            <div class="apt-travel-cell">
+              <span class="apt-travel-label">EST. TRANSIT</span>
+              <span class="apt-travel-value is-transit" data-apt-transit="sea">--</span>
+            </div>
+            <div class="apt-travel-cell">
+              <span class="apt-travel-label">DISTANCE</span>
+              <span class="apt-travel-value" data-apt-dist="sea">--</span>
+            </div>
+          </div>
+        </div>
+
+        {# Integrated Avionio Departures & Arrivals Board (SEA) #}
+        <div class="avionio-widget">
+          <iframe id="avionio-frame-sea"
+                  class="avionio-iframe"
+                  height="650"
+                  scrolling="no"
+                  src="https://www.avionio.com/widget/en/sea/departures"
+                  loading="lazy"
+                  title="SEA Seattle-Tacoma Live Departures and Arrivals"></iframe>
+          <div class="avionio-attribution-bar">
+            <a class="avionio-attribution-link"
+               href="https://www.avionio.com/en/airport/sea/departures"
+               title="SEA • Seattle Tacoma - Live Departures"
+               target="_blank"
+               rel="noopener noreferrer">SEA &bull; Seattle Tacoma - Live Departures</a>
+            <span class="avionio-heart" aria-hidden="true">&#9829;</span>
+            <a class="avionio-attribution-link"
+               href="https://www.avionio.com/en"
+               target="_blank"
+               rel="noopener noreferrer"
+               title="Airport arrivals and departures worldwide">Avionio.com</a>
           </div>
         </div>
       </article>
 
-      <article id="aptCardPAE" class="airport-status-card" aria-label="Paine Field Airport Status">
+      {# 7B. PAINE FIELD / SNOHOMISH COUNTY AIRPORT (PAE) #}
+      <article id="aptCardPAE" class="airport-status-card is-stacked" aria-label="Paine Field Airport Status and Flight Board">
         <div class="apt-card-header">
-          <div>
-            <h4 class="apt-name-heading">Paine Field (Everett)</h4>
+          <div class="apt-title-row">
+            <h3 class="apt-name-heading">Paine Field (Everett)</h3>
             <span class="apt-code-tag">PAE</span>
           </div>
           <span class="ferry-status-pill is-hidden apt-faa-status"></span>
         </div>
+
+        {# Live METAR Weather Conditions #}
         <div class="apt-metar-grid">
           <div class="apt-metar-block">
             <span class="apt-metar-label">Flight Rules</span>
@@ -375,7 +428,54 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
             <span class="apt-metar-val apt-ceil-val">--</span>
           </div>
         </div>
+
+        {# Live Travel Time from Active Neighborhood to PAE #}
+        <div class="apt-travel-strip">
+          <div class="apt-travel-route">
+            <span class="apt-travel-overline">LIVE AIRPORT ACCESS</span>
+            <span class="apt-travel-heading">{{ active_neighborhood }} &rarr; PAE Airport</span>
+          </div>
+          <div class="apt-travel-metrics">
+            <div class="apt-travel-cell">
+              <span class="apt-travel-label">LIVE DRIVE</span>
+              <span class="apt-travel-value" data-apt-drive="pae">--</span>
+            </div>
+            <div class="apt-travel-cell">
+              <span class="apt-travel-label">EST. TRANSIT</span>
+              <span class="apt-travel-value is-transit" data-apt-transit="pae">--</span>
+            </div>
+            <div class="apt-travel-cell">
+              <span class="apt-travel-label">DISTANCE</span>
+              <span class="apt-travel-value" data-apt-dist="pae">--</span>
+            </div>
+          </div>
+        </div>
+
+        {# Integrated Avionio Departures & Arrivals Board (PAE) #}
+        <div class="avionio-widget">
+          <iframe id="avionio-frame-pae"
+                  class="avionio-iframe"
+                  height="650"
+                  scrolling="no"
+                  src="https://www.avionio.com/widget/en/pae/departures"
+                  loading="lazy"
+                  title="PAE Seattle Snohomish County Live Departures and Arrivals"></iframe>
+          <div class="avionio-attribution-bar">
+            <a class="avionio-attribution-link"
+               href="https://www.avionio.com/en/airport/pae/departures"
+               title="PAE • Seattle Snohomish County - Live Departures"
+               target="_blank"
+               rel="noopener noreferrer">PAE &bull; Seattle Snohomish County - Live Departures</a>
+            <span class="avionio-heart" aria-hidden="true">&#9829;</span>
+            <a class="avionio-attribution-link"
+               href="https://www.avionio.com/en"
+               target="_blank"
+               rel="noopener noreferrer"
+               title="Airport arrivals and departures worldwide">Avionio.com</a>
+          </div>
+        </div>
       </article>
+
     </div>
   </section>
 
@@ -844,6 +944,53 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
+  /* Populate Airport Straight-Line Distance Immediately */
+  const airportCoords = {
+    sea: { lat: 47.4502, lon: -122.3088 },
+    pae: { lat: 47.9063, lon: -122.2816 }
+  };
+
+  Object.keys(airportCoords).forEach(code => {
+    const distEl = document.querySelector(`[data-apt-dist="${code}"]`);
+    if (distEl && !isNaN(mapLat) && !isNaN(mapLon)) {
+      const mi = haversineMiles(mapLat, mapLon, airportCoords[code].lat, airportCoords[code].lon);
+      distEl.textContent = `${mi.toFixed(1)} mi`;
+    }
+  });
+
+  /* Avionio Multi-Frame Dynamic Height Resize */
+  window.addEventListener("message", function(e) {
+    if (typeof e.data !== "string") return;
+    if (e.data.indexOf("avionioHeight:") === -1 && e.data.indexOf("avionioHeightScroll:") === -1) return;
+
+    const frames = [
+      document.getElementById("avionio-frame-sea"),
+      document.getElementById("avionio-frame-pae")
+    ].filter(Boolean);
+
+    const targetFrame = frames.find(f => f.contentWindow === e.source);
+    if (!targetFrame) return;
+
+    if (e.data.indexOf("avionioHeight:") > -1) {
+      const nextH = parseInt(e.data.split("avionioHeight:")[1], 10);
+      if (!isNaN(nextH)) {
+        const px = `${nextH + 30}px`;
+        targetFrame.height = px;
+        targetFrame.style.height = px;
+      }
+    } else if (e.data.indexOf("avionioHeightScroll:") > -1) {
+      const nextH = parseInt(e.data.split("avionioHeightScroll:")[1], 10);
+      if (!isNaN(nextH)) {
+        const px = `${nextH + 30}px`;
+        const se = document.documentElement || document.body;
+        const sp = se.scrollTop - (se.scrollHeight - se.clientHeight);
+        targetFrame.height = px;
+        targetFrame.style.height = px;
+        se.scrollTop = sp + se.scrollHeight - se.clientHeight;
+      }
+    }
+  }, false);
+
   /* Custom Agency SVG Generators (Solid Blue Community Transit Bus) */
   function buildBusSvg(agency) {
     let top = "#005596";
@@ -914,7 +1061,6 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
         const disruptions = Array.isArray(r.disruptions) ? r.disruptions : [];
         const hasDisruption = disruptions.length > 0;
 
-        /* Only show a status pill when confirmed by live WSDOT vessel telemetry or active route disruption */
         let statusPillHtml = "";
         if (hasDisruption) {
           statusPillHtml = '<span class="ferry-status-pill status-canceled">Service Alert</span>';
@@ -1091,46 +1237,56 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
       .catch(() => {});
   }
 
-  /* 2. Hydrate Live Employment Hub Commute Times (Matrix v2 Request) */
-  async function hydrateHubs() {
+  /* 2. Hydrate Live Employment Hub & Airport Travel Times (Single Matrix v2 Request) */
+  async function hydrateHubsAndAirportsTravel() {
     const hubGrid = document.querySelector(".commute-hubs-grid");
-    if (!hubGrid) return;
     try {
       const res = await fetch(`${apiBase}/transit/commute?lat=${mapLat}&lon=${mapLon}`);
       if (!res.ok) return;
       const data = await res.json();
 
-      hubGrid.querySelectorAll(".commute-hub-card").forEach(card => {
-        const hId = card.getAttribute("data-hub-id");
-        const live = data[hId];
-        if (!live) return;
+      if (hubGrid) {
+        hubGrid.querySelectorAll(".commute-hub-card").forEach(card => {
+          const hId = card.getAttribute("data-hub-id");
+          const live = data[hId];
+          if (!live) return;
 
-        const dOff = parseFloat(card.getAttribute("data-offpeak-drive") || "0");
-        const badge = card.querySelector("[data-hub-badge]");
+          const dOff = parseFloat(card.getAttribute("data-offpeak-drive") || "0");
+          const badge = card.querySelector("[data-hub-badge]");
 
-        if (badge && live.drive_live_min && dOff > 0) {
-          const friction = Math.max(0, Math.round(((live.drive_live_min - dOff) / dOff) * 100));
-          const fCls = friction <= 15 ? "friction-low" : (friction <= 30 ? "friction-moderate" : "friction-high");
-          const fLabel = friction <= 15 ? "Low Drag" : (friction <= 30 ? "Moderate" : "Heavy Delay");
-          badge.className = `commute-friction-badge ${fCls}`;
-          badge.innerHTML = `<span>+${friction}%</span><span>${fLabel}</span>`;
-          badge.classList.remove("is-hidden");
-        }
+          if (badge && live.drive_live_min && dOff > 0) {
+            const friction = Math.max(0, Math.round(((live.drive_live_min - dOff) / dOff) * 100));
+            const fCls = friction <= 15 ? "friction-low" : (friction <= 30 ? "friction-moderate" : "friction-high");
+            const fLabel = friction <= 15 ? "Low Drag" : (friction <= 30 ? "Moderate" : "Heavy Delay");
+            badge.className = `commute-friction-badge ${fCls}`;
+            badge.innerHTML = `<span>+${friction}%</span><span>${fLabel}</span>`;
+            badge.classList.remove("is-hidden");
+          }
 
-        const fDrive = card.querySelector('[data-hub-field="drive_live"]');
-        const fTransit = card.querySelector('[data-hub-field="transit_live"]');
-        const rDrive = card.querySelector('[data-hub-field="return_drive_live"]');
-        const rTransit = card.querySelector('[data-hub-field="return_transit_live"]');
+          const fDrive = card.querySelector('[data-hub-field="drive_live"]');
+          const fTransit = card.querySelector('[data-hub-field="transit_live"]');
+          const rDrive = card.querySelector('[data-hub-field="return_drive_live"]');
+          const rTransit = card.querySelector('[data-hub-field="return_transit_live"]');
 
-        if (fDrive && live.drive_live_min) fDrive.textContent = `${live.drive_live_min} min`;
-        if (fTransit && live.transit_live_min) fTransit.textContent = `${live.transit_live_min} min`;
-        if (rDrive && live.return_drive_live_min) rDrive.textContent = `${live.return_drive_live_min} min`;
-        if (rTransit && live.return_transit_live_min) rTransit.textContent = `${live.return_transit_live_min} min`;
+          if (fDrive && live.drive_live_min) fDrive.textContent = `${live.drive_live_min} min`;
+          if (fTransit && live.transit_live_min) fTransit.textContent = `${live.transit_live_min} min`;
+          if (rDrive && live.return_drive_live_min) rDrive.textContent = `${live.return_drive_live_min} min`;
+          if (rTransit && live.return_transit_live_min) rTransit.textContent = `${live.return_transit_live_min} min`;
+        });
+      }
+
+      ["sea", "pae"].forEach(code => {
+        const liveApt = data[code];
+        if (!liveApt) return;
+        const dEl = document.querySelector(`[data-apt-drive="${code}"]`);
+        const tEl = document.querySelector(`[data-apt-transit="${code}"]`);
+        if (dEl && liveApt.drive_live_min) dEl.textContent = `${liveApt.drive_live_min} min`;
+        if (tEl && liveApt.transit_live_min) tEl.textContent = `${liveApt.transit_live_min} min`;
       });
     } catch (e) {}
   }
 
-  /* 3. Hydrate Airport Status (SEA & PAE — Reveal Pill Only After Live Response) */
+  /* 3. Hydrate Airport Weather & FAA Status (SEA & PAE — Reveal Pill Only After Live Response) */
   async function hydrateAirports() {
     try {
       const res = await fetch(`${apiBase}/transit/airports`);
@@ -1344,7 +1500,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
     startPolling();
   }
 
-  hydrateHubs();
+  hydrateHubsAndAirportsTravel();
   hydrateAirports();
 
   if (typeof L !== "undefined") {
