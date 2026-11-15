@@ -284,13 +284,21 @@ def build_portal_client(concurrency):
 
 
 class PortalSessionManager:
-    """Manages fresh TCP connection pools, cookie bootstrapping, and WAF circuit-breaker cooldowns."""
+    """Manages fresh TCP connection pools, cookie bootstrapping, and graceful client retirement."""
     def __init__(self, concurrency):
         self.concurrency = concurrency
         self.client = build_portal_client(concurrency)
         self._lock = asyncio.Lock()
         self._last_recycle = 0.0
         self.consecutive_errors = 0
+        self._retired_tasks = set()
+
+    async def _retire_client(self, old_client):
+        try:
+            await asyncio.sleep(20.0)
+            await old_client.aclose()
+        except Exception:
+            pass
 
     async def recycle_client(self, force=False, cooldown_s=0.0):
         async with self._lock:
@@ -299,21 +307,26 @@ class PortalSessionManager:
                 return
             if cooldown_s > 0:
                 await asyncio.sleep(cooldown_s)
+
+            new_client = build_portal_client(self.concurrency)
             try:
-                await self.client.aclose()
-            except Exception:
-                pass
-            self.client = build_portal_client(self.concurrency)
-            try:
-                await self.client.get(
+                await new_client.get(
                     f"{BASE_PORTAL}/PropertyInformation/PropertySearch.aspx",
                     follow_redirects=True,
                     timeout=25.0,
                 )
             except Exception:
                 pass
+
+            old_client = self.client
+            self.client = new_client
             self._last_recycle = time.monotonic()
             self.consecutive_errors = 0
+
+            if old_client is not None and not old_client.is_closed:
+                task = asyncio.create_task(self._retire_client(old_client))
+                self._retired_tasks.add(task)
+                task.add_done_callback(self._retired_tasks.discard)
 
     def record_success(self):
         self.consecutive_errors = 0
@@ -325,8 +338,11 @@ class PortalSessionManager:
             await self.recycle_client(force=True, cooldown_s=20.0)
 
     async def close(self):
+        for task in list(self._retired_tasks):
+            task.cancel()
         try:
-            await self.client.aclose()
+            if self.client is not None and not self.client.is_closed:
+                await self.client.aclose()
         except Exception:
             pass
 
@@ -552,7 +568,7 @@ async def process_parcel(session_mgr, sem, pin, prop_type, debug_html=False):
                 status = "DONE" if attrs["square_footage"] else "NO_STRUCTURE"
                 return pin, status, attrs
 
-            except (httpx.RequestError, asyncio.TimeoutError, ValueError):
+            except (httpx.RequestError, asyncio.TimeoutError, ValueError, RuntimeError):
                 await session_mgr.recycle_client()
                 await asyncio.sleep(random.uniform(1.2, 2.5) * (attempt + 1))
 

@@ -1,0 +1,138 @@
+---
+layout: layouts/base.njk
+pagination:
+  data: city_data
+  size: 1
+  addAllPagesToCollections: true
+  alias: city
+permalink: "/neighborhood/{{ city.City | slugify }}/emergency-safety/index.html"
+---
+{% set city_slug = city.City | slugify %}
+{% set active_neighborhood = city.City %}
+{% set primary_district = city['School District'].split(',')[0] | trim if city['School District'] else '' %}
+
+<main class="layout-container layout-stack-main">
+
+  {# ==========================================================================
+     SECTION 1: CANONICAL NEIGHBORHOOD HERO HEADER
+     ========================================================================== #}
+  <div id="neighborhood-hero" class="portal-section-header">
+    {% set hero_img_main = city.HeroImageMain %}
+    {% set hero_img_left = city.HeroImageLeft %}
+    {% set hero_img_right = city.HeroImageRight %}
+    {% set hero_welcome_label = "Welcome to the neighborhood" %}
+    {% set subpage_topic = "Emergency & Safety" %}
+    {% include "components/widget/neighborhood-page-header.njk" %}
+  </div>
+
+  {# ==========================================================================
+     SECTION 2: EXPLORE NAVIGATION PILLS
+     ========================================================================== #}
+  <section id="explore-neighborhood" class="portal-section-nav" aria-label="Explore {{ active_neighborhood }}">
+    <span class="text-overline text-accent-alpine section-overline-lead">
+      EXPLORE {{ active_neighborhood | upper }}
+    </span>
+    <div class="neighborhood-nav-container">
+      <nav class="neighborhood-nav-track" tabindex="0" aria-label="{{ active_neighborhood }} Subpages">
+        <a href="/neighborhood/{{ city_slug }}/" class="neighborhood-nav-pill is-inactive">City Home</a>
+        <a href="/neighborhood/{{ city_slug }}/news-events/" class="neighborhood-nav-pill is-inactive">News &amp; Events</a>
+        <a href="/neighborhood/{{ city_slug }}/weather/" class="neighborhood-nav-pill is-inactive">Weather</a>
+        <a href="/neighborhood/{{ city_slug }}/municipal/" class="neighborhood-nav-pill is-inactive">Municipal</a>
+        <a href="/neighborhood/{{ city_slug }}/real-estate/" class="neighborhood-nav-pill is-inactive">Real Estate</a>
+        {% if primary_district %}
+          <a href="/neighborhood/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
+        {% endif %}
+        <a href="/neighborhood/{{ city_slug }}/transit-commute/" class="neighborhood-nav-pill is-inactive">Transit &amp; Commute</a>
+        <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
+      </nav>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 3: FIRE & EMS LIVE DISPATCH (PulsePoint 100% Embed)
+     ========================================================================== #}
+  <section id="live-dispatch-monitor" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">Fire and EMS Live Dispatch</h2>
+    {% include "components/widget/map-pulsepoint.njk" ignore missing %}
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 4: ACTIVE EMERGENCY INFORMATION (SSG Populated via R2 Active Alerts)
+     ========================================================================== #}
+  <section id="active-hazards" class="portal-section-widget">
+    <h2 class="text-section-title section-title-clean">Active Emergency Information</h2>
+
+    {# Fetch static SSG alert state compiled by compile_alerts.py #}
+    {% set global_alerts = active_alerts.global if active_alerts else null %}
+    {% set local_alerts = active_alerts.neighborhoods[city_slug] if (active_alerts and active_alerts.neighborhoods) else null %}
+
+    <div class="section-grid-static grid-cols-4">
+      
+      {# 1. Power Outages #}
+      {% set power_active = local_alerts.power_outage if local_alerts else false %}
+      <article class="transit-stat-card" aria-label="Power Outage Status">
+        <div class="transit-stat-icon-wrap" aria-hidden="true" style="{% if power_active %}color: var(--pnw-red); border-color: rgba(217, 35, 42, 0.25); background: rgba(217, 35, 42, 0.1);{% endif %}">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round">
+            <path d="M10.29 3.86a2 2 0 0 1 3.42 0l8.29 14.14A2 2 0 0 1 20.29 21H3.71a2 2 0 0 1-1.71-3L10.29 3.86z"/>
+            <path d="M12.5 7.5L8.5 13.5h3.5l-1 5 5-6.5h-3.5l1.5-4.5z" fill="currentColor" stroke="none"/>
+          </svg>
+        </div>
+        <div class="transit-stat-figure" style="{% if power_active %}color: var(--pnw-red);{% endif %}">
+          {% if power_active %}Active Alert{% else %}Monitoring{% endif %}
+        </div>
+        <span class="transit-stat-overline">REGIONAL POWER GRID</span>
+      </article>
+
+      {# 2. Severe Weather #}
+      {% set weather_active = local_alerts.weather if local_alerts else false %}
+      <article class="transit-stat-card" aria-label="Severe Weather Status">
+        <div class="transit-stat-icon-wrap" aria-hidden="true" style="{% if weather_active %}color: var(--pnw-red); border-color: rgba(217, 35, 42, 0.25); background: rgba(217, 35, 42, 0.1);{% endif %}">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86a2 2 0 0 1 3.42 0l8.29 14.14A2 2 0 0 1 20.29 21H3.71a2 2 0 0 1-1.71-3L10.29 3.86z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <div class="transit-stat-figure" style="{% if weather_active %}color: var(--pnw-red);{% endif %}">
+          {% if weather_active %}Active Alert{% else %}Monitoring{% endif %}
+        </div>
+        <span class="transit-stat-overline">SEVERE WEATHER ALERTS</span>
+      </article>
+
+      {# 3. Earthquakes #}
+      {% set quake_active = local_alerts.earthquake if local_alerts else false %}
+      <article class="transit-stat-card" aria-label="Earthquake Status">
+        <div class="transit-stat-icon-wrap" aria-hidden="true" style="{% if quake_active %}color: var(--pnw-red); border-color: rgba(217, 35, 42, 0.25); background: rgba(217, 35, 42, 0.1);{% endif %}">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 12h5l2 -5l3 10l3 -10l2 5h5"/>
+          </svg>
+        </div>
+        <div class="transit-stat-figure" style="{% if quake_active %}color: var(--pnw-red);{% endif %}">
+          {% if quake_active %}Active Alert{% else %}Monitoring{% endif %}
+        </div>
+        <span class="transit-stat-overline">SEISMIC ACTIVITY</span>
+      </article>
+
+      {# 4. Wildfires #}
+      {% set fire_active = local_alerts.wildfire if local_alerts else false %}
+      <article class="transit-stat-card" aria-label="Wildfire Status">
+        <div class="transit-stat-icon-wrap" aria-hidden="true" style="{% if fire_active %}color: var(--pnw-red); border-color: rgba(217, 35, 42, 0.25); background: rgba(217, 35, 42, 0.1);{% endif %}">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2c-.5 2.5-3 5-3 8 0 3.3 2.7 6 6 6s6-2.7 6-6c0-2-1-3.5-2-4.5.5 1.5 0 3.5-1.5 4.5-.5-2-2-3.5-2.5-5.5-.5 1-1 2-1 3-1.5-1-2-3.5-2-5.5z"/>
+            <path d="M12 9c-.3 1.5-1.8 3-1.8 4.8 0 2 1.6 3.6 3.6 3.6s3.6-1.6 3.6-3.6c0-1.2-.6-2.1-1.2-2.7.3.9 0 2.1-.9 2.7-.3-1.2-1.2-2.1-1.5-3.3-.3.6-.6 1.2-.6 1.8-.9-.6-1.2-2.1-1.2-3.3z" fill="currentColor" stroke="none"/>
+          </svg>
+        </div>
+        <div class="transit-stat-figure" style="{% if fire_active %}color: var(--pnw-red);{% endif %}">
+          {% if fire_active %}Active Alert{% else %}Monitoring{% endif %}
+        </div>
+        <span class="transit-stat-overline">WILDLAND FIRES</span>
+      </article>
+
+    </div>
+  </section>
+
+</main>
