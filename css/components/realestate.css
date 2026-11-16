@@ -912,3 +912,439 @@
   border-top: 1px solid var(--color-border-light);
   padding-top: 1.25rem;
 }
+
+/* File: css/components/realestate.css */
+/* ==========================================================================
+   18. NEIGHBORHOOD REAL ESTATE MARKET ANALYTICS & AFFORDABILITY LAYOUTS
+   ========================================================================== */
+
+/* Section 3: Top Headlines Split (Market Balance Bar + Daily Mortgage Rates) */
+.realestate-headlines-split {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 1.25rem;
+  width: 100%;
+  margin-bottom: 1.25rem;
+  align-items: stretch;
+}
+
+.realestate-headlines-split > .widget-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Market Balance Meter Card */
+.market-balance-bar-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.15rem;
+}
+
+.market-balance-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.market-balance-meter-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: auto 0;
+}
+
+.market-balance-scale-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--color-secondary-muted);
+}
+
+.market-balance-scale-seller {
+  color: var(--pnw-red);
+}
+
+.market-balance-scale-balanced {
+  color: var(--alpine-blue);
+}
+
+.market-balance-scale-buyer {
+  color: var(--pnw-red);
+}
+
+/* Vertically Stacked Dual Data Charts (Sections 5 & 8) */
+.realestate-stacked-charts {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+/* Section Headers with Standardized "Updated: [Date]" Pill */
+.realestate-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.realestate-section-head .section-title-clean {
+  margin-bottom: 0;
+}
+
+.realestate-cadence-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.85rem;
+  background: var(--color-surface-gray);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-pill);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--color-secondary-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Plain-Language Market Explainer Callout (Zero-Beige Surface Gray) */
+.realestate-callout-note {
+  margin-top: 1.25rem;
+  padding: 1rem 1.25rem;
+  background: var(--color-surface-gray);
+  border: 1px solid var(--color-border-light);
+  border-left: 3px solid var(--alpine-blue);
+  border-radius: 0 12px 12px 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--premier-charcoal);
+}
+
+.realestate-callout-note strong {
+  font-weight: 600;
+  color: var(--premier-charcoal);
+}
+
+/* ==========================================================================
+   UNIVERSAL VECTOR CHART SCALING, CRISP DOTS & INTERACTIVE HOVER TOOLTIP
+   ========================================================================== */
+.universal-data-chart-card .chart-canvas-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 960 / 280;
+  min-height: 220px;
+}
+
+.universal-data-chart-card .chart-svg-stage {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.universal-data-chart-card .chart-axis-label {
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  fill: var(--color-secondary-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.universal-data-chart-card .chart-series-polyline {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.universal-data-chart-card .chart-data-dot {
+  stroke: #FFFFFF;
+  stroke-width: 1.25;
+  transition: r 0.12s ease;
+}
+
+.universal-data-chart-card .chart-data-dot.series-1 { fill: var(--alpine-blue); }
+.universal-data-chart-card .chart-data-dot.series-2 { fill: var(--pnw-red); }
+.universal-data-chart-card .chart-data-dot.series-3 { fill: #29856B; }
+.universal-data-chart-card .chart-data-dot.series-4 { fill: #D97706; }
+
+.universal-data-chart-card .chart-data-dot.is-active {
+  r: 4.5;
+}
+
+.universal-data-chart-card .chart-crosshair-line {
+  stroke: var(--color-border-light);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  pointer-events: none;
+}
+
+.universal-data-chart-card .chart-crosshair-line.is-visible {
+  opacity: 1;
+}
+
+.universal-data-chart-card .chart-hit-band {
+  fill: transparent;
+  cursor: crosshair;
+}
+
+.chart-floating-tooltip {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border-light);
+  border-radius: 10px;
+  padding: 0.55rem 0.8rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--premier-charcoal);
+  font-variant-numeric: tabular-nums;
+  min-width: 165px;
+}
+
+.chart-floating-tooltip.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.chart-tooltip-date {
+  font-weight: 600;
+  color: var(--premier-charcoal);
+  margin-bottom: 0.25rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.chart-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.chart-tooltip-series {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-secondary-muted);
+}
+
+.chart-tooltip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.chart-tooltip-dot.series-1 { background: var(--alpine-blue); }
+.chart-tooltip-dot.series-2 { background: var(--pnw-red); }
+.chart-tooltip-dot.series-3 { background: #29856B; }
+.chart-tooltip-dot.series-4 { background: #D97706; }
+
+.chart-tooltip-val {
+  font-weight: 600;
+  color: var(--premier-charcoal);
+}
+
+/* ==========================================================================
+   MIGRATION MAP: SINGLE-ROW DESKTOP (INFLOW | MAP | OUTFLOW) & STACKED MOBILE
+   ========================================================================== */
+.migration-trio-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr 1fr;
+  gap: 1.15rem;
+  width: 100%;
+  align-items: stretch;
+}
+
+.migration-col-inflow {
+  order: 1;
+}
+
+.migration-col-map {
+  order: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-gray);
+  border: 1px solid var(--color-border-light);
+  border-radius: 12px;
+  padding: 0.5rem;
+  overflow: hidden;
+  min-height: 250px;
+}
+
+.migration-col-outflow {
+  order: 3;
+}
+
+.migration-col-map .migration-svg-stage {
+  width: 100%;
+  height: 100%;
+  max-height: 290px;
+  display: block;
+}
+
+.migration-col-map .map-city-text {
+  font-size: 6.2px;
+  font-weight: 500;
+}
+
+.migration-col-map .map-hub-label-top {
+  font-size: 7px;
+  font-weight: 600;
+}
+
+@media (max-width: 960px) {
+  .realestate-headlines-split {
+    grid-template-columns: 1fr;
+  }
+
+  .migration-trio-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Mobile order: Map on top, Inflow second, Outflow third */
+  .migration-col-map {
+    order: 1;
+    min-height: 240px;
+  }
+
+  .migration-col-inflow {
+    order: 2;
+  }
+
+  .migration-col-outflow {
+    order: 3;
+  }
+}
+
+
+
+/* ==========================================================================
+   PROPERTY VIEWER (DYNAMIC SHELL MODULES)
+   ========================================================================== */
+.property-viewer-search-wrap {
+  max-width: 540px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .property-viewer-search-wrap {
+    flex-direction: row;
+  }
+}
+
+.property-search-input {
+  flex: 1;
+  width: 100%;
+}
+
+.prop-search-btn {
+  white-space: nowrap;
+}
+
+.prop-flags-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.prop-data-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.prop-metric-label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--color-secondary-muted);
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.prop-metric-value {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--premier-charcoal);
+  font-variant-numeric: tabular-nums;
+}
+
+.prop-avm-display {
+  font-size: clamp(2.25rem, 4vw, 2.75rem);
+  color: var(--alpine-blue);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  margin: 0 0 1rem 0;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.prop-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  max-width: 640px;
+}
+
+@media (min-width: 640px) {
+  .prop-form-grid-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+}
+
+.prop-utility-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin: 1.25rem 0 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prop-utility-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.prop-utility-val {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--premier-charcoal);
+}

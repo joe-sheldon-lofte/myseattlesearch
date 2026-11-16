@@ -2,27 +2,16 @@
 {# 
   COMPONENT: Master Housing Affordability Dashboard (widget.realestate.housing.affordability.dashboard)
   ARCHITECTURE: Unified Executive Briefing combining Property Tier Ladder, Down Payment Matrix, and Household Purchasing Power.
-  CONTRACT:
-    - active_neighborhood / city.City: String [Optional]
-    - dashboard_title: String [Optional, defaults to "Housing Affordability & Purchasing Power"]
-    - property_tier_ladder: Array of Objects [Required, Chamber 1]
-    - downpayment_matrix: Array of Objects [Required, Chamber 2]
-    - household_power_data: Array of Objects [Required, Chamber 3]
-    - sources_attribution: String [Optional, defaults to "Sources: Redfin Data Center (Seattle Metropolitan Area)"]
 #}
 
 {% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
 {% set heading = dashboard_title or (active_neighborhood ~ " Housing Affordability & Purchasing Power" if active_neighborhood else "Housing Affordability & Purchasing Power") %}
-{% set sources_caption = sources_attribution or "Sources: Redfin Data Center (Seattle Metropolitan Area)" %}
 
 <section class="widget-card housing-affordability-dashboard-container" aria-label="{{ heading }}">
   
   {# Master Header #}
   <header class="affordability-master-header">
     <div>
-      <span class="text-overline text-accent-alpine">
-        REGIONAL HOUSING ANALYTICS
-      </span>
       <h3 class="text-widget-title affordability-master-title">
         {{ heading }}
       </h3>
@@ -31,9 +20,7 @@
 
   <div class="affordability-panels-stack">
 
-    {# ========================================================================
-       CHAMBER 1: PROPERTY TIER ENTRY LADDER
-       ======================================================================== #}
+    {# CHAMBER 1: PROPERTY TIER ENTRY LADDER #}
     {% if property_tier_ladder and property_tier_ladder.length > 0 %}
     <div class="affordability-subpanel affordability-tier-ladder-card" aria-label="Property Tier Entry Ladder">
       <div class="affordability-subpanel-header">
@@ -101,9 +88,7 @@
     </div>
     {% endif %}
 
-    {# ========================================================================
-       CHAMBER 2: DOWN PAYMENT TIER & PMI IMPACT
-       ======================================================================== #}
+    {# CHAMBER 2: DOWN PAYMENT TIER & PMI IMPACT #}
     {% if downpayment_matrix and downpayment_matrix.length > 0 %}
     <div class="affordability-subpanel affordability-downpayment-card" aria-label="Down Payment Tier & PMI Impact">
       <div class="affordability-subpanel-header">
@@ -180,9 +165,7 @@
     </div>
     {% endif %}
 
-    {# ========================================================================
-       CHAMBER 3: HOUSEHOLD INCOME VS. PURCHASING POWER
-       ======================================================================== #}
+    {# CHAMBER 3: HOUSEHOLD INCOME VS. PURCHASING POWER #}
     {% if household_power_data and household_power_data.length > 0 %}
     <div class="affordability-subpanel affordability-household-card" aria-label="Household Income vs. Purchasing Power">
       <div class="affordability-subpanel-header">
@@ -257,10 +240,5 @@
     {% endif %}
 
   </div>
-
-  {# Master Footer #}
-  <footer class="affordability-master-footer">
-    <span>{{ sources_caption }}</span>
-  </footer>
 
 </section>

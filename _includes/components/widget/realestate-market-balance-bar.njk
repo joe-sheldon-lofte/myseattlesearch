@@ -1,17 +1,13 @@
 <!-- File: _includes/components/widget/realestate-market-balance-bar.njk -->
 {# 
   COMPONENT: Real Estate Market Balance & Inventory Supply Meter (widget.realestate.market.balance.bar)
-  SPECTRUM (Red-Blue-Red Symmetrical Volatility):
-    - 0.0 to 1.9 Mo: Seller's Market (Extreme - var(--pnw-red))
-    - 2.0 to 4.0 Mo: Balanced Market (Equilibrium - var(--alpine-blue))
-    - 4.1 to 6.0+ Mo: Buyer's Market (Extreme - var(--pnw-red))
   CONTRACT:
-    - current_months_supply / market.months_supply / neighborhood.months_supply: Number [Required]
-    - active_neighborhood / neighborhood.name / city.City: String [Optional]
+    - current_months_supply: Number [Required - strictly sourced from Infosparks NWMLS]
+    - active_neighborhood / city.City: String [Optional]
 #}
 
 {% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
-{% set raw_supply = current_months_supply if current_months_supply is defined else ((market.months_supply if market else null) or (neighborhood.months_supply if neighborhood else null)) %}
+{% set raw_supply = current_months_supply if current_months_supply is defined else null %}
 
 {% if raw_supply is not none and raw_supply != '' %}
   {% set months_supply = raw_supply | float %}
@@ -31,36 +27,28 @@
 
   <section class="widget-card market-balance-bar-card" aria-label="Market Inventory Absorption for {{ active_neighborhood | default('This Neighborhood') }}">
     
-    {# Header Overline Strip #}
-    <header class="market-balance-header">
-      <span class="text-overline market-balance-overline-seller">
-        0 MO (SELLER'S MARKET)
-      </span>
-      <span class="text-overline market-balance-overline-balanced">
-        2–4 MO (BALANCED)
-      </span>
-      <span class="text-overline market-balance-overline-buyer">
-        6+ MO (BUYER'S MARKET)
-      </span>
+    <header class="market-balance-card-head">
+      <h3 class="text-widget-title">Market Balance</h3>
     </header>
 
-    {# Horizontal Bar Graphic with Precise Needle Marker #}
-    <div class="market-balance-track-wrap">
-      <div class="market-balance-bar-track" role="meter" aria-valuenow="{{ months_supply }}" aria-valuemin="0" aria-valuemax="6" aria-valuetext="{{ months_supply }} months supply ({{ market_state }})">
-        
-        {# Zone Guides at 2.0 mo (33.33%) and 4.0 mo (66.66%) #}
-        <div class="balance-zone-divider divider-two-months" aria-hidden="true"></div>
-        <div class="balance-zone-divider divider-four-months" aria-hidden="true"></div>
+    <div class="market-balance-meter-body">
+      <div class="market-balance-scale-row" aria-hidden="true">
+        <span class="market-balance-scale-seller">0 Mo (Seller's Market)</span>
+        <span class="market-balance-scale-balanced">2–4 Mo (Balanced)</span>
+        <span class="market-balance-scale-buyer">6+ Mo (Buyer's Market)</span>
+      </div>
 
-        {# Dynamic Marker Indicator (Only pure variable geometry inline) #}
+      <div class="market-balance-track-wrap">
+        <div class="market-balance-bar-track" role="meter" aria-valuenow="{{ months_supply }}" aria-valuemin="0" aria-valuemax="6" aria-valuetext="{{ months_supply }} months supply ({{ market_state }})">
+          <div class="balance-zone-divider divider-two-months" aria-hidden="true"></div>
+          <div class="balance-zone-divider divider-four-months" aria-hidden="true"></div>
           <div class="balance-marker" style="--marker-pos: {{ marker_pos }}%;" aria-hidden="true">
-          <div class="balance-marker-arrow"></div>
+            <div class="balance-marker-arrow"></div>
+          </div>
         </div>
-
       </div>
     </div>
 
-    {# Footer Line: Active State Metric #}
     <footer class="market-balance-footer">
       <div class="text-body-secondary market-balance-caption">
         Current Inventory:

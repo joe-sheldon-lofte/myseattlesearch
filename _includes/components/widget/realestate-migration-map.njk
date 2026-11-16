@@ -1,132 +1,140 @@
 <!-- File: _includes/components/widget/realestate-migration-map.njk -->
 {# 
   COMPONENT: Regional Migration Dynamics & Relocation Trajectories (widget.realestate.migration.map)
-  PURPOSE: Visualizes demographic capital inflow and outflow across metropolitan source corridors.
-  CONTRACT:
-    - active_neighborhood / neighborhood.name / city.City: String [Optional]
-    - migration_map_title / migration_title: String [Optional]
-    - migration_map_overline / migration_overline: String [Optional]
-    - migration_inflows / top_inflows: Array of Objects [Required]
-      Each inflow expects: { city, share, net }
-    - migration_outflows / top_outflows: Array of Objects [Required]
-      Each outflow expects: { city, share, net }
-    - migration_source_label: String [Optional, defaults to "Data source: Redfin Data Center"]
-    - migration_update_cadence: String [Optional, defaults to "Updated Quarterly"]
+  LAYOUT: Single-row 3-column grid on desktop (Inflows | Dynamic Map | Outflows); stacked on mobile (Map | Inflows | Outflows).
 #}
 
 {% set active_neighborhood = active_neighborhood or (neighborhood.name if neighborhood else '') or (city.City if city else '') %}
-{% set default_title = (active_neighborhood ~ " Area Migration Map") if active_neighborhood else "Puget Sound Migration Map" %}
-{% set card_title = migration_map_title or migration_title or default_title %}
-{% set card_overline = migration_map_overline or migration_overline or "REGIONAL RELOCATION SOURCES AND DESTINATIONS" %}
+{% set card_title = migration_map_title or migration_title or ((active_neighborhood ~ " Area Migration Map") if active_neighborhood else "Puget Sound Migration Map") %}
+{% set inflows = migration_inflows or top_inflows or [] %}
+{% set outflows = migration_outflows or top_outflows or [] %}
 
-{% set inflows = migration_inflows or top_inflows %}
-{% set outflows = migration_outflows or top_outflows %}
-{% set source_text = migration_source_label or "Data source: Redfin Data Center" %}
-{% set cadence_text = migration_update_cadence or "Updated Quarterly" %}
+{% set hub_pt = "Seattle, WA" | resolveMetroPoint %}
+{% set hx = hub_pt.x if hub_pt else 49.8 %}
+{% set hy = hub_pt.y if hub_pt else 35.2 %}
 
-{% if inflows and inflows.length > 0 %}
+{# Compute dynamic bounding box across Seattle + active inflows/outflows #}
+{% set min_x = hx %}
+{% set max_x = hx %}
+{% set min_y = hy %}
+{% set max_y = hy %}
+
+{% for flow in inflows %}
+  {% set loc = flow.city | resolveMetroPoint %}
+  {% if loc %}
+    {% if loc.x < min_x %}{% set min_x = loc.x %}{% endif %}
+    {% if loc.x > max_x %}{% set max_x = loc.x %}{% endif %}
+    {% if loc.y < min_y %}{% set min_y = loc.y %}{% endif %}
+    {% if loc.y > max_y %}{% set max_y = loc.y %}{% endif %}
+  {% endif %}
+{% endfor %}
+
+{% for flow in outflows %}
+  {% set loc = flow.city | resolveMetroPoint %}
+  {% if loc %}
+    {% if loc.x < min_x %}{% set min_x = loc.x %}{% endif %}
+    {% if loc.x > max_x %}{% set max_x = loc.x %}{% endif %}
+    {% if loc.y < min_y %}{% set min_y = loc.y %}{% endif %}
+    {% if loc.y > max_y %}{% set max_y = loc.y %}{% endif %}
+  {% endif %}
+{% endfor %}
+
+{% set vb_x = (min_x - 36) | round(1) %}
+{% set vb_x = 0 if vb_x < 0 else vb_x %}
+{% set vb_y = (min_y - 18) | round(1) %}
+{% set vb_y = 0 if vb_y < 0 else vb_y %}
+{% set raw_w = (max_x + 36) - vb_x %}
+{% set raw_h = (max_y + 18) - vb_y %}
+{% set vb_w = 135 if raw_w < 135 else (320 if (vb_x + raw_w) > 320 else (raw_w | round(1))) %}
+{% set vb_h = 150 if raw_h < 150 else (200 if (vb_y + raw_h) > 200 else (raw_h | round(1))) %}
+
+{% if (inflows | length > 0) or (outflows | length > 0) %}
 <section class="widget-card realestate-migration-map-card" aria-label="{{ card_title }}">
   
-  {# Header Row & Inflow/Outflow Legend #}
   <header class="migration-header-row">
     <div class="migration-title-stack">
-      <span class="text-overline text-accent-alpine">
-        {{ card_overline }}
-      </span>
-      <h3 class="text-widget-title migration-card-title">
-        {{ card_title }}
-      </h3>
+      <h3 class="text-widget-title migration-card-title">{{ card_title }}</h3>
     </div>
-
     <div class="migration-legend-cluster" aria-hidden="true">
-      <span class="migration-legend-item legend-inflow">
-        <span class="migration-legend-dot dot-inflow"></span> Inflow (Moving In)
-      </span>
-      <span class="migration-legend-item legend-outflow">
-        <span class="migration-legend-dot dot-outflow"></span> Outflow (Relocating Out)
-      </span>
+      <span class="migration-legend-item legend-inflow"><span class="migration-legend-dot dot-inflow"></span> Inflow (Moving In)</span>
+      <span class="migration-legend-item legend-outflow"><span class="migration-legend-dot dot-outflow"></span> Outflow (Relocating Out)</span>
     </div>
   </header>
 
-  {# Conceptual US Vector Map Stage with Seattle Hub Pin (Label Locked Above Pin) #}
-  <div class="migration-map-stage" aria-hidden="true">
-    <svg viewBox="0 0 320 200" class="migration-svg-stage">
-      
-      {# US Continental Outline Baseplate #}
-      <path d="M 40,25 L 85,25 L 120,30 L 170,25 L 230,35 L 265,30 L 295,45 L 305,75 L 280,105 L 285,150 L 255,185 L 225,175 L 175,175 L 140,195 L 100,165 L 65,160 L 35,115 L 35,45 Z" 
-            class="migration-us-baseplate" />
-
-      {# Outflow Vectors (Cedar Amber) originating from Puget Sound Hub (45, 30) #}
-      <path d="M 45,30 Q 75,85 95,145" class="vector-arc-outflow-dashed" />
-      <path d="M 45,30 L 45,55" class="vector-arc-outflow-solid" />
-      <path d="M 45,30 Q 110,80 155,150" class="vector-arc-outflow-dashed" />
-      <path d="M 45,30 L 70,35" class="vector-arc-outflow-solid" />
-
-      {# Inflow Vectors (Alpine Blue) terminating at Puget Sound Hub (45, 30) #}
-      <path d="M 50,120 Q 40,75 45,30" class="vector-arc-inflow-solid" />
-      <path d="M 65,155 Q 50,90 45,30" class="vector-arc-inflow-solid" />
-      <path d="M 185,80 Q 110,45 45,30" class="vector-arc-inflow-dashed" />
-      <path d="M 250,75 Q 140,40 45,30" class="vector-arc-inflow-dashed" />
-
-      {# Major Metro Node Markers & Labels #}
-      <circle cx="50" cy="120" r="2.5" class="map-point-inflow" />
-      <text x="56" y="122" class="map-city-text">Bay Area</text>
-
-      <circle cx="65" cy="155" r="2.5" class="map-point-inflow" />
-      <text x="71" y="157" class="map-city-text">Los Angeles</text>
-
-      <circle cx="95" cy="145" r="2.5" class="map-point-outflow" />
-      <text x="101" y="147" class="map-city-text">Phoenix</text>
-
-      <circle cx="45" cy="55" r="2.5" class="map-point-outflow" />
-      <text x="51" y="57" class="map-city-text">Portland</text>
-
-      <circle cx="70" cy="35" r="2.5" class="map-point-outflow" />
-      <text x="76" y="37" class="map-city-text">Spokane</text>
-
-      <circle cx="155" cy="150" r="2.5" class="map-point-outflow" />
-      <text x="161" y="152" class="map-city-text">Dallas</text>
-
-      <circle cx="185" cy="80" r="2.5" class="map-point-inflow" />
-      <text x="191" y="82" class="map-city-text">Chicago</text>
-
-      <circle cx="250" cy="75" r="2.5" class="map-point-inflow" />
-      <text x="256" y="77" class="map-city-text">New York</text>
-
-      {# Puget Sound Anchor Pin - Label Positioned Above Pin #}
-      <text x="45" y="19" class="map-hub-label-top">Seattle</text>
-      <circle cx="45" cy="30" r="4.5" class="map-hub-pin-outer" />
-      <circle cx="45" cy="30" r="2" class="map-hub-pin-inner" />
-    </svg>
-  </div>
-
-  {# Tabular Breakdown: Side-by-Side Dual Inflow/Outflow Wells #}
-  <div class="migration-tables-grid">
+  <div class="migration-trio-grid">
     
-    {# Inflow Origins #}
-    <div class="migration-table-well">
-      <div class="migration-well-header header-inflow">
-        Top Inflow Origins (Moving In)
+    {# Column 1 (Left Desktop / Second Mobile): Inflow Origins #}
+    {% if inflows and (inflows | length > 0) %}
+      <div class="migration-table-well migration-col-inflow">
+        <div class="migration-well-header header-inflow">Top Inflow Origins (Moving In)</div>
+        <table class="migration-data-table">
+          <tbody>
+            {% for r in inflows %}
+              <tr>
+                <td class="cell-city-label">{{ r.city }}</td>
+                <td class="cell-share-metric share-inflow">{{ r.share }}</td>
+                <td class="cell-net-differential">{{ r.net }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-      <table class="migration-data-table">
-        <tbody>
-          {% for r in inflows %}
-            <tr>
-              <td class="cell-city-label">{{ r.city }}</td>
-              <td class="cell-share-metric share-inflow">{{ r.share }}</td>
-              <td class="cell-net-differential">{{ r.net }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    {% endif %}
+
+    {# Column 2 (Center Desktop / Top Mobile): Dynamically Framed Relocation Map #}
+    <div class="migration-col-map" aria-hidden="true">
+      <svg viewBox="{{ vb_x }} {{ vb_y }} {{ vb_w }} {{ vb_h }}" preserveAspectRatio="xMidYMid meet" class="migration-svg-stage">
+        <path d="M 40,25 L 85,25 L 120,30 L 170,25 L 230,35 L 265,30 L 295,45 L 305,75 L 280,105 L 285,150 L 255,185 L 225,175 L 175,175 L 140,195 L 100,165 L 65,160 L 35,115 L 35,45 Z" class="migration-us-baseplate" />
+
+        {% set plotted_cities = [] %}
+
+        {# Outflow Vectors (Amber) #}
+        {% for flow in outflows %}
+          {% set loc = flow.city | resolveMetroPoint %}
+          {% if loc %}
+            {% set ctrl_x = ((hx + loc.x) / 2 + 8) | round(1) %}
+            {% set ctrl_y = ((hy + loc.y) / 2) | round(1) %}
+            <path d="M {{ hx }},{{ hy }} Q {{ ctrl_x }},{{ ctrl_y }} {{ loc.x }},{{ loc.y }}" class="vector-arc-outflow-dashed" />
+            <circle cx="{{ loc.x }}" cy="{{ loc.y }}" r="2.2" class="map-point-outflow" />
+            {% if flow.city not in plotted_cities %}
+              {% set _ = plotted_cities.push(flow.city) %}
+              {% set is_coastal = loc.x <= 69 %}
+              {% set anchor = "end" if is_coastal else "start" %}
+              {% set lbl_x = (loc.x - 4.5) if is_coastal else (loc.x + 4.5) %}
+              <text x="{{ lbl_x }}" y="{{ loc.y + 2 }}" text-anchor="{{ anchor }}" class="map-city-text">{{ flow.city.split(',')[0] }}</text>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+
+        {# Inflow Vectors (Alpine Blue) #}
+        {% for flow in inflows %}
+          {% set loc = flow.city | resolveMetroPoint %}
+          {% if loc %}
+            {% set ctrl_x = ((hx + loc.x) / 2 - 8) | round(1) %}
+            {% set ctrl_y = ((hy + loc.y) / 2) | round(1) %}
+            <path d="M {{ loc.x }},{{ loc.y }} Q {{ ctrl_x }},{{ ctrl_y }} {{ hx }},{{ hy }}" class="vector-arc-inflow-solid" />
+            <circle cx="{{ loc.x }}" cy="{{ loc.y }}" r="2.2" class="map-point-inflow" />
+            {% if flow.city not in plotted_cities %}
+              {% set _ = plotted_cities.push(flow.city) %}
+              {% set is_coastal = loc.x <= 69 %}
+              {% set anchor = "end" if is_coastal else "start" %}
+              {% set lbl_x = (loc.x - 4.5) if is_coastal else (loc.x + 4.5) %}
+              <text x="{{ lbl_x }}" y="{{ loc.y + 2 }}" text-anchor="{{ anchor }}" class="map-city-text">{{ flow.city.split(',')[0] }}</text>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+
+        {# Puget Sound Anchor Pin (Label anchored left in coastal open space) #}
+        <text x="{{ hx - 5 }}" y="{{ hy + 1 }}" text-anchor="end" class="map-hub-label-top">Seattle</text>
+        <circle cx="{{ hx }}" cy="{{ hy }}" r="4" class="map-hub-pin-outer" />
+        <circle cx="{{ hx }}" cy="{{ hy }}" r="1.8" class="map-hub-pin-inner" />
+      </svg>
     </div>
 
-    {# Outflow Destinations #}
-    {% if outflows and outflows.length > 0 %}
-      <div class="migration-table-well">
-        <div class="migration-well-header header-outflow">
-          Top Outflow Destinations (Relocating Out)
-        </div>
+    {# Column 3 (Right Desktop / Third Mobile): Outflow Destinations #}
+    {% if outflows and (outflows | length > 0) %}
+      <div class="migration-table-well migration-col-outflow">
+        <div class="migration-well-header header-outflow">Top Outflow Destinations (Relocating Out)</div>
         <table class="migration-data-table">
           <tbody>
             {% for r in outflows %}
@@ -142,12 +150,6 @@
     {% endif %}
 
   </div>
-
-  {# Footer Disclosure Strip #}
-  <footer class="migration-footer-strip">
-    <span>{{ source_text }}</span>
-    <span>{{ cadence_text }}</span>
-  </footer>
 
 </section>
 {% endif %}

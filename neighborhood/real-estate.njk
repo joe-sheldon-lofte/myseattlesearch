@@ -1,0 +1,913 @@
+---
+layout: layouts/base.njk
+pagination:
+  data: city_data
+  size: 1
+  addAllPagesToCollections: true
+  alias: city
+permalink: "/neighborhood/{{ city.City | slugify }}/real-estate/index.html"
+---
+{% set city_slug = city.City | slugify %}
+{% set active_neighborhood = city.City %}
+{% set primary_district = city['School District'].split(',')[0] | trim if city['School District'] else '' %}
+{% set isp_col = "Beaux Arts" if active_neighborhood == "Beaux Arts Village" else active_neighborhood %}
+
+{# ============================================================================
+   DATE STANDARDIZATION MACRO -> "Month D, YYYY"
+   ============================================================================ #}
+{% set month_names = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] %}
+
+{% macro pretty_date(raw_str) -%}
+  {%- set s = (raw_str | default('') | trim).split(' ')[0].split('T')[0] -%}
+  {%- if '-' in s -%}
+    {%- set parts = s.split('-') -%}
+    {%- if (parts | length) == 3 -%}
+      {{ month_names[parts[1] | int] }} {{ parts[2] | int }}, {{ parts[0] }}
+    {%- else -%}
+      {{ s }}
+    {%- endif -%}
+  {%- elif '/' in s -%}
+    {%- set parts = s.split('/') -%}
+    {%- if (parts | length) == 3 -%}
+      {%- set yr = ("20" ~ parts[2]) if (parts[2] | length) == 2 else parts[2] -%}
+      {{ month_names[parts[0] | int] }} {{ parts[1] | int }}, {{ yr }}
+    {%- else -%}
+      {{ s }}
+    {%- endif -%}
+  {%- else -%}
+    {{ raw_str }}
+  {%- endif -%}
+{%- endmacro %}
+
+{# ============================================================================
+   SVG SPARKLINE COORDINATE HELPERS (960x280 Viewport: X 16..944, Y 24..240)
+   ============================================================================ #}
+{% macro spark_points(vals, min_v, max_v) -%}
+  {%- set n = vals | length -%}
+  {%- set span = (max_v - min_v) if (max_v - min_v) > 0 else 1 -%}
+  {%- for v in vals -%}
+    {%- set x = (16 + ((loop.index0 / (n - 1)) * 928)) | round(1) if n > 1 else 480 -%}
+    {%- set num = v | float -%}
+    {%- set clamped = max_v if num > max_v else (min_v if num < min_v else num) -%}
+    {%- set y = (240 - ((clamped - min_v) / span) * 216) | round(1) -%}
+    {{ x }},{{ y }}{% if not loop.last %} {% endif %}
+  {%- endfor -%}
+{%- endmacro %}
+
+{# ============================================================================
+   PRECOMPUTE REDFIN & NWMLS INFOSPARKS SERIES FOR ACTIVE NEIGHBORHOOD
+   ============================================================================ #}
+{% set redfin_row = null %}
+{% if redfin_stats %}
+  {% for r in redfin_stats %}
+    {% if not redfin_row and r.city == active_neighborhood %}
+      {% set redfin_row = r %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% set msp_series = [] %}
+{% set cs_series = [] %}
+{% set dom_series = [] %}
+{% set ms_series = [] %}
+{% set spl_series = [] %}
+{% set lp_series = [] %}
+
+{% if infosparks_stats and infosparks_stats.feeds %}
+  {% for fk, fv in infosparks_stats.feeds %}
+    {% if fv.meta and fv.meta.geographies and (active_neighborhood in fv.meta.geographies) %}
+      {% set metric_name = fv.meta.metric %}
+      {% set valid_pts = [] %}
+      {% for row in fv.data %}
+        {% set raw_v = row[isp_col] %}
+        {% if raw_v is not none and raw_v != "" %}
+          {% set _ = valid_pts.push({ "date": row.Date, "val": raw_v | float }) %}
+        {% endif %}
+      {% endfor %}
+
+      {% if metric_name == "Median Sale Price" %}{% set msp_series = valid_pts %}{% endif %}
+      {% if metric_name == "Closed Sales" %}{% set cs_series = valid_pts %}{% endif %}
+      {% if metric_name == "Average Days on Market" %}{% set dom_series = valid_pts %}{% endif %}
+      {% if metric_name == "Months Supply Closed" %}{% set ms_series = valid_pts %}{% endif %}
+      {% if metric_name == "Shows Per Listing" %}{% set spl_series = valid_pts %}{% endif %}
+      {% if metric_name == "Percent of List Price Average" %}{% set lp_series = valid_pts %}{% endif %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+<main class="layout-container layout-stack-main">
+
+  {# ==========================================================================
+     SECTION 1: CANONICAL NEIGHBORHOOD SUBPAGE HERO HEADER
+     ========================================================================== #}
+  <div id="neighborhood-hero" class="portal-section-header">
+    {% set hero_img_main = city.HeroImageMain %}
+    {% set hero_img_left = city.HeroImageLeft %}
+    {% set hero_img_right = city.HeroImageRight %}
+    {% set hero_welcome_label = "Welcome to the neighborhood" %}
+    {% set subpage_title = "Real Estate" %}
+    {% include "components/widget/neighborhood-subpage-header.njk" %}
+  </div>
+
+  {# ==========================================================================
+     SECTION 2: EXPLORE NAVIGATION PILLS
+     ========================================================================== #}
+  <section id="explore-neighborhood" class="portal-section-nav" aria-label="Explore {{ active_neighborhood }}">
+    <span class="text-overline text-accent-alpine section-overline-lead">
+      EXPLORE {{ active_neighborhood | upper }}
+    </span>
+    <div class="neighborhood-nav-container">
+      <nav class="neighborhood-nav-track" tabindex="0" aria-label="{{ active_neighborhood }} Subpages">
+        <a href="/neighborhood/{{ city_slug }}/" class="neighborhood-nav-pill is-inactive">City Home</a>
+        <a href="/neighborhood/{{ city_slug }}/news-events/" class="neighborhood-nav-pill is-inactive">News &amp; Events</a>
+        <a href="/neighborhood/{{ city_slug }}/weather/" class="neighborhood-nav-pill is-inactive">Weather</a>
+        <a href="/neighborhood/{{ city_slug }}/transit-commute/" class="neighborhood-nav-pill is-inactive">Transit &amp; Commute</a>
+        <a href="/neighborhood/{{ city_slug }}/emergency-safety/" class="neighborhood-nav-pill is-inactive">Emergency &amp; Safety</a>
+        <a href="/neighborhood/{{ city_slug }}/municipal/" class="neighborhood-nav-pill is-inactive">Municipal</a>
+        {% if primary_district %}
+          <a href="/neighborhood/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
+        {% endif %}
+        <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
+        <a href="/neighborhood/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit</a>
+      </nav>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 3: CURRENT MARKET HEADLINES (Infosparks Balance Bar + Rates + Chart)
+     ========================================================================== #}
+  {% set ms_len = ms_series | length %}
+  {% set latest_ms_val = ms_series[ms_len - 1].val if ms_len > 0 else null %}
+  
+  {% set rates_list = hourly_rates if hourly_rates else [] %}
+  {% set rates_len = rates_list | length %}
+  {% set latest_rate = rates_list[rates_len - 1] if rates_len > 0 else null %}
+
+  <section id="market-headlines" class="portal-section-widget">
+    <div class="realestate-section-head">
+      <h2 class="text-section-title section-title-clean">Current Market Headlines</h2>
+      {% if latest_rate and latest_rate.Date %}
+        <span class="realestate-cadence-pill">Updated: {{ pretty_date(latest_rate.Date) | trim }}</span>
+      {% endif %}
+    </div>
+
+    <div class="realestate-headlines-split">
+      {# Pos 1: Market Balance Bar (Strictly from Infosparks NWMLS — Zero Fallback) #}
+      {% set current_months_supply = latest_ms_val %}
+      {% include "components/widget/realestate-market-balance-bar.njk" %}
+
+      {# Pos 2: Daily Mortgage Rates Table #}
+      {% if latest_rate %}
+        {% set daily_rate_conventional = latest_rate['30 Year Conventional'] %}
+        {% set daily_rate_fha = latest_rate['30 Year FHA'] %}
+        {% set daily_rate_va = latest_rate['30 Year VA'] %}
+        {% set mortgage_table_heading = "Daily Mortgage Rates" %}
+        {% include "components/widget/realestate-mortgage-rates-daily-table.njk" %}
+      {% endif %}
+    </div>
+
+    {# Pos 3: 30-Day Puget Sound Mortgage Trends Chart #}
+    {% if rates_len > 1 %}
+      {% set rate_conv_vals = [] %}
+      {% set rate_fha_vals = [] %}
+      {% set rate_va_vals = [] %}
+      {% set rate_conv_fmt = [] %}
+      {% set rate_fha_fmt = [] %}
+      {% set rate_va_fmt = [] %}
+      {% set rate_x_labels = [] %}
+      {% set rate_hover_dates = [] %}
+      {% set rate_step = (rates_len / 5) | round(0, 'floor') %}
+      {% set rate_step = rate_step if rate_step >= 1 else 1 %}
+
+      {% for r in rates_list %}
+        {% set _ = rate_conv_vals.push(r['30 Year Conventional'] | replace('%', '') | float) %}
+        {% set _ = rate_fha_vals.push(r['30 Year FHA'] | replace('%', '') | float) %}
+        {% set _ = rate_va_vals.push(r['30 Year VA'] | replace('%', '') | float) %}
+        {% set _ = rate_conv_fmt.push(r['30 Year Conventional']) %}
+        {% set _ = rate_fha_fmt.push(r['30 Year FHA']) %}
+        {% set _ = rate_va_fmt.push(r['30 Year VA']) %}
+        {% set d_clean = r.Date.split(' ')[0] %}
+        {% set _ = rate_hover_dates.push(pretty_date(d_clean) | trim) %}
+        {% if loop.index0 % rate_step == 0 or loop.last %}
+          {% set d_parts = d_clean.split('/') %}
+          {% set _ = rate_x_labels.push(d_parts[0] ~ '/' ~ d_parts[1]) %}
+        {% else %}
+          {% set _ = rate_x_labels.push('') %}
+        {% endif %}
+      {% endfor %}
+
+      {% set chart_title = "30-Day Puget Sound Mortgage Trends" %}
+      {% set chart_x_labels = rate_x_labels %}
+      {% set chart_hover_dates = rate_hover_dates %}
+      {% set chart_y_labels = ["7.8%", "7.5%", "7.2%", "6.9%"] %}
+
+      {% set series_1_name = "30-Yr Conventional" %}
+      {% set series_1_points = spark_points(rate_conv_vals, 6.8, 7.8) | trim %}
+      {% set series_1_raw_vals = rate_conv_vals %}
+      {% set series_1_fmt_vals = rate_conv_fmt %}
+
+      {% set series_2_name = "30-Yr FHA" %}
+      {% set series_2_points = spark_points(rate_fha_vals, 6.8, 7.8) | trim %}
+      {% set series_2_raw_vals = rate_fha_vals %}
+      {% set series_2_fmt_vals = rate_fha_fmt %}
+      
+      {% set series_3_name = "30-Yr VA" %}
+      {% set series_3_points = spark_points(rate_va_vals, 6.8, 7.8) | trim %}
+      {% set series_3_raw_vals = rate_va_vals %}
+      {% set series_3_fmt_vals = rate_va_fmt %}
+
+      {% set series_4_name = "" %}
+      {% set series_4_points = "" %}
+      {% include "components/widget/universal-data-chart-maxfour.njk" %}
+    {% endif %}
+  </section>
+
+  {# ==========================================================================
+     SECTIONS 4 & 5: REAL-TIME MARKET DATA & STACKED VELOCITY CHARTS (Active Cities)
+     ========================================================================== #}
+  {% set market_row = null %}
+  {% if hourly_market %}
+    {% for m in hourly_market %}
+      {% if not market_row and m.City == active_neighborhood %}
+        {% set market_row = m %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% if market_row %}
+    <hr class="section-divider">
+
+    {# SECTION 4: REAL-TIME MARKET DATA (6 Stat Cards) #}
+    <section id="realtime-market-data" class="portal-section-widget">
+      <div class="realestate-section-head">
+        <h2 class="text-section-title section-title-clean">Real-Time Market Data</h2>
+        <span class="realestate-cadence-pill">Updated Every 15 Minutes</span>
+      </div>
+
+      {% set rt_new = market_row['New Listings'] | int %}
+      {% set rt_drops = market_row['Price Drops'] | int %}
+      {% set rt_pending = market_row.Pending | int %}
+      {% set rt_sold = market_row.Sold | int %}
+      {% set rt_avg_price = market_row['Avg New Price'] | float | round %}
+      {% set rt_cuts = market_row['Total Price Cuts ($)'] | float | round %}
+
+      <div class="section-grid-static grid-cols-3">
+        {% set stat_value = rt_new | localeString %}
+        {% set stat_label = "New Listings" %}
+        {% set stat_context = "Past 15 Minutes" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set stat_value = rt_drops | localeString %}
+        {% set stat_label = "Price Drops" %}
+        {% set stat_context = "Past 15 Minutes" %}
+        {% set stat_trend = "positive" if rt_drops > 0 else "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set stat_value = rt_pending | localeString %}
+        {% set stat_label = "Pending Under Contract" %}
+        {% set stat_context = "Active Escrows" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set stat_value = rt_sold | localeString %}
+        {% set stat_label = "Recently Closed" %}
+        {% set stat_context = "Finalized Transfers" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set stat_value = ("$" ~ (rt_avg_price | localeString)) if rt_avg_price > 0 else "--" %}
+        {% set stat_label = "Avg New Price" %}
+        {% set stat_context = "Active Inflow" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set stat_value = "$" ~ (rt_cuts | localeString) %}
+        {% set stat_label = "Total Price Cuts" %}
+        {% set stat_context = "Aggregate Reduction" %}
+        {% set stat_trend = "positive" if rt_cuts > 0 else "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+      </div>
+    </section>
+
+    {# SECTION 5: REAL-TIME DATA GRAPHS (2 Vertically Stacked Charts) #}
+    {% set city_hist_all = [] %}
+    {% if hourly_market_historical %}
+      {% for h in hourly_market_historical %}
+        {% if h.City == active_neighborhood %}
+          {% set _ = city_hist_all.push(h) %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    {% set hist_12 = city_hist_all.slice(-12) %}
+    {% set hist_12_len = hist_12 | length %}
+    {% if hist_12_len > 1 %}
+      <hr class="section-divider">
+
+      {% set h_x_labels = [] %}
+      {% set h_hover_dates = [] %}
+      {% set h_new_vals = [] %}
+      {% set h_drop_vals = [] %}
+      {% set h_pend_vals = [] %}
+      {% set h_sold_vals = [] %}
+      {% set h_avg_k_vals = [] %}
+      {% set h_cut_k_vals = [] %}
+      {% set h_avg_fmt = [] %}
+      {% set h_cut_fmt = [] %}
+      {% set max_vol = 20 %}
+      {% set max_sold = 20 %}
+      {% set max_avg_k = 1000 %}
+      {% set max_cut_k = 200 %}
+
+      {% for h in hist_12 %}
+        {% set n_v = h['New Listings'] | int %}
+        {% set d_v = h['Price Drops'] | int %}
+        {% set p_v = h.Pending | int %}
+        {% set s_v = h.Sold | int %}
+        {% set raw_avg = h['Avg New Price'] | float | round %}
+        {% set raw_cut = h['Total Price Cuts ($)'] | float | round %}
+        {% set a_k = (raw_avg / 1000) | round %}
+        {% set c_k = (raw_cut / 1000) | round %}
+
+        {% set _ = h_new_vals.push(n_v) %}
+        {% set _ = h_drop_vals.push(d_v) %}
+        {% set _ = h_pend_vals.push(p_v) %}
+        {% set _ = h_sold_vals.push(s_v) %}
+        {% set _ = h_avg_k_vals.push(a_k) %}
+        {% set _ = h_cut_k_vals.push(c_k) %}
+        {% set _ = h_avg_fmt.push(("$" ~ (raw_avg | localeString)) if raw_avg > 0 else "$0") %}
+        {% set _ = h_cut_fmt.push("$" ~ (raw_cut | localeString)) %}
+        {% set _ = h_hover_dates.push(pretty_date(h.Timestamp) | trim) %}
+
+        {% if n_v > max_vol %}{% set max_vol = n_v %}{% endif %}
+        {% if d_v > max_vol %}{% set max_vol = d_v %}{% endif %}
+        {% if p_v > max_vol %}{% set max_vol = p_v %}{% endif %}
+        {% if s_v > max_sold %}{% set max_sold = s_v %}{% endif %}
+        {% if a_k > max_avg_k %}{% set max_avg_k = a_k %}{% endif %}
+        {% if c_k > max_cut_k %}{% set max_cut_k = c_k %}{% endif %}
+
+        {% if loop.index0 % 3 == 0 or loop.last %}
+          {% set ts_parts = h.Timestamp.split('/') %}
+          {% set _ = h_x_labels.push(ts_parts[0] ~ '/' ~ ts_parts[1]) %}
+        {% else %}
+          {% set _ = h_x_labels.push('') %}
+        {% endif %}
+      {% endfor %}
+
+      {% set ceil_vol = (((max_vol * 1.1) / 10) | round(0, 'ceil')) * 10 %}
+      {% set ceil_sold = (((max_sold * 1.15) / 10) | round(0, 'ceil')) * 10 %}
+      {% set ceil_avg_k = (((max_avg_k * 1.1) / 250) | round(0, 'ceil')) * 250 %}
+      {% set ceil_cut_k = (((max_cut_k * 1.1) / 100) | round(0, 'ceil')) * 100 %}
+
+      <section id="realtime-data-graphs" class="portal-section-widget">
+        <div class="realestate-section-head">
+          <h2 class="text-section-title section-title-clean">Real-Time Data Graphs</h2>
+          <span class="realestate-cadence-pill">Updated: {{ pretty_date(hist_12[hist_12_len - 1].Timestamp) | trim }}</span>
+        </div>
+
+        <div class="realestate-stacked-charts">
+          {# Top Graph: Pos 1-3 (New Listings, Price Drops, Pending Escrows) #}
+          {% set chart_title = active_neighborhood ~ " Weekly Volume: Listings, Drops & Pending" %}
+          {% set chart_x_labels = h_x_labels %}
+          {% set chart_hover_dates = h_hover_dates %}
+          {% set chart_y_labels = [ceil_vol | int, ((ceil_vol * 0.67) | round) | int, ((ceil_vol * 0.33) | round) | int, 0] %}
+          {% set series_1_name = "New Listings" %}
+          {% set series_1_points = spark_points(h_new_vals, 0, ceil_vol) | trim %}
+          {% set series_1_raw_vals = h_new_vals %}
+          {% set series_1_fmt_vals = [] %}
+          {% set series_2_name = "Price Drops" %}
+          {% set series_2_points = spark_points(h_drop_vals, 0, ceil_vol) | trim %}
+          {% set series_2_raw_vals = h_drop_vals %}
+          {% set series_2_fmt_vals = [] %}
+          {% set series_3_name = "Pending Escrows" %}
+          {% set series_3_points = spark_points(h_pend_vals, 0, ceil_vol) | trim %}
+          {% set series_3_raw_vals = h_pend_vals %}
+          {% set series_3_fmt_vals = [] %}
+          {% set series_4_name = "" %}
+          {% set series_4_points = "" %}
+          {% include "components/widget/universal-data-chart-maxfour.njk" %}
+
+          {# Bottom Graph: Pos 4-6 (Closed Sales, Avg List $k, Total Cuts $k) #}
+          {% set chart_title = active_neighborhood ~ " Weekly Closings & Price Relief Velocity" %}
+          {% set chart_x_labels = h_x_labels %}
+          {% set chart_hover_dates = h_hover_dates %}
+          {% set chart_y_labels = ["Peak", "Upper", "Mid", "Baseline"] %}
+          {% set series_1_name = "Closed Sales" %}
+          {% set series_1_points = spark_points(h_sold_vals, 0, ceil_sold) | trim %}
+          {% set series_1_raw_vals = h_sold_vals %}
+          {% set series_1_fmt_vals = [] %}
+          {% set series_2_name = "Avg List Price" %}
+          {% set series_2_points = spark_points(h_avg_k_vals, 0, ceil_avg_k) | trim %}
+          {% set series_2_raw_vals = h_avg_k_vals %}
+          {% set series_2_fmt_vals = h_avg_fmt %}
+          {% set series_3_name = "Total Price Cuts" %}
+          {% set series_3_points = spark_points(h_cut_k_vals, 0, ceil_cut_k) | trim %}
+          {% set series_3_raw_vals = h_cut_k_vals %}
+          {% set series_3_fmt_vals = h_cut_fmt %}
+          {% set series_4_name = "" %}
+          {% set series_4_points = "" %}
+          {% include "components/widget/universal-data-chart-maxfour.njk" %}
+        </div>
+
+        <div class="realestate-callout-note">
+          <strong>How to read snapshot velocity:</strong> When the Pending Escrows line tracks closely alongside or crosses above New Listings, buyer absorption is outpacing fresh supply—signaling rapid contract turnaround and tight active inventory.
+        </div>
+      </section>
+    {% endif %}
+  {% endif %}
+
+  {# ==========================================================================
+     SECTION 6: MONTHLY MARKET DATA FROM REDFIN (6 Stat Cards)
+     ========================================================================== #}
+  {% if redfin_row %}
+    <hr class="section-divider">
+
+    <section id="redfin-monthly-data" class="portal-section-widget">
+      <div class="realestate-section-head">
+        <h2 class="text-section-title section-title-clean">Monthly Market Data from Redfin</h2>
+        <span class="realestate-cadence-pill">Updated: {{ pretty_date(redfin_row.last_updated or redfin_row.period_end) | trim }}</span>
+      </div>
+
+      <div class="section-grid-static grid-cols-3">
+        {% set stat_value = ("$" ~ ((redfin_row.price_per_sqft | round) | localeString)) if redfin_row.price_per_sqft is not none else "--" %}
+        {% set stat_label = "Price Per Square Foot" %}
+        {% set stat_context = "Median Active Footprint" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set stat_value = ((redfin_row.inventory | int) | localeString) if redfin_row.inventory is not none else "--" %}
+        {% set stat_label = "Active Inventory" %}
+        {% set stat_context = "Available Homes" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set stat_value = ((redfin_row.new_listings | int) | localeString) if redfin_row.new_listings is not none else "--" %}
+        {% set stat_label = "New Listings" %}
+        {% set stat_context = "Quarterly Inflow" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set stat_value = ((redfin_row.pending_sales | int) | localeString) if redfin_row.pending_sales is not none else "--" %}
+        {% set stat_label = "Pending Sales" %}
+        {% set stat_context = "Under Contract" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set cancel_cnt = (redfin_row.contract_cancellations | int) if redfin_row.contract_cancellations is not none else 0 %}
+        {% set stat_value = (cancel_cnt | localeString) if redfin_row.contract_cancellations is not none else "--" %}
+        {% set stat_label = "Contract Cancellations" %}
+        {% set stat_context = "Failed Escrows" %}
+        {% set stat_trend = "negative" if cancel_cnt > 10 else "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set cancel_pct = (redfin_row.cancellation_rate_pct | float) if redfin_row.cancellation_rate_pct is not none else 0 %}
+        {% set stat_value = ((cancel_pct | round(1)) ~ "%") if redfin_row.cancellation_rate_pct is not none else "--" %}
+        {% set stat_label = "Cancellation Rate" %}
+        {% set stat_context = "Contract Fallout Ratio" %}
+        {% set stat_trend = "negative" if cancel_pct > 15 else "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+      </div>
+    </section>
+  {% endif %}
+
+  {# ==========================================================================
+     SECTION 7: MONTHLY MARKET DATA FROM NWMLS (6 Infosparks Stat Cards)
+     ========================================================================== #}
+  {% set has_nwmls = (msp_series | length) > 0 or (cs_series | length) > 0 %}
+  {% if has_nwmls %}
+    <hr class="section-divider">
+
+    {% set msp_len = msp_series | length %}
+    {% set cs_len = cs_series | length %}
+    {% set dom_len = dom_series | length %}
+    {% set spl_len = spl_series | length %}
+    {% set lp_len = lp_series | length %}
+
+    {% set latest_msp = msp_series[msp_len - 1] if msp_len > 0 else null %}
+    {% set latest_cs = cs_series[cs_len - 1] if cs_len > 0 else null %}
+    {% set latest_dom = dom_series[dom_len - 1] if dom_len > 0 else null %}
+    {% set latest_ms = ms_series[ms_len - 1] if ms_len > 0 else null %}
+    {% set latest_spl = spl_series[spl_len - 1] if spl_len > 0 else null %}
+    {% set latest_lp = lp_series[lp_len - 1] if lp_len > 0 else null %}
+    {% set nwmls_updated_date = latest_msp.date if (latest_msp and latest_msp.date) else (latest_cs.date if latest_cs else '') %}
+
+    <section id="nwmls-monthly-data" class="portal-section-widget">
+      <div class="realestate-section-head">
+        <h2 class="text-section-title section-title-clean">Monthly Market Data from NWMLS</h2>
+        {% if nwmls_updated_date %}
+          <span class="realestate-cadence-pill">Updated: {{ nwmls_updated_date }}</span>
+        {% endif %}
+      </div>
+
+      <div class="section-grid-static grid-cols-3">
+        {% set stat_value = ("$" ~ ((latest_msp.val | int) | localeString)) if latest_msp else "--" %}
+        {% set stat_label = "Median Sale Price" %}
+        {% set stat_context = "MLS Final" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set stat_value = ((latest_cs.val | int) | localeString) if latest_cs else "--" %}
+        {% set stat_label = "Closed Sales" %}
+        {% set stat_context = "Monthly Volume" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set dom_v = (latest_dom.val | round) if latest_dom else 0 %}
+        {% set stat_value = (dom_v ~ " Days") if latest_dom else "--" %}
+        {% set stat_label = "Days on Market" %}
+        {% set stat_context = "Market Velocity" %}
+        {% set stat_trend = ("negative" if dom_v > 40 else "positive") if latest_dom else "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set ms_v = (latest_ms.val | float) if latest_ms else 0 %}
+        {% set stat_value = ((ms_v | round(1)) ~ " Mo") if latest_ms else "--" %}
+        {% set stat_label = "Months Supply" %}
+        {% set stat_context = ("Seller's Market" if ms_v < 2.0 else ("Buyer's Market" if ms_v > 4.0 else "Balanced Market")) if latest_ms else "Supply Ratio" %}
+        {% set stat_trend = ("negative" if ms_v > 4.0 else "neutral") if latest_ms else "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set spl_v = (latest_spl.val | float) if latest_spl else 0 %}
+        {% set stat_value = (spl_v | round(1)) if latest_spl else "--" %}
+        {% set stat_label = "Showings Per Listing" %}
+        {% set stat_context = "Buyer Foot Traffic" %}
+        {% set stat_trend = ("positive" if spl_v >= 6.0 else "neutral") if latest_spl else "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set lp_v = (latest_lp.val | float) if latest_lp else 0 %}
+        {% set stat_value = (((lp_v * 100) | round(1)) ~ "%") if latest_lp else "--" %}
+        {% set stat_label = "Sale-to-List Ratio" %}
+        {% set stat_context = ("Over-Asking Demand" if lp_v >= 1.0 else "Discount to List") if latest_lp else "List Price Realization" %}
+        {% set stat_trend = ("positive" if lp_v >= 1.0 else "neutral") if latest_lp else "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+      </div>
+
+      <div class="realestate-callout-note">
+        <strong>Understanding Market Speed &amp; Foot Traffic:</strong> <strong>Showings Per Listing</strong> tracks real physical tours per active home, while <strong>Sale-to-List Ratio</strong> shows whether buyers are bidding above asking (&ge;100%) or negotiating discounts below list price.
+      </div>
+    </section>
+
+    {# ========================================================================
+       SECTION 8: MONTHLY MARKET GRAPHS FROM NWMLS (2 Stacked 12-Month Charts)
+       ======================================================================== #}
+    {% set msp_12 = msp_series.slice(-12) %}
+    {% set cs_12 = cs_series.slice(-12) %}
+    {% set dom_12 = dom_series.slice(-12) %}
+    {% set ms_12 = ms_series.slice(-12) %}
+    {% set spl_12 = spl_series.slice(-12) %}
+    {% set lp_12 = lp_series.slice(-12) %}
+
+    {% if (msp_12 | length) > 1 and (cs_12 | length) > 1 %}
+      <hr class="section-divider">
+
+      {% set nw_x_labels = [] %}
+      {% set nw_hover_dates = [] %}
+      {% set msp_k_vals = [] %}
+      {% set msp_fmt = [] %}
+      {% set cs_vals = [] %}
+      {% set dom_vals = [] %}
+      {% set dom_fmt = [] %}
+      {% set ms_vals = [] %}
+      {% set ms_fmt = [] %}
+      {% set spl_vals = [] %}
+      {% set lp_pct_vals = [] %}
+      {% set lp_fmt = [] %}
+
+      {% set min_msp_k = 999999 %}
+      {% set max_msp_k = 0 %}
+      {% set max_cs = 10 %}
+      {% set max_dom = 20 %}
+      {% set max_ms = 4 %}
+      {% set max_spl = 8 %}
+
+      {% for item in msp_12 %}
+        {% set pk = item.val / 1000 %}
+        {% set _ = msp_k_vals.push(pk) %}
+        {% set _ = msp_fmt.push("$" ~ ((item.val | int) | localeString)) %}
+        {% if pk < min_msp_k %}{% set min_msp_k = pk %}{% endif %}
+        {% if pk > max_msp_k %}{% set max_msp_k = pk %}{% endif %}
+      {% endfor %}
+
+      {% for item in cs_12 %}
+        {% set _ = cs_vals.push(item.val | int) %}
+        {% set _ = nw_hover_dates.push(item.date) %}
+        {% if item.val > max_cs %}{% set max_cs = item.val %}{% endif %}
+        {% if loop.index0 % 3 == 0 or loop.last %}
+          {% set dp = item.date.split(' ') %}
+          {% set _ = nw_x_labels.push(dp[0].slice(0, 3) ~ ' ' ~ dp[1].slice(2, 4)) %}
+        {% else %}
+          {% set _ = nw_x_labels.push('') %}
+        {% endif %}
+      {% endfor %}
+
+      {% for item in dom_12 %}
+        {% set _ = dom_vals.push(item.val | round) %}
+        {% set _ = dom_fmt.push((item.val | round) ~ " Days") %}
+        {% if item.val > max_dom %}{% set max_dom = item.val %}{% endif %}
+      {% endfor %}
+
+      {% for item in ms_12 %}
+        {% set _ = ms_vals.push(item.val | round(1)) %}
+        {% set _ = ms_fmt.push((item.val | round(1)) ~ " Mo") %}
+        {% if item.val > max_ms %}{% set max_ms = item.val %}{% endif %}
+      {% endfor %}
+
+      {% for item in spl_12 %}
+        {% set _ = spl_vals.push(item.val | round(1)) %}
+        {% if item.val > max_spl %}{% set max_spl = item.val %}{% endif %}
+      {% endfor %}
+
+      {% for item in lp_12 %}
+        {% set pct_v = (item.val * 100) | round(1) %}
+        {% set _ = lp_pct_vals.push(pct_v) %}
+        {% set _ = lp_fmt.push(pct_v ~ "%") %}
+      {% endfor %}
+
+      {% set floor_msp_k = ((min_msp_k * 0.9) / 50 | round(0, 'floor')) * 50 %}
+      {% set ceil_msp_k = ((max_msp_k * 1.08) / 50 | round(0, 'ceil')) * 50 %}
+      {% set ceil_cs = (((max_cs * 1.15) / 10) | round(0, 'ceil')) * 10 %}
+      {% set ceil_dom = (((max_dom * 1.15) / 10) | round(0, 'ceil')) * 10 %}
+      {% set ceil_ms = (((max_ms * 1.15) / 2) | round(0, 'ceil')) * 2 %}
+      {% set ceil_spl = (((max_spl * 1.15) / 2) | round(0, 'ceil')) * 2 %}
+
+      <section id="nwmls-market-graphs" class="portal-section-widget">
+        <div class="realestate-section-head">
+          <h2 class="text-section-title section-title-clean">Monthly Market Graphs from NWMLS</h2>
+          {% if nwmls_updated_date %}
+            <span class="realestate-cadence-pill">Updated: {{ nwmls_updated_date }}</span>
+          {% endif %}
+        </div>
+
+        <div class="realestate-stacked-charts">
+          {# Top Graph: Median Sale Price, Closed Sales, Average Days on Market #}
+          {% set chart_title = active_neighborhood ~ " 12-Month Market Velocity (Price, Sales & DOM)" %}
+          {% set chart_x_labels = nw_x_labels %}
+          {% set chart_hover_dates = nw_hover_dates %}
+          {% set chart_y_labels = ["Peak", "Upper", "Mid", "Floor"] %}
+          {% set series_1_name = "Median Price" %}
+          {% set series_1_points = spark_points(msp_k_vals, floor_msp_k, ceil_msp_k) | trim %}
+          {% set series_1_raw_vals = msp_k_vals %}
+          {% set series_1_fmt_vals = msp_fmt %}
+          {% set series_2_name = "Closed Sales" %}
+          {% set series_2_points = spark_points(cs_vals, 0, ceil_cs) | trim %}
+          {% set series_2_raw_vals = cs_vals %}
+          {% set series_2_fmt_vals = [] %}
+          {% set series_3_name = "Days on Market" %}
+          {% set series_3_points = spark_points(dom_vals, 0, ceil_dom) | trim %}
+          {% set series_3_raw_vals = dom_vals %}
+          {% set series_3_fmt_vals = dom_fmt %}
+          {% set series_4_name = "" %}
+          {% set series_4_points = "" %}
+          {% include "components/widget/universal-data-chart-maxfour.njk" %}
+
+          {# Bottom Graph: Months Supply, Shows / Listing, Sale/List % #}
+          {% set chart_title = active_neighborhood ~ " 12-Month Buyer Demand & Price Pressure" %}
+          {% set chart_x_labels = nw_x_labels %}
+          {% set chart_hover_dates = nw_hover_dates %}
+          {% set chart_y_labels = ["Peak", "Upper", "Mid", "Floor"] %}
+          {% set series_1_name = "Months Supply" %}
+          {% set series_1_points = spark_points(ms_vals, 0, ceil_ms) | trim %}
+          {% set series_1_raw_vals = ms_vals %}
+          {% set series_1_fmt_vals = ms_fmt %}
+          {% set series_2_name = "Shows / Listing" %}
+          {% set series_2_points = spark_points(spl_vals, 0, ceil_spl) | trim %}
+          {% set series_2_raw_vals = spl_vals %}
+          {% set series_2_fmt_vals = [] %}
+          {% set series_3_name = "Sale/List %" %}
+          {% set series_3_points = spark_points(lp_pct_vals, 90, 110) | trim %}
+          {% set series_3_raw_vals = lp_pct_vals %}
+          {% set series_3_fmt_vals = lp_fmt %}
+          {% set series_4_name = "" %}
+          {% set series_4_points = "" %}
+          {% include "components/widget/universal-data-chart-maxfour.njk" %}
+        </div>
+      </section>
+    {% endif %}
+  {% endif %}
+
+  {# ==========================================================================
+     SECTION 9: MIGRATION DATA AND MAP (Redfin Seattle Metro Relocation Flows)
+     ========================================================================== #}
+  {% set sea_migration = redfin_migration.data.metros['Seattle, WA'] if (redfin_migration and redfin_migration.data and redfin_migration.data.metros) else null %}
+  {% if sea_migration %}
+    <hr class="section-divider">
+
+    {% set migration_inflows = [] %}
+    {% for item in sea_migration.top_inflow %}
+      {% set net_num = item['NET FLOW (ORIGIN TO DESTINATION)'] | round %}
+      {% set net_str = ("+" ~ (net_num | localeString) ~ " Net") if net_num > 0 else ((net_num | localeString) ~ " Net") %}
+      {% set _ = migration_inflows.push({
+        "city": item['ORIGIN REGION NAME'],
+        "share": ((item['PCT OF DESTINATION INFLOW (%)'] | round(1)) ~ "%"),
+        "net": net_str
+      }) %}
+    {% endfor %}
+
+    {% set migration_outflows = [] %}
+    {% for item in sea_migration.top_outflow %}
+      {% set net_num = item['NET FLOW (ORIGIN TO DESTINATION)'] | round %}
+      {% set net_str = ("+" ~ (net_num | localeString) ~ " Net") if net_num > 0 else ((net_num | localeString) ~ " Net") %}
+      {% set _ = migration_outflows.push({
+        "city": item['DESTINATION REGION NAME'],
+        "share": ((item['PCT OF ORIGIN OUTFLOW (%)'] | round(1)) ~ "%"),
+        "net": net_str
+      }) %}
+    {% endfor %}
+
+    <section id="migration-dynamics" class="portal-section-widget">
+      <div class="realestate-section-head">
+        <h2 class="text-section-title section-title-clean">Migration Data &amp; Relocation Map</h2>
+        {% if redfin_migration.last_updated_utc %}
+          <span class="realestate-cadence-pill">Updated: {{ pretty_date(redfin_migration.last_updated_utc) | trim }}</span>
+        {% endif %}
+      </div>
+
+      {% set migration_map_title = active_neighborhood ~ " Regional Migration Dynamics" %}
+      {% include "components/widget/realestate-migration-map.njk" %}
+    </section>
+  {% endif %}
+
+  {# ==========================================================================
+     SECTION 10: REGIONAL HOUSING AFFORDABILITY METRICS
+     ========================================================================== #}
+  {% set afford_rows = redfin_monthly_stats.affordability if (redfin_monthly_stats and redfin_monthly_stats.affordability) else [] %}
+  {% set sea_afford = [] %}
+  {% for r in afford_rows %}
+    {% if r['REGION NAME'] == 'Seattle, WA metro area' %}
+      {% set _ = sea_afford.push(r) %}
+    {% endif %}
+  {% endfor %}
+
+  {% if (sea_afford | length) > 0 %}
+    <hr class="section-divider">
+
+    {% set latest_aff_row = sea_afford[(sea_afford | length) - 1] %}
+    {% set latest_aff_period = latest_aff_row['PERIOD END'] %}
+    {% set aff_updated_raw = latest_aff_row['LAST UPDATED'] or redfin_monthly_stats.last_updated_utc %}
+    {% set cur_aff = [] %}
+    {% for r in sea_afford %}
+      {% if r['PERIOD END'] == latest_aff_period %}
+        {% set _ = cur_aff.push(r) %}
+      {% endif %}
+    {% endfor %}
+
+    {# 10A. Property Tier Ladder (3.5% Down, All Households) #}
+    {% set tier_specs = [
+      { "raw": "Condo/Co-op", "label": "Condo / Co-op" },
+      { "raw": "Starter Home", "label": "Starter Home" },
+      { "raw": "Townhouse", "label": "Townhouse" },
+      { "raw": "Single Family", "label": "Single-Family" }
+    ] %}
+    {% set property_tier_ladder = [] %}
+    {% for ts in tier_specs %}
+      {% for r in cur_aff %}
+        {% if r['PROPERTY TYPE'] == ts.raw and r['INCOME GROUP'] == 'All' and r['DOWN PAYMENT PERCENT (%)'] == 3.5 %}
+          {% set p_val = r['MEDIAN SALE PRICE ($)'] | float %}
+          {% set i_val = r['INCOME REQUIRED ($)'] | float %}
+          {% set m_val = r['MONTHLY HOUSING PAYMENT ($)'] | float %}
+          {% set p_pct = ((p_val / 1000000) * 100) | round %}
+          {% set i_pct = ((i_val / 300000) * 100) | round %}
+          {% set _ = property_tier_ladder.push({
+            "type": ts.label,
+            "price_fmt": "$" ~ ((p_val | round) | localeString),
+            "income_fmt": "$" ~ ((i_val | round) | localeString),
+            "payment": "$" ~ ((m_val | round) | localeString),
+            "price_pct": 100 if p_pct > 100 else p_pct,
+            "inc_pct": 100 if i_pct > 100 else i_pct
+          }) %}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+
+    {# 10B. Downpayment Matrix (All Residential, All Households across 3.5%–20%) #}
+    {% set dp_tiers = [3.5, 5.0, 10.0, 15.0, 20.0] %}
+    {% set downpayment_matrix = [] %}
+    {% for dp in dp_tiers %}
+      {% for r in cur_aff %}
+        {% if r['PROPERTY TYPE'] == 'All Residential' and r['INCOME GROUP'] == 'All' and r['DOWN PAYMENT PERCENT (%)'] == dp %}
+          {% set tot = r['MONTHLY HOUSING PAYMENT ($)'] | float %}
+          {% set mort = r['MONTHLY MORTGAGE PAYMENT ($)'] | float %}
+          {% set tax = r['MONTHLY PROPERTY TAX ($)'] | float %}
+          {% set ins = r['MONTHLY PROPERTY INSURANCE ($)'] | float %}
+          {% set pmi = r['MONTHLY PMI ($)'] | float %}
+          {% set safe_tot = tot if tot > 0 else 1 %}
+          {% set _ = downpayment_matrix.push({
+            "tier": (dp | round(1)) ~ "% Down",
+            "down": "$" ~ ((r['DOWN PAYMENT AMOUNT ($)'] | float | round) | localeString),
+            "mort": "$" ~ ((mort | round) | localeString),
+            "tax": "$" ~ ((tax | round) | localeString),
+            "ins": "$" ~ ((ins | round) | localeString),
+            "pmi": "$" ~ ((pmi | round) | localeString),
+            "total": "$" ~ ((tot | round) | localeString),
+            "income": "$" ~ ((r['INCOME REQUIRED ($)'] | float | round) | localeString),
+            "p_mort": ((mort / safe_tot) * 100) | round,
+            "p_tax": ((tax / safe_tot) * 100) | round,
+            "p_ins": ((ins / safe_tot) * 100) | round,
+            "p_pmi": ((pmi / safe_tot) * 100) | round
+          }) %}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+
+    {# 10C. Household Purchasing Power (All Residential, 3.5% Down) #}
+    {% set hh_groups = [
+      { "raw": "Renter", "label": "Renter Households" },
+      { "raw": "All", "label": "All Households (Median)" },
+      { "raw": "White", "label": "White Households" },
+      { "raw": "Asian", "label": "Asian Households" },
+      { "raw": "Homeowner", "label": "Homeowner Households" }
+    ] %}
+    {% set household_power_data = [] %}
+    {% for hg in hh_groups %}
+      {% for r in cur_aff %}
+        {% if r['PROPERTY TYPE'] == 'All Residential' and r['INCOME GROUP'] == hg.raw and r['DOWN PAYMENT PERCENT (%)'] == 3.5 %}
+          {% set hh_inc = r['MEDIAN HOUSEHOLD INCOME ($)'] | float %}
+          {% set bar_pct = ((hh_inc / 300000) * 100) | round %}
+          {% set _ = household_power_data.push({
+            "group": hg.label,
+            "inc_fmt": "$" ~ ((hh_inc | round) | localeString),
+            "years_save": ((r['YEARS TO SAVE DOWN PAYMENT'] | float | round(1)) ~ " Yrs"),
+            "share": ((r['AFFORDABLE LISTING SHARE (%)'] | float | round(1)) ~ "%"),
+            "pct": 100 if bar_pct > 100 else bar_pct
+          }) %}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+
+    <section id="housing-affordability" class="portal-section-widget">
+      <div class="realestate-section-head">
+        <h2 class="text-section-title section-title-clean">Regional Housing Affordability Metrics</h2>
+        {% if aff_updated_raw %}
+          <span class="realestate-cadence-pill">Updated: {{ pretty_date(aff_updated_raw) | trim }}</span>
+        {% endif %}
+      </div>
+
+      {% set dashboard_title = active_neighborhood ~ " Regional Housing Affordability & Purchasing Power" %}
+      {% include "components/widget/realestate-housing-affordability-dashboard.njk" %}
+    </section>
+  {% endif %}
+
+</main>
+
+<script>
+(function() {
+  document.querySelectorAll('[data-interactive-chart]').forEach(function(wrap) {
+    var tooltip = wrap.querySelector('.chart-floating-tooltip');
+    var crosshair = wrap.querySelector('.chart-crosshair-line');
+    var dots = wrap.querySelectorAll('.chart-data-dot');
+    var bands = wrap.querySelectorAll('.chart-hit-band');
+    if (!tooltip || !bands.length) return;
+
+    function clearHighlight() {
+      tooltip.classList.remove('is-visible');
+      if (crosshair) crosshair.classList.remove('is-visible');
+      dots.forEach(function(d) { d.classList.remove('is-active'); });
+    }
+
+    bands.forEach(function(band) {
+      band.addEventListener('mouseenter', function() {
+        var step = band.getAttribute('data-step');
+        var cx = parseFloat(band.getAttribute('data-cx') || '0');
+        var dateStr = band.getAttribute('data-date') || '';
+        var payload = band.getAttribute('data-payload') || '';
+
+        if (crosshair) {
+          crosshair.setAttribute('x1', cx);
+          crosshair.setAttribute('x2', cx);
+          crosshair.classList.add('is-visible');
+        }
+
+        dots.forEach(function(d) {
+          d.classList.toggle('is-active', d.getAttribute('data-step') === step);
+        });
+
+        var rows = payload.split('||').filter(Boolean).map(function(entry) {
+          var parts = entry.split('::');
+          var cls = parts[0] || 'series-1';
+          var label = parts[1] || '';
+          var val = parts[2] || '';
+          return '<div class="chart-tooltip-row">' +
+            '<span class="chart-tooltip-series"><span class="chart-tooltip-dot ' + cls + '"></span>' + label + '</span>' +
+            '<span class="chart-tooltip-val">' + val + '</span>' +
+          '</div>';
+        }).join('');
+
+        tooltip.innerHTML = (dateStr ? '<div class="chart-tooltip-date">' + dateStr + '</div>' : '') + rows;
+        tooltip.classList.add('is-visible');
+
+        if (cx > 560) {
+          tooltip.style.left = 'auto';
+          tooltip.style.right = '16px';
+        } else {
+          tooltip.style.right = 'auto';
+          tooltip.style.left = '16px';
+        }
+      });
+    });
+
+    wrap.addEventListener('mouseleave', clearHighlight);
+  });
+})();
+</script>

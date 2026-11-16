@@ -1,0 +1,237 @@
+---
+layout: layouts/base.njk
+permalink: "/realestate/propertyviewer/index.html"
+title: "Property Viewer"
+---
+<main class="layout-container layout-stack-main" id="property-viewer-root">
+
+  {# ==========================================================================
+     STATE 1: LANDING & SEARCH (Sections 2 & 3)
+     ========================================================================== #}
+  <section id="viewer-landing-state" class="portal-section-header">
+    <div class="surface-bento" style="text-align: center; padding: clamp(2rem, 4vw, 4rem) 1.5rem;">
+      <h1 class="text-section-title">Property Viewer</h1>
+      <p class="text-body-secondary" style="max-width: 640px; margin: 0 auto 2.5rem auto;">
+        Welcome to the Property Viewer! This page provides easy access to public data on most homes and parcels throughout King and Snohomish Counties. Currently you can look up any property by address or parcel number, and in the future you will be able to claim your home to track changes and look for issues.
+      </p>
+      
+      <div class="property-viewer-search-wrap">
+        <input type="text" id="parcel-search-input" class="form-input property-search-input" placeholder="Enter Address or Parcel Number..." aria-label="Property Search" />
+        <button id="btn-search-parcel" class="btn btn-primary prop-search-btn">Search</button>
+        <button id="btn-near-me" class="btn btn-secondary prop-search-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right: 0.35rem;"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+          Near Me
+        </button>
+      </div>
+    </div>
+  </section>
+
+  {# ==========================================================================
+     STATE 2: POPULATED PROPERTY VIEW (Sections 4 - 13)
+     ========================================================================== #}
+  <div id="viewer-populated-state" class="is-hidden layout-stack-main">
+    
+    {# Section 4: Property Flags #}
+    <section id="prop-flags-container" class="prop-flags-grid is-hidden">
+      <div class="alert-center-wrapper is-alert" id="flag-ccr">
+        <a href="/realestate/ccrstrike/" class="alert-center-trigger">
+          <div class="alert-led-dot"></div>
+          <div class="alert-text-stack">
+            <span class="alert-label-top">Restriction Found</span>
+            <span class="alert-status-bottom">Illegally Restrictive CC&Rs</span>
+          </div>
+        </a>
+      </div>
+      <div class="alert-center-wrapper is-alert" id="flag-tax">
+        <a href="/realestate/resources/propertytaxappeal/" class="alert-center-trigger">
+          <div class="alert-led-dot"></div>
+          <div class="alert-text-stack">
+            <span class="alert-label-top">Assessment Anomaly</span>
+            <span class="alert-status-bottom">Tax Appeal Recommended</span>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    {# Section 5: General Property Information & Photo #}
+    <section id="prop-general-info" class="portal-section-widget">
+      <div class="section-grid-static grid-cols-2">
+        <div class="surface-bento">
+          <h2 class="text-widget-title" id="prop-address-display">--</h2>
+          <p class="text-body-secondary" id="prop-parcel-display">Parcel: --</p>
+          
+          <div class="prop-data-grid">
+            <div>
+              <span class="prop-metric-label text-accent-alpine">YEAR BUILT</span>
+              <p class="prop-metric-value" id="prop-year-built">--</p>
+            </div>
+            <div>
+              <span class="prop-metric-label text-accent-alpine">SQUARE FOOTAGE</span>
+              <p class="prop-metric-value" id="prop-sqft">--</p>
+            </div>
+            <div>
+              <span class="prop-metric-label text-accent-alpine">BEDS / BATHS</span>
+              <p class="prop-metric-value" id="prop-beds-baths">--</p>
+            </div>
+            <div>
+              <span class="prop-metric-label text-accent-alpine">LOT SIZE (SQFT)</span>
+              <p class="prop-metric-value" id="prop-lot-size">--</p>
+            </div>
+          </div>
+        </div>
+
+        {# Compose Canonical Image Viewport Box (Restricted to single frame via JS) #}
+        {% set viewport_box_id = "prop-primary-photo-viewport" %}
+        {% set viewport_images = [{ url: "/assets/graphics/placeholder-home.svg", alt: "Property Loading" }] %}
+        {% include "components/widget/image-viewport-box.njk" ignore missing %}
+      </div>
+    </section>
+
+    {# Section 6: Subdivision and Condo Data #}
+    <section id="prop-subdivision-data" class="portal-section-widget is-hidden">
+      <div class="surface-bento" id="condo-status-container">
+        <h3 class="text-widget-title">Condominium Approvals</h3>
+        <div class="prop-flags-grid" style="justify-content: flex-start; margin: 1rem 0 0 0;">
+          <div class="alert-center-wrapper" id="fha-approval-badge">
+            <div class="alert-center-trigger">
+              <div class="alert-led-dot"></div>
+              <div class="alert-text-stack">
+                <span class="alert-label-top">FHA Financing</span>
+                <span class="alert-status-bottom" id="fha-status-text">--</span>
+              </div>
+            </div>
+          </div>
+          <div class="alert-center-wrapper" id="va-approval-badge">
+            <div class="alert-center-trigger">
+              <div class="alert-led-dot"></div>
+              <div class="alert-text-stack">
+                <span class="alert-label-top">VA Financing</span>
+                <span class="alert-status-bottom" id="va-status-text">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {# Section 7: Value Estimate (AVM) & Inquiry #}
+    <section id="prop-value-estimate" class="portal-section-widget">
+      <h2 class="text-section-title section-title-clean">Automated Value Estimate</h2>
+      <div class="surface-bento">
+        <h3 class="prop-avm-display" id="prop-avm-value">--</h3>
+        <p class="text-body-secondary" style="margin-bottom: 1.5rem;">
+          This estimate is calculated using our proprietary valuation model analyzing recent sales, market friction, and hyper-local property attributes. <a href="/realestate/calculators/estnetproceeds/" class="text-accent-alpine">Calculate your estimated seller net proceeds here &rarr;</a>
+        </p>
+        
+        <hr class="section-divider" style="margin: 2rem 0;" />
+        
+        <h4 class="text-widget-title">Value Discrepancy or Market Analysis Request</h4>
+        <p class="text-body-secondary" style="font-size: 0.85rem; margin-bottom: 1.5rem;">
+          Notice an anomaly? Submitting an AVM correction helps us calibrate our algorithm over time (it does not instantly overwrite the displayed value). If you are preparing to sell, request a manual Comparative Market Analysis (CMA) for exact pricing.
+        </p>
+        
+        <form id="avm-inquiry-form" class="prop-form-grid">
+          <div class="prop-form-grid-split">
+            <label class="calc-checkbox-label">
+              <input type="radio" name="inquiry_type" value="avm-inquiry" checked /> Flag AVM Data Issue
+            </label>
+            <label class="calc-checkbox-label">
+              <input type="radio" name="inquiry_type" value="cma-request" /> Request Manual CMA
+            </label>
+          </div>
+          
+          <div class="prop-form-grid-split">
+            <input type="text" id="inq-first-name" class="form-input" placeholder="First Name" required />
+            <input type="text" id="inq-last-name" class="form-input" placeholder="Last Name" required />
+          </div>
+          <div class="prop-form-grid-split">
+            <input type="email" id="inq-email" class="form-input" placeholder="Email Address" required />
+            <input type="tel" id="inq-phone" class="form-input" placeholder="Phone Number" />
+          </div>
+          <textarea id="inq-notes" class="form-input" placeholder="Additional details regarding the property condition or data anomaly..." rows="3" style="min-height: 80px; padding-top: 0.75rem;"></textarea>
+          
+          <div style="margin-top: 0.5rem;">
+            <button type="submit" class="btn btn-primary" id="btn-submit-inquiry" style="width: auto;">Submit to Operations</button>
+            <div id="inquiry-status-msg" class="text-body-secondary" style="font-size: 0.85rem; margin-top: 0.5rem;"></div>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    {# Section 10 & 11: Utilities & Wastewater Infrastructure #}
+    <section id="prop-utilities" class="portal-section-widget">
+      <h2 class="text-section-title section-title-clean">Utility Providers & Infrastructure</h2>
+      <div class="section-grid-static grid-cols-2">
+        <div class="surface-bento" id="utility-electric-water">
+          <h3 class="text-widget-title">Core Utilities</h3>
+          <ul class="prop-utility-list">
+            <li class="prop-utility-item"><span class="prop-metric-label text-accent-alpine">ELECTRICITY</span> <span class="prop-utility-val" id="util-electric">--</span></li>
+            <li class="prop-utility-item"><span class="prop-metric-label text-accent-alpine">WATER</span> <span class="prop-utility-val" id="util-water">--</span></li>
+            <li class="prop-utility-item"><span class="prop-metric-label text-accent-alpine">NATURAL GAS</span> <span class="prop-utility-val" id="util-gas">--</span></li>
+            <li class="prop-utility-item"><span class="prop-metric-label text-accent-alpine">REFUSE</span> <span class="prop-utility-val" id="util-refuse">--</span></li>
+          </ul>
+        </div>
+        
+        <div class="surface-bento" id="utility-wastewater">
+          <h3 class="text-widget-title">Wastewater Infrastructure</h3>
+          <div id="wastewater-sewer-block" class="is-hidden" style="margin-top: 1.25rem;">
+            <div class="prop-utility-item" style="margin-bottom: 0.85rem;"><span class="prop-metric-label text-accent-alpine">TYPE</span> <span class="prop-utility-val">Public Sewer</span></div>
+            <div class="prop-utility-item"><span class="prop-metric-label text-accent-alpine">PROVIDER</span> <span class="prop-utility-val" id="ww-provider">--</span></div>
+            <div id="ww-capacity-charge" class="alert-center-wrapper is-alert" style="margin-top: 1.5rem;">
+              <a href="/realestate/resources/kcsewercapacitycharge/" class="alert-center-trigger">
+                <div class="alert-led-dot"></div>
+                <div class="alert-text-stack">
+                  <span class="alert-label-top">Active Assessment</span>
+                  <span class="alert-status-bottom">Capacity Charge Applies</span>
+                </div>
+              </a>
+            </div>
+          </div>
+          <div id="wastewater-septic-block" class="is-hidden" style="margin-top: 1.25rem;">
+            <div class="prop-utility-item" style="margin-bottom: 0.85rem;"><span class="prop-metric-label text-accent-alpine">TYPE</span> <span class="prop-utility-val">Private Septic System</span></div>
+            <div class="prop-utility-item" style="margin-bottom: 0.85rem;"><span class="prop-metric-label text-accent-alpine">INSTALLED</span> <span class="prop-utility-val" id="ww-septic-year">--</span></div>
+            <div class="prop-utility-item"><span class="prop-metric-label text-accent-alpine">LAST INSPECTED</span> <span class="prop-utility-val" id="ww-septic-inspected">--</span></div>
+            <a href="#" id="btn-view-asbuilt" class="btn btn-secondary" style="margin-top: 1.5rem; display: none;">View County As-Built Documents</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {# Section 12: Maps #}
+    <section id="prop-maps" class="portal-section-widget">
+      <h2 class="text-section-title section-title-clean">Property Map & Boundaries</h2>
+      <div class="widget-map-custom custom-map-card">
+        <header class="map-header-row">
+          <div class="map-title-stack">
+            <h3 class="map-card-title text-widget-title">Parcel Geography</h3>
+          </div>
+          <div class="map-layer-pill layer-base">Mapbox GL</div>
+        </header>
+        <div class="map-viewport-frame map-aspect-widescreen" id="parcel-map-mount"></div>
+      </div>
+    </section>
+
+    {# Section 13: Taxes & History #}
+    <section id="prop-history" class="portal-section-widget">
+      <h2 class="text-section-title section-title-clean">Tax & Transaction History</h2>
+      <div class="surface-bento table-scroll-container">
+        <table class="timeline-data-table" id="transaction-history-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Event</th>
+              <th>Price</th>
+              <th>Buyer / Seller</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Hydrated via JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<script type="module" src="/assets/js/property-viewer.js"></script>

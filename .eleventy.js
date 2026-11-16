@@ -29,14 +29,14 @@ module.exports = function(eleventyConfig) {
     const now = new Date();
     const dateStr = new Intl.DateTimeFormat("en-US", {
       timeZone: "America/Los_Angeles",
-      month: "short", 
-      day: "numeric", 
+      month: "short",
+      day: "numeric",
       year: "numeric"
     }).format(now);
     const timeStr = new Intl.DateTimeFormat("en-US", {
       timeZone: "America/Los_Angeles",
-      hour: "numeric", 
-      minute: "2-digit", 
+      hour: "numeric",
+      minute: "2-digit",
       timeZoneName: "short"
     }).format(now);
     return `${dateStr} at ${timeStr}`;
@@ -88,8 +88,8 @@ module.exports = function(eleventyConfig) {
     const date = new Date(dateObj);
     return new Intl.DateTimeFormat("en-US", {
       timeZone: "America/Los_Angeles",
-      month: "long", 
-      day: "numeric", 
+      month: "long",
+      day: "numeric",
       year: "numeric"
     }).format(date);
   });
@@ -140,6 +140,41 @@ module.exports = function(eleventyConfig) {
     return allGames.slice(0, count);
   });
 
+  // Dynamic Metro & State SVG Coordinate Resolver (reads data/us_metro_coords.json)
+  let metroCoordsCache = null;
+  eleventyConfig.addFilter("resolveMetroPoint", function(regionName) {
+    if (!metroCoordsCache) {
+      const coordsPath = path.join(__dirname, "data", "us_metro_coords.json");
+      if (fs.existsSync(coordsPath)) {
+        try {
+          metroCoordsCache = JSON.parse(fs.readFileSync(coordsPath, "utf-8"));
+        } catch (e) {
+          console.error("Error reading us_metro_coords.json:", e);
+          metroCoordsCache = {};
+        }
+      } else {
+        metroCoordsCache = {};
+      }
+    }
+
+    if (!regionName) return null;
+    const clean = String(regionName).trim();
+    if (metroCoordsCache[clean]) return metroCoordsCache[clean];
+
+    const stateMatch = clean.match(/,\s*([A-Z]{2})$/);
+    if (stateMatch && metroCoordsCache[stateMatch[1]]) {
+      return metroCoordsCache[stateMatch[1]];
+    }
+    return null;
+  });
+
+  // Custom Nunjucks Test: Jinja2 "none" compatibility for widget partials
+  eleventyConfig.amendLibrary("njk", function(njkEnv) {
+    njkEnv.addTest("none", function(value) {
+      return value === null || value === undefined || value === "";
+    });
+  });
+
   // Collections (posts archive)
   eleventyConfig.addCollection("posts", function(collectionApi) {
     return collectionApi.getFilteredByGlob("posts/*.md");
@@ -147,11 +182,11 @@ module.exports = function(eleventyConfig) {
 
   // Canonical Eleventy Engine Configuration
   return {
-    htmlTemplateEngine: false, 
-    templateFormats: ["njk", "md"], 
+    htmlTemplateEngine: false,
+    templateFormats: ["njk", "md"],
     dir: {
-      input: ".",          
-      output: "_site",     
+      input: ".",
+      output: "_site",
       includes: "_includes",
       data: "data"
     }

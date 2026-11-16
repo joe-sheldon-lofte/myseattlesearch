@@ -1,22 +1,17 @@
 <!-- File: _includes/components/widget/realestate-mortgage-rates-daily-table.njk -->
 {# 
   COMPONENT: Daily Mortgage Interest Rates Table (widget.realestate.mortgage.rates.daily.table)
-  PURPOSE: Real-time Puget Sound residential loan benchmarks for 30-year conventional, FHA, and VA products.
   CONTRACT:
-    - daily_rate_conventional / mortgage_rates.conventional: String [Optional, e.g. "6.84%"]
-    - daily_rate_fha / mortgage_rates.fha: String [Optional, e.g. "6.35%"]
-    - daily_rate_va / mortgage_rates.va: String [Optional, e.g. "6.38%"]
-    - mortgage_table_heading / table_title: String [Optional, defaults to "Daily Mortgage Rates"]
-    - mortgage_rate_date / rate_date: String [Optional, defaults to "Today"]
-    - mortgage_source_label: String [Optional, defaults to "Source: Mortgage News Daily"]
+    - daily_rate_conventional: String [Optional, e.g. "6.84%"]
+    - daily_rate_fha: String [Optional, e.g. "6.35%"]
+    - daily_rate_va: String [Optional, e.g. "6.38%"]
+    - mortgage_table_heading: String [Optional, defaults to "Daily Mortgage Rates"]
 #}
 
-{% set rate_conv = daily_rate_conventional or (mortgage_rates.conventional if mortgage_rates else '') %}
-{% set rate_fha = daily_rate_fha or (mortgage_rates.fha if mortgage_rates else '') %}
-{% set rate_va = daily_rate_va or (mortgage_rates.va if mortgage_rates else '') %}
-{% set heading = mortgage_table_heading or table_title or "Daily Mortgage Rates" %}
-{% set current_date = mortgage_rate_date or rate_date or "Today" %}
-{% set source_text = mortgage_source_label or "Source: Mortgage News Daily" %}
+{% set rate_conv = daily_rate_conventional | default('') %}
+{% set rate_fha = daily_rate_fha | default('') %}
+{% set rate_va = daily_rate_va | default('') %}
+{% set heading = mortgage_table_heading | default("Daily Mortgage Rates") %}
 
 {% if rate_conv or rate_fha or rate_va %}
 <section class="widget-card realestate-mortgage-rates-daily-card" aria-label="{{ heading }}">
@@ -24,21 +19,14 @@
   {# Header Row #}
   <header class="mortgage-rates-header">
     <div class="mortgage-rates-title-stack">
-      <span class="text-overline text-accent-alpine">
-        RESIDENTIAL FINANCING
-      </span>
       <h3 class="text-widget-title mortgage-rates-title">
         {{ heading }}
       </h3>
     </div>
-    <div class="mortgage-date-pill">
-      {{ current_date }}
-    </div>
   </header>
 
   {# 3 Stacked Loan Program Rows #}
-  <div class="mortgage-rates-list">
-    
+  <div class="mortgage-rates-list" style="margin-bottom: 0.25rem;">
     {% if rate_conv %}
       <div class="mortgage-rate-row">
         <span class="mortgage-program-name">
@@ -71,13 +59,7 @@
         </span>
       </div>
     {% endif %}
-
   </div>
-
-  {# Footer Disclosure Strip #}
-  <footer class="mortgage-rates-footer text-body-secondary">
-    <span>{{ source_text }}</span>
-  </footer>
 
 </section>
 {% endif %}
