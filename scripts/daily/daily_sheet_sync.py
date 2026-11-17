@@ -178,6 +178,95 @@ def sync_professionals_to_d1(records):
     print(f"   ⚡ Synchronized {synced_count}/{len(mapped_rows)} vendors into D1.")
     return synced_count == len(mapped_rows)
 
+def sync_discord_channels_to_d1(records):
+    account_id = os.environ.get("CF_ACCOUNT_ID")
+    database_id = os.environ.get("CF_DATABASE_CMS_ID")
+    api_token = os.environ.get("CF_D1_API_TOKEN") or os.environ.get("CF_API_TOKEN")
+
+    if not all([account_id, database_id, api_token]):
+        print("   ⚠️ D1 CMS credentials missing (CF_DATABASE_CMS_ID). Skipping Discord Channels Sync.")
+        return False
+
+    def clean_val(v):
+        if v is None:
+            return None
+        s = str(v).strip()
+        return s if s else None
+
+    mapped_rows = []
+    active_ids = set()
+    for rec in records:
+        channel_id = clean_val(rec.get("channel_id") or rec.get("Channel ID") or rec.get("ChannelID"))
+        channel_name = clean_val(rec.get("channel_name") or rec.get("Channel Name") or rec.get("ChannelName"))
+        if not channel_id or not channel_name:
+            continue
+        category = clean_val(rec.get("category") or rec.get("Category")) or "Uncategorized"
+        channel_type = clean_val(rec.get("channel_type") or rec.get("Channel Type") or rec.get("ChannelType")) or "Text"
+        mapped_rows.append((category, channel_name, channel_id, channel_type))
+        active_ids.add(channel_id)
+
+    if not mapped_rows:
+        print("   ⚠️ No valid Discord channel rows found. Skipping D1 update to preserve existing records.")
+        return False
+
+    endpoint = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/d1/database/{database_id}/query"
+    headers = {"Authorization": f"Bearer {api_token}", "Content-Type": "application/json"}
+
+    # 20 rows x 4 params = 80 params (safely under D1's 100-parameter SQLite ceiling)
+    chunk_size = 20
+    synced_count = 0
+    for i in range(0, len(mapped_rows), chunk_size):
+        chunk = mapped_rows[i:i + chunk_size]
+        placeholders = ", ".join(["(?, ?, ?, ?)"] * len(chunk))
+        sql = f"INSERT OR REPLACE INTO discord_channels (category, channel_name, channel_id, channel_type) VALUES {placeholders};"
+        flat_params = [item for row in chunk for item in row]
+        try:
+            res = requests.post(endpoint, headers=headers, json={"sql": sql, "params": flat_params}, timeout=30)
+            payload = res.json()
+            if payload.get("success"):
+                synced_count += len(chunk)
+            else:
+                print(f"   ❌ D1 Discord Batch Error: {payload.get('errors')}")
+        except Exception as e:
+            print(f"   ❌ D1 Discord Network Error in batch {i // chunk_size + 1}: {e}")
+
+    # Prune stale channels deleted from the sheet only if full upsert succeeded
+    if synced_count == len(mapped_rows):
+        try:
+            existing_res = requests.post(
+                endpoint,
+                headers=headers,
+                json={"sql": "SELECT channel_id FROM discord_channels;"},
+                timeout=30
+            )
+            existing_payload = existing_res.json()
+            if existing_payload.get("success"):
+                results = existing_payload.get("result", [{}])[0].get("results", [])
+                stale_ids = [
+                    str(r["channel_id"]).strip()
+                    for r in results
+                    if r.get("channel_id") and str(r["channel_id"]).strip() not in active_ids
+                ]
+                for i in range(0, len(stale_ids), 50):
+                    del_chunk = stale_ids[i:i + 50]
+                    del_placeholders = ", ".join(["?"] * len(del_chunk))
+                    requests.post(
+                        endpoint,
+                        headers=headers,
+                        json={
+                            "sql": f"DELETE FROM discord_channels WHERE channel_id IN ({del_placeholders});",
+                            "params": del_chunk
+                        },
+                        timeout=30
+                    )
+                if stale_ids:
+                    print(f"   🧹 Pruned {len(stale_ids)} removed Discord channels from D1.")
+        except Exception as e:
+            print(f"   ⚠️ D1 Discord Prune Notice: {e}")
+
+    print(f"   ⚡ Synchronized {synced_count}/{len(mapped_rows)} Discord channels into D1 (discord_channels).")
+    return synced_count == len(mapped_rows)
+
 # --- Cloudflare R2 Asset Engine ---
 def get_r2_client():
     account_id = (os.environ.get("CF_ACCOUNT_ID") or "").strip()
@@ -268,9 +357,10 @@ def main():
     r2_client = get_r2_client()
 
     master_sheet_id = os.environ.get("WEBSITE_DATA_CORE_SHEET_ID")
-    creds_path = "credentials.json"
-    if not master_sheet_id or not os.path.exists(creds_path):
-        print("❌ Missing credentials or Sheet ID.")
+    operations_sheet_id = os.environ.get("OPERATIONS_SHEET_ID")
+    creds_path = "credentials.json" if os.path.exists("credentials.json") else os.path.join(BASE_DIR, "credentials.json")
+    if not os.path.exists(creds_path):
+        print("❌ Missing credentials.json.")
         return
 
     creds = Credentials.from_service_account_file(creds_path, scopes=SCOPES)
@@ -278,123 +368,144 @@ def main():
     docs_service = build('docs', 'v1', credentials=creds)
     drive_service = build('drive', 'v3', credentials=creds)
 
-    tabs = ["Rates", "CityData", "Stats", "Professionals", "Sales", "Translations", "BoldPrint", "VideoLibrary", "AudioLibrary", "VideoChannels", "VideoChannelSchedules", "PublicEvents"]
-    ranges = [f"{tab}!A:BK" for tab in tabs]
-    res = sheets_service.spreadsheets().values().batchGet(spreadsheetId=master_sheet_id, ranges=ranges).execute()
-    data = dict(zip(tabs, res.get('valueRanges', [])))
-    sheet_writebacks = []
+    if not master_sheet_id:
+        print("⚠️ Missing WEBSITE_DATA_CORE_SHEET_ID. Skipping Core Workbook sync.")
+    else:
+        tabs = ["Rates", "CityData", "Stats", "Professionals", "Sales", "Translations", "BoldPrint", "VideoLibrary", "AudioLibrary", "VideoChannels", "VideoChannelSchedules", "PublicEvents"]
+        ranges = [f"{tab}!A:BK" for tab in tabs]
+        res = sheets_service.spreadsheets().values().batchGet(spreadsheetId=master_sheet_id, ranges=ranges).execute()
+        data = dict(zip(tabs, res.get('valueRanges', [])))
+        sheet_writebacks = []
 
-    # --- 1. Basic JSON Generations ---
-    if data.get("Rates", {}).get('values'):
-        with open(os.path.join(DATA_DIR, "hourly_rates.json"), "w", encoding="utf-8") as f:
-            json.dump(parse_sheet_values(data["Rates"]['values']), f, indent=2, ensure_ascii=False)
+        # --- 1. Basic JSON Generations ---
+        if data.get("Rates", {}).get('values'):
+            with open(os.path.join(DATA_DIR, "hourly_rates.json"), "w", encoding="utf-8") as f:
+                json.dump(parse_sheet_values(data["Rates"]['values']), f, indent=2, ensure_ascii=False)
 
-    stats_rows = data.get("Stats", {}).get('values', [])
-    if len(stats_rows) >= 2:
-        stats_dict = {str(r[0]).strip(): (str(r[1]).strip() if len(r) > 1 and r[1] is not None else "") for r in stats_rows[1:] if r and str(r[0]).strip()}
-        with open(os.path.join(DATA_DIR, "stats.json"), "w", encoding="utf-8") as f:
-            json.dump(clean_nan_tokens(stats_dict), f, indent=2, ensure_ascii=False)
+        stats_rows = data.get("Stats", {}).get('values', [])
+        if len(stats_rows) >= 2:
+            stats_dict = {str(r[0]).strip(): (str(r[1]).strip() if len(r) > 1 and r[1] is not None else "") for r in stats_rows[1:] if r and str(r[0]).strip()}
+            with open(os.path.join(DATA_DIR, "stats.json"), "w", encoding="utf-8") as f:
+                json.dump(clean_nan_tokens(stats_dict), f, indent=2, ensure_ascii=False)
 
-    # --- 2. CityData & Editorial Processing ---
-    city_rows = data.get("CityData", {}).get('values', [])
-    if city_rows and len(city_rows) >= 2:
-        headers = [str(h).strip() for h in city_rows[0]]
-        parsed_city_data = parse_sheet_values(city_rows)
-        with open(CITY_DATA_PATH, "w", encoding="utf-8") as f:
-            json.dump(clean_nan_tokens(parsed_city_data), f, indent=2, ensure_ascii=False)
+        # --- 2. CityData & Editorial Processing ---
+        city_rows = data.get("CityData", {}).get('values', [])
+        if city_rows and len(city_rows) >= 2:
+            headers = [str(h).strip() for h in city_rows[0]]
+            parsed_city_data = parse_sheet_values(city_rows)
+            with open(CITY_DATA_PATH, "w", encoding="utf-8") as f:
+                json.dump(clean_nan_tokens(parsed_city_data), f, indent=2, ensure_ascii=False)
 
-        col_status_idx = next((i for i, h in enumerate(headers) if h in ["EditorialStatus", "Editorial Status", "Editorial_Status"]), -1)
-        for idx, r in enumerate(city_rows[1:]):
-            padded = list(r) + [""] * (len(headers) - len(r))
-            rec = dict(zip(headers, padded))
-            city_name = rec.get("City", "").strip()
-            if not city_name: continue
-            slug = slugify(city_name)
-            doc_url = rec.get("Editorial", "").strip()
-            status = (rec.get("EditorialStatus") or rec.get("Editorial Status") or "").strip()
+            col_status_idx = next((i for i, h in enumerate(headers) if h in ["EditorialStatus", "Editorial Status", "Editorial_Status"]), -1)
+            for idx, r in enumerate(city_rows[1:]):
+                padded = list(r) + [""] * (len(headers) - len(r))
+                rec = dict(zip(headers, padded))
+                city_name = rec.get("City", "").strip()
+                if not city_name: continue
+                slug = slugify(city_name)
+                doc_url = rec.get("Editorial", "").strip()
+                status = (rec.get("EditorialStatus") or rec.get("Editorial Status") or "").strip()
 
-            if doc_url and is_google_drive_link(doc_url) and status.lower() == "pending":
-                md_content = get_google_doc_as_markdown(docs_service, doc_url)
-                if md_content and md_content.strip():
-                    with open(os.path.join(editorials_dir, f"{slug}.md"), "w", encoding="utf-8") as f_md:
-                        f_md.write(md_content)
-                    if col_status_idx != -1:
-                        sheet_writebacks.append({'range': f"CityData!{get_col_letter(col_status_idx)}{idx + 2}", 'values': [["Complete"]]})
+                if doc_url and is_google_drive_link(doc_url) and status.lower() == "pending":
+                    md_content = get_google_doc_as_markdown(docs_service, doc_url)
+                    if md_content and md_content.strip():
+                        with open(os.path.join(editorials_dir, f"{slug}.md"), "w", encoding="utf-8") as f_md:
+                            f_md.write(md_content)
+                        if col_status_idx != -1:
+                            sheet_writebacks.append({'range': f"CityData!{get_col_letter(col_status_idx)}{idx + 2}", 'values': [["Complete"]]})
 
-    # --- 3. Sales Portfolio & R2 Multi-Asset Pipeline ---
-    sales_rows = data.get("Sales", {}).get('values', [])
-    if sales_rows:
-        print("   📸 Processing Sales Records & Cloudflare Asset Pipeline...")
-        headers = [h.strip() for h in sales_rows[0]]
-        compiled_sales = []
-        today_date = datetime.datetime.now().date()
-        
-        for idx, r in enumerate(sales_rows[1:]):
-            padded = list(r) + [""] * (len(headers) - len(r))
-            row_dict = dict(zip(headers, padded))
-            mls_number = slugify(row_dict.get("MLS Number") or row_dict.get("mlsNumber") or f"listing-{idx}")
-
-            if row_dict.get("Status", "").strip() != "Sold":
-                s_date = row_dict.get("Selling Date")
-                if s_date and str(s_date).strip():
-                    try:
-                        dt_obj = datetime.datetime.strptime(str(s_date).strip(), "%m/%d/%Y").date()
-                        row_dict["DOM"] = max(0, (today_date - dt_obj).days)
-                    except Exception: row_dict["DOM"] = "-"
+        # --- 3. Sales Portfolio & R2 Multi-Asset Pipeline ---
+        sales_rows = data.get("Sales", {}).get('values', [])
+        if sales_rows:
+            print("   📸 Processing Sales Records & Cloudflare Asset Pipeline...")
+            headers = [h.strip() for h in sales_rows[0]]
+            compiled_sales = []
+            today_date = datetime.datetime.now().date()
             
-            if r2_client:
-                # 3a. Process Images
-                for i in range(1, 6):
-                    img_key = f"Image URL {i}"
-                    raw_url = row_dict.get(img_key, "")
-                    if raw_url and "assets.myseattlesearch.com" not in raw_url:
-                        processed_url = process_and_upload_image(raw_url, mls_number, i, r2_client, drive_service)
-                        if processed_url != raw_url:
-                            row_dict[img_key] = processed_url
-                            sheet_writebacks.append({'range': f"Sales!{get_col_letter(headers.index(img_key))}{idx + 2}", 'values': [[processed_url]]})
+            for idx, r in enumerate(sales_rows[1:]):
+                padded = list(r) + [""] * (len(headers) - len(r))
+                row_dict = dict(zip(headers, padded))
+                mls_number = slugify(row_dict.get("MLS Number") or row_dict.get("mlsNumber") or f"listing-{idx}")
 
-                # 3b. Process PDFs
-                has_downloads = str(row_dict.get("Downloads", "")).strip().lower() == "yes"
-                extracted_docs = []
-                for i in range(1, 6):
-                    pdf_key = f"PDF URL {i}"
-                    raw_pdf = row_dict.get(pdf_key, "")
-                    if raw_pdf:
-                        processed_pdf = raw_pdf
-                        if has_downloads and is_google_drive_link(raw_pdf):
-                            processed_pdf = process_and_upload_pdf(raw_pdf, mls_number, i, r2_client, drive_service)
-                            if processed_pdf != raw_pdf:
-                                row_dict[pdf_key] = processed_pdf
-                                sheet_writebacks.append({'range': f"Sales!{get_col_letter(headers.index(pdf_key))}{idx + 2}", 'values': [[processed_pdf]]})
-                        
-                        filename_guess = unquote(processed_pdf.split('/')[-1]).replace('-', ' ').replace('.pdf', '')
-                        extracted_docs.append({"url": processed_pdf, "title": filename_guess})
-                row_dict["pdfDownloads"] = extracted_docs
+                if row_dict.get("Status", "").strip() != "Sold":
+                    s_date = row_dict.get("Selling Date")
+                    if s_date and str(s_date).strip():
+                        try:
+                            dt_obj = datetime.datetime.strptime(str(s_date).strip(), "%m/%d/%Y").date()
+                            row_dict["DOM"] = max(0, (today_date - dt_obj).days)
+                        except Exception: row_dict["DOM"] = "-"
+                
+                if r2_client:
+                    # 3a. Process Images
+                    for i in range(1, 6):
+                        img_key = f"Image URL {i}"
+                        raw_url = row_dict.get(img_key, "")
+                        if raw_url and "assets.myseattlesearch.com" not in raw_url:
+                            processed_url = process_and_upload_image(raw_url, mls_number, i, r2_client, drive_service)
+                            if processed_url != raw_url:
+                                row_dict[img_key] = processed_url
+                                sheet_writebacks.append({'range': f"Sales!{get_col_letter(headers.index(img_key))}{idx + 2}", 'values': [[processed_url]]})
 
-            compiled_sales.append(row_dict)
-            
-        with open(os.path.join(DATA_DIR, "sales.json"), "w", encoding="utf-8") as f:
-            json.dump(clean_nan_tokens(compiled_sales), f, indent=2, ensure_ascii=False)
+                    # 3b. Process PDFs
+                    has_downloads = str(row_dict.get("Downloads", "")).strip().lower() == "yes"
+                    extracted_docs = []
+                    for i in range(1, 6):
+                        pdf_key = f"PDF URL {i}"
+                        raw_pdf = row_dict.get(pdf_key, "")
+                        if raw_pdf:
+                            processed_pdf = raw_pdf
+                            if has_downloads and is_google_drive_link(raw_pdf):
+                                processed_pdf = process_and_upload_pdf(raw_pdf, mls_number, i, r2_client, drive_service)
+                                if processed_pdf != raw_pdf:
+                                    row_dict[pdf_key] = processed_pdf
+                                    sheet_writebacks.append({'range': f"Sales!{get_col_letter(headers.index(pdf_key))}{idx + 2}", 'values': [[processed_pdf]]})
+                            
+                            filename_guess = unquote(processed_pdf.split('/')[-1]).replace('-', ' ').replace('.pdf', '')
+                            extracted_docs.append({"url": processed_pdf, "title": filename_guess})
+                    row_dict["pdfDownloads"] = extracted_docs
 
-    # --- 4. Arrays & D1 Sync ---
-    mappings = [("Professionals", "professionals.json"), ("Translations", "translations.json"), ("BoldPrint", "bold_print.json"), ("VideoLibrary", "video_library.json"), ("AudioLibrary", "audio_library.json"), ("VideoChannels", "video_channels.json"), ("VideoChannelSchedules", "video_channel_schedules.json"), ("PublicEvents", "public_events.json")]
-    for tab_name, json_name in mappings:
-        rows = data.get(tab_name, {}).get('values', [])
-        if rows:
-            parsed_records = parse_sheet_values(rows)
-            with open(os.path.join(DATA_DIR, json_name), "w", encoding="utf-8") as f:
-                json.dump(clean_nan_tokens(parsed_records), f, indent=2, ensure_ascii=False)
-            if tab_name == "Professionals": sync_professionals_to_d1(parsed_records)
+                compiled_sales.append(row_dict)
+                
+            with open(os.path.join(DATA_DIR, "sales.json"), "w", encoding="utf-8") as f:
+                json.dump(clean_nan_tokens(compiled_sales), f, indent=2, ensure_ascii=False)
 
-    if sheet_writebacks:
+        # --- 4. Arrays & D1 Sync ---
+        mappings = [("Professionals", "professionals.json"), ("Translations", "translations.json"), ("BoldPrint", "bold_print.json"), ("VideoLibrary", "video_library.json"), ("AudioLibrary", "audio_library.json"), ("VideoChannels", "video_channels.json"), ("VideoChannelSchedules", "video_channel_schedules.json"), ("PublicEvents", "public_events.json")]
+        for tab_name, json_name in mappings:
+            rows = data.get(tab_name, {}).get('values', [])
+            if rows:
+                parsed_records = parse_sheet_values(rows)
+                with open(os.path.join(DATA_DIR, json_name), "w", encoding="utf-8") as f:
+                    json.dump(clean_nan_tokens(parsed_records), f, indent=2, ensure_ascii=False)
+                if tab_name == "Professionals": sync_professionals_to_d1(parsed_records)
+
+        if sheet_writebacks:
+            try:
+                print(f"   📝 Committing {len(sheet_writebacks)} asset URLs back to Google Sheets...")
+                sheets_service.spreadsheets().values().batchUpdate(
+                    spreadsheetId=master_sheet_id,
+                    body={'valueInputOption': 'USER_ENTERED', 'data': sheet_writebacks}
+                ).execute()
+            except Exception as e:
+                print(f"   ⚠️ Sheet writeback exception: {e}")
+
+    # --- 5. Operations Workbook: DiscordChannelIDs -> D1 (discord_channels) ---
+    if operations_sheet_id:
         try:
-            print(f"   📝 Committing {len(sheet_writebacks)} asset URLs back to Google Sheets...")
-            sheets_service.spreadsheets().values().batchUpdate(
-                spreadsheetId=master_sheet_id,
-                body={'valueInputOption': 'USER_ENTERED', 'data': sheet_writebacks}
+            ops_res = sheets_service.spreadsheets().values().get(
+                spreadsheetId=operations_sheet_id,
+                range="DiscordChannelIDs!A:D"
             ).execute()
+            discord_rows = ops_res.get("values", [])
+            if discord_rows:
+                parsed_discord = parse_sheet_values(discord_rows)
+                sync_discord_channels_to_d1(parsed_discord)
+            else:
+                print("   ⚠️ DiscordChannelIDs tab returned 0 rows.")
         except Exception as e:
-            print(f"   ⚠️ Sheet writeback exception: {e}")
+            print(f"   ❌ Operations Sheet (DiscordChannelIDs) fetch error: {e}")
+    else:
+        print("   ⚠️ OPERATIONS_SHEET_ID missing. Skipping DiscordChannelIDs D1 sync.")
 
     print("✅ Daily Sheets Sync complete.")
 

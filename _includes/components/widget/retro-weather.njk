@@ -1,0 +1,444 @@
+<!-- File: _includes/components/widget/retro-weather.njk -->
+{# 
+  COMPONENT: Retro Weather Broadcast Terminal (widget.weather.retro)
+  SOURCES: city_weather.json, climate_comfort.json, weather_mountain_passes.json
+#}
+
+{% set nbd_upper = active_neighborhood | upper %}
+
+{# Slide 1: Current Conditions & Regional Station #}
+{% set raw_temp = (w_city.current.temp_f | round) if (w_city and w_city.current) else "--" %}
+{% set raw_code = (w_city.current.weather_code | int) if (w_city and w_city.current) else 0 %}
+{% set rw_cond = "SNOW" if (raw_code >= 71 and raw_code <= 77) else ("RAIN" if raw_code >= 51 else ("OVERCAST" if raw_code == 3 else ("PT CLOUDY" if raw_code == 2 else "FAIR"))) %}
+{% set rw_humidity = ((w_city.current.humidity_pct | round) ~ "%") if (w_city and w_city.current) else "--" %}
+{% set rw_wind = ((w_city.current.wind_speed_mph | round) ~ " MPH") if (w_city and w_city.current) else "CALM" %}
+{% set rw_uv = (w_city.current.uv_index ~ " " ~ (w_city.current.uv_label | upper)) if (w_city and w_city.current) else "--" %}
+{% set rw_aqi = (w_city.air_quality.us_aqi ~ " (" ~ (w_city.air_quality.status_label | upper) ~ ")") if (w_city and w_city.air_quality) else "--" %}
+{% set rw_precip_today = (w_city.forecast_7_day.precip_prob_max[0] ~ "%") if (w_city and w_city.forecast_7_day) else "--" %}
+{% set dew_calc = ((w_city.current.temp_f - ((100 - w_city.current.humidity_pct) / 5)) | round) if (w_city and w_city.current) else null %}
+{% set rw_dewpoint = (dew_calc ~ "°") if dew_calc is not none else "--" %}
+{% set rw_station = (w_climate.assigned_weather_station | upper) if w_climate else "PUGET SOUND BASIN" %}
+
+{# Slide 2: 36-Hour Forecast Narratives #}
+{% if w_city and w_city.forecast_7_day %}
+  {% set d1_hi = w_city.forecast_7_day.temp_max[0] | round %}
+  {% set d1_lo = w_city.forecast_7_day.temp_min[0] | round %}
+  {% set d1_rn = w_city.forecast_7_day.precip_prob_max[0] | int %}
+  {% set d1_cd = "RAIN AND SHOWERS LIKELY" if d1_rn >= 50 else ("CHANCE OF LIGHT SHOWERS" if d1_rn >= 25 else "PARTLY CLOUDY AND DRY") %}
+  {% set nar_today = d1_cd ~ " WITH HIGHS NEAR " ~ d1_hi ~ ". PRECIPITATION CHANCE " ~ d1_rn ~ " PERCENT." %}
+  {% set nar_tonight = "MOSTLY CLOUDY OVERNIGHT WITH LOWS DROPPING NEAR " ~ d1_lo ~ ". LIGHT MARITIME BREEZE ALONG PUGET SOUND." %}
+
+  {% set d2_hi = w_city.forecast_7_day.temp_max[1] | round %}
+  {% set d2_rn = w_city.forecast_7_day.precip_prob_max[1] | int %}
+  {% set d2_cd = "PERIODS OF RAIN" if d2_rn >= 50 else ("SCATTERED SHOWERS" if d2_rn >= 25 else "PARTLY SUNNY AND SEASONABLE") %}
+  {% set nar_tomorrow = d2_cd ~ ". HIGHS REACHING " ~ d2_hi ~ ". CHANCE OF PRECIPITATION " ~ d2_rn ~ " PERCENT." %}
+{% else %}
+  {% set nar_today = "SEASONABLE WITH LOCAL MARITIME FLOW. TEMPS PEAKING NEAR NORMAL." %}
+  {% set nar_tonight = "PARTLY CLOUDY SKIES WITH MILD ONSHORE BREEZES ALONG PUGET SOUND BASIN." %}
+  {% set nar_tomorrow = "VARIABLY CLOUDY SKIES WITH SEASONABLE AFTERNOON TEMPERATURES." %}
+{% endif %}
+
+{# Lower-Third Scrolling Broadcast Crawl #}
+{% set aqi_word = (w_city.air_quality.status_label | upper) if (w_city and w_city.air_quality) else "GOOD" %}
+{% set ticker_text = "NWS ADVISORIES: NO ACTIVE WARNINGS FOR " ~ nbd_upper ~ " ... REGIONAL AIR QUALITY: " ~ aqi_word %}
+{% if w_passes and (w_passes | length > 0) %}
+  {% set pass_summaries = [] %}
+  {% for p in w_passes %}
+    {% set _ = pass_summaries.push((p.highway | upper) ~ " " ~ (p.name.split(' ')[0] | upper) ~ " (" ~ (p.pass_status | upper) ~ ", " ~ (p.current.temp_f | round) ~ "°F)") %}
+  {% endfor %}
+  {% set ticker_text = ticker_text ~ " ... WSDOT CASCADE PASSES: " ~ (pass_summaries | join(" • ")) %}
+{% endif %}
+
+<div class="retro-weather-tv-wrapper" role="region" aria-label="Retro Weather Broadcast for {{ nbd_upper }}">
+  <div class="crt-television-frame">
+    
+    {# Top TV Bezel Strip with Channel ID & Tactile Controls #}
+    <div class="crt-tv-top-strip">
+      <div class="crt-tv-channel-id">RETRO WEATHER &bull; CH 28</div>
+      <div class="crt-tv-controls">
+        <button type="button" class="btn-rw-control" id="rw-btn-prev" aria-label="Previous Broadcast Screen">&#9668; PREV</button>
+        <button type="button" class="btn-rw-control" id="rw-btn-next" aria-label="Next Broadcast Screen">NEXT &#9658;</button>
+        <button type="button" class="btn-rw-control" id="rw-voice-btn" aria-label="Toggle NOAA Voice Narration">
+          <svg class="rw-control-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+          </svg>
+          <span id="rw-voice-label">VOICE</span>
+        </button>
+        <button type="button" class="btn-rw-control" id="rw-audio-btn" aria-label="Toggle Smooth Jazz Music">
+          <svg class="rw-control-icon" id="rw-icon-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+          </svg>
+          <svg class="rw-control-icon is-hidden" id="rw-icon-playing" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+          <span id="rw-audio-label">JAZZ</span>
+        </button>
+        <audio id="rw-audio-stream" loop preload="none">
+          <source src="https://assets.myseattlesearch.com/audio/retro-weather-smooth-jazz.mp3" type="audio/mpeg">
+        </audio>
+      </div>
+    </div>
+
+    {# Recessed Glass CRT Tube #}
+    <div class="crt-screen-bezel">
+      <div class="crt-scanlines" aria-hidden="true"></div>
+      <div class="crt-tracking-bar" aria-hidden="true"></div>
+
+      <div class="rw-screen-content">
+        
+        {# Fixed Broadcast Header #}
+        <div class="rw-broadcast-header">
+          <div class="rw-header-city">{{ nbd_upper }} &amp; VICINITY</div>
+          <div class="rw-header-mode" id="rw-view-title">CURRENT CONDITIONS</div>
+        </div>
+
+        {# SLIDE 1: CURRENT CONDITIONS #}
+        <div class="rw-view-pane is-active"
+             data-title="CURRENT CONDITIONS"
+             data-narration="Current conditions for {{ active_neighborhood }} and vicinity. Temperature {{ raw_temp }} degrees, {{ rw_cond | lower }}. Humidity {{ rw_humidity }}, dew point {{ dew_calc }} degrees, wind {{ rw_wind | lower }}. Air quality is {{ aqi_word | lower }}.">
+          <div class="rw-substation-bar">REPORTING STATION: {{ rw_station }}</div>
+          <div class="rw-conditions-grid">
+            <div>TEMP: <span class="rw-temp-hero">{{ raw_temp }}&deg;F</span></div>
+            <div>COND: <span class="rw-val">{{ rw_cond }}</span></div>
+            <div>HUMIDITY: <span class="rw-val">{{ rw_humidity }}</span></div>
+            <div>DEW POINT: <span class="rw-val">{{ rw_dewpoint }}</span></div>
+            <div>WIND: <span class="rw-val">{{ rw_wind }}</span></div>
+            <div>TODAY RAIN: <span class="rw-val">{{ rw_precip_today }}</span></div>
+            <div>AIR QUALITY: <span class="rw-val">{{ rw_aqi }}</span></div>
+            <div>UV INDEX: <span class="rw-val">{{ rw_uv }}</span></div>
+          </div>
+        </div>
+
+        {# SLIDE 2: 36-HOUR LOCAL FORECAST #}
+        <div class="rw-view-pane"
+             data-title="LOCAL FORECAST"
+             data-narration="Your local forecast for {{ active_neighborhood }} and vicinity. Today... {{ nar_today | lower }} Tonight... {{ nar_tonight | lower }} Tomorrow... {{ nar_tomorrow | lower }}">
+          <div class="rw-forecast-stack">
+            <div class="rw-forecast-card">
+              <div class="rw-period-title">TODAY...</div>
+              <div class="rw-period-text">{{ nar_today }}</div>
+            </div>
+            <div class="rw-forecast-card">
+              <div class="rw-period-title">TONIGHT...</div>
+              <div class="rw-period-text">{{ nar_tonight }}</div>
+            </div>
+            <div class="rw-forecast-card">
+              <div class="rw-period-title">TOMORROW...</div>
+              <div class="rw-period-text">{{ nar_tomorrow }}</div>
+            </div>
+          </div>
+        </div>
+
+        {# SLIDE 3: EXTENDED OUTLOOK (3 DAYS) #}
+        {% set ext_narration = [] %}
+        {% if w_city and w_city.forecast_7_day %}
+          {% for i in range(1, 4) %}
+            {% set e_cd = w_city.forecast_7_day.weather_code[i] | int %}
+            {% set e_lbl = "snow" if (e_cd >= 71 and e_cd <= 77) else ("rain" if e_cd >= 51 else ("cloudy" if e_cd == 3 else "fair")) %}
+            {% set _ = ext_narration.push("Day " ~ (i + 1) ~ ", " ~ e_lbl ~ ", high " ~ (w_city.forecast_7_day.temp_max[i] | round) ~ ", low " ~ (w_city.forecast_7_day.temp_min[i] | round)) %}
+          {% endfor %}
+        {% endif %}
+        <div class="rw-view-pane"
+             data-title="EXTENDED OUTLOOK"
+             data-narration="Extended three day outlook for {{ active_neighborhood }}. {{ ext_narration | join('. ') }}.">
+          <div class="rw-extended-grid">
+            {% if w_city and w_city.forecast_7_day %}
+              {% for i in range(1, 4) %}
+                {% set f_cd = w_city.forecast_7_day.weather_code[i] | int %}
+                {% set f_rn = w_city.forecast_7_day.precip_prob_max[i] | int %}
+                {% set f_lbl = "SNOW" if (f_cd >= 71 and f_cd <= 77) else ("RAIN" if f_cd >= 51 else ("CLOUDY" if f_cd == 3 else "FAIR")) %}
+                {% set d_parts = w_city.forecast_7_day.dates[i].split('-') %}
+                <div class="rw-extended-card">
+                  <div class="rw-day-tag">{{ d_parts[1] }}/{{ d_parts[2] }}</div>
+                  <div class="rw-retro-icon" aria-hidden="true">
+                    <svg viewBox="0 0 32 32" fill="none" class="rw-retro-svg">
+                      {% if f_cd >= 51 %}
+                        <path d="M7 19a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 19H7z" fill="#FFFFFF" />
+                        <line x1="12" y1="22" x2="10" y2="27" stroke="#FFFF00" stroke-width="2" />
+                        <line x1="18" y1="22" x2="16" y2="27" stroke="#FFFF00" stroke-width="2" />
+                      {% elif f_cd == 3 %}
+                        <circle cx="11" cy="11" r="5" fill="#FFFF00" />
+                        <path d="M8 22a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 26 22H8z" fill="#FFFFFF" />
+                      {% else %}
+                        <circle cx="16" cy="16" r="7" fill="#FFFF00" />
+                        <line x1="16" y1="4" x2="16" y2="8" stroke="#FFFF00" stroke-width="2.5" />
+                        <line x1="16" y1="24" x2="16" y2="28" stroke="#FFFF00" stroke-width="2.5" />
+                        <line x1="4" y1="16" x2="8" y2="16" stroke="#FFFF00" stroke-width="2.5" />
+                        <line x1="24" y1="16" x2="28" y2="16" stroke="#FFFF00" stroke-width="2.5" />
+                      {% endif %}
+                    </svg>
+                  </div>
+                  <div class="rw-cond-tag">{{ f_lbl }} ({{ f_rn }}%)</div>
+                  <div class="rw-temps-tag">{{ w_city.forecast_7_day.temp_max[i] | round }}&deg; / {{ w_city.forecast_7_day.temp_min[i] | round }}&deg;</div>
+                </div>
+              {% endfor %}
+            {% endif %}
+          </div>
+        </div>
+
+        {# SLIDE 4: 7-DAY OUTLOOK & ALMANAC #}
+        {% set sr_time = w_city.astronomy.sunrise_today.split('T')[1] if (w_city and w_city.astronomy) else "--" %}
+        {% set ss_time = w_city.astronomy.sunset_today.split('T')[1] if (w_city and w_city.astronomy) else "--" %}
+        <div class="rw-view-pane"
+             data-title="7-DAY OUTLOOK &amp; ALMANAC"
+             data-narration="Almanac and seven day outlook for {{ active_neighborhood }}. Sunrise today at {{ sr_time }}, sunset at {{ ss_time }}.">
+          <div class="rw-almanac-split">
+            <div class="rw-7day-list">
+              {% if w_city and w_city.forecast_7_day %}
+                {% for i in range(0, 7) %}
+                  {% set f_cd = w_city.forecast_7_day.weather_code[i] | int %}
+                  {% set f_lbl = "SNOW" if (f_cd >= 71 and f_cd <= 77) else ("RAIN" if f_cd >= 51 else ("CLD" if f_cd == 3 else "FAIR")) %}
+                  {% set dp = w_city.forecast_7_day.dates[i].split('-') %}
+                  <div class="rw-7day-row">
+                    <span class="rw-7day-date">{{ dp[1] }}/{{ dp[2] }}</span>
+                    <span class="rw-7day-cond">{{ f_lbl }} {{ w_city.forecast_7_day.precip_prob_max[i] }}%</span>
+                    <span class="rw-7day-temp">{{ w_city.forecast_7_day.temp_max[i] | round }}/{{ w_city.forecast_7_day.temp_min[i] | round }}</span>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            </div>
+            
+            <div class="rw-climate-box">
+              <div class="rw-climate-section">
+                <div class="rw-climate-title">SUN &amp; DAYLIGHT</div>
+                <div class="rw-climate-row"><span>SUNRISE</span> <span class="rw-val">{{ sr_time }}</span></div>
+                <div class="rw-climate-row"><span>SUNSET</span> <span class="rw-val">{{ ss_time }}</span></div>
+              </div>
+              <div class="rw-climate-section">
+                <div class="rw-climate-title">CLIMATE NORMALS</div>
+                <div class="rw-climate-row"><span>AVG SUMMER HI</span> <span class="rw-val">{{ (w_climate.metrics.average_summer_high_f | round) if w_climate else "--" }}&deg;</span></div>
+                <div class="rw-climate-row"><span>AVG WINTER LO</span> <span class="rw-val">{{ (w_climate.metrics.average_winter_low_f | round) if w_climate else "--" }}&deg;</span></div>
+                <div class="rw-climate-row"><span>ANNUAL RAIN</span> <span class="rw-val">{{ w_climate.metrics.annual_rainfall_inches if w_climate else "--" }}"</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {# SLIDE 5: PUGET SOUND MARINE TIDES #}
+        {% set tide_station = (w_city.marine_tides.reference_station | upper) if (w_city and w_city.marine_tides) else "PUGET SOUND" %}
+        {% set tide_narration = [] %}
+        {% if w_tides and (w_tides | length > 0) %}
+          {% for t in w_tides %}
+            {% set _ = tide_narration.push((t.type | lower) ~ " tide at " ~ t.time_formatted ~ ", " ~ t.height_ft ~ " feet") %}
+          {% endfor %}
+        {% endif %}
+        <div class="rw-view-pane"
+             data-title="MARINE TIDES"
+             data-narration="Puget Sound marine tide predictions for {{ tide_station }}. {{ tide_narration | join('. ') }}.">
+          <div class="rw-substation-bar">REFERENCE STATION: {{ tide_station }}</div>
+          <div class="rw-tide-list">
+            {% if w_tides and (w_tides | length > 0) %}
+              {% for t in w_tides %}
+                <div class="rw-tide-row">
+                  <span class="rw-tide-type">{{ t.type | upper }} TIDE</span>
+                  <span class="rw-tide-time">{{ t.time_formatted | upper }}</span>
+                  <span class="rw-tide-level">{{ t.height_ft }} FT</span>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="rw-tide-row rw-tide-empty">NO TIDAL DATA AVAILABLE</div>
+            {% endif %}
+          </div>
+        </div>
+
+        {# SLIDE 6: ALL CASCADE MOUNTAIN PASSES (WSDOT) #}
+        {% set pass_narration = [] %}
+        {% if w_passes and (w_passes | length > 0) %}
+          {% for p in w_passes %}
+            {% set _ = pass_narration.push(p.name ~ ", " ~ p.pass_status ~ ", temperature " ~ (p.current.temp_f | round) ~ " degrees") %}
+          {% endfor %}
+        {% endif %}
+        <div class="rw-view-pane"
+             data-title="CASCADE MOUNTAIN PASSES"
+             data-narration="Washington State D O T Cascade mountain pass report. {{ pass_narration | join('. ') }}.">
+          <div class="rw-substation-bar">WSDOT MOUNTAIN PASS CONDITIONS &bull; ELEVATION &amp; ROADWAY</div>
+          <div class="rw-pass-list">
+            {% if w_passes and (w_passes | length > 0) %}
+              {% for p in w_passes %}
+                {% set is_warn = ("restriction" in (p.pass_status | lower)) or ("closed" in (p.pass_status | lower)) %}
+                {% set short_road = p.road_condition.split('.')[0] | upper %}
+                <div class="rw-pass-row">
+                  <div class="rw-pass-primary">
+                    <span class="rw-pass-name">{{ p.name | upper }}</span>
+                    <span class="rw-pass-elev">({{ p.elevation_ft | localeString }} FT)</span>
+                  </div>
+                  <div class="rw-pass-meta">
+                    <span class="rw-pass-temp">{{ p.current.temp_f | round }}&deg;F &bull; {{ short_road }}</span>
+                    <span class="rw-pass-status {% if is_warn %}rw-hazard-alert{% else %}rw-val{% endif %}">{{ p.pass_status | upper }}</span>
+                  </div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="rw-tide-row rw-tide-empty">NO MOUNTAIN PASS DATA AVAILABLE</div>
+            {% endif %}
+          </div>
+        </div>
+
+        {# Broadcast Footer with Scrolling Crawl & Slide Indicator #}
+        <div class="rw-broadcast-footer">
+          <div class="rw-crawl-tag">REGIONAL CRAWL</div>
+          <div class="rw-ticker-wrap">
+            <div class="rw-ticker-text">{{ ticker_text }}</div>
+          </div>
+          <div class="rw-dots-indicator" id="rw-cycle-dots" aria-live="polite">&#9679;&#9675;&#9675;&#9675;&#9675;&#9675;</div>
+        </div>
+
+      </div>
+    </div>
+
+    {# Scoped Broadcast Sequencer, Smooth Jazz Audio & NOAA Robotic Voice Controller #}
+    <script>
+      (function() {
+        const root = document.currentScript ? document.currentScript.closest('.retro-weather-tv-wrapper') : document.querySelector('.retro-weather-tv-wrapper');
+        if (!root) return;
+
+        const panes = Array.from(root.querySelectorAll('.rw-view-pane'));
+        const total = panes.length;
+        if (total === 0) return;
+
+        let currentIdx = 0;
+        let timer = null;
+        let voiceEnabled = false;
+        let preferredVoice = null;
+
+        const titleEl = root.querySelector('#rw-view-title');
+        const dotsEl = root.querySelector('#rw-cycle-dots');
+        const btnPrev = root.querySelector('#rw-btn-prev');
+        const btnNext = root.querySelector('#rw-btn-next');
+        const voiceBtn = root.querySelector('#rw-voice-btn');
+        const voiceLabel = root.querySelector('#rw-voice-label');
+        const audioBtn = root.querySelector('#rw-audio-btn');
+        const audioStream = root.querySelector('#rw-audio-stream');
+        const iconMuted = root.querySelector('#rw-icon-muted');
+        const iconPlaying = root.querySelector('#rw-icon-playing');
+        const audioLabel = root.querySelector('#rw-audio-label');
+
+        function selectRoboticVoice() {
+          if (!('speechSynthesis' in window)) return null;
+          const voices = window.speechSynthesis.getVoices();
+          if (!voices.length) return null;
+          return (
+            voices.find(v => /fred|ralph|daniel|alex|david|mark/i.test(v.name) && /en/i.test(v.lang)) ||
+            voices.find(v => /en-US/i.test(v.lang)) ||
+            voices[0]
+          );
+        }
+
+        if ('speechSynthesis' in window) {
+          preferredVoice = selectRoboticVoice();
+          window.speechSynthesis.onvoiceschanged = () => {
+            preferredVoice = selectRoboticVoice();
+          };
+        }
+
+        function speakActiveSlide() {
+          if (!voiceEnabled || !('speechSynthesis' in window)) return;
+          window.speechSynthesis.cancel();
+          const activePane = panes[currentIdx];
+          const scriptText = activePane ? activePane.getAttribute('data-narration') : '';
+          if (!scriptText) return;
+
+          const utterance = new SpeechSynthesisUtterance(scriptText);
+          if (!preferredVoice) preferredVoice = selectRoboticVoice();
+          if (preferredVoice) utterance.voice = preferredVoice;
+          utterance.rate = 0.92;
+          utterance.pitch = 0.85;
+          window.speechSynthesis.speak(utterance);
+        }
+
+        function updateView() {
+          panes.forEach((p, i) => p.classList.toggle('is-active', i === currentIdx));
+
+          const activePane = panes[currentIdx];
+          if (titleEl) titleEl.textContent = activePane.getAttribute('data-title') || "LOCAL WEATHER";
+
+          if (dotsEl) {
+            let dStr = "";
+            for (let i = 0; i < total; i++) dStr += (i === currentIdx) ? "\u25CF" : "\u25CB";
+            dotsEl.textContent = dStr;
+          }
+
+          if (voiceEnabled) speakActiveSlide();
+        }
+
+        function nextSlide() {
+          currentIdx = (currentIdx + 1) % total;
+          updateView();
+        }
+
+        function prevSlide() {
+          currentIdx = (currentIdx - 1 + total) % total;
+          updateView();
+        }
+
+        function startTimer() {
+          clearInterval(timer);
+          timer = setInterval(nextSlide, 10000);
+        }
+
+        if (btnNext) btnNext.addEventListener('click', () => { nextSlide(); startTimer(); });
+        if (btnPrev) btnPrev.addEventListener('click', () => { prevSlide(); startTimer(); });
+        startTimer();
+
+        // NOAA Robotic Voice Toggle
+        if (voiceBtn) {
+          voiceBtn.addEventListener('click', () => {
+            if (!('speechSynthesis' in window)) return;
+            voiceEnabled = !voiceEnabled;
+            voiceBtn.classList.toggle('is-active', voiceEnabled);
+            if (voiceLabel) voiceLabel.textContent = voiceEnabled ? 'VOICE ON' : 'VOICE';
+
+            if (voiceEnabled) {
+              if (audioStream && !audioStream.paused) {
+                audioStream.pause();
+                if (iconMuted) iconMuted.classList.remove('is-hidden');
+                if (iconPlaying) iconPlaying.classList.add('is-hidden');
+                if (audioLabel) audioLabel.textContent = 'JAZZ';
+              }
+              speakActiveSlide();
+            } else {
+              window.speechSynthesis.cancel();
+            }
+          });
+        }
+
+        // Smooth Jazz Audio Controller
+        if (audioBtn && audioStream) {
+          audioBtn.addEventListener('click', () => {
+            if (audioStream.paused) {
+              if (voiceEnabled && 'speechSynthesis' in window) {
+                voiceEnabled = false;
+                window.speechSynthesis.cancel();
+                if (voiceBtn) voiceBtn.classList.remove('is-active');
+                if (voiceLabel) voiceLabel.textContent = 'VOICE';
+              }
+              audioStream.play().then(() => {
+                if (iconMuted) iconMuted.classList.add('is-hidden');
+                if (iconPlaying) iconPlaying.classList.remove('is-hidden');
+                if (audioLabel) audioLabel.textContent = 'MUTE';
+                audioBtn.classList.add('is-active');
+              }).catch(err => console.warn('Playback prevented:', err));
+            } else {
+              audioStream.pause();
+              if (iconMuted) iconMuted.classList.remove('is-hidden');
+              if (iconPlaying) iconPlaying.classList.add('is-hidden');
+              if (audioLabel) audioLabel.textContent = 'JAZZ';
+              audioBtn.classList.remove('is-active');
+            }
+          });
+        }
+
+        window.addEventListener('beforeunload', () => {
+          if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        });
+      })();
+    </script>
+  </div>
+</div>

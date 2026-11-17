@@ -1,3 +1,5 @@
+# File: scripts/rapid_sheet_sync.py
+
 import os
 import json
 from google.oauth2.service_account import Credentials
@@ -40,7 +42,9 @@ def main():
         records = parse_sheet_values(rows)
         with open(os.path.join(DATA_DIR, "hourly_market.json"), "w", encoding="utf-8") as f:
             json.dump(records, f, indent=2, ensure_ascii=False)
-        print(f"   Updated hourly_market.json ({len(records)} records).")
+        print(f"   Updated hourly_market.json ({len(records) - 1} records).")
+    else:
+        print("   ⚠️ [Rapid Sync] Market_Dashboard returned 0 rows.")
 
     print("✅ [Rapid Sync] Market telemetry refresh complete.")
 

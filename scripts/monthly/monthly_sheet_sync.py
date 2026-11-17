@@ -83,14 +83,14 @@ def sync_utility_directory_to_d1(utility_records):
         values_clauses = []
 
         for rec in chunk:
-            utility_name = rec.get("Utility Name") or rec.get("utility_name")
-            normal_name = rec.get("Normal Name") or rec.get("normal_name") or utility_name
-            county = rec.get("County") or rec.get("county") or "King"
-            utility_type = rec.get("Type") or rec.get("utility_type")
-            phone = rec.get("Phone Number") or rec.get("phone_number")
-            website = rec.get("Website") or rec.get("website")
-            physical_addr = rec.get("Physical Address") or rec.get("physical_address")
-            mailing_addr = rec.get("Mailing Address") or rec.get("mailing_address")
+            utility_name = rec.get("utility_name") or rec.get("utility_name")
+            normal_name = rec.get("normal_name") or rec.get("normal_name") or utility_name
+            county = rec.get("county") or rec.get("county") or "King"
+            utility_type = rec.get("utility_type") or rec.get("utility_type")
+            phone = rec.get("phone_umber") or rec.get("phone_number")
+            website = rec.get("website") or rec.get("website")
+            physical_addr = rec.get("physical_address") or rec.get("physical_address")
+            mailing_addr = rec.get("mailing_ddress") or rec.get("mailing_address")
 
             if not utility_name or not utility_type:
                 continue

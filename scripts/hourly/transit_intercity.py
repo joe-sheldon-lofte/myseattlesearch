@@ -9,8 +9,8 @@ Purpose:
   2. Calculates Active Transit Score (0-100) and Active On-Time Score (0-100, within
      -60s early to +300s late tolerance) per municipality.
   3. Queries Mapbox Directions API (mapbox/driving-traffic) for real-time traffic
-     duration vs. typical duration across city diagonal coordinates, and calculates
-     Active Commute Score (0-100).
+     duration vs. typical duration across city diagonal coordinates (paused overnight
+     from 8:00 PM to 6:00 AM PT, resetting to free-flow baseline 100).
   4. Outputs live telemetry to data/transit_radar_live.json and appends a rolling
      168-hour (7-day) snapshot per city to data/transit_radar_history.json.
   5. Harvests 48-hour WSDOT Ferry schedules, assigned vessel names, disruptions/alerts,
@@ -89,7 +89,7 @@ def parse_wsf_date(raw_val):
             sign = 1 if tz_str[0] == "+" else -1
             hours = int(tz_str[1:3])
             mins = int(tz_str[3:5])
-            offset = timezone(timedelta(hours=sign * hours, minutes=sign * mins))
+            offset = timezone(hours=sign * hours, minutes=sign * mins)
             return dt_utc.astimezone(offset).isoformat()
         return dt_utc.astimezone(PACIFIC_TZ).isoformat()
     return s
@@ -648,6 +648,11 @@ def main():
                     break
 
     # 2. Assemble Live Telemetry, Scores & History Snapshots Across Municipalities
+    now_pt = datetime.now(PACIFIC_TZ)
+    is_mapbox_paused = now_pt.hour >= 20 or now_pt.hour < 6
+    if is_mapbox_paused:
+        print(f"🌙 Overnight Mapbox pause active ({now_pt.strftime('%I:%M %p')} PT) — skipping Mapbox commute calls and using free-flow baselines.")
+
     output_radar = {}
     city_history_snapshots = {}
 
@@ -680,18 +685,18 @@ def main():
         else:
             active_on_time_score = 100
 
-        # Live Mapbox Congestion Drive Time vs Typical Duration
+        # Live Mapbox Congestion Drive Time vs Typical Duration (Paused 8:00 PM - 6:00 AM PT)
         b_info = commute_baselines.get(slug, {})
         nw_lat, nw_lng = b_info.get("nw_lat"), b_info.get("nw_lng")
         se_lat, se_lng = b_info.get("se_lat"), b_info.get("se_lng")
         manual_base_mins = b_info.get("baseline_drive_minutes")
 
         live_mins, typical_mins = None, None
-        if nw_lat and nw_lng and se_lat and se_lng and mapbox_token:
+        if not is_mapbox_paused and nw_lat and nw_lng and se_lat and se_lng and mapbox_token:
             live_mins, typical_mins = fetch_mapbox_drive_times(session, nw_lat, nw_lng, se_lat, se_lng, mapbox_token)
 
         base_mins = typical_mins or manual_base_mins or live_mins or 10.0
-        active_commute_score = calculate_active_commute_score(live_mins, base_mins)
+        active_commute_score = 100 if is_mapbox_paused else calculate_active_commute_score(live_mins, base_mins)
 
         counts = c_data.get("counts", {})
 

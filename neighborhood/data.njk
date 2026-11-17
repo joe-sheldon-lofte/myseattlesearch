@@ -1,0 +1,3167 @@
+---
+layout: layouts/base.njk
+pagination:
+  data: city_data
+  size: 1
+  addAllPagesToCollections: true
+  alias: city
+permalink: "/neighborhood/{{ city.City | slugify }}/data/index.html"
+---
+{% set city_slug = city.City | slugify %}
+{% set active_neighborhood = city.City %}
+{% set primary_district = city['School District'].split(',')[0] | trim if city['School District'] else '' %}
+{% set isp_col = "Beaux Arts" if active_neighborhood == "Beaux Arts Village" else active_neighborhood %}
+
+{# ============================================================================
+   SHARED DATE & SPARKLINE MACROS
+   ============================================================================ #}
+{% set month_names = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] %}
+{% set month_abbrs = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] %}
+{% set weekday_abbr = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] %}
+{% set sakamoto_t = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4] %}
+
+{% macro pretty_date(raw_str) -%}
+  {%- set s = (raw_str | default('') | trim).split(' ')[0].split('T')[0] -%}
+  {%- if '-' in s -%}
+    {%- set parts = s.split('-') -%}
+    {%- if (parts | length) == 3 -%}
+      {{ month_names[parts[1] | int] }} {{ parts[2] | int }}, {{ parts[0] }}
+    {%- else -%}
+      {{ s }}
+    {%- endif -%}
+  {%- elif '/' in s -%}
+    {%- set parts = s.split('/') -%}
+    {%- if (parts | length) == 3 -%}
+      {%- set yr = ("20" ~ parts[2]) if (parts[2] | length) == 2 else parts[2] -%}
+      {{ month_names[parts[0] | int] }} {{ parts[1] | int }}, {{ yr }}
+    {%- else -%}
+      {{ s }}
+    {%- endif -%}
+  {%- else -%}
+    {{ raw_str }}
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro spark_points(vals, min_v, max_v) -%}
+  {%- set n = vals | length -%}
+  {%- set span = (max_v - min_v) if (max_v - min_v) > 0 else 1 -%}
+  {%- for v in vals -%}
+    {%- set x = (16 + ((loop.index0 / (n - 1)) * 928)) | round(1) if n > 1 else 480 -%}
+    {%- set num = v | float -%}
+    {%- set clamped = max_v if num > max_v else (min_v if num < min_v else num) -%}
+    {%- set y = (240 - ((clamped - min_v) / span) * 216) | round(1) -%}
+    {{ x }},{{ y }}{% if not loop.last %} {% endif %}
+  {%- endfor -%}
+{%- endmacro %}
+
+<main class="layout-container layout-stack-main">
+
+  {# ==========================================================================
+     HERO HEADER & SUBPAGE NAVIGATION DOCK
+     ========================================================================== #}
+  <div id="neighborhood-hero" class="portal-section-header">
+    {% set hero_img_main = city.HeroImageMain %}
+    {% set hero_img_left = city.HeroImageLeft %}
+    {% set hero_img_right = city.HeroImageRight %}
+    {% set hero_welcome_label = "Welcome to the neighborhood" %}
+    {% set subpage_title = "Neighborhood Data" %}
+    {% include "components/widget/neighborhood-subpage-header.njk" %}
+  </div>
+
+  <section id="explore-neighborhood" class="portal-section-nav" aria-label="Explore {{ active_neighborhood }}">
+    <span class="text-overline text-accent-alpine section-overline-lead">
+      EXPLORE {{ active_neighborhood | upper }}
+    </span>
+    <div class="neighborhood-nav-container" style="margin-bottom: 0.75rem;">
+      <nav class="neighborhood-nav-track" tabindex="0" aria-label="{{ active_neighborhood }} Subpages">
+        <a href="/neighborhood/{{ city_slug }}/" class="neighborhood-nav-pill is-inactive">City Home</a>
+        <a href="/neighborhood/{{ city_slug }}/news-events/" class="neighborhood-nav-pill is-inactive">News &amp; Events</a>
+        <a href="/neighborhood/{{ city_slug }}/weather/" class="neighborhood-nav-pill is-inactive">Weather</a>
+        <a href="/neighborhood/{{ city_slug }}/transit-commute/" class="neighborhood-nav-pill is-inactive">Transit &amp; Commute</a>
+        <a href="/neighborhood/{{ city_slug }}/emergency-safety/" class="neighborhood-nav-pill is-inactive">Emergency &amp; Safety</a>
+        <a href="/neighborhood/{{ city_slug }}/municipal/" class="neighborhood-nav-pill is-inactive">Municipal</a>
+        <a href="/neighborhood/{{ city_slug }}/real-estate/" class="neighborhood-nav-pill is-inactive">Real Estate</a>
+        {% if primary_district %}
+          <a href="/neighborhood/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
+        {% endif %}
+        <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
+        <a href="/neighborhood/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit</a>
+      </nav>
+    </div>
+
+    <div class="neighborhood-nav-container">
+      <nav class="neighborhood-nav-track" tabindex="0" aria-label="Jump to Data Domain">
+        <a href="#weather" class="neighborhood-nav-pill is-inactive">Weather</a>
+        <a href="#transit-commute" class="neighborhood-nav-pill is-inactive">Transit &amp; Commute</a>
+        <a href="#emergency-safety" class="neighborhood-nav-pill is-inactive">Emergency &amp; Safety</a>
+        <a href="#real-estate" class="neighborhood-nav-pill is-inactive">Real Estate</a>
+        <a href="#municipal" class="neighborhood-nav-pill is-inactive">Municipal</a>
+      </nav>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     DOMAIN 1: WEATHER
+     ========================================================================== #}
+  {% set w_city = city_weather[city_slug] if city_weather else null %}
+  {% set fc_main = w_city.forecast_11_day if (w_city and w_city.forecast_11_day) else (w_city.forecast_7_day if w_city else null) %}
+  {% set tide_list = w_city.marine_tides.predictions_11_day if (w_city and w_city.marine_tides and w_city.marine_tides.predictions_11_day) else (w_city.marine_tides.today_predictions if (w_city and w_city.marine_tides) else []) %}
+  {% set show_tides = false %}
+  {% if w_city and w_city.marine_tides and w_city.marine_tides.reference_station and (tide_list | length) > 0 %}
+    {% set show_tides = true %}
+  {% endif %}
+
+  <section id="weather" class="portal-section-glance">
+    <div class="realestate-section-head">
+      <h2 class="text-section-title section-title-clean">Weather</h2>
+      {% if w_city and w_city.last_updated %}
+        <span class="realestate-cadence-pill">Updated: {{ pretty_date(w_city.last_updated) | trim }}</span>
+      {% endif %}
+    </div>
+
+    <div class="section-grid-static grid-cols-1 weather-primary-row">
+      {% if w_city and w_city.current %}
+        {% set current_weather_temp = w_city.current.temp_f | round %}
+        {% set w_code = w_city.current.weather_code | int %}
+        {% set current_weather_condition = "Clear" %}
+        {% if w_code in [95, 96, 99] %}{% set current_weather_condition = "Thunderstorm" %}
+        {% elif w_code in [71, 73, 75, 77, 85, 86] %}{% set current_weather_condition = "Snow" %}
+        {% elif w_code in [61, 63, 65, 66, 67, 80, 81, 82] %}{% set current_weather_condition = "Rain" %}
+        {% elif w_code in [51, 53, 55, 56, 57] %}{% set current_weather_condition = "Drizzle" %}
+        {% elif w_code in [45, 48] %}{% set current_weather_condition = "Fog" %}
+        {% elif w_code == 3 %}{% set current_weather_condition = "Overcast" %}
+        {% elif w_code == 2 %}{% set current_weather_condition = "Partly Cloudy" %}
+        {% elif w_code == 1 %}{% set current_weather_condition = "Mostly Clear" %}
+        {% endif %}
+        {% set current_weather_high = fc_main.temp_max[0] | round if (fc_main and fc_main.temp_max) else "N/A" %}
+        {% set current_weather_low = fc_main.temp_min[0] | round if (fc_main and fc_main.temp_min) else "N/A" %}
+        {% set current_weather_wind = (w_city.current.wind_speed_mph | round) ~ ' MPH' %}
+        {% set current_weather_humidity = (w_city.current.humidity_pct | round) ~ '%' %}
+        {% include "components/widget/weather-current-display.njk" ignore missing %}
+      {% endif %}
+    </div>
+
+    <div class="section-grid-static {% if show_tides %}grid-cols-4{% else %}grid-cols-3{% endif %} weather-primary-row">
+      {% if w_city and w_city.air_quality and w_city.air_quality.us_aqi is not none %}
+        {% set aqi_num = w_city.air_quality.us_aqi | round %}
+        {% set aqi_tier = "score-tier-emerald" if aqi_num <= 50 else ("score-tier-amber" if aqi_num <= 100 else "score-tier-crimson") %}
+        <article class="weather-compact-tile" aria-label="Air Quality Index">
+          <span class="text-overline text-accent-alpine">AIR QUALITY INDEX</span>
+          <div class="weather-score-lockup">
+            <span class="weather-score-squircle {{ aqi_tier }}">{{ aqi_num }}</span>
+            <div class="weather-score-meta">
+              <span class="weather-score-primary">{{ w_city.air_quality.status_label or "Good" }}</span>
+              {% if w_city.air_quality.parameter %}
+                <span class="weather-score-secondary">Primary: {{ w_city.air_quality.parameter }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+      {% endif %}
+
+      {% if w_city and w_city.current and w_city.current.uv_index is not none %}
+        {% set uv_num = w_city.current.uv_index | round %}
+        {% set uv_tier = "score-tier-emerald" if uv_num <= 2 else ("score-tier-amber" if uv_num <= 5 else "score-tier-crimson") %}
+        <article class="weather-compact-tile" aria-label="UV Index">
+          <span class="text-overline text-accent-alpine">UV INDEX</span>
+          <div class="weather-score-lockup">
+            <span class="weather-score-squircle {{ uv_tier }}">{{ uv_num }}</span>
+            <div class="weather-score-meta">
+              <span class="weather-score-primary">{{ w_city.current.uv_label or "Low" }}</span>
+              <span class="weather-score-secondary">Solar Exposure</span>
+            </div>
+          </div>
+        </article>
+      {% endif %}
+
+      {% if w_city and w_city.astronomy and w_city.astronomy.sunrise_today and w_city.astronomy.sunset_today %}
+        {% set raw_rise = w_city.astronomy.sunrise_today %}
+        {% set raw_set = w_city.astronomy.sunset_today %}
+        {% set rise_t = raw_rise.split('T')[1] if ('T' in raw_rise) else (raw_rise.split(' ')[1] if (' ' in raw_rise) else raw_rise) %}
+        {% set set_t = raw_set.split('T')[1] if ('T' in raw_set) else (raw_set.split(' ')[1] if (' ' in raw_set) else raw_set) %}
+
+        {% set rise_h = rise_t.split(':')[0] | int %}
+        {% set rise_m = rise_t.split(':')[1] %}
+        {% set rise_mins = rise_h * 60 + (rise_m | int) %}
+        {% set rise_disp = (12 if rise_h == 0 else (rise_h if rise_h <= 12 else rise_h - 12)) ~ ':' ~ rise_m ~ (' AM' if rise_h < 12 else ' PM') %}
+
+        {% set set_h = set_t.split(':')[0] | int %}
+        {% set set_m = set_t.split(':')[1] %}
+        {% set set_mins = set_h * 60 + (set_m | int) %}
+        {% set set_disp = (12 if set_h == 0 else (set_h if set_h <= 12 else set_h - 12)) ~ ':' ~ set_m ~ (' AM' if set_h < 12 else ' PM') %}
+
+        <article id="weatherSolarTile"
+                 class="weather-compact-tile"
+                 aria-label="Sunrise and Sunset"
+                 data-rise-mins="{{ rise_mins }}"
+                 data-set-mins="{{ set_mins }}">
+          <span class="text-overline text-accent-alpine">SUNRISE &amp; SUNSET</span>
+          <div class="glance-solar-row">
+            <span class="glance-solar-time">{{ rise_disp }}</span>
+            <div class="glance-solar-dial" aria-hidden="true">
+              <svg viewBox="0 0 100 100" class="glance-solar-svg">
+                <path d="M 10 50 A 40 40 0 0 1 90 50" class="glance-solar-day" />
+                <path d="M 90 50 A 40 40 0 0 1 10 50" class="glance-solar-night" />
+                <polygon points="6,54 14,54 10,45" class="glance-solar-arrow-rise" />
+                <polygon points="86,46 94,46 90,55" class="glance-solar-arrow-set" />
+                <g id="weatherSolarMarker" transform="rotate(90, 50, 50)">
+                  <circle cx="10" cy="50" r="5" class="glance-solar-dot" />
+                </g>
+              </svg>
+            </div>
+            <span class="glance-solar-time">{{ set_disp }}</span>
+          </div>
+        </article>
+      {% endif %}
+
+      {% if show_tides %}
+        {% set h_tide = null %}
+        {% set l_tide = null %}
+        {% for pred in tide_list %}
+          {% if not h_tide and pred.type == "High" %}{% set h_tide = pred %}{% endif %}
+          {% if not l_tide and pred.type == "Low" %}{% set l_tide = pred %}{% endif %}
+        {% endfor %}
+
+        {% set tide_high_time = h_tide.time_formatted if (h_tide and h_tide.time_formatted) else "TBD" %}
+        {% set tide_low_time = l_tide.time_formatted if (l_tide and l_tide.time_formatted) else "TBD" %}
+        {% set tide_rising = (tide_list[0].type == "High") if (tide_list | length) > 0 else true %}
+
+        <article id="weatherTideCard" class="weather-tide-compact-card" aria-label="Marine Tides">
+          <div class="tide-band-high">
+            <span id="tideHighLabel" class="tide-band-label">NEXT HIGH {{ tide_high_time }}</span>
+            <span id="tideHighHeight" class="tide-band-height">{% if h_tide %}{{ h_tide.height_ft }} ft{% endif %}</span>
+          </div>
+
+          <svg viewBox="0 0 300 16" preserveAspectRatio="none" class="tide-wave-divider" aria-hidden="true">
+            <path d="M0,4 C75,14 225,-4 300,6 L300,16 L0,16 Z" class="tide-wave-divider-path" />
+          </svg>
+
+          <div class="tide-band-mid">
+            <span class="tide-mid-station">Reference Station:<br>{{ w_city.marine_tides.reference_station }}</span>
+            <span id="tideTrendLabel" class="tide-mid-trend">
+              {% if tide_rising %}&#9650; Tide<br>Rising{% else %}&#9660; Tide<br>Falling{% endif %}
+            </span>
+          </div>
+
+          <div class="tide-band-low">
+            <span id="tideLowLabel" class="tide-band-label">NEXT LOW {{ tide_low_time }}</span>
+            <span id="tideLowHeight" class="tide-band-height">{% if l_tide %}{{ l_tide.height_ft }} ft{% endif %}</span>
+          </div>
+        </article>
+      {% endif %}
+    </div>
+
+    {# 10-Day Forecast Accordion (All Closed by Default) #}
+    {% if fc_main and fc_main.dates %}
+      <div class="weather-forecast-sevenday-card weather-primary-row">
+        <header class="forecast-header-row">
+          <div class="forecast-title-stack">
+            <h3 class="forecast-card-title text-widget-title">10-Day Extended Outlook</h3>
+          </div>
+          <span class="forecast-model-attribution">High-Resolution NOAA Model</span>
+        </header>
+
+        <div class="forecast-days-stack">
+          {% for d_str in fc_main.dates %}
+            {% if loop.index0 < 10 %}
+              {% set idx = loop.index0 %}
+              {% set parts = d_str.split('-') %}
+              {% set y_num = parts[0] | int %}
+              {% set m_num = parts[1] | int %}
+              {% set d_num = parts[2] | int %}
+              {% set calc_y = (y_num - 1) if m_num < 3 else y_num %}
+              {% set dow = (calc_y + (calc_y // 4) - (calc_y // 100) + (calc_y // 400) + sakamoto_t[m_num - 1] + d_num) % 7 %}
+              {% set day_lbl = "Today" if loop.first else weekday_abbr[dow] %}
+              {% set date_lbl = month_abbrs[m_num] ~ " " ~ d_num %}
+              {% set f_code = (fc_main.weather_code[idx] | int) if fc_main.weather_code else 3 %}
+              {% set f_hi = fc_main.temp_max[idx] | round %}
+              {% set f_lo = fc_main.temp_min[idx] | round %}
+              {% set f_pop = fc_main.precip_prob_max[idx] | round %}
+              {% set f_uv = fc_main.uv_index_max[idx] if fc_main.uv_index_max else 0 %}
+              {% set f_cond_text = "Clear" if f_code == 0 else ("Partly Cloudy" if f_code in [1, 2] else ("Overcast" if f_code == 3 else ("Fog" if f_code in [45, 48] else ("Drizzle" if f_code in [51, 53, 55, 56, 57] else ("Snow" if f_code in [71, 73, 75, 77, 85, 86] else ("Thunderstorm" if f_code in [95, 96, 99] else "Rain")))))) %}
+
+              <details class="forecast-accordion-item">
+                <summary class="forecast-accordion-summary">
+                  <div class="forecast-acc-day-col">
+                    <span class="forecast-acc-day">{{ day_lbl }}</span>
+                    <span class="forecast-acc-date">{{ date_lbl }}</span>
+                  </div>
+
+                  <div class="forecast-acc-icon" aria-hidden="true">
+                    <svg viewBox="0 0 32 32" fill="none" class="forecast-condition-svg">
+                      {% if f_code in [71, 73, 75, 77, 85, 86] %}
+                        <path d="M7 18a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 18H7z" class="weather-vector-cloud" />
+                        <circle cx="11" cy="23" r="1.5" class="weather-vector-cloud" />
+                        <circle cx="16" cy="26" r="1.5" class="weather-vector-cloud" />
+                        <circle cx="21" cy="23" r="1.5" class="weather-vector-cloud" />
+                      {% elif f_code in [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82] %}
+                        <path d="M7 19a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 19H7z" class="weather-vector-cloud" />
+                        <line x1="11" y1="22" x2="9" y2="27" class="weather-vector-rain" />
+                        <line x1="16" y1="22" x2="14" y2="27" class="weather-vector-rain" />
+                        <line x1="21" y1="22" x2="19" y2="27" class="weather-vector-rain" />
+                      {% elif f_code in [2, 3, 45, 48] %}
+                        <path d="M8 22a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 26 22H8z" class="weather-vector-cloud" />
+                      {% else %}
+                        <circle cx="16" cy="16" r="7" class="weather-vector-sun-core" />
+                        <line x1="16" y1="4" x2="16" y2="7" class="weather-vector-sun-rays" />
+                        <line x1="16" y1="25" x2="16" y2="28" class="weather-vector-sun-rays" />
+                        <line x1="4" y1="16" x2="7" y2="16" class="weather-vector-sun-rays" />
+                        <line x1="25" y1="16" x2="28" y2="16" class="weather-vector-sun-rays" />
+                      {% endif %}
+                    </svg>
+                  </div>
+
+                  <span class="forecast-acc-rain">{{ f_pop }}%</span>
+
+                  <div class="forecast-acc-temps">
+                    <span class="forecast-acc-high">{{ f_hi }}&deg;</span>
+                    <span class="forecast-acc-low">{{ f_lo }}&deg;</span>
+                  </div>
+
+                  <svg class="forecast-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </summary>
+
+                <div class="forecast-acc-details">
+                  <div class="forecast-acc-detail-block">
+                    <span class="forecast-acc-detail-label">Sky Condition</span>
+                    <span class="forecast-acc-detail-value">{{ f_cond_text }}</span>
+                  </div>
+                  <div class="forecast-acc-detail-block">
+                    <span class="forecast-acc-detail-label">Daytime High</span>
+                    <span class="forecast-acc-detail-value">{{ f_hi }}&deg;F</span>
+                  </div>
+                  <div class="forecast-acc-detail-block">
+                    <span class="forecast-acc-detail-label">Overnight Low</span>
+                    <span class="forecast-acc-detail-value">{{ f_lo }}&deg;F</span>
+                  </div>
+                  <div class="forecast-acc-detail-block">
+                    <span class="forecast-acc-detail-label">Precip Chance</span>
+                    <span class="forecast-acc-detail-value">{{ f_pop }}%</span>
+                  </div>
+                  <div class="forecast-acc-detail-block">
+                    <span class="forecast-acc-detail-label">Max UV Index</span>
+                    <span class="forecast-acc-detail-value">{{ f_uv }}</span>
+                  </div>
+                </div>
+              </details>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    {# Cascade Mountain Pass Conditions Accordion (All Closed by Default) #}
+    {% if weather_mountain_passes and (weather_mountain_passes | length) > 0 %}
+      <div class="weather-passes-card weather-primary-row">
+        <header class="forecast-header-row">
+          <div class="forecast-title-stack">
+            <h3 class="forecast-card-title text-widget-title">WSDOT Mountain Pass Status &amp; 10-Day Forecast</h3>
+          </div>
+        </header>
+
+        <div class="pass-accordion-stack">
+          {% for pass in weather_mountain_passes %}
+            {% set p_status = pass.pass_status or "Open" %}
+            {% set p_status_lower = p_status | lower %}
+            {% set p_badge_cls = "status-closed" if (pass.is_seasonal_closure or "clos" in p_status_lower) else ("status-restricted" if ("restrict" in p_status_lower or "advis" in p_status_lower or "chain" in p_status_lower) else "status-open") %}
+
+            {% set eb_text = "No restrictions" %}
+            {% set wb_text = "No restrictions" %}
+            {% if pass.restrictions %}
+              {% for r_item in pass.restrictions %}
+                {% if r_item.direction == "Eastbound" %}{% set eb_text = r_item.text %}{% endif %}
+                {% if r_item.direction == "Westbound" %}{% set wb_text = r_item.text %}{% endif %}
+              {% endfor %}
+            {% endif %}
+
+            {% set has_active_restrict = (eb_text != "No restrictions") or (wb_text != "No restrictions") %}
+            {% set restrict_summary = ("EB: " ~ eb_text) if (eb_text == wb_text) else ("EB: " ~ eb_text ~ " · WB: " ~ wb_text) %}
+            {% set p_fc = pass.forecast_11_day %}
+
+            <details class="pass-accordion-item">
+              <summary class="pass-accordion-summary">
+                <div class="pass-id-col">
+                  <div class="pass-badges-row">
+                    <span class="pass-route-pill">{{ pass.highway }}</span>
+                    <span class="pass-elevation-tag">{{ pass.elevation_ft }} ft</span>
+                    <span class="pass-status-pill {{ p_badge_cls }}">{{ p_status }}</span>
+                  </div>
+                  <h4 class="pass-name-heading">{{ pass.name }}</h4>
+                </div>
+
+                <div class="pass-conditions-col">
+                  <div class="pass-road-line">
+                    <span>{{ pass.road_condition }}</span>
+                    {% if pass.current and pass.current.roadside_weather %}
+                      <span class="pass-road-sep">&bull;</span>
+                      <span class="pass-weather-sub">{{ pass.current.roadside_weather }}</span>
+                    {% endif %}
+                  </div>
+                  <div class="pass-restrictions-line {% if has_active_restrict %}is-restricted{% endif %}">
+                    {{ restrict_summary }}
+                  </div>
+                </div>
+
+                <div class="pass-telemetry-col">
+                  <div class="pass-temp-stack">
+                    <span class="pass-temp-hero">{% if pass.current and pass.current.temp_f is not none %}{{ pass.current.temp_f | round }}&deg;F{% else %}--&deg;{% endif %}</span>
+                    {% if pass.current and pass.current.summit_wind_mph is not none %}
+                      <span class="pass-wind-caption">Wind {{ pass.current.summit_wind_mph | round }} mph</span>
+                    {% endif %}
+                  </div>
+
+                  <svg class="forecast-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+              </summary>
+
+              {% if p_fc and p_fc.dates %}
+                <div class="pass-acc-details">
+                  <div class="pass-forecast-subbar">
+                    <span class="text-overline text-accent-alpine">10-DAY PASS OUTLOOK</span>
+                    {% if pass.current and pass.current.temp_source %}
+                      <span class="forecast-model-attribution">Telemetry: {{ pass.current.temp_source }}</span>
+                    {% endif %}
+                  </div>
+
+                  <div class="pass-forecast-grid">
+                    {% for pd_str in p_fc.dates %}
+                      {% if loop.index0 < 10 %}
+                        {% set pd_parts = pd_str.split('-') %}
+                        {% set pd_y = pd_parts[0] | int %}
+                        {% set pd_m = pd_parts[1] | int %}
+                        {% set pd_d = pd_parts[2] | int %}
+                        {% set p_calc_y = (pd_y - 1) if pd_m < 3 else pd_y %}
+                        {% set p_dow = (p_calc_y + (p_calc_y // 4) - (p_calc_y // 100) + (p_calc_y // 400) + sakamoto_t[pd_m - 1] + pd_d) % 7 %}
+                        {% set p_day_lbl = "Today" if loop.first else weekday_abbr[p_dow] %}
+                        {% set p_date_lbl = pd_m ~ "/" ~ pd_d %}
+
+                        {% set p_code = (p_fc.weather_code[loop.index0] | int) if p_fc.weather_code else 3 %}
+                        {% set p_hi = p_fc.temp_max[loop.index0] | round %}
+                        {% set p_lo = p_fc.temp_min[loop.index0] | round %}
+                        {% set p_pop = p_fc.precip_prob_max[loop.index0] | round %}
+                        {% set p_snow = (p_fc.snowfall_in[loop.index0] | float) if p_fc.snowfall_in else 0 %}
+
+                        <div class="pass-day-cell">
+                          <span class="pass-day-name">{{ p_day_lbl }}</span>
+                          <span class="pass-day-date">{{ p_date_lbl }}</span>
+
+                          <div class="forecast-acc-icon" aria-hidden="true">
+                            <svg viewBox="0 0 32 32" fill="none" class="forecast-condition-svg">
+                              {% if p_code in [71, 73, 75, 77, 85, 86] %}
+                                <path d="M7 18a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 18H7z" class="weather-vector-cloud" />
+                                <circle cx="11" cy="23" r="1.5" class="weather-vector-cloud" />
+                                <circle cx="16" cy="26" r="1.5" class="weather-vector-cloud" />
+                                <circle cx="21" cy="23" r="1.5" class="weather-vector-cloud" />
+                              {% elif p_code in [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82] %}
+                                <path d="M7 19a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 25 19H7z" class="weather-vector-cloud" />
+                                <line x1="11" y1="22" x2="9" y2="27" class="weather-vector-rain" />
+                                <line x1="16" y1="22" x2="14" y2="27" class="weather-vector-rain" />
+                                <line x1="21" y1="22" x2="19" y2="27" class="weather-vector-rain" />
+                              {% elif p_code in [2, 3, 45, 48] %}
+                                <path d="M8 22a5 5 0 0 1 1-9.9 7 7 0 0 1 13.5 1.9A4.5 4.5 0 0 1 26 22H8z" class="weather-vector-cloud" />
+                              {% else %}
+                                <circle cx="16" cy="16" r="7" class="weather-vector-sun-core" />
+                                <line x1="16" y1="4" x2="16" y2="7" class="weather-vector-sun-rays" />
+                                <line x1="16" y1="25" x2="16" y2="28" class="weather-vector-sun-rays" />
+                                <line x1="4" y1="16" x2="7" y2="16" class="weather-vector-sun-rays" />
+                                <line x1="25" y1="16" x2="28" y2="16" class="weather-vector-sun-rays" />
+                              {% endif %}
+                            </svg>
+                          </div>
+
+                          <div class="pass-day-temps">{{ p_hi }}&deg;<span class="pass-day-low">{{ p_lo }}&deg;</span></div>
+                          <span class="pass-day-precip">{{ p_pop }}% precip</span>
+                          <span class="pass-day-snow {% if p_snow <= 0 %}is-none{% endif %}">
+                            {% if p_snow > 0 %}{{ p_snow }}" snow{% else %}0" snow{% endif %}
+                          </span>
+                        </div>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endif %}
+            </details>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    {# Regional River Status Grid #}
+    {% if river_gauges and (river_gauges | length) > 0 %}
+      <div class="section-grid-static grid-cols-3">
+        {% for gauge in river_gauges %}
+          {% set clean_station = gauge.name | replace("Nf ", "NF ") | replace("Sf ", "SF ") %}
+          {% set watershed_label = clean_station.split(" River")[0] ~ " River" if (" River" in clean_station) else clean_station %}
+
+          {% set valid_minor_flood = (gauge.minor_flood_ft is not none and (gauge.minor_flood_ft | float) > 0) %}
+          {% set valid_action_stage = (gauge.action_stage_ft is not none and (gauge.action_stage_ft | float) > 0) %}
+          {% set is_flood_event = (valid_minor_flood and gauge.flood_status in ["Minor Flood", "Moderate Flood", "Major Flood"]) or (valid_action_stage and gauge.flood_status == "Action Stage") %}
+          {% set display_status = gauge.flood_status if is_flood_event else (gauge.flow_status or "Normal") %}
+
+          {% set status_cls = "status-river-normal" %}
+          {% if is_flood_event %}
+            {% set status_cls = "status-river-alert" if ("Flood" in display_status) else "status-river-warning" %}
+          {% elif display_status in ["Above Normal", "High", "High Flow"] %}
+            {% set status_cls = "status-river-warning" %}
+          {% elif display_status in ["Below Normal", "Low", "Low Flow"] %}
+            {% set status_cls = "status-river-nodata" %}
+          {% endif %}
+
+          {% set cur_cfs = (gauge.discharge_cfs | float) if gauge.discharge_cfs is not none else 0 %}
+          {% set p25_cfs = (gauge.p25_discharge_cfs | float) if gauge.p25_discharge_cfs is not none else 0 %}
+          {% set p75_cfs = (gauge.p75_discharge_cfs | float) if gauge.p75_discharge_cfs is not none else 0 %}
+          {% set scale_top = (p75_cfs * 1.35) if (p75_cfs * 1.35) > (cur_cfs * 1.1) else (cur_cfs * 1.1) %}
+          {% if scale_top <= 0 %}{% set scale_top = 100 %}{% endif %}
+
+          {% set p25_x = ((p25_cfs / scale_top) * 200) | round(1) %}
+          {% set p75_x = ((p75_cfs / scale_top) * 200) | round(1) %}
+          {% set p75_w = (p75_x - p25_x) if (p75_x > p25_x) else 4 %}
+          {% set raw_cur_x = ((cur_cfs / scale_top) * 200) | round(1) %}
+          {% set cur_x = 6 if raw_cur_x < 6 else (194 if raw_cur_x > 194 else raw_cur_x) %}
+
+          {% set obs_disp = "Recent" %}
+          {% if gauge.reading_time and ('T' in gauge.reading_time) %}
+            {% set obs_t = gauge.reading_time.split('T')[1].split(':') %}
+            {% set obs_h = obs_t[0] | int %}
+            {% set obs_disp = (12 if obs_h == 0 else (obs_h if obs_h <= 12 else obs_h - 12)) ~ ':' ~ obs_t[1] ~ (' AM' if obs_h < 12 else ' PM') %}
+          {% endif %}
+
+          <article class="river-bento-card">
+            <div class="river-card-header">
+              <span class="river-watershed-tag">{{ watershed_label }}</span>
+              <span class="river-status-pill {{ status_cls }}">{{ display_status }}</span>
+            </div>
+
+            <h3 class="river-station-heading">{{ clean_station }}</h3>
+
+            <div class="river-dual-metrics">
+              <div class="river-metric-col">
+                <span class="river-metric-sublabel">Discharge</span>
+                <div class="river-flow-hero">
+                  {{ gauge.discharge_cfs | round }} <span class="river-metric-unit">cfs</span>
+                </div>
+                {% if gauge.pct_of_normal is not none %}
+                  <span class="river-pct-caption">{{ gauge.pct_of_normal }}% of seasonal normal</span>
+                {% endif %}
+              </div>
+
+              <div class="river-metric-col">
+                <span class="river-metric-sublabel">Gage Stage</span>
+                <div class="river-stage-hero">
+                  {{ gauge.gage_height_ft }} <span class="river-metric-unit">ft</span>
+                </div>
+                {% if valid_minor_flood %}
+                  <span class="river-pct-caption">Flood: {{ gauge.minor_flood_ft }} ft</span>
+                {% endif %}
+              </div>
+            </div>
+
+            {% if p75_cfs > 0 %}
+              <svg viewBox="0 0 200 10" preserveAspectRatio="none" class="river-meter-svg" aria-hidden="true">
+                <rect x="0" y="3" width="200" height="4" rx="2" class="river-meter-track" />
+                <rect x="{{ p25_x }}" y="3" width="{{ p75_w }}" height="4" rx="2" class="river-meter-normal-band" />
+                <circle cx="{{ cur_x }}" cy="5" r="4" class="river-meter-marker" />
+              </svg>
+            {% endif %}
+
+            <div class="river-card-footer">
+              <span>Normal: {{ gauge.normal_discharge_cfs | round }} cfs ({{ p25_cfs | round }}&ndash;{{ p75_cfs | round }})</span>
+              <span>{{ obs_disp }}</span>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     DOMAIN 2: TRANSIT AND COMMUTE
+     ========================================================================== #}
+  {% set live_transit = transit_radar_live[city_slug] if transit_radar_live else null %}
+
+  <section id="transit-commute" class="portal-section-glance">
+    <div class="realestate-section-head">
+      <h2 class="text-section-title section-title-clean">Transit &amp; Commute</h2>
+      <span class="realestate-cadence-pill">Updated Every 15 Minutes</span>
+    </div>
+
+    {# Active Commute & Transit Scores #}
+    <div class="section-grid-static grid-cols-2 weather-primary-row">
+      {% if live_transit and live_transit.active_commute_score is not none %}
+        {% set c_val = live_transit.active_commute_score | round %}
+        {% set c_badge = "score-tier-emerald" if c_val >= 80 else ("score-tier-alpine" if c_val >= 50 else "score-tier-crimson") %}
+        {% set c_text = "text-tier-emerald" if c_val >= 80 else ("text-tier-alpine" if c_val >= 50 else "text-tier-crimson") %}
+        {% set c_label = "Free-Flow Traffic" if c_val >= 80 else ("Moderate Traffic" if c_val >= 50 else "Heavy Congestion") %}
+
+        <article class="transit-minimal-score-card" aria-label="Active Commute Score: {{ c_val }}, {{ c_label }}">
+          <h3 class="transit-minimal-score-title">Active Commute Score</h3>
+          <div class="transit-minimal-score-row">
+            <div class="score-squircle-badge {{ c_badge }}">
+              <span class="score-digit">{{ c_val }}</span>
+            </div>
+            <div class="transit-minimal-score-label {{ c_text }}">{{ c_label }}</div>
+          </div>
+        </article>
+      {% endif %}
+
+      {% if live_transit and live_transit.active_transit_score is not none %}
+        {% set t_val = live_transit.active_transit_score | round %}
+        {% set t_badge = "score-tier-emerald" if t_val >= 80 else ("score-tier-alpine" if t_val >= 40 else "score-tier-crimson") %}
+        {% set t_text = "text-tier-emerald" if t_val >= 80 else ("text-tier-alpine" if t_val >= 40 else "text-tier-crimson") %}
+        {% set t_label = "Frequent Service" if t_val >= 80 else ("Steady Service" if t_val >= 40 else "Limited Service") %}
+
+        <article class="transit-minimal-score-card" aria-label="Active Transit Score: {{ t_val }}, {{ t_label }}">
+          <h3 class="transit-minimal-score-title">Active Transit Score</h3>
+          <div class="transit-minimal-score-row">
+            <div class="score-squircle-badge {{ t_badge }}">
+              <span class="score-digit">{{ t_val }}</span>
+            </div>
+            <div class="transit-minimal-score-label {{ t_text }}">{{ t_label }}</div>
+          </div>
+        </article>
+      {% endif %}
+    </div>
+
+    {# Active Vehicle & Seat Telemetry Tiles #}
+    {% set bus_cnt = (live_transit.vehicle_counts.buses | default(0)) if (live_transit and live_transit.vehicle_counts) else 0 %}
+    {% set lr_cnt = (live_transit.vehicle_counts.light_rail | default(0)) if (live_transit and live_transit.vehicle_counts) else 0 %}
+    {% set cr_cnt = (live_transit.vehicle_counts.commuter_rail | default(0)) if (live_transit and live_transit.vehicle_counts) else 0 %}
+    {% set seat_cnt = (live_transit.total_active_seats | default(0)) | localeString %}
+
+    <div class="section-grid-static grid-cols-4 weather-primary-row">
+      <article class="transit-stat-card" aria-label="Active Buses in {{ active_neighborhood }}: {{ bus_cnt }}">
+        <div class="transit-stat-icon-wrap" aria-hidden="true">
+          <svg class="transit-stat-svg" viewBox="0 0 24 24" fill="none">
+            <path d="M4 11V6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v5H4z" fill="#29856B"/>
+            <rect x="6" y="5" width="12" height="4.5" rx="1" fill="#FFFFFF" opacity="0.95"/>
+            <path d="M4 11v6a2 2 0 0 0 2 2h1v2a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2h4v2a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2h1a2 2 0 0 0 2-2v-6H4z" fill="#E5B575"/>
+            <circle cx="7" cy="14" r="1.25" fill="#FFFFFF"/>
+            <circle cx="17" cy="14" r="1.25" fill="#FFFFFF"/>
+            <rect x="6" y="19" width="2" height="2" rx="0.5" fill="#1C1C1E"/>
+            <rect x="16" y="19" width="2" height="2" rx="0.5" fill="#1C1C1E"/>
+          </svg>
+        </div>
+        <div class="transit-stat-figure">{{ bus_cnt }}</div>
+        <span class="transit-stat-overline">ACTIVE BUSES IN {{ active_neighborhood | upper }}</span>
+      </article>
+
+      <article class="transit-stat-card" aria-label="Active Light Rail in {{ active_neighborhood }}: {{ lr_cnt }}">
+        <div class="transit-stat-icon-wrap" aria-hidden="true">
+          <svg class="transit-stat-svg" viewBox="0 0 24 24" fill="none">
+            <path d="M3 13V8a3 3 0 0 1 3-3h9l5 4.5V13H3z" fill="#002E6D"/>
+            <path d="M6 7h3v3.5H6zM11 7h3v3.5h-3zM16 7h2.5l2 3.5H16z" fill="#FFFFFF" opacity="0.95"/>
+            <path d="M3 13v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4H3z" fill="#0091B3"/>
+            <circle cx="19" cy="14" r="1" fill="#FACC15"/>
+            <circle cx="6" cy="19" r="1.5" fill="#1C1C1E"/>
+            <circle cx="18" cy="19" r="1.5" fill="#1C1C1E"/>
+          </svg>
+        </div>
+        <div class="transit-stat-figure">{{ lr_cnt }}</div>
+        <span class="transit-stat-overline">ACTIVE LIGHT RAIL IN {{ active_neighborhood | upper }}</span>
+      </article>
+
+      <article class="transit-stat-card" aria-label="Active Sounder Train in {{ active_neighborhood }}: {{ cr_cnt }}">
+        <div class="transit-stat-icon-wrap" aria-hidden="true">
+          <svg class="transit-stat-svg" viewBox="0 0 24 24" fill="none">
+            <path d="M3 13V8a3 3 0 0 1 3-3h9l5 4.5V13H3z" fill="#002E6D"/>
+            <path d="M6 7h3v3.5H6zM11 7h3v3.5h-3zM16 7h2.5l2 3.5H16z" fill="#FFFFFF" opacity="0.95"/>
+            <path d="M3 13v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4H3z" fill="#9AB6D3"/>
+            <circle cx="19" cy="14" r="1" fill="#FACC15"/>
+            <circle cx="6" cy="19" r="1.5" fill="#1C1C1E"/>
+            <circle cx="18" cy="19" r="1.5" fill="#1C1C1E"/>
+          </svg>
+        </div>
+        <div class="transit-stat-figure">{{ cr_cnt }}</div>
+        <span class="transit-stat-overline">ACTIVE SOUNDER TRAIN IN {{ active_neighborhood | upper }}</span>
+      </article>
+
+      <article class="transit-stat-card" aria-label="Active Transit Seats in {{ active_neighborhood }}: {{ seat_cnt }}">
+        <div class="transit-stat-icon-wrap" aria-hidden="true">
+          <svg class="transit-stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="3"/>
+            <path d="M6 4v10a2 2 0 0 0 2 2h10v2"/>
+          </svg>
+        </div>
+        <div class="transit-stat-figure">{{ seat_cnt }}</div>
+        <span class="transit-stat-overline">ACTIVE TRANSIT SEATS IN {{ active_neighborhood | upper }}</span>
+      </article>
+    </div>
+
+    {# 6 Major Employment Hubs Commute Matrix #}
+    {% set city_baseline = null %}
+    {% if commute_hub_baselines %}
+      {% for row in commute_hub_baselines %}
+        {% if row.City == active_neighborhood %}
+          {% set city_baseline = row %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    {% set canonical_hubs = [
+      { id: "slu", name: "South Lake Union (Seattle)" },
+      { id: "bellevue", name: "Downtown Bellevue" },
+      { id: "redmond", name: "Microsoft Redmond Campus" },
+      { id: "everett", name: "Boeing Everett Factory" },
+      { id: "renton", name: "Boeing Renton Factory" },
+      { id: "kent", name: "Kent Valley Logistics Hub" }
+    ] %}
+
+    <div class="commute-hub-container weather-primary-row">
+      <div class="card-header-split">
+        <h3 class="text-widget-title">{{ active_neighborhood }} to Major Employment Hubs</h3>
+        <span class="commute-window-pill" data-commute-window-pill>Off-Peak Baselines</span>
+      </div>
+
+      <div class="commute-hubs-grid">
+        {% for hub in canonical_hubs %}
+          {% set dist_mi = city_baseline[hub.id ~ "_distance_mi"] if city_baseline else "" %}
+          {% set d_off = city_baseline[hub.id ~ "_drive_offpeak_min"] if city_baseline else "" %}
+          {% set t_off = city_baseline[hub.id ~ "_transit_offpeak_min"] if city_baseline else "" %}
+          {% set rd_off = city_baseline[hub.id ~ "_return_drive_offpeak_min"] if city_baseline else "" %}
+          {% set rt_off = city_baseline[hub.id ~ "_return_transit_offpeak_min"] if city_baseline else "" %}
+
+          <div class="commute-hub-card"
+               data-hub-id="{{ hub.id }}"
+               data-offpeak-drive="{{ d_off }}"
+               data-offpeak-transit="{{ t_off }}"
+               data-offpeak-return-drive="{{ rd_off }}"
+               data-offpeak-return-transit="{{ rt_off }}">
+
+            <div class="commute-hub-header">
+              <div>
+                <h4 class="commute-hub-title">{{ hub.name }}</h4>
+                {% if dist_mi %}
+                  <span class="text-body-secondary commute-sub-metric">{{ dist_mi }} mi</span>
+                {% endif %}
+              </div>
+              <div class="commute-friction-badge is-hidden" data-hub-badge></div>
+            </div>
+
+            {% if d_off %}
+              <div class="commute-leg-block" data-commute-leg="morning">
+                <div class="text-overline commute-leg-overline">MORNING COMMUTE: {{ active_neighborhood | upper }} &rarr; HUB</div>
+                <div class="commute-modes-grid">
+                  <div class="commute-metric-cell">
+                    <span class="commute-metric-label">LIVE DRIVE</span>
+                    <div class="commute-metric-value is-baseline-primary" data-hub-field="drive_live">{{ d_off }} min</div>
+                    <span class="text-body-secondary commute-sub-metric" data-hub-sub="morning_drive">Typical off-peak</span>
+                  </div>
+                  <div class="commute-metric-cell">
+                    <span class="commute-metric-label text-accent-alpine">EST. TRANSIT</span>
+                    <div class="commute-metric-value text-accent-alpine" data-hub-field="transit_live">{{ t_off }} min</div>
+                    <span class="text-body-secondary commute-sub-metric" data-hub-sub="morning_transit">Typical off-peak</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="commute-leg-block" data-commute-leg="evening">
+                <div class="text-overline commute-leg-overline">EVENING RETURN: HUB &rarr; {{ active_neighborhood | upper }}</div>
+                <div class="commute-modes-grid">
+                  <div class="commute-metric-cell">
+                    <span class="commute-metric-label">LIVE DRIVE</span>
+                    <div class="commute-metric-value is-baseline-primary" data-hub-field="return_drive_live">{{ rd_off }} min</div>
+                    <span class="text-body-secondary commute-sub-metric" data-hub-sub="return_drive">Typical off-peak</span>
+                  </div>
+                  <div class="commute-metric-cell">
+                    <span class="commute-metric-label text-accent-alpine">EST. TRANSIT</span>
+                    <div class="commute-metric-value text-accent-alpine" data-hub-field="return_transit_live">{{ rt_off }} min</div>
+                    <span class="text-body-secondary commute-sub-metric" data-hub-sub="return_transit">Typical off-peak</span>
+                  </div>
+                </div>
+              </div>
+            {% else %}
+              <div class="commute-pending-state">
+                <span class="text-body-secondary commute-sub-metric">Corridor data unavailable</span>
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+
+      <footer class="commute-hub-footer">
+        Commute times from {{ active_neighborhood }} to hubs are provided from 6:00 AM &ndash; 11:00 AM, and return times from hubs to {{ active_neighborhood }} are provided from 2:00 PM &ndash; 8:00 PM. Off-peak baselines are displayed outside active commute windows.
+      </footer>
+    </div>
+
+    {# Washington State Ferries Accordion (All Closed by Default) #}
+    <div class="weather-passes-card ferry-accordion-card weather-primary-row">
+      <header class="forecast-header-row">
+        <h3 class="forecast-card-title text-widget-title">Washington State Ferries &mdash; Sailing Space &amp; Schedules</h3>
+      </header>
+
+      <div id="ferryAccordionContainer" class="pass-accordion-stack"></div>
+    </div>
+
+    {# Regional Airport METAR & Live Access Telemetry (SEA & PAE — Data Only, No External Iframes) #}
+    <div class="airport-status-grid weather-primary-row">
+      <article id="aptCardSEA" class="airport-status-card" aria-label="Seattle-Tacoma International Airport Status">
+        <div class="apt-card-header">
+          <div class="apt-title-row">
+            <h3 class="apt-name-heading">Seattle-Tacoma International</h3>
+            <span class="apt-code-tag">SEA</span>
+          </div>
+          <span class="ferry-status-pill is-hidden apt-faa-status"></span>
+        </div>
+
+        <div class="apt-metar-grid">
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Flight Rules</span>
+            <span class="apt-flight-rules-pill vfr apt-rule-val">--</span>
+          </div>
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Surface Wind</span>
+            <span class="apt-metar-val apt-wind-val">--</span>
+          </div>
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Visibility</span>
+            <span class="apt-metar-val apt-vis-val">--</span>
+          </div>
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Ceiling / Temp</span>
+            <span class="apt-metar-val apt-ceil-val">--</span>
+          </div>
+        </div>
+
+        <div class="apt-travel-strip">
+          <div class="apt-travel-route">
+            <span class="apt-travel-overline">LIVE AIRPORT ACCESS</span>
+            <span class="apt-travel-heading">{{ active_neighborhood }} &rarr; SEA Airport</span>
+          </div>
+          <div class="apt-travel-metrics">
+            <div class="apt-travel-cell">
+              <span class="apt-travel-label">LIVE DRIVE</span>
+              <span class="apt-travel-value" data-apt-drive="sea">--</span>
+            </div>
+            <div class="apt-travel-cell">
+              <span class="apt-travel-label">EST. TRANSIT</span>
+              <span class="apt-travel-value is-transit" data-apt-transit="sea">--</span>
+            </div>
+            <div class="apt-travel-cell">
+              <span class="apt-travel-label">DISTANCE</span>
+              <span class="apt-travel-value" data-apt-dist="sea">--</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article id="aptCardPAE" class="airport-status-card" aria-label="Paine Field Airport Status">
+        <div class="apt-card-header">
+          <div class="apt-title-row">
+            <h3 class="apt-name-heading">Paine Field (Everett)</h3>
+            <span class="apt-code-tag">PAE</span>
+          </div>
+          <span class="ferry-status-pill is-hidden apt-faa-status"></span>
+        </div>
+
+        <div class="apt-metar-grid">
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Flight Rules</span>
+            <span class="apt-flight-rules-pill vfr apt-rule-val">--</span>
+          </div>
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Surface Wind</span>
+            <span class="apt-metar-val apt-wind-val">--</span>
+          </div>
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Visibility</span>
+            <span class="apt-metar-val apt-vis-val">--</span>
+          </div>
+          <div class="apt-metar-block">
+            <span class="apt-metar-label">Ceiling / Temp</span>
+            <span class="apt-metar-val apt-ceil-val">--</span>
+          </div>
+        </div>
+
+        <div class="apt-travel-strip">
+          <div class="apt-travel-route">
+            <span class="apt-travel-overline">LIVE AIRPORT ACCESS</span>
+            <span class="apt-travel-heading">{{ active_neighborhood }} &rarr; PAE Airport</span>
+          </div>
+          <div class="apt-travel-metrics">
+            <div class="apt-travel-cell">
+              <span class="apt-travel-label">LIVE DRIVE</span>
+              <span class="apt-travel-value" data-apt-drive="pae">--</span>
+            </div>
+            <div class="apt-travel-cell">
+              <span class="apt-travel-label">EST. TRANSIT</span>
+              <span class="apt-travel-value is-transit" data-apt-transit="pae">--</span>
+            </div>
+            <div class="apt-travel-cell">
+              <span class="apt-travel-label">DISTANCE</span>
+              <span class="apt-travel-value" data-apt-dist="pae">--</span>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    {# WSDOT Construction Advisories #}
+    {% set construction_data = city_construction[city_slug] if city_construction else null %}
+    {% set alert_list = construction_data.alerts if (construction_data and construction_data.alerts) else [] %}
+    {% set total_alerts = construction_data.alert_count if (construction_data and construction_data.alert_count is defined) else (alert_list | length) %}
+
+    <div class="widget-card construction-alerts-card weather-primary-row" aria-label="{{ active_neighborhood }} Construction">
+      <header class="construction-alerts-header">
+        <div class="construction-alerts-title-stack">
+          <h3 class="text-widget-title construction-alerts-headline">WSDOT Construction Advisories &mdash; {{ active_neighborhood }}</h3>
+        </div>
+        {% if total_alerts > 0 %}
+          <span class="construction-count-badge status-alert">
+            {{ total_alerts }} ACTIVE {% if total_alerts == 1 %}ADVISORY{% else %}ADVISORIES{% endif %}
+          </span>
+        {% else %}
+          <span class="construction-count-badge status-clear">ALL CLEAR</span>
+        {% endif %}
+      </header>
+
+      {% if total_alerts > 0 and (alert_list | length) > 0 %}
+        <div class="construction-alerts-stream">
+          {% for item in alert_list %}
+            {% set priority_lower = (item.priority | default('low')) | lower %}
+            {% set priority_class = "priority-high" if ('highest' in priority_lower or 'high' in priority_lower) else ("priority-medium" if 'medium' in priority_lower else "priority-low") %}
+            <article class="construction-alert-tile">
+              <div class="construction-alert-meta">
+                <span class="construction-priority-pill {{ priority_class }}">{{ item.priority | default('Advisory') | upper }}</span>
+                <span class="construction-category-label">{{ item.event_category | default('Construction') }}</span>
+                {% if item.alert_id %}
+                  <span class="construction-meta-dot" aria-hidden="true">&bull;</span>
+                  <span class="construction-alert-id">{{ item.alert_id | upper }}</span>
+                {% endif %}
+              </div>
+              <p class="construction-alert-text">{{ item.headline | trim }}</p>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="construction-empty-state">
+          <div class="construction-empty-icon-well" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+          <div class="construction-empty-content">
+            <h4 class="construction-empty-heading">No Active Construction Delays</h4>
+            <p class="text-body-secondary construction-empty-desc">
+              State highways and primary corridors within {{ active_neighborhood }} are currently free of active WSDOT lane reductions or closures.
+            </p>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    {# 7-Day Transit Performance Audit Log (All Closed by Default) #}
+    {% set transit_hist_raw = transit_radar_history[city_slug] if transit_radar_history else [] %}
+    {% if (transit_hist_raw | length) > 0 %}
+      {% set days_order = [] %}
+      {% for hr in transit_hist_raw %}
+        {% if hr.day_of_week and (hr.day_of_week not in days_order) %}
+          {% set _ = days_order.push(hr.day_of_week) %}
+        {% endif %}
+      {% endfor %}
+
+      {% set transit_history_days = [] %}
+      {% for dname in days_order %}
+        {% set s_sum = 0 %}
+        {% set s_cnt = 0 %}
+        {% set o_sum = 0 %}
+        {% set o_cnt = 0 %}
+        {% set day_date_disp = "" %}
+        {% set hourly_rows = [] %}
+
+        {% for hr in transit_hist_raw %}
+          {% if hr.day_of_week == dname %}
+            {% if not day_date_disp and hr.timestamp and ('T' in hr.timestamp) %}
+              {% set ymd = hr.timestamp.split('T')[0].split('-') %}
+              {% set m_idx = ymd[1] | int %}
+              {% set d_num = ymd[2] | int %}
+              {% set day_date_disp = month_abbrs[m_idx] ~ " " ~ d_num %}
+            {% endif %}
+
+            {% if hr.active_transit_score is not none %}
+              {% set s_sum = s_sum + (hr.active_transit_score | float) %}
+              {% set s_cnt = s_cnt + 1 %}
+            {% endif %}
+            {% if hr.active_on_time_score is not none %}
+              {% set o_sum = o_sum + (hr.active_on_time_score | float) %}
+              {% set o_cnt = o_cnt + 1 %}
+            {% endif %}
+
+            {% set hh = hr.hour_of_day | int %}
+            {% set h_disp = (12 if hh == 0 else (hh if hh <= 12 else hh - 12)) ~ (":00 AM" if hh < 12 else ":00 PM") %}
+            {% set is_avail = hr.data_available and (hr.active_transit_score is not none) %}
+            {% set ot_num = (hr.active_on_time_score | round) if (hr.active_on_time_score is not none) else -1 %}
+            {% set st_label = "No Service" if not is_avail else ("Normal" if ot_num >= 80 else ("Minor Delay" if ot_num >= 65 else "Friction")) %}
+            {% set st_type = "nodata" if not is_avail else ("normal" if ot_num >= 80 else ("warning" if ot_num >= 65 else "alert")) %}
+
+            {% set _ = hourly_rows.push({
+              "hour": h_disp,
+              "score": (hr.active_transit_score | round) if (hr.active_transit_score is not none) else "--",
+              "ontime": (ot_num ~ "%") if (ot_num >= 0) else "--",
+              "status": st_label,
+              "status_type": st_type
+            }) %}
+          {% endif %}
+        {% endfor %}
+
+        {% set avg_score = ((s_sum / s_cnt) | round) if s_cnt > 0 else "--" %}
+        {% set avg_ontime = (((o_sum / o_cnt) | round) ~ "%") if o_cnt > 0 else "--" %}
+        {% set _ = transit_history_days.push({
+          "day": dname,
+          "date": day_date_disp,
+          "score": avg_score,
+          "ontime": avg_ontime,
+          "hourly": hourly_rows
+        }) %}
+      {% endfor %}
+
+      <div class="widget-card transit-historical-log-card weather-primary-row" aria-label="{{ active_neighborhood }} Transit Score & Schedule Reliability">
+        <header class="transit-hist-header">
+          <h3 class="text-widget-title transit-hist-title">{{ active_neighborhood }} Transit Score &amp; Schedule Reliability</h3>
+          <div class="transit-audit-badge">7-Day Audit Log</div>
+        </header>
+
+        <div class="transit-days-stack">
+          {% for day in transit_history_days %}
+            <details class="transit-day-accordion">
+              <summary class="transit-day-summary">
+                <div class="transit-day-lead">
+                  <svg class="transit-toggle-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  <span class="transit-day-name">{{ day.day }}</span>
+                  {% if day.date %}<span class="transit-day-date">{{ day.date }}</span>{% endif %}
+                </div>
+                <div class="transit-day-metrics">
+                  <span><span class="metric-score-label">Score:</span> <span class="metric-score-val">{{ day.score }}</span></span>
+                  <span><span class="metric-ontime-label">On-Time:</span> <span class="metric-ontime-val">{{ day.ontime }}</span></span>
+                </div>
+              </summary>
+
+              {% if day.hourly and (day.hourly | length) > 0 %}
+                <div class="transit-hourly-pane">
+                  <table class="transit-hourly-table">
+                    <thead>
+                      <tr>
+                        <th>Hour</th>
+                        <th>Transit Score</th>
+                        <th>On-Time Rate</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for h in day.hourly %}
+                        <tr>
+                          <td class="cell-hour-stamp">{{ h.hour }}</td>
+                          <td class="cell-hour-score">{{ h.score }}</td>
+                          <td class="cell-hour-ontime">{{ h.ontime }}</td>
+                          <td class="cell-hour-status status-{{ h.status_type }}">{{ h.status }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              {% endif %}
+            </details>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    {# WalkScore, BikeScore & TransitScore Connectivity Cards #}
+    {% set walkscore = walk_transit_bike_scores[active_neighborhood] if walk_transit_bike_scores else null %}
+    {% if walkscore %}
+      <div class="section-grid-static grid-cols-3">
+        {% if walkscore.walkscore is not none %}
+          {% set w_val = walkscore.walkscore | round %}
+          {% set w_badge = "score-tier-emerald" if w_val >= 90 else ("score-tier-alpine" if w_val >= 70 else ("score-tier-amber" if w_val >= 50 else "score-tier-crimson")) %}
+          {% set w_text = "text-tier-emerald" if w_val >= 90 else ("text-tier-alpine" if w_val >= 70 else ("text-tier-amber" if w_val >= 50 else "text-tier-crimson")) %}
+          {% set w_label = "Walker's Paradise" if w_val >= 90 else ("Very Walkable" if w_val >= 70 else ("Somewhat Walkable" if w_val >= 50 else "Car-Dependent")) %}
+
+          <article class="transit-minimal-score-card" aria-label="WalkScore Walkability: {{ w_val }}, {{ w_label }}">
+            <h3 class="transit-minimal-score-title">WalkScore&reg; Walkability</h3>
+            <div class="transit-minimal-score-row">
+              <div class="score-squircle-badge {{ w_badge }}">
+                <span class="score-digit">{{ w_val }}</span>
+              </div>
+              <div class="transit-minimal-score-label {{ w_text }}">{{ w_label }}</div>
+            </div>
+          </article>
+        {% endif %}
+
+        {% if walkscore.bike and walkscore.bike.score is not none %}
+          {% set b_val = walkscore.bike.score | round %}
+          {% set b_badge = "score-tier-emerald" if b_val >= 90 else ("score-tier-alpine" if b_val >= 70 else ("score-tier-amber" if b_val >= 50 else "score-tier-crimson")) %}
+          {% set b_text = "text-tier-emerald" if b_val >= 90 else ("text-tier-alpine" if b_val >= 70 else ("text-tier-amber" if b_val >= 50 else "text-tier-crimson")) %}
+          {% set b_label = "Biker's Paradise" if b_val >= 90 else ("Very Bikeable" if b_val >= 70 else ("Bikeable" if b_val >= 50 else "Somewhat Bikeable")) %}
+
+          <article class="transit-minimal-score-card" aria-label="BikeScore Cycling Index: {{ b_val }}, {{ b_label }}">
+            <h3 class="transit-minimal-score-title">BikeScore&reg; Cycling Index</h3>
+            <div class="transit-minimal-score-row">
+              <div class="score-squircle-badge {{ b_badge }}">
+                <span class="score-digit">{{ b_val }}</span>
+              </div>
+              <div class="transit-minimal-score-label {{ b_text }}">{{ b_label }}</div>
+            </div>
+          </article>
+        {% endif %}
+
+        {% if walkscore.transit and walkscore.transit.score is not none %}
+          {% set tr_val = walkscore.transit.score | round %}
+          {% set tr_badge = "score-tier-emerald" if tr_val >= 90 else ("score-tier-alpine" if tr_val >= 70 else ("score-tier-amber" if tr_val >= 50 else "score-tier-crimson")) %}
+          {% set tr_text = "text-tier-emerald" if tr_val >= 90 else ("text-tier-alpine" if tr_val >= 70 else ("text-tier-amber" if tr_val >= 50 else "text-tier-crimson")) %}
+          {% set tr_label = "Rider's Paradise" if tr_val >= 90 else ("Excellent Transit" if tr_val >= 70 else ("Good Transit" if tr_val >= 50 else "Some Transit")) %}
+
+          <article class="transit-minimal-score-card" aria-label="TransitScore Access: {{ tr_val }}, {{ tr_label }}">
+            <h3 class="transit-minimal-score-title">TransitScore&reg; Access</h3>
+            <div class="transit-minimal-score-row">
+              <div class="score-squircle-badge {{ tr_badge }}">
+                <span class="score-digit">{{ tr_val }}</span>
+              </div>
+              <div class="transit-minimal-score-label {{ tr_text }}">{{ tr_label }}</div>
+            </div>
+          </article>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     DOMAIN 3: EMERGENCY AND SAFETY (5-Row Accordion — All Closed by Default)
+     ========================================================================== #}
+  {% set local_alerts = active_alerts.neighborhoods[city_slug] if (active_alerts and active_alerts.neighborhoods) else null %}
+  {% set school_reports = local_alerts.school_reports if (local_alerts and local_alerts.school_reports) else [] %}
+  {% set weather_alerts = local_alerts.weather_alerts if (local_alerts and local_alerts.weather_alerts) else [] %}
+  {% set power_incidents = local_alerts.power_incidents if (local_alerts and local_alerts.power_incidents) else [] %}
+  {% set quake_list = local_alerts.earthquakes if (local_alerts and local_alerts.earthquakes) else [] %}
+  {% set fire_list = local_alerts.wildfires if (local_alerts and local_alerts.wildfires) else [] %}
+
+  {% set school_cnt = school_reports | length %}
+  {% set weather_cnt = weather_alerts | length %}
+  {% set power_cnt = power_incidents | length %}
+  {% set quake_cnt = quake_list | length %}
+  {% set fire_cnt = fire_list | length %}
+
+  <section id="emergency-safety" class="portal-section-widget">
+    <div class="realestate-section-head">
+      <h2 class="text-section-title section-title-clean">Emergency &amp; Safety</h2>
+      {% if active_alerts and active_alerts.last_updated %}
+        <span class="realestate-cadence-pill">Updated: {{ pretty_date(active_alerts.last_updated) | trim }}</span>
+      {% endif %}
+    </div>
+
+    <div class="emergency-accordion-card">
+      {# 1. SCHOOL CLOSURES #}
+      <details class="emergency-acc-item {% if school_cnt > 0 %}is-alert-school{% endif %}">
+        <summary class="emergency-acc-summary">
+          <div class="emergency-acc-lead">
+            <span class="emergency-acc-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 8 L14 5 L18 5 L18 8 Z"/>
+                <path d="M16 2 L16 5"/>
+                <path d="M4 14 L16 8 L28 14 Z"/>
+                <rect x="6" y="14" width="20" height="14" rx="1"/>
+                <path d="M13 28 V21 H19 V28"/>
+              </svg>
+            </span>
+            <span class="emergency-acc-title">School Closures</span>
+          </div>
+
+          <div class="emergency-acc-status-group">
+            <span class="emergency-status-indicator">
+              <span class="emergency-status-dot {% if school_cnt > 0 %}dot-school{% else %}dot-optimal{% endif %}" aria-hidden="true"></span>
+              <span class="emergency-status-text {% if school_cnt > 0 %}text-school{% endif %}">
+                {% if school_cnt > 0 %}
+                  {{ school_cnt }} School {% if school_cnt == 1 %}Alert{% else %}Alerts{% endif %}
+                {% else %}
+                  No active alerts
+                {% endif %}
+              </span>
+            </span>
+            <svg class="emergency-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </summary>
+
+        <div class="emergency-acc-drawer">
+          {% if school_cnt > 0 %}
+            {% for rep in school_reports %}
+              <article class="emergency-alert-entry">
+                <div class="emergency-alert-entry-head">
+                  <h3 class="emergency-alert-entry-title">{{ rep.org_name }}</h3>
+                  {% if rep.category %}<span class="emergency-alert-entry-meta">{{ rep.category }}</span>{% endif %}
+                </div>
+                {% if rep.detail %}<p class="emergency-alert-entry-body">{{ rep.detail }}</p>{% endif %}
+                {% if rep.tomorrow_note %}<p class="emergency-alert-entry-body"><strong>Tomorrow:</strong> {{ rep.tomorrow_note }}</p>{% endif %}
+              </article>
+            {% endfor %}
+          {% else %}
+            <p class="emergency-drawer-empty">No active school closures or schedule delays reported for {{ active_neighborhood }}.</p>
+          {% endif %}
+        </div>
+      </details>
+
+      {# 2. SEVERE WEATHER #}
+      <details class="emergency-acc-item {% if weather_cnt > 0 %}is-alert-weather{% endif %}">
+        <summary class="emergency-acc-summary">
+          <div class="emergency-acc-lead">
+            <span class="emergency-acc-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86a2 2 0 0 1 3.42 0l8.29 14.14A2 2 0 0 1 20.29 21H3.71a2 2 0 0 1-1.71-3L10.29 3.86z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </span>
+            <span class="emergency-acc-title">Severe Weather</span>
+          </div>
+
+          <div class="emergency-acc-status-group">
+            <span class="emergency-status-indicator">
+              <span class="emergency-status-dot {% if weather_cnt > 0 %}dot-weather{% else %}dot-optimal{% endif %}" aria-hidden="true"></span>
+              <span class="emergency-status-text {% if weather_cnt > 0 %}text-weather{% endif %}">
+                {% if weather_cnt > 0 %}
+                  {{ weather_cnt }} Severe Weather {% if weather_cnt == 1 %}Alert{% else %}Alerts{% endif %}
+                {% else %}
+                  No active alerts
+                {% endif %}
+              </span>
+            </span>
+            <svg class="emergency-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </summary>
+
+        <div class="emergency-acc-drawer">
+          {% if weather_cnt > 0 %}
+            {% for wx in weather_alerts %}
+              <article class="emergency-alert-entry">
+                <div class="emergency-alert-entry-head">
+                  <h3 class="emergency-alert-entry-title">{{ wx.event }}</h3>
+                  {% if wx.severity %}<span class="emergency-alert-entry-meta">{{ wx.severity | upper }}</span>{% endif %}
+                </div>
+                {% if wx.headline %}<p class="emergency-alert-entry-body">{{ wx.headline }}</p>{% endif %}
+                {% if wx.instruction %}<p class="emergency-alert-entry-body">{{ wx.instruction }}</p>{% endif %}
+              </article>
+            {% endfor %}
+          {% else %}
+            <p class="emergency-drawer-empty">No active National Weather Service watches or warnings for {{ active_neighborhood }}.</p>
+          {% endif %}
+        </div>
+      </details>
+
+      {# 3. POWER OUTAGES #}
+      <details class="emergency-acc-item {% if power_cnt > 0 %}is-alert-power{% endif %}">
+        <summary class="emergency-acc-summary">
+          <div class="emergency-acc-lead">
+            <span class="emergency-acc-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+                <path d="M10.29 3.86a2 2 0 0 1 3.42 0l8.29 14.14A2 2 0 0 1 20.29 21H3.71a2 2 0 0 1-1.71-3L10.29 3.86z"/>
+                <path d="M12.5 7.5L8.5 13.5h3.5l-1 5 5-6.5h-3.5l1.5-4.5z" fill="currentColor" stroke="none"/>
+              </svg>
+            </span>
+            <span class="emergency-acc-title">Power Outages</span>
+          </div>
+
+          <div class="emergency-acc-status-group">
+            <span class="emergency-status-indicator">
+              <span class="emergency-status-dot {% if power_cnt > 0 %}dot-power{% else %}dot-optimal{% endif %}" aria-hidden="true"></span>
+              <span class="emergency-status-text {% if power_cnt > 0 %}text-power{% endif %}">
+                {% if power_cnt > 0 %}
+                  {{ power_cnt }} Power Outage {% if power_cnt == 1 %}Alert{% else %}Alerts{% endif %}
+                {% else %}
+                  No active alerts
+                {% endif %}
+              </span>
+            </span>
+            <svg class="emergency-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </summary>
+
+        <div class="emergency-acc-drawer">
+          {% if power_cnt > 0 %}
+            {% for inc in power_incidents %}
+              <article class="emergency-alert-entry">
+                <div class="emergency-alert-entry-head">
+                  <h3 class="emergency-alert-entry-title">{{ inc.provider }} &mdash; {{ inc.customers_affected }} Customers Affected</h3>
+                  <span class="emergency-alert-entry-meta">{{ inc.status }}</span>
+                </div>
+                <p class="emergency-alert-entry-body">
+                  Cause: {{ inc.cause }}{% if inc.est_restoration %} &bull; Est. Restoration: {{ inc.est_restoration }}{% endif %}
+                </p>
+              </article>
+            {% endfor %}
+          {% else %}
+            <p class="emergency-drawer-empty">No active utility power outages detected within {{ active_neighborhood }}.</p>
+          {% endif %}
+        </div>
+      </details>
+
+      {# 4. EARTHQUAKES #}
+      <details class="emergency-acc-item {% if quake_cnt > 0 %}is-alert-earthquake{% endif %}">
+        <summary class="emergency-acc-summary">
+          <div class="emergency-acc-lead">
+            <span class="emergency-acc-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 12h5l2-5 3 10 3-10 2 5h5"/>
+              </svg>
+            </span>
+            <span class="emergency-acc-title">Earthquakes</span>
+          </div>
+
+          <div class="emergency-acc-status-group">
+            <span class="emergency-status-indicator">
+              <span class="emergency-status-dot {% if quake_cnt > 0 %}dot-earthquake{% else %}dot-optimal{% endif %}" aria-hidden="true"></span>
+              <span class="emergency-status-text {% if quake_cnt > 0 %}text-earthquake{% endif %}">
+                {% if quake_cnt > 0 %}
+                  {{ quake_cnt }} Seismic {% if quake_cnt == 1 %}Alert{% else %}Alerts{% endif %}
+                {% else %}
+                  No active alerts
+                {% endif %}
+              </span>
+            </span>
+            <svg class="emergency-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </summary>
+
+        <div class="emergency-acc-drawer">
+          {% if quake_cnt > 0 %}
+            {% for q in quake_list %}
+              <article class="emergency-alert-entry">
+                <div class="emergency-alert-entry-head">
+                  <h3 class="emergency-alert-entry-title">M{{ q.magnitude }} Earthquake &mdash; {{ q.place }}</h3>
+                  <span class="emergency-alert-entry-meta">{{ q.distance_miles }} mi away</span>
+                </div>
+                {% if q.depth is not none %}<p class="emergency-alert-entry-body">Depth: {{ q.depth | round(1) }} km</p>{% endif %}
+              </article>
+            {% endfor %}
+          {% else %}
+            <p class="emergency-drawer-empty">No recent felt seismic activity within range of {{ active_neighborhood }}.</p>
+          {% endif %}
+        </div>
+      </details>
+
+      {# 5. WILDFIRES #}
+      <details class="emergency-acc-item {% if fire_cnt > 0 %}is-alert-wildfire{% endif %}">
+        <summary class="emergency-acc-summary">
+          <div class="emergency-acc-lead">
+            <span class="emergency-acc-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2c-.5 2.5-3 5-3 8 0 3.3 2.7 6 6 6s6-2.7 6-6c0-2-1-3.5-2-4.5.5 1.5 0 3.5-1.5 4.5-.5-2-2-3.5-2.5-5.5-.5 1-1 2-1 3-1.5-1-2-3.5-2-5.5z" fill="#DC2626"/>
+                <path d="M12 9c-.3 1.5-1.8 3-1.8 4.8 0 2 1.6 3.6 3.6 3.6s3.6-1.6 3.6-3.6c0-1.2-.6-2.1-1.2-2.7.3.9 0 2.1-.9 2.7-.3-1.2-1.2-2.1-1.5-3.3-.3.6-.6 1.2-.6 1.8-.9-.6-1.2-2.1-1.2-3.3z" fill="#FBBF24"/>
+              </svg>
+            </span>
+            <span class="emergency-acc-title">Wildfires</span>
+          </div>
+
+          <div class="emergency-acc-status-group">
+            <span class="emergency-status-indicator">
+              <span class="emergency-status-dot {% if fire_cnt > 0 %}dot-wildfire{% else %}dot-optimal{% endif %}" aria-hidden="true"></span>
+              <span class="emergency-status-text {% if fire_cnt > 0 %}text-wildfire{% endif %}">
+                {% if fire_cnt > 0 %}
+                  {{ fire_cnt }} Wildfire {% if fire_cnt == 1 %}Alert{% else %}Alerts{% endif %}
+                {% else %}
+                  No active alerts
+                {% endif %}
+              </span>
+            </span>
+            <svg class="emergency-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </summary>
+
+        <div class="emergency-acc-drawer">
+          {% if fire_cnt > 0 %}
+            {% for f in fire_list %}
+              <article class="emergency-alert-entry">
+                <div class="emergency-alert-entry-head">
+                  <h3 class="emergency-alert-entry-title">{{ f.name }}</h3>
+                  <span class="emergency-alert-entry-meta">{{ f.distance_miles }} mi away</span>
+                </div>
+                <p class="emergency-alert-entry-body">
+                  {{ f.acres }} acres{% if f.containment_percent is not none %} &bull; {{ f.containment_percent }}% contained{% endif %}
+                </p>
+              </article>
+            {% endfor %}
+          {% else %}
+            <p class="emergency-drawer-empty">No active wildland fire incidents within range of {{ active_neighborhood }}.</p>
+          {% endif %}
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     DOMAIN 4: REAL ESTATE
+     ========================================================================== #}
+  {% set redfin_row = null %}
+  {% if redfin_stats %}
+    {% for r in redfin_stats %}
+      {% if not redfin_row and r.city == active_neighborhood %}
+        {% set redfin_row = r %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% set msp_series = [] %}
+  {% set cs_series = [] %}
+  {% set dom_series = [] %}
+  {% set ms_series = [] %}
+  {% set spl_series = [] %}
+  {% set lp_series = [] %}
+
+  {% if infosparks_stats and infosparks_stats.feeds %}
+    {% for fk, fv in infosparks_stats.feeds %}
+      {% if fv.meta and fv.meta.geographies and (active_neighborhood in fv.meta.geographies) %}
+        {% set metric_name = fv.meta.metric %}
+        {% set valid_pts = [] %}
+        {% for row in fv.data %}
+          {% set raw_v = row[isp_col] %}
+          {% if raw_v is not none and raw_v != "" %}
+            {% set _ = valid_pts.push({ "date": row.Date, "val": raw_v | float }) %}
+          {% endif %}
+        {% endfor %}
+
+        {% if metric_name == "Median Sale Price" %}{% set msp_series = valid_pts %}{% endif %}
+        {% if metric_name == "Closed Sales" %}{% set cs_series = valid_pts %}{% endif %}
+        {% if metric_name == "Average Days on Market" %}{% set dom_series = valid_pts %}{% endif %}
+        {% if metric_name == "Months Supply Closed" %}{% set ms_series = valid_pts %}{% endif %}
+        {% if metric_name == "Shows Per Listing" %}{% set spl_series = valid_pts %}{% endif %}
+        {% if metric_name == "Percent of List Price Average" %}{% set lp_series = valid_pts %}{% endif %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% set ms_len = ms_series | length %}
+  {% set latest_ms_val = ms_series[ms_len - 1].val if ms_len > 0 else null %}
+  {% set rates_list = hourly_rates if hourly_rates else [] %}
+  {% set rates_len = rates_list | length %}
+  {% set latest_rate = rates_list[rates_len - 1] if rates_len > 0 else null %}
+
+  <section id="real-estate" class="portal-section-widget">
+    <div class="realestate-section-head">
+      <h2 class="text-section-title section-title-clean">Real Estate</h2>
+      {% if latest_rate and latest_rate.Date %}
+        <span class="realestate-cadence-pill">Updated: {{ pretty_date(latest_rate.Date) | trim }}</span>
+      {% endif %}
+    </div>
+
+    {# 4A. Market Balance Bar + Daily Mortgage Rates + 30-Day Mortgage Trends Chart #}
+    <div class="realestate-headlines-split">
+      {% set current_months_supply = latest_ms_val %}
+      {% include "components/widget/realestate-market-balance-bar.njk" %}
+
+      {% if latest_rate %}
+        {% set daily_rate_conventional = latest_rate['30 Year Conventional'] %}
+        {% set daily_rate_fha = latest_rate['30 Year FHA'] %}
+        {% set daily_rate_va = latest_rate['30 Year VA'] %}
+        {% set mortgage_table_heading = "Daily Mortgage Rates" %}
+        {% include "components/widget/realestate-mortgage-rates-daily-table.njk" %}
+      {% endif %}
+    </div>
+
+    {% if rates_len > 1 %}
+      {% set rate_conv_vals = [] %}
+      {% set rate_fha_vals = [] %}
+      {% set rate_va_vals = [] %}
+      {% set rate_conv_fmt = [] %}
+      {% set rate_fha_fmt = [] %}
+      {% set rate_va_fmt = [] %}
+      {% set rate_x_labels = [] %}
+      {% set rate_hover_dates = [] %}
+      {% set rate_step = (rates_len / 5) | round(0, 'floor') %}
+      {% set rate_step = rate_step if rate_step >= 1 else 1 %}
+
+      {% for r in rates_list %}
+        {% set _ = rate_conv_vals.push(r['30 Year Conventional'] | replace('%', '') | float) %}
+        {% set _ = rate_fha_vals.push(r['30 Year FHA'] | replace('%', '') | float) %}
+        {% set _ = rate_va_vals.push(r['30 Year VA'] | replace('%', '') | float) %}
+        {% set _ = rate_conv_fmt.push(r['30 Year Conventional']) %}
+        {% set _ = rate_fha_fmt.push(r['30 Year FHA']) %}
+        {% set _ = rate_va_fmt.push(r['30 Year VA']) %}
+        {% set d_clean = r.Date.split(' ')[0] %}
+        {% set _ = rate_hover_dates.push(pretty_date(d_clean) | trim) %}
+        {% if loop.index0 % rate_step == 0 or loop.last %}
+          {% set d_parts = d_clean.split('/') %}
+          {% set _ = rate_x_labels.push(d_parts[0] ~ '/' ~ d_parts[1]) %}
+        {% else %}
+          {% set _ = rate_x_labels.push('') %}
+        {% endif %}
+      {% endfor %}
+
+      <div class="weather-primary-row">
+        {% set chart_title = "30-Day Puget Sound Mortgage Trends" %}
+        {% set chart_x_labels = rate_x_labels %}
+        {% set chart_hover_dates = rate_hover_dates %}
+        {% set chart_y_labels = ["7.8%", "7.5%", "7.2%", "6.9%"] %}
+
+        {% set series_1_name = "30-Yr Conventional" %}
+        {% set series_1_points = spark_points(rate_conv_vals, 6.8, 7.8) | trim %}
+        {% set series_1_raw_vals = rate_conv_vals %}
+        {% set series_1_fmt_vals = rate_conv_fmt %}
+
+        {% set series_2_name = "30-Yr FHA" %}
+        {% set series_2_points = spark_points(rate_fha_vals, 6.8, 7.8) | trim %}
+        {% set series_2_raw_vals = rate_fha_vals %}
+        {% set series_2_fmt_vals = rate_fha_fmt %}
+
+        {% set series_3_name = "30-Yr VA" %}
+        {% set series_3_points = spark_points(rate_va_vals, 6.8, 7.8) | trim %}
+        {% set series_3_raw_vals = rate_va_vals %}
+        {% set series_3_fmt_vals = rate_va_fmt %}
+
+        {% set series_4_name = "" %}
+        {% set series_4_points = "" %}
+        {% include "components/widget/universal-data-chart-maxfour.njk" %}
+      </div>
+    {% endif %}
+
+    {# 4B. Real-Time Market Data (6 Stat Cards + 2 Stacked Velocity Charts) #}
+    {% set market_row = null %}
+    {% if hourly_market %}
+      {% for m in hourly_market %}
+        {% if not market_row and m.City == active_neighborhood %}
+          {% set market_row = m %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    {% if market_row %}
+      <div class="realestate-section-head">
+        <h3 class="text-widget-title">Real-Time Market Data</h3>
+        <span class="realestate-cadence-pill">Updated Every 15 Minutes</span>
+      </div>
+
+      {% set rt_new = market_row['New Listings'] | int %}
+      {% set rt_drops = market_row['Price Drops'] | int %}
+      {% set rt_pending = market_row.Pending | int %}
+      {% set rt_sold = market_row.Sold | int %}
+      {% set rt_avg_price = market_row['Avg New Price'] | float | round %}
+      {% set rt_cuts = market_row['Total Price Cuts ($)'] | float | round %}
+
+      <div class="section-grid-static grid-cols-3 weather-primary-row">
+        {% set stat_value = rt_new | localeString %}
+        {% set stat_label = "New Listings" %}
+        {% set stat_context = "Past 15 Minutes" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set stat_value = rt_drops | localeString %}
+        {% set stat_label = "Price Drops" %}
+        {% set stat_context = "Past 15 Minutes" %}
+        {% set stat_trend = "positive" if rt_drops > 0 else "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set stat_value = rt_pending | localeString %}
+        {% set stat_label = "Pending Under Contract" %}
+        {% set stat_context = "Active Escrows" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set stat_value = rt_sold | localeString %}
+        {% set stat_label = "Recently Closed" %}
+        {% set stat_context = "Finalized Transfers" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set stat_value = ("$" ~ (rt_avg_price | localeString)) if rt_avg_price > 0 else "--" %}
+        {% set stat_label = "Avg New Price" %}
+        {% set stat_context = "Active Inflow" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set stat_value = "$" ~ (rt_cuts | localeString) %}
+        {% set stat_label = "Total Price Cuts" %}
+        {% set stat_context = "Aggregate Reduction" %}
+        {% set stat_trend = "positive" if rt_cuts > 0 else "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+      </div>
+
+      {% set city_hist_all = [] %}
+      {% if hourly_market_historical %}
+        {% for h in hourly_market_historical %}
+          {% if h.City == active_neighborhood %}
+            {% set _ = city_hist_all.push(h) %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+
+      {% set hist_12 = city_hist_all.slice(-12) %}
+      {% set hist_12_len = hist_12 | length %}
+      {% if hist_12_len > 1 %}
+        {% set h_x_labels = [] %}
+        {% set h_hover_dates = [] %}
+        {% set h_new_vals = [] %}
+        {% set h_drop_vals = [] %}
+        {% set h_pend_vals = [] %}
+        {% set h_sold_vals = [] %}
+        {% set h_avg_k_vals = [] %}
+        {% set h_cut_k_vals = [] %}
+        {% set h_avg_fmt = [] %}
+        {% set h_cut_fmt = [] %}
+        {% set max_vol = 20 %}
+        {% set max_sold = 20 %}
+        {% set max_avg_k = 1000 %}
+        {% set max_cut_k = 200 %}
+
+        {% for h in hist_12 %}
+          {% set n_v = h['New Listings'] | int %}
+          {% set d_v = h['Price Drops'] | int %}
+          {% set p_v = h.Pending | int %}
+          {% set s_v = h.Sold | int %}
+          {% set raw_avg = h['Avg New Price'] | float | round %}
+          {% set raw_cut = h['Total Price Cuts ($)'] | float | round %}
+          {% set a_k = (raw_avg / 1000) | round %}
+          {% set c_k = (raw_cut / 1000) | round %}
+
+          {% set _ = h_new_vals.push(n_v) %}
+          {% set _ = h_drop_vals.push(d_v) %}
+          {% set _ = h_pend_vals.push(p_v) %}
+          {% set _ = h_sold_vals.push(s_v) %}
+          {% set _ = h_avg_k_vals.push(a_k) %}
+          {% set _ = h_cut_k_vals.push(c_k) %}
+          {% set _ = h_avg_fmt.push(("$" ~ (raw_avg | localeString)) if raw_avg > 0 else "$0") %}
+          {% set _ = h_cut_fmt.push("$" ~ (raw_cut | localeString)) %}
+          {% set _ = h_hover_dates.push(pretty_date(h.Timestamp) | trim) %}
+
+          {% if n_v > max_vol %}{% set max_vol = n_v %}{% endif %}
+          {% if d_v > max_vol %}{% set max_vol = d_v %}{% endif %}
+          {% if p_v > max_vol %}{% set max_vol = p_v %}{% endif %}
+          {% if s_v > max_sold %}{% set max_sold = s_v %}{% endif %}
+          {% if a_k > max_avg_k %}{% set max_avg_k = a_k %}{% endif %}
+          {% if c_k > max_cut_k %}{% set max_cut_k = c_k %}{% endif %}
+
+          {% if loop.index0 % 3 == 0 or loop.last %}
+            {% set ts_parts = h.Timestamp.split('/') %}
+            {% set _ = h_x_labels.push(ts_parts[0] ~ '/' ~ ts_parts[1]) %}
+          {% else %}
+            {% set _ = h_x_labels.push('') %}
+          {% endif %}
+        {% endfor %}
+
+        {% set ceil_vol = (((max_vol * 1.1) / 10) | round(0, 'ceil')) * 10 %}
+        {% set ceil_sold = (((max_sold * 1.15) / 10) | round(0, 'ceil')) * 10 %}
+        {% set ceil_avg_k = (((max_avg_k * 1.1) / 250) | round(0, 'ceil')) * 250 %}
+        {% set ceil_cut_k = (((max_cut_k * 1.1) / 100) | round(0, 'ceil')) * 100 %}
+
+        <div class="realestate-stacked-charts weather-primary-row">
+          {% set chart_title = active_neighborhood ~ " Weekly Volume: Listings, Drops & Pending" %}
+          {% set chart_x_labels = h_x_labels %}
+          {% set chart_hover_dates = h_hover_dates %}
+          {% set chart_y_labels = [ceil_vol | int, ((ceil_vol * 0.67) | round) | int, ((ceil_vol * 0.33) | round) | int, 0] %}
+          {% set series_1_name = "New Listings" %}
+          {% set series_1_points = spark_points(h_new_vals, 0, ceil_vol) | trim %}
+          {% set series_1_raw_vals = h_new_vals %}
+          {% set series_1_fmt_vals = [] %}
+          {% set series_2_name = "Price Drops" %}
+          {% set series_2_points = spark_points(h_drop_vals, 0, ceil_vol) | trim %}
+          {% set series_2_raw_vals = h_drop_vals %}
+          {% set series_2_fmt_vals = [] %}
+          {% set series_3_name = "Pending Escrows" %}
+          {% set series_3_points = spark_points(h_pend_vals, 0, ceil_vol) | trim %}
+          {% set series_3_raw_vals = h_pend_vals %}
+          {% set series_3_fmt_vals = [] %}
+          {% set series_4_name = "" %}
+          {% set series_4_points = "" %}
+          {% include "components/widget/universal-data-chart-maxfour.njk" %}
+
+          {% set chart_title = active_neighborhood ~ " Weekly Closings & Price Relief Velocity" %}
+          {% set chart_x_labels = h_x_labels %}
+          {% set chart_hover_dates = h_hover_dates %}
+          {% set chart_y_labels = ["Peak", "Upper", "Mid", "Baseline"] %}
+          {% set series_1_name = "Closed Sales" %}
+          {% set series_1_points = spark_points(h_sold_vals, 0, ceil_sold) | trim %}
+          {% set series_1_raw_vals = h_sold_vals %}
+          {% set series_1_fmt_vals = [] %}
+          {% set series_2_name = "Avg List Price" %}
+          {% set series_2_points = spark_points(h_avg_k_vals, 0, ceil_avg_k) | trim %}
+          {% set series_2_raw_vals = h_avg_k_vals %}
+          {% set series_2_fmt_vals = h_avg_fmt %}
+          {% set series_3_name = "Total Price Cuts" %}
+          {% set series_3_points = spark_points(h_cut_k_vals, 0, ceil_cut_k) | trim %}
+          {% set series_3_raw_vals = h_cut_k_vals %}
+          {% set series_3_fmt_vals = h_cut_fmt %}
+          {% set series_4_name = "" %}
+          {% set series_4_points = "" %}
+          {% include "components/widget/universal-data-chart-maxfour.njk" %}
+        </div>
+      {% endif %}
+    {% endif %}
+
+    {# 4C. Monthly Market Data from Redfin (6 Stat Cards) #}
+    {% if redfin_row %}
+      <div class="realestate-section-head">
+        <h3 class="text-widget-title">Monthly Market Data from Redfin</h3>
+        <span class="realestate-cadence-pill">Updated: {{ pretty_date(redfin_row.last_updated or redfin_row.period_end) | trim }}</span>
+      </div>
+
+      <div class="section-grid-static grid-cols-3 weather-primary-row">
+        {% set stat_value = ("$" ~ ((redfin_row.price_per_sqft | round) | localeString)) if redfin_row.price_per_sqft is not none else "--" %}
+        {% set stat_label = "Price Per Square Foot" %}
+        {% set stat_context = "Median Active Footprint" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set stat_value = ((redfin_row.inventory | int) | localeString) if redfin_row.inventory is not none else "--" %}
+        {% set stat_label = "Active Inventory" %}
+        {% set stat_context = "Available Homes" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set stat_value = ((redfin_row.new_listings | int) | localeString) if redfin_row.new_listings is not none else "--" %}
+        {% set stat_label = "New Listings" %}
+        {% set stat_context = "Quarterly Inflow" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set stat_value = ((redfin_row.pending_sales | int) | localeString) if redfin_row.pending_sales is not none else "--" %}
+        {% set stat_label = "Pending Sales" %}
+        {% set stat_context = "Under Contract" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set cancel_cnt = (redfin_row.contract_cancellations | int) if redfin_row.contract_cancellations is not none else 0 %}
+        {% set stat_value = (cancel_cnt | localeString) if redfin_row.contract_cancellations is not none else "--" %}
+        {% set stat_label = "Contract Cancellations" %}
+        {% set stat_context = "Failed Escrows" %}
+        {% set stat_trend = "negative" if cancel_cnt > 10 else "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set cancel_pct = (redfin_row.cancellation_rate_pct | float) if redfin_row.cancellation_rate_pct is not none else 0 %}
+        {% set stat_value = ((cancel_pct | round(1)) ~ "%") if redfin_row.cancellation_rate_pct is not none else "--" %}
+        {% set stat_label = "Cancellation Rate" %}
+        {% set stat_context = "Contract Fallout Ratio" %}
+        {% set stat_trend = "negative" if cancel_pct > 15 else "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+      </div>
+    {% endif %}
+
+    {# 4D. Monthly Market Data & Graphs from NWMLS #}
+    {% set has_nwmls = (msp_series | length) > 0 or (cs_series | length) > 0 %}
+    {% if has_nwmls %}
+      {% set msp_len = msp_series | length %}
+      {% set cs_len = cs_series | length %}
+      {% set dom_len = dom_series | length %}
+      {% set spl_len = spl_series | length %}
+      {% set lp_len = lp_series | length %}
+
+      {% set latest_msp = msp_series[msp_len - 1] if msp_len > 0 else null %}
+      {% set latest_cs = cs_series[cs_len - 1] if cs_len > 0 else null %}
+      {% set latest_dom = dom_series[dom_len - 1] if dom_len > 0 else null %}
+      {% set latest_ms = ms_series[ms_len - 1] if ms_len > 0 else null %}
+      {% set latest_spl = spl_series[spl_len - 1] if spl_len > 0 else null %}
+      {% set latest_lp = lp_series[lp_len - 1] if lp_len > 0 else null %}
+      {% set nwmls_updated_date = latest_msp.date if (latest_msp and latest_msp.date) else (latest_cs.date if latest_cs else '') %}
+
+      <div class="realestate-section-head">
+        <h3 class="text-widget-title">Monthly Market Data from NWMLS</h3>
+        {% if nwmls_updated_date %}
+          <span class="realestate-cadence-pill">Updated: {{ nwmls_updated_date }}</span>
+        {% endif %}
+      </div>
+
+      <div class="section-grid-static grid-cols-3 weather-primary-row">
+        {% set stat_value = ("$" ~ ((latest_msp.val | int) | localeString)) if latest_msp else "--" %}
+        {% set stat_label = "Median Sale Price" %}
+        {% set stat_context = "MLS Final" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set stat_value = ((latest_cs.val | int) | localeString) if latest_cs else "--" %}
+        {% set stat_label = "Closed Sales" %}
+        {% set stat_context = "Monthly Volume" %}
+        {% set stat_trend = "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set dom_v = (latest_dom.val | round) if latest_dom else 0 %}
+        {% set stat_value = (dom_v ~ " Days") if latest_dom else "--" %}
+        {% set stat_label = "Days on Market" %}
+        {% set stat_context = "Market Velocity" %}
+        {% set stat_trend = ("negative" if dom_v > 40 else "positive") if latest_dom else "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set ms_v = (latest_ms.val | float) if latest_ms else 0 %}
+        {% set stat_value = ((ms_v | round(1)) ~ " Mo") if latest_ms else "--" %}
+        {% set stat_label = "Months Supply" %}
+        {% set stat_context = ("Seller's Market" if ms_v < 2.0 else ("Buyer's Market" if ms_v > 4.0 else "Balanced Market")) if latest_ms else "Supply Ratio" %}
+        {% set stat_trend = ("negative" if ms_v > 4.0 else "neutral") if latest_ms else "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set spl_v = (latest_spl.val | float) if latest_spl else 0 %}
+        {% set stat_value = (spl_v | round(1)) if latest_spl else "--" %}
+        {% set stat_label = "Showings Per Listing" %}
+        {% set stat_context = "Buyer Foot Traffic" %}
+        {% set stat_trend = ("positive" if spl_v >= 6.0 else "neutral") if latest_spl else "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+
+        {% set lp_v = (latest_lp.val | float) if latest_lp else 0 %}
+        {% set stat_value = (((lp_v * 100) | round(1)) ~ "%") if latest_lp else "--" %}
+        {% set stat_label = "Sale-to-List Ratio" %}
+        {% set stat_context = ("Over-Asking Demand" if lp_v >= 1.0 else "Discount to List") if latest_lp else "List Price Realization" %}
+        {% set stat_trend = ("positive" if lp_v >= 1.0 else "neutral") if latest_lp else "neutral" %}
+        {% include "components/widget/stat-card.njk" %}
+      </div>
+
+      {% set msp_12 = msp_series.slice(-12) %}
+      {% set cs_12 = cs_series.slice(-12) %}
+      {% set dom_12 = dom_series.slice(-12) %}
+      {% set ms_12 = ms_series.slice(-12) %}
+      {% set spl_12 = spl_series.slice(-12) %}
+      {% set lp_12 = lp_series.slice(-12) %}
+
+      {% if (msp_12 | length) > 1 and (cs_12 | length) > 1 %}
+        {% set nw_x_labels = [] %}
+        {% set nw_hover_dates = [] %}
+        {% set msp_k_vals = [] %}
+        {% set msp_fmt = [] %}
+        {% set cs_vals = [] %}
+        {% set dom_vals = [] %}
+        {% set dom_fmt = [] %}
+        {% set ms_vals = [] %}
+        {% set ms_fmt = [] %}
+        {% set spl_vals = [] %}
+        {% set lp_pct_vals = [] %}
+        {% set lp_fmt = [] %}
+
+        {% set min_msp_k = 999999 %}
+        {% set max_msp_k = 0 %}
+        {% set max_cs = 10 %}
+        {% set max_dom = 20 %}
+        {% set max_ms = 4 %}
+        {% set max_spl = 8 %}
+
+        {% for item in msp_12 %}
+          {% set pk = item.val / 1000 %}
+          {% set _ = msp_k_vals.push(pk) %}
+          {% set _ = msp_fmt.push("$" ~ ((item.val | int) | localeString)) %}
+          {% if pk < min_msp_k %}{% set min_msp_k = pk %}{% endif %}
+          {% if pk > max_msp_k %}{% set max_msp_k = pk %}{% endif %}
+        {% endfor %}
+
+        {% for item in cs_12 %}
+          {% set _ = cs_vals.push(item.val | int) %}
+          {% set _ = nw_hover_dates.push(item.date) %}
+          {% if item.val > max_cs %}{% set max_cs = item.val %}{% endif %}
+          {% if loop.index0 % 3 == 0 or loop.last %}
+            {% set dp = item.date.split(' ') %}
+            {% set _ = nw_x_labels.push(dp[0].slice(0, 3) ~ ' ' ~ dp[1].slice(2, 4)) %}
+          {% else %}
+            {% set _ = nw_x_labels.push('') %}
+          {% endif %}
+        {% endfor %}
+
+        {% for item in dom_12 %}
+          {% set _ = dom_vals.push(item.val | round) %}
+          {% set _ = dom_fmt.push((item.val | round) ~ " Days") %}
+          {% if item.val > max_dom %}{% set max_dom = item.val %}{% endif %}
+        {% endfor %}
+
+        {% for item in ms_12 %}
+          {% set _ = ms_vals.push(item.val | round(1)) %}
+          {% set _ = ms_fmt.push((item.val | round(1)) ~ " Mo") %}
+          {% if item.val > max_ms %}{% set max_ms = item.val %}{% endif %}
+        {% endfor %}
+
+        {% for item in spl_12 %}
+          {% set _ = spl_vals.push(item.val | round(1)) %}
+          {% if item.val > max_spl %}{% set max_spl = item.val %}{% endif %}
+        {% endfor %}
+
+        {% for item in lp_12 %}
+          {% set pct_v = (item.val * 100) | round(1) %}
+          {% set _ = lp_pct_vals.push(pct_v) %}
+          {% set _ = lp_fmt.push(pct_v ~ "%") %}
+        {% endfor %}
+
+        {% set floor_msp_k = ((min_msp_k * 0.9) / 50 | round(0, 'floor')) * 50 %}
+        {% set ceil_msp_k = ((max_msp_k * 1.08) / 50 | round(0, 'ceil')) * 50 %}
+        {% set ceil_cs = (((max_cs * 1.15) / 10) | round(0, 'ceil')) * 10 %}
+        {% set ceil_dom = (((max_dom * 1.15) / 10) | round(0, 'ceil')) * 10 %}
+        {% set ceil_ms = (((max_ms * 1.15) / 2) | round(0, 'ceil')) * 2 %}
+        {% set ceil_spl = (((max_spl * 1.15) / 2) | round(0, 'ceil')) * 2 %}
+
+        <div class="realestate-stacked-charts weather-primary-row">
+          {% set chart_title = active_neighborhood ~ " 12-Month Market Velocity (Price, Sales & DOM)" %}
+          {% set chart_x_labels = nw_x_labels %}
+          {% set chart_hover_dates = nw_hover_dates %}
+          {% set chart_y_labels = ["Peak", "Upper", "Mid", "Floor"] %}
+          {% set series_1_name = "Median Price" %}
+          {% set series_1_points = spark_points(msp_k_vals, floor_msp_k, ceil_msp_k) | trim %}
+          {% set series_1_raw_vals = msp_k_vals %}
+          {% set series_1_fmt_vals = msp_fmt %}
+          {% set series_2_name = "Closed Sales" %}
+          {% set series_2_points = spark_points(cs_vals, 0, ceil_cs) | trim %}
+          {% set series_2_raw_vals = cs_vals %}
+          {% set series_2_fmt_vals = [] %}
+          {% set series_3_name = "Days on Market" %}
+          {% set series_3_points = spark_points(dom_vals, 0, ceil_dom) | trim %}
+          {% set series_3_raw_vals = dom_vals %}
+          {% set series_3_fmt_vals = dom_fmt %}
+          {% set series_4_name = "" %}
+          {% set series_4_points = "" %}
+          {% include "components/widget/universal-data-chart-maxfour.njk" %}
+
+          {% set chart_title = active_neighborhood ~ " 12-Month Buyer Demand & Price Pressure" %}
+          {% set chart_x_labels = nw_x_labels %}
+          {% set chart_hover_dates = nw_hover_dates %}
+          {% set chart_y_labels = ["Peak", "Upper", "Mid", "Floor"] %}
+          {% set series_1_name = "Months Supply" %}
+          {% set series_1_points = spark_points(ms_vals, 0, ceil_ms) | trim %}
+          {% set series_1_raw_vals = ms_vals %}
+          {% set series_1_fmt_vals = ms_fmt %}
+          {% set series_2_name = "Shows / Listing" %}
+          {% set series_2_points = spark_points(spl_vals, 0, ceil_spl) | trim %}
+          {% set series_2_raw_vals = spl_vals %}
+          {% set series_2_fmt_vals = [] %}
+          {% set series_3_name = "Sale/List %" %}
+          {% set series_3_points = spark_points(lp_pct_vals, 90, 110) | trim %}
+          {% set series_3_raw_vals = lp_pct_vals %}
+          {% set series_3_fmt_vals = lp_fmt %}
+          {% set series_4_name = "" %}
+          {% set series_4_points = "" %}
+          {% include "components/widget/universal-data-chart-maxfour.njk" %}
+        </div>
+      {% endif %}
+    {% endif %}
+
+    {# 4E. Migration Data & Relocation Map #}
+    {% set sea_migration = redfin_migration.data.metros['Seattle, WA'] if (redfin_migration and redfin_migration.data and redfin_migration.data.metros) else null %}
+    {% if sea_migration %}
+      {% set migration_inflows = [] %}
+      {% for item in sea_migration.top_inflow %}
+        {% set net_num = item['NET FLOW (ORIGIN TO DESTINATION)'] | round %}
+        {% set net_str = ("+" ~ (net_num | localeString) ~ " Net") if net_num > 0 else ((net_num | localeString) ~ " Net") %}
+        {% set _ = migration_inflows.push({
+          "city": item['ORIGIN REGION NAME'],
+          "share": ((item['PCT OF DESTINATION INFLOW (%)'] | round(1)) ~ "%"),
+          "net": net_str
+        }) %}
+      {% endfor %}
+
+      {% set migration_outflows = [] %}
+      {% for item in sea_migration.top_outflow %}
+        {% set net_num = item['NET FLOW (ORIGIN TO DESTINATION)'] | round %}
+        {% set net_str = ("+" ~ (net_num | localeString) ~ " Net") if net_num > 0 else ((net_num | localeString) ~ " Net") %}
+        {% set _ = migration_outflows.push({
+          "city": item['DESTINATION REGION NAME'],
+          "share": ((item['PCT OF ORIGIN OUTFLOW (%)'] | round(1)) ~ "%"),
+          "net": net_str
+        }) %}
+      {% endfor %}
+
+      <div class="weather-primary-row">
+        {% set migration_map_title = active_neighborhood ~ " Regional Migration Dynamics" %}
+        {% include "components/widget/realestate-migration-map.njk" %}
+      </div>
+    {% endif %}
+
+    {# 4F. Regional Housing Affordability Metrics #}
+    {% set afford_rows = redfin_monthly_stats.affordability if (redfin_monthly_stats and redfin_monthly_stats.affordability) else [] %}
+    {% set sea_afford = [] %}
+    {% for r in afford_rows %}
+      {% if r['REGION NAME'] == 'Seattle, WA metro area' %}
+        {% set _ = sea_afford.push(r) %}
+      {% endif %}
+    {% endfor %}
+
+    {% if (sea_afford | length) > 0 %}
+      {% set latest_aff_row = sea_afford[(sea_afford | length) - 1] %}
+      {% set latest_aff_period = latest_aff_row['PERIOD END'] %}
+      {% set cur_aff = [] %}
+      {% for r in sea_afford %}
+        {% if r['PERIOD END'] == latest_aff_period %}
+          {% set _ = cur_aff.push(r) %}
+        {% endif %}
+      {% endfor %}
+
+      {% set tier_specs = [
+        { "raw": "Condo/Co-op", "label": "Condo / Co-op" },
+        { "raw": "Starter Home", "label": "Starter Home" },
+        { "raw": "Townhouse", "label": "Townhouse" },
+        { "raw": "Single Family", "label": "Single-Family" }
+      ] %}
+      {% set property_tier_ladder = [] %}
+      {% for ts in tier_specs %}
+        {% for r in cur_aff %}
+          {% if r['PROPERTY TYPE'] == ts.raw and r['INCOME GROUP'] == 'All' and r['DOWN PAYMENT PERCENT (%)'] == 3.5 %}
+            {% set p_val = r['MEDIAN SALE PRICE ($)'] | float %}
+            {% set i_val = r['INCOME REQUIRED ($)'] | float %}
+            {% set m_val = r['MONTHLY HOUSING PAYMENT ($)'] | float %}
+            {% set p_pct = ((p_val / 1000000) * 100) | round %}
+            {% set i_pct = ((i_val / 300000) * 100) | round %}
+            {% set _ = property_tier_ladder.push({
+              "type": ts.label,
+              "price_fmt": "$" ~ ((p_val | round) | localeString),
+              "income_fmt": "$" ~ ((i_val | round) | localeString),
+              "payment": "$" ~ ((m_val | round) | localeString),
+              "price_pct": 100 if p_pct > 100 else p_pct,
+              "inc_pct": 100 if i_pct > 100 else i_pct
+            }) %}
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+
+      {% set dp_tiers = [3.5, 5.0, 10.0, 15.0, 20.0] %}
+      {% set downpayment_matrix = [] %}
+      {% for dp in dp_tiers %}
+        {% for r in cur_aff %}
+          {% if r['PROPERTY TYPE'] == 'All Residential' and r['INCOME GROUP'] == 'All' and r['DOWN PAYMENT PERCENT (%)'] == dp %}
+            {% set tot = r['MONTHLY HOUSING PAYMENT ($)'] | float %}
+            {% set mort = r['MONTHLY MORTGAGE PAYMENT ($)'] | float %}
+            {% set tax = r['MONTHLY PROPERTY TAX ($)'] | float %}
+            {% set ins = r['MONTHLY PROPERTY INSURANCE ($)'] | float %}
+            {% set pmi = r['MONTHLY PMI ($)'] | float %}
+            {% set safe_tot = tot if tot > 0 else 1 %}
+            {% set _ = downpayment_matrix.push({
+              "tier": (dp | round(1)) ~ "% Down",
+              "down": "$" ~ ((r['DOWN PAYMENT AMOUNT ($)'] | float | round) | localeString),
+              "mort": "$" ~ ((mort | round) | localeString),
+              "tax": "$" ~ ((tax | round) | localeString),
+              "ins": "$" ~ ((ins | round) | localeString),
+              "pmi": "$" ~ ((pmi | round) | localeString),
+              "total": "$" ~ ((tot | round) | localeString),
+              "income": "$" ~ ((r['INCOME REQUIRED ($)'] | float | round) | localeString),
+              "p_mort": ((mort / safe_tot) * 100) | round,
+              "p_tax": ((tax / safe_tot) * 100) | round,
+              "p_ins": ((ins / safe_tot) * 100) | round,
+              "p_pmi": ((pmi / safe_tot) * 100) | round
+            }) %}
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+
+      {% set hh_groups = [
+        { "raw": "Renter", "label": "Renter Households" },
+        { "raw": "All", "label": "All Households (Median)" },
+        { "raw": "White", "label": "White Households" },
+        { "raw": "Asian", "label": "Asian Households" },
+        { "raw": "Homeowner", "label": "Homeowner Households" }
+      ] %}
+      {% set household_power_data = [] %}
+      {% for hg in hh_groups %}
+        {% for r in cur_aff %}
+          {% if r['PROPERTY TYPE'] == 'All Residential' and r['INCOME GROUP'] == hg.raw and r['DOWN PAYMENT PERCENT (%)'] == 3.5 %}
+            {% set hh_inc = r['MEDIAN HOUSEHOLD INCOME ($)'] | float %}
+            {% set bar_pct = ((hh_inc / 300000) * 100) | round %}
+            {% set _ = household_power_data.push({
+              "group": hg.label,
+              "inc_fmt": "$" ~ ((hh_inc | round) | localeString),
+              "years_save": ((r['YEARS TO SAVE DOWN PAYMENT'] | float | round(1)) ~ " Yrs"),
+              "share": ((r['AFFORDABLE LISTING SHARE (%)'] | float | round(1)) ~ "%"),
+              "pct": 100 if bar_pct > 100 else bar_pct
+            }) %}
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+
+      {% set dashboard_title = active_neighborhood ~ " Regional Housing Affordability & Purchasing Power" %}
+      {% include "components/widget/realestate-housing-affordability-dashboard.njk" %}
+    {% endif %}
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     DOMAIN 5: MUNICIPAL (Services Grid + Calendar & Agenda Feeds — No Video)
+     ========================================================================== #}
+  {% set city_web = city['City Website'] | default('') | trim %}
+  {% set police_web = city['Police URL'] | default('') | trim %}
+  {% set crisis_web = city['Crisis URL'] | default('') | trim %}
+  {% set permit_web = city['Permit URL'] | default('') | trim %}
+  {% set has_muni_links = (city_web and city_web != 'NO DATA') or (police_web and police_web != 'NO DATA') or (crisis_web and crisis_web != 'NO DATA') or (permit_web and permit_web != 'NO DATA') %}
+
+  {% set crime = crime_stats[active_neighborhood] if crime_stats else null %}
+  {% set safety = public_safety_emergency[active_neighborhood] if public_safety_emergency else null %}
+  {% set fire = safety.fire_service if (safety and safety.fire_service) else null %}
+  {% set med = safety.emergency_medical if (safety and safety.emergency_medical) else null %}
+  {% set surv = surveillance_stats[active_neighborhood] if surveillance_stats else null %}
+  {% set tax = city_tax_trends[city_slug] if city_tax_trends else null %}
+  {% set ev = city_ev_scores[city_slug] if city_ev_scores else null %}
+  {% set amen_entry = city_amenities[city_slug] if city_amenities else null %}
+  {% set amen_scores = amen_entry.scores if (amen_entry and amen_entry.scores) else null %}
+  {% set amen_counts = amen_entry.amenities if (amen_entry and amen_entry.amenities) else null %}
+
+  <section id="municipal" class="portal-section-widget">
+    <div class="realestate-section-head">
+      <h2 class="text-section-title section-title-clean">Municipal</h2>
+    </div>
+
+    {% if has_muni_links %}
+      <div class="municipal-links-bar weather-primary-row">
+        {% if city_web and city_web != 'NO DATA' %}
+          <a href="{{ city_web }}" class="municipal-ext-pill" target="_blank" rel="noopener noreferrer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/>
+            </svg>
+            <span>City Website</span>
+          </a>
+        {% endif %}
+
+        {% if police_web and police_web != 'NO DATA' %}
+          <a href="{{ police_web }}" class="municipal-ext-pill" target="_blank" rel="noopener noreferrer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <span>Police Department</span>
+          </a>
+        {% endif %}
+
+        {% if crisis_web and crisis_web != 'NO DATA' %}
+          <a href="{{ crisis_web }}" class="municipal-ext-pill" target="_blank" rel="noopener noreferrer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            <span>Crisis Services</span>
+          </a>
+        {% endif %}
+
+        {% if permit_web and permit_web != 'NO DATA' %}
+          <a href="{{ permit_web }}" class="municipal-ext-pill" target="_blank" rel="noopener noreferrer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            <span>Permits &amp; Planning</span>
+          </a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {# 3x3 Emergency & Municipal Services Grid #}
+    <div class="municipal-services-grid weather-primary-row">
+      {# 1. Crime & Public Safety #}
+      <article class="municipal-metric-card" aria-label="Crime and Public Safety">
+        <div class="municipal-card-top">
+          <div>
+            <span class="municipal-card-overline">PUBLIC SAFETY</span>
+            <h3 class="municipal-card-title">Crime &amp; Safety Rates</h3>
+          </div>
+          <div class="municipal-card-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+        </div>
+
+        {% if crime %}
+          <div class="municipal-crime-split">
+            <div class="municipal-crime-cell">
+              <div class="municipal-crime-val">{{ crime.per_capita_violent_rate }}</div>
+              <span class="municipal-crime-sub">Violent / 1k</span>
+            </div>
+            <div class="municipal-crime-cell">
+              <div class="municipal-crime-val">{{ crime.per_capita_property_rate }}</div>
+              <span class="municipal-crime-sub">Property / 1k</span>
+            </div>
+          </div>
+          <div class="municipal-card-footer">
+            <span class="municipal-agency-label">{{ crime.police_agency }}</span>
+            {% if crime.granular_crime_link %}
+              <a href="{{ crime.granular_crime_link }}" class="municipal-inline-link" target="_blank" rel="noopener noreferrer">Crime Map &rarr;</a>
+            {% endif %}
+          </div>
+        {% else %}
+          <span class="municipal-pending-badge">Data Review Pending</span>
+        {% endif %}
+      </article>
+
+      {# 2. Fire Protection (WSRB Class) #}
+      <article class="municipal-metric-card" aria-label="Fire Protection Rating">
+        <div class="municipal-card-top">
+          <div>
+            <span class="municipal-card-overline">FIRE PROTECTION</span>
+            <h3 class="municipal-card-title">WSRB Protection Class</h3>
+          </div>
+          <div class="municipal-card-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2c-.5 2.5-3 5-3 8 0 3.3 2.7 6 6 6s6-2.7 6-6c0-2-1-3.5-2-4.5.5 1.5 0 3.5-1.5 4.5-.5-2-2-3.5-2.5-5.5-.5 1-1 2-1 3-1.5-1-2-3.5-2-5.5z"/>
+            </svg>
+          </div>
+        </div>
+
+        {% if fire %}
+          {% set wsrb = fire.wsrb_protection_class %}
+          {% if wsrb is not none %}
+            {% set f_badge = "score-tier-emerald" if wsrb <= 2 else ("score-tier-alpine" if wsrb <= 4 else "score-tier-amber") %}
+            <div class="municipal-score-row">
+              <div class="score-squircle-badge {{ f_badge }}">
+                <span class="score-digit">{{ wsrb }}</span>
+              </div>
+              <div class="municipal-score-copy">
+                <span class="municipal-score-headline">Class {{ wsrb }} Rating</span>
+                <span class="municipal-score-detail">{{ fire.homeowners_insurance_impact }}</span>
+              </div>
+            </div>
+          {% else %}
+            <span class="municipal-pending-badge">{{ fire.homeowners_insurance_impact | default("Data Review Pending") }}</span>
+          {% endif %}
+          <div class="municipal-card-footer">
+            <span class="municipal-agency-label">{{ fire.agency_name }}</span>
+          </div>
+        {% else %}
+          <span class="municipal-pending-badge">Data Review Pending</span>
+        {% endif %}
+      </article>
+
+      {# 3. Emergency Medical & Nearest Hospital #}
+      <article class="municipal-metric-card" aria-label="Emergency Medical Facility">
+        <div class="municipal-card-top">
+          <div>
+            <span class="municipal-card-overline">EMERGENCY MEDICAL</span>
+            <h3 class="municipal-card-title">Nearest Hospital</h3>
+          </div>
+          <div class="municipal-card-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 8v8"/><path d="M8 12h8"/>
+            </svg>
+          </div>
+        </div>
+
+        {% if med %}
+          <div class="municipal-score-copy">
+            <span class="municipal-score-headline">{{ med.nearest_hospital_facility }}</span>
+            <span class="municipal-score-detail">{{ med.distance_proximity_miles }} Miles &bull; {{ med.cms_hospital_quality_rating }}</span>
+          </div>
+          <div class="municipal-card-footer">
+            <span class="municipal-agency-label">CMS Hospital Quality Benchmark</span>
+          </div>
+        {% else %}
+          <span class="municipal-pending-badge">Data Review Pending</span>
+        {% endif %}
+      </article>
+
+      {# 4. Surveillance Index #}
+      <article class="municipal-metric-card" aria-label="Public Surveillance Index">
+        <div class="municipal-card-top">
+          <div>
+            <span class="municipal-card-overline">CIVIC PRIVACY</span>
+            <h3 class="municipal-card-title">Surveillance Index</h3>
+          </div>
+          <div class="municipal-card-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </div>
+        </div>
+
+        {% if surv and surv.surveillance_score is not none %}
+          {% set s_val = surv.surveillance_score | round %}
+          {% set s_badge = "score-tier-emerald" if s_val <= 35 else ("score-tier-alpine" if s_val <= 65 else ("score-tier-amber" if s_val <= 85 else "score-tier-crimson")) %}
+          {% set s_label = "Low Density" if s_val <= 35 else ("Moderate Density" if s_val <= 65 else ("Elevated Density" if s_val <= 85 else "High Density")) %}
+          {% set inv = surv.infrastructure_inventories if surv.infrastructure_inventories else {} %}
+          <div class="municipal-score-row">
+            <div class="score-squircle-badge {{ s_badge }}">
+              <span class="score-digit">{{ s_val }}</span>
+            </div>
+            <div class="municipal-score-copy">
+              <span class="municipal-score-headline">{{ s_label }}</span>
+              <span class="municipal-score-detail">{{ inv.detected_alpr_cameras | default(0) }} ALPR &bull; {{ inv.detected_traffic_cameras | default(0) }} Traffic &bull; {{ inv.detected_general_cctv | default(0) }} CCTV</span>
+            </div>
+          </div>
+          <div class="municipal-card-footer">
+            <span class="municipal-agency-label">{{ surv.serving_agency }}</span>
+          </div>
+        {% else %}
+          <span class="municipal-pending-badge">Insufficient Volunteer Mapping</span>
+          {% if surv and surv.serving_agency %}
+            <div class="municipal-card-footer">
+              <span class="municipal-agency-label">{{ surv.serving_agency }}</span>
+            </div>
+          {% endif %}
+        {% endif %}
+      </article>
+
+      {# 5. Property Tax Stability #}
+      <article class="municipal-metric-card" aria-label="Property Tax Stability Index">
+        <div class="municipal-card-top">
+          <div>
+            <span class="municipal-card-overline">MUNICIPAL FISCAL</span>
+            <h3 class="municipal-card-title">Property Tax Stability</h3>
+          </div>
+          <div class="municipal-card-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
+        </div>
+
+        {% if tax and tax.tax_stability_index is not none %}
+          {% set tx_val = tax.tax_stability_index | round %}
+          {% set tx_badge = "score-tier-emerald" if tx_val >= 75 else ("score-tier-alpine" if tx_val >= 55 else ("score-tier-amber" if tx_val >= 40 else "score-tier-crimson")) %}
+          <div class="municipal-score-row">
+            <div class="score-squircle-badge {{ tx_badge }}">
+              <span class="score-digit">{{ tx_val }}</span>
+            </div>
+            <div class="municipal-score-copy">
+              <span class="municipal-score-headline">{{ tax.trajectory_rating }}</span>
+              <span class="municipal-score-detail">5-Yr Growth: +{{ tax.five_year_growth_pct }}% (${{ tax.median_tax_2026 | localeString }} Median)</span>
+            </div>
+          </div>
+          <div class="municipal-card-footer">
+            <span class="municipal-agency-label">2021&ndash;2026 Levy Trajectory</span>
+          </div>
+        {% else %}
+          <span class="municipal-pending-badge">Data Review Pending</span>
+        {% endif %}
+      </article>
+
+      {# 6. EV Infrastructure #}
+      <article class="municipal-metric-card" aria-label="EV Charging Infrastructure Score">
+        <div class="municipal-card-top">
+          <div>
+            <span class="municipal-card-overline">CLEAN MOBILITY</span>
+            <h3 class="municipal-card-title">EV Infrastructure</h3>
+          </div>
+          <div class="municipal-card-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </div>
+        </div>
+
+        {% if ev and ev.ev_charge_score is not none %}
+          {% set ev_val = ev.ev_charge_score | round %}
+          {% set ev_badge = "score-tier-emerald" if ev_val >= 80 else ("score-tier-alpine" if ev_val >= 50 else ("score-tier-amber" if ev_val >= 20 else "score-tier-crimson")) %}
+          {% set ev_label = "High Charger Density" if ev_val >= 80 else ("Established Network" if ev_val >= 50 else ("Developing Network" if ev_val >= 20 else "Limited Public Ports")) %}
+          <div class="municipal-score-row">
+            <div class="score-squircle-badge {{ ev_badge }}">
+              <span class="score-digit">{{ ev_val }}</span>
+            </div>
+            <div class="municipal-score-copy">
+              <span class="municipal-score-headline">{{ ev_label }}</span>
+              <span class="municipal-score-detail">{{ ev.level_2_ports | default(0) }} Level 2 &bull; {{ ev.dc_fast_ports | default(0) }} DC Fast Ports</span>
+            </div>
+          </div>
+          <div class="municipal-card-footer">
+            <span class="municipal-agency-label">AFDC Public Charging Station Index</span>
+          </div>
+        {% else %}
+          <span class="municipal-pending-badge">Data Review Pending</span>
+        {% endif %}
+      </article>
+
+      {# 7. ParkScore #}
+      <article class="municipal-metric-card" aria-label="ParkScore Index">
+        <div class="municipal-card-top">
+          <div>
+            <span class="municipal-card-overline">PARKS &amp; OPEN SPACE</span>
+            <h3 class="municipal-card-title">ParkScore</h3>
+          </div>
+          <div class="municipal-card-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L5 12h4l-3 7h12l-3-7h4L12 2z"/><line x1="12" y1="19" x2="12" y2="22"/>
+            </svg>
+          </div>
+        </div>
+
+        {% if amen_scores and amen_scores.park_score is not none %}
+          {% set pk_val = amen_scores.park_score | round %}
+          {% set pk_badge = "score-tier-emerald" if pk_val >= 75 else ("score-tier-alpine" if pk_val >= 50 else ("score-tier-amber" if pk_val >= 25 else "score-tier-crimson")) %}
+          {% set pk_cnt = amen_counts.parks | default(0) %}
+          <div class="municipal-score-row">
+            <div class="score-squircle-badge {{ pk_badge }}">
+              <span class="score-digit">{{ pk_val }}</span>
+            </div>
+            <div class="municipal-score-copy">
+              <span class="municipal-score-headline">{{ pk_cnt }} Public {{ "Park" if pk_cnt == 1 else "Parks" }}</span>
+              <span class="municipal-score-detail">Per-Capita Green Space Access</span>
+            </div>
+          </div>
+          <div class="municipal-card-footer">
+            <span class="municipal-agency-label">{{ active_neighborhood }} Parks &amp; Trails</span>
+          </div>
+        {% else %}
+          <span class="municipal-pending-badge">Data Review Pending</span>
+        {% endif %}
+      </article>
+
+      {# 8. ShoreScore #}
+      <article class="municipal-metric-card" aria-label="ShoreScore Waterfront Index">
+        <div class="municipal-card-top">
+          <div>
+            <span class="municipal-card-overline">WATERFRONT &amp; BEACHES</span>
+            <h3 class="municipal-card-title">ShoreScore</h3>
+          </div>
+          <div class="municipal-card-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M2 18c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>
+            </svg>
+          </div>
+        </div>
+
+        {% if amen_scores and amen_scores.shore_score is not none %}
+          {% set sh_val = amen_scores.shore_score | round %}
+          {% set sh_badge = "score-tier-emerald" if sh_val >= 65 else ("score-tier-alpine" if sh_val >= 35 else ("score-tier-amber" if sh_val >= 1 else "score-tier-crimson")) %}
+          {% set sh_cnt = amen_counts.beaches | default(0) %}
+          <div class="municipal-score-row">
+            <div class="score-squircle-badge {{ sh_badge }}">
+              <span class="score-digit">{{ sh_val }}</span>
+            </div>
+            <div class="municipal-score-copy">
+              <span class="municipal-score-headline">{{ sh_cnt }} Public {{ "Beach" if sh_cnt == 1 else "Beaches" }}</span>
+              <span class="municipal-score-detail">{{ "Saltwater & Lakefront Access" if sh_cnt > 0 else "Inland Municipality" }}</span>
+            </div>
+          </div>
+          <div class="municipal-card-footer">
+            <span class="municipal-agency-label">Shoreline Recreation Index</span>
+          </div>
+        {% else %}
+          <span class="municipal-pending-badge">Data Review Pending</span>
+        {% endif %}
+      </article>
+
+      {# 9. BarkScore #}
+      <article class="municipal-metric-card" aria-label="BarkScore Pet Livability Index">
+        <div class="municipal-card-top">
+          <div>
+            <span class="municipal-card-overline">PET LIVABILITY</span>
+            <h3 class="municipal-card-title">BarkScore</h3>
+          </div>
+          <div class="municipal-card-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="4" cy="8" r="2"/><path d="M7.5 14.5C7.5 12.5 9.5 11 11 11s3.5 1.5 3.5 3.5c0 2.5-1.5 4.5-3.5 4.5s-3.5-2-3.5-4.5z"/>
+            </svg>
+          </div>
+        </div>
+
+        {% if amen_scores and amen_scores.bark_score is not none %}
+          {% set bk_val = amen_scores.bark_score | round %}
+          {% set bk_badge = "score-tier-emerald" if bk_val >= 70 else ("score-tier-alpine" if bk_val >= 45 else ("score-tier-amber" if bk_val >= 20 else "score-tier-crimson")) %}
+          {% set dp_cnt = amen_counts.dog_parks | default(0) %}
+          {% set ps_cnt = amen_counts.pet_stores | default(0) %}
+          <div class="municipal-score-row">
+            <div class="score-squircle-badge {{ bk_badge }}">
+              <span class="score-digit">{{ bk_val }}</span>
+            </div>
+            <div class="municipal-score-copy">
+              <span class="municipal-score-headline">{{ dp_cnt }} Dog {{ "Park" if dp_cnt == 1 else "Parks" }}</span>
+              <span class="municipal-score-detail">{{ ps_cnt }} Local Pet {{ "Store" if ps_cnt == 1 else "Stores" }}</span>
+            </div>
+          </div>
+          <div class="municipal-card-footer">
+            <span class="municipal-agency-label">Off-Leash &amp; Pet Infrastructure</span>
+          </div>
+        {% else %}
+          <span class="municipal-pending-badge">Data Review Pending</span>
+        {% endif %}
+      </article>
+    </div>
+
+    {# Municipal Civic Calendar & Council Agendas Feeds #}
+    {% set city_tag = "city-" ~ city_slug %}
+    {% set events_source = public_events_feed if public_events_feed else public_events %}
+    {% set municipal_events = [] %}
+
+    {% if events_source %}
+      {% for ev in events_source %}
+        {% if ev.title and ev.tags %}
+          {% set has_city_tag = false %}
+          {% set has_muni_tag = false %}
+          {% for t in ev.tags %}
+            {% if t is string %}
+              {% set t_low = t | trim | lower %}
+              {% if t_low == city_tag %}{% set has_city_tag = true %}{% endif %}
+              {% if t_low == "municipal" %}{% set has_muni_tag = true %}{% endif %}
+            {% endif %}
+          {% endfor %}
+
+          {% if has_city_tag and has_muni_tag %}
+            {% set raw_link = ev.link | default('') | trim %}
+            {% set raw_excerpt = ev.excerpt | default('') | trim %}
+            {% set resolved_url = raw_link if raw_link.slice(0, 4) == 'http' else (raw_excerpt if raw_excerpt.slice(0, 4) == 'http' else '') %}
+
+            {% set _ = municipal_events.push({
+              "title": ev.title,
+              "url": resolved_url,
+              "date": ev.display_date or ev.date,
+              "time": ev.display_time or ev.time,
+              "location": ev.location
+            }) %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    {% set council_portal = null %}
+    {% set calendar_portal = null %}
+    {% if municipal_feeds %}
+      {% for f in municipal_feeds %}
+        {% if f.City == active_neighborhood and f.Scope == 'city' and f.Active == 'Yes' %}
+          {% if not council_portal and f.Category == 'City Council' %}
+            {% set council_portal = f %}
+          {% endif %}
+          {% if not calendar_portal and (f.Category == 'Municipal iCal' or f.Category == 'Community Events' or f.Category == 'Municipal RSS') %}
+            {% set calendar_portal = f %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    <div class="municipal-meetings-grid">
+      <div class="municipal-meeting-card">
+        <div>
+          <header class="municipal-meeting-header">
+            <h3 class="municipal-meeting-title">{{ active_neighborhood }} Civic Calendar</h3>
+            {% set cal_fallback = (calendar_portal['Fallback Portal URL'] if calendar_portal else '') or city_web %}
+            {% if cal_fallback and cal_fallback != 'NO DATA' %}
+              <a href="{{ cal_fallback }}" class="municipal-inline-link" target="_blank" rel="noopener noreferrer">City Calendar &rarr;</a>
+            {% endif %}
+          </header>
+
+          {% if (municipal_events | length) > 0 %}
+            <div class="municipal-events-list">
+              {% for mev in municipal_events %}
+                {% if loop.index0 < 8 %}
+                  {% set href_target = mev.url or cal_fallback %}
+                  <a href="{{ href_target }}" class="municipal-event-row" target="_blank" rel="noopener noreferrer">
+                    <span class="municipal-event-meta">
+                      {{ mev.date }}{% if mev.time and mev.time != '12:00 AM' %} &bull; {{ mev.time }}{% endif %}
+                    </span>
+                    <span class="municipal-event-name">{{ mev.title }}</span>
+                    {% if mev.location %}
+                      <span class="municipal-event-loc">{{ mev.location }}</span>
+                    {% endif %}
+                  </a>
+                {% endif %}
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="municipal-empty-well">
+              <h4 class="municipal-empty-title">No Upcoming Municipal Calendar Items</h4>
+              <p class="municipal-empty-desc">
+                No scheduled public meetings or civic calendar entries are currently posted for {{ active_neighborhood }}.
+              </p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="municipal-meeting-card">
+        <div>
+          <header class="municipal-meeting-header">
+            <h3 class="municipal-meeting-title">Agendas &amp; Minutes</h3>
+            {% if council_portal and council_portal['Fallback Portal URL'] %}
+              <a href="{{ council_portal['Fallback Portal URL'] }}" class="municipal-inline-link" target="_blank" rel="noopener noreferrer">
+                Legislative Portal &rarr;
+              </a>
+            {% endif %}
+          </header>
+
+          <div class="municipal-empty-well">
+            <h4 class="municipal-empty-title">Agenda Feed Not Currently Available</h4>
+            <p class="municipal-empty-desc">
+              {% if council_portal and council_portal['Fallback Portal URL'] %}
+                Direct automated agenda packets are unavailable. View official council packets and minutes on the {{ council_portal['Feed Name'] }}.
+              {% else %}
+                Direct automated council agenda packets are not currently available for {{ active_neighborhood }}.
+              {% endif %}
+            </p>
+            {% if council_portal and council_portal['Fallback Portal URL'] %}
+              <a href="{{ council_portal['Fallback Portal URL'] }}" class="municipal-portal-cta" target="_blank" rel="noopener noreferrer">
+                Open {{ council_portal['Feed Name'] }} &rarr;
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+{% if show_tides %}
+<script id="weatherTidesPayload" type="application/json">
+[
+  {% for p in tide_list %}
+    {% if loop.index0 < 16 %}
+      {{ p | dump | safe }}{% if not loop.last and loop.index0 < 15 %},{% endif %}
+    {% endif %}
+  {% endfor %}
+]
+</script>
+{% endif %}
+
+<script id="ferrySchedulesPayload" type="application/json">
+[
+  {% if ferry_schedules and ferry_schedules.routes %}
+    {% for r_key, r_obj in ferry_schedules.routes %}
+      {
+        "slug": {{ r_obj.route_slug | dump | safe }},
+        "routeId": {{ r_obj.route_id }},
+        "description": {{ r_obj.description | dump | safe }},
+        "vessels": {{ r_obj.assigned_vessels | dump | safe }},
+        "disruptions": {{ (r_obj.service_disruptions or []) | dump | safe }},
+        "terminals": [
+          {% for t in r_obj.terminals %}
+            { "id": {{ t.terminal_id }}, "name": {{ t.name | dump | safe }}, "lat": {{ t.latitude }}, "lon": {{ t.longitude }} }{% if not loop.last %},{% endif %}
+          {% endfor %}
+        ],
+        "sailings": [
+          {% for d_key, d_obj in r_obj.schedules %}
+            {% for s in d_obj.sailings %}
+              {
+                "fromId": {{ s.departing_terminal_id }},
+                "from": {{ s.departing_terminal_name | dump | safe }},
+                "toId": {{ s.arriving_terminal_id }},
+                "to": {{ s.arriving_terminal_name | dump | safe }},
+                "dep": {{ s.departing_time | dump | safe }},
+                "vessel": {{ (s.vessel_name or "") | dump | safe }}
+              },
+            {% endfor %}
+          {% endfor %}
+          null
+        ]
+      }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  {% endif %}
+]
+</script>
+
+<script>
+(function() {
+  var apiBase = "https://livedata.myseattlesearch.com/api";
+  var mapLat = parseFloat("{{ city.Latitude | default(47.6062) }}");
+  var mapLon = parseFloat("{{ city.Longitude | default(-122.3321) }}");
+  var loadNow = new Date();
+  var loadMins = loadNow.getHours() * 60 + loadNow.getMinutes();
+
+  function haversineMiles(lat1, lon1, lat2, lon2) {
+    var toRad = function(d) { return d * Math.PI / 180; };
+    var R = 3958.8;
+    var dLat = toRad(lat2 - lat1);
+    var dLon = toRad(lon2 - lon1);
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  /* 1. Sync Sunrise & Sunset Dial to Page-Load Clock */
+  var solarTile = document.getElementById("weatherSolarTile");
+  var solarMarker = document.getElementById("weatherSolarMarker");
+  if (solarTile && solarMarker) {
+    var riseM = parseInt(solarTile.getAttribute("data-rise-mins"), 10);
+    var setM = parseInt(solarTile.getAttribute("data-set-mins"), 10);
+    if (!isNaN(riseM) && !isNaN(setM) && setM > riseM) {
+      var angle = 90;
+      if (loadMins >= riseM && loadMins <= setM) {
+        angle = ((loadMins - riseM) / (setM - riseM)) * 180;
+      } else {
+        var nightDur = (1440 - setM) + riseM;
+        var elapsed = loadMins > setM ? (loadMins - setM) : ((1440 - setM) + loadMins);
+        angle = 180 + (elapsed / nightDur) * 180;
+      }
+      solarMarker.setAttribute("transform", "rotate(" + angle.toFixed(1) + ", 50, 50)");
+    }
+  }
+
+  /* 2. Sync Marine Tides Card to Upcoming Predictions at Page Load */
+  var tideRaw = document.getElementById("weatherTidesPayload");
+  if (tideRaw) {
+    try {
+      var preds = JSON.parse(tideRaw.textContent);
+      var nowEpoch = loadNow.getTime();
+      var parsePredEpoch = function(str) {
+        if (!str) return null;
+        var s = str.trim();
+        var parts = s.indexOf("T") !== -1 ? s.split("T") : s.split(" ");
+        if (parts.length < 2) return null;
+        var ymd = parts[0].split("-");
+        var hm = parts[1].split(":");
+        if (ymd.length < 3 || hm.length < 2) return null;
+        return new Date(parseInt(ymd[0], 10), parseInt(ymd[1], 10) - 1, parseInt(ymd[2], 10), parseInt(hm[0], 10), parseInt(hm[1], 10), 0).getTime();
+      };
+
+      var upcoming = (preds || []).filter(function(p) {
+        var ep = parsePredEpoch(p.time);
+        return ep !== null && ep >= nowEpoch;
+      });
+
+      var nextHigh = upcoming.find(function(p) { return p.type === "High"; });
+      var nextLow = upcoming.find(function(p) { return p.type === "Low"; });
+      var nextAny = upcoming[0];
+
+      var hLbl = document.getElementById("tideHighLabel");
+      var hVal = document.getElementById("tideHighHeight");
+      var lLbl = document.getElementById("tideLowLabel");
+      var lVal = document.getElementById("tideLowHeight");
+      var trLbl = document.getElementById("tideTrendLabel");
+
+      if (nextHigh && hLbl && hVal) {
+        hLbl.textContent = "NEXT HIGH " + (nextHigh.time_formatted || nextHigh.time);
+        hVal.textContent = nextHigh.height_ft + " ft";
+      }
+      if (nextLow && lLbl && lVal) {
+        lLbl.textContent = "NEXT LOW " + (nextLow.time_formatted || nextLow.time);
+        lVal.textContent = nextLow.height_ft + " ft";
+      }
+      if (nextAny && trLbl) {
+        trLbl.innerHTML = nextAny.type === "High" ? "&#9650; Tide<br>Rising" : "&#9660; Tide<br>Falling";
+      }
+    } catch (e) {}
+  }
+
+  /* 3. Airport Distances & Live METAR/FAA Hydration */
+  var airportCoords = {
+    sea: { lat: 47.4502, lon: -122.3088 },
+    pae: { lat: 47.9063, lon: -122.2816 }
+  };
+
+  Object.keys(airportCoords).forEach(function(code) {
+    var distEl = document.querySelector('[data-apt-dist="' + code + '"]');
+    if (distEl && !isNaN(mapLat) && !isNaN(mapLon)) {
+      var mi = haversineMiles(mapLat, mapLon, airportCoords[code].lat, airportCoords[code].lon);
+      distEl.textContent = mi.toFixed(1) + " mi";
+    }
+  });
+
+  /* 4. Hydrate Directional Employment Hub Matrix & Airports */
+  function getPacificWindowMode() {
+    var ptHour = parseInt(
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Los_Angeles",
+        hour: "numeric",
+        hour12: false
+      }).format(new Date()),
+      10
+    );
+    if (ptHour >= 6 && ptHour < 11) return "morning";
+    if (ptHour >= 14 && ptHour < 20) return "evening";
+    return "offpeak";
+  }
+
+  function applyCommuteWindowState(mode, hubsPayload) {
+    var hubGrid = document.querySelector(".commute-hubs-grid");
+    var windowPill = document.querySelector("[data-commute-window-pill]");
+    if (!hubGrid) return;
+
+    if (windowPill) {
+      if (mode === "morning") {
+        windowPill.textContent = "Morning Window Live \u2022 6 AM\u201311 AM";
+        windowPill.className = "commute-window-pill is-live";
+      } else if (mode === "evening") {
+        windowPill.textContent = "Evening Return Live \u2022 2 PM\u20138 PM";
+        windowPill.className = "commute-window-pill is-live";
+      } else {
+        windowPill.textContent = "Off-Peak Baselines";
+        windowPill.className = "commute-window-pill";
+      }
+    }
+
+    hubGrid.querySelectorAll(".commute-hub-card").forEach(function(card) {
+      var hId = card.getAttribute("data-hub-id");
+      var live = hubsPayload && hubsPayload[hId] ? hubsPayload[hId] : null;
+
+      var dOff = card.getAttribute("data-offpeak-drive") || "";
+      var tOff = card.getAttribute("data-offpeak-transit") || "";
+      var rdOff = card.getAttribute("data-offpeak-return-drive") || "";
+      var rtOff = card.getAttribute("data-offpeak-return-transit") || "";
+
+      var mLeg = card.querySelector('[data-commute-leg="morning"]');
+      var eLeg = card.querySelector('[data-commute-leg="evening"]');
+      var fDrive = card.querySelector('[data-hub-field="drive_live"]');
+      var fTransit = card.querySelector('[data-hub-field="transit_live"]');
+      var rDrive = card.querySelector('[data-hub-field="return_drive_live"]');
+      var rTransit = card.querySelector('[data-hub-field="return_transit_live"]');
+
+      var subMd = card.querySelector('[data-hub-sub="morning_drive"]');
+      var subMt = card.querySelector('[data-hub-sub="morning_transit"]');
+      var subEd = card.querySelector('[data-hub-sub="return_drive"]');
+      var subEt = card.querySelector('[data-hub-sub="return_transit"]');
+      var badge = card.querySelector("[data-hub-badge]");
+
+      if (!dOff) return;
+
+      if (mode === "morning") {
+        if (mLeg) mLeg.className = "commute-leg-block is-leg-active";
+        if (eLeg) eLeg.className = "commute-leg-block is-leg-inactive";
+
+        if (fDrive) {
+          fDrive.className = "commute-metric-value";
+          fDrive.textContent = live && live.drive_live_min ? (live.drive_live_min + " min") : (dOff + " min");
+        }
+        if (fTransit) {
+          fTransit.className = "commute-metric-value text-accent-alpine";
+          fTransit.textContent = live && live.transit_live_min ? (live.transit_live_min + " min") : (tOff + " min");
+        }
+        if (subMd) subMd.textContent = "Off-peak: " + dOff + " min";
+        if (subMt) subMt.textContent = "Off-peak: " + tOff + " min";
+
+        if (rDrive) {
+          rDrive.className = "commute-metric-value is-window-tag";
+          rDrive.textContent = "2 PM\u20138 PM";
+        }
+        if (rTransit) {
+          rTransit.className = "commute-metric-value is-window-tag";
+          rTransit.textContent = "2 PM\u20138 PM";
+        }
+        if (subEd) subEd.textContent = "Off-peak: " + rdOff + " min";
+        if (subEt) subEt.textContent = "Off-peak: " + rtOff + " min";
+
+        var baseMin = parseFloat(dOff);
+        if (badge && live && live.drive_live_min && baseMin > 0) {
+          var friction = Math.max(0, Math.round(((live.drive_live_min - baseMin) / baseMin) * 100));
+          var fCls = friction <= 15 ? "friction-low" : friction <= 30 ? "friction-moderate" : "friction-high";
+          var fLabel = friction <= 15 ? "Low Drag" : friction <= 30 ? "Moderate" : "Heavy Delay";
+          badge.className = "commute-friction-badge " + fCls;
+          badge.innerHTML = "<span>+" + friction + "%</span><span>" + fLabel + "</span>";
+          badge.classList.remove("is-hidden");
+        }
+      } else if (mode === "evening") {
+        if (mLeg) mLeg.className = "commute-leg-block is-leg-inactive";
+        if (eLeg) eLeg.className = "commute-leg-block is-leg-active";
+
+        if (fDrive) {
+          fDrive.className = "commute-metric-value is-window-tag";
+          fDrive.textContent = "6 AM\u201311 AM";
+        }
+        if (fTransit) {
+          fTransit.className = "commute-metric-value is-window-tag";
+          fTransit.textContent = "6 AM\u201311 AM";
+        }
+        if (subMd) subMd.textContent = "Off-peak: " + dOff + " min";
+        if (subMt) subMt.textContent = "Off-peak: " + tOff + " min";
+
+        if (rDrive) {
+          rDrive.className = "commute-metric-value";
+          rDrive.textContent = live && live.return_drive_live_min ? (live.return_drive_live_min + " min") : (rdOff + " min");
+        }
+        if (rTransit) {
+          rTransit.className = "commute-metric-value text-accent-alpine";
+          rTransit.textContent = live && live.return_transit_live_min ? (live.return_transit_live_min + " min") : (rtOff + " min");
+        }
+        if (subEd) subEd.textContent = "Off-peak: " + rdOff + " min";
+        if (subEt) subEt.textContent = "Off-peak: " + rtOff + " min";
+
+        var retBaseMin = parseFloat(rdOff);
+        if (badge && live && live.return_drive_live_min && retBaseMin > 0) {
+          var friction = Math.max(0, Math.round(((live.return_drive_live_min - retBaseMin) / retBaseMin) * 100));
+          var fCls = friction <= 15 ? "friction-low" : friction <= 30 ? "friction-moderate" : "friction-high";
+          var fLabel = friction <= 15 ? "Low Drag" : friction <= 30 ? "Moderate" : "Heavy Delay";
+          badge.className = "commute-friction-badge " + fCls;
+          badge.innerHTML = "<span>+" + friction + "%</span><span>" + fLabel + "</span>";
+          badge.classList.remove("is-hidden");
+        }
+      } else {
+        if (mLeg) mLeg.className = "commute-leg-block";
+        if (eLeg) eLeg.className = "commute-leg-block";
+        if (badge) badge.className = "commute-friction-badge is-hidden";
+
+        if (fDrive) {
+          fDrive.className = "commute-metric-value is-baseline-primary";
+          fDrive.textContent = dOff + " min";
+        }
+        if (fTransit) {
+          fTransit.className = "commute-metric-value text-accent-alpine";
+          fTransit.textContent = tOff + " min";
+        }
+        if (rDrive) {
+          rDrive.className = "commute-metric-value is-baseline-primary";
+          rDrive.textContent = rdOff + " min";
+        }
+        if (rTransit) {
+          rTransit.className = "commute-metric-value text-accent-alpine";
+          rTransit.textContent = rtOff + " min";
+        }
+        if (subMd) subMd.textContent = "Typical off-peak";
+        if (subMt) subMt.textContent = "Typical off-peak";
+        if (subEd) subEd.textContent = "Typical off-peak";
+        if (subEt) subEt.textContent = "Typical off-peak";
+      }
+    });
+  }
+
+  var initialMode = getPacificWindowMode();
+  applyCommuteWindowState(initialMode, null);
+
+  if (initialMode !== "offpeak" && !isNaN(mapLat) && !isNaN(mapLon)) {
+    fetch(apiBase + "/transit/commute?lat=" + mapLat + "&lon=" + mapLon)
+      .then(function(res) { return res.ok ? res.json() : null; })
+      .then(function(data) {
+        if (data) applyCommuteWindowState(data.window || initialMode, data.hubs || {});
+      })
+      .catch(function() {});
+  }
+
+  var qs = !isNaN(mapLat) && !isNaN(mapLon) ? ("?lat=" + mapLat + "&lon=" + mapLon) : "";
+  fetch(apiBase + "/transit/airports" + qs)
+    .then(function(res) { return res.ok ? res.json() : null; })
+    .then(function(data) {
+      if (!data) return;
+      var metars = Array.isArray(data.metar) ? data.metar : [];
+      var delays = data.delays || {};
+      var travel = data.travel || {};
+
+      ["SEA", "PAE"].forEach(function(code) {
+        var card = document.getElementById("aptCard" + code);
+        if (!card) return;
+
+        var m = metars.find(function(x) { return x.icaoId === "K" + code; });
+        if (m) {
+          var cat = (m.fltcat || m.fltCat || "VFR").toLowerCase();
+          var rulePill = card.querySelector(".apt-rule-val");
+          rulePill.textContent = cat.toUpperCase();
+          rulePill.className = "apt-flight-rules-pill " + cat + " apt-rule-val";
+
+          var wdir = m.wdir !== undefined ? (m.wdir + "°") : "VRB";
+          var wspd = m.wspd !== undefined ? (m.wspd + " kt") : "Calm";
+          card.querySelector(".apt-wind-val").textContent = wdir + " at " + wspd;
+          card.querySelector(".apt-vis-val").textContent = m.visib !== undefined ? (m.visib + " sm") : "10+ sm";
+
+          var tempF = m.temp !== undefined ? (Math.round(m.temp * 9 / 5 + 32) + "°F") : "";
+          var ceilStr = m.ceil ? (m.ceil + "00 ft") : "Clear";
+          card.querySelector(".apt-ceil-val").textContent = tempF ? (ceilStr + " · " + tempF) : ceilStr;
+        }
+
+        var statusBadge = card.querySelector(".apt-faa-status");
+        if (statusBadge && (m || delays[code])) {
+          if (delays[code]) {
+            statusBadge.textContent = delays[code];
+            statusBadge.className = "ferry-status-pill status-delayed apt-faa-status";
+          } else {
+            statusBadge.textContent = "Normal Operations";
+            statusBadge.className = "ferry-status-pill status-ontime apt-faa-status";
+          }
+        }
+
+        var low = code.toLowerCase();
+        var liveApt = travel[low];
+        if (liveApt) {
+          var dEl = document.querySelector('[data-apt-drive="' + low + '"]');
+          var tEl = document.querySelector('[data-apt-transit="' + low + '"]');
+          if (dEl && liveApt.drive_live_min) dEl.textContent = liveApt.drive_live_min + " min";
+          if (tEl && liveApt.transit_live_min) tEl.textContent = liveApt.transit_live_min + " min";
+        }
+      });
+    })
+    .catch(function() {});
+
+  /* 5. Washington State Ferries Accordion (All Closed by Default) */
+  (function initFerries() {
+    var container = document.getElementById("ferryAccordionContainer");
+    var rawNode = document.getElementById("ferrySchedulesPayload");
+    if (!container || !rawNode) return;
+
+    var routes = [];
+    try {
+      routes = JSON.parse(rawNode.textContent) || [];
+    } catch (e) {
+      return;
+    }
+
+    var nowMs = Date.now();
+    var horizonMs = nowMs + 24 * 3600 * 1000;
+
+    routes.forEach(function(r) {
+      r.sailings = (r.sailings || [])
+        .filter(function(s) { return s && s.dep; })
+        .map(function(s) { return Object.assign({}, s, { depMs: Date.parse(s.dep), spaces: null }); })
+        .filter(function(s) { return !isNaN(s.depMs) && s.depMs >= (nowMs - 5 * 60000) && s.depMs <= horizonMs; })
+        .sort(function(a, b) { return a.depMs - b.depMs; });
+
+      var dists = (r.terminals || []).map(function(t) { return haversineMiles(mapLat, mapLon, t.lat, t.lon); });
+      r.minDist = dists.length ? Math.min.apply(null, dists) : 9999;
+    });
+
+    routes.sort(function(a, b) { return a.minDist - b.minDist; });
+
+    function formatClock(ms) {
+      return new Date(ms).toLocaleTimeString("en-US", {
+        timeZone: "America/Los_Angeles",
+        hour: "numeric",
+        minute: "2-digit"
+      });
+    }
+
+    function renderAccordion(liveVessels, hasLiveTelemetry) {
+      var openSlugs = new Set(
+        Array.from(container.querySelectorAll("details[open]")).map(function(el) { return el.getAttribute("data-route-slug"); })
+      );
+
+      container.innerHTML = routes.map(function(r) {
+        var terms = r.terminals || [];
+        var isMultiStop = terms.length > 2;
+        var disruptions = Array.isArray(r.disruptions) ? r.disruptions : [];
+        var hasDisruption = disruptions.length > 0;
+
+        var statusPillHtml = "";
+        if (hasDisruption) {
+          statusPillHtml = '<span class="ferry-status-pill status-canceled">Service Alert</span>';
+        } else if (hasLiveTelemetry) {
+          var activeRouteVessel = (liveVessels || []).find(function(v) {
+            return terms.some(function(t) { return t.id === v.departingId; }) && terms.some(function(t) { return t.id === v.arrivingId; });
+          });
+          if (activeRouteVessel) {
+            var isDelayed = activeRouteVessel.scheduledDepMs && activeRouteVessel.leftDockMs &&
+              ((activeRouteVessel.leftDockMs - activeRouteVessel.scheduledDepMs) > 10 * 60000);
+            statusPillHtml = isDelayed
+              ? '<span class="ferry-status-pill status-delayed">Delayed</span>'
+              : '<span class="ferry-status-pill status-ontime">On Time</span>';
+          }
+        }
+
+        var vesselNames = (r.vessels || []).map(function(v) { return "M/V " + v; }).join(", ");
+        var summaryHtml = "";
+        var drawerHtml = "";
+
+        if (!isMultiStop && terms.length === 2) {
+          var tA = terms[0];
+          var tB = terms[1];
+          var sailA = r.sailings.filter(function(s) { return s.fromId === tA.id; });
+          var sailB = r.sailings.filter(function(s) { return s.fromId === tB.id; });
+
+          var next2A = sailA.slice(0, 2).map(function(s) { return formatClock(s.depMs); }).join(", ");
+          var next2B = sailB.slice(0, 2).map(function(s) { return formatClock(s.depMs); }).join(", ");
+
+          if (next2A) summaryHtml += '<div class="ferry-sailing-row"><span class="ferry-sailing-label">From ' + tA.name + ':</span><span class="ferry-sailing-times">' + next2A + '</span></div>';
+          if (next2B) summaryHtml += '<div class="ferry-sailing-row"><span class="ferry-sailing-label">From ' + tB.name + ':</span><span class="ferry-sailing-times">' + next2B + '</span></div>';
+
+          var buildRows = function(list) {
+            return list.map(function(s) {
+              return '<div class="ferry-schedule-row"><span class="ferry-sched-time">' + formatClock(s.depMs) + '</span><div><span class="ferry-sched-vessel">' + s.vessel + '</span>' + (s.spaces !== null ? '<span class="ferry-sched-spaces">' + s.spaces + ' spaces</span>' : '') + '</div></div>';
+            }).join("");
+          };
+
+          drawerHtml = '<div class="ferry-docks-grid">' +
+            '<div class="ferry-dock-block"><div class="ferry-dock-header">Departing ' + tA.name + ' (Next 24 Hours)</div>' + (buildRows(sailA) || '<div class="ferry-schedule-row"><span class="ferry-sched-vessel">Departure data unavailable</span></div>') + '</div>' +
+            '<div class="ferry-dock-block"><div class="ferry-dock-header">Departing ' + tB.name + ' (Next 24 Hours)</div>' + (buildRows(sailB) || '<div class="ferry-schedule-row"><span class="ferry-sched-vessel">Departure data unavailable</span></div>') + '</div>' +
+          '</div>';
+        } else {
+          var fromAna = r.sailings.filter(function(s) { return s.fromId === 1; });
+          var fromIslands = r.sailings.filter(function(s) { return s.fromId !== 1; });
+          var next2Ana = Array.from(new Set(fromAna.map(function(s) { return formatClock(s.depMs); }))).slice(0, 2).join(", ");
+          var next2Isl = Array.from(new Set(fromIslands.map(function(s) { return formatClock(s.depMs); }))).slice(0, 2).join(", ");
+
+          if (next2Ana) summaryHtml += '<div class="ferry-sailing-row"><span class="ferry-sailing-label">From Anacortes:</span><span class="ferry-sailing-times">' + next2Ana + '</span></div>';
+          if (next2Isl) summaryHtml += '<div class="ferry-sailing-row"><span class="ferry-sailing-label">From San Juans:</span><span class="ferry-sailing-times">' + next2Isl + '</span></div>';
+
+          var allRows = r.sailings.map(function(s) {
+            return '<div class="ferry-schedule-row"><div><span class="ferry-sched-time">' + formatClock(s.depMs) + '</span><span class="ferry-sched-leg">' + s.from + ' &rarr; ' + s.to + '</span></div><div><span class="ferry-sched-vessel">' + s.vessel + '</span>' + (s.spaces !== null ? '<span class="ferry-sched-spaces">' + s.spaces + ' spaces</span>' : '') + '</div></div>';
+          }).join("");
+
+          drawerHtml = '<div class="ferry-docks-grid is-single-col"><div class="ferry-dock-block"><div class="ferry-dock-header">All Scheduled Sailings (Next 24 Hours)</div>' + (allRows || '<div class="ferry-schedule-row"><span class="ferry-sched-vessel">Departure data unavailable</span></div>') + '</div></div>';
+        }
+
+        var routeParts = (r.description || "").split("/");
+        var routeTitleHtml = routeParts.length === 2
+          ? '<span>' + routeParts[0].trim() + '</span><span class="ferry-route-arrow" aria-hidden="true">&#8644;</span><span>' + routeParts[1].trim() + '</span>'
+          : '<span>' + r.description + '</span>';
+
+        var disruptionHtml = disruptions.map(function(d) {
+          return '<div class="ferry-disruption-banner">' + (d.text || d.title || "") + '</div>';
+        }).join("");
+
+        return '<details class="pass-accordion-item" data-route-slug="' + r.slug + '" ' + (openSlugs.has(r.slug) ? "open" : "") + '>' +
+          '<summary class="ferry-accordion-summary">' +
+            '<div class="ferry-route-col">' +
+              (statusPillHtml ? '<div class="pass-badges-row">' + statusPillHtml + '</div>' : '') +
+              '<div class="ferry-route-name">' + routeTitleHtml + '</div>' +
+              (vesselNames ? '<span class="ferry-vessels-caption">' + vesselNames + '</span>' : '') +
+            '</div>' +
+            '<div class="ferry-next-sailings-col">' + summaryHtml + '</div>' +
+            '<svg class="forecast-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
+          '</summary>' +
+          '<div class="ferry-acc-details">' + disruptionHtml + drawerHtml + '</div>' +
+        '</details>';
+      }).join("");
+    }
+
+    renderAccordion([], false);
+
+    fetch(apiBase + "/transit/ferries")
+      .then(function(res) { return res.ok ? res.json() : null; })
+      .then(function(payload) {
+        if (!payload) return;
+        var liveSpaces = Array.isArray(payload.spaces) ? payload.spaces : [];
+        var liveVessels = Array.isArray(payload.vessels) ? payload.vessels : [];
+
+        routes.forEach(function(r) {
+          r.sailings.forEach(function(s) {
+            var match = liveSpaces.find(function(sp) {
+              return sp.fromId === s.fromId && sp.toId === s.toId && Math.abs(sp.depMs - s.depMs) <= 360000;
+            });
+            if (match && typeof match.driveUpSpaces === "number") {
+              s.spaces = match.driveUpSpaces;
+            }
+          });
+        });
+
+        renderAccordion(liveVessels, true);
+      })
+      .catch(function() {});
+  })();
+
+  /* 6. Interactive SVG Chart Crosshair & Floating Readout Tooltip */
+  document.querySelectorAll('[data-interactive-chart]').forEach(function(wrap) {
+    var tooltip = wrap.querySelector('.chart-floating-tooltip');
+    var crosshair = wrap.querySelector('.chart-crosshair-line');
+    var dots = wrap.querySelectorAll('.chart-data-dot');
+    var bands = wrap.querySelectorAll('.chart-hit-band');
+    if (!tooltip || !bands.length) return;
+
+    function clearHighlight() {
+      tooltip.classList.remove('is-visible');
+      if (crosshair) crosshair.classList.remove('is-visible');
+      dots.forEach(function(d) { d.classList.remove('is-active'); });
+    }
+
+    bands.forEach(function(band) {
+      band.addEventListener('mouseenter', function() {
+        var step = band.getAttribute('data-step');
+        var cx = parseFloat(band.getAttribute('data-cx') || '0');
+        var dateStr = band.getAttribute('data-date') || '';
+        var payload = band.getAttribute('data-payload') || '';
+
+        if (crosshair) {
+          crosshair.setAttribute('x1', cx);
+          crosshair.setAttribute('x2', cx);
+          crosshair.classList.add('is-visible');
+        }
+
+        dots.forEach(function(d) {
+          d.classList.toggle('is-active', d.getAttribute('data-step') === step);
+        });
+
+        var rows = payload.split('||').filter(Boolean).map(function(entry) {
+          var parts = entry.split('::');
+          var cls = parts[0] || 'series-1';
+          var label = parts[1] || '';
+          var val = parts[2] || '';
+          return '<div class="chart-tooltip-row">' +
+            '<span class="chart-tooltip-series"><span class="chart-tooltip-dot ' + cls + '"></span>' + label + '</span>' +
+            '<span class="chart-tooltip-val">' + val + '</span>' +
+          '</div>';
+        }).join('');
+
+        tooltip.innerHTML = (dateStr ? '<div class="chart-tooltip-date">' + dateStr + '</div>' : '') + rows;
+        tooltip.classList.add('is-visible');
+
+        if (cx > 560) {
+          tooltip.style.left = 'auto';
+          tooltip.style.right = '16px';
+        } else {
+          tooltip.style.right = 'auto';
+          tooltip.style.left = '16px';
+        }
+      });
+    });
+
+    wrap.addEventListener('mouseleave', clearHighlight);
+  });
+})();
+</script>

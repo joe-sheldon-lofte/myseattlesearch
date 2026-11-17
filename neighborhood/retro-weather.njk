@@ -1,0 +1,32 @@
+---
+layout: false
+pagination:
+  data: city_data
+  size: 1
+  addAllPagesToCollections: true
+  alias: city
+permalink: "/neighborhood/{{ city.City | slugify }}/retro-weather/index.html"
+---
+{% set city_slug = city.City | slugify %}
+{% set active_neighborhood = city.City %}
+{% set w_city = city_weather[city_slug] if city_weather else null %}
+{% set w_climate = climate_comfort[active_neighborhood] if climate_comfort else null %}
+{% set w_tides = w_city.marine_tides.today_predictions if (w_city and w_city.marine_tides and w_city.marine_tides.today_predictions) else [] %}
+{% set w_passes = weather_mountain_passes if weather_mountain_passes else [] %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Retro Weather: {{ active_neighborhood }}</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="retro-weather-standalone-viewport">
+  <main class="retro-weather-standalone-stage">
+    {% include "components/widget/retro-weather.njk" %}
+    <a href="/neighborhood/{{ city_slug }}/weather/" class="retro-weather-back-link">
+      &larr; Return to {{ active_neighborhood }} Weather
+    </a>
+  </main>
+</body>
+</html>

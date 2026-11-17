@@ -186,9 +186,10 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
   <section id="employment-hubs" class="portal-section-widget">
     <h2 class="text-section-title section-title-clean">Current Active Commute Times</h2>
 
-    <div class="commute-hub-container">
+    <div class="commute-hub-container weather-primary-row">
       <div class="card-header-split">
         <h3 class="text-widget-title">{{ active_neighborhood }} to Major Employment Hubs</h3>
+        <span class="commute-window-pill" data-commute-window-pill>Off-Peak Baselines</span>
       </div>
 
       <div class="commute-hubs-grid">
@@ -201,7 +202,10 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
 
           <div class="commute-hub-card"
                data-hub-id="{{ hub.id }}"
-               data-offpeak-drive="{{ d_off }}">
+               data-offpeak-drive="{{ d_off }}"
+               data-offpeak-transit="{{ t_off }}"
+               data-offpeak-return-drive="{{ rd_off }}"
+               data-offpeak-return-transit="{{ rt_off }}">
 
             <div class="commute-hub-header">
               <div>
@@ -214,34 +218,34 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
             </div>
 
             {% if d_off %}
-              <div class="commute-leg-block">
+              <div class="commute-leg-block" data-commute-leg="morning">
                 <div class="text-overline commute-leg-overline">MORNING COMMUTE: {{ active_neighborhood | upper }} &rarr; HUB</div>
                 <div class="commute-modes-grid">
                   <div class="commute-metric-cell">
                     <span class="commute-metric-label">LIVE DRIVE</span>
-                    <div class="commute-metric-value" data-hub-field="drive_live">--</div>
-                    <span class="text-body-secondary commute-sub-metric">Off-peak: {{ d_off }} min</span>
+                    <div class="commute-metric-value is-baseline-primary" data-hub-field="drive_live">{{ d_off }} min</div>
+                    <span class="text-body-secondary commute-sub-metric" data-hub-sub="morning_drive">Typical off-peak</span>
                   </div>
                   <div class="commute-metric-cell">
                     <span class="commute-metric-label text-accent-alpine">EST. TRANSIT</span>
-                    <div class="commute-metric-value text-accent-alpine" data-hub-field="transit_live">--</div>
-                    <span class="text-body-secondary commute-sub-metric">Off-peak: {{ t_off }} min</span>
+                    <div class="commute-metric-value text-accent-alpine" data-hub-field="transit_live">{{ t_off }} min</div>
+                    <span class="text-body-secondary commute-sub-metric" data-hub-sub="morning_transit">Typical off-peak</span>
                   </div>
                 </div>
               </div>
 
-              <div class="commute-leg-block">
+              <div class="commute-leg-block" data-commute-leg="evening">
                 <div class="text-overline commute-leg-overline">EVENING RETURN: HUB &rarr; {{ active_neighborhood | upper }}</div>
                 <div class="commute-modes-grid">
                   <div class="commute-metric-cell">
                     <span class="commute-metric-label">LIVE DRIVE</span>
-                    <div class="commute-metric-value" data-hub-field="return_drive_live">--</div>
-                    <span class="text-body-secondary commute-sub-metric">Off-peak: {{ rd_off }} min</span>
+                    <div class="commute-metric-value is-baseline-primary" data-hub-field="return_drive_live">{{ rd_off }} min</div>
+                    <span class="text-body-secondary commute-sub-metric" data-hub-sub="return_drive">Typical off-peak</span>
                   </div>
                   <div class="commute-metric-cell">
                     <span class="commute-metric-label text-accent-alpine">EST. TRANSIT</span>
-                    <div class="commute-metric-value text-accent-alpine" data-hub-field="return_transit_live">--</div>
-                    <span class="text-body-secondary commute-sub-metric">Off-peak: {{ rt_off }} min</span>
+                    <div class="commute-metric-value text-accent-alpine" data-hub-field="return_transit_live">{{ rt_off }} min</div>
+                    <span class="text-body-secondary commute-sub-metric" data-hub-sub="return_transit">Typical off-peak</span>
                   </div>
                 </div>
               </div>
@@ -253,6 +257,10 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
           </div>
         {% endfor %}
       </div>
+
+      <footer class="commute-hub-footer">
+        Commute times from {{ active_neighborhood }} to hubs are provided from 6:00 AM &ndash; 11:00 AM, and return times from hubs to {{ active_neighborhood }} are provided from 2:00 PM &ndash; 8:00 PM. Off-peak baselines are displayed outside active commute windows.
+      </footer>
     </div>
   </section>
 
@@ -1237,83 +1245,204 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
       .catch(() => {});
   }
 
-  /* 2. Hydrate Live Employment Hub & Airport Travel Times (Single Matrix v2 Request) */
-  async function hydrateHubsAndAirportsTravel() {
-    const hubGrid = document.querySelector(".commute-hubs-grid");
-    try {
-      const res = await fetch(`${apiBase}/transit/commute?lat=${mapLat}&lon=${mapLon}`);
-      if (!res.ok) return;
-      const data = await res.json();
-
-      if (hubGrid) {
-        hubGrid.querySelectorAll(".commute-hub-card").forEach(card => {
-          const hId = card.getAttribute("data-hub-id");
-          const live = data[hId];
-          if (!live) return;
-
-          const dOff = parseFloat(card.getAttribute("data-offpeak-drive") || "0");
-          const badge = card.querySelector("[data-hub-badge]");
-
-          if (badge && live.drive_live_min && dOff > 0) {
-            const friction = Math.max(0, Math.round(((live.drive_live_min - dOff) / dOff) * 100));
-            const fCls = friction <= 15 ? "friction-low" : (friction <= 30 ? "friction-moderate" : "friction-high");
-            const fLabel = friction <= 15 ? "Low Drag" : (friction <= 30 ? "Moderate" : "Heavy Delay");
-            badge.className = `commute-friction-badge ${fCls}`;
-            badge.innerHTML = `<span>+${friction}%</span><span>${fLabel}</span>`;
-            badge.classList.remove("is-hidden");
-          }
-
-          const fDrive = card.querySelector('[data-hub-field="drive_live"]');
-          const fTransit = card.querySelector('[data-hub-field="transit_live"]');
-          const rDrive = card.querySelector('[data-hub-field="return_drive_live"]');
-          const rTransit = card.querySelector('[data-hub-field="return_transit_live"]');
-
-          if (fDrive && live.drive_live_min) fDrive.textContent = `${live.drive_live_min} min`;
-          if (fTransit && live.transit_live_min) fTransit.textContent = `${live.transit_live_min} min`;
-          if (rDrive && live.return_drive_live_min) rDrive.textContent = `${live.return_drive_live_min} min`;
-          if (rTransit && live.return_transit_live_min) rTransit.textContent = `${live.return_transit_live_min} min`;
-        });
-      }
-
-      ["sea", "pae"].forEach(code => {
-        const liveApt = data[code];
-        if (!liveApt) return;
-        const dEl = document.querySelector(`[data-apt-drive="${code}"]`);
-        const tEl = document.querySelector(`[data-apt-transit="${code}"]`);
-        if (dEl && liveApt.drive_live_min) dEl.textContent = `${liveApt.drive_live_min} min`;
-        if (tEl && liveApt.transit_live_min) tEl.textContent = `${liveApt.transit_live_min} min`;
-      });
-    } catch (e) {}
+  /* Hydrate Directional Employment Hub Matrix (6-11 AM Morning, 2-8 PM Evening, Off-Peak Baselines) */
+  function getPacificWindowMode() {
+    const ptHour = parseInt(
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Los_Angeles",
+        hour: "numeric",
+        hour12: false
+      }).format(new Date()),
+      10
+    );
+    if (ptHour >= 6 && ptHour < 11) return "morning";
+    if (ptHour >= 14 && ptHour < 20) return "evening";
+    return "offpeak";
   }
 
-  /* 3. Hydrate Airport Weather & FAA Status (SEA & PAE — Reveal Pill Only After Live Response) */
+  function applyCommuteWindowState(mode, hubsPayload) {
+    const hubGrid = document.querySelector(".commute-hubs-grid");
+    const windowPill = document.querySelector("[data-commute-window-pill]");
+    if (!hubGrid) return;
+
+    if (windowPill) {
+      if (mode === "morning") {
+        windowPill.textContent = "Morning Window Live \u2022 6 AM\u201311 AM";
+        windowPill.className = "commute-window-pill is-live";
+      } else if (mode === "evening") {
+        windowPill.textContent = "Evening Return Live \u2022 2 PM\u20138 PM";
+        windowPill.className = "commute-window-pill is-live";
+      } else {
+        windowPill.textContent = "Off-Peak Baselines";
+        windowPill.className = "commute-window-pill";
+      }
+    }
+
+    hubGrid.querySelectorAll(".commute-hub-card").forEach((card) => {
+      const hId = card.getAttribute("data-hub-id");
+      const live = hubsPayload && hubsPayload[hId] ? hubsPayload[hId] : null;
+
+      const dOff = card.getAttribute("data-offpeak-drive") || "";
+      const tOff = card.getAttribute("data-offpeak-transit") || "";
+      const rdOff = card.getAttribute("data-offpeak-return-drive") || "";
+      const rtOff = card.getAttribute("data-offpeak-return-transit") || "";
+
+      const mLeg = card.querySelector('[data-commute-leg="morning"]');
+      const eLeg = card.querySelector('[data-commute-leg="evening"]');
+      const fDrive = card.querySelector('[data-hub-field="drive_live"]');
+      const fTransit = card.querySelector('[data-hub-field="transit_live"]');
+      const rDrive = card.querySelector('[data-hub-field="return_drive_live"]');
+      const rTransit = card.querySelector('[data-hub-field="return_transit_live"]');
+
+      const subMd = card.querySelector('[data-hub-sub="morning_drive"]');
+      const subMt = card.querySelector('[data-hub-sub="morning_transit"]');
+      const subEd = card.querySelector('[data-hub-sub="return_drive"]');
+      const subEt = card.querySelector('[data-hub-sub="return_transit"]');
+      const badge = card.querySelector("[data-hub-badge]");
+
+      if (!dOff) return;
+
+      if (mode === "morning") {
+        if (mLeg) mLeg.className = "commute-leg-block is-leg-active";
+        if (eLeg) eLeg.className = "commute-leg-block is-leg-inactive";
+
+        if (fDrive) {
+          fDrive.className = "commute-metric-value";
+          fDrive.textContent = live && live.drive_live_min ? `${live.drive_live_min} min` : `${dOff} min`;
+        }
+        if (fTransit) {
+          fTransit.className = "commute-metric-value text-accent-alpine";
+          fTransit.textContent = live && live.transit_live_min ? `${live.transit_live_min} min` : `${tOff} min`;
+        }
+        if (subMd) subMd.textContent = `Off-peak: ${dOff} min`;
+        if (subMt) subMt.textContent = `Off-peak: ${tOff} min`;
+
+        if (rDrive) {
+          rDrive.className = "commute-metric-value is-window-tag";
+          rDrive.textContent = "2 PM\u20138 PM";
+        }
+        if (rTransit) {
+          rTransit.className = "commute-metric-value is-window-tag";
+          rTransit.textContent = "2 PM\u20138 PM";
+        }
+        if (subEd) subEd.textContent = `Off-peak: ${rdOff} min`;
+        if (subEt) subEt.textContent = `Off-peak: ${rtOff} min`;
+
+        const baseMin = parseFloat(dOff);
+        if (badge && live && live.drive_live_min && baseMin > 0) {
+          const friction = Math.max(0, Math.round(((live.drive_live_min - baseMin) / baseMin) * 100));
+          const fCls = friction <= 15 ? "friction-low" : friction <= 30 ? "friction-moderate" : "friction-high";
+          const fLabel = friction <= 15 ? "Low Drag" : friction <= 30 ? "Moderate" : "Heavy Delay";
+          badge.className = `commute-friction-badge ${fCls}`;
+          badge.innerHTML = `<span>+${friction}%</span><span>${fLabel}</span>`;
+        }
+      } else if (mode === "evening") {
+        if (mLeg) mLeg.className = "commute-leg-block is-leg-inactive";
+        if (eLeg) eLeg.className = "commute-leg-block is-leg-active";
+
+        if (fDrive) {
+          fDrive.className = "commute-metric-value is-window-tag";
+          fDrive.textContent = "6 AM\u201311 AM";
+        }
+        if (fTransit) {
+          fTransit.className = "commute-metric-value is-window-tag";
+          fTransit.textContent = "6 AM\u201311 AM";
+        }
+        if (subMd) subMd.textContent = `Off-peak: ${dOff} min`;
+        if (subMt) subMt.textContent = `Off-peak: ${tOff} min`;
+
+        if (rDrive) {
+          rDrive.className = "commute-metric-value";
+          rDrive.textContent = live && live.return_drive_live_min ? `${live.return_drive_live_min} min` : `${rdOff} min`;
+        }
+        if (rTransit) {
+          rTransit.className = "commute-metric-value text-accent-alpine";
+          rTransit.textContent = live && live.return_transit_live_min ? `${live.return_transit_live_min} min` : `${rtOff} min`;
+        }
+        if (subEd) subEd.textContent = `Off-peak: ${rdOff} min`;
+        if (subEt) subEt.textContent = `Off-peak: ${rtOff} min`;
+
+        const retBaseMin = parseFloat(rdOff);
+        if (badge && live && live.return_drive_live_min && retBaseMin > 0) {
+          const friction = Math.max(0, Math.round(((live.return_drive_live_min - retBaseMin) / retBaseMin) * 100));
+          const fCls = friction <= 15 ? "friction-low" : friction <= 30 ? "friction-moderate" : "friction-high";
+          const fLabel = friction <= 15 ? "Low Drag" : friction <= 30 ? "Moderate" : "Heavy Delay";
+          badge.className = `commute-friction-badge ${fCls}`;
+          badge.innerHTML = `<span>+${friction}%</span><span>${fLabel}</span>`;
+        }
+      } else {
+        if (mLeg) mLeg.className = "commute-leg-block";
+        if (eLeg) eLeg.className = "commute-leg-block";
+        if (badge) badge.className = "commute-friction-badge is-hidden";
+
+        if (fDrive) {
+          fDrive.className = "commute-metric-value is-baseline-primary";
+          fDrive.textContent = `${dOff} min`;
+        }
+        if (fTransit) {
+          fTransit.className = "commute-metric-value text-accent-alpine";
+          fTransit.textContent = `${tOff} min`;
+        }
+        if (rDrive) {
+          rDrive.className = "commute-metric-value is-baseline-primary";
+          rDrive.textContent = `${rdOff} min`;
+        }
+        if (rTransit) {
+          rTransit.className = "commute-metric-value text-accent-alpine";
+          rTransit.textContent = `${rtOff} min`;
+        }
+        if (subMd) subMd.textContent = "Typical off-peak";
+        if (subMt) subMt.textContent = "Typical off-peak";
+        if (subEd) subEd.textContent = "Typical off-peak";
+        if (subEt) subEt.textContent = "Typical off-peak";
+      }
+    });
+  }
+
+  async function hydrateHubsAndAirportsTravel() {
+    const initialMode = getPacificWindowMode();
+    applyCommuteWindowState(initialMode, null);
+
+    if (initialMode !== "offpeak") {
+      try {
+        const res = await fetch(`${apiBase}/transit/commute?lat=${mapLat}&lon=${mapLon}`);
+        if (res.ok) {
+          const data = await res.json();
+          applyCommuteWindowState(data.window || initialMode, data.hubs || {});
+        }
+      } catch (e) {}
+    }
+  }
+
   async function hydrateAirports() {
     try {
-      const res = await fetch(`${apiBase}/transit/airports`);
+      const qs = !isNaN(mapLat) && !isNaN(mapLon) ? `?lat=${mapLat}&lon=${mapLon}` : "";
+      const res = await fetch(`${apiBase}/transit/airports${qs}`);
       if (!res.ok) return;
       const data = await res.json();
       const metars = Array.isArray(data.metar) ? data.metar : [];
       const delays = data.delays || {};
+      const travel = data.travel || {};
 
-      ["SEA", "PAE"].forEach(code => {
+      ["SEA", "PAE"].forEach((code) => {
         const card = document.getElementById(`aptCard${code}`);
         if (!card) return;
 
-        const m = metars.find(x => x.icaoId === `K${code}`);
+        const m = metars.find((x) => x.icaoId === `K${code}`);
         if (m) {
           const cat = (m.fltcat || m.fltCat || "VFR").toLowerCase();
           const rulePill = card.querySelector(".apt-rule-val");
           rulePill.textContent = cat.toUpperCase();
           rulePill.className = `apt-flight-rules-pill ${cat} apt-rule-val`;
 
-          const wdir = m.wdir !== undefined ? `${m.wdir}°` : "VRB";
+          const wdir = m.wdir !== undefined ? `${m.wdir}\u00B0` : "VRB";
           const wspd = m.wspd !== undefined ? `${m.wspd} kt` : "Calm";
           card.querySelector(".apt-wind-val").textContent = `${wdir} at ${wspd}`;
           card.querySelector(".apt-vis-val").textContent = m.visib !== undefined ? `${m.visib} sm` : "10+ sm";
 
-          const tempF = m.temp !== undefined ? `${Math.round(m.temp * 9 / 5 + 32)}°F` : "";
+          const tempF = m.temp !== undefined ? `${Math.round((m.temp * 9) / 5 + 32)}\u00B0F` : "";
           const ceilStr = m.ceil ? `${m.ceil}00 ft` : "Clear";
-          card.querySelector(".apt-ceil-val").textContent = tempF ? `${ceilStr} · ${tempF}` : ceilStr;
+          card.querySelector(".apt-ceil-val").textContent = tempF ? `${ceilStr} \u00B7 ${tempF}` : ceilStr;
         }
 
         const statusBadge = card.querySelector(".apt-faa-status");
@@ -1325,6 +1454,15 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
             statusBadge.textContent = "Normal Operations";
             statusBadge.className = "ferry-status-pill status-ontime apt-faa-status";
           }
+        }
+
+        const low = code.toLowerCase();
+        const liveApt = travel[low];
+        if (liveApt) {
+          const dEl = document.querySelector(`[data-apt-drive="${low}"]`);
+          const tEl = document.querySelector(`[data-apt-transit="${low}"]`);
+          if (dEl && liveApt.drive_live_min) dEl.textContent = `${liveApt.drive_live_min} min`;
+          if (tEl && liveApt.transit_live_min) tEl.textContent = `${liveApt.transit_live_min} min`;
         }
       });
     } catch (e) {}

@@ -1,7 +1,7 @@
 /**
  * File: assets/js/property-viewer.js
- * Handles dual-state hydration, address/parcel/Near-Me search, map initialization,
- * and Inbound Comms Gateway routing for the Canonical Property Viewer.
+ * Handles dual-state hydration, residential address/parcel/Near-Me search,
+ * live edge GIS utility rendering, Leaflet parcel map, and Inbound Comms Gateway routing.
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -11,46 +11,67 @@ document.addEventListener("DOMContentLoaded", () => {
   const els = {
     landing: document.getElementById("viewer-landing-state"),
     populated: document.getElementById("viewer-populated-state"),
-    searchWrap: document.querySelector(".property-viewer-search-wrap"),
+    btnBackToSearch: document.getElementById("btn-back-to-search"),
     searchInput: document.getElementById("parcel-search-input"),
     btnSearch: document.getElementById("btn-search-parcel"),
     btnNearMe: document.getElementById("btn-near-me"),
+    resultsContainer: document.getElementById("parcel-search-results"),
 
     // Flags & Condo
     flagsContainer: document.getElementById("prop-flags-container"),
     flagCcr: document.getElementById("flag-ccr"),
     flagTax: document.getElementById("flag-tax"),
     subdivisionSection: document.getElementById("prop-subdivision-data"),
+    condoComplexName: document.getElementById("condo-complex-name"),
     fhaBadge: document.getElementById("fha-approval-badge"),
     fhaStatusText: document.getElementById("fha-status-text"),
     vaBadge: document.getElementById("va-approval-badge"),
     vaStatusText: document.getElementById("va-status-text"),
 
-    // Hydration Targets
+    // Core General Property Info
+    typeBadge: document.getElementById("prop-type-badge"),
     address: document.getElementById("prop-address-display"),
     parcelId: document.getElementById("prop-parcel-display"),
     yearBuilt: document.getElementById("prop-year-built"),
     sqft: document.getElementById("prop-sqft"),
     bedsBaths: document.getElementById("prop-beds-baths"),
     lotSize: document.getElementById("prop-lot-size"),
-    primaryPhotoImg: document.querySelector("#prop-primary-photo-viewport .viewport-primary-image"),
-    primaryPhotoBackdrop: document.querySelector("#prop-primary-photo-viewport .viewport-slide-backdrop"),
-    avmValue: document.getElementById("prop-avm-value"),
+    style: document.getElementById("prop-style"),
+    county: document.getElementById("prop-county"),
+    primaryPhotoImg: document.getElementById("prop-primary-photo"),
+    photoPlaceholder: document.getElementById("prop-photo-placeholder"),
+
+    // Valuation & Neighborhood
+    assessedValue: document.getElementById("prop-assessed-value"),
+    cityHeading: document.getElementById("prop-city-heading"),
+    linkCityHub: document.getElementById("link-city-hub"),
+    linkCityRealEstate: document.getElementById("link-city-realestate"),
 
     // Utilities & Wastewater
     utilElectric: document.getElementById("util-electric"),
+    utilElectricMeta: document.getElementById("util-electric-meta"),
     utilWater: document.getElementById("util-water"),
+    utilWaterMeta: document.getElementById("util-water-meta"),
     utilGas: document.getElementById("util-gas"),
+    utilGasMeta: document.getElementById("util-gas-meta"),
     utilRefuse: document.getElementById("util-refuse"),
+    utilRefuseMeta: document.getElementById("util-refuse-meta"),
+    utilBroadband: document.getElementById("util-broadband"),
+    linkFccMap: document.getElementById("link-fcc-map"),
+
+    wwEmptyBlock: document.getElementById("wastewater-empty-block"),
     sewerBlock: document.getElementById("wastewater-sewer-block"),
     septicBlock: document.getElementById("wastewater-septic-block"),
     wwProvider: document.getElementById("ww-provider"),
+    wwProviderMeta: document.getElementById("ww-provider-meta"),
     wwCapacityCharge: document.getElementById("ww-capacity-charge"),
     wwSepticYear: document.getElementById("ww-septic-year"),
     wwSepticInspected: document.getElementById("ww-septic-inspected"),
     btnAsBuilt: document.getElementById("btn-view-asbuilt"),
 
-    // History Table
+    // Sketch & History Table
+    sketchCard: document.getElementById("prop-sketch-card"),
+    sketchImg: document.getElementById("prop-sketch-img"),
     historyTable: document.querySelector("#transaction-history-table tbody"),
 
     // Form
@@ -59,13 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
     statusMsg: document.getElementById("inquiry-status-msg")
   };
 
-  let resultsContainer = document.getElementById("parcel-search-results");
-  if (!resultsContainer && els.searchWrap && els.searchWrap.parentNode) {
-    resultsContainer = document.createElement("div");
-    resultsContainer.id = "parcel-search-results";
-    resultsContainer.className = "data-list";
-    els.searchWrap.parentNode.appendChild(resultsContainer);
-  }
+  let activeMapInstance = null;
 
   function generateId(length = 20) {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -78,12 +93,51 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function formatCurrency(num) {
-    if (num === null || num === undefined || isNaN(num)) return "--";
+    if (num === null || num === undefined || isNaN(Number(num))) return "--";
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
       maximumFractionDigits: 0
-    }).format(num);
+    }).format(Number(num));
+  }
+
+  function formatCityTitle(slug) {
+    if (!slug) return "Unincorporated";
+    return String(slug)
+      .split("-")
+      .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : ""))
+      .join(" ");
+  }
+
+  function renderUtilityMeta(metaEl, utilObj) {
+    if (!metaEl) return;
+    metaEl.innerHTML = "";
+    if (!utilObj) return;
+
+    if (utilObj.phone_number) {
+      const a = document.createElement("a");
+      a.href = `tel:${utilObj.phone_number.replace(/[^\d+]/g, "")}`;
+      a.className = "link-subtle";
+      a.textContent = utilObj.phone_number;
+      metaEl.appendChild(a);
+    }
+    if (utilObj.website) {
+      const a = document.createElement("a");
+      a.href = utilObj.website.startsWith("http") ? utilObj.website : `https://${utilObj.website}`;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.className = "link-subtle";
+      a.textContent = "Website ↗";
+      metaEl.appendChild(a);
+    }
+  }
+
+  function showLandingState() {
+    els.populated.classList.add("is-hidden");
+    els.landing.classList.remove("is-hidden");
+    const newUrl = new URL(window.location);
+    newUrl.searchParams.delete("parcelid");
+    window.history.pushState({}, "", newUrl);
   }
 
   function selectParcel(parcelNumber) {
@@ -95,39 +149,106 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderSearchResults(rows) {
-    if (!resultsContainer) return;
-    resultsContainer.innerHTML = "";
+    if (!els.resultsContainer) return;
+    els.resultsContainer.classList.remove("is-hidden");
+    els.resultsContainer.innerHTML = "";
+
     if (!rows || rows.length === 0) {
-      resultsContainer.innerHTML = `<div class="data-list-item"><span class="text-body-secondary">No matching parcels found in King or Snohomish County.</span></div>`;
+      els.resultsContainer.innerHTML = `<div class="data-list-item"><span class="text-body-secondary">No matching residential properties found in King or Snohomish County.</span></div>`;
       return;
     }
 
     rows.forEach((row) => {
       const item = document.createElement("div");
       item.className = "data-list-item";
-      const unitStr = row.unit_number ? ` Unit ${row.unit_number}` : "";
-      const cityLabel = (row.neighborhood_slug || "").replace(/-/g, " ").toUpperCase();
+      const unitStr = row.unit_number ? ` #${row.unit_number}` : "";
+      const cityLabel = formatCityTitle(row.neighborhood_slug);
       const addrTitle = row.situs_address ? `${row.situs_address}${unitStr}` : `Parcel ${row.parcel_number}`;
 
       item.innerHTML = `
         <div class="data-item-left">
           <strong class="text-body-primary">${addrTitle}</strong>
-          <span class="text-body-secondary">${cityLabel} ${row.zip_code || ""} &bull; Parcel ${row.parcel_number}</span>
+          <span class="text-body-secondary">${cityLabel} ${row.zip_code || ""} &bull; ${row.property_type || "Residential"} &bull; Parcel ${row.parcel_number}</span>
         </div>
         <div class="data-item-right">
           <button type="button" class="link-pill link-pill-primary">View Property</button>
         </div>
       `;
       item.querySelector("button").addEventListener("click", () => selectParcel(row.parcel_number));
-      resultsContainer.appendChild(item);
+      els.resultsContainer.appendChild(item);
     });
   }
 
-  // --- Hydration Engine ---
+  function ensureLeafletAndRenderMap(lat, lon, historicalPhotos) {
+    const mapEl = document.getElementById("parcel-map-mount");
+    if (!mapEl || typeof lat !== "number" || typeof lon !== "number") return;
+
+    function mountMap() {
+      if (activeMapInstance) {
+        activeMapInstance.remove();
+        activeMapInstance = null;
+      }
+      mapEl.innerHTML = "";
+
+      const map = L.map("parcel-map-mount", {
+        center: [lat, lon],
+        zoom: 17,
+        scrollWheelZoom: false
+      });
+      activeMapInstance = map;
+
+      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+        attribution: "Esri, Maxar, Earthstar Geographics",
+        maxZoom: 19
+      }).addTo(map);
+
+      L.circleMarker([lat, lon], {
+        radius: 8,
+        color: "#FFFFFF",
+        weight: 2.5,
+        fillColor: "#1E4D6B",
+        fillOpacity: 0.95
+      })
+        .bindPopup("<strong>Subject Property</strong>")
+        .addTo(map);
+
+      (historicalPhotos || []).forEach((hp) => {
+        if (typeof hp.lat === "number" && typeof hp.lng === "number") {
+          L.circleMarker([hp.lat, hp.lng], {
+            radius: 6,
+            color: "#FFFFFF",
+            weight: 1.5,
+            fillColor: "#D97706",
+            fillOpacity: 0.9
+          })
+            .bindPopup(`<strong>${hp.title || "Historical Photo"}</strong>${hp.year_photo ? ` (${hp.year_photo})` : ""}`)
+            .addTo(map);
+        }
+      });
+    }
+
+    if (typeof L !== "undefined") {
+      mountMap();
+    } else {
+      if (!document.querySelector('link[href*="leaflet.css"]')) {
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+        document.head.appendChild(link);
+      }
+      const script = document.createElement("script");
+      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      script.onload = mountMap;
+      document.body.appendChild(script);
+    }
+  }
+
+  // --- Primary Hydration Engine ---
   async function hydrateProperty(parcelId) {
     els.landing.classList.add("is-hidden");
     els.populated.classList.remove("is-hidden");
     els.parcelId.textContent = `Parcel: ${parcelId}`;
+    window.scrollTo({ top: 0, behavior: "smooth" });
 
     try {
       const res = await fetch(`${API_BASE}/parcel?id=${encodeURIComponent(parcelId)}`);
@@ -139,13 +260,17 @@ document.addEventListener("DOMContentLoaded", () => {
       const wastewater = data.wastewater || {};
       const ccr = data.ccr || null;
       const utils = data.utilities_resolved || {};
+      const broadband = data.broadband || {};
       const transactions = data.sales_transactions || [];
       const media = data.parcel_media || [];
+      const histPhotos = data.historical_photos || [];
 
       // 1. Property Flags (CC&Rs)
       let hasAnyFlag = false;
       if (els.flagCcr) {
-        const hasCcrRestriction = Boolean(ccr && ccr.restriction_status && ccr.restriction_status.toLowerCase() !== "none");
+        const hasCcrRestriction = Boolean(
+          ccr && ccr.restriction_status && ccr.restriction_status.toLowerCase() !== "none"
+        );
         els.flagCcr.classList.toggle("is-hidden", !hasCcrRestriction);
         if (hasCcrRestriction) hasAnyFlag = true;
       }
@@ -157,92 +282,147 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // 2. Core Base Metrics
-      const cityDisplay = (base.neighborhood_slug || "").replace(/-/g, " ").toUpperCase();
+      const cityDisplay = formatCityTitle(base.neighborhood_slug);
       const unitDisplay = base.unit_number ? ` #${base.unit_number}` : "";
+      els.typeBadge.textContent = (base.property_type || "RESIDENTIAL").toUpperCase();
       els.address.textContent = base.situs_address
         ? `${base.situs_address}${unitDisplay}, ${cityDisplay} ${base.zip_code || ""}`.trim()
         : `Parcel ${parcelId}`;
       els.yearBuilt.textContent = base.year_built || "--";
       els.sqft.textContent = base.square_footage ? Number(base.square_footage).toLocaleString() : "--";
 
-      const bathsTotal = (base.bath_full || 0) + (base.bath_half ? base.bath_half * 0.5 : 0);
+      const bathsTotal = (Number(base.bath_full) || 0) + (Number(base.bath_half) || 0) * 0.5;
       els.bedsBaths.textContent = `${base.bedrooms || "--"} / ${bathsTotal > 0 ? bathsTotal : "--"}`;
       els.lotSize.textContent = base.lot_sqft ? Number(base.lot_sqft).toLocaleString() : "--";
+      els.style.textContent = base.building_style || "--";
+      els.county.textContent = base.county ? formatCityTitle(base.county.toLowerCase()) : "--";
 
-      // Single-Frame Property Photo (R2 Primary -> Source URL -> Placeholder SVG)
-      let targetImgUrl = "/assets/graphics/placeholder-home.svg";
-      if (media.length > 0) {
-        targetImgUrl = media[0].r2_key
-          ? `https://assets.myseattlesearch.com/${media[0].r2_key}`
-          : (media[0].source_url || targetImgUrl);
+      // Single-Frame Photo (R2 Photo -> Source URL -> Inline Vector Placeholder)
+      const photoMedia = media.find((m) => m.media_type === "photo") || media[0];
+      const sketchMedia = media.find((m) => m.media_type === "sketch");
+
+      if (photoMedia && (photoMedia.r2_key || photoMedia.source_url)) {
+        const imgUrl = photoMedia.r2_key
+          ? `https://assets.myseattlesearch.com/${photoMedia.r2_key}`
+          : photoMedia.source_url;
+        els.primaryPhotoImg.onload = () => {
+          els.primaryPhotoImg.classList.remove("is-hidden");
+          els.photoPlaceholder.classList.add("is-hidden");
+        };
+        els.primaryPhotoImg.onerror = () => {
+          els.primaryPhotoImg.classList.add("is-hidden");
+          els.photoPlaceholder.classList.remove("is-hidden");
+        };
+        els.primaryPhotoImg.src = imgUrl;
+      } else {
+        els.primaryPhotoImg.classList.add("is-hidden");
+        els.photoPlaceholder.classList.remove("is-hidden");
       }
-      if (els.primaryPhotoImg) els.primaryPhotoImg.src = targetImgUrl;
-      if (els.primaryPhotoBackdrop) els.primaryPhotoBackdrop.src = targetImgUrl;
 
       // 3. Condo Approvals (FHA / VA)
-      if (els.subdivisionSection) {
-        const isCondo = condo !== null || String(base.property_type || "").toLowerCase().includes("condo");
-        if (isCondo) {
-          els.subdivisionSection.classList.remove("is-hidden");
-          const fhaOk = Number(condo?.fha_approved ?? base.fha_approved ?? 0) === 1;
-          const vaOk = Number(condo?.va_approved ?? base.va_approved ?? 0) === 1;
+      const isCondo = condo !== null || String(base.property_type || "").toLowerCase().includes("condo");
+      if (isCondo) {
+        els.subdivisionSection.classList.remove("is-hidden");
+        els.condoComplexName.textContent = condo?.name || base.complex_or_plat_name || "Condominium Approvals";
+        const fhaOk = Number(condo?.fha_approved ?? base.fha_approved ?? 0) === 1;
+        const vaOk = Number(condo?.va_approved ?? base.va_approved ?? 0) === 1;
 
-          if (els.fhaStatusText) els.fhaStatusText.textContent = fhaOk ? "Approved" : "Not Approved";
-          if (els.fhaBadge) {
-            els.fhaBadge.classList.toggle("is-optimal", fhaOk);
-            els.fhaBadge.classList.toggle("is-alert", !fhaOk);
-          }
-          if (els.vaStatusText) els.vaStatusText.textContent = vaOk ? "Approved" : "Not Approved";
-          if (els.vaBadge) {
-            els.vaBadge.classList.toggle("is-optimal", vaOk);
-            els.vaBadge.classList.toggle("is-alert", !vaOk);
-          }
-        } else {
-          els.subdivisionSection.classList.add("is-hidden");
-        }
+        els.fhaStatusText.textContent = fhaOk ? "Approved" : "Not Approved";
+        els.fhaBadge.classList.toggle("is-optimal", fhaOk);
+        els.fhaBadge.classList.toggle("is-alert", !fhaOk);
+
+        els.vaStatusText.textContent = vaOk ? "Approved" : "Not Approved";
+        els.vaBadge.classList.toggle("is-optimal", vaOk);
+        els.vaBadge.classList.toggle("is-alert", !vaOk);
+      } else {
+        els.subdivisionSection.classList.add("is-hidden");
       }
 
-      // 4. AVM Value Estimate
-      els.avmValue.textContent = base.assessed_value_total
-        ? formatCurrency(Math.round(base.assessed_value_total * 1.15))
-        : "Est. Unavailable";
+      // 4. County Assessed Value
+      els.assessedValue.textContent = base.assessed_value_total
+        ? formatCurrency(base.assessed_value_total)
+        : "Unavailable";
 
-      // 5. Utility Directory Bindings (Resolved Normal Names)
-      els.utilElectric.textContent = utils.electric?.normal_name || base.electric_utility_code || "--";
-      els.utilWater.textContent = utils.water?.normal_name || base.water_district_name || "--";
-      els.utilGas.textContent = utils.gas?.normal_name || base.natural_gas_provider || "--";
-      els.utilRefuse.textContent = utils.refuse?.normal_name || base.refuse_provider_name || "--";
+      // 5. Connected Neighborhood Links
+      const citySlug = base.neighborhood_slug || "";
+      els.cityHeading.textContent = cityDisplay;
+      if (citySlug && citySlug !== "unincorporated") {
+        els.linkCityHub.href = `/neighborhood/${citySlug}/`;
+        els.linkCityRealEstate.href = `/neighborhood/${citySlug}/real-estate/`;
+        els.linkCityHub.classList.remove("is-hidden");
+        els.linkCityRealEstate.classList.remove("is-hidden");
+      } else {
+        els.linkCityHub.classList.add("is-hidden");
+        els.linkCityRealEstate.classList.add("is-hidden");
+      }
 
-      // 6. Wastewater Parsing
+      // 6. Live Edge GIS + Utility Directory Bindings
+      els.utilElectric.textContent = utils.electric?.normal_name || "--";
+      renderUtilityMeta(els.utilElectricMeta, utils.electric);
+
+      els.utilWater.textContent = utils.water?.normal_name || "--";
+      renderUtilityMeta(els.utilWaterMeta, utils.water);
+
+      els.utilGas.textContent = utils.gas?.normal_name || "--";
+      renderUtilityMeta(els.utilGasMeta, utils.gas);
+
+      els.utilRefuse.textContent = utils.refuse?.normal_name || "--";
+      renderUtilityMeta(els.utilRefuseMeta, utils.refuse);
+
+      const ispList = Array.isArray(broadband.providers) ? broadband.providers : [];
+      if (ispList.length > 0) {
+        const ispNames = ispList
+          .map((p) => (typeof p === "string" ? p : p.provider || p.brand_name || ""))
+          .filter(Boolean);
+        els.utilBroadband.textContent = [...new Set(ispNames)].join(", ");
+      } else {
+        els.utilBroadband.textContent = "Check FCC Coverage Map";
+      }
+      if (typeof base.latitude === "number" && typeof base.longitude === "number") {
+        els.linkFccMap.href = `https://broadbandmap.fcc.gov/location-summary/fixed?lat=${base.latitude}&lon=${base.longitude}`;
+        els.linkFccMap.classList.remove("is-hidden");
+      } else {
+        els.linkFccMap.classList.add("is-hidden");
+      }
+
+      // 7. Wastewater Parsing (Mutually Exclusive Panels)
       const wwType = String(wastewater.service_type || "").toUpperCase();
       if (wwType === "SEWER") {
+        els.wwEmptyBlock.classList.add("is-hidden");
         els.septicBlock.classList.add("is-hidden");
         els.sewerBlock.classList.remove("is-hidden");
-        els.wwProvider.textContent = utils.sewer?.normal_name || wastewater.sewer_provider_name || base.sewer_provider_name || "--";
-        if (els.wwCapacityCharge) {
-          els.wwCapacityCharge.classList.toggle("is-hidden", Number(wastewater.has_capacity_charge || 0) !== 1);
-        }
+        els.wwProvider.textContent = utils.sewer?.normal_name || wastewater.sewer_provider_name || "--";
+        renderUtilityMeta(els.wwProviderMeta, utils.sewer);
+        els.wwCapacityCharge.classList.toggle("is-hidden", Number(wastewater.has_capacity_charge || 0) !== 1);
       } else if (wwType === "SEPTIC") {
+        els.wwEmptyBlock.classList.add("is-hidden");
         els.sewerBlock.classList.add("is-hidden");
         els.septicBlock.classList.remove("is-hidden");
         els.wwSepticYear.textContent = wastewater.installed_year || "--";
         els.wwSepticInspected.textContent = wastewater.last_inspection_date || "--";
-        if (els.btnAsBuilt) {
-          if (Number(wastewater.has_asbuilt || 0) === 1 && wastewater.online_rme_id) {
-            els.btnAsBuilt.classList.remove("is-hidden");
-            els.btnAsBuilt.href = "https://kingcounty.gov/depts/health/environmental-health/piping/onsite-sewage-systems.aspx";
-            els.btnAsBuilt.target = "_blank";
-            els.btnAsBuilt.rel = "noopener noreferrer";
-          } else {
-            els.btnAsBuilt.classList.add("is-hidden");
-          }
+        if (Number(wastewater.has_asbuilt || 0) === 1 && wastewater.online_rme_id) {
+          els.btnAsBuilt.classList.remove("is-hidden");
+          els.btnAsBuilt.href = "https://kingcounty.gov/depts/health/environmental-health/piping/onsite-sewage-systems.aspx";
+        } else {
+          els.btnAsBuilt.classList.add("is-hidden");
         }
       } else {
         els.sewerBlock.classList.add("is-hidden");
         els.septicBlock.classList.add("is-hidden");
+        els.wwEmptyBlock.classList.remove("is-hidden");
       }
 
-      // 7. Sales History Table
+      // 8. Building Dimension Sketch
+      if (sketchMedia && (sketchMedia.r2_key || sketchMedia.source_url)) {
+        els.sketchImg.src = sketchMedia.r2_key
+          ? `https://assets.myseattlesearch.com/${sketchMedia.r2_key}`
+          : sketchMedia.source_url;
+        els.sketchCard.classList.remove("is-hidden");
+      } else {
+        els.sketchCard.classList.add("is-hidden");
+      }
+
+      // 9. Sales History Table
       els.historyTable.innerHTML = "";
       if (transactions.length > 0) {
         transactions.forEach((tx) => {
@@ -257,30 +437,11 @@ document.addEventListener("DOMContentLoaded", () => {
           els.historyTable.appendChild(tr);
         });
       } else {
-        els.historyTable.innerHTML = `<tr><td colspan="4" class="table-cell-center">No recent transactions found.</td></tr>`;
+        els.historyTable.innerHTML = `<tr><td colspan="4" class="table-cell-center">No recent recorded transactions found.</td></tr>`;
       }
 
-      // 8. Initialize Parcel Map
-      const mapEl = document.getElementById("parcel-map-mount");
-      if (mapEl && base.latitude && base.longitude && typeof L !== "undefined") {
-        mapEl.innerHTML = "";
-        const map = L.map("parcel-map-mount", {
-          center: [base.latitude, base.longitude],
-          zoom: 17,
-          scrollWheelZoom: false
-        });
-        L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
-          attribution: "Esri, Maxar, Earthstar Geographics",
-          maxZoom: 19
-        }).addTo(map);
-        L.circleMarker([base.latitude, base.longitude], {
-          radius: 8,
-          color: "#FFFFFF",
-          weight: 2,
-          fillColor: "#1E4D6B",
-          fillOpacity: 0.95
-        }).addTo(map);
-      }
+      // 10. Render Parcel Satellite Map
+      ensureLeafletAndRenderMap(base.latitude, base.longitude, histPhotos);
     } catch (err) {
       console.error(err);
       els.address.textContent = "Property Record Not Found";
@@ -298,10 +459,8 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (els.btnSearch) {
-      els.btnSearch.disabled = true;
-      els.btnSearch.textContent = "Searching...";
-    }
+    els.btnSearch.disabled = true;
+    els.btnSearch.textContent = "Searching...";
 
     try {
       const res = await fetch(`${API_BASE}/parcel/search?q=${encodeURIComponent(query)}`);
@@ -316,65 +475,71 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Parcel search failed:", err);
       renderSearchResults([]);
     } finally {
-      if (els.btnSearch) {
-        els.btnSearch.disabled = false;
-        els.btnSearch.textContent = "Search";
-      }
+      els.btnSearch.disabled = false;
+      els.btnSearch.textContent = "Search";
     }
   }
 
-  if (els.btnSearch) {
-    els.btnSearch.addEventListener("click", () => executeSearch(els.searchInput.value));
-  }
-  if (els.searchInput) {
-    els.searchInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") executeSearch(els.searchInput.value);
-    });
+  els.btnSearch.addEventListener("click", () => executeSearch(els.searchInput.value));
+  els.searchInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") executeSearch(els.searchInput.value);
+  });
+
+  if (els.btnBackToSearch) {
+    els.btnBackToSearch.addEventListener("click", showLandingState);
   }
 
-  if (els.btnNearMe) {
-    els.btnNearMe.addEventListener("click", () => {
-      if (!navigator.geolocation) {
-        renderSearchResults([]);
-        return;
-      }
-      els.btnNearMe.disabled = true;
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          try {
-            const { latitude, longitude } = pos.coords;
-            const res = await fetch(`${API_BASE}/parcel/search?lat=${latitude}&lon=${longitude}`);
-            const data = res.ok ? await res.json() : { results: [] };
-            renderSearchResults(data.results || []);
-          } catch {
-            renderSearchResults([]);
-          } finally {
-            els.btnNearMe.disabled = false;
-          }
-        },
-        () => {
-          els.btnNearMe.disabled = false;
+  els.btnNearMe.addEventListener("click", () => {
+    if (!navigator.geolocation) {
+      renderSearchResults([]);
+      return;
+    }
+    els.btnNearMe.disabled = true;
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const res = await fetch(`${API_BASE}/parcel/search?lat=${latitude}&lon=${longitude}`);
+          const data = res.ok ? await res.json() : { results: [] };
+          renderSearchResults(data.results || []);
+        } catch {
           renderSearchResults([]);
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    });
-  }
+        } finally {
+          els.btnNearMe.disabled = false;
+        }
+      },
+      () => {
+        els.btnNearMe.disabled = false;
+        renderSearchResults([]);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+
+  window.addEventListener("popstate", () => {
+    const p = new URLSearchParams(window.location.search).get("parcelid");
+    if (p) {
+      hydrateProperty(p);
+    } else {
+      els.populated.classList.add("is-hidden");
+      els.landing.classList.remove("is-hidden");
+    }
+  });
 
   // --- Initial Boot ---
-  const urlParams = new URLSearchParams(window.location.search);
-  const requestedParcel = urlParams.get("parcelid");
-  if (requestedParcel) {
-    hydrateProperty(requestedParcel);
+  const initialParcel = new URLSearchParams(window.location.search).get("parcelid");
+  if (initialParcel) {
+    hydrateProperty(initialParcel);
   }
 
-  // --- Inbound Form Dispatch (AVM / CMA Request) ---
+  // --- Inbound Comms Gateway Dispatch ("avm-inquiry" / "cam-request") ---
   if (els.inquiryForm) {
     els.inquiryForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       els.btnSubmitInquiry.disabled = true;
       els.btnSubmitInquiry.textContent = "Sending...";
       els.statusMsg.textContent = "";
+      els.statusMsg.className = "text-body-secondary pv-status-text";
 
       const inquiryType = document.querySelector('input[name="inquiry_type"]:checked')?.value || "avm-inquiry";
       const fName = document.getElementById("inq-first-name").value.trim();
@@ -382,8 +547,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const email = document.getElementById("inq-email").value.trim();
       const phone = document.getElementById("inq-phone").value.trim();
       const notes = document.getElementById("inq-notes").value.trim();
-      const currentParams = new URLSearchParams(window.location.search);
-      const activeParcelId = currentParams.get("parcelid") || "Unknown";
+      const activeParcelId = new URLSearchParams(window.location.search).get("parcelid") || "Unknown";
 
       const payload = {
         sheetName: "Inbound",
@@ -398,8 +562,8 @@ document.addEventListener("DOMContentLoaded", () => {
         ],
         emailData: {
           to: "joe@myseattlesearch.com",
-          subject: `Property Viewer: ${inquiryType === "cma-request" ? "Manual CMA Request" : "AVM Flag"}`,
-          body: `Client: ${fName} ${lName}<br>Email: ${email}<br>Phone: ${phone}<br>Parcel: ${activeParcelId}<br>Notes: ${notes}`
+          subject: `Property Viewer: ${inquiryType === "cam-request" ? "Manual CMA Request" : "AVM Inquiry"}`,
+          body: `Client: ${fName} ${lName}<br>Email: ${email}<br>Phone: ${phone}<br>Parcel: ${activeParcelId}<br>Source: ${inquiryType}<br>Notes: ${notes}`
         }
       };
 
@@ -412,8 +576,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!req.ok) throw new Error("Gateway rejected request.");
 
         els.inquiryForm.reset();
+        els.statusMsg.classList.add("is-success");
         els.statusMsg.textContent = "Your request was received by Operations.";
-      } catch (err) {
+      } catch {
+        els.statusMsg.classList.add("is-error");
         els.statusMsg.textContent = "Failed to submit request. Please try again.";
       } finally {
         els.btnSubmitInquiry.disabled = false;

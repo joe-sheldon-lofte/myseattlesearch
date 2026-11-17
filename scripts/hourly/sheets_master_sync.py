@@ -323,7 +323,7 @@ def main():
         )
 
     # 3. Pull strictly the 6 Hourly Tabs (BookingRules added)
-    all_tabs = ["Historical_Log", "News", "Uploads", "Sports", "Publishers", "BookingRules", "Market_Dashboard"]
+    all_tabs = ["Historical_Log", "News", "Uploads", "Sports", "Publishers", "BookingRules"]
     ranges = [f"{tab}!A:BK" for tab in all_tabs]
 
     res = sheets_service.spreadsheets().values().batchGet(spreadsheetId=master_sheet_id, ranges=ranges).execute()
@@ -373,8 +373,7 @@ def main():
         ("Sports", "sports_teams.json"), 
         ("Uploads", "uploads.json"), 
         ("Publishers", "publishers.json"),
-        ("BookingRules", "booking_rules.json"),
-        ("Market_Dashboard", "hourly_market.json")
+        ("BookingRules", "booking_rules.json")
     ]:
         rows = data.get(tab_name, {}).get('values', [])
         if rows:
