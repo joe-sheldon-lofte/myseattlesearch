@@ -12,6 +12,91 @@ module.exports = function(eleventyConfig) {
   eleventyConfig.addPassthroughCopy("quizzes/engines");
   eleventyConfig.addPassthroughCopy({ "scripts/utilities": "scripts/utilities" });
 
+  // Collection & Array Utility Filters (Jinja2-compatible helpers for Nunjucks widgets)
+  eleventyConfig.addFilter("filter_by", function(collection, keyOrObj, value) {
+    if (!collection) return [];
+    const items = Array.isArray(collection)
+      ? collection
+      : (typeof collection === "object" ? Object.values(collection) : []);
+
+    if (keyOrObj && typeof keyOrObj === "object") {
+      return items.filter(item =>
+        item && Object.entries(keyOrObj).every(([k, v]) => String(item[k]) === String(v))
+      );
+    }
+
+    if (typeof keyOrObj === "string") {
+      if (value === undefined) {
+        return items.filter(item => item && Boolean(item[keyOrObj]));
+      }
+      return items.filter(item => item && String(item[keyOrObj]) === String(value));
+    }
+
+    return items;
+  });
+
+  eleventyConfig.addFilter("map", function(collection, attrOrOpts) {
+    if (!collection) return [];
+    const items = Array.isArray(collection)
+      ? collection
+      : (typeof collection === "object" ? Object.values(collection) : []);
+
+    const key = typeof attrOrOpts === "string"
+      ? attrOrOpts
+      : (attrOrOpts && typeof attrOrOpts === "object" ? attrOrOpts.attribute : null);
+
+    if (!key) return items;
+    return items.map(item => (item && item[key] !== undefined ? item[key] : null));
+  });
+
+  eleventyConfig.addFilter("unique", function(arr) {
+    if (!arr) return [];
+    const items = Array.isArray(arr) ? arr : Object.values(arr);
+    return Array.from(new Set(items.filter(v => v !== null && v !== undefined && v !== "")));
+  });
+
+  eleventyConfig.addFilter("unique_by", function(arr, key) {
+    if (!arr || !Array.isArray(arr)) return [];
+    if (!key) return Array.from(new Set(arr));
+    const seen = new Set();
+    return arr.filter(item => {
+      if (!item || item[key] === undefined || item[key] === null) return false;
+      const val = String(item[key]);
+      if (seen.has(val)) return false;
+      seen.add(val);
+      return true;
+    });
+  });
+
+  eleventyConfig.addFilter("sort_by", function(arr, key, reverse = false) {
+    if (!arr) return [];
+    const items = Array.isArray(arr) ? [...arr] : Object.values(arr);
+    items.sort((a, b) => {
+      const va = a && key ? a[key] : a;
+      const vb = b && key ? b[key] : b;
+      if (va === vb) return 0;
+      if (va === null || va === undefined) return 1;
+      if (vb === null || vb === undefined) return -1;
+      if (typeof va === "number" && typeof vb === "number") {
+        return reverse ? vb - va : va - vb;
+      }
+      const cmp = String(va).localeCompare(String(vb), "en", { numeric: true, sensitivity: "base" });
+      return reverse ? -cmp : cmp;
+    });
+    return items;
+  });
+
+  eleventyConfig.addFilter("sort_by_date_desc", function(arr, key = "game_date") {
+    if (!arr || !Array.isArray(arr)) return [];
+    return [...arr].sort((a, b) => new Date(b && b[key] ? b[key] : 0) - new Date(a && a[key] ? a[key] : 0));
+  });
+
+  eleventyConfig.addFilter("find_by", function(arr, key, value) {
+    if (!arr) return null;
+    const items = Array.isArray(arr) ? arr : Object.values(arr);
+    return items.find(item => item && String(item[key]) === String(value)) || null;
+  });
+
   // Optional CNAME passthrough handling
   if (fs.existsSync(path.join(__dirname, "cname"))) {
     eleventyConfig.addPassthroughCopy("cname");

@@ -1,0 +1,138 @@
+---
+layout: layouts/base.njk
+pagination:
+  data: ospi_school_data.districts
+  size: 1
+  resolve: values
+  alias: district
+permalink: "/region/schools/{{ district.district_name | slugify }}/index.html"
+---
+{% set district_slug = district.district_name | slugify %}
+{% set all_schools = ospi_school_data.schools if (ospi_school_data and ospi_school_data.schools) else [] %}
+
+<main class="layout-container layout-stack-main">
+
+  {# ==========================================================================
+     SECTION 1: PAGE HEADER
+     ========================================================================== #}
+  <div id="district-hero" class="portal-section-header">
+    <div class="hero-header-minimal">
+      <span class="text-overline text-accent-alpine">{{ (district.county or "Puget Sound") | upper }} COUNTY SCHOOL DISTRICT</span>
+      <h1 class="hero-title-primary">{{ district.district_name }}</h1>
+      <p class="hero-subtitle-secondary">
+        District Code {{ district.district_code }} &bull; {{ district.records_count | default(0) }} Campuses
+      </p>
+    </div>
+  </div>
+
+  {# ==========================================================================
+     SECTION 2: NAVIGATION
+     ========================================================================== #}
+  <section id="district-navigation" class="portal-section-nav" aria-label="Regional Navigation">
+    <span class="text-overline text-accent-alpine section-overline-lead">
+      EXPLORE REGIONAL SCHOOLS &amp; PORTALS
+    </span>
+    <div class="neighborhood-nav-container">
+      <nav class="neighborhood-nav-track" tabindex="0" aria-label="Regional Navigation Links">
+        <a href="/neighborhood/" class="neighborhood-nav-pill is-inactive">Neighborhood Home</a>
+        <a href="/region/schools/" class="neighborhood-nav-pill is-inactive">School Home</a>
+        <a href="/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit &amp; Commute</a>
+        <a href="/region/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
+        <a href="/region/sports/minor/" class="neighborhood-nav-pill is-inactive">Minor League Sports</a>
+        <a href="/region/sports/college/" class="neighborhood-nav-pill is-inactive">College Sports</a>
+      </nav>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 3: DISTRICT SCHOOL SEARCH
+     ========================================================================== #}
+  <section id="district-search" class="portal-section-widget" aria-label="Search {{ district.district_name }}">
+    {% set search_scope = "school" %}
+    {% set search_placeholder = "Search campuses in " ~ district.district_name ~ "..." %}
+    {% set search_title = district.district_name ~ " School Search" %}
+    {% set search_overline = "DISTRICT CAMPUS DIRECTORY" %}
+    {% set search_element_id = "pagefind-district-" ~ district_slug %}
+    {% include "components/widget/search-box.njk" %}
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 4: ABOUT DISTRICT (PSAI Ranking + Official Website Link)
+     ========================================================================== #}
+  <section id="about-district" class="portal-section-widget" aria-label="About {{ district.district_name }}">
+    <div class="realestate-section-head">
+      <h2 class="text-section-title section-title-clean">About {{ district.district_name }}</h2>
+      {% if district.website_url %}
+        <a href="{{ district.website_url }}" class="municipal-ext-pill" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          <span>Official {{ district.district_name }} Website</span>
+        </a>
+      {% endif %}
+    </div>
+
+    {% set school_district_name = district.district_name %}
+    {% set school_psai_score = district.psai_score %}
+    {% set school_math_prof = (district.district_math_proficiency ~ "%") if district.district_math_proficiency is not none else "—" %}
+    {% set school_ela_prof = (district.district_ela_proficiency ~ "%") if district.district_ela_proficiency is not none else "—" %}
+    {% set school_science_prof = (district.district_science_proficiency ~ "%") if district.district_science_proficiency is not none else "—" %}
+    {% set school_total_count = (district.records_count | string) ~ " Campuses" %}
+    {% set school_portal_url = "/region/schools/" ~ district_slug ~ "/" %}
+    {% include "components/widget/region-school-ranking.njk" %}
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 5: DISTRICT MAP (District Campuses & Enrollment Boundary)
+     ========================================================================== #}
+  {% set map_features = [] %}
+  {% set lat_sum = 0 %}
+  {% set lon_sum = 0 %}
+  {% set geo_count = 0 %}
+
+  {% for s in all_schools %}
+    {% if s.district_code == district.district_code and s.latitude is not none and s.longitude is not none %}
+      {% set lat_sum = lat_sum + (s.latitude | float) %}
+      {% set lon_sum = lon_sum + (s.longitude | float) %}
+      {% set geo_count = geo_count + 1 %}
+      {% set s_slug = s.school_name | slugify %}
+      {% set _ = map_features.push({
+        "name": s.school_name,
+        "code": s.school_code,
+        "district": s.district_name,
+        "lat": s.latitude,
+        "lon": s.longitude,
+        "address": s.address,
+        "city": s.city,
+        "zip": s.zip,
+        "type": s.school_type,
+        "psai": s.psai_score,
+        "url": "/region/schools/" ~ district_slug ~ "/" ~ s_slug ~ "/"
+      }) %}
+    {% endif %}
+  {% endfor %}
+
+  {% set single_boundary = school_boundaries.district_boundaries[district.district_code] if (school_boundaries and school_boundaries.district_boundaries) else null %}
+  {% set map_boundaries = [single_boundary] if single_boundary else [] %}
+
+  <section id="district-map" class="portal-section-widget" aria-label="{{ district.district_name }} Map">
+    {% set map_lat = ((lat_sum / geo_count) | round(4)) if geo_count > 0 else 47.6062 %}
+    {% set map_lon = ((lon_sum / geo_count) | round(4)) if geo_count > 0 else -122.3321 %}
+    {% set map_zoom = 12 %}
+    {% set map_layer = "schools" %}
+    {% set map_title = district.district_name ~ " Campuses & Service Boundary" %}
+    {% set map_overline = "DISTRICT CARTOGRAPHY & ENROLLMENT BOUNDARIES" %}
+    {% set map_aspect_class = "map-aspect-widescreen" %}
+    {% set map_accent_color = "var(--alpine-blue)" %}
+    {% include "components/widget/map-custom.njk" %}
+  </section>
+
+</main>

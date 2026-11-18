@@ -1,0 +1,109 @@
+---
+layout: layouts/base.njk
+permalink: "/region/schools/index.html"
+---
+<main class="layout-container layout-stack-main">
+
+  {# ==========================================================================
+     SECTION 1: PAGE HEADER
+     ========================================================================== #}
+  <div id="regional-schools-hero" class="portal-section-header">
+    <div class="hero-header-minimal">
+      <span class="text-overline text-accent-alpine">PUGET SOUND ACADEMIC INTELLIGENCE</span>
+      <h1 class="hero-title-primary">Puget Sound Regional Schools</h1>
+      <p class="hero-subtitle-secondary">King &amp; Snohomish County School Districts, Campuses &amp; OSPI Telemetry</p>
+    </div>
+  </div>
+
+  {# ==========================================================================
+     SECTION 2: NAVIGATION
+     ========================================================================== #}
+  <section id="regional-navigation" class="portal-section-nav" aria-label="Regional Navigation">
+    <span class="text-overline text-accent-alpine section-overline-lead">
+      EXPLORE PUGET SOUND
+    </span>
+    <div class="neighborhood-nav-container">
+      <nav class="neighborhood-nav-track" tabindex="0" aria-label="Regional Portals">
+        <a href="/neighborhood/" class="neighborhood-nav-pill is-inactive">Neighborhood Home</a>
+        <a href="/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit &amp; Commute</a>
+        <a href="/region/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
+        <a href="/region/sports/minor/" class="neighborhood-nav-pill is-inactive">Minor League Sports</a>
+        <a href="/region/sports/college/" class="neighborhood-nav-pill is-inactive">College Sports</a>
+      </nav>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 3: SCHOOL SEARCH
+     ========================================================================== #}
+  <section id="school-search" class="portal-section-widget" aria-label="Search Regional Schools">
+    {% set search_scope = "school" %}
+    {% set search_placeholder = "Search Puget Sound school districts, elementary, middle, or high schools..." %}
+    {% set search_title = "Regional School & District Search" %}
+    {% set search_overline = "INSTANT CAMPUS & DISTRICT INDEX" %}
+    {% set search_element_id = "pagefind-schools" %}
+    {% include "components/widget/search-box.njk" %}
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 4: BROWSE SCHOOLS (Nested County -> District -> School Directory)
+     ========================================================================== #}
+  <section id="browse-schools" class="portal-section-widget" aria-label="Puget Sound Regional School Directory">
+    {% set schools_data = ospi_school_data %}
+    {% set directory_title = "Puget Sound Regional School Directory" %}
+    {% set directory_overline = "ACADEMIC TELEMETRY & DISTRICT BOUNDARIES" %}
+    {% include "components/widget/region-school-list.njk" %}
+  </section>
+
+  <hr class="section-divider">
+
+  {# ==========================================================================
+     SECTION 5: SCHOOL MAP (All Campuses & District Service Boundaries)
+     ========================================================================== #}
+  {% set all_schools = ospi_school_data.schools if (ospi_school_data and ospi_school_data.schools) else [] %}
+  {% set map_features = [] %}
+  {% set lat_sum = 0 %}
+  {% set lon_sum = 0 %}
+  {% set geo_count = 0 %}
+
+  {% for s in all_schools %}
+    {% if s.latitude is not none and s.longitude is not none %}
+      {% set lat_sum = lat_sum + (s.latitude | float) %}
+      {% set lon_sum = lon_sum + (s.longitude | float) %}
+      {% set geo_count = geo_count + 1 %}
+      {% set d_slug = s.district_name | slugify %}
+      {% set s_slug = s.school_name | slugify %}
+      {% set _ = map_features.push({
+        "name": s.school_name,
+        "code": s.school_code,
+        "district": s.district_name,
+        "lat": s.latitude,
+        "lon": s.longitude,
+        "address": s.address,
+        "city": s.city,
+        "zip": s.zip,
+        "type": s.school_type,
+        "psai": s.psai_score,
+        "url": "/region/schools/" ~ d_slug ~ "/" ~ s_slug ~ "/"
+      }) %}
+    {% endif %}
+  {% endfor %}
+
+  <section id="school-map" class="portal-section-widget" aria-label="Puget Sound Public School Campuses and Boundaries">
+    {% set map_lat = ((lat_sum / geo_count) | round(4)) if geo_count > 0 else 47.6998 %}
+    {% set map_lon = ((lon_sum / geo_count) | round(4)) if geo_count > 0 else -122.0554 %}
+    {% set map_zoom = 10 %}
+    {% set map_layer = "schools" %}
+    {% set map_title = "Puget Sound Public School Campuses & Boundaries" %}
+    {% set map_overline = "REGIONAL ACADEMIC CARTOGRAPHY" %}
+    {% set map_aspect_class = "map-aspect-widescreen" %}
+    {% set map_accent_color = "var(--alpine-blue)" %}
+    {% set map_boundaries = school_boundaries.district_boundaries if (school_boundaries and school_boundaries.district_boundaries) else {} %}
+    {% include "components/widget/map-custom.njk" %}
+  </section>
+
+</main>

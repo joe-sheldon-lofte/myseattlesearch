@@ -1,7 +1,8 @@
 /**
  * File: assets/js/property-viewer.js
- * Handles dual-state hydration, residential address/parcel/Near-Me search,
- * live edge GIS utility rendering, Leaflet parcel map, and Inbound Comms Gateway routing.
+ * Handles dual-state hydration, debounced address/parcel autocomplete,
+ * Near-Me GPS search, full 4-point utility contact rendering, Leaflet parcel map,
+ * and Inbound Comms Gateway routing.
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -13,6 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
     populated: document.getElementById("viewer-populated-state"),
     btnBackToSearch: document.getElementById("btn-back-to-search"),
     searchInput: document.getElementById("parcel-search-input"),
+    autocompleteList: document.getElementById("parcel-autocomplete-dropdown"),
     btnSearch: document.getElementById("btn-search-parcel"),
     btnNearMe: document.getElementById("btn-near-me"),
     resultsContainer: document.getElementById("parcel-search-results"),
@@ -81,6 +83,10 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   let activeMapInstance = null;
+  let acDebounceTimer = null;
+  let acAbortController = null;
+  let acSuggestions = [];
+  let acActiveIndex = -1;
 
   function generateId(length = 20) {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -114,25 +120,141 @@ document.addEventListener("DOMContentLoaded", () => {
     metaEl.innerHTML = "";
     if (!utilObj) return;
 
-    if (utilObj.phone_number) {
-      const a = document.createElement("a");
-      a.href = `tel:${utilObj.phone_number.replace(/[^\d+]/g, "")}`;
-      a.className = "link-subtle";
-      a.textContent = utilObj.phone_number;
-      metaEl.appendChild(a);
+    const hasLinks = Boolean(utilObj.phone_number || utilObj.website);
+    if (hasLinks) {
+      const linksRow = document.createElement("div");
+      linksRow.className = "pv-utility-links-row";
+
+      if (utilObj.phone_number) {
+        const a = document.createElement("a");
+        a.href = `tel:${utilObj.phone_number.replace(/[^\d+]/g, "")}`;
+        a.className = "link-subtle";
+        a.textContent = utilObj.phone_number;
+        linksRow.appendChild(a);
+      }
+
+      if (utilObj.website) {
+        const a = document.createElement("a");
+        a.href = utilObj.website.startsWith("http") ? utilObj.website : `https://${utilObj.website}`;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.className = "link-subtle";
+        a.textContent = "Website ↗";
+        linksRow.appendChild(a);
+      }
+
+      metaEl.appendChild(linksRow);
     }
-    if (utilObj.website) {
-      const a = document.createElement("a");
-      a.href = utilObj.website.startsWith("http") ? utilObj.website : `https://${utilObj.website}`;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      a.className = "link-subtle";
-      a.textContent = "Website ↗";
-      metaEl.appendChild(a);
+
+    if (utilObj.physical_address) {
+      const physLine = document.createElement("div");
+      physLine.className = "pv-utility-addr-line";
+      const tag = document.createElement("span");
+      tag.className = "pv-utility-addr-tag";
+      tag.textContent = "Physical: ";
+      const link = document.createElement("a");
+      link.href = `https://maps.google.com/?q=${encodeURIComponent(utilObj.physical_address)}`;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.className = "link-subtle";
+      link.textContent = utilObj.physical_address;
+      physLine.appendChild(tag);
+      physLine.appendChild(link);
+      metaEl.appendChild(physLine);
+    }
+
+    if (utilObj.mailing_address) {
+      const mailLine = document.createElement("div");
+      mailLine.className = "pv-utility-addr-line";
+      const tag = document.createElement("span");
+      tag.className = "pv-utility-addr-tag";
+      tag.textContent = "Mailing: ";
+      const textNode = document.createTextNode(utilObj.mailing_address);
+      mailLine.appendChild(tag);
+      mailLine.appendChild(textNode);
+      metaEl.appendChild(mailLine);
+    }
+  }
+
+  function hideAutocomplete() {
+    if (!els.autocompleteList) return;
+    els.autocompleteList.classList.add("is-hidden");
+    els.autocompleteList.innerHTML = "";
+    acSuggestions = [];
+    acActiveIndex = -1;
+    if (els.searchInput) {
+      els.searchInput.setAttribute("aria-expanded", "false");
+    }
+  }
+
+  function highlightAutocompleteItem(index) {
+    if (!els.autocompleteList) return;
+    const items = els.autocompleteList.querySelectorAll(".pv-autocomplete-item");
+    items.forEach((li, i) => {
+      const isSelected = i === index;
+      li.classList.toggle("is-active", isSelected);
+      li.setAttribute("aria-selected", isSelected ? "true" : "false");
+      if (isSelected) {
+        li.scrollIntoView({ block: "nearest" });
+      }
+    });
+  }
+
+  function renderAutocompleteDropdown(rows) {
+    if (!els.autocompleteList) return;
+    els.autocompleteList.innerHTML = "";
+    acSuggestions = Array.isArray(rows) ? rows : [];
+    acActiveIndex = -1;
+
+    if (acSuggestions.length === 0) {
+      hideAutocomplete();
+      return;
+    }
+
+    acSuggestions.forEach((row, idx) => {
+      const li = document.createElement("li");
+      li.className = "pv-autocomplete-item";
+      li.setAttribute("role", "option");
+      li.setAttribute("aria-selected", "false");
+
+      const unitStr = row.unit_number ? ` #${row.unit_number}` : "";
+      const addrPrimary = row.situs_address ? `${row.situs_address}${unitStr}` : `Parcel ${row.parcel_number}`;
+      const cityLabel = formatCityTitle(row.neighborhood_slug);
+
+      const primaryEl = document.createElement("span");
+      primaryEl.className = "pv-ac-primary";
+      primaryEl.textContent = addrPrimary;
+
+      const secondaryEl = document.createElement("span");
+      secondaryEl.className = "pv-ac-secondary";
+      secondaryEl.textContent = `${cityLabel} ${row.zip_code || ""} • ${row.property_type || "Residential"} • Parcel ${row.parcel_number}`;
+
+      li.appendChild(primaryEl);
+      li.appendChild(secondaryEl);
+
+      li.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        if (els.searchInput) els.searchInput.value = addrPrimary;
+        hideAutocomplete();
+        selectParcel(row.parcel_number);
+      });
+
+      li.addEventListener("mouseenter", () => {
+        acActiveIndex = idx;
+        highlightAutocompleteItem(idx);
+      });
+
+      els.autocompleteList.appendChild(li);
+    });
+
+    els.autocompleteList.classList.remove("is-hidden");
+    if (els.searchInput) {
+      els.searchInput.setAttribute("aria-expanded", "true");
     }
   }
 
   function showLandingState() {
+    hideAutocomplete();
     els.populated.classList.add("is-hidden");
     els.landing.classList.remove("is-hidden");
     const newUrl = new URL(window.location);
@@ -142,6 +264,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function selectParcel(parcelNumber) {
     if (!parcelNumber) return;
+    hideAutocomplete();
     const newUrl = new URL(window.location);
     newUrl.searchParams.set("parcelid", parcelNumber);
     window.history.pushState({}, "", newUrl);
@@ -356,7 +479,7 @@ document.addEventListener("DOMContentLoaded", () => {
         els.linkCityRealEstate.classList.add("is-hidden");
       }
 
-      // 6. Live Edge GIS + Utility Directory Bindings
+      // 6. Live Edge GIS + Utility Directory Bindings (Full 4-Point Contact Details)
       els.utilElectric.textContent = utils.electric?.normal_name || "--";
       renderUtilityMeta(els.utilElectricMeta, utils.electric);
 
@@ -385,7 +508,7 @@ document.addEventListener("DOMContentLoaded", () => {
         els.linkFccMap.classList.add("is-hidden");
       }
 
-      // 7. Wastewater Parsing (Mutually Exclusive Panels)
+      // 7. Wastewater Parsing (Mutually Exclusive Panels + Full Sewer Contact Info)
       const wwType = String(wastewater.service_type || "").toUpperCase();
       if (wwType === "SEWER") {
         els.wwEmptyBlock.classList.add("is-hidden");
@@ -448,10 +571,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // --- Search & Near Me Handlers ---
+  // --- Type-Ahead Autocomplete & Explicit Search ---
   async function executeSearch(rawQuery) {
     const query = String(rawQuery || "").trim();
     if (!query) return;
+    hideAutocomplete();
 
     const cleanDigits = query.replace(/\D/g, "");
     if (/^\d{10,12}$/.test(cleanDigits)) {
@@ -463,7 +587,7 @@ document.addEventListener("DOMContentLoaded", () => {
     els.btnSearch.textContent = "Searching...";
 
     try {
-      const res = await fetch(`${API_BASE}/parcel/search?q=${encodeURIComponent(query)}`);
+      const res = await fetch(`${API_BASE}/parcel/search?q=${encodeURIComponent(query)}&limit=12`);
       const data = res.ok ? await res.json() : { results: [] };
       const rows = data.results || [];
       if (rows.length === 1) {
@@ -480,16 +604,87 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  if (els.searchInput) {
+    els.searchInput.addEventListener("input", () => {
+      clearTimeout(acDebounceTimer);
+      const q = els.searchInput.value.trim();
+
+      if (q.length < 3) {
+        hideAutocomplete();
+        return;
+      }
+
+      acDebounceTimer = setTimeout(async () => {
+        if (acAbortController) {
+          acAbortController.abort();
+        }
+        acAbortController = new AbortController();
+
+        try {
+          const res = await fetch(
+            `${API_BASE}/parcel/search?q=${encodeURIComponent(q)}&limit=8`,
+            { signal: acAbortController.signal }
+          );
+          if (!res.ok) return;
+          const data = await res.json();
+          renderAutocompleteDropdown(data.results || []);
+        } catch (err) {
+          if (err.name !== "AbortError") {
+            hideAutocomplete();
+          }
+        }
+      }, 250);
+    });
+
+    els.searchInput.addEventListener("keydown", (e) => {
+      if (acSuggestions.length > 0 && !els.autocompleteList.classList.contains("is-hidden")) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          acActiveIndex = (acActiveIndex + 1) % acSuggestions.length;
+          highlightAutocompleteItem(acActiveIndex);
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          acActiveIndex = acActiveIndex <= 0 ? acSuggestions.length - 1 : acActiveIndex - 1;
+          highlightAutocompleteItem(acActiveIndex);
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          hideAutocomplete();
+          return;
+        }
+        if (e.key === "Enter" && acActiveIndex >= 0 && acSuggestions[acActiveIndex]) {
+          e.preventDefault();
+          const chosen = acSuggestions[acActiveIndex];
+          const unitStr = chosen.unit_number ? ` #${chosen.unit_number}` : "";
+          els.searchInput.value = chosen.situs_address ? `${chosen.situs_address}${unitStr}` : chosen.parcel_number;
+          hideAutocomplete();
+          selectParcel(chosen.parcel_number);
+          return;
+        }
+      }
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        executeSearch(els.searchInput.value);
+      }
+    });
+
+    els.searchInput.addEventListener("blur", () => {
+      setTimeout(hideAutocomplete, 150);
+    });
+  }
+
   els.btnSearch.addEventListener("click", () => executeSearch(els.searchInput.value));
-  els.searchInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") executeSearch(els.searchInput.value);
-  });
 
   if (els.btnBackToSearch) {
     els.btnBackToSearch.addEventListener("click", showLandingState);
   }
 
   els.btnNearMe.addEventListener("click", () => {
+    hideAutocomplete();
     if (!navigator.geolocation) {
       renderSearchResults([]);
       return;
@@ -499,7 +694,7 @@ document.addEventListener("DOMContentLoaded", () => {
       async (pos) => {
         try {
           const { latitude, longitude } = pos.coords;
-          const res = await fetch(`${API_BASE}/parcel/search?lat=${latitude}&lon=${longitude}`);
+          const res = await fetch(`${API_BASE}/parcel/search?lat=${latitude}&lon=${longitude}&limit=12`);
           const data = res.ok ? await res.json() : { results: [] };
           renderSearchResults(data.results || []);
         } catch {
