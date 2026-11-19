@@ -31,8 +31,8 @@
   {# Global Overlay Header #}
   {% include "header.njk" %}
 
-  {# Primary Content Viewport Anchor (Div wrapper prevents invalid nested <main> elements) #}
-  <div id="main-content">
+  {# Primary Content Viewport Anchor (Div wrapper prevents invalid nested <main> elements; scoped for Pagefind) #}
+  <div id="main-content" data-pagefind-body>
     {{ content | safe }}
   </div>
 
@@ -41,6 +41,9 @@
 
   {# Floating Bottom Action Tray (78% Liquid Glass) #}
   {% include "components/widget/layout-actionbar-bottom.njk" ignore missing %}
+
+  {# Interactive Site Search & Discovery Modal (Pagefind) #}
+  {% include "components/widget/search-modal.njk" ignore missing %}
 
   {# Slide-Up Section Navigation Drawer (Hidden Off-Screen) #}
   {% include "components/widget/drawer-action-navigate.njk" ignore missing %}

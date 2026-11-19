@@ -398,12 +398,16 @@
   margin-top: 1rem;
   max-height: 55vh;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .navigate-list-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  box-sizing: border-box;
   padding: 0.85rem 1.15rem;
   background: var(--color-background-universal, #FFFFFF);
   border: 1px solid var(--color-border-light);
@@ -412,11 +416,18 @@
   color: var(--color-primary-default, #1C1C1E);
   font-weight: 500;
   font-size: 0.95rem;
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+.navigate-list-item span:last-child {
+  flex-shrink: 0;
+  transition: transform 0.15s ease, color 0.15s ease;
 }
 .navigate-list-item:hover {
   border-color: var(--alpine-blue);
   background: rgba(30, 77, 107, 0.04);
+  color: var(--alpine-blue);
+}
+.navigate-list-item:hover span:last-child {
   transform: translateX(3px);
 }
 

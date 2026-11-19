@@ -15,6 +15,7 @@
 {% set overline_text = search_modal_overline or modal_overline or "DISCOVERY ENGINE" %}
 {% set placeholder_text = search_modal_placeholder or "Search neighborhoods, schools, transit, market data..." %}
 {% set suggestions_text = search_modal_suggestions or "Edmonds, Sounder Train, PSAI Rankings, REET" %}
+{% set suggestion_items = suggestions_text.split(",") %}
 {% set initial_feed = search_initial_results %}
 
 <dialog id="dialog-search-modal" 
@@ -71,9 +72,15 @@
       </div>
 
       <div class="search-meta-bar">
-        <span class="search-suggestions-label">
-          Suggested: {{ suggestions_text }}
-        </span>
+        <div class="search-suggestions-row">
+          <span class="search-suggestions-label">Suggested:</span>
+          {% for raw_tag in suggestion_items %}
+            {% set tag_clean = raw_tag | trim %}
+            {% if tag_clean %}
+              <button type="button" class="search-suggestion-chip" data-search-suggestion="{{ tag_clean }}">{{ tag_clean }}</button>
+            {% endif %}
+          {% endfor %}
+        </div>
         <span id="search-counter" class="search-live-counter" aria-live="polite"></span>
       </div>
     </div>
@@ -113,14 +120,143 @@
 
   </div>
 
-  {# Scoped Zero-Dependency Dialog Controller #}
+  {# Scoped Pagefind Modal Controller #}
   <script>
     (function() {
       const dialog = document.getElementById('dialog-search-modal');
       const input = document.getElementById('site-search-input');
       const clearBtn = document.getElementById('btn-search-clear');
       const counter = document.getElementById('search-counter');
-      if (!dialog || !input) return;
+      const resultsBox = document.getElementById('search-results-container');
+      if (!dialog || !input || !resultsBox) return;
+
+      const defaultEmptyMarkup = resultsBox.innerHTML;
+      let pagefindEngine = null;
+      let pagefindLoadPromise = null;
+      let debounceTimer = null;
+      let searchSeq = 0;
+
+      function escapeHtml(str) {
+        return String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function inferCategory(url) {
+        const path = String(url || '').toLowerCase();
+        if (path.startsWith('/region/schools')) return 'Schools';
+        if (path.startsWith('/region/sports')) return 'Sports';
+        if (path.startsWith('/region/transit')) return 'Regional Transit';
+        if (path.startsWith('/neighborhood/')) {
+          if (path.includes('/weather')) return 'Weather';
+          if (path.includes('/transit-commute')) return 'Transit & Commute';
+          if (path.includes('/emergency-safety')) return 'Emergency & Safety';
+          if (path.includes('/municipal')) return 'Municipal';
+          if (path.includes('/real-estate')) return 'Real Estate';
+          if (path.includes('/news-events')) return 'News & Events';
+          return 'Neighborhood';
+        }
+        if (path.startsWith('/realestate/')) return 'Real Estate';
+        if (path.startsWith('/cms/')) return 'Notebook';
+        if (path.startsWith('/travel/')) return 'Travel';
+        if (path.startsWith('/apps/')) return 'Tools & Apps';
+        return 'Directory';
+      }
+
+      async function getPagefind() {
+        if (pagefindEngine) return pagefindEngine;
+        if (!pagefindLoadPromise) {
+          pagefindLoadPromise = import('/pagefind/pagefind.js')
+            .then(async (mod) => {
+              if (typeof mod.init === 'function') {
+                await mod.init();
+              }
+              pagefindEngine = mod;
+              return mod;
+            })
+            .catch((err) => {
+              pagefindLoadPromise = null;
+              throw err;
+            });
+        }
+        return pagefindLoadPromise;
+      }
+
+      function renderPrompt(message) {
+        resultsBox.innerHTML = `<div class="search-empty-prompt"><span>${escapeHtml(message)}</span></div>`;
+      }
+
+      async function runPagefindQuery(rawQuery) {
+        const query = rawQuery.trim();
+        const currentSeq = ++searchSeq;
+
+        if (!query) {
+          resultsBox.innerHTML = defaultEmptyMarkup;
+          if (counter) counter.textContent = '';
+          return;
+        }
+
+        if (counter) counter.textContent = 'Searching...';
+
+        try {
+          const pf = await getPagefind();
+          if (currentSeq !== searchSeq) return;
+
+          const search = await pf.search(query);
+          if (currentSeq !== searchSeq) return;
+
+          const total = search.results.length;
+          if (counter) {
+            counter.textContent = `${total} ${total === 1 ? 'result' : 'results'}`;
+          }
+
+          if (total === 0) {
+            renderPrompt(`No matches found for "${query}". Try a neighborhood, school district, or topic.`);
+            return;
+          }
+
+          const topItems = await Promise.all(
+            search.results.slice(0, 12).map((res) => res.data())
+          );
+          if (currentSeq !== searchSeq) return;
+
+          resultsBox.innerHTML = topItems.map((item) => {
+            const title = escapeHtml((item.meta && item.meta.title) || item.url);
+            const category = escapeHtml((item.filters && item.filters.type && item.filters.type[0]) || inferCategory(item.url));
+            const excerpt = item.excerpt || '';
+            const href = escapeHtml(item.url);
+
+            return `
+              <a href="${href}" class="search-result-card">
+                <div class="search-result-header">
+                  <span class="search-result-title">${title}</span>
+                  <span class="text-overline text-accent-alpine">${category}</span>
+                </div>
+                ${excerpt ? `<p class="search-result-snippet">${excerpt}</p>` : ''}
+              </a>
+            `;
+          }).join('');
+        } catch (err) {
+          if (currentSeq !== searchSeq) return;
+          if (counter) counter.textContent = 'Index offline';
+          renderPrompt('Pagefind search index not found yet. Run "npm run build" to generate _site/pagefind.');
+        }
+      }
+
+      window.openSearchModal = function(initialQuery) {
+        if (!dialog.open) {
+          dialog.showModal();
+        }
+        getPagefind().catch(() => {});
+        if (typeof initialQuery === 'string' && initialQuery.trim()) {
+          input.value = initialQuery.trim();
+          if (clearBtn) clearBtn.style.display = 'inline-flex';
+          runPagefindQuery(input.value);
+        }
+        requestAnimationFrame(() => input.focus());
+      };
 
       // Close on backdrop click
       dialog.addEventListener('click', function(e) {
@@ -141,19 +277,43 @@
         clearBtn.addEventListener('click', function() {
           input.value = '';
           clearBtn.style.display = 'none';
+          searchSeq++;
+          resultsBox.innerHTML = defaultEmptyMarkup;
           if (counter) counter.textContent = '';
           input.focus();
         });
       }
 
-      // Live search input observation
+      // Suggestion chips
+      dialog.querySelectorAll('[data-search-suggestion]').forEach((chip) => {
+        chip.addEventListener('click', function() {
+          const term = this.getAttribute('data-search-suggestion') || '';
+          input.value = term;
+          if (clearBtn) clearBtn.style.display = term ? 'inline-flex' : 'none';
+          runPagefindQuery(term);
+          input.focus();
+        });
+      });
+
+      // Debounced live search input
       input.addEventListener('input', function() {
-        const val = this.value.trim();
+        const val = this.value;
         if (clearBtn) {
-          clearBtn.style.display = val.length > 0 ? 'inline-flex' : 'none';
+          clearBtn.style.display = val.trim().length > 0 ? 'inline-flex' : 'none';
         }
-        if (counter) {
-          counter.textContent = val.length > 0 ? 'Searching...' : '';
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => runPagefindQuery(val), 140);
+      });
+
+      // Global Cmd+K / Ctrl+K shortcut
+      document.addEventListener('keydown', function(e) {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          if (dialog.open) {
+            dialog.close();
+          } else {
+            window.openSearchModal();
+          }
         }
       });
     })();
