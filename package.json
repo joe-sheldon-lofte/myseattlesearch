@@ -5,7 +5,8 @@
   "main": "components.js",
   "scripts": {
     "start": "eleventy --serve",
-    "build": "eleventy && npx pagefind --site _site",
+    "fetch-data": "node scripts/fetch-r2-data.js",
+    "build": "npm run fetch-data && eleventy && npx pagefind --site _site",
     "index": "npx pagefind --site _site",
     "preview": "eleventy && npx pagefind --site _site && eleventy --serve",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -29,6 +30,7 @@
   "homepage": "https://github.com/joe-sheldon-lofte/myseattlesearch#readme",
   "devDependencies": {
     "@11ty/eleventy": "^3.1.6",
+    "@aws-sdk/client-s3": "^3.900.0",
     "wrangler": "^4.156.2"
   }
 }
