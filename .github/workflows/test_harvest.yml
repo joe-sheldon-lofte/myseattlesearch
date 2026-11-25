@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   test-harvest:
@@ -22,7 +22,7 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas openpyxl google-api-python-client google-auth requests sentry-sdk beautifulsoup4 lxml
+          pip install pandas openpyxl google-api-python-client google-auth requests sentry-sdk beautifulsoup4 lxml boto3
 
       - name: Authenticate Google Service Account
         env:
@@ -32,6 +32,18 @@ jobs:
             echo "$GA_CREDENTIALS" > credentials.json
             echo "Service account credentials written from GA_GOOGLE_CREDENTIALS."
           fi
+
+      - name: Pull Existing R2 Datasets
+        env:
+          CF_MASTER_ACCOUNT_ID: ${{ secrets.CF_MASTER_ACCOUNT_ID }}
+          CF_MASTER_ACCESS_KEY_ID: ${{ secrets.CF_MASTER_ACCESS_KEY_ID }}
+          CF_MASTER_SECRET_ACCESS_KEY: ${{ secrets.CF_MASTER_SECRET_ACCESS_KEY }}
+          CF_MASTER_S3_API_ENDPOINT: ${{ secrets.CF_MASTER_S3_API_ENDPOINT }}
+          R2_ALL_ACCESS_TOKEN: ${{ secrets.R2_ALL_ACCESS_TOKEN }}
+          R2_ALL_SECRET_ACCESS_KEY: ${{ secrets.R2_ALL_SECRET_ACCESS_KEY }}
+          R2_DATA_BUCKET_NAME: ${{ secrets.R2_DATA_BUCKET_NAME }}
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+        run: python scripts/helpers/pull_r2_data.py
 
       - name: Run Targeted Test Script
         env:
@@ -43,22 +55,27 @@ jobs:
           CF_DATABASE_ID: ${{ secrets.CF_DATABASE_ID }}
           CF_DATABASE_ENTERTAINMENT_ID: ${{ secrets.CF_DATABASE_ENTERTAINMENT_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_MASTER_API_TOKEN: ${{ secrets.CF_MASTER_API_TOKEN }}
+          CF_MASTER_ACCOUNT_ID: ${{ secrets.CF_MASTER_ACCOUNT_ID }}
+          CF_MASTER_ACCESS_KEY_ID: ${{ secrets.CF_MASTER_ACCESS_KEY_ID }}
+          CF_MASTER_SECRET_ACCESS_KEY: ${{ secrets.CF_MASTER_SECRET_ACCESS_KEY }}
+          CF_MASTER_S3_API_ENDPOINT: ${{ secrets.CF_MASTER_S3_API_ENDPOINT }}
         run: |
           python scripts/test_harvest.py
+
+      - name: Push Updated Datasets to R2
+        env:
+          CF_MASTER_ACCOUNT_ID: ${{ secrets.CF_MASTER_ACCOUNT_ID }}
+          CF_MASTER_ACCESS_KEY_ID: ${{ secrets.CF_MASTER_ACCESS_KEY_ID }}
+          CF_MASTER_SECRET_ACCESS_KEY: ${{ secrets.CF_MASTER_SECRET_ACCESS_KEY }}
+          CF_MASTER_S3_API_ENDPOINT: ${{ secrets.CF_MASTER_S3_API_ENDPOINT }}
+          R2_ALL_ACCESS_TOKEN: ${{ secrets.R2_ALL_ACCESS_TOKEN }}
+          R2_ALL_SECRET_ACCESS_KEY: ${{ secrets.R2_ALL_SECRET_ACCESS_KEY }}
+          R2_DATA_BUCKET_NAME: ${{ secrets.R2_DATA_BUCKET_NAME }}
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+        run: python scripts/helpers/push_r2_data.py
 
       - name: Clean Credentials
         if: always()
         run: |
           rm -f credentials.json
-
-      - name: Commit & Push Test Artifacts
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/
-          if git diff --staged --quiet; then
-            echo "No test data changes detected. Skipping commit."
-          else
-            git commit -m "test: update housing stats test artifacts [skip ci]"
-            git push
-          fi

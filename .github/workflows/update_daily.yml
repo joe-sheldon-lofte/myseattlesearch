@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   harvest-daily:
@@ -31,6 +31,18 @@ jobs:
             echo "$GA_CREDENTIALS" > credentials.json
           fi
 
+      - name: Pull Existing R2 Datasets
+        env:
+          CF_MASTER_ACCOUNT_ID: ${{ secrets.CF_MASTER_ACCOUNT_ID }}
+          CF_MASTER_ACCESS_KEY_ID: ${{ secrets.CF_MASTER_ACCESS_KEY_ID }}
+          CF_MASTER_SECRET_ACCESS_KEY: ${{ secrets.CF_MASTER_SECRET_ACCESS_KEY }}
+          CF_MASTER_S3_API_ENDPOINT: ${{ secrets.CF_MASTER_S3_API_ENDPOINT }}
+          R2_ALL_ACCESS_TOKEN: ${{ secrets.R2_ALL_ACCESS_TOKEN }}
+          R2_ALL_SECRET_ACCESS_KEY: ${{ secrets.R2_ALL_SECRET_ACCESS_KEY }}
+          R2_DATA_BUCKET_NAME: ${{ secrets.R2_DATA_BUCKET_NAME }}
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+        run: python scripts/helpers/pull_r2_data.py
+
       - name: Run Daily Harvester Script
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
@@ -39,10 +51,16 @@ jobs:
           OPERATIONS_SHEET_ID: ${{ secrets.OPERATIONS_SHEET_ID }}
           WSDOT_ACCESS_CODE: ${{ secrets.WSDOT_ACCESS_CODE }}
           TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
+          CF_MASTER_API_TOKEN: ${{ secrets.CF_MASTER_API_TOKEN }}
+          CF_MASTER_ACCOUNT_ID: ${{ secrets.CF_MASTER_ACCOUNT_ID }}
+          CF_MASTER_ACCESS_KEY_ID: ${{ secrets.CF_MASTER_ACCESS_KEY_ID }}
+          CF_MASTER_SECRET_ACCESS_KEY: ${{ secrets.CF_MASTER_SECRET_ACCESS_KEY }}
+          CF_MASTER_S3_API_ENDPOINT: ${{ secrets.CF_MASTER_S3_API_ENDPOINT }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_DATA_BUCKET_NAME: ${{ secrets.R2_DATA_BUCKET_NAME }}
           R2_ALL_ACCESS_TOKEN: ${{ secrets.R2_ALL_ACCESS_TOKEN }}
           R2_ALL_SECRET_ACCESS_KEY: ${{ secrets.R2_ALL_SECRET_ACCESS_KEY }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
@@ -53,23 +71,18 @@ jobs:
           R2_ALL_ACCESS_KEY_ID: ${{ secrets.R2_ALL_ACCESS_KEY_ID }}
         run: python scripts/harvest_daily.py
 
+      - name: Push Updated Datasets to R2
+        env:
+          CF_MASTER_ACCOUNT_ID: ${{ secrets.CF_MASTER_ACCOUNT_ID }}
+          CF_MASTER_ACCESS_KEY_ID: ${{ secrets.CF_MASTER_ACCESS_KEY_ID }}
+          CF_MASTER_SECRET_ACCESS_KEY: ${{ secrets.CF_MASTER_SECRET_ACCESS_KEY }}
+          CF_MASTER_S3_API_ENDPOINT: ${{ secrets.CF_MASTER_S3_API_ENDPOINT }}
+          R2_ALL_ACCESS_TOKEN: ${{ secrets.R2_ALL_ACCESS_TOKEN }}
+          R2_ALL_SECRET_ACCESS_KEY: ${{ secrets.R2_ALL_SECRET_ACCESS_KEY }}
+          R2_DATA_BUCKET_NAME: ${{ secrets.R2_DATA_BUCKET_NAME }}
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+        run: python scripts/helpers/push_r2_data.py
+
       - name: Clean Temporary Execution Keys
         if: always()
         run: rm -f credentials.json
-
-      - name: Commit and Push Updated Daily Data
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          for dir in data _data; do
-            if [ -d "$dir" ]; then
-              git add "$dir/"
-            fi
-          done
-          if git diff --staged --quiet; then
-            echo "No daily data changes detected. Skipping commit."
-          else
-            git commit -m "chore(data): automated daily harvest update [skip ci]"
-            git pull origin ${{ github.ref_name }} --rebase
-            git push origin ${{ github.ref_name }}
-          fi
