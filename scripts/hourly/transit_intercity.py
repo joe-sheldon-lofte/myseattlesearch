@@ -89,7 +89,7 @@ def parse_wsf_date(raw_val):
             sign = 1 if tz_str[0] == "+" else -1
             hours = int(tz_str[1:3])
             mins = int(tz_str[3:5])
-            offset = timezone(hours=sign * hours, minutes=sign * mins)
+            offset = timezone(timedelta(hours=sign * hours, minutes=sign * mins))
             return dt_utc.astimezone(offset).isoformat()
         return dt_utc.astimezone(PACIFIC_TZ).isoformat()
     return s

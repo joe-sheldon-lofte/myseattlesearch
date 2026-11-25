@@ -794,7 +794,7 @@ title: "Puget Sound Regional Transit & Commute | MySeattleSearch"
       .catch(() => {});
   }
 
-  /* 2. Hydrate Airport Weather & FAA Status (SEA & PAE — Reveal Pill Only After Live Response) */
+  /* 2. Hydrate Airport Weather & FAA Status (SEA & PAE — Always Reveal Status Pill on Response) */
   async function hydrateAirports() {
     try {
       const res = await fetch(`${apiBase}/transit/airports`);
@@ -825,7 +825,7 @@ title: "Puget Sound Regional Transit & Commute | MySeattleSearch"
         }
 
         const statusBadge = card.querySelector(".apt-faa-status");
-        if (statusBadge && (m || delays[code])) {
+        if (statusBadge) {
           if (delays[code]) {
             statusBadge.textContent = delays[code];
             statusBadge.className = "ferry-status-pill status-delayed apt-faa-status";
