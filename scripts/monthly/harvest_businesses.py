@@ -337,7 +337,7 @@ def main():
         json.dump(output, f, indent=2, ensure_ascii=False)
 
     print(f"💾 Saved Google Places business spotlights for {len(output)} cities ➔ {BUSINESSES_PATH}")
-    sync_json_to_r2_data_bucket(r2_client, data_bucket, BUSINESSES_PATH, "city_businesses.json")
+    sync_json_to_r2_data_bucket(r2_client, data_bucket, BUSINESSES_PATH, "data/city_businesses.json")
 
 if __name__ == "__main__":
     main()
