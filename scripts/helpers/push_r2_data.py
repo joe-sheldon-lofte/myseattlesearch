@@ -8,6 +8,7 @@ from botocore.exceptions import ClientError
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 DATA_DIR = os.path.join(REPO_ROOT, "data")
+R2_PREFIX = "data/"
 
 def load_local_env():
     for env_file in [".env", ".dev.vars"]:
@@ -81,17 +82,18 @@ def push_all_r2_data():
     unchanged = 0
 
     for root, dirs, files in os.walk(DATA_DIR):
-        dirs[:] = [d for d in dirs if d != "staging"]
+        dirs[:] = [d for d in dirs if d not in ("staging", "data")]
         for fname in files:
             if not fname.endswith(".json"):
                 continue
 
             full_path = os.path.join(root, fname)
-            rel_key = os.path.relpath(full_path, DATA_DIR).replace("\\", "/")
+            rel_path = os.path.relpath(full_path, DATA_DIR).replace("\\", "/")
+            r2_key = f"{R2_PREFIX}{rel_path}"
             file_hash = local_md5(full_path)
 
             try:
-                head = r2.head_object(Bucket=data_bucket, Key=rel_key)
+                head = r2.head_object(Bucket=data_bucket, Key=r2_key)
                 remote_etag = head.get("ETag", "").strip('"')
                 if "-" not in remote_etag and remote_etag == file_hash:
                     unchanged += 1
@@ -102,11 +104,11 @@ def push_all_r2_data():
             r2.upload_file(
                 full_path,
                 data_bucket,
-                rel_key,
+                r2_key,
                 ExtraArgs={"ContentType": "application/json"}
             )
             uploaded += 1
-            print(f"   ☁️ Pushed {rel_key} ➔ {data_bucket}")
+            print(f"   ☁️ Pushed {r2_key} ➔ {data_bucket}")
 
     print(f"⬆️ R2 Data Push ({data_bucket}): {uploaded} uploaded, {unchanged} unchanged.")
 

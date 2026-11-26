@@ -6,6 +6,7 @@ from botocore.client import Config
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 DATA_DIR = os.path.join(REPO_ROOT, "data")
+R2_PREFIX = "data/"
 
 def load_local_env():
     for env_file in [".env", ".dev.vars"]:
@@ -78,13 +79,17 @@ def pull_all_r2_data():
     downloaded = 0
     skipped = 0
 
-    for page in paginator.paginate(Bucket=data_bucket):
+    for page in paginator.paginate(Bucket=data_bucket, Prefix=R2_PREFIX):
         for obj in page.get("Contents", []):
             key = obj["Key"]
-            if not key.endswith(".json") or key.startswith("staging/"):
+            if not key.endswith(".json") or not key.startswith(R2_PREFIX):
                 continue
 
-            dest_path = os.path.join(DATA_DIR, key)
+            rel_path = key[len(R2_PREFIX):]
+            if not rel_path or rel_path.startswith("staging/"):
+                continue
+
+            dest_path = os.path.join(DATA_DIR, rel_path)
             os.makedirs(os.path.dirname(dest_path), exist_ok=True)
 
             remote_etag = obj.get("ETag", "").strip('"')
@@ -95,7 +100,7 @@ def pull_all_r2_data():
             r2.download_file(data_bucket, key, dest_path)
             downloaded += 1
 
-    print(f"⬇️ R2 Data Pull ({data_bucket}): {downloaded} downloaded, {skipped} already up-to-date.")
+    print(f"⬇️ R2 Data Pull ({data_bucket}/{R2_PREFIX}): {downloaded} downloaded, {skipped} already up-to-date.")
 
 if __name__ == "__main__":
     pull_all_r2_data()
