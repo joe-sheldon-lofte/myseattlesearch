@@ -11,7 +11,7 @@ SENTRY_DSN = os.getenv("SENTRY_DSN")
 if SENTRY_DSN:
     sentry_sdk.init(
         dsn=SENTRY_DSN,
-        traces_sample_rate=0.0,  # Pure error monitoring
+        traces_sample_rate=0.0,
         environment="testing"
     )
     print("🛡️ Sentry Error Monitoring Initialized (Testing Environment).")
@@ -19,6 +19,7 @@ else:
     print("⚠️ SENTRY_DSN environment variable not found. Logging to terminal only.")
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 # ------------------------------------------------------------------------------
 # 2. TEST TASK WRAPPER WITH SENTRY ERROR CAPTURE
@@ -43,6 +44,7 @@ def run_test_task(task_name, func):
 
         print(f"⚠️ Test task '{task_name}' failed.\n")
 
+
 def run_test_subscript(script_relative_path):
     """Helper function to run any specific sub-script during ad-hoc testing."""
     path = os.path.join(BASE_DIR, "scripts", script_relative_path)
@@ -53,6 +55,7 @@ def run_test_subscript(script_relative_path):
     else:
         raise FileNotFoundError(f"Test script not found at expected path: {path}")
 
+
 # ------------------------------------------------------------------------------
 # 3. CLEAN TEST HARNESS RUNNER
 # ------------------------------------------------------------------------------
@@ -61,13 +64,14 @@ def main():
     print("      MYSEATTLESEARCH TEST HARVEST RUNNER         ")
     print("==================================================\n")
 
-    # Ingest OpenStreetMap Municipal Amenities into data/city_amenities.json
-    run_test_task(
-        "Municipal OSM Amenities Ingestion",
-        lambda: run_test_subscript(os.path.join("monthly", "osm_amenities.py"))
-    )
+    # Add ad-hoc test targets here when needed:
+    # run_test_task(
+    #     "Example Targeted Script",
+    #     lambda: run_test_subscript(os.path.join("monthly", "osm_amenities.py"))
+    # )
 
-    print("🎉 Test suite run complete!")
+    print("ℹ️ No test tasks configured. Test harness exited cleanly.")
+
 
 if __name__ == "__main__":
     main()

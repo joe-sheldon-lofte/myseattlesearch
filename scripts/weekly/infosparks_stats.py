@@ -13,7 +13,7 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 INFOSPARKS_LINKS_OUT = os.path.join(DATA_DIR, "infosparks_links.json")
 INFOSPARKS_STATS_OUT = os.path.join(DATA_DIR, "infosparks_stats.json")
 
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 
 METRIC_SLUG_MAP = {
     "Median Sale Price": "median_sale_price",
@@ -24,16 +24,19 @@ METRIC_SLUG_MAP = {
     "Percent of List Price Average": "percent_of_list_price_average"
 }
 
+
 def slugify(text):
-    if not text: return ""
+    if not text:
+        return ""
     text = str(text).lower().strip()
-    out = [ch if ch.isalnum() else '-' for ch in text]
+    out = [ch if ch.isalnum() else "-" for ch in text]
     res = "".join(out)
-    while '--' in res: res = res.replace('--', '-')
-    return res.strip('-')
+    while "--" in res:
+        res = res.replace("--", "-")
+    return res.strip("-")
+
 
 def get_sheets_service():
-    creds_path = "credentials.json"
     creds = None
     creds_json = os.environ.get("GA_GOOGLE_CREDENTIALS") or os.environ.get("GA_CREDENTIALS")
     if creds_json and creds_json.strip():
@@ -42,14 +45,18 @@ def get_sheets_service():
             creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
         except Exception:
             pass
-    if not creds and os.path.exists(creds_path):
-        try:
-            creds = Credentials.from_service_account_file(creds_path, scopes=SCOPES)
-        except Exception:
-            pass
+    if not creds:
+        for candidate in ("credentials.json", os.path.join(BASE_DIR, "credentials.json")):
+            if os.path.exists(candidate):
+                try:
+                    creds = Credentials.from_service_account_file(candidate, scopes=SCOPES)
+                    break
+                except Exception:
+                    pass
     if creds:
-        return build('sheets', 'v4', credentials=creds)
+        return build("sheets", "v4", credentials=creds)
     return None
+
 
 def parse_infosparks_csv_text(csv_text):
     if not csv_text or not csv_text.strip():
@@ -57,19 +64,20 @@ def parse_infosparks_csv_text(csv_text):
     lines = csv_text.splitlines()
     header_idx = None
     for idx, line in enumerate(lines):
-        if line.startswith('Date') or line.startswith('"Date"'):
+        if line.startswith("Date") or line.startswith('"Date"'):
             header_idx = idx
             break
-            
+
     if header_idx is not None:
         table_text = "\n".join(lines[header_idx:])
         df = pd.read_csv(io.StringIO(table_text))
-        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-        if 'Date' in df.columns:
-            df = df[~df['Date'].astype(str).str.contains('Northwest Multiple Listing Service|ShowingTime|All data from', case=False, na=False)]
+        df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
+        if "Date" in df.columns:
+            df = df[~df["Date"].astype(str).str.contains("Northwest Multiple Listing Service|ShowingTime|All data from", case=False, na=False)]
         df = df.fillna("")
         return df.to_dict(orient="records")
     return []
+
 
 def sync_infosparks_links():
     print("📋 [Step 1] Syncing InfoSparks CSV links from Google Sheet...")
@@ -82,7 +90,7 @@ def sync_infosparks_links():
 
     try:
         res = service.spreadsheets().values().get(spreadsheetId=sheet_id, range="InfoSparks!A:D").execute()
-        rows = res.get('values', [])
+        rows = res.get("values", [])
         if not rows or len(rows) < 2:
             print("ℹ️ No rows found in InfoSparks sheet tab.")
             return
@@ -94,7 +102,7 @@ def sync_infosparks_links():
         col_link = headers.index("CSV Link") if "CSV Link" in headers else 3
 
         links_registry = {}
-        for idx, r in enumerate(rows[1:]):
+        for r in rows[1:]:
             padded = list(r) + [""] * (len(headers) - len(r))
             group_num = str(padded[col_group]).strip()
             cities_str = str(padded[col_cities]).strip()
@@ -105,7 +113,7 @@ def sync_infosparks_links():
                 continue
 
             geographies = [c.strip() for c in cities_str.split(",") if c.strip()]
-            metric_slug = METRIC_SLUG_MAP.get(metric_raw, slugify(metric_raw).replace('-', '_'))
+            metric_slug = METRIC_SLUG_MAP.get(metric_raw, slugify(metric_raw).replace("-", "_"))
             feed_key = f"group_{group_num}_{metric_slug}"
 
             links_registry[feed_key] = {
@@ -128,6 +136,7 @@ def sync_infosparks_links():
 
     except Exception as e:
         print(f"⚠️ Google Sheet InfoSparks link sync notice: {e}")
+
 
 def parse_infosparks_csv_data():
     print("📊 [Step 2] Ingesting live InfoSparks CSV data using infosparks_links.json...")
@@ -181,9 +190,11 @@ def parse_infosparks_csv_data():
     except Exception as e:
         print(f"❌ Error during InfoSparks CSV data parsing: {e}")
 
+
 def main():
     sync_infosparks_links()
     parse_infosparks_csv_data()
+
 
 if __name__ == "__main__":
     main()

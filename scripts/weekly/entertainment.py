@@ -10,15 +10,15 @@ import requests
 # ------------------------------------------------------------------------------
 # 1. CLOUDFLARE D1 CLIENT SETUP
 # ------------------------------------------------------------------------------
-CF_ACCOUNT_ID = os.getenv("CF_ACCOUNT_ID")
-CF_DATABASE_ID = os.getenv("CF_DATABASE_ENTERTAINMENT_ID") or os.getenv("CF_DATABASE_ID")
-CF_API_TOKEN = os.getenv("CF_API_TOKEN")
+CF_ACCOUNT_ID = (os.getenv("CF_MASTER_ACCOUNT_ID") or "").strip()
+CF_DATABASE_ID = (os.getenv("CF_DATABASE_ENTERTAINMENT_ID") or os.getenv("CF_DATABASE_ID") or "").strip()
+CF_API_TOKEN = (os.getenv("CF_MASTER_API_TOKEN") or "").strip()
 
 if not all([CF_ACCOUNT_ID, CF_DATABASE_ID, CF_API_TOKEN]):
     print("❌ [Weekly Entertainment] Missing Cloudflare D1 environment variables.")
-    print(f"   CF_ACCOUNT_ID: {'✓' if CF_ACCOUNT_ID else 'MISSING'}")
+    print(f"   CF_MASTER_ACCOUNT_ID: {'✓' if CF_ACCOUNT_ID else 'MISSING'}")
     print(f"   CF_DATABASE_ENTERTAINMENT_ID: {'✓' if CF_DATABASE_ID else 'MISSING'}")
-    print(f"   CF_API_TOKEN: {'✓' if CF_API_TOKEN else 'MISSING'}")
+    print(f"   CF_MASTER_API_TOKEN: {'✓' if CF_API_TOKEN else 'MISSING'}")
     sys.exit(1)
 
 D1_API_URL = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}/d1/database/{CF_DATABASE_ID}/query"
@@ -26,6 +26,7 @@ D1_HEADERS = {
     "Authorization": f"Bearer {CF_API_TOKEN}",
     "Content-Type": "application/json"
 }
+
 
 def execute_d1_query(sql, params=None, retries=3):
     payload = {"sql": sql}
@@ -48,6 +49,7 @@ def execute_d1_query(sql, params=None, retries=3):
 
     raise RuntimeError(f"D1 Query failed permanently after {retries} attempts.")
 
+
 def execute_d1_batch(sql_statements, batch_size=50):
     if not sql_statements:
         return
@@ -57,11 +59,13 @@ def execute_d1_batch(sql_statements, batch_size=50):
         execute_d1_query(combined_sql)
         time.sleep(0.1)
 
+
 def escape_sql(value):
     if value is None:
         return "NULL"
     clean = str(value).replace("'", "''")
     return f"'{clean}'"
+
 
 def parse_duration(val):
     if not val:
@@ -71,6 +75,7 @@ def parse_duration(val):
         return int(float(cleaned)) if cleaned else None
     except (ValueError, TypeError):
         return None
+
 
 # ------------------------------------------------------------------------------
 # 2. SCHEMA VERIFICATION
@@ -95,6 +100,7 @@ def ensure_schema():
         execute_d1_query(stmt)
     print("✅ Schema verified.\n")
 
+
 # ------------------------------------------------------------------------------
 # 3. TMDB POPULARITY RANKINGS INGESTION (TOP 250)
 # ------------------------------------------------------------------------------
@@ -116,6 +122,7 @@ def fetch_tmdb_export(file_prefix):
         except Exception as e:
             print(f"   ⚠️ Could not fetch {file_prefix} for {date_str}: {e}")
     return None
+
 
 def update_tmdb_rankings(top_n=250):
     print(f"🏆 Harvesting Weekly TMDb Popularity Rankings (Top {top_n})...")
@@ -148,11 +155,13 @@ def update_tmdb_rankings(top_n=250):
                 except Exception:
                     continue
 
-        # Extract the highest popularity scores in a single streaming pass
         top_items = heapq.nlargest(top_n, parse_generator(), key=lambda x: x[0])
+        if not top_items:
+            print(f"⚠️ 0 valid {media_type} items parsed from TMDb export. Preserving existing D1 rankings.")
+            continue
+
         print(f"   Processing top {len(top_items)} {media_type} items...")
 
-        # Purge existing rankings for this category
         execute_d1_query(f"DELETE FROM rankings WHERE media_type = '{media_type}';")
 
         rankings_stmts = []
@@ -163,7 +172,6 @@ def update_tmdb_rankings(top_n=250):
                 f"INSERT INTO rankings (media_type, tmdb_id, rank, popularity, title, updated_at) "
                 f"VALUES ('{media_type}', {escape_sql(tmdb_id)}, {idx}, {pop}, {escape_sql(title)}, {timestamp})"
             )
-            # Ensure trending actors exist in the primary actors table
             if media_type == "actor":
                 actor_sync_stmts.append(
                     f"INSERT OR IGNORE INTO actors (id, name, tmdb_id, known_for) "
@@ -177,6 +185,7 @@ def update_tmdb_rankings(top_n=250):
         print(f"✅ Updated top {len(top_items)} {media_type} rankings in D1.")
 
     print("🎉 All weekly rankings successfully refreshed.\n")
+
 
 # ------------------------------------------------------------------------------
 # 4. RECENT & NEW THEATRICAL/STREAMING RELEASES HARVEST
@@ -204,15 +213,15 @@ def harvest_recent_movie_releases():
       FILTER(LANG(?title) = "en")
       BIND(YEAR(?releaseDate) AS ?year)
 
-      OPTIONAL {{ 
-        ?film wdt:P57 ?director. 
-        ?director rdfs:label ?directorName. 
-        FILTER(LANG(?directorName) = "en") 
+      OPTIONAL {{
+        ?film wdt:P57 ?director.
+        ?director rdfs:label ?directorName.
+        FILTER(LANG(?directorName) = "en")
       }}
-      OPTIONAL {{ 
-        ?film wdt:P136 ?genre. 
-        ?genre rdfs:label ?genreName. 
-        FILTER(LANG(?genreName) = "en") 
+      OPTIONAL {{
+        ?film wdt:P136 ?genre.
+        ?genre rdfs:label ?genreName.
+        FILTER(LANG(?genreName) = "en")
       }}
       OPTIONAL {{ ?film wdt:P2047 ?duration. }}
       OPTIONAL {{ ?film wdt:P345 ?imdbId. }}
@@ -263,20 +272,21 @@ def harvest_recent_movie_releases():
     except Exception as e:
         print(f"⚠️ Error harvesting recent movies: {e}\n")
 
+
 # ------------------------------------------------------------------------------
 # 5. ENTRY POINT
 # ------------------------------------------------------------------------------
 def main():
     print("==================================================")
     print("    WEEKLY ENTERTAINMENT & RANKINGS HARVESTER     ")
-    print("==================================================")
-    print()
+    print("==================================================\n")
 
     ensure_schema()
     update_tmdb_rankings(top_n=250)
     harvest_recent_movie_releases()
 
     print("🎉 Weekly entertainment maintenance complete!")
+
 
 if __name__ == "__main__":
     main()

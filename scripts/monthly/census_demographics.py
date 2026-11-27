@@ -8,16 +8,20 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 OUT_PATH = os.path.join(DATA_DIR, "city_demographics.json")
 
+
 def slugify(text):
-    if not text: return ""
+    if not text:
+        return ""
     text = str(text).lower().strip()
-    out = [ch if ch.isalnum() else '-' for ch in text]
+    out = [ch if ch.isalnum() else "-" for ch in text]
     res = "".join(out)
-    while '--' in res: res = res.replace('--', '-')
-    return res.strip('-')
+    while "--" in res:
+        res = res.replace("--", "-")
+    return res.strip("-")
+
 
 def http_get_json(url, timeout=25):
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Accept": "application/json"}
+    headers = {"User-Agent": "MySeattleSearch/1.0 (+https://myseattlesearch.com)", "Accept": "application/json"}
     req = urllib.request.Request(url, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -26,6 +30,7 @@ def http_get_json(url, timeout=25):
     except Exception:
         pass
     return None
+
 
 def main():
     print("📈 Ingesting US Census ACS 5-Year Municipal Demographics & Population...")
@@ -41,10 +46,7 @@ def main():
     for it in items:
         name = it.get("City") or it.get("name") or ""
         fips = str(it.get("Federal ID") or it.get("federal_id") or it.get("fips") or "").strip().strip("'").strip('"')
-        if fips and fips.isdigit():
-            fips = fips.zfill(5)
-        else:
-            fips = ""
+        fips = fips.zfill(5) if fips and fips.isdigit() else ""
         if name:
             cities.append({"slug": slugify(name), "name": str(name).strip(), "fips": fips})
 
@@ -52,8 +54,7 @@ def main():
     census_by_place = {}
     census_by_name = {}
 
-    vintages = ["2024", "2023", "2022"]
-    for vintage in vintages:
+    for vintage in ["2024", "2023", "2022"]:
         key_param = f"&key={raw_key}" if raw_key else ""
         url = f"https://api.census.gov/data/{vintage}/acs/acs5?get=NAME,B01003_001E,B19013_001E,B01002_001E,B25003_002E,B25003_003E&for=place:*&in=state:53{key_param}"
         res = http_get_json(url)
@@ -63,14 +64,12 @@ def main():
                 row_dict = dict(zip(headers, row))
                 place_fips = str(row_dict.get("place", "")).strip().zfill(5)
                 place_name = str(row_dict.get("NAME", "")).strip()
-                
+
                 census_by_place[place_fips] = row_dict
-                
-                # Build fuzzy name lookup key (e.g. "issaquah")
                 clean_name = slugify(place_name.split(" ")[0].replace(",", ""))
                 if clean_name:
                     census_by_name[clean_name] = row_dict
-                    
+
             print(f"   ✅ Fetched ACS {vintage} demographics for {len(census_by_place)} WA places.")
             break
 
@@ -81,8 +80,6 @@ def main():
         slug = city["slug"]
         name = city["name"]
         fips = city["fips"]
-
-        # Primary lookup by FIPS ID; fallback lookup by city name slug
         c_data = census_by_place.get(fips) or census_by_name.get(slug)
 
         def safe_float(val, default=0.0):
@@ -117,10 +114,15 @@ def main():
             "last_updated": datetime.now(timezone.utc).isoformat()
         }
 
+    if found_count == 0 and os.path.exists(OUT_PATH):
+        print(f"⚠️ 0 Census places matched across all ACS vintages; preserving existing {OUT_PATH}.")
+        return
+
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(OUT_PATH, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
     print(f"💾 Saved Census demographics ({found_count}/{len(cities)} matched) to {OUT_PATH}")
+
 
 if __name__ == "__main__":
     main()

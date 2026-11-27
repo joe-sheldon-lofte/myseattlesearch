@@ -50,22 +50,22 @@ def slugify_neighborhood(raw_text):
     if not raw_text:
         return "unincorporated"
     val = str(raw_text).strip().lower()
-    val = re.sub(r'[\s,]+wa(?:\s+\d{5}(?:-\d{4})?)?$', '', val, flags=re.IGNORECASE)
-    val = val.rstrip(' ,').strip()
+    val = re.sub(r"[\s,]+wa(?:\s+\d{5}(?:-\d{4})?)?$", "", val, flags=re.IGNORECASE)
+    val = val.rstrip(" ,").strip()
 
-    if val in ['federaly', 'federal-y', 'federal y']:
-        return 'federal-way'
+    if val in ["federaly", "federal-y", "federal y"]:
+        return "federal-way"
 
     out = []
     for ch in val:
         if ch.isalnum():
             out.append(ch)
-        elif ch in [' ', '-', '_', ',']:
-            out.append('-')
+        elif ch in [" ", "-", "_", ","]:
+            out.append("-")
     res = "".join(out)
-    while '--' in res:
-        res = res.replace('--', '-')
-    return res.strip('-') or "unincorporated"
+    while "--" in res:
+        res = res.replace("--", "-")
+    return res.strip("-") or "unincorporated"
 
 
 def to_int(val):
@@ -232,7 +232,6 @@ def fetch_snohomish_deltas(days_back=35, staging_dir=None):
                 plat_name = str(attr.get("PLATNAME") or "").strip() or None
                 prop_type = classify_snoco_residential_type(attr.get("USECODE"))
 
-                # Shield newly platted subdivisions even if UseCode is still unimproved
                 if not prop_type and not plat_name:
                     continue
                 if not prop_type and plat_name:
@@ -244,7 +243,6 @@ def fetch_snohomish_deltas(days_back=35, staging_dir=None):
                     imp = to_zero_or_int(attr.get("MKIMP"))
                     total_val = (lnd + imp) if (lnd + imp) > 0 else None
 
-                # GIS_SQ_FT is land area -> map strictly to lot_sqft, NEVER square_footage
                 lot_size = to_int(attr.get("GIS_SQ_FT"))
                 zip_code = str(attr.get("SITUSZIP") or "").strip()[:5] or None
                 situs_addr = str(attr.get("SITUSLINE1") or "").strip() or None
@@ -281,7 +279,6 @@ def fetch_snohomish_deltas(days_back=35, staging_dir=None):
 
         print(f"   Located {len(normalized):,} modified/new Snohomish residential parcels.")
 
-        # Export modified Snohomish pins so the GLA + Photo/Sketch harvester refreshes them
         if staging_dir and delta_pins:
             os.makedirs(staging_dir, exist_ok=True)
             queue_path = os.path.join(staging_dir, "snoco_delta_queue.txt")
@@ -308,18 +305,17 @@ def fetch_king_deltas(session):
     mtn_cols = ["MtRainier", "Olympics", "Cascades"]
     water_cols = ["PugetSound", "LakeWashington", "LakeSammamish", "SmallLakeRiverCreek"]
 
-    # 1. Download & Map Residential Parcels from Parcel.zip
     pin_parcel = {}
     try:
         res_parcel = session.get(urls["parcel"], timeout=120)
         res_parcel.raise_for_status()
         with zipfile.ZipFile(io.BytesIO(res_parcel.content)) as z:
-            target = [name for name in z.namelist() if name.lower().endswith('.csv')][0]
+            target = [name for name in z.namelist() if name.lower().endswith(".csv")][0]
             with z.open(target) as f:
-                reader = csv.DictReader(io.TextIOWrapper(f, encoding='utf-8', errors='ignore'))
+                reader = csv.DictReader(io.TextIOWrapper(f, encoding="utf-8", errors="ignore"))
                 for r in reader:
-                    maj = str(r.get('Major', '')).strip().zfill(6)
-                    minr = str(r.get('Minor', '')).strip().zfill(4)
+                    maj = str(r.get("Major", "")).strip().zfill(6)
+                    minr = str(r.get("Minor", "")).strip().zfill(4)
                     if maj == "000000" and minr == "0000":
                         continue
                     pin = f"{maj}{minr}"
@@ -345,62 +341,60 @@ def fetch_king_deltas(session):
     except Exception as e:
         print(f"   ⚠️ King County Parcel.zip warning: {e}")
 
-    # 2. Download & Map Situs Address + Structural Attributes from ResBldg.zip
     pin_bldg = {}
     try:
         res_bldg = session.get(urls["resbldg"], timeout=120)
         res_bldg.raise_for_status()
         with zipfile.ZipFile(io.BytesIO(res_bldg.content)) as z:
-            target = [name for name in z.namelist() if name.lower().endswith('.csv')][0]
+            target = [name for name in z.namelist() if name.lower().endswith(".csv")][0]
             with z.open(target) as f:
-                reader = csv.DictReader(io.TextIOWrapper(f, encoding='utf-8', errors='ignore'))
+                reader = csv.DictReader(io.TextIOWrapper(f, encoding="utf-8", errors="ignore"))
                 for r in reader:
-                    maj = str(r.get('Major', '')).strip().zfill(6)
-                    minr = str(r.get('Minor', '')).strip().zfill(4)
+                    maj = str(r.get("Major", "")).strip().zfill(6)
+                    minr = str(r.get("Minor", "")).strip().zfill(4)
                     pin = f"{maj}{minr}"
 
-                    living = to_int(r.get('SqFtTotLiving'))
+                    living = to_int(r.get("SqFtTotLiving"))
                     existing = pin_bldg.get(pin)
                     if existing and (existing.get("square_footage") or 0) > (living or 0):
                         continue
 
-                    full_b = to_zero_or_int(r.get('BathFullCount')) + to_zero_or_int(r.get('Bath3qtrCount'))
-                    has_full = r.get('BathFullCount') not in (None, "") or r.get('Bath3qtrCount') not in (None, "")
-                    half_b = to_zero_or_int(r.get('BathHalfCount'))
+                    full_b = to_zero_or_int(r.get("BathFullCount")) + to_zero_or_int(r.get("Bath3qtrCount"))
+                    has_full = r.get("BathFullCount") not in (None, "") or r.get("Bath3qtrCount") not in (None, "")
+                    half_b = to_zero_or_int(r.get("BathHalfCount"))
 
                     pin_bldg[pin] = {
-                        "situs_address": str(r.get('Address') or '').strip() or None,
-                        "zip_code": str(r.get('ZipCode') or '').strip()[:5] or None,
+                        "situs_address": str(r.get("Address") or "").strip() or None,
+                        "zip_code": str(r.get("ZipCode") or "").strip()[:5] or None,
                         "square_footage": living,
-                        "bedrooms": to_zero_or_int(r.get('Bedrooms')) if r.get('Bedrooms') not in (None, "") else None,
+                        "bedrooms": to_zero_or_int(r.get("Bedrooms")) if r.get("Bedrooms") not in (None, "") else None,
                         "bath_full": full_b if has_full else None,
-                        "bath_half": half_b if r.get('BathHalfCount') not in (None, "") else None,
-                        "building_grade": to_int(r.get('BldgGrade')),
-                        "building_condition": to_int(r.get('Condition')),
-                        "year_built": to_int(r.get('YrBuilt')),
+                        "bath_half": half_b if r.get("BathHalfCount") not in (None, "") else None,
+                        "building_grade": to_int(r.get("BldgGrade")),
+                        "building_condition": to_int(r.get("Condition")),
+                        "year_built": to_int(r.get("YrBuilt")),
                     }
         print(f"   Extracted {len(pin_bldg):,} residential structures from King County ResBldg.zip.")
     except Exception as e:
         print(f"   ⚠️ King County ResBldg.zip warning: {e}")
 
-    # 3. Download Assessed Values from RPAcct_NoName.zip (Ignore mailing CityState to prevent out-of-state pollution)
     pin_assessed = {}
     try:
         res_rpacct = session.get(urls["rpacct"], timeout=120)
         res_rpacct.raise_for_status()
         with zipfile.ZipFile(io.BytesIO(res_rpacct.content)) as z:
-            target = [name for name in z.namelist() if name.lower().endswith('.csv')][0]
+            target = [name for name in z.namelist() if name.lower().endswith(".csv")][0]
             with z.open(target) as f:
-                reader = csv.DictReader(io.TextIOWrapper(f, encoding='utf-8', errors='ignore'))
+                reader = csv.DictReader(io.TextIOWrapper(f, encoding="utf-8", errors="ignore"))
                 for r in reader:
-                    maj = str(r.get('Major', '')).strip().zfill(6)
-                    minr = str(r.get('Minor', '')).strip().zfill(4)
+                    maj = str(r.get("Major", "")).strip().zfill(6)
+                    minr = str(r.get("Minor", "")).strip().zfill(4)
                     pin = f"{maj}{minr}"
                     if pin not in pin_parcel and pin not in pin_bldg:
                         continue
                     try:
-                        land = float(r.get('ApprLandVal') or 0)
-                        impr = float(r.get('ApprImprVal') or 0)
+                        land = float(r.get("ApprLandVal") or 0)
+                        impr = float(r.get("ApprImprVal") or 0)
                         total_val = int(land + impr)
                         if total_val > 0:
                             pin_assessed[pin] = max(pin_assessed.get(pin, 0), total_val)
@@ -560,15 +554,14 @@ def sync_sales_deltas(session, endpoint, headers, valid_pins):
     transactions = []
     seen_keys = set()
 
-    # 1. King County Weekly Sales Archive
     kc_sales_url = "https://dorcdn.kingcounty.gov/datadownload/Real%20Property%20Sales.zip"
     try:
         res = session.get(kc_sales_url, timeout=120)
         res.raise_for_status()
         with zipfile.ZipFile(io.BytesIO(res.content)) as z:
-            target = [name for name in z.namelist() if name.lower().endswith('.csv')][0]
+            target = [name for name in z.namelist() if name.lower().endswith(".csv")][0]
             with z.open(target) as f:
-                reader = csv.DictReader(io.TextIOWrapper(f, encoding='utf-8', errors='ignore'))
+                reader = csv.DictReader(io.TextIOWrapper(f, encoding="utf-8", errors="ignore"))
                 for r in reader:
                     maj = str(r.get("Major", "")).strip().zfill(6)
                     minr = str(r.get("Minor", "")).strip().zfill(4)
@@ -619,7 +612,6 @@ def sync_sales_deltas(session, endpoint, headers, valid_pins):
     except Exception as e:
         print(f"   ⚠️ King County sales sync warning: {e}")
 
-    # 2. Snohomish County Recent Sales ArcGIS FeatureServer
     snoco_sales_url = "https://gis.snoco.org/arcgis/rest/services/Cadastral/Sales/MapServer/0/query"
     snoco_raw = []
     date_price_counts = Counter()
@@ -797,12 +789,12 @@ def main():
     staging_dir = os.path.join(base_dir, "data", "staging")
     load_dev_vars(base_dir)
 
-    cf_account_id = os.environ.get("CF_ACCOUNT_ID")
-    cf_api_token = os.environ.get("CF_D1_API_TOKEN")
-    cf_db_id = os.environ.get("CF_DATABASE_PARCELDATA_ID")
+    cf_account_id = (os.environ.get("CF_MASTER_ACCOUNT_ID") or "").strip()
+    cf_api_token = (os.environ.get("CF_MASTER_API_TOKEN") or "").strip()
+    cf_db_id = (os.environ.get("CF_DATABASE_PARCELDATA_ID") or "").strip()
 
     if not all([cf_account_id, cf_api_token, cf_db_id]):
-        raise ValueError("Missing Cloudflare D1 credentials (CF_ACCOUNT_ID, CF_D1_API_TOKEN, CF_DATABASE_PARCELDATA_ID).")
+        raise ValueError("Missing Cloudflare D1 credentials (CF_MASTER_ACCOUNT_ID, CF_MASTER_API_TOKEN, CF_DATABASE_PARCELDATA_ID).")
 
     endpoint = f"https://api.cloudflare.com/client/v4/accounts/{cf_account_id}/d1/database/{cf_db_id}/query"
     headers = {
@@ -811,15 +803,12 @@ def main():
     }
     session = requests.Session()
 
-    # 1. Harvest & Upsert Snohomish County Parcel Deltas
     snohomish_deltas = fetch_snohomish_deltas(days_back=args.days_back, staging_dir=staging_dir)
     sync_upserts_to_d1(session, endpoint, headers, snohomish_deltas)
 
-    # 2. Harvest & Upsert King County Residential Parcel Deltas
     king_deltas = fetch_king_deltas(session)
     sync_upserts_to_d1(session, endpoint, headers, king_deltas)
 
-    # 3. Sync Rolling 24-Month Sales Ledger
     if not args.skip_sales:
         valid_pins = fetch_valid_parcel_keys(session, endpoint, headers)
         sync_sales_deltas(session, endpoint, headers, valid_pins)

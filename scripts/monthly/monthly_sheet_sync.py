@@ -9,7 +9,8 @@ from googleapiclient.discovery import build
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 DEV_VARS_PATH = os.path.join(BASE_DIR, ".dev.vars")
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+
 
 def load_dev_vars():
     if os.path.exists(DEV_VARS_PATH):
@@ -20,6 +21,7 @@ def load_dev_vars():
                     k, v = line.split("=", 1)
                     os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
+
 def clean_nan_tokens(node):
     if isinstance(node, dict):
         return {k: clean_nan_tokens(v) for k, v in node.items()}
@@ -28,6 +30,7 @@ def clean_nan_tokens(node):
     elif isinstance(node, float) and (math.isnan(node) or math.isinf(node)):
         return None
     return node
+
 
 def parse_sheet_values(rows):
     if not rows:
@@ -40,6 +43,7 @@ def parse_sheet_values(rows):
         records.append(dict(zip(headers, sanitized)))
     return records
 
+
 def sql_escape(val):
     if val is None or val == "":
         return "NULL"
@@ -48,6 +52,7 @@ def sql_escape(val):
     escaped = str(val).replace("'", "''")
     return f"'{escaped}'"
 
+
 def execute_d1_raw(session, endpoint, headers, sql_chunk):
     response = session.post(endpoint, headers=headers, json={"sql": sql_chunk}, timeout=45)
     data = response.json()
@@ -55,16 +60,18 @@ def execute_d1_raw(session, endpoint, headers, sql_chunk):
         raise RuntimeError(f"Cloudflare D1 SQL Error: {data.get('errors', [])}")
     return data
 
+
 def slugify(text):
-    return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
+    return re.sub(r"[^a-z0-9]+", "-", str(text).lower()).strip("-")
+
 
 def sync_utility_directory_to_d1(utility_records):
-    cf_account_id = os.environ.get("CF_ACCOUNT_ID")
-    cf_api_token = os.environ.get("CF_D1_API_TOKEN")
-    cf_db_id = os.environ.get("CF_DATABASE_PARCELDATA_ID")
+    cf_account_id = (os.environ.get("CF_MASTER_ACCOUNT_ID") or "").strip()
+    cf_api_token = (os.environ.get("CF_MASTER_API_TOKEN") or "").strip()
+    cf_db_id = (os.environ.get("CF_DATABASE_PARCELDATA_ID") or "").strip()
 
     if not all([cf_account_id, cf_api_token, cf_db_id]):
-        print("   ⚠️ Cloudflare D1 environment variables missing. Skipping utility_directory edge sync.")
+        print("   ⚠️ Cloudflare D1 credentials missing (CF_MASTER_ACCOUNT_ID / CF_MASTER_API_TOKEN / CF_DATABASE_PARCELDATA_ID). Skipping utility_directory sync.")
         return
 
     print("   ⚡ Syncing UtilityData directly into Cloudflare D1 (utility_directory)...")
@@ -83,14 +90,14 @@ def sync_utility_directory_to_d1(utility_records):
         values_clauses = []
 
         for rec in chunk:
-            utility_name = rec.get("utility_name") or rec.get("utility_name")
-            normal_name = rec.get("normal_name") or rec.get("normal_name") or utility_name
-            county = rec.get("county") or rec.get("county") or "King"
-            utility_type = rec.get("utility_type") or rec.get("utility_type")
-            phone = rec.get("phone_umber") or rec.get("phone_number")
-            website = rec.get("website") or rec.get("website")
-            physical_addr = rec.get("physical_address") or rec.get("physical_address")
-            mailing_addr = rec.get("mailing_ddress") or rec.get("mailing_address")
+            utility_name = rec.get("utility_name")
+            normal_name = rec.get("normal_name") or utility_name
+            county = rec.get("county") or "King"
+            utility_type = rec.get("utility_type")
+            phone = rec.get("phone_number") or rec.get("phone_umber")
+            website = rec.get("website")
+            physical_addr = rec.get("physical_address")
+            mailing_addr = rec.get("mailing_address") or rec.get("mailing_ddress")
 
             if not utility_name or not utility_type:
                 continue
@@ -139,49 +146,51 @@ def sync_utility_directory_to_d1(utility_records):
 
     print(f"   ✅ Committed {committed:,} utility records to Cloudflare D1.")
 
+
 def main():
     print("🌙 Running Complete Monthly Sheets Ingestion & Edge Sync...")
     os.makedirs(DATA_DIR, exist_ok=True)
     load_dev_vars()
 
     master_sheet_id = os.environ.get("WEBSITE_DATA_CORE_SHEET_ID")
-    creds_path = "credentials.json"
+    creds_path = "credentials.json" if os.path.exists("credentials.json") else os.path.join(BASE_DIR, "credentials.json")
     if not master_sheet_id or not os.path.exists(creds_path):
         print("❌ [Monthly Sync] Missing credentials.json or WEBSITE_DATA_CORE_SHEET_ID.")
         return
 
     creds = Credentials.from_service_account_file(creds_path, scopes=SCOPES)
-    sheets_service = build('sheets', 'v4', credentials=creds)
+    sheets_service = build("sheets", "v4", credentials=creds)
 
     tabs = ["MunicipalFeeds", "DPA", "UtilityData"]
     ranges = [f"{tab}!A:BK" for tab in tabs]
-    
+
     res = sheets_service.spreadsheets().values().batchGet(
-        spreadsheetId=master_sheet_id, 
+        spreadsheetId=master_sheet_id,
         ranges=ranges
     ).execute()
-    data = dict(zip(tabs, res.get('valueRanges', [])))
+    data = dict(zip(tabs, res.get("valueRanges", [])))
 
-    muni_rows = data.get("MunicipalFeeds", {}).get('values', [])
+    muni_rows = data.get("MunicipalFeeds", {}).get("values", [])
     if muni_rows:
         parsed_muni = parse_sheet_values(muni_rows)
         with open(os.path.join(DATA_DIR, "municipal_feeds.json"), "w", encoding="utf-8") as f:
             json.dump(clean_nan_tokens(parsed_muni), f, indent=2, ensure_ascii=False)
         print(f"   Updated municipal_feeds.json ({len(parsed_muni):,} records).")
 
-    dpa_rows = data.get("DPA", {}).get('values', [])
+    dpa_rows = data.get("DPA", {}).get("values", [])
     if dpa_rows:
         parsed_dpa = parse_sheet_values(dpa_rows)
         with open(os.path.join(DATA_DIR, "dpa_programs.json"), "w", encoding="utf-8") as f:
             json.dump(clean_nan_tokens(parsed_dpa), f, indent=2, ensure_ascii=False)
         print(f"   Updated dpa_programs.json ({len(parsed_dpa):,} records).")
 
-    utility_rows = data.get("UtilityData", {}).get('values', [])
+    utility_rows = data.get("UtilityData", {}).get("values", [])
     if utility_rows:
         parsed_utilities = parse_sheet_values(utility_rows)
         sync_utility_directory_to_d1(parsed_utilities)
 
     print("✅ Monthly Sheets Sync & Edge Ingestion complete.")
+
 
 if __name__ == "__main__":
     main()

@@ -13,10 +13,8 @@ import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError
 
-# Suppress unverified HTTPS request warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Robust Repository Root Path Resolution
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 if os.path.basename(CURRENT_DIR) == "monthly":
     REPO_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
@@ -29,7 +27,6 @@ DATA_DIR = os.path.join(REPO_ROOT, "data")
 CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 BUSINESSES_PATH = os.path.join(DATA_DIR, "city_businesses.json")
 
-# Mapping of site categories to Google Places API (New) Table A primary types
 CATEGORY_TYPES = {
     "coffee": ["coffee_shop", "cafe"],
     "bakeries": ["bakery"],
@@ -65,6 +62,7 @@ HEADERS_BASE = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)"
 }
 
+
 def load_local_env():
     for env_file in [".env", ".dev.vars"]:
         env_path = os.path.join(REPO_ROOT, env_file)
@@ -82,21 +80,26 @@ def load_local_env():
             except Exception:
                 pass
 
+
 def slugify(text):
     if not text:
         return ""
     text = str(text).lower().strip()
-    out = [ch if ch.isalnum() else '-' for ch in text]
+    out = [ch if ch.isalnum() else "-" for ch in text]
     res = "".join(out)
-    while '--' in res:
-        res = res.replace('--', '-')
-    return res.strip('-')
+    while "--" in res:
+        res = res.replace("--", "-")
+    return res.strip("-")
+
 
 def get_r2_client():
-    account_id = (os.environ.get("CF_ACCOUNT_ID") or "").strip()
-    access_key = (os.environ.get("R2_ALL_ACCESS_KEY_ID") or os.environ.get("R2_ALL_ACCESS_TOKEN") or "").strip()
-    secret_key = (os.environ.get("R2_ALL_SECRET_ACCESS_KEY") or "").strip()
-    endpoint_url = (os.environ.get("R2_ENDPOINT_URL") or (f"https://{account_id}.r2.cloudflarestorage.com" if account_id else "")).strip()
+    account_id = (os.environ.get("CF_MASTER_ACCOUNT_ID") or "").strip()
+    access_key = (os.environ.get("CF_MASTER_ACCESS_KEY_ID") or "").strip()
+    secret_key = (os.environ.get("CF_MASTER_SECRET_ACCESS_KEY") or "").strip()
+    endpoint_url = (
+        os.environ.get("CF_MASTER_S3_API_ENDPOINT")
+        or (f"https://{account_id}.r2.cloudflarestorage.com" if account_id else "")
+    ).strip()
 
     if not all([endpoint_url, access_key, secret_key]):
         return None
@@ -110,6 +113,7 @@ def get_r2_client():
         config=Config(signature_version="s3v4")
     )
 
+
 def r2_object_exists(r2_client, bucket_name, key):
     try:
         r2_client.head_object(Bucket=bucket_name, Key=key)
@@ -121,8 +125,9 @@ def r2_object_exists(r2_client, bucket_name, key):
     except Exception:
         return False
 
+
 def ingest_place_photo_to_r2(session, photo_name, place_id, api_key, r2_client, assets_bucket, force_refresh=False):
-    """Downloads Google Places photo server-side, converts to WebP, and stores in R2."""
+    """Downloads Google Places photo server-side, converts to WebP, and stores in R2 assets bucket."""
     if not place_id:
         return ""
 
@@ -145,7 +150,6 @@ def ingest_place_photo_to_r2(session, photo_name, place_id, api_key, r2_client, 
         if not cdn_uri:
             return ""
 
-        # Download raw image without Referer header to prevent hotlink blocks
         img_res = session.get(cdn_uri, headers={"User-Agent": HEADERS_BASE["User-Agent"]}, timeout=12)
         img_res.raise_for_status()
 
@@ -169,22 +173,6 @@ def ingest_place_photo_to_r2(session, photo_name, place_id, api_key, r2_client, 
         print(f"   ⚠️ R2 photo ingestion failed for {place_id}: {e}")
         return ""
 
-def sync_json_to_r2_data_bucket(r2_client, data_bucket, local_path, r2_key):
-    if not r2_client or not data_bucket or not os.path.exists(local_path):
-        print(f"⚠️ R2 data client/bucket missing; skipped uploading {r2_key} to {data_bucket}.")
-        return False
-    try:
-        r2_client.upload_file(
-            local_path,
-            data_bucket,
-            r2_key,
-            ExtraArgs={"ContentType": "application/json"}
-        )
-        print(f"☁️ Uploaded {r2_key} ➔ R2 bucket '{data_bucket}'")
-        return True
-    except Exception as e:
-        print(f"❌ Failed uploading {r2_key} to R2 bucket '{data_bucket}': {e}")
-        return False
 
 def search_google_places_nearby(session, lat, lon, place_types, api_key):
     """Executes Places API (New) Nearby Search within an 8km perimeter."""
@@ -208,11 +196,11 @@ def search_google_places_nearby(session, lat, lon, place_types, api_key):
         res = session.post(url, headers=headers, json=payload, timeout=12)
         if res.status_code == 200:
             return res.json().get("places", [])
-        else:
-            print(f"   ⚠️ Google Places notice: HTTP {res.status_code} - {res.text[:120]}")
+        print(f"   ⚠️ Google Places notice: HTTP {res.status_code} - {res.text[:120]}")
     except Exception as e:
         print(f"   ⚠️ Places request exception: {e}")
     return []
+
 
 def main():
     print("🛒 Starting Google Places API Local Business Spotlight Harvester...")
@@ -221,7 +209,6 @@ def main():
     force_refresh = "--force-refresh" in sys.argv
     api_key = os.environ.get("GOOGLE_PLACES_API_KEY", "").strip().strip("'").strip('"')
     assets_bucket = (os.environ.get("R2_BUCKET_NAME") or "myseattlesearch-assets").strip()
-    data_bucket = (os.environ.get("R2_DATA_BUCKET_NAME") or "myseattlesearch-data").strip()
     r2_client = get_r2_client()
 
     if not api_key:
@@ -267,7 +254,6 @@ def main():
 
         for cat_key, place_types in CATEGORY_TYPES.items():
             places = search_google_places_nearby(session, lat_f, lon_f, place_types, api_key)
-
             places.sort(key=lambda p: (float(p.get("rating", 0.0)), int(p.get("userRatingCount", 0))), reverse=True)
 
             for p in places:
@@ -302,7 +288,7 @@ def main():
                         force_refresh=force_refresh
                     )
 
-                biz_entry = {
+                city_categories[cat_key].append({
                     "place_id": p_id,
                     "category": display_cat,
                     "name": name,
@@ -313,9 +299,7 @@ def main():
                     "url": maps_url,
                     "image_url": photo_url,
                     "summary": f"Top-rated spot in {city_name} with {reviews} reviews on Google."
-                }
-
-                city_categories[cat_key].append(biz_entry)
+                })
                 if len(city_categories[cat_key]) >= 5:
                     break
 
@@ -327,7 +311,6 @@ def main():
             "last_updated": datetime.now(timezone.utc).isoformat()
         }
 
-    # Anti-wipeout safeguard: abort if less than 40 cities harvested
     if len(output) < 40:
         print(f"❌ Safety check failed: Only {len(output)} cities harvested. Preserving existing {BUSINESSES_PATH}.")
         return
@@ -337,7 +320,7 @@ def main():
         json.dump(output, f, indent=2, ensure_ascii=False)
 
     print(f"💾 Saved Google Places business spotlights for {len(output)} cities ➔ {BUSINESSES_PATH}")
-    sync_json_to_r2_data_bucket(r2_client, data_bucket, BUSINESSES_PATH, "data/city_businesses.json")
+
 
 if __name__ == "__main__":
     main()

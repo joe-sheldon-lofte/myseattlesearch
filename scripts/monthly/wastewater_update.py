@@ -11,7 +11,7 @@ import os
 import sys
 import json
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
@@ -22,30 +22,31 @@ from bs4 import BeautifulSoup
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
 
+
 def load_dev_vars():
     for p in [REPO_ROOT / ".dev.vars", Path(".dev.vars")]:
         if p.is_file():
             with open(p, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
-                    if not line or line.startswith("#"):
+                    if not line or line.startswith("#") or "=" not in line:
                         continue
-                    if "=" in line:
-                        k, v = line.split("=", 1)
-                        k = k.strip()
-                        v = v.strip().strip('"').strip("'")
-                        if k and k not in os.environ:
-                            os.environ[k] = v
+                    k, v = line.split("=", 1)
+                    k = k.strip()
+                    v = v.strip().strip('"').strip("'")
+                    if k and k not in os.environ:
+                        os.environ[k] = v
             break
+
 
 load_dev_vars()
 
-CF_ACCOUNT_ID = os.getenv("CF_ACCOUNT_ID")
-CF_DATABASE_ID = os.getenv("CF_DATABASE_PARCELDATA_ID") or os.getenv("CF_D1_DATABASE_ID")
-CF_API_TOKEN = os.getenv("CF_D1_API_TOKEN") or os.getenv("CF_API_TOKEN")
+CF_ACCOUNT_ID = (os.getenv("CF_MASTER_ACCOUNT_ID") or "").strip()
+CF_DATABASE_ID = (os.getenv("CF_DATABASE_PARCELDATA_ID") or os.getenv("CF_D1_DATABASE_ID") or "").strip()
+CF_API_TOKEN = (os.getenv("CF_MASTER_API_TOKEN") or "").strip()
 
 if not all([CF_ACCOUNT_ID, CF_DATABASE_ID, CF_API_TOKEN]):
-    print("❌ Missing required Cloudflare variables in environment or .dev.vars.")
+    print("❌ Missing required Cloudflare variables (CF_MASTER_ACCOUNT_ID, CF_MASTER_API_TOKEN, CF_DATABASE_PARCELDATA_ID).")
     sys.exit(1)
 
 D1_API_URL = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}/d1/database/{CF_DATABASE_ID}/query"
@@ -62,6 +63,7 @@ def sql_escape(val):
         return str(val)
     clean = str(val).replace("'", "''")
     return f"'{clean}'"
+
 
 def execute_d1_query(session, sql_query):
     headers = {
@@ -84,6 +86,7 @@ def execute_d1_query(session, sql_query):
             time.sleep(backoff)
             backoff *= 2
 
+
 def build_upsert_sql(rows):
     value_strings = []
     for r in rows:
@@ -101,7 +104,7 @@ def build_upsert_sql(rows):
     return f"""
         INSERT INTO wastewater (
             parcel_number, county, service_type, service_subtype, service_status,
-            sewer_provider_name, has_capacity_charge, oss_permit_number, installed_year, 
+            sewer_provider_name, has_capacity_charge, oss_permit_number, installed_year,
             last_inspection_date, last_pump_date, has_asbuilt, raw_source_data
         ) VALUES {', '.join(value_strings)}
         ON CONFLICT(parcel_number) DO UPDATE SET
@@ -125,13 +128,10 @@ def build_upsert_sql(rows):
 # ------------------------------------------------------------------------------
 def harvest_king_county(session):
     print("📡 Polling King County ArcGIS REST API for monthly wastewater updates...")
-    
-    # Official Feature Layer for Parcels with Onsite Sewage Designations
+
     arcgis_url = "https://services.arcgis.com/Ej0PsM5Aw677QF1W/arcgis/rest/services/SEPTIC_ONSITE_PARCEL_AREA_2682/FeatureServer/0/query"
-    
-    # Target updates from the past 35 days to cover the monthly cycle
-    cutoff_date = (datetime.utcnow() - timedelta(days=35)).strftime("%Y-%m-%d")
-    
+    cutoff_date = (datetime.now(timezone.utc) - timedelta(days=35)).strftime("%Y-%m-%d")
+
     params = {
         "where": f"EditDate >= DATE '{cutoff_date}'",
         "outFields": "PIN,MAJOR,MINOR,ExpExcludeOn,ExcludeOn,ExpSewerConnection,SewerConnection,ExpSewerAgency,CapacityCharge,WastewaterTreatmentType,Comments,EditDate",
@@ -214,7 +214,7 @@ def harvest_king_county(session):
 # ------------------------------------------------------------------------------
 def harvest_snohomish(session):
     print("📡 Polling Snohomish County OnlineRME for recent maintenance activity...")
-    
+
     activity_url = "https://www.onlinerme.com/Reports/PublicActivity.aspx"
     end_dt = datetime.now()
     start_dt = end_dt - timedelta(days=35)
@@ -226,7 +226,7 @@ def harvest_snohomish(session):
     try:
         get_res = session.get(activity_url, headers=headers, timeout=30)
         soup = BeautifulSoup(get_res.text, "html.parser")
-        
+
         vs = soup.find("input", {"id": "__VIEWSTATE"})
         ev = soup.find("input", {"id": "__EVENTVALIDATION"})
         if not vs:
@@ -244,7 +244,7 @@ def harvest_snohomish(session):
 
         post_res = session.post(activity_url, data=payload, headers=headers, timeout=45)
         soup_res = BeautifulSoup(post_res.text, "html.parser")
-        
+
         rows = soup_res.find_all("tr", {"class": ["GridRow", "GridAltRow"]})
         if not rows:
             print("ℹ️ No recent OnlineRME activity rows returned for Snohomish.")
@@ -260,8 +260,7 @@ def harvest_snohomish(session):
                 continue
 
             raw_apn = cols[0].replace("-", "").strip()
-            # Normalize APN: remove leading zeros to match base table convention
-            pin = raw_apn.lstrip('0') if raw_apn.startswith('0') else raw_apn
+            pin = raw_apn.lstrip("0") if raw_apn.startswith("0") else raw_apn
             if len(pin) < 10:
                 continue
 
@@ -304,11 +303,12 @@ def main():
     print("==================================================")
     print("  LIVE REGIONAL WASTEWATER & SEPTIC HARVESTER     ")
     print("==================================================\n")
-    
+
     session = requests.Session()
     harvest_king_county(session)
     harvest_snohomish(session)
     print("\n🎉 Monthly wastewater update sequence finished.")
+
 
 if __name__ == "__main__":
     main()

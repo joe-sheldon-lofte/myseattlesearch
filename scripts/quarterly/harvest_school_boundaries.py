@@ -5,12 +5,10 @@ import json
 import re
 import urllib3
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 
-# Suppress SSL warnings for public REST endpoints
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Directory Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 OSPI_DATA_JSON = os.path.join(DATA_DIR, "ospi_school_data.json")
@@ -21,13 +19,11 @@ HTTP_HEADERS = {
     "Accept": "application/json, text/plain, */*"
 }
 
-# --- STATE OSPI DISTRICT BOUNDARY ENDPOINTS ---
 STATE_DISTRICT_ENDPOINTS = [
     "https://services8.arcgis.com/rGGrs6HCnw87OFOT/arcgis/rest/services/OSPISchoolDistricts_2025/FeatureServer/0/query",
     "https://gis.ospi.k12.wa.gov/arcgis/rest/services/Public/OSPISchoolDistricts/FeatureServer/0/query"
 ]
 
-# --- OFFICIAL DISTRICT BOUNDARY LOOKUP URLS ---
 DISTRICT_LOOKUP_URLS = {
     "17001": {"name": "Seattle School District No. 1", "url": "https://www.seattleschools.org/enrollment/about-our-schools/school-boundaries/"},
     "17405": {"name": "Bellevue School District", "url": "https://bsd405.org/about/boundaries/"},
@@ -59,6 +55,7 @@ DISTRICT_LOOKUP_URLS = {
     "17402": {"name": "Vashon Island School District", "url": "https://www.vashonsd.org/about-us/district-boundaries"}
 }
 
+
 def normalize_name(text):
     """Simplifies district names for robust string matching."""
     if not text:
@@ -67,6 +64,7 @@ def normalize_name(text):
     s = re.sub(r"[^\w\s]", "", s)
     s = re.sub(r"\b(school|district|dist|no|sd|k12|public|schools)\b", "", s)
     return re.sub(r"\s+", " ", s).strip()
+
 
 def load_ospi_district_metadata():
     """Reads data/ospi_school_data.json to build lookup indexes for school districts."""
@@ -98,16 +96,15 @@ def load_ospi_district_metadata():
 
     return districts_by_name, districts_by_code
 
+
 def clean_coordinate_array(coords, precision=5):
-    """
-    Recursively rounds latitude/longitude pairs to 5 decimal places (~1.1m ground precision).
-    Preserves complete topology without modifying line shapes.
-    """
+    """Recursively rounds latitude/longitude pairs to 5 decimal places (~1.1m ground precision)."""
     if not coords:
         return coords
     if isinstance(coords[0], (int, float)):
         return [round(float(c), precision) for c in coords[:2]]
     return [clean_coordinate_array(sub, precision) for sub in coords]
+
 
 def extract_property(props, keys):
     """Schema-agnostic extractor for GeoJSON/Esri feature properties."""
@@ -118,12 +115,9 @@ def extract_property(props, keys):
                 return val
     return ""
 
+
 def fetch_gis_features(url):
-    """
-    Queries an Esri ArcGIS REST endpoint with handling for GeoJSON (f=geojson)
-    and Esri JSON (f=json) ring geometry conversion.
-    """
-    # 1. Try GeoJSON
+    """Queries an Esri ArcGIS REST endpoint with GeoJSON and Esri JSON ring geometry conversion."""
     params_geojson = {
         "where": "1=1",
         "outFields": "*",
@@ -142,7 +136,6 @@ def fetch_gis_features(url):
     except Exception:
         pass
 
-    # 2. Fallback to Esri JSON (f=json)
     params_esri = {
         "where": "1=1",
         "outFields": "*",
@@ -184,6 +177,7 @@ def fetch_gis_features(url):
 
     return []
 
+
 def harvest_district_polygons(districts_by_name, districts_by_code):
     """Harvests regional district perimeters from OSPI GIS for King and Snohomish counties."""
     print("📡 Ingesting Washington State OSPI District Boundaries...")
@@ -215,7 +209,6 @@ def harvest_district_polygons(districts_by_name, districts_by_code):
         norm_key = normalize_name(raw_name)
         matched_district = districts_by_code.get(raw_code) or districts_by_name.get(norm_key)
 
-        # Fallback substring and token match
         if not matched_district and norm_key:
             gis_tokens = set(norm_key.split())
             for d_norm, d_info in districts_by_name.items():
@@ -251,6 +244,7 @@ def harvest_district_polygons(districts_by_name, districts_by_code):
 
     return districts_map
 
+
 def main():
     print("==================================================")
     print("   OSPI SCHOOL DISTRICT BOUNDARY HARVESTER (V4.0) ")
@@ -262,7 +256,6 @@ def main():
     district_boundaries = harvest_district_polygons(districts_by_name, districts_by_code)
     print(f"\n  ✅ Successfully compiled {len(district_boundaries)} regional district perimeters.")
 
-    # Guardrail: Prevent overwriting existing asset if remote endpoint returns empty
     MINIMUM_DISTRICTS_THRESHOLD = 25
     if len(district_boundaries) < MINIMUM_DISTRICTS_THRESHOLD:
         print(f"⚠️ Warning: Only compiled {len(district_boundaries)} district boundaries (minimum required: {MINIMUM_DISTRICTS_THRESHOLD}).")
@@ -271,7 +264,7 @@ def main():
 
     master_output = {
         "metadata": {
-            "generated_at": datetime.now().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "district_boundaries_count": len(district_boundaries),
             "coordinate_system": "EPSG:4326 (WGS84)",
             "precision_meters": "~1.1m"
@@ -284,10 +277,11 @@ def main():
     with open(OUTPUT_BOUNDARIES_JSON, "w", encoding="utf-8") as f:
         json.dump(master_output, f, indent=2, ensure_ascii=False)
 
-    print(f"\n🎉 Boundary harvesting complete!")
+    print("\n🎉 Boundary harvesting complete!")
     print(f"  • Compiled {len(district_boundaries)} macro school district perimeters.")
     print(f"  • Indexed {len(DISTRICT_LOOKUP_URLS)} district boundary finder links.")
     print(f"  • Saved master spatial asset to: {OUTPUT_BOUNDARIES_JSON}")
+
 
 if __name__ == "__main__":
     main()

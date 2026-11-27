@@ -17,6 +17,7 @@ else:
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+
 def safe_task(task_name, func):
     print(f"🚀 [Weekly Master] Starting: {task_name}...")
     try:
@@ -36,6 +37,7 @@ def safe_task(task_name, func):
 
         print(f"⚠️ Skipping {task_name}.\n")
 
+
 def run_subscript(script_relative_path):
     path = os.path.join(BASE_DIR, "scripts", "weekly", script_relative_path)
     if os.path.exists(path):
@@ -45,15 +47,16 @@ def run_subscript(script_relative_path):
     else:
         raise FileNotFoundError(f"Script not found at expected path: {path}")
 
+
 def harvest_weekly_sheets(): run_subscript("weekly_sheet_sync.py")
 def harvest_infosparks_stats(): run_subscript("infosparks_stats.py")
 def harvest_redfin_stats(): run_subscript("redfin_stats.py")
 def harvest_walk_scores(): run_subscript("walk_scores.py")
 def harvest_public_safety_hazards(): run_subscript("public_safety_hazards.py")
-def harvest_building_permits(): run_subscript("building_permits.py")
 def harvest_traffic_cameras(): run_subscript("traffic_cameras.py")
 def ping_matrix_keep_alive(): run_subscript("keep_alive_matrix.py")
 def harvest_entertainment(): run_subscript("entertainment.py")
+
 
 def main():
     print("==================================================")
@@ -65,12 +68,12 @@ def main():
     safe_task("3. Redfin City Market Tracker", harvest_redfin_stats)
     safe_task("4. WalkScore Ratings", harvest_walk_scores)
     safe_task("5. Public Safety, Emergency & NOAA Hazards", harvest_public_safety_hazards)
-    safe_task("6. Municipal Building Permits", harvest_building_permits)
-    safe_task("7. Multi-Agency Traffic Cameras Mapping", harvest_traffic_cameras)
-    safe_task("8. Matrix & OneHome Portal Keep-Alive", ping_matrix_keep_alive)
-    safe_task("9. Entertainment Hub (Rankings, Movies & Notable Actors)", harvest_entertainment)
+    safe_task("6. Multi-Agency Traffic Cameras Mapping", harvest_traffic_cameras)
+    safe_task("7. Matrix & OneHome Portal Keep-Alive", ping_matrix_keep_alive)
+    safe_task("8. Entertainment Hub (Rankings, Movies & Notable Actors)", harvest_entertainment)
 
     print("🎉 Weekly master harvesting sequence complete. Data fresh!")
+
 
 if __name__ == "__main__":
     main()

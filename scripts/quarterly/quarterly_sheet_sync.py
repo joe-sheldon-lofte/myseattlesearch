@@ -1,5 +1,4 @@
 import os
-import re
 import json
 import math
 import requests
@@ -9,7 +8,8 @@ from googleapiclient.discovery import build
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 DEV_VARS_PATH = os.path.join(BASE_DIR, ".dev.vars")
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+
 
 def load_dev_vars():
     if os.path.exists(DEV_VARS_PATH):
@@ -20,6 +20,7 @@ def load_dev_vars():
                     k, v = line.split("=", 1)
                     os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
+
 def clean_nan_tokens(node):
     if isinstance(node, dict):
         return {k: clean_nan_tokens(v) for k, v in node.items()}
@@ -28,6 +29,7 @@ def clean_nan_tokens(node):
     elif isinstance(node, float) and (math.isnan(node) or math.isinf(node)):
         return None
     return node
+
 
 def parse_sheet_values(rows):
     if not rows:
@@ -40,6 +42,7 @@ def parse_sheet_values(rows):
         records.append(dict(zip(headers, sanitized)))
     return records
 
+
 def sql_escape(val):
     if val is None:
         return "NULL"
@@ -48,6 +51,7 @@ def sql_escape(val):
     escaped = str(val).replace("'", "''")
     return f"'{escaped}'"
 
+
 def execute_d1_raw(session, endpoint, headers, sql_chunk):
     response = session.post(endpoint, headers=headers, json={"sql": sql_chunk}, timeout=45)
     data = response.json()
@@ -55,19 +59,20 @@ def execute_d1_raw(session, endpoint, headers, sql_chunk):
         raise RuntimeError(f"Cloudflare D1 SQL Error: {data.get('errors', [])}")
     return data
 
+
 def main():
     print("🌙 Running Quarterly Sheets Ingestion & Edge Sync...")
     os.makedirs(DATA_DIR, exist_ok=True)
     load_dev_vars()
 
     master_sheet_id = os.environ.get("WEBSITE_DATA_CORE_SHEET_ID")
-    creds_path = "credentials.json"
+    creds_path = "credentials.json" if os.path.exists("credentials.json") else os.path.join(BASE_DIR, "credentials.json")
     if not master_sheet_id or not os.path.exists(creds_path):
         print("❌ [Quarterly Sync] Missing credentials.json or WEBSITE_DATA_CORE_SHEET_ID.")
         return
 
     creds = Credentials.from_service_account_file(creds_path, scopes=SCOPES)
-    sheets_service = build('sheets', 'v4', credentials=creds)
+    sheets_service = build("sheets", "v4", credentials=creds)
 
     # --------------------------------------------------------------------------
     # PLACEHOLDER TABS FOR QUARTERLY ARCHITECTURE
@@ -75,16 +80,15 @@ def main():
     # --------------------------------------------------------------------------
     tabs = ["QuarterlyTab1", "QuarterlyTab2"]
     ranges = [f"{tab}!A:BK" for tab in tabs]
-    
+
     try:
         res = sheets_service.spreadsheets().values().batchGet(
-            spreadsheetId=master_sheet_id, 
+            spreadsheetId=master_sheet_id,
             ranges=ranges
         ).execute()
-        data = dict(zip(tabs, res.get('valueRanges', [])))
-        
-        # TAB 1 EXTRACT
-        tab1_rows = data.get("QuarterlyTab1", {}).get('values', [])
+        data = dict(zip(tabs, res.get("valueRanges", [])))
+
+        tab1_rows = data.get("QuarterlyTab1", {}).get("values", [])
         if tab1_rows:
             parsed_tab1 = parse_sheet_values(tab1_rows)
             with open(os.path.join(DATA_DIR, "quarterly_tab1.json"), "w", encoding="utf-8") as f:
@@ -93,8 +97,7 @@ def main():
         else:
             print("   ⚠️ QuarterlyTab1 is empty or missing.")
 
-        # TAB 2 EXTRACT
-        tab2_rows = data.get("QuarterlyTab2", {}).get('values', [])
+        tab2_rows = data.get("QuarterlyTab2", {}).get("values", [])
         if tab2_rows:
             parsed_tab2 = parse_sheet_values(tab2_rows)
             with open(os.path.join(DATA_DIR, "quarterly_tab2.json"), "w", encoding="utf-8") as f:
@@ -104,9 +107,10 @@ def main():
             print("   ⚠️ QuarterlyTab2 is empty or missing.")
 
         print("✅ Quarterly Sheets Sync & Edge Ingestion complete.")
-        
+
     except Exception as e:
         print(f"❌ Quarterly sheet extraction failed: {e}")
+
 
 if __name__ == "__main__":
     main()

@@ -4,6 +4,12 @@ import traceback
 import sentry_sdk
 
 # ------------------------------------------------------------------------------
+# FEATURE FLAGS (Flip to True once base parcel & wastewater ingestion is ready)
+# ------------------------------------------------------------------------------
+ENABLE_PARCEL_DELTAS = False
+ENABLE_WASTEWATER = False
+
+# ------------------------------------------------------------------------------
 # 1. INITIALIZE SENTRY (Global Process Handler)
 # ------------------------------------------------------------------------------
 SENTRY_DSN = os.getenv("SENTRY_DSN")
@@ -20,10 +26,15 @@ else:
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+
 # ------------------------------------------------------------------------------
 # 2. ENHANCED SAFE_TASK WITH SENTRY ERROR CAPTURE
 # ------------------------------------------------------------------------------
-def safe_task(task_name, func, county="Regional"):
+def safe_task(task_name, func, county="Regional", enabled=True):
+    if not enabled:
+        print(f"⏸️ [Monthly Master] Paused: {task_name} (toggle flag in harvest_monthly.py to re-enable)\n")
+        return
+
     print(f"🚀 [Monthly Master] Starting: {task_name}...")
     try:
         func()
@@ -43,6 +54,7 @@ def safe_task(task_name, func, county="Regional"):
 
         print(f"⚠️ Skipping {task_name}.\n")
 
+
 def run_subscript(script_relative_path):
     path = os.path.join(BASE_DIR, "scripts", "monthly", script_relative_path)
     if os.path.exists(path):
@@ -51,6 +63,7 @@ def run_subscript(script_relative_path):
             raise RuntimeError(f"Sub-script '{script_relative_path}' failed with exit code {exit_code}")
     else:
         raise FileNotFoundError(f"Script not found at expected path: {path}")
+
 
 # Task Callers
 def harvest_census_demographics(): run_subscript("census_demographics.py")
@@ -63,6 +76,7 @@ def harvest_parcel_deltas(): run_subscript("sync_parcel_deltas.py")
 def harvest_fha_condos(): run_subscript("harvest_fha_condos.py")
 def harvest_va_condos(): run_subscript("harvest_va_condos.py")
 def harvest_wastewater(): run_subscript("wastewater_update.py")
+
 
 # ------------------------------------------------------------------------------
 # 3. MASTER MONTHLY RUNNER
@@ -78,12 +92,13 @@ def main():
     safe_task("4. Advanced Redfin Monthly Analytics & Migration", harvest_redfin_monthly)
     safe_task("5. Google Places Local Business Spotlights", harvest_businesses)
     safe_task("6. Utility Directory Ingestion (Google Sheets to D1)", harvest_monthly_sheets)
-    safe_task("7. County Parcel Roll Delta Synchronization", harvest_parcel_deltas)
+    safe_task("7. County Parcel Roll Delta Synchronization", harvest_parcel_deltas, enabled=ENABLE_PARCEL_DELTAS)
     safe_task("8. FHA Condo Certification Roll (HUD ENTP to D1)", harvest_fha_condos)
     safe_task("9. VA Condo Loan Approval Registry (VA LGY to D1)", harvest_va_condos)
-    safe_task("10. Live Wastewater & Septic Harvester (ArcGIS & OnlineRME)", harvest_wastewater, county="Both")
+    safe_task("10. Live Wastewater & Septic Harvester (ArcGIS & OnlineRME)", harvest_wastewater, county="Both", enabled=ENABLE_WASTEWATER)
 
     print("🎉 Monthly master harvesting sequence complete. Database fresh!")
+
 
 if __name__ == "__main__":
     main()

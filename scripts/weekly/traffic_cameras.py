@@ -9,16 +9,20 @@ CITY_DATA_PATH = os.path.join(DATA_DIR, "city_data.json")
 CITY_BOUNDARIES_PATH = os.path.join(DATA_DIR, "city_boundaries.json")
 OUT_PATH = os.path.join(DATA_DIR, "city_traffic_cams.json")
 
+
 def slugify(text):
-    if not text: return ""
+    if not text:
+        return ""
     text = str(text).lower().strip()
-    out = [ch if ch.isalnum() else '-' for ch in text]
+    out = [ch if ch.isalnum() else "-" for ch in text]
     res = "".join(out)
-    while '--' in res: res = res.replace('--', '-')
-    return res.strip('-')
+    while "--" in res:
+        res = res.replace("--", "-")
+    return res.strip("-")
+
 
 def http_get_json_simple(url, timeout=25):
-    headers = {"User-Agent": "Mozilla/5.0"}
+    headers = {"User-Agent": "MySeattleSearch/1.0 (+https://myseattlesearch.com)"}
     req = urllib.request.Request(url, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -28,16 +32,26 @@ def http_get_json_simple(url, timeout=25):
         print(f"   ⚠️ Traffic Cam GET notice [{url[:50]}...]: {e}")
     return None
 
+
 def get_geometry_bbox(geometry):
     g_type, coords = geometry.get("type"), geometry.get("coordinates", [])
     all_pts = []
     if g_type == "Polygon":
-        for ring in coords: all_pts.extend(ring)
+        for ring in coords:
+            all_pts.extend(ring)
     elif g_type == "MultiPolygon":
         for poly in coords:
-            for ring in poly: all_pts.extend(ring)
-    if not all_pts: return None
-    return (min(pt[1] for pt in all_pts), min(pt[0] for pt in all_pts), max(pt[1] for pt in all_pts), max(pt[0] for pt in all_pts))
+            for ring in poly:
+                all_pts.extend(ring)
+    if not all_pts:
+        return None
+    return (
+        min(pt[1] for pt in all_pts),
+        min(pt[0] for pt in all_pts),
+        max(pt[1] for pt in all_pts),
+        max(pt[0] for pt in all_pts)
+    )
+
 
 def point_in_ring(lat, lon, ring):
     inside = False
@@ -47,9 +61,11 @@ def point_in_ring(lat, lon, ring):
         xi, yi = ring[i][0], ring[i][1]
         xj, yj = ring[j][0], ring[j][1]
         intersect = ((yi > lat) != (yj > lat)) and (lon < (xj - xi) * (lat - yi) / (yj - yi + 1e-12) + xi)
-        if intersect: inside = not inside
+        if intersect:
+            inside = not inside
         j = i
     return inside
+
 
 def point_in_geometry(lat, lon, geometry):
     g_type, coords = geometry.get("type"), geometry.get("coordinates", [])
@@ -63,8 +79,10 @@ def point_in_geometry(lat, lon, geometry):
                     return True
     return False
 
+
 def load_city_boundaries():
-    if not os.path.exists(CITY_BOUNDARIES_PATH): return []
+    if not os.path.exists(CITY_BOUNDARIES_PATH):
+        return []
     with open(CITY_BOUNDARIES_PATH, "r", encoding="utf-8") as f:
         data = json.load(f)
     indexed = []
@@ -76,6 +94,7 @@ def load_city_boundaries():
             indexed.append({"slug": slug, "bbox": bbox, "geometry": feat.get("geometry", {})})
     return indexed
 
+
 def match_city_for_point(lat, lon, city_boundaries):
     for city in city_boundaries:
         bbox = city["bbox"]
@@ -83,6 +102,7 @@ def match_city_for_point(lat, lon, city_boundaries):
             if point_in_geometry(lat, lon, city["geometry"]):
                 return city["slug"]
     return None
+
 
 def main():
     print("📹 Harvesting Live Multi-Agency Traffic Cameras (WSDOT & SDOT)...")
@@ -94,14 +114,17 @@ def main():
         raw_cities = json.load(f)
 
     items = raw_cities if isinstance(raw_cities, list) else list(raw_cities.values())
-    cities = [{"slug": slugify(it.get("City") or it.get("name") or ""), "name": str(it.get("City") or it.get("name") or "").strip()} for it in items if it.get("City") or it.get("name")]
-    
+    cities = [
+        {"slug": slugify(it.get("City") or it.get("name") or ""), "name": str(it.get("City") or it.get("name") or "").strip()}
+        for it in items
+        if it.get("City") or it.get("name")
+    ]
+
     city_boundaries = load_city_boundaries()
     wsdot_code = os.environ.get("WSDOT_ACCESS_CODE", "").strip().strip("'").strip('"')
     city_map = {c["slug"]: {"name": c["name"], "cameras": []} for c in cities}
     total_found = 0
 
-    # 1. WSDOT Cameras
     if wsdot_code:
         wsdot_url = f"https://wsdot.wa.gov/Traffic/api/HighwayCameras/HighwayCamerasREST.svc/GetCamerasAsJson?AccessCode={wsdot_code}"
         cams = http_get_json_simple(wsdot_url)
@@ -110,8 +133,9 @@ def main():
                 try:
                     clat = float(cam.get("CameraLocation", {}).get("Latitude"))
                     clon = float(cam.get("CameraLocation", {}).get("Longitude"))
-                except (ValueError, TypeError): continue
-                    
+                except (ValueError, TypeError):
+                    continue
+
                 cam_id = f"wsdot-{cam.get('CameraID')}"
                 title = cam.get("Title") or cam.get("CameraOwner") or "WSDOT Camera"
                 matched_slug = match_city_for_point(clat, clon, city_boundaries)
@@ -123,7 +147,6 @@ def main():
                     })
                     total_found += 1
 
-    # 2. SDOT Cameras (Seattle Open Data Socrata API)
     sdot_url = "https://data.seattle.gov/resource/65db-xm6k.json?$limit=1000"
     sdot_cams = http_get_json_simple(sdot_url)
     if sdot_cams and isinstance(sdot_cams, list):
@@ -131,7 +154,8 @@ def main():
             try:
                 clat = float(cam.get("latitude") or cam.get("location", {}).get("latitude"))
                 clon = float(cam.get("longitude") or cam.get("location", {}).get("longitude"))
-            except (ValueError, TypeError): continue
+            except (ValueError, TypeError):
+                continue
 
             cam_id = f"sdot-{cam.get('cameraid') or idx}"
             title = cam.get("cameralocation") or cam.get("webcamtitle") or "SDOT Camera"
@@ -145,8 +169,17 @@ def main():
                 })
                 total_found += 1
 
+    if total_found == 0 and os.path.exists(OUT_PATH):
+        print(f"⚠️ 0 traffic cameras returned across WSDOT/SDOT; preserving existing {OUT_PATH}.")
+        return
+
     output = {
-        slug: {"name": details["name"], "camera_count": len(details["cameras"]), "cameras": details["cameras"], "last_updated": datetime.now(timezone.utc).isoformat()}
+        slug: {
+            "name": details["name"],
+            "camera_count": len(details["cameras"]),
+            "cameras": details["cameras"],
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        }
         for slug, details in city_map.items()
     }
 
@@ -154,6 +187,7 @@ def main():
     with open(OUT_PATH, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
     print(f"💾 Saved {total_found} active live traffic cameras to {OUT_PATH}")
+
 
 if __name__ == "__main__":
     main()
