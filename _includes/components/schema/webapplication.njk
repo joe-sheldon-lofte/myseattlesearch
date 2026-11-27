@@ -1,0 +1,59 @@
+{#
+  COMPONENT: WebApplication Schema (schema.webapplication)
+  PURPOSE: Declares interactive financial and real estate calculators for search and AI discovery.
+#}
+
+{% set is_debug = ('design-system' in (page.url | default(''))) or schema_debug %}
+{% set app_name = schema_app_name or title or "MySeattleSearch Interactive Tool" %}
+{% set app_url = schema_app_url or ("https://myseattlesearch.com" ~ (page.url | default("/"))) %}
+{% set app_desc = schema_app_description or meta_description or description or "Interactive Puget Sound real estate and municipal planning tool." %}
+{% set app_category = schema_app_category or "FinanceApplication" %}
+{% set app_id = schema_app_id or (app_url ~ "#calculator") %}
+
+{% if app_name and app_url %}
+  {% if is_debug %}
+  <aside class="widget-card schema-preview-card" aria-label="Schema Debug: WebApplication">
+    <div>
+      <div class="schema-header-strip">
+        <span class="text-overline text-accent-alpine">SCHEMA.ORG JSON-LD</span>
+        <span class="schema-badge-validated">Validated</span>
+      </div>
+      <h4 class="schema-headline">WebApplication</h4>
+      <p class="schema-caption">
+        Interactive application schema for <strong>{{ app_name }}</strong>.
+      </p>
+    </div>
+    <details class="schema-details-drawer">
+      <summary class="schema-summary-trigger">Inspect JSON-LD</summary>
+      <pre class="schema-code-block"><code>{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": {{ app_name | dump | safe }},
+  "url": {{ app_url | dump | safe }}
+}</code></pre>
+    </details>
+  </aside>
+  {% endif %}
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "@id": {{ app_id | dump | safe }},
+    "name": {{ app_name | dump | safe }},
+    "url": {{ app_url | dump | safe }},
+    "description": {{ app_desc | dump | safe }},
+    "applicationCategory": {{ app_category | dump | safe }},
+    "operatingSystem": "All",
+    "author": {
+      "@type": "RealEstateAgent",
+      "@id": "https://myseattlesearch.com/#agent",
+      "name": "Joe Sheldon - Redfin Real Estate Agent"
+    },
+    "provider": {
+      "@type": "RealEstateAgent",
+      "@id": "https://myseattlesearch.com/#agent"
+    }
+  }
+  </script>
+{% endif %}

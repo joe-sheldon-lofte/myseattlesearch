@@ -5,27 +5,10 @@ description: "A straightforward look at how the total cost of buying a home toda
 permalink: /realestate/calculators/buynowvslater/index.html
 ---
 
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "@id": "https://myseattlesearch.com/realestate/calculators/buynowvslater/#calculator",
-  "name": "Buy Now vs. Waiting Cost Calculator",
-  "url": "https://myseattlesearch.com/realestate/calculators/buynowvslater/",
-  "description": "An interactive real estate financial comparison tool analyzing the cost of buying a home today versus waiting, based on regional market history.",
-  "applicationCategory": "FinanceApplication",
-  "operatingSystem": "All",
-  "author": {
-    "@type": "RealEstateAgent",
-    "@id": "https://myseattlesearch.com/#agent",
-    "name": "Joe Sheldon - Redfin Real Estate Agent"
-  },
-  "provider": {
-    "@type": "RealEstateAgent",
-    "@id": "https://myseattlesearch.com/#agent"
-  }
-}
-</script>
+{% set schema_app_name = "Buy Now vs. Waiting Cost Calculator" %}
+{% set schema_app_url = "https://myseattlesearch.com/realestate/calculators/buynowvslater/" %}
+{% set schema_app_id = "https://myseattlesearch.com/realestate/calculators/buynowvslater/#calculator" %}
+{% include "components/schema/webapplication.njk" ignore missing %}
 
 <main class="layout-container layout-stack-main">
 
@@ -36,7 +19,7 @@ permalink: /realestate/calculators/buynowvslater/index.html
     </p>
   </header>
 
-  <div class="section-divider"></div>
+  <hr class="section-divider">
 
   {# Section 1.0: Strategy Control Card #}
   <section id="cost-inputs" data-nav-title="Inputs" class="surface-bento">
@@ -123,8 +106,8 @@ permalink: /realestate/calculators/buynowvslater/index.html
 
   {# Section 2.0: Comparison Results #}
   <section id="resultsWrapper" class="calc-results-stage" data-nav-title="Comparison Results">
-    
-    {# Strategic Executive Summary Banner (With 2rem Bottom Spacing) #}
+
+    {# Strategic Executive Summary Banner #}
     <div class="surface-bento calc-summary-card" id="summaryBoxBlock">
       <h2 class="text-widget-title" id="txtSummaryTitle">Cost of Waiting Summary</h2>
       <p class="text-body-secondary" id="txtSummarySubtitle">When combining projected home price growth, rent paid while waiting, and the expected mortgage loan reduction over this timeframe, the total calculated variance is:</p>
@@ -213,6 +196,27 @@ permalink: /realestate/calculators/buynowvslater/index.html
     }
   }
 
+  function sanitizeJsonNumbers(val) {
+    if (typeof val === 'number' && Number.isNaN(val)) return null;
+    if (Array.isArray(val)) return val.map(sanitizeJsonNumbers);
+    if (val && typeof val === 'object') {
+      const cleanObj = {};
+      Object.keys(val).forEach(k => {
+        cleanObj[k] = sanitizeJsonNumbers(val[k]);
+      });
+      return cleanObj;
+    }
+    return val;
+  }
+
+  function calculateAmortization(principal, annualRate) {
+    if (principal <= 0) return 0;
+    const monthlyRate = (annualRate / 100) / 12;
+    const totalPayments = 360;
+    if (monthlyRate === 0) return principal / totalPayments;
+    return principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / (Math.pow(1 + monthlyRate, totalPayments) - 1);
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     fetch('/data/hourly_rates.json')
       .then(response => response.json())
@@ -222,7 +226,7 @@ permalink: /realestate/calculators/buynowvslater/index.html
           validRows.sort((a, b) => new Date(Object.values(a)[0].split(' ')[0]) - new Date(Object.values(b)[0].split(' ')[0]));
           const latestRow = validRows[validRows.length - 1];
           const latestVals = Object.values(latestRow);
-          
+
           const convRate = parseFloat(latestVals[1]);
           const fhaRate = parseFloat(latestVals[2]);
           const vaRate = parseFloat(latestVals[3]);
@@ -230,7 +234,7 @@ permalink: /realestate/calculators/buynowvslater/index.html
           if (!isNaN(convRate)) parsedFeedRatesRegistry['Conventional'] = convRate;
           if (!isNaN(fhaRate)) parsedFeedRatesRegistry['FHA'] = fhaRate;
           if (!isNaN(vaRate)) parsedFeedRatesRegistry['VA'] = vaRate;
-          
+
           updateDisplayedRate();
         }
       })
@@ -242,18 +246,19 @@ permalink: /realestate/calculators/buynowvslater/index.html
     let dataStore = { cities: {}, infosparks: {}, computedAppreciation: 4.5 };
 
     const cleanNum = (str) => {
-      if (str === null || str === undefined || str === 'NaN') return 0;
+      if (str === null || str === undefined || str === 'NaN' || Number.isNaN(str)) return 0;
       return parseFloat((str).toString().replace(/[^0-9.-]+/g, "")) || 0;
     };
     const formatCurrency = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
 
     const fetchJSON = async (path) => {
-      try { 
-        const res = await fetch(path); 
-        if (!res.ok) return null; 
-        return JSON.parse((await res.text()).replace(/:\s*NaN/g, ": null")); 
-      } catch (e) { 
-        return null; 
+      try {
+        const res = await fetch(path);
+        if (!res.ok) return null;
+        const raw = await res.json();
+        return sanitizeJsonNumbers(raw);
+      } catch (e) {
+        return null;
       }
     };
 
@@ -275,7 +280,7 @@ permalink: /realestate/calculators/buynowvslater/index.html
     function populateDropdown() {
       const select = document.getElementById('citySelect');
       let optionsHtml = '';
-      Object.values(dataStore.cities).sort((a,b) => a.city.localeCompare(b.city)).forEach(item => {
+      Object.values(dataStore.cities).sort((a, b) => a.city.localeCompare(b.city)).forEach(item => {
         optionsHtml += `<option value="${item.city}">${item.city}</option>`;
       });
       select.innerHTML = optionsHtml;
@@ -292,21 +297,21 @@ permalink: /realestate/calculators/buynowvslater/index.html
         if (feedKey.toLowerCase().includes('median_sale_price')) {
           const feed = dataStore.infosparks[feedKey];
           let rows = Array.isArray(feed) ? feed : (feed.data || []);
-          
+
           if (rows.length > 0) {
             const validRow = rows.find(r => r.Date && !String(r.Date).includes("All data from"));
             if (validRow && Object.keys(validRow).some(k => k.toLowerCase().trim() === target)) {
               timeline = rows.filter(row => {
                 if (!row || !row.Date || String(row.Date).includes("All data from")) return false;
                 let v = row[Object.keys(row).find(k => k.toLowerCase().trim() === target)];
-                return v !== null && v !== undefined && v !== 'NaN' && !Number.isNaN(v);
+                return v !== null && v !== undefined && v !== 'NaN' && !Number.isNaN(Number(v));
               }).map(row => cleanNum(row[Object.keys(row).find(k => k.toLowerCase().trim() === target)]));
             }
           }
         }
       }
 
-      let appreciationRate = 4.5; 
+      let appreciationRate = 4.5;
       let currentMedian = 800000;
 
       if (timeline.length > 1) {
@@ -351,7 +356,7 @@ permalink: /realestate/calculators/buynowvslater/index.html
       else if (loanType === 'VA') loanAmountNow += (loanAmountNow * 0.0215);
 
       const monthlyPINow = calculateAmortization(loanAmountNow, rateNow);
-      const taxAndInsNow = (priceNow * 0.009 / 12) + 120; 
+      const taxAndInsNow = (priceNow * 0.009 / 12) + 120;
       let pmiNow = 0;
       if (loanType === 'Conventional' && (cashDownNow / priceNow) < 0.20) pmiNow = (loanAmountNow * 0.005 / 12);
       else if (loanType === 'FHA') pmiNow = (loanAmountNow * 0.0055 / 12);
@@ -372,7 +377,7 @@ permalink: /realestate/calculators/buynowvslater/index.html
 
       const priceIncreasePenalty = priceLater - priceNow;
       const totalRentSunk = baseRent * 12 * waitYears;
-      
+
       let trackingBalance = loanAmountNow;
       const monthlyRateNow = (rateNow / 100) / 12;
       const totalMonthsToWait = waitYears * 12;
@@ -430,16 +435,8 @@ permalink: /realestate/calculators/buynowvslater/index.html
       }
 
       const resultsWrapper = document.getElementById('resultsWrapper');
-      resultsWrapper.style.display = 'block';
+      resultsWrapper.classList.add('is-visible');
       resultsWrapper.scrollIntoView({ behavior: 'smooth' });
     };
-
-    function calculateAmortization(principal, annualRate) {
-      if (principal <= 0) return 0;
-      const monthlyRate = (annualRate / 100) / 12;
-      const totalPayments = 360;
-      if (monthlyRate === 0) return principal / totalPayments;
-      return principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / (Math.pow(1 + monthlyRate, totalPayments) - 1);
-    }
   });
 </script>

@@ -5,35 +5,22 @@ description: "An interactive 30-year housing financial planner comparing wealth 
 permalink: /realestate/calculators/rentvsbuy/index.html
 ---
 
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "@id": "https://myseattlesearch.com/realestate/calculators/rentvsbuy/#calculator",
-  "name": "Renting vs. Buying 30-Year Wealth Journey Calculator",
-  "url": "https://myseattlesearch.com/realestate/calculators/rentvsbuy/",
-  "description": "An interactive 30-year housing financial planner comparing wealth compounding, home equity growth, rent inflation, and life milestone transitions.",
-  "applicationCategory": "FinanceApplication",
-  "operatingSystem": "All",
-  "author": {
-    "@type": "RealEstateAgent",
-    "@id": "https://myseattlesearch.com/#agent",
-    "name": "Joe Sheldon - Redfin Real Estate Agent"
-  }
-}
-</script>
+{% set schema_app_name = "Renting vs. Buying 30-Year Wealth Journey Calculator" %}
+{% set schema_app_url = "https://myseattlesearch.com/realestate/calculators/rentvsbuy/" %}
+{% set schema_app_id = "https://myseattlesearch.com/realestate/calculators/rentvsbuy/#calculator" %}
+{% include "components/schema/webapplication.njk" ignore missing %}
 
 <main class="layout-container layout-stack-main">
 
   {# Canonical Page Hero Header #}
   <header class="surface-bento page-hero-bento">
-    <h1 class="text-page-title" style="margin-bottom: 0.5rem;">Housing Planner: Renting vs. Buying Modeler</h1>
+    <h1 class="text-page-title calc-hero-title-spaced">Housing Planner: Renting vs. Buying Modeler</h1>
     <p class="text-body page-hero-lead">
       Put real estate decisions on a personal scale based on major life milestones.
     </p>
   </header>
 
-  <div class="section-divider"></div>
+  <hr class="section-divider">
 
   {# Section 1.0: Strategy Control Card #}
   <section id="financing-parameters" data-nav-title="Parameters" class="surface-bento calc-control-card">
@@ -128,7 +115,7 @@ permalink: /realestate/calculators/rentvsbuy/index.html
 
   {# Section 2.0: Timeline Results Display #}
   <section id="resultsCardWrapper" class="surface-bento rvb-results-card" data-nav-title="Timeline">
-    
+
     <div class="print-only-header">
       <div class="card-header-split">
         <div>
@@ -146,7 +133,7 @@ permalink: /realestate/calculators/rentvsbuy/index.html
       <h2 class="text-widget-title">30-Year Financial Horizon Analysis</h2>
       <p class="text-body-secondary">A side-by-side annual breakdown itemizing property appreciation, remaining debt obligations, housing expenses, and calculated net equity variances.</p>
     </div>
-    
+
     <div class="table-scroll-container">
       <table class="timeline-data-table">
         <thead>
@@ -165,14 +152,14 @@ permalink: /realestate/calculators/rentvsbuy/index.html
     </div>
 
     {# Modular Single-Card Loan Officer Referral Block #}
-    <article class="surface-bento profile-single-card" style="margin-top: 3rem;">
+    <article class="surface-bento profile-single-card calc-partner-spaced">
       <div class="profile-avatar-wrapper">
-        <img src="https://assets.myseattlesearch.com/repomove/carly.webp" alt="Carly Ozuna" width="150" height="150" class="avatar-squircle" loading="lazy" onerror="this.src='https://placehold.co/150x150?text=Carly+Ozuna'">
+        <img src="https://assets.myseattlesearch.com/repomove/carly.webp" alt="Carly Ozuna" width="150" height="150" class="avatar-squircle" loading="lazy">
       </div>
-      
+
       <div class="text-overline people-role-tag">Preferred Lending Partner &bull; Rocket Mortgage</div>
       <h2 class="profile-name-heading">Carly Ozuna</h2>
-      
+
       <div class="people-contact-meta">
         <a href="tel:4252184630" class="people-contact-link">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
@@ -183,8 +170,8 @@ permalink: /realestate/calculators/rentvsbuy/index.html
           <span>carlyozuna@rocketmortgage.com</span>
         </a>
       </div>
-      
-      <div class="action-tray-constrained profile-cta-wrapper" style="margin-top: 1.25rem;">
+
+      <div class="action-tray-constrained profile-cta-wrapper calc-cta-spaced">
         <a href="https://rkt.me/carlyozuna#rf_aid=4621" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
           <span>Apply Securely with Carly &rarr;</span>
         </a>
@@ -194,6 +181,8 @@ permalink: /realestate/calculators/rentvsbuy/index.html
     <div class="compliance-disclaimer-text">
       Legal Disclaimer and Education Notice: All calculations, appreciation tracks, rent inflation rates, and mortgage interest models are designed for consumer educational and illustrative analysis. Local tax rules, standard deductions, and insurance premiums can vary over a 30-year lifecycle. This layout does not constitute a formal commitment to lend or official tax advice. Washington state enforces no individual personal income tax. Interest adjustments follow federal tax bracket guidelines. Consult a certified public accountant and a licensed mortgage professional for underwriting verification.
     </div>
+
+  </section>
 
 </main>
 
@@ -214,14 +203,14 @@ permalink: /realestate/calculators/rentvsbuy/index.html
       const res = await fetch('/data/hourly_rates.json');
       if (!res.ok) throw new Error("Rates JSON not found");
       const rows = await res.json();
-      
+
       if (rows && rows.length > 0) {
         const validRows = rows.filter(r => Object.values(r)[0] && String(Object.values(r)[0]).trim() !== '');
         validRows.sort((a, b) => new Date(Object.values(a)[0].split(' ')[0]) - new Date(Object.values(b)[0].split(' ')[0]));
-        
+
         const latestRow = validRows[validRows.length - 1];
         const latestVals = Object.values(latestRow);
-        
+
         const convRate = parseFloat(latestVals[1]);
         const fhaRate = parseFloat(latestVals[2]);
         const vaRate = parseFloat(latestVals[3]);
@@ -256,8 +245,8 @@ permalink: /realestate/calculators/rentvsbuy/index.html
     const rateInput = document.getElementById('inRate');
 
     if (activeLockStateAutomated && price > 0) {
-      if (type === 'VA') { downValEl.value = 0; unitEl.value = '%'; } 
-      else if (type === 'FHA') { downValEl.value = 3.5; unitEl.value = '%'; } 
+      if (type === 'VA') { downValEl.value = 0; unitEl.value = '%'; }
+      else if (type === 'FHA') { downValEl.value = 3.5; unitEl.value = '%'; }
       else { downValEl.value = 5; unitEl.value = '%'; }
     }
 
@@ -274,7 +263,7 @@ permalink: /realestate/calculators/rentvsbuy/index.html
       else if (credit < 740) adjustmentFactor += 0.25;
 
       if (computedDownPct < 5) adjustmentFactor += 0.25;
-      if (computedDownPct >= 20) adjustmentFactor -= 0.25; 
+      if (computedDownPct >= 20) adjustmentFactor -= 0.25;
     }
 
     rateInput.value = (baseRate + adjustmentFactor).toFixed(3);
@@ -288,7 +277,7 @@ permalink: /realestate/calculators/rentvsbuy/index.html
 
   function handleViewModeConfigurationChange(val) {
     const sliderInput = document.getElementById('inCycleLength');
-    if (val === 'flat30') { sliderInput.value = 31; handleSliderMovementValueUpdate(31); } 
+    if (val === 'flat30') { sliderInput.value = 31; handleSliderMovementValueUpdate(31); }
     else { sliderInput.value = 10.3; handleSliderMovementValueUpdate(10.3); }
   }
 
@@ -319,7 +308,7 @@ permalink: /realestate/calculators/rentvsbuy/index.html
     const inputRateVal = parseFloat(document.getElementById('inRate').value) || 6.5;
     const programType = document.getElementById('inLoanType').value;
     const viewMode = document.getElementById('inViewMode').value;
-    
+
     let targetCycleLength = parseFloat(document.getElementById('inCycleLength').value) || 10.3;
     let executeCyclicResets = true;
     if (targetCycleLength > 30 || viewMode === 'flat30') { executeCyclicResets = false; targetCycleLength = 999; }
@@ -330,6 +319,7 @@ permalink: /realestate/calculators/rentvsbuy/index.html
     const rentInflation = 4.0;
     const moveFreq = 3;
     const moveCost = 2500;
+    const buyerClosingPct = 2.0;
     const standardDeductionLimit = 15600;
     const federalMarginalTaxBracket = estimateFederalTaxBracketMarginalRate(income);
 
@@ -345,7 +335,7 @@ permalink: /realestate/calculators/rentvsbuy/index.html
     } else if (programType === 'VA') {
       initialUpfrontPremiumWrapped = principalFirstMortgage * 0.0215;
       principalFirstMortgage += initialUpfrontPremiumWrapped;
-      calculatedDownPaymentDollars = 0; 
+      calculatedDownPaymentDollars = 0;
     }
 
     let activeMonthlyPI = calculateAmortizationMonthlyPayment(principalFirstMortgage, inputRateVal);
@@ -436,25 +426,26 @@ permalink: /realestate/calculators/rentvsbuy/index.html
       if (executeCyclicResets && cycleTimerCounter >= Math.floor(targetCycleLength) && year < 30) {
         milestoneMarkupClass = 'cycle-transition-row';
         const salesTransactionFrictionCosts = currentHomeValue * 0.07;
+        const buyerPurchaseClosingCosts = currentHomeValue * (buyerClosingPct / 100);
         const liquidatedNetProceedsEquityCash = currentHomeValue - activeLoanBalance - salesTransactionFrictionCosts;
-        basePrice = currentHomeValue; 
+        basePrice = currentHomeValue;
         currentHomeValue = basePrice;
         calculatedDownPaymentDollars = liquidatedNetProceedsEquityCash;
         activeLoanBalance = basePrice - calculatedDownPaymentDollars;
         if (programType === 'FHA') activeLoanBalance += (activeLoanBalance * 0.0175);
         else if (programType === 'VA') activeLoanBalance += (activeLoanBalance * 0.0215);
         activeMonthlyPI = calculateAmortizationMonthlyPayment(activeLoanBalance, inputRateVal);
-        cumulativeBuyerOutflow += salesTransactionFrictionCosts; 
+        cumulativeBuyerOutflow += (salesTransactionFrictionCosts + buyerPurchaseClosingCosts);
         accumulatedCurrentHomeEquity = currentHomeValue - activeLoanBalance;
-        narrativeNoteBlockText = `<span class="milestone-tag-badge badge-cycle">Property Sale</span> Based on average Washington state patterns, this year reflects selling the home, accounting for typical transaction closing fees, and rolling the net cash proceeds into a subsequent property purchase.`;
+        narrativeNoteBlockText = `<span class="milestone-tag-badge badge-cycle">Property Sale</span> Based on average Washington state patterns, this year reflects selling the home, accounting for typical transaction closing fees and estimated 2% buyer closing costs on the next purchase, and rolling the net cash proceeds into a subsequent property purchase.`;
         cycleTimerCounter = 0;
       }
 
       if (flagMovingFrictionTrigger && milestoneMarkupClass === '') narrativeNoteBlockText += ` Moving year: Includes an estimated ${formatCurrency(moveCost)} in relocation expenses.`;
 
       if (!executeCyclicResets) {
-        if (year === 10) { milestoneMarkupClass = 'flat-milestone-row'; narrativeNoteBlockText = `<span class="milestone-tag-badge badge-flat">Tenure Baseline</span> This year matches the general ownership timeline duration tracked across local municipality properties.`; } 
-        else if (year === 15) { milestoneMarkupClass = 'flat-milestone-row'; narrativeNoteBlockText = `<span class="milestone-tag-badge">Amortization Crossover</span> At this point in the standard thirty year timeline, the monthly principal reduction exceeds the monthly interest portion of the payment.`; } 
+        if (year === 10) { milestoneMarkupClass = 'flat-milestone-row'; narrativeNoteBlockText = `<span class="milestone-tag-badge badge-flat">Tenure Baseline</span> This year matches the general ownership timeline duration tracked across local municipality properties.`; }
+        else if (year === 15) { milestoneMarkupClass = 'flat-milestone-row'; narrativeNoteBlockText = `<span class="milestone-tag-badge">Amortization Crossover</span> At this point in the standard thirty year timeline, the monthly principal reduction exceeds the monthly interest portion of the payment.`; }
         else if (year === 30) { milestoneMarkupClass = 'flat-milestone-row'; narrativeNoteBlockText = `<span class="milestone-tag-badge badge-flat">Loan Completed</span> The primary mortgage is fully paid off. Subsequent property obligations are limited to property taxes and insurance distributions.`; }
       }
 
@@ -479,7 +470,7 @@ permalink: /realestate/calculators/rentvsbuy/index.html
 
     tableBodyOutput.innerHTML = htmlBuffer;
     const resultsWrapper = document.getElementById('resultsCardWrapper');
-    resultsWrapper.style.display = 'block';
+    resultsWrapper.classList.add('is-visible');
     resultsWrapper.scrollIntoView({ behavior: 'smooth' });
   }
 </script>

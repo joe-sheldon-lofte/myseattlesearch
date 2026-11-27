@@ -5,27 +5,10 @@ description: "Calculate estimated net cash proceeds from selling a home in Washi
 permalink: /realestate/calculators/estnetproceeds/index.html
 ---
 
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "@id": "https://myseattlesearch.com/realestate/calculators/estnetproceeds/#calculator",
-  "name": "Sellers Estimated Net Proceeds Calculator",
-  "url": "https://myseattlesearch.com/realestate/calculators/estnetproceeds/",
-  "description": "Calculate estimated net cash proceeds from selling a home in Washington State, accounting for mortgage payoffs, state REET taxes, commissions, and escrow fees.",
-  "applicationCategory": "FinanceApplication",
-  "operatingSystem": "All",
-  "author": {
-    "@type": "RealEstateAgent",
-    "@id": "https://myseattlesearch.com/#agent",
-    "name": "Joe Sheldon - Redfin Real Estate Agent"
-  },
-  "provider": {
-    "@type": "RealEstateAgent",
-    "@id": "https://myseattlesearch.com/#agent"
-  }
-}
-</script>
+{% set schema_app_name = "Sellers Estimated Net Proceeds Calculator" %}
+{% set schema_app_url = "https://myseattlesearch.com/realestate/calculators/estnetproceeds/" %}
+{% set schema_app_id = "https://myseattlesearch.com/realestate/calculators/estnetproceeds/#calculator" %}
+{% include "components/schema/webapplication.njk" ignore missing %}
 
 <main class="layout-container layout-stack-main">
 
@@ -36,7 +19,7 @@ permalink: /realestate/calculators/estnetproceeds/index.html
     </p>
   </header>
 
-  <div class="section-divider"></div>
+  <hr class="section-divider">
 
   {# Section 1.0: Property & Transaction Inputs #}
   <section id="net-proceeds-inputs" data-nav-title="Inputs" class="surface-bento">
@@ -119,9 +102,8 @@ permalink: /realestate/calculators/estnetproceeds/index.html
         <label for="inBuyerComp">Buyer Agent Compensation (%)</label>
         <input type="number" id="inBuyerComp" value="2.5" step="0.1">
       </div>
-      
-      {# Empty div to force the 3-column grid to push the next full-span row down #}
-      <div></div>
+
+      <div class="calc-grid-spacer" aria-hidden="true"></div>
 
       {# Row 5: Settlement Options (Spans Full Width) #}
       <div class="calc-field-group calc-span-full">
@@ -163,6 +145,8 @@ permalink: /realestate/calculators/estnetproceeds/index.html
         </div>
       </div>
 
+      <div id="chat-init-error" class="calc-inline-error calc-span-full" role="alert" hidden></div>
+
       {# Action Button Row #}
       <div class="calc-action-row calc-span-full">
         <button type="button" class="btn btn-primary calc-btn-submit" onclick="calculateNetProceeds()">Calculate Estimated Proceeds</button>
@@ -172,7 +156,7 @@ permalink: /realestate/calculators/estnetproceeds/index.html
 
   {# Section 2.0: Estimated Proceeds Ledger Output #}
   <section id="resultsWrapper" class="calc-results-stage" data-nav-title="Estimated Proceeds">
-    
+
     <div class="surface-bento calc-summary-card">
       <h2 class="text-widget-title">Estimated Net Cash to Seller</h2>
       <div class="calc-stat-hero" id="txtNetProceeds">$0</div>
@@ -209,7 +193,7 @@ permalink: /realestate/calculators/estnetproceeds/index.html
       </div>
     </article>
 
-    <div class="section-divider"></div>
+    <hr class="section-divider">
 
     {# Preferred Partner Block #}
     <article class="surface-bento pathway-item-card">
@@ -236,7 +220,7 @@ permalink: /realestate/calculators/estnetproceeds/index.html
     const today = new Date();
     const defaultClosing = new Date();
     defaultClosing.setDate(today.getDate() + 30);
-    
+
     const monthStr = String(defaultClosing.getMonth() + 1).padStart(2, '0');
     const dayStr = String(defaultClosing.getDate()).padStart(2, '0');
     document.getElementById('inClosingDate').value = `${defaultClosing.getFullYear()}-${monthStr}-${dayStr}`;
@@ -307,6 +291,20 @@ permalink: /realestate/calculators/estnetproceeds/index.html
     }
   });
 
+  function showValidationError(message) {
+    const errBox = document.getElementById('chat-init-error');
+    if (!errBox) return;
+    errBox.textContent = message;
+    errBox.hidden = false;
+  }
+
+  function clearValidationError() {
+    const errBox = document.getElementById('chat-init-error');
+    if (!errBox) return;
+    errBox.textContent = '';
+    errBox.hidden = true;
+  }
+
   function triggerTaxManualOverrideState() {
     isTaxManual = true;
   }
@@ -326,16 +324,21 @@ permalink: /realestate/calculators/estnetproceeds/index.html
         const searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryText)}&countrycodes=us&limit=5`;
         const res = await fetch(searchUrl, { headers: { 'Accept-Language': 'en' } });
         if (!res.ok) return;
-        
+
         const matches = await res.json();
         if (matches.length === 0) {
           suggestionsBox.hidden = true;
           return;
         }
 
-        suggestionsBox.innerHTML = matches.map(place => {
-          return `<div class="calc-autocomplete-item" onclick="selectAutocompleteAddress('${place.display_name.replace(/'/g, "\\'")}')">${place.display_name}</div>`;
-        }).join('');
+        suggestionsBox.innerHTML = '';
+        matches.forEach(place => {
+          const item = document.createElement('div');
+          item.className = 'calc-autocomplete-item';
+          item.textContent = place.display_name;
+          item.addEventListener('click', () => selectAutocompleteAddress(place.display_name));
+          suggestionsBox.appendChild(item);
+        });
         suggestionsBox.hidden = false;
       } catch (err) {
         console.error("Location lookup network timeout:", err);
@@ -346,7 +349,7 @@ permalink: /realestate/calculators/estnetproceeds/index.html
   function selectAutocompleteAddress(selectedText) {
     document.getElementById('inSellerAddress').value = selectedText;
     document.getElementById('addressSuggestions').hidden = true;
-    
+
     const cleanLower = selectedText.toLowerCase();
     if (cleanLower.includes('snohomish')) {
       document.getElementById('inCounty').value = 'Snohomish';
@@ -363,10 +366,8 @@ permalink: /realestate/calculators/estnetproceeds/index.html
       if (!isTaxManual) {
         document.getElementById('inTaxAmount').value = Math.round(numValue * 0.009).toLocaleString('en-US');
       }
-    } else {
-      if (!isTaxManual) {
-        document.getElementById('inTaxAmount').value = "";
-      }
+    } else if (!isTaxManual) {
+      document.getElementById('inTaxAmount').value = "";
     }
   }
 
@@ -438,7 +439,7 @@ permalink: /realestate/calculators/estnetproceeds/index.html
     const compiledLink = buildDeepLinkedScenarioUrl();
     navigator.clipboard.writeText(compiledLink).then(() => {
       const btn = document.getElementById('btnCopyWorksheetLink');
-      btn.innerHTML = "<span>✓ Link Copied!</span>";
+      btn.innerHTML = "<span>&#10003; Link Copied!</span>";
       setTimeout(() => {
         btn.innerHTML = "<span>Copy Direct Link</span>";
       }, 2000);
@@ -448,16 +449,18 @@ permalink: /realestate/calculators/estnetproceeds/index.html
   }
 
   function calculateNetProceeds() {
+    clearValidationError();
+
     const salePrice = parseFormattedValue('inPrice');
     const mortgagePayoff = parseFormattedValue('inBalance');
     const mortgagePayoff2 = parseFormattedValue('inBalance2');
-    
+
     const listingPct = parseFloat(document.getElementById('inListingPackage').value) || 2.0;
     const buyerAgentPct = parseFloat(document.getElementById('inBuyerComp').value) || 2.5;
     const closingDateValue = document.getElementById('inClosingDate').value;
 
     if (salePrice <= 0) {
-      alert("Please enter a valid property sale price.");
+      showValidationError("Please enter a valid property sale price.");
       return;
     }
 
@@ -472,7 +475,7 @@ permalink: /realestate/calculators/estnetproceeds/index.html
     const calculatedTaxAmount = parseFormattedValue('inTaxAmount') || (salePrice * 0.009);
     const closingDate = closingDateValue ? new Date(closingDateValue + 'T12:00:00') : new Date();
     const closingYear = closingDate.getFullYear();
-    
+
     const startOfYear = new Date(closingYear, 0, 1);
     const millisecondsInDay = 24 * 60 * 60 * 1000;
     const daysElapsed = Math.floor((closingDate - startOfYear) / millisecondsInDay) + 1;
@@ -480,7 +483,7 @@ permalink: /realestate/calculators/estnetproceeds/index.html
 
     const firstHalfPaid = document.getElementById('chkFirstHalf').checked;
     const secondHalfPaid = document.getElementById('chkSecondHalf').checked;
-    
+
     let totalTaxPaidBySeller = 0;
     if (firstHalfPaid) totalTaxPaidBySeller += calculatedTaxAmount * 0.5;
     if (secondHalfPaid) totalTaxPaidBySeller += calculatedTaxAmount * 0.5;
@@ -515,7 +518,7 @@ permalink: /realestate/calculators/estnetproceeds/index.html
     const finalNetCashToSeller = totalCreditsTally - totalCostsTally;
 
     document.getElementById('txtNetProceeds').textContent = formatCurrency(finalNetCashToSeller);
-    
+
     const targetScenarioUrl = buildDeepLinkedScenarioUrl();
     const qrImageNode = document.getElementById('scenarioQrImg');
     if (qrImageNode) {
@@ -546,9 +549,9 @@ permalink: /realestate/calculators/estnetproceeds/index.html
     `;
     if (taxProrationResult !== 0) {
       if (taxProrationResult < 0) {
-        ledgerBuffer += `<tr><td>Prorated Property Tax Credit<br><span class="text-body-secondary" style="font-size:0.75rem;">Reimbursement for pre-paid tax timelines</span></td><td class="table-cell-credit">${formatCurrency(Math.abs(taxProrationResult))}</td><td>$0</td></tr>`;
+        ledgerBuffer += `<tr><td>Prorated Property Tax Credit<br><span class="calc-table-subnote">Reimbursement for pre-paid tax timelines</span></td><td class="table-cell-credit">${formatCurrency(Math.abs(taxProrationResult))}</td><td>$0</td></tr>`;
       } else {
-        ledgerBuffer += `<tr><td>Prorated Property Tax Debit<br><span class="text-body-secondary" style="font-size:0.75rem;">Tax allocation through closing date</span></td><td>$0</td><td class="table-cell-cost">${formatCurrency(taxProrationResult)}</td></tr>`;
+        ledgerBuffer += `<tr><td>Prorated Property Tax Debit<br><span class="calc-table-subnote">Tax allocation through closing date</span></td><td>$0</td><td class="table-cell-cost">${formatCurrency(taxProrationResult)}</td></tr>`;
       }
     }
 
@@ -590,7 +593,7 @@ permalink: /realestate/calculators/estnetproceeds/index.html
     `;
     tbody.innerHTML = ledgerBuffer;
     const resultsStage = document.getElementById('resultsWrapper');
-    resultsStage.style.display = 'block';
+    resultsStage.classList.add('is-visible');
     resultsStage.scrollIntoView({ behavior: 'smooth' });
   }
 </script>
