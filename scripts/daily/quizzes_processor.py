@@ -3,8 +3,8 @@ import os
 import io
 import json
 import re
-import requests
 import boto3
+from botocore.client import Config
 from PIL import Image
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
@@ -14,21 +14,18 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 OUTPUT_PATH = os.path.join(DATA_DIR, "quizzes.json")
 
 SCOPES = [
-    'https://www.googleapis.com/auth/spreadsheets.readonly',
-    'https://www.googleapis.com/auth/drive'
+    "https://www.googleapis.com/auth/spreadsheets.readonly",
+    "https://www.googleapis.com/auth/drive"
 ]
 
-# R2 Environment Credentials
-R2_ACCESS_KEY_ID = os.environ.get("R2_ACCESS_KEY_ID")
-R2_SECRET_ACCESS_KEY = os.environ.get("R2_SECRET_ACCESS_KEY")
-R2_ENDPOINT_URL = os.environ.get("R2_ENDPOINT_URL")
-R2_BUCKET_NAME = os.environ.get("R2_BUCKET_NAME")
+R2_BUCKET_NAME = (os.environ.get("R2_BUCKET_NAME") or "myseattlesearch-assets").strip()
+
 
 def get_google_services():
     creds_json = (
-        os.environ.get("GA_GOOGLE_CREDENTIALS") or 
-        os.environ.get("GOOGLE_CREDENTIALS") or 
-        os.environ.get("GA_CREDENTIALS")
+        os.environ.get("GA_GOOGLE_CREDENTIALS")
+        or os.environ.get("GOOGLE_CREDENTIALS")
+        or os.environ.get("GA_CREDENTIALS")
     )
     creds = None
     if creds_json and creds_json.strip():
@@ -38,40 +35,55 @@ def get_google_services():
         except Exception as e:
             print(f"⚠️ Could not parse JSON credentials env var: {e}")
 
-    if not creds and os.path.exists("credentials.json"):
-        creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+    if not creds:
+        for candidate in ("credentials.json", os.path.join(BASE_DIR, "credentials.json")):
+            if os.path.exists(candidate):
+                creds = Credentials.from_service_account_file(candidate, scopes=SCOPES)
+                break
 
     if not creds:
         raise FileNotFoundError("Google service account credentials not found.")
 
-    sheets = build('sheets', 'v4', credentials=creds)
-    drive = build('drive', 'v3', credentials=creds)
+    sheets = build("sheets", "v4", credentials=creds)
+    drive = build("drive", "v3", credentials=creds)
     return sheets, drive
 
+
 def get_r2_client():
-    if all([R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT_URL, R2_BUCKET_NAME]):
+    account_id = (os.environ.get("CF_MASTER_ACCOUNT_ID") or "").strip()
+    access_key = (os.environ.get("CF_MASTER_ACCESS_KEY_ID") or "").strip()
+    secret_key = (os.environ.get("CF_MASTER_SECRET_ACCESS_KEY") or "").strip()
+    endpoint_url = (
+        os.environ.get("CF_MASTER_S3_API_ENDPOINT")
+        or (f"https://{account_id}.r2.cloudflarestorage.com" if account_id else "")
+    ).strip()
+
+    if all([access_key, secret_key, endpoint_url, R2_BUCKET_NAME]):
         try:
             return boto3.client(
                 "s3",
-                endpoint_url=R2_ENDPOINT_URL,
-                aws_access_key_id=R2_ACCESS_KEY_ID,
-                aws_secret_access_key=R2_SECRET_ACCESS_KEY,
-                region_name="auto"
+                endpoint_url=endpoint_url,
+                aws_access_key_id=access_key,
+                aws_secret_access_key=secret_key,
+                region_name="auto",
+                config=Config(signature_version="s3v4")
             )
         except Exception as e:
             print(f"⚠️ R2 Client init error: {e}")
     return None
 
+
 def extract_google_id(url_string):
     if not isinstance(url_string, str):
         return None
-    match = re.search(r'/d/([a-zA-Z0-9_-]+)', url_string)
+    match = re.search(r"/d/([a-zA-Z0-9_-]+)", url_string)
     if match:
         return match.group(1)
-    match = re.search(r'id=([a-zA-Z0-9_-]+)', url_string)
+    match = re.search(r"id=([a-zA-Z0-9_-]+)", url_string)
     if match:
         return match.group(1)
     return None
+
 
 def is_google_drive_link(url_string):
     if not isinstance(url_string, str) or not url_string.strip():
@@ -81,10 +93,12 @@ def is_google_drive_link(url_string):
         return False
     return "drive.google.com" in u or "docs.google.com" in u or extract_google_id(url_string) is not None
 
+
 def generate_url_slug(text_input):
     processed = str(text_input).lower().strip()
-    processed = re.sub(r'[^a-z0-9\s-]', '', processed)
-    return re.sub(r'[\s-]+', '-', processed)
+    processed = re.sub(r"[^a-z0-9\s-]", "", processed)
+    return re.sub(r"[\s-]+", "-", processed)
+
 
 def process_and_upload_image(drive_service, s3_client, image_url, folder_name, filename_slug, index=1):
     file_id = extract_google_id(image_url)
@@ -125,6 +139,7 @@ def process_and_upload_image(drive_service, s3_client, image_url, folder_name, f
         print(f"   ⚠️ Quiz image process notice: {e}")
         return image_url
 
+
 def main():
     print("🎯 Starting Daily Polymorphic Quizzes Processor...")
     quiz_sheet_id = os.environ.get("WEBSITE_DATA_CORE_SHEET_ID")
@@ -138,7 +153,7 @@ def main():
     res = sheets_service.spreadsheets().values().get(
         spreadsheetId=quiz_sheet_id, range="Quizzes!A:DB"
     ).execute()
-    rows = res.get('values', [])
+    rows = res.get("values", [])
 
     if not rows or len(rows) < 2:
         print("ℹ️ No quiz records found in Quizzes tab.")
@@ -147,7 +162,7 @@ def main():
     headers = [str(h).strip() for h in rows[0]]
     quizzes_db = {}
 
-    for idx, r in enumerate(rows[1:]):
+    for r in rows[1:]:
         padded = list(r) + [""] * (len(headers) - len(r))
         row_dict = dict(zip(headers, padded))
         quiz_id = row_dict.get("Quiz ID", "").strip()
@@ -157,7 +172,7 @@ def main():
         quiz_slug = generate_url_slug(row_dict.get("Quiz Name", "quiz"))
         cover_img = row_dict.get("Quiz Image", "").strip()
         if cover_img and is_google_drive_link(cover_img) and s3_client:
-            cover_img = process_and_upload_image(drive_service, s3_client, cover_img, "Quizzes", quiz_slug, "cover")
+            cover_img = process_and_upload_image(drive_service, s3_client, cover_img, "quizzes", quiz_slug, "cover")
 
         questions = []
         for i in range(1, 21):
@@ -173,7 +188,7 @@ def main():
             r_url = row_dict.get(f"R{j} URL", "").strip()
             r_key = row_dict.get(f"R{j} Key", "").strip()
             if r_url and is_google_drive_link(r_url) and s3_client:
-                r_url = process_and_upload_image(drive_service, s3_client, r_url, "Quizzes", f"{quiz_slug}-res-{j}")
+                r_url = process_and_upload_image(drive_service, s3_client, r_url, "quizzes", f"{quiz_slug}-res-{j}")
 
             if r_key or r_url:
                 routing.append({
@@ -212,11 +227,16 @@ def main():
             "routing": routing
         }
 
+    if not quizzes_db and os.path.exists(OUTPUT_PATH):
+        print(f"⚠️ 0 quizzes parsed; preserving existing {OUTPUT_PATH}.")
+        return
+
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
         json.dump(quizzes_db, f, indent=4, ensure_ascii=False)
 
     print(f"✅ Saved {len(quizzes_db)} quizzes to {OUTPUT_PATH}")
+
 
 if __name__ == "__main__":
     main()

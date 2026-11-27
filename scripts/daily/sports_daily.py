@@ -1,20 +1,17 @@
 # File: scripts/daily/sports_daily.py
 import os
 import json
-import math
-import time
 import io
 import requests
 import urllib3
 import boto3
-from PIL import Image
+from botocore.client import Config
 from botocore.exceptions import ClientError
+from PIL import Image
 from datetime import datetime, timezone
 
-# Suppress unverified HTTPS request warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Robust Repository Root Path Resolution
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 if os.path.basename(CURRENT_DIR) == "daily":
     REPO_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
@@ -27,11 +24,7 @@ DATA_DIR = os.path.join(REPO_ROOT, "data")
 SPORTS_TEAMS_PATH = os.path.join(DATA_DIR, "sports_teams.json")
 SPORTS_DATA_PATH = os.path.join(DATA_DIR, "sports_data.json")
 
-# Cloudflare R2 Credentials
-R2_ACCESS_KEY_ID = os.environ.get("R2_ACCESS_KEY_ID")
-R2_SECRET_ACCESS_KEY = os.environ.get("R2_SECRET_ACCESS_KEY")
-R2_ENDPOINT_URL = os.environ.get("R2_ENDPOINT_URL")
-R2_BUCKET_NAME = os.environ.get("R2_BUCKET_NAME")
+R2_BUCKET_NAME = (os.environ.get("R2_BUCKET_NAME") or "myseattlesearch-assets").strip()
 
 HTTP_CACHE = {}
 
@@ -40,7 +33,6 @@ BROWSER_HEADERS = {
     "Accept": "application/json, text/plain, image/*, */*"
 }
 
-# High-Res Master Vector & Raster Logo Mapping for 36 Washington Teams
 DEFAULT_LOGOS = {
     "seattle-seahawks": "https://assets-sports-gcp.thescore.com/football/team/24/logo.png",
     "seattle-mariners": "https://www.mlbstatic.com/team-logos/136.svg",
@@ -80,7 +72,6 @@ DEFAULT_LOGOS = {
     "whitworth-pirates": "https://whitworthpirates.com/images/logos/site/site.png"
 }
 
-# Washington Team Identifiers
 WA_EXACT_IDENTITIES = [
     "seahawks", "mariners", "kraken", "sounders", "seawolves", "rainiers",
     "aquasox", "dust devils", "velocity fc", "zephyr", "thunderbirds",
@@ -99,15 +90,17 @@ WA_CITIES = [
     "wenatchee", "bellingham", "yakima"
 ]
 
+
 def slugify(text):
     if not text:
         return ""
     text = str(text).lower().strip()
-    out = [ch if ch.isalnum() else '-' for ch in text]
+    out = [ch if ch.isalnum() else "-" for ch in text]
     res = "".join(out)
-    while '--' in res:
-        res = res.replace('--', '-')
-    return res.strip('-')
+    while "--" in res:
+        res = res.replace("--", "-")
+    return res.strip("-")
+
 
 def is_wa_team_name(team_name):
     if not team_name:
@@ -135,19 +128,30 @@ def is_wa_team_name(team_name):
         return True
     return False
 
+
 def get_r2_client():
-    if R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY and R2_ENDPOINT_URL:
+    account_id = (os.environ.get("CF_MASTER_ACCOUNT_ID") or "").strip()
+    access_key = (os.environ.get("CF_MASTER_ACCESS_KEY_ID") or "").strip()
+    secret_key = (os.environ.get("CF_MASTER_SECRET_ACCESS_KEY") or "").strip()
+    endpoint_url = (
+        os.environ.get("CF_MASTER_S3_API_ENDPOINT")
+        or (f"https://{account_id}.r2.cloudflarestorage.com" if account_id else "")
+    ).strip()
+
+    if all([access_key, secret_key, endpoint_url]):
         try:
             return boto3.client(
                 "s3",
-                endpoint_url=R2_ENDPOINT_URL,
-                aws_access_key_id=R2_ACCESS_KEY_ID,
-                aws_secret_access_key=R2_SECRET_ACCESS_KEY,
-                region_name="auto"
+                endpoint_url=endpoint_url,
+                aws_access_key_id=access_key,
+                aws_secret_access_key=secret_key,
+                region_name="auto",
+                config=Config(signature_version="s3v4")
             )
         except Exception as e:
             print(f"⚠️ Failed to initialize Cloudflare R2 client: {e}")
     return None
+
 
 def process_and_upload_logo(s3_client, logo_url, team_slug):
     """Idempotently checks if WebP logo exists in R2; downloads and converts only if missing."""
@@ -159,7 +163,6 @@ def process_and_upload_logo(s3_client, logo_url, team_slug):
 
     force_refresh = os.environ.get("FORCE_LOGO_REFRESH", "").strip().lower() in ["1", "true", "yes"]
 
-    # 1. Existence Check: Skip network fetch if already uploaded
     if not force_refresh:
         try:
             s3_client.head_object(Bucket=R2_BUCKET_NAME, Key=r2_key)
@@ -172,7 +175,6 @@ def process_and_upload_logo(s3_client, logo_url, team_slug):
     if not logo_url:
         return public_url
 
-    # 2. Upload missing logo to R2
     try:
         res = requests.get(logo_url, headers=BROWSER_HEADERS, timeout=10, verify=False)
         if res.status_code == 200:
@@ -195,8 +197,8 @@ def process_and_upload_logo(s3_client, logo_url, team_slug):
 
     return public_url
 
+
 def calculate_season_status(sport, level):
-    """Dynamically calculates season period, human label, and active status flag."""
     now = datetime.now(timezone.utc)
     month = now.month
     year = now.year
@@ -207,17 +209,15 @@ def calculate_season_status(sport, level):
         if "collegiate summer" in level_lower or "summer" in level_lower:
             if month in [6, 7, 8]:
                 return {"season_status": "In-Season", "season_label": f"Active {year} Summer Season", "is_active_now": True}
-            else:
-                next_yr = year if month < 6 else year + 1
-                return {"season_status": "Off-Season", "season_label": f"{next_yr} Summer Season Begins June {next_yr}", "is_active_now": False}
+            next_yr = year if month < 6 else year + 1
+            return {"season_status": "Off-Season", "season_label": f"{next_yr} Summer Season Begins June {next_yr}", "is_active_now": False}
         else:
             if month in [4, 5, 6, 7, 8, 9]:
                 return {"season_status": "In-Season", "season_label": f"Active {year} Regular Season", "is_active_now": True}
             elif month == 10:
                 return {"season_status": "Postseason", "season_label": f"{year} Playoffs & World Series", "is_active_now": True}
-            else:
-                next_yr = year if month < 4 else year + 1
-                return {"season_status": "Off-Season", "season_label": f"{next_yr} Spring Training Begins February {next_yr}", "is_active_now": False}
+            next_yr = year if month < 4 else year + 1
+            return {"season_status": "Off-Season", "season_label": f"{next_yr} Spring Training Begins February {next_yr}", "is_active_now": False}
 
     if "football" in sport_lower and "college" not in level_lower:
         if month == 8:
@@ -226,8 +226,7 @@ def calculate_season_status(sport, level):
             return {"season_status": "In-Season", "season_label": f"Active {year} NFL Regular Season", "is_active_now": True}
         elif month == 2:
             return {"season_status": "Postseason", "season_label": f"{year} Super Bowl & Playoffs", "is_active_now": True}
-        else:
-            return {"season_status": "Off-Season", "season_label": f"{year} Off-Season Workouts & Training", "is_active_now": False}
+        return {"season_status": "Off-Season", "season_label": f"{year} Off-Season Workouts & Training", "is_active_now": False}
 
     if "hockey" in sport_lower:
         if month in [10, 11, 12, 1, 2, 3, 4]:
@@ -237,41 +236,34 @@ def calculate_season_status(sport, level):
             return {"season_status": "Postseason", "season_label": f"{year} Playoffs & Championship Series", "is_active_now": True}
         elif month == 9:
             return {"season_status": "Pre-Season", "season_label": f"{year} Training Camp", "is_active_now": True}
-        else:
-            next_yr = year if month >= 7 else year
-            return {"season_status": "Off-Season", "season_label": f"{next_yr}-{str(next_yr+1)[2:]} Season Begins October {next_yr}", "is_active_now": False}
+        return {"season_status": "Off-Season", "season_label": f"{year}-{str(year+1)[2:]} Season Begins October {year}", "is_active_now": False}
 
     if "soccer" in sport_lower:
         if "pre-professional" in level_lower or "usl2" in level_lower:
             if month in [5, 6, 7]:
                 return {"season_status": "In-Season", "season_label": f"Active {year} League Two Season", "is_active_now": True}
-            else:
-                next_yr = year if month < 5 else year + 1
-                return {"season_status": "Off-Season", "season_label": f"{next_yr} Season Begins May {next_yr}", "is_active_now": False}
+            next_yr = year if month < 5 else year + 1
+            return {"season_status": "Off-Season", "season_label": f"{next_yr} Season Begins May {next_yr}", "is_active_now": False}
         else:
             if month in [2, 3, 4, 5, 6, 7, 8, 9, 10]:
                 return {"season_status": "In-Season", "season_label": f"Active {year} Regular Season", "is_active_now": True}
             elif month == 11:
                 return {"season_status": "Postseason", "season_label": f"{year} Cup Playoffs", "is_active_now": True}
-            else:
-                next_yr = year if month == 12 else year
-                return {"season_status": "Off-Season", "season_label": f"{next_yr} Training Begins February {next_yr}", "is_active_now": False}
+            return {"season_status": "Off-Season", "season_label": f"{year} Training Begins February {year}", "is_active_now": False}
 
     if "basketball" in sport_lower and "college" not in level_lower:
         if month in [5, 6, 7, 8, 9]:
             return {"season_status": "In-Season", "season_label": f"Active {year} Regular Season", "is_active_now": True}
         elif month == 10:
             return {"season_status": "Postseason", "season_label": f"{year} WNBA Finals & Playoffs", "is_active_now": True}
-        else:
-            next_yr = year if month < 5 else year + 1
-            return {"season_status": "Off-Season", "season_label": f"{next_yr} Season Begins May {next_yr}", "is_active_now": False}
+        next_yr = year if month < 5 else year + 1
+        return {"season_status": "Off-Season", "season_label": f"{next_yr} Season Begins May {next_yr}", "is_active_now": False}
 
     if "rugby" in sport_lower:
         if month in [2, 3, 4, 5, 6, 7]:
             return {"season_status": "In-Season", "season_label": f"Active {year} Major League Rugby Season", "is_active_now": True}
-        else:
-            next_yr = year if month < 2 else year + 1
-            return {"season_status": "Off-Season", "season_label": f"{next_yr} Season Begins February {next_yr}", "is_active_now": False}
+        next_yr = year if month < 2 else year + 1
+        return {"season_status": "Off-Season", "season_label": f"{next_yr} Season Begins February {next_yr}", "is_active_now": False}
 
     if "college" in level_lower or "ncaa" in level_lower:
         if month in [9, 10, 11, 12, 1, 2, 3, 4, 5]:
@@ -279,10 +271,10 @@ def calculate_season_status(sport, level):
             return {"season_status": "In-Season", "season_label": f"Active {yr_str} Collegiate Season", "is_active_now": True}
         elif month == 8:
             return {"season_status": "Pre-Season", "season_label": f"{year}-{str(year+1)[2:]} Fall Camp & Training", "is_active_now": True}
-        else:
-            return {"season_status": "Off-Season", "season_label": f"{year}-{str(year+1)[2:]} Competition Begins September {year}", "is_active_now": False}
+        return {"season_status": "Off-Season", "season_label": f"{year}-{str(year+1)[2:]} Competition Begins September {year}", "is_active_now": False}
 
     return {"season_status": "Active Year-Round", "season_label": f"{year} Program", "is_active_now": True}
+
 
 def fetch_json_deduped(session, url, timeout=10):
     if not url or not isinstance(url, str) or not url.strip() or url.strip().lower() == "nan":
@@ -303,16 +295,17 @@ def fetch_json_deduped(session, url, timeout=10):
     HTTP_CACHE[clean_url] = None
     return None
 
+
 def fetch_nhl_kraken_deep(session):
     url = "https://api-web.nhle.com/v1/club-stats/SEA/now"
     data = fetch_json_deduped(session, url, timeout=10)
     leaders = []
     player_stats = []
-    
+
     if data and isinstance(data, dict):
         skaters = data.get("skaters", [])
         goalies = data.get("goalies", [])
-        
+
         skaters_sorted = sorted(skaters, key=lambda s: s.get("points", 0), reverse=True)
         for s in skaters_sorted[:10]:
             first = s.get("firstName", {}).get("default", "")
@@ -389,12 +382,13 @@ def fetch_nhl_kraken_deep(session):
 
     return leaders, player_stats
 
+
 def fetch_mlb_team_leaders(session, team_id):
     season_year = datetime.now(timezone.utc).year
     url = f"https://statsapi.mlb.com/api/v1/teams/{team_id}/leaders?leaderCategories=homeRuns,runsBattedIn,battingAverage,earnedRunAverage,strikeouts,wins&season={season_year}"
     data = fetch_json_deduped(session, url, timeout=10)
     leaders = []
-    
+
     cat_labels = {
         "homeRuns": "Home Runs", "runsBattedIn": "RBI", "battingAverage": "Batting Avg",
         "earnedRunAverage": "ERA", "strikeouts": "Strikeouts", "wins": "Wins"
@@ -422,14 +416,12 @@ def fetch_mlb_team_leaders(session, team_id):
                 })
     return leaders
 
+
 def parse_espn_team_deep(raw_json):
-    summary = {
-        "record": "", "standing": "", "next_game": None,
-        "team_leaders": [], "injuries": []
-    }
+    summary = {"record": "", "standing": "", "next_game": None, "team_leaders": [], "injuries": []}
     if not raw_json or not isinstance(raw_json, dict):
         return summary
-    
+
     team = raw_json.get("team", {})
     record_items = team.get("record", {}).get("items", [])
     if record_items and isinstance(record_items, list):
@@ -445,11 +437,7 @@ def parse_espn_team_deep(raw_json):
     next_event = team.get("nextEvent", [])
     if next_event and isinstance(next_event, list) and len(next_event) > 0:
         ev = next_event[0]
-        summary["next_game"] = {
-            "name": ev.get("name"),
-            "date": ev.get("date"),
-            "shortName": ev.get("shortName")
-        }
+        summary["next_game"] = {"name": ev.get("name"), "date": ev.get("date"), "shortName": ev.get("shortName")}
 
     for cat_obj in team.get("leaders", []):
         cat_display = cat_obj.get("displayName") or cat_obj.get("name")
@@ -472,8 +460,10 @@ def parse_espn_team_deep(raw_json):
 
     return summary
 
+
 def parse_mlb_standings(raw_json, team_name):
-    if not raw_json or not isinstance(raw_json, dict): return {}
+    if not raw_json or not isinstance(raw_json, dict):
+        return {}
     summary = {"record": "", "standing": "", "next_game": None}
     search_term = team_name.lower().replace("seattle ", "").replace("tacoma ", "").replace("everett ", "").replace("spokane ", "").replace("tri-city ", "")
     try:
@@ -490,17 +480,22 @@ def parse_mlb_standings(raw_json, team_name):
                     if w is not None and l is not None:
                         summary["record"] = f"{w}-{l}"
                     parts = []
-                    if div_rank: parts.append(f"Rank: #{div_rank}")
-                    if div_gb: parts.append(f"GB: {div_gb}")
-                    elif pct: parts.append(f"Pct: {pct}")
+                    if div_rank:
+                        parts.append(f"Rank: #{div_rank}")
+                    if div_gb:
+                        parts.append(f"GB: {div_gb}")
+                    elif pct:
+                        parts.append(f"Pct: {pct}")
                     summary["standing"] = " | ".join(parts)
                     return summary
     except Exception as e:
         print(f"   ⚠️ MLB standings notice for {team_name}: {e}")
     return summary
 
+
 def parse_nhl_standings(raw_json, team_name):
-    if not raw_json or not isinstance(raw_json, dict): return {}
+    if not raw_json or not isinstance(raw_json, dict):
+        return {}
     summary = {"record": "", "standing": "", "next_game": None}
     try:
         for tr in raw_json.get("standings", []):
@@ -515,16 +510,20 @@ def parse_nhl_standings(raw_json, team_name):
                 if w is not None and l is not None:
                     summary["record"] = f"{w}-{l}-{otl}" if otl else f"{w}-{l}"
                 parts = []
-                if div_rank: parts.append(f"Rank: #{div_rank}")
-                if pts is not None: parts.append(f"Pts: {pts}")
+                if div_rank:
+                    parts.append(f"Rank: #{div_rank}")
+                if pts is not None:
+                    parts.append(f"Pts: {pts}")
                 summary["standing"] = " | ".join(parts)
                 return summary
     except Exception as e:
         print(f"   ⚠️ NHL standings notice for {team_name}: {e}")
     return summary
 
+
 def parse_whl_standings(raw_json, team_name):
-    if not raw_json or not isinstance(raw_json, dict): return {}
+    if not raw_json or not isinstance(raw_json, dict):
+        return {}
     summary = {"record": "", "standing": "", "next_game": None}
     search_term = team_name.lower().replace("seattle ", "").replace("everett ", "").replace("spokane ", "").replace("tri-city ", "")
     try:
@@ -541,13 +540,16 @@ def parse_whl_standings(raw_json, team_name):
                 if w is not None and l is not None:
                     summary["record"] = f"{w}-{l}-{otl}" if otl else f"{w}-{l}"
                 parts = []
-                if rank: parts.append(f"Rank: #{rank}")
-                if pts is not None: parts.append(f"Pts: {pts}")
+                if rank:
+                    parts.append(f"Rank: #{rank}")
+                if pts is not None:
+                    parts.append(f"Pts: {pts}")
                 summary["standing"] = " | ".join(parts)
                 return summary
     except Exception as e:
         print(f"   ⚠️ WHL standings notice for {team_name}: {e}")
     return summary
+
 
 def fetch_wa_recent_games(session):
     wa_games_by_team = {}
@@ -563,7 +565,7 @@ def fetch_wa_recent_games(session):
             home = ev.get("home_team") or {}
             h_name = home.get("full_name") or home.get("name") or ""
             a_name = away.get("full_name") or away.get("name") or ""
-            
+
             h_wa = is_wa_team_name(h_name)
             a_wa = is_wa_team_name(a_name)
             if not (h_wa or a_wa):
@@ -592,11 +594,10 @@ def fetch_wa_recent_games(session):
             for t_name, is_target in [(h_name, h_wa), (a_name, a_wa)]:
                 if is_target:
                     t_slug = slugify(t_name)
-                    if t_slug not in wa_games_by_team:
-                        wa_games_by_team[t_slug] = []
-                    wa_games_by_team[t_slug].append(clean_game)
+                    wa_games_by_team.setdefault(t_slug, []).append(clean_game)
 
     return wa_games_by_team
+
 
 def run_sports_daily_harvest():
     print("🏈 Harvesting Daily Washington Deep Sports Intelligence & Standings...")
@@ -630,26 +631,16 @@ def run_sports_daily_harvest():
         sport = team.get("Sport", "").strip()
         level = team.get("Level", "").strip()
 
-        # 1. Idempotent R2 WebP Logo Verification
         source_logo = DEFAULT_LOGOS.get(slug, "")
         r2_logo_url = process_and_upload_logo(s3_client, source_logo, slug)
-
-        # 2. Season Status Engine
         status_info = calculate_season_status(sport, level)
 
         data_feed_url = team.get("DataFeed", "").strip()
         live_scores_url = team.get("LiveScores", "").strip()
         target_api_url = data_feed_url if data_feed_url and "http" in data_feed_url else live_scores_url
 
-        stats_summary = {
-            "record": "",
-            "standing": "",
-            "next_game": None,
-            "team_leaders": [],
-            "player_stats": []
-        }
+        stats_summary = {"record": "", "standing": "", "next_game": None, "team_leaders": [], "player_stats": []}
 
-        # 3. Summer Wood-Bat (WCL) Off-Season Guard
         if "westcoastleague.com" in target_api_url and current_month not in [6, 7, 8]:
             stats_summary["standing"] = "Off-Season (June - August)"
         elif target_api_url and "http" in target_api_url:
@@ -710,6 +701,10 @@ def run_sports_daily_harvest():
         rec_str = compiled_team["currentRecord"] or "No active record"
         print(f"   ✅ Synchronized: {team_name} ({rec_str} | {lead_count} stat leaders)")
 
+    if not compiled_sports and os.path.exists(SPORTS_DATA_PATH):
+        print(f"⚠️ 0 teams compiled; preserving existing {SPORTS_DATA_PATH}.")
+        return
+
     output_payload = {
         "metadata": {
             "last_updated_utc": datetime.now(timezone.utc).isoformat(),
@@ -725,8 +720,10 @@ def run_sports_daily_harvest():
 
     print(f"🏁 Daily sports harvest complete! ({len(compiled_sports)} teams compiled into {SPORTS_DATA_PATH})")
 
+
 def main():
     run_sports_daily_harvest()
+
 
 if __name__ == "__main__":
     main()

@@ -34,7 +34,7 @@ def slugify(text):
 
 
 def http_get_json_simple(url, timeout=25):
-    headers = {"User-Agent": "Mozilla/5.0"}
+    headers = {"User-Agent": "MySeattleSearch/1.0 (+https://myseattlesearch.com)"}
     req = urllib.request.Request(url, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -157,54 +157,59 @@ def main():
 
     wsdot_alerts_url = f"https://wsdot.wa.gov/Traffic/api/HighwayAlerts/HighwayAlertsREST.svc/GetAlertsAsJson?AccessCode={wsdot_code}"
     alerts = http_get_json_simple(wsdot_alerts_url)
+    if not isinstance(alerts, list):
+        if os.path.exists(OUT_PATH):
+            print(f"⚠️ WSDOT Highway Alerts API unavailable; preserving existing {OUT_PATH}.")
+            return
+        alerts = []
+
     city_map = {c["slug"]: {"name": c["name"], "alert_count": 0, "alerts": []} for c in cities}
     total_alerts = 0
 
-    if alerts and isinstance(alerts, list):
-        for a in alerts:
-            combined_text = f"{a.get('EventCategory')} {a.get('HeadlineDescription')} {a.get('ExtendedDescription')}".lower()
-            if not any(k in combined_text for k in ["construction", "maintenance", "work", "closure", "paving", "repair", "delay", "lane"]):
-                continue
+    for a in alerts:
+        combined_text = f"{a.get('EventCategory')} {a.get('HeadlineDescription')} {a.get('ExtendedDescription')}".lower()
+        if not any(k in combined_text for k in ["construction", "maintenance", "work", "closure", "paving", "repair", "delay", "lane"]):
+            continue
 
-            loc_obj = a.get("StartRoadWayLocation") or a.get("StartRoadwayLocation") or {}
-            alat = loc_obj.get("Latitude") if isinstance(loc_obj, dict) else a.get("Latitude")
-            alon = loc_obj.get("Longitude") if isinstance(loc_obj, dict) else a.get("Longitude")
+        loc_obj = a.get("StartRoadWayLocation") or a.get("StartRoadwayLocation") or {}
+        alat = loc_obj.get("Latitude") if isinstance(loc_obj, dict) else a.get("Latitude")
+        alon = loc_obj.get("Longitude") if isinstance(loc_obj, dict) else a.get("Longitude")
 
-            if alat is None or alon is None:
-                continue
-            try:
-                alat, alon = float(alat), float(alon)
-            except (ValueError, TypeError):
-                continue
+        if alat is None or alon is None:
+            continue
+        try:
+            alat, alon = float(alat), float(alon)
+        except (ValueError, TypeError):
+            continue
 
-            if alat == 0.0 or alon == 0.0:
-                continue
+        if alat == 0.0 or alon == 0.0:
+            continue
 
-            end_obj = a.get("EndRoadWayLocation") or a.get("EndRoadwayLocation") or {}
-            end_lat = end_obj.get("Latitude") if isinstance(end_obj, dict) else None
-            end_lon = end_obj.get("Longitude") if isinstance(end_obj, dict) else None
-            road_name = loc_obj.get("RoadName") if isinstance(loc_obj, dict) else None
+        end_obj = a.get("EndRoadWayLocation") or a.get("EndRoadwayLocation") or {}
+        end_lat = end_obj.get("Latitude") if isinstance(end_obj, dict) else None
+        end_lon = end_obj.get("Longitude") if isinstance(end_obj, dict) else None
+        road_name = loc_obj.get("RoadName") if isinstance(loc_obj, dict) else None
 
-            alert_obj = {
-                "alert_id": f"wsdot-{a.get('AlertID')}",
-                "headline": a.get("HeadlineDescription", "Roadwork Alert"),
-                "priority": a.get("Priority", "Low"),
-                "event_category": a.get("EventCategory", "Construction"),
-                "road_name": road_name,
-                "latitude": round(alat, 6),
-                "longitude": round(alon, 6),
-                "end_latitude": round(float(end_lat), 6) if end_lat not in (None, 0, 0.0) else None,
-                "end_longitude": round(float(end_lon), 6) if end_lon not in (None, 0, 0.0) else None,
-                "start_time": a.get("StartTime"),
-                "end_time": a.get("EndTime"),
-                "description": a.get("ExtendedDescription", ""),
-            }
+        alert_obj = {
+            "alert_id": f"wsdot-{a.get('AlertID')}",
+            "headline": a.get("HeadlineDescription", "Roadwork Alert"),
+            "priority": a.get("Priority", "Low"),
+            "event_category": a.get("EventCategory", "Construction"),
+            "road_name": road_name,
+            "latitude": round(alat, 6),
+            "longitude": round(alon, 6),
+            "end_latitude": round(float(end_lat), 6) if end_lat not in (None, 0, 0.0) else None,
+            "end_longitude": round(float(end_lon), 6) if end_lon not in (None, 0, 0.0) else None,
+            "start_time": a.get("StartTime"),
+            "end_time": a.get("EndTime"),
+            "description": a.get("ExtendedDescription", ""),
+        }
 
-            matched_slug = match_city_for_alert(alat, alon, city_boundaries, cities)
-            if matched_slug and matched_slug in city_map:
-                city_map[matched_slug]["alerts"].append(alert_obj)
-                city_map[matched_slug]["alert_count"] += 1
-                total_alerts += 1
+        matched_slug = match_city_for_alert(alat, alon, city_boundaries, cities)
+        if matched_slug and matched_slug in city_map:
+            city_map[matched_slug]["alerts"].append(alert_obj)
+            city_map[matched_slug]["alert_count"] += 1
+            total_alerts += 1
 
     output = {
         slug: {
