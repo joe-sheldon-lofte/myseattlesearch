@@ -1,0 +1,26 @@
+---
+permalink: /llms.txt
+eleventyExcludeFromCollections: true
+---
+# MySeattleSearch
+
+> Puget Sound Real Estate & Hyperlocal Municipal Intelligence Platform operated by Joe Sheldon (Redfin), covering 58 neighborhoods across King and Snohomish Counties, Washington.
+
+Last Updated: {{ buildDateISO }}
+Canonical Root: https://myseattlesearch.com/
+Sitemap: https://myseattlesearch.com/sitemap.xml
+
+## Core Hubs
+- [Home](https://myseattlesearch.com/): Directory of all 58 King & Snohomish County neighborhoods
+- [Real Estate Services](https://myseattlesearch.com/realestate/): Market guidance, MoveDNA quiz, calculators, and curated searches
+- [Regional Transit & Commute](https://myseattlesearch.com/region/transit-commute/): Puget Sound transit, ferries, airports, and highway telemetry
+- [Regional Emergency & Safety](https://myseattlesearch.com/region/emergency-safety/): Active school closures, NWS severe weather, power outages, earthquakes, and wildfires
+- [Social Notebook](https://myseattlesearch.com/cms/notebook/): Local market commentary and updates
+
+## Neighborhood Plain-Text Data Dossiers (.txt)
+Each link below provides a structured plain-text snapshot of weather, transit & commute baselines, active emergency alerts, NWMLS & Redfin real estate metrics, and municipal safety/livability scores, with a canonical reference to its HTML counterpart.
+
+{% for city in city_data | sort_by("City") -%}
+{%- set c_slug = city.City | slugify -%}
+- [{{ city.City }}, WA ({{ city.County }} County)](https://myseattlesearch.com/neighborhood/{{ c_slug }}/data/index.txt): Plain-text data dossier | HTML: https://myseattlesearch.com/neighborhood/{{ c_slug }}/data/
+{% endfor -%}

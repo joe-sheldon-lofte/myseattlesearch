@@ -127,6 +127,11 @@ module.exports = function(eleventyConfig) {
     return `${dateStr} at ${timeStr}`;
   });
 
+    // ISO-8601 Build Date for sitemap.xml <lastmod> and AI plain-text headers
+  eleventyConfig.addGlobalData("buildDateISO", () => {
+    return new Date().toISOString().split("T")[0];
+  });
+
   // Cloudflare R2 Storage Metric Hook
   eleventyConfig.addGlobalData("r2_storage", () => {
     const candidates = [

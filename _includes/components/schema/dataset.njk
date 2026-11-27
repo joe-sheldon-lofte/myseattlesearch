@@ -1,0 +1,43 @@
+{# 
+  COMPONENT: Municipal & Real Estate Dataset Schema (schema.dataset)
+  PURPOSE: Declares structured Dataset metadata and plain-text DataDownload distribution for /neighborhood/[city]/data/.
+#}
+
+{% set ds_city = schema_dataset_city or (city.City if city else '') %}
+{% set ds_slug = ds_city | slugify %}
+{% set ds_county = (city.County ~ ' County, WA') if (city and city.County) else 'Puget Sound, WA' %}
+{% set ds_html_url = "https://myseattlesearch.com/neighborhood/" ~ ds_slug ~ "/data/" %}
+{% set ds_txt_url = "https://myseattlesearch.com/neighborhood/" ~ ds_slug ~ "/data/index.txt" %}
+
+{% if ds_city %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  "name": {{ (ds_city ~ ", WA Neighborhood Telemetry & Real Estate Dataset") | dump | safe }},
+  "description": {{ ("Consolidated real-time and historical data for " ~ ds_city ~ ", Washington covering weather, transit & commute baselines, emergency alerts, NWMLS & Redfin housing metrics, and municipal safety/livability scores.") | dump | safe }},
+  "url": {{ ds_html_url | dump | safe }},
+  "inLanguage": "en-US",
+  "creator": {
+    "@type": "RealEstateAgent",
+    "@id": "https://myseattlesearch.com/#agent"
+  },
+  "spatialCoverage": {
+    "@type": "Place",
+    "name": {{ (ds_city ~ ", " ~ ds_county) | dump | safe }}
+  },
+  "distribution": [
+    {
+      "@type": "DataDownload",
+      "encodingFormat": "text/html",
+      "contentUrl": {{ ds_html_url | dump | safe }}
+    },
+    {
+      "@type": "DataDownload",
+      "encodingFormat": "text/plain",
+      "contentUrl": {{ ds_txt_url | dump | safe }}
+    }
+  ]
+}
+</script>
+{% endif %}

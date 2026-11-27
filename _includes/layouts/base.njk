@@ -12,6 +12,13 @@
   <title>{{ title | default(stats.site_name | default("MySeattleSearch | Puget Sound Real Estate & Hyperlocal Data")) }}</title>
   <meta name="description" content="{{ meta_description | default("Explore Puget Sound real estate, municipal data, and neighborhood telemetry with " ~ (stats.full_name | default("Joe Sheldon")) ~ ".") }}">
   
+  {# Canonical & AI Plain-Text Discovery #}
+  <link rel="canonical" href="https://myseattlesearch.com{{ page.url }}">
+  {% if city and city.City %}
+    {% set _alt_city_slug = city.City | slugify %}
+    <link rel="alternate" type="text/plain" title="{{ city.City }} Plain-Text Data Dossier" href="https://myseattlesearch.com/neighborhood/{{ _alt_city_slug }}/data/index.txt">
+  {% endif %}
+
   {# Favicons #}
   <link rel="icon" href="/assets/brand/favicon.ico" sizes="any">
   <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png">
@@ -22,17 +29,46 @@
   {# Canonical Master Stylesheet with Cache-Buster #}
   <link rel="stylesheet" href="/style.css{% if buildTime %}?v={{ buildTime | slugify }}{% endif %}">
 
-  {# Canonical Schemas #}
+  {# Global Canonical Schemas #}
   {% include "components/schema/website.njk" ignore missing %}
   {% include "components/schema/siteowner.njk" ignore missing %}
+
+  {# Auto-Wired Route BreadcrumbList Schema #}
+  {% if page.url and page.url != "/" %}
+    {% set _crumb_segments = page.url.split("/") %}
+    {% set schema_breadcrumbs = [{ "name": "Home", "url": "https://myseattlesearch.com/" }] %}
+    {% set _crumb_acc = "" %}
+    {% for seg in _crumb_segments %}
+      {% if seg %}
+        {% set _crumb_acc = _crumb_acc ~ "/" ~ seg %}
+        {% set _crumb_label = seg | replace("-", " ") | title %}
+        {% if city and city.City and seg == (city.City | slugify) %}
+          {% set _crumb_label = city.City %}
+        {% endif %}
+        {% set _ = schema_breadcrumbs.push({ "name": _crumb_label, "url": "https://myseattlesearch.com" ~ _crumb_acc ~ "/" }) %}
+      {% endif %}
+    {% endfor %}
+    {% include "components/schema/breadcrumblist.njk" ignore missing %}
+  {% endif %}
+
+  {# Auto-Wired Neighborhood & Dataset Schemas #}
+  {% if city and city.City %}
+    {% include "components/schema/neighborhood.njk" ignore missing %}
+    {% if "/data/" in page.url %}
+      {% include "components/schema/dataset.njk" ignore missing %}
+    {% endif %}
+  {% endif %}
 </head>
 <body>
+
+  {# ADA Keyboard Skip Link #}
+  <a href="#main-content" class="skip-link">Skip to main content</a>
 
   {# Global Overlay Header #}
   {% include "header.njk" %}
 
   {# Primary Content Viewport Anchor (Div wrapper prevents invalid nested <main> elements; scoped for Pagefind) #}
-  <div id="main-content" data-pagefind-body>
+  <div id="main-content" tabindex="-1" data-pagefind-body>
     {{ content | safe }}
   </div>
 
@@ -45,10 +81,7 @@
   {# Interactive Site Search & Discovery Modal (Pagefind) #}
   {% include "components/widget/search-modal.njk" ignore missing %}
 
-  {# Slide-Up Section Navigation Drawer (Hidden Off-Screen) #}
-  {% include "components/widget/drawer-action-navigate.njk" ignore missing %}
-
-    {# Slide-Up Contact Sheet (Mobile Action Tray) #}
+  {# Slide-Up Contact Sheet (Mobile Action Tray) #}
   {% include "components/widget/drawer-action-contact.njk" ignore missing %}
 
   {# Slide-Up Section Navigation Drawer (Hidden Off-Screen) #}
@@ -75,58 +108,59 @@
   });
   </script>
 
-<script>
-(function() {
-  const containers = document.querySelectorAll(".neighborhood-nav-container");
-  if (!containers.length) return;
+  {# Subpage Navigation Ribbon Overflow Chevrons #}
+  <script>
+  (function() {
+    const containers = document.querySelectorAll(".neighborhood-nav-container");
+    if (!containers.length) return;
 
-  containers.forEach(function(container) {
-    if (container.dataset.navEnhanced === "true") return;
-    const track = container.querySelector(".neighborhood-nav-track");
-    if (!track) return;
+    containers.forEach(function(container) {
+      if (container.dataset.navEnhanced === "true") return;
+      const track = container.querySelector(".neighborhood-nav-track");
+      if (!track) return;
 
-    container.dataset.navEnhanced = "true";
+      container.dataset.navEnhanced = "true";
 
-    const btnLeft = document.createElement("button");
-    btnLeft.type = "button";
-    btnLeft.className = "neighborhood-nav-arrow neighborhood-nav-arrow--left";
-    btnLeft.setAttribute("aria-label", "Scroll navigation left");
-    btnLeft.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>';
+      const btnLeft = document.createElement("button");
+      btnLeft.type = "button";
+      btnLeft.className = "neighborhood-nav-arrow neighborhood-nav-arrow--left";
+      btnLeft.setAttribute("aria-label", "Scroll navigation left");
+      btnLeft.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>';
 
-    const btnRight = document.createElement("button");
-    btnRight.type = "button";
-    btnRight.className = "neighborhood-nav-arrow neighborhood-nav-arrow--right";
-    btnRight.setAttribute("aria-label", "Scroll navigation right");
-    btnRight.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>';
+      const btnRight = document.createElement("button");
+      btnRight.type = "button";
+      btnRight.className = "neighborhood-nav-arrow neighborhood-nav-arrow--right";
+      btnRight.setAttribute("aria-label", "Scroll navigation right");
+      btnRight.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>';
 
-    container.prepend(btnLeft);
-    container.append(btnRight);
+      container.prepend(btnLeft);
+      container.append(btnRight);
 
-    function updateArrows() {
-      const maxScroll = track.scrollWidth - track.clientWidth;
-      container.classList.toggle("can-scroll-left", track.scrollLeft > 2);
-      container.classList.toggle("can-scroll-right", maxScroll - track.scrollLeft > 2);
-    }
+      function updateArrows() {
+        const maxScroll = track.scrollWidth - track.clientWidth;
+        container.classList.toggle("can-scroll-left", track.scrollLeft > 2);
+        container.classList.toggle("can-scroll-right", maxScroll - track.scrollLeft > 2);
+      }
 
-    function scrollStep(direction) {
-      const delta = Math.max(180, Math.round(track.clientWidth * 0.65));
-      track.scrollBy({ left: direction * delta, behavior: "smooth" });
-    }
+      function scrollStep(direction) {
+        const delta = Math.max(180, Math.round(track.clientWidth * 0.65));
+        track.scrollBy({ left: direction * delta, behavior: "smooth" });
+      }
 
-    btnLeft.addEventListener("click", function() { scrollStep(-1); });
-    btnRight.addEventListener("click", function() { scrollStep(1); });
-    track.addEventListener("scroll", updateArrows, { passive: true });
-    window.addEventListener("resize", updateArrows, { passive: true });
-    window.addEventListener("load", updateArrows);
+      btnLeft.addEventListener("click", function() { scrollStep(-1); });
+      btnRight.addEventListener("click", function() { scrollStep(1); });
+      track.addEventListener("scroll", updateArrows, { passive: true });
+      window.addEventListener("resize", updateArrows, { passive: true });
+      window.addEventListener("load", updateArrows);
 
-    if (typeof ResizeObserver !== "undefined") {
-      new ResizeObserver(updateArrows).observe(track);
-    }
+      if (typeof ResizeObserver !== "undefined") {
+        new ResizeObserver(updateArrows).observe(track);
+      }
 
-    updateArrows();
-  });
-})();
-</script>
+      updateArrows();
+    });
+  })();
+  </script>
 
 </body>
 </html>

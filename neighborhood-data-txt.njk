@@ -1,0 +1,179 @@
+---
+pagination:
+  data: city_data
+  size: 1
+  alias: city
+permalink: "/neighborhood/{{ city.City | slugify }}/data/index.txt"
+layout: false
+eleventyExcludeFromCollections: true
+---
+{%- set city_slug = city.City | slugify -%}
+{%- set active_neighborhood = city.City -%}
+{%- set isp_col = "Beaux Arts" if active_neighborhood == "Beaux Arts Village" else active_neighborhood -%}
+{%- set w_city = city_weather[city_slug] if city_weather else null -%}
+{%- set live_transit = transit_radar_live[city_slug] if transit_radar_live else null -%}
+{%- set walkscore = walk_transit_bike_scores[active_neighborhood] if walk_transit_bike_scores else null -%}
+{%- set local_alerts = active_alerts.neighborhoods[city_slug] if (active_alerts and active_alerts.neighborhoods) else null -%}
+{%- set crime = crime_stats[active_neighborhood] if crime_stats else null -%}
+{%- set safety = public_safety_emergency[active_neighborhood] if public_safety_emergency else null -%}
+{%- set fire = safety.fire_service if (safety and safety.fire_service) else null -%}
+{%- set med = safety.emergency_medical if (safety and safety.emergency_medical) else null -%}
+{%- set surv = surveillance_stats[active_neighborhood] if surveillance_stats else null -%}
+{%- set tax = city_tax_trends[city_slug] if city_tax_trends else null -%}
+{%- set ev = city_ev_scores[city_slug] if city_ev_scores else null -%}
+{%- set amen_entry = city_amenities[city_slug] if city_amenities else null -%}
+{%- set amen_scores = amen_entry.scores if (amen_entry and amen_entry.scores) else null -%}
+{%- set amen_counts = amen_entry.amenities if (amen_entry and amen_entry.amenities) else null -%}
+{%- set redfin_row = null -%}
+{%- if redfin_stats -%}
+  {%- for r in redfin_stats -%}
+    {%- if not redfin_row and r.city == active_neighborhood -%}{%- set redfin_row = r -%}{%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+{%- set market_row = null -%}
+{%- if hourly_market -%}
+  {%- for m in hourly_market -%}
+    {%- if not market_row and m.City == active_neighborhood -%}{%- set market_row = m -%}{%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+{%- set rates_list = hourly_rates if hourly_rates else [] -%}
+{%- set latest_rate = rates_list[(rates_list | length) - 1] if (rates_list | length) > 0 else null -%}
+{%- set city_baseline = null -%}
+{%- if commute_hub_baselines -%}
+  {%- for row in commute_hub_baselines -%}
+    {%- if row.City == active_neighborhood -%}{%- set city_baseline = row -%}{%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+# {{ active_neighborhood }}, WA — Neighborhood Data Dossier
+
+Canonical HTML Data Page: https://myseattlesearch.com/neighborhood/{{ city_slug }}/data/
+Neighborhood Home: https://myseattlesearch.com/neighborhood/{{ city_slug }}/
+County: {{ city.County | default("Washington") }} County, WA
+Coordinates: {{ city.Latitude }}, {{ city.Longitude }}
+School District(s): {{ city['School District'] | default("N/A") }}
+Compiled: {{ buildTime }} ({{ buildDateISO }})
+
+================================================================================
+1. WEATHER & AIR QUALITY
+================================================================================
+{% if w_city and w_city.current -%}
+Current Temperature: {{ w_city.current.temp_f | round }} F
+Wind Speed: {{ w_city.current.wind_speed_mph | round }} mph
+Humidity: {{ w_city.current.humidity_pct | round }}%
+{% if w_city.air_quality and w_city.air_quality.us_aqi is not none -%}
+Air Quality Index (US AQI): {{ w_city.air_quality.us_aqi | round }} ({{ w_city.air_quality.status_label or "Good" }})
+{% endif -%}
+{% if w_city.current.uv_index is not none -%}
+UV Index: {{ w_city.current.uv_index | round }} ({{ w_city.current.uv_label or "Low" }})
+{% endif -%}
+{% else -%}
+Weather telemetry currently unavailable.
+{% endif %}
+================================================================================
+2. TRANSIT & COMMUTE
+================================================================================
+{% if live_transit -%}
+Active Commute Score: {{ live_transit.active_commute_score | round if live_transit.active_commute_score is not none else "N/A" }}
+Active Transit Score: {{ live_transit.active_transit_score | round if live_transit.active_transit_score is not none else "N/A" }}
+Active Vehicles: {{ live_transit.vehicle_counts.buses | default(0) }} Buses | {{ live_transit.vehicle_counts.light_rail | default(0) }} Light Rail | {{ live_transit.vehicle_counts.commuter_rail | default(0) }} Sounder
+Total Active Transit Seats: {{ live_transit.total_active_seats | default(0) | localeString }}
+{% endif -%}
+{% if walkscore -%}
+WalkScore: {{ walkscore.walkscore | round if walkscore.walkscore is not none else "N/A" }}
+BikeScore: {{ walkscore.bike.score | round if (walkscore.bike and walkscore.bike.score is not none) else "N/A" }}
+TransitScore: {{ walkscore.transit.score | round if (walkscore.transit and walkscore.transit.score is not none) else "N/A" }}
+{% endif -%}
+{% if city_baseline -%}
+
+Off-Peak Commute Baselines (Drive / Transit):
+- South Lake Union (Seattle): {{ city_baseline.slu_drive_offpeak_min }} min drive / {{ city_baseline.slu_transit_offpeak_min }} min transit ({{ city_baseline.slu_distance_mi }} mi)
+- Downtown Bellevue: {{ city_baseline.bellevue_drive_offpeak_min }} min drive / {{ city_baseline.bellevue_transit_offpeak_min }} min transit ({{ city_baseline.bellevue_distance_mi }} mi)
+- Microsoft Redmond Campus: {{ city_baseline.redmond_drive_offpeak_min }} min drive / {{ city_baseline.redmond_transit_offpeak_min }} min transit ({{ city_baseline.redmond_distance_mi }} mi)
+- Boeing Everett Factory: {{ city_baseline.everett_drive_offpeak_min }} min drive / {{ city_baseline.everett_transit_offpeak_min }} min transit ({{ city_baseline.everett_distance_mi }} mi)
+- Boeing Renton Factory: {{ city_baseline.renton_drive_offpeak_min }} min drive / {{ city_baseline.renton_transit_offpeak_min }} min transit ({{ city_baseline.renton_distance_mi }} mi)
+- Kent Valley Logistics Hub: {{ city_baseline.kent_drive_offpeak_min }} min drive / {{ city_baseline.kent_transit_offpeak_min }} min transit ({{ city_baseline.kent_distance_mi }} mi)
+{% endif %}
+================================================================================
+3. EMERGENCY & SAFETY ALERTS
+================================================================================
+{% if local_alerts -%}
+School Closure Alerts: {{ local_alerts.school_count | default(0) }}
+Severe Weather Alerts: {{ local_alerts.weather_count | default(0) }}
+Power Outage Incidents: {{ local_alerts.power_count | default(0) }}
+Recent Felt Earthquakes: {{ local_alerts.earthquake_count | default(0) }}
+Nearby Wildfires: {{ local_alerts.wildfire_count | default(0) }}
+{% for wx in (local_alerts.weather_alerts or []) -%}
+- [WEATHER] {{ wx.event }} ({{ wx.severity | upper }}): {{ wx.headline }}
+{% endfor -%}
+{% for rep in (local_alerts.school_reports or []) -%}
+- [SCHOOL] {{ rep.org_name }}: {{ rep.detail }}
+{% endfor -%}
+{% for inc in (local_alerts.power_incidents or []) -%}
+- [POWER] {{ inc.provider }} — {{ inc.customers_affected }} customers affected ({{ inc.status }})
+{% endfor -%}
+{% else -%}
+No active emergency alerts reported.
+{% endif %}
+================================================================================
+4. REAL ESTATE MARKET TELEMETRY
+================================================================================
+{% if latest_rate -%}
+Puget Sound Daily Mortgage Rates ({{ latest_rate.Date }}):
+- 30-Year Conventional: {{ latest_rate['30 Year Conventional'] }}
+- 30-Year FHA: {{ latest_rate['30 Year FHA'] }}
+- 30-Year VA: {{ latest_rate['30 Year VA'] }}
+{% endif -%}
+{% if redfin_row -%}
+
+Redfin Monthly Market Tracker ({{ redfin_row.period_end }}):
+- Price Per Sq Ft: ${{ (redfin_row.price_per_sqft | round) | localeString if redfin_row.price_per_sqft is not none else "N/A" }}
+- Active Inventory: {{ (redfin_row.inventory | int) | localeString if redfin_row.inventory is not none else "N/A" }}
+- New Listings: {{ (redfin_row.new_listings | int) | localeString if redfin_row.new_listings is not none else "N/A" }}
+- Pending Sales: {{ (redfin_row.pending_sales | int) | localeString if redfin_row.pending_sales is not none else "N/A" }}
+- Contract Cancellations: {{ (redfin_row.contract_cancellations | int) | localeString if redfin_row.contract_cancellations is not none else "N/A" }} ({{ redfin_row.cancellation_rate_pct | round(1) if redfin_row.cancellation_rate_pct is not none else "N/A" }}%)
+{% endif -%}
+{% if infosparks_stats and infosparks_stats.feeds -%}
+
+NWMLS Latest Monthly Metrics:
+{% for fk, fv in infosparks_stats.feeds -%}
+  {%- if fv.meta and fv.meta.geographies and (active_neighborhood in fv.meta.geographies) and fv.data and (fv.data | length) > 0 -%}
+    {%- set latest_pt = fv.data | last -%}
+    {%- if latest_pt[isp_col] is not none and latest_pt[isp_col] != "" -%}
+- {{ fv.meta.metric }} ({{ latest_pt.Date }}): {{ latest_pt[isp_col] }}
+    {%- endif -%}
+  {%- endif -%}
+{% endfor -%}
+{% endif -%}
+{% if market_row -%}
+
+Real-Time Market Snapshot:
+- New Listings: {{ market_row['New Listings'] }} | Price Drops: {{ market_row['Price Drops'] }} | Pending: {{ market_row.Pending }} | Sold: {{ market_row.Sold }}
+{% endif %}
+================================================================================
+5. MUNICIPAL, PUBLIC SAFETY & LIVABILITY SCORES
+================================================================================
+{% if crime -%}
+Crime Rates ({{ crime.police_agency }}): {{ crime.per_capita_violent_rate }} Violent / 1k | {{ crime.per_capita_property_rate }} Property / 1k
+{% endif -%}
+{% if fire -%}
+Fire Protection (WSRB): Class {{ fire.wsrb_protection_class | default("N/A") }} ({{ fire.agency_name }}) — {{ fire.homeowners_insurance_impact }}
+{% endif -%}
+{% if med -%}
+Nearest Hospital: {{ med.nearest_hospital_facility }} ({{ med.distance_proximity_miles }} mi | {{ med.cms_hospital_quality_rating }})
+{% endif -%}
+{% if surv and surv.surveillance_score is not none -%}
+Surveillance Index: {{ surv.surveillance_score | round }}/100 ({{ surv.serving_agency }})
+{% endif -%}
+{% if tax and tax.tax_stability_index is not none -%}
+Property Tax Stability Index: {{ tax.tax_stability_index | round }}/100 ({{ tax.trajectory_rating }} | 5-Yr Growth: +{{ tax.five_year_growth_pct }}% | 2026 Median: ${{ tax.median_tax_2026 | localeString }})
+{% endif -%}
+{% if ev and ev.ev_charge_score is not none -%}
+EV Infrastructure Score: {{ ev.ev_charge_score | round }}/100 ({{ ev.level_2_ports | default(0) }} Level 2 | {{ ev.dc_fast_ports | default(0) }} DC Fast)
+{% endif -%}
+{% if amen_scores -%}
+ParkScore: {{ amen_scores.park_score | round }}/100 ({{ amen_counts.parks | default(0) }} parks)
+ShoreScore: {{ amen_scores.shore_score | round }}/100 ({{ amen_counts.beaches | default(0) }} beaches)
+BarkScore: {{ amen_scores.bark_score | round }}/100 ({{ amen_counts.dog_parks | default(0) }} dog parks, {{ amen_counts.pet_stores | default(0) }} pet stores)
+{% endif %}
+---
+Source: MySeattleSearch (https://myseattlesearch.com/neighborhood/{{ city_slug }}/data/)

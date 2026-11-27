@@ -1,21 +1,14 @@
-<!-- File: _includes/components/schema/Neighborhood.njk -->
 {# 
   COMPONENT: Municipal & Neighborhood Geographic Entity Schema (schema.neighborhood)
   PURPOSE: Establishes territorial and civic authority across all 58 Washington neighborhoods.
-  CONTRACT:
-    - neighborhood.name / city.name / schema_neighborhood_name: String [Required]
-    - neighborhood.parent / city.parent_city / schema_parent_area: String [Optional, e.g. "Snohomish County"]
-    - neighborhood.latitude / city.lat / schema_lat: Number [Required]
-    - neighborhood.longitude / city.lon / schema_lon: Number [Required]
-    - neighborhood.description / schema_desc: String [Optional]
 #}
 
 {% set is_debug = ('design-system' in (page.url | default(''))) or schema_debug %}
-{% set n_name = schema_neighborhood_name or (neighborhood.name if neighborhood else (city.name if city else '')) %}
-{% set n_parent = schema_parent_area or (neighborhood.parent if neighborhood else (city.parent_city if city else 'Washington')) %}
-{% set n_lat = schema_lat or (neighborhood.latitude if neighborhood else (city.lat if city else null)) %}
-{% set n_lon = schema_lon or (neighborhood.longitude if neighborhood else (city.lon if city else null)) %}
-{% set n_desc = schema_desc or (neighborhood.description if neighborhood else "Authoritative Puget Sound community guide covering real estate market trends, school performance, and civic infrastructure.") %}
+{% set n_name = schema_neighborhood_name or (neighborhood.name if neighborhood else (city.City or city.name if city else '')) %}
+{% set n_parent = schema_parent_area or (neighborhood.parent if neighborhood else ((city.County ~ ' County, WA') if (city and city.County) else (city.parent_city if city else 'Washington'))) %}
+{% set n_lat = schema_lat or (neighborhood.latitude if neighborhood else (city.Latitude or city.lat if city else null)) %}
+{% set n_lon = schema_lon or (neighborhood.longitude if neighborhood else (city.Longitude or city.lon if city else null)) %}
+{% set n_desc = schema_desc or (neighborhood.description if neighborhood else "Authoritative Puget Sound community guide for " ~ n_name ~ " covering real estate market trends, school performance, transit, and civic infrastructure.") %}
 
 {% if n_name and n_lat and n_lon %}
   {% if is_debug %}
@@ -48,6 +41,7 @@
     "@type": "Neighborhood",
     "name": {{ n_name | dump | safe }},
     "description": {{ n_desc | dump | safe }},
+    "url": "https://myseattlesearch.com/neighborhood/{{ n_name | slugify }}/",
     "containedInPlace": {
       "@type": "AdministrativeArea",
       "name": {{ n_parent | dump | safe }}

@@ -8,16 +8,21 @@
     {% include "components/widget/alert-status.njk" ignore missing %}
 
     <!-- Apple 3-Line Hamburger Trigger -->
-    <button class="hamburger-btn" aria-label="Toggle Navigation Menu" onclick="document.getElementById('menuOverlay').classList.toggle('open')">
-      <span class="hamburger-line"></span>
-      <span class="hamburger-line"></span>
-      <span class="hamburger-line"></span>
+    <button type="button"
+            class="hamburger-btn"
+            id="menuToggleBtn"
+            aria-label="Toggle Navigation Menu"
+            aria-expanded="false"
+            aria-controls="menuOverlay">
+      <span class="hamburger-line" aria-hidden="true"></span>
+      <span class="hamburger-line" aria-hidden="true"></span>
+      <span class="hamburger-line" aria-hidden="true"></span>
     </button>
   </div>
 </header>
 
 <!-- 3-Column Overlay Menu -->
-<div class="menu-overlay" id="menuOverlay">
+<nav class="menu-overlay" id="menuOverlay" aria-label="Primary Navigation" aria-hidden="true">
   <div class="menu-grid">
     
     <!-- Left 50%: Double-Wide 58 Neighborhood Navigation -->
@@ -37,7 +42,7 @@
         </div>
 
         <div class="subregion-block">
-          <h4>Seattle & North</h4>
+          <h4>Seattle &amp; North</h4>
           <ul class="menu-link-list">
             <li><a href="/neighborhood/seattle/">Seattle</a></li>
             <li><a href="/neighborhood/shoreline/">Shoreline</a></li>
@@ -58,7 +63,7 @@
         </div>
 
         <div class="subregion-block">
-          <h4>South King & Valleys</h4>
+          <h4>South King &amp; Valleys</h4>
           <ul class="menu-link-list">
             <li><a href="/neighborhood/renton/">Renton</a></li>
             <li><a href="/neighborhood/kent/">Kent</a></li>
@@ -69,13 +74,13 @@
 
       </div>
       <div class="menu-view-all">
-        <a href="/" class="link-arrow">View All 58 Neighborhoods →</a>
+        <a href="/" class="link-arrow">View All 58 Neighborhoods &rarr;</a>
       </div>
     </div>
 
     <!-- Column 2: Real Estate & Client Services -->
     <div>
-      <div class="menu-column-title">Real Estate & Services</div>
+      <div class="menu-column-title">Real Estate &amp; Services</div>
       <ul class="menu-link-list">
         <li><a href="/realestate/">Real Estate Home</a></li>
         <li><a href="/realestate/quizzes/movedna/">MoveDNA Quiz</a></li>
@@ -84,7 +89,7 @@
         <li><a href="/realestate/resources/">Resources</a></li>
         <li><a href="/realestate/joesteam/">Joe's Team</a></li>
         <li><a href="/realestate/sellers/">Sell With Joe</a></li>
-        <li><a href="/realestate/sales/">Joe's Listings & Sales</a></li>
+        <li><a href="/realestate/sales/">Joe's Listings &amp; Sales</a></li>
         <li><a href="/realestate/preferredprofessionals/">Preferred Professionals</a></li>
         <li><a href="/realestate/curatedsearches/">Specially Curated Searches</a></li>
       </ul>
@@ -92,20 +97,20 @@
 
     <!-- Column 3: Local Information & Media -->
     <div>
-      <div class="menu-column-title">Local Information & Media</div>
+      <div class="menu-column-title">Local Information &amp; Media</div>
       <ul class="menu-link-list">
         <li>
-          <span class="menu-item-disabled">
+          <span class="menu-item-disabled" aria-disabled="true">
             Regional Sports Hub <span class="menu-coming-soon">(coming soon)</span>
           </span>
         </li>
         <li>
-          <span class="menu-item-disabled">
+          <span class="menu-item-disabled" aria-disabled="true">
             Puget Sound Weather <span class="menu-coming-soon">(coming soon)</span>
           </span>
         </li>
         <li>
-          <span class="menu-item-disabled">
+          <span class="menu-item-disabled" aria-disabled="true">
             Market News Wire <span class="menu-coming-soon">(coming soon)</span>
           </span>
         </li>
@@ -114,4 +119,29 @@
     </div>
 
   </div>
-</div>
+</nav>
+
+<script>
+(function() {
+  const btn = document.getElementById('menuToggleBtn');
+  const overlay = document.getElementById('menuOverlay');
+  if (!btn || !overlay) return;
+
+  function setMenuState(open) {
+    overlay.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+  }
+
+  btn.addEventListener('click', function() {
+    setMenuState(!overlay.classList.contains('open'));
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && overlay.classList.contains('open')) {
+      setMenuState(false);
+      btn.focus();
+    }
+  });
+})();
+</script>

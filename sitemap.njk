@@ -1,0 +1,20 @@
+---
+permalink: /sitemap.xml
+eleventyExcludeFromCollections: true
+---
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{%- for item in collections.all %}
+  {%- set u = item.url | default('') %}
+  {%- if u
+        and not ('.txt' in u)
+        and not ('.xml' in u)
+        and not ('/404' in u)
+        and not ('design-system' in u) %}
+  <url>
+    <loc>https://myseattlesearch.com{{ u }}</loc>
+    <lastmod>{{ buildDateISO }}</lastmod>
+  </url>
+  {%- endif %}
+{%- endfor %}
+</urlset>
