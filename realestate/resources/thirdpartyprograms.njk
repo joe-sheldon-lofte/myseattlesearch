@@ -1,7 +1,7 @@
 ---
 layout: layouts/base.njk
 title: "Specialty Home Programs & Strategic Solutions | Joe Sheldon"
-description: "Directory of specialty home buying and selling programs, trade-in mortgages, cash bridge loans, equity unlock solutions, and pre-sale renovation floats."
+meta_description: "Directory of specialty home buying and selling programs, trade-in mortgages, cash bridge loans, equity unlock solutions, and pre-sale renovation floats."
 permalink: /realestate/resources/thirdpartyprograms/index.html
 ---
 
@@ -58,30 +58,30 @@ permalink: /realestate/resources/thirdpartyprograms/index.html
     </p>
   </header>
 
-  <div class="section-divider"></div>
+  <hr class="section-divider">
 
   <section class="content-section-centered">
-    <div class="pro-filter-cloud" id="programFilterNav" role="tablist" aria-label="Filter Programs by Audience">
-      <button type="button" class="neighborhood-nav-pill is-active" data-filter="all" role="tab" aria-selected="true">
+    <div class="pro-filter-cloud" id="programFilterNav" role="group" aria-label="Filter Programs by Audience">
+      <button type="button" class="neighborhood-nav-pill is-active" data-filter="all" aria-pressed="true">
         <span>Show All Programs</span>
       </button>
-      <button type="button" class="neighborhood-nav-pill is-inactive" data-filter="buyer" role="tab" aria-selected="false">
+      <button type="button" class="neighborhood-nav-pill is-inactive" data-filter="buyer" aria-pressed="false">
         <span>For Home Buyers</span>
       </button>
-      <button type="button" class="neighborhood-nav-pill is-inactive" data-filter="seller" role="tab" aria-selected="false">
+      <button type="button" class="neighborhood-nav-pill is-inactive" data-filter="seller" aria-pressed="false">
         <span>For Home Sellers</span>
       </button>
     </div>
   </section>
 
-  <div class="section-divider"></div>
+  <hr class="section-divider">
 
   <section class="content-section-centered">
     <div class="section-grid-static grid-cols-1" id="programsGrid">
       {% for p in thirdpartyprograms %}
       {% if p.Display == 'Yes' %}
       <article class="surface-bento calc-strategy-card program-card" data-audience="{{ p['Target Audience'] | lower }}">
-        
+
         <header class="text-center">
           <div class="text-overline text-accent-alpine">{{ p.Category }}</div>
           <h2 class="text-widget-title">{{ p['Program Name'] }}</h2>
@@ -119,9 +119,11 @@ permalink: /realestate/resources/thirdpartyprograms/index.html
           </div>
         </div>
 
-        {% if p['Website URL'] and 'http' in p['Website URL'] %}
+        {% set raw_url = p['Website URL'] | default('') | trim %}
+        {% set is_safe_url = raw_url.startswith('https://') or raw_url.startswith('http://') %}
+        {% if is_safe_url %}
           <div class="action-tray-constrained">
-            <a href="{{ p['Website URL'] }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+            <a href="{{ raw_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
               <span>Explore Official Program &rarr;</span>
             </a>
           </div>
@@ -154,17 +156,17 @@ permalink: /realestate/resources/thirdpartyprograms/index.html
         filterBtns.forEach(b => {
           b.classList.remove('is-active');
           b.classList.add('is-inactive');
-          b.setAttribute('aria-selected', 'false');
+          b.setAttribute('aria-pressed', 'false');
         });
 
         btn.classList.remove('is-inactive');
         btn.classList.add('is-active');
-        btn.setAttribute('aria-selected', 'true');
+        btn.setAttribute('aria-pressed', 'true');
 
         cards.forEach(card => {
           const audience = (card.getAttribute('data-audience') || '').toLowerCase();
           const matches = filterVal === 'all' || audience === 'both' || audience.includes(filterVal);
-          card.style.display = matches ? 'flex' : 'none';
+          card.classList.toggle('is-filtered-out', !matches);
         });
       });
     });

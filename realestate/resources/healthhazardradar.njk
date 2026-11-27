@@ -1,7 +1,7 @@
 ---
 layout: layouts/base.njk
 title: "King & Snohomish County Property Health & Hazard Radar | Joe Sheldon"
-description: "Check any home in King or Snohomish County for environmental risks, soil contamination plumes, airport noise corridors, and WA resale safety mandates."
+meta_description: "Check any home in King or Snohomish County for environmental risks, soil contamination plumes, airport noise corridors, and WA resale safety mandates."
 permalink: /realestate/resources/healthhazardradar/index.html
 ---
 
@@ -34,13 +34,6 @@ permalink: /realestate/resources/healthhazardradar/index.html
 }
 </script>
 
-<style>
-  /* Local Utility: Hide unmatched static cards during radar filtering */
-  .radar-card-hidden {
-    display: none !important;
-  }
-</style>
-
 <main class="layout-container layout-stack-main">
 
   <header class="surface-bento page-hero-bento">
@@ -50,12 +43,12 @@ permalink: /realestate/resources/healthhazardradar/index.html
     </p>
   </header>
 
-  <div class="section-divider"></div>
+  <hr class="section-divider">
 
   {# Section 3.0: Interactive Hazard Screener Viewport #}
   <section id="hazard-screener" class="content-section-centered">
     <div class="surface-bento">
-      <div class="calc-card-header portal-section-header" style="margin-bottom: 1.5rem;">
+      <div class="calc-card-header portal-section-header radar-section-header">
         <h2 class="text-widget-title">Interactive Property Hazard Screener</h2>
       </div>
 
@@ -107,7 +100,7 @@ permalink: /realestate/resources/healthhazardradar/index.html
         </div>
       </div>
 
-      <div class="calc-field-group" style="margin-top: 1.5rem;">
+      <div class="calc-field-group radar-systems-group">
         <label>Property Systems &amp; Foundation Features</label>
         <div class="calc-tax-checkboxes">
           <label class="calc-checkbox-label">
@@ -125,7 +118,7 @@ permalink: /realestate/resources/healthhazardradar/index.html
         </div>
       </div>
 
-      <div class="section-divider"></div>
+      <hr class="section-divider">
 
       <div class="calc-card-header portal-section-header">
         <h3 class="text-widget-title">Identified Property Risk Factors</h3>
@@ -134,8 +127,8 @@ permalink: /realestate/resources/healthhazardradar/index.html
 
       {# Static Zero-Hydration Result Cards (Toggled by DOM CSS) #}
       <div class="section-grid-static grid-cols-2" id="radarResultsContainer">
-        
-        <div id="no-results-msg" class="calc-breakdown-row row-gross radar-card-hidden" style="grid-column: 1 / -1;">
+
+        <div id="no-results-msg" class="calc-breakdown-row row-gross calc-span-full radar-card-hidden">
           <span class="text-body">No localized environmental hazards identified for this exact selection. Standard Washington State safety codes apply.</span>
         </div>
 
@@ -403,7 +396,7 @@ permalink: /realestate/resources/healthhazardradar/index.html
     </div>
   </section>
 
-  <div class="section-divider"></div>
+  <hr class="section-divider">
 
   {# Section 4.0: Stacked Directory 1 — Environmental & Land Hazards #}
   <section id="environmental-hazards" class="content-section-centered">
@@ -413,7 +406,7 @@ permalink: /realestate/resources/healthhazardradar/index.html
     </p>
 
     <div class="section-grid-static grid-cols-2">
-      
+
       <article class="surface-bento calc-strategy-card">
         <div class="text-overline text-accent-alpine">Underground Storage</div>
         <h3 class="text-widget-title">Heating Oil Tanks &amp; PLIA Grants</h3>
@@ -495,7 +488,7 @@ permalink: /realestate/resources/healthhazardradar/index.html
     </div>
   </section>
 
-  <div class="section-divider"></div>
+  <hr class="section-divider">
 
   {# Section 5.0: Stacked Directory 2 — Home & Property Health Risks #}
   <section id="structural-health" class="content-section-centered">
@@ -505,7 +498,7 @@ permalink: /realestate/resources/healthhazardradar/index.html
     </p>
 
     <div class="section-grid-static grid-cols-2">
-      
+
       <article class="surface-bento calc-strategy-card">
         <div class="text-overline text-accent-alpine">Soil Gas Depressurization</div>
         <h3 class="text-widget-title">Radon Gas Testing &amp; Mitigation</h3>
@@ -612,7 +605,6 @@ permalink: /realestate/resources/healthhazardradar/index.html
       }
     });
 
-    // We only fetch city_data to get the string tags for the selected city.
     fetch('/data/city_data.json').then(r => r.ok ? r.json() : []).then(cities => {
       citiesDataset = Array.isArray(cities) ? cities : [];
       evaluateRadar();
