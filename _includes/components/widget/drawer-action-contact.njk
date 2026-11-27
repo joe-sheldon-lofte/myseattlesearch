@@ -1,8 +1,7 @@
-<!-- File: _includes/components/widget/drawer-action-contact.njk -->
 {# 
   COMPONENT: Minimalist Mobile Contact Sheet (widget.drawer.action.contact)
   BEHAVIOR: Triggered by the "Contact" pill in the floating bottom action tray.
-  CHANNELS: Hardcoded direct to Joe Sheldon (SMS, /chat/, and Voice) with pure SVG iconography.
+  CHANNELS: Hardcoded direct to Joe Sheldon (SMS, /livechat/, and Voice) with pure SVG iconography.
 #}
 
 <div id="drawer-action-contact" 
@@ -56,12 +55,21 @@
   <script>
     function openContactDrawer() {
       const drawer = document.getElementById('drawer-action-contact');
-      if (drawer) drawer.classList.add('is-open');
+      if (drawer) {
+        drawer.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+      }
     }
     function closeContactDrawer() {
       const drawer = document.getElementById('drawer-action-contact');
-      if (drawer) drawer.classList.remove('is-open');
+      if (drawer) {
+        drawer.classList.remove('is-open');
+        document.body.style.overflow = '';
+      }
     }
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeContactDrawer();
+    });
   </script>
 
 </div>

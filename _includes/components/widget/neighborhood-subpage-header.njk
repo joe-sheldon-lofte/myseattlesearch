@@ -1,20 +1,20 @@
-<!-- File: _includes/components/widget/neighborhood-subpage-header.njk -->
 {# 
   COMPONENT: Neighborhood Subpage Header & Compact Hero Triptych (widget.neighborhood.subpage.header)
   CONTRACT:
     - active_neighborhood / neighborhood.name / neighborhood_subpage_neighborhood / neighborhood_city_name / city.City / city.name: String [Required]
     - neighborhood_subpage_title / subpage_heading / subpage_title: String [Optional, e.g. "Transit & Commute"]
-    - hero_img_main / city.HeroImageMain: String (Image URL) [Required]
-    - hero_img_left / city.HeroImageLeft: String (Image URL) [Optional]
-    - hero_img_right / city.HeroImageRight: String (Image URL) [Optional]
+    - hero_img_main / city.HeroImageMain: String (Image URL) [Optional; defaults to Regional King pool]
+    - hero_img_left / city.HeroImageLeft: String (Image URL) [Optional; defaults to Regional King pool]
+    - hero_img_right / city.HeroImageRight: String (Image URL) [Optional; defaults to Regional King pool]
     - hero_welcome_label: String [Optional, defaults to "Welcome to the neighborhood"]
 #}
 
 {% set active_neighborhood = active_neighborhood or neighborhood_subpage_neighborhood or neighborhood_city_name or (neighborhood.name if neighborhood else '') or (city.City if city else '') or city.name %}
 {% set subpage_title = neighborhood_subpage_title or subpage_heading or subpage_title %}
-{% set img_main = hero_img_main or (neighborhood.HeroImageMain if neighborhood else '') or (city.HeroImageMain if city else '') %}
-{% set img_left = hero_img_left or (neighborhood.HeroImageLeft if neighborhood else '') or (city.HeroImageLeft if city else '') %}
-{% set img_right = hero_img_right or (neighborhood.HeroImageRight if neighborhood else '') or (city.HeroImageRight if city else '') %}
+{% set custom_img_main = hero_img_main or (neighborhood.HeroImageMain if neighborhood else '') or (city.HeroImageMain if city else '') %}
+{% set img_main = custom_img_main or "https://assets.myseattlesearch.com/neighborhood/hero-pools/king/1.webp" %}
+{% set img_left = hero_img_left or (neighborhood.HeroImageLeft if neighborhood else '') or (city.HeroImageLeft if city else '') or ('' if custom_img_main else "https://assets.myseattlesearch.com/neighborhood/hero-pools/king/11.webp") %}
+{% set img_right = hero_img_right or (neighborhood.HeroImageRight if neighborhood else '') or (city.HeroImageRight if city else '') or ('' if custom_img_main else "https://assets.myseattlesearch.com/neighborhood/hero-pools/king/10.webp") %}
 {% set welcome_text = hero_welcome_label or "Welcome to the neighborhood" %}
 
 {% if active_neighborhood %}
