@@ -18,6 +18,18 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 OUTPUT_PATH = os.path.join(DATA_DIR, "weather_alerts.json")
 
 
+def is_expired(expires_str: str, now_utc: datetime.datetime) -> bool:
+    if not expires_str:
+        return False
+    try:
+        exp_dt = datetime.datetime.fromisoformat(expires_str.replace("Z", "+00:00"))
+        if exp_dt.tzinfo is None:
+            exp_dt = exp_dt.replace(tzinfo=datetime.timezone.utc)
+        return exp_dt <= now_utc
+    except Exception:
+        return False
+
+
 def fetch_weather_alerts():
     print("Polling NWS for active Severe Weather Alerts in Washington...")
     headers = {"User-Agent": "MySeattleSearch-Telemetry/1.0 (admin@myseattlesearch.com)"}
@@ -26,12 +38,22 @@ def fetch_weather_alerts():
     res.raise_for_status()
     data = res.json()
 
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
     alerts = []
+
     for feature in data.get("features", []):
         props = feature.get("properties", {})
         status = (props.get("status") or "").lower()
         msg_type = (props.get("messageType") or "").lower()
-        if status != "actual" or msg_type == "cancel":
+        urgency = (props.get("urgency") or "").lower()
+        headline = props.get("headline") or ""
+        expires = props.get("expires") or ""
+
+        if status != "actual" or msg_type == "cancel" or urgency == "past":
+            continue
+        if "has been cancelled" in headline.lower() or "has been canceled" in headline.lower():
+            continue
+        if is_expired(expires, now_utc):
             continue
 
         severity = (props.get("severity") or "").lower()
@@ -48,18 +70,18 @@ def fetch_weather_alerts():
             "event": event_name,
             "severity": severity,
             "urgency": props.get("urgency"),
-            "headline": props.get("headline") or event_name,
+            "headline": headline or event_name,
             "description": props.get("description") or "",
             "instruction": props.get("instruction") or "",
             "effective": props.get("effective"),
-            "expires": props.get("expires"),
+            "expires": expires,
             "area_desc": props.get("areaDesc") or "",
             "geocode_ugc": props.get("geocode", {}).get("UGC", []),
             "geometry": geom if geom else None
         })
 
     payload = {
-        "generated_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "generated_utc": now_utc.isoformat(),
         "active_alert_count": len(alerts),
         "alerts": alerts
     }

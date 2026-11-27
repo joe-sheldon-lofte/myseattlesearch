@@ -24,6 +24,27 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 DATA_DIR = os.path.join(BASE_DIR, "data")
 PACIFIC_TZ = ZoneInfo("America/Los_Angeles")
 
+# NWS Seattle (SEW) County + Public Forecast Zone UGC mappings
+COUNTY_UGC_MAP = {
+    "King": {
+        "WAC033",
+        "WAZ303", "WAZ304", "WAZ305", "WAZ306",
+        "WAZ313", "WAZ314", "WAZ315", "WAZ316",
+        "WAZ555", "WAZ556", "WAZ558", "WAZ559", "WAZ567", "WAZ568"
+    },
+    "Snohomish": {
+        "WAC061",
+        "WAZ302", "WAZ305",
+        "WAZ311", "WAZ312", "WAZ313",
+        "WAZ507", "WAZ555", "WAZ567"
+    },
+    "Pierce": {
+        "WAC053",
+        "WAZ304", "WAZ316",
+        "WAZ509", "WAZ559", "WAZ568"
+    }
+}
+
 
 def slugify(text: str) -> str:
     text = text.lower().strip()
@@ -75,6 +96,7 @@ def load_canonical_cities():
 
         county = (entry.get("County") or "King").strip().title()
         county_code = "WAC033" if county == "King" else ("WAC061" if county == "Snohomish" else "WAC053")
+        ugc_codes = COUNTY_UGC_MAP.get(county, {county_code})
 
         raw_districts = entry.get("School District", "")
         district_list = [d.strip() for d in raw_districts.split(",") if d.strip()]
@@ -86,6 +108,7 @@ def load_canonical_cities():
             "lon": float(lon),
             "county": county,
             "county_code": county_code,
+            "ugc_codes": ugc_codes,
             "districts": district_list,
             "normalized_districts": [normalize_name(d) for d in district_list]
         })
@@ -269,9 +292,9 @@ def compile_master_alerts():
         "global": {
             "critical_grid_failure": major_blackout,
             "seismic_emergency": major_quake,
-            "school_emergency": any(r.get("severity") == "red" for r in active_schools),
-            "school_advisory": any(r.get("severity") == "amber" for r in active_schools),
-            "weather_emergency": len(wx_alerts) > 0,
+            "school_emergency": False,
+            "school_advisory": False,
+            "weather_emergency": False,
             "regional_target_url": "/region/emergency-safety/"
         },
         "neighborhoods": {}
@@ -280,6 +303,10 @@ def compile_master_alerts():
     total_active_alerts = 1 if major_blackout else 0
     if major_quake:
         total_active_alerts += 1
+
+    any_weather_alert = False
+    any_school_red = False
+    any_school_amber = False
 
     for city in cities:
         slug, lat, lon = city["slug"], city["lat"], city["lon"]
@@ -301,11 +328,16 @@ def compile_master_alerts():
 
         s_level = "red" if any(r.get("severity") == "red" for r in matched_schools) else ("amber" if matched_schools else "optimal")
         s_alert = len(matched_schools) > 0
+        if s_level == "red":
+            any_school_red = True
+        elif s_level == "amber":
+            any_school_amber = True
 
-        # 2. Severe Weather Alerts
+        # 2. Severe Weather Alerts (Matches County Codes + NWS Forecast Zones)
         matched_weather = []
         for wx in wx_alerts:
-            if city["county_code"] in wx.get("geocode_ugc", []):
+            alert_ugcs = set(wx.get("geocode_ugc") or [])
+            if city["ugc_codes"] & alert_ugcs:
                 geom = wx.get("geometry")
                 is_hit = point_in_geometry(lon, lat, geom) if geom else True
                 if is_hit:
@@ -320,6 +352,8 @@ def compile_master_alerts():
                         "geometry": geom
                     })
         wx_alert = len(matched_weather) > 0
+        if wx_alert:
+            any_weather_alert = True
 
         # 3. Power Outages
         c_power = power_cities.get(slug, {})
@@ -392,6 +426,9 @@ def compile_master_alerts():
             "wildfires": matched_fires
         }
 
+    alerts_payload["global"]["school_emergency"] = any_school_red
+    alerts_payload["global"]["school_advisory"] = any_school_amber
+    alerts_payload["global"]["weather_emergency"] = any_weather_alert
     alerts_payload["global"]["active_alert_count"] = total_active_alerts
 
     os.makedirs(DATA_DIR, exist_ok=True)
