@@ -6,7 +6,11 @@ pagination:
   addAllPagesToCollections: true
   alias: city
 permalink: "/neighborhood/{{ city.City | slugify }}/emergency-safety/index.html"
+eleventyComputed:
+  title: "{{ city.City }}, WA Emergency Alerts, Outages & Live Dispatch | MySeattleSearch"
+  meta_description: "Active school closures, NWS severe weather alerts, power outages, felt earthquakes, wildfires, and live Fire/EMS dispatch for {{ city.City }}, Washington."
 ---
+
 {% set city_slug = city.City | slugify %}
 {% set active_neighborhood = city.City %}
 {% set primary_district = city['School District'].split(',')[0] | trim if city['School District'] else '' %}
@@ -51,7 +55,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/emergency-safety/index.html"
         <a href="/neighborhood/{{ city_slug }}/municipal/" class="neighborhood-nav-pill is-inactive">Municipal</a>
         <a href="/neighborhood/{{ city_slug }}/real-estate/" class="neighborhood-nav-pill is-inactive">Real Estate</a>
         {% if primary_district %}
-          <a href="/neighborhood/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
+          <a href="/region/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
         {% endif %}
         <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
         <a href="/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit</a>
@@ -327,7 +331,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/emergency-safety/index.html"
     <div class="emergency-map-card">
       <header class="emergency-map-header">
         <h3 class="emergency-map-title">{{ active_neighborhood }} Hazard &amp; Outage Radar</h3>
-        <div class="airport-board-filter-group" role="tablist" aria-label="Emergency Map Layers">
+        <div class="airport-board-filter-group" role="group" aria-label="Emergency Map Layers">
           <button type="button" class="btn-apt-tab {% if school_cnt > 0 %}is-active{% endif %}" data-hazard-toggle="school" aria-pressed="{{ 'true' if school_cnt > 0 else 'false' }}">School Closures</button>
           <button type="button" class="btn-apt-tab {% if weather_cnt > 0 %}is-active{% endif %}" data-hazard-toggle="weather" aria-pressed="{{ 'true' if weather_cnt > 0 else 'false' }}">Severe Weather</button>
           <button type="button" class="btn-apt-tab {% if power_cnt > 0 %}is-active{% endif %}" data-hazard-toggle="power" aria-pressed="{{ 'true' if power_cnt > 0 else 'false' }}">Power Outages</button>

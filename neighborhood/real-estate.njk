@@ -6,7 +6,11 @@ pagination:
   addAllPagesToCollections: true
   alias: city
 permalink: "/neighborhood/{{ city.City | slugify }}/real-estate/index.html"
+eleventyComputed:
+  title: "{{ city.City }}, WA Real Estate Market Data & Trends | MySeattleSearch"
+  meta_description: "Live {{ city.City }}, Washington real estate market data: NWMLS median prices, Redfin inventory, mortgage rates, migration flows, and housing affordability."
 ---
+
 {% set city_slug = city.City | slugify %}
 {% set active_neighborhood = city.City %}
 {% set primary_district = city['School District'].split(',')[0] | trim if city['School District'] else '' %}
@@ -125,7 +129,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/real-estate/index.html"
         <a href="/neighborhood/{{ city_slug }}/emergency-safety/" class="neighborhood-nav-pill is-inactive">Emergency &amp; Safety</a>
         <a href="/neighborhood/{{ city_slug }}/municipal/" class="neighborhood-nav-pill is-inactive">Municipal</a>
         {% if primary_district %}
-          <a href="/neighborhood/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
+          <a href="/region/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
         {% endif %}
         <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
         <a href="/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit</a>

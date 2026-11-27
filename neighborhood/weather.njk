@@ -6,6 +6,9 @@ pagination:
   addAllPagesToCollections: true
   alias: city
 permalink: "/neighborhood/{{ city.City | slugify }}/weather/index.html"
+eleventyComputed:
+  title: "{{ city.City }}, WA Weather, Live Radar, Tides & Passes | MySeattleSearch"
+  meta_description: "Current weather, 10-day NOAA forecast, live radar, air quality, marine tides, Cascade pass conditions, and river gauges for {{ city.City }}, Washington."
 ---
 {% set city_slug = city.City | slugify %}
 {% set active_neighborhood = city.City %}
@@ -41,7 +44,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/weather/index.html"
         <a href="/neighborhood/{{ city_slug }}/municipal/" class="neighborhood-nav-pill is-inactive">Municipal</a>
         <a href="/neighborhood/{{ city_slug }}/real-estate/" class="neighborhood-nav-pill is-inactive">Real Estate</a>
         {% if primary_district %}
-          <a href="/neighborhood/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
+          <a href="/region/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
         {% endif %}
         <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
         <a href="/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit</a>
@@ -241,7 +244,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/weather/index.html"
     <div class="weather-map-card">
       <header class="weather-map-header">
         <h3 class="text-widget-title weather-map-title">Regional Weather Map</h3>
-        <div class="airport-board-filter-group" role="tablist" aria-label="Map Layers">
+        <div class="airport-board-filter-group" role="group" aria-label="Map Layers">
           <button type="button" class="btn-apt-tab is-active" data-weather-layer="radar" aria-pressed="true">Radar</button>
           <button type="button" class="btn-apt-tab" data-weather-layer="clouds" aria-pressed="false">Cloud Cover</button>
           <button type="button" class="btn-apt-tab" data-weather-layer="precip" aria-pressed="false">1-Hr Rainfall</button>
@@ -708,6 +711,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/weather/index.html"
     var ticks = document.querySelectorAll("#weatherTimelineTrack .timeline-tick");
     var badge = document.getElementById("weatherTimestampBadge");
     var playBtn = document.getElementById("weatherLoopBtn");
+    var timelineTrack = document.getElementById("weatherTimelineTrack");
 
     function renderFrame(idx) {
       currentFrame = idx;
@@ -717,6 +721,9 @@ permalink: "/neighborhood/{{ city.City | slugify }}/weather/index.html"
       ticks.forEach(function(t, k) {
         t.classList.toggle("is-active", k === idx);
       });
+      if (timelineTrack) {
+        timelineTrack.setAttribute("aria-valuenow", String(idx));
+      }
       if (badge && frameLabels[idx]) {
         badge.textContent = frameLabels[idx];
       }

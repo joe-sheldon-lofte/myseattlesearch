@@ -6,7 +6,11 @@ pagination:
   addAllPagesToCollections: true
   alias: city
 permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
+eleventyComputed:
+  title: "{{ city.City }}, WA Transit, Commute Times, Ferries & Traffic | MySeattleSearch"
+  meta_description: "Live commute times to major Puget Sound employment hubs, bus and rail vehicle tracking, WSF ferry schedules, SEA/PAE airport status, and WalkScore for {{ city.City }}, WA."
 ---
+
 {% set city_slug = city.City | slugify %}
 {% set active_neighborhood = city.City %}
 {% set primary_district = city['School District'].split(',')[0] | trim if city['School District'] else '' %}
@@ -41,7 +45,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
         <a href="/neighborhood/{{ city_slug }}/municipal/" class="neighborhood-nav-pill is-inactive">Municipal</a>
         <a href="/neighborhood/{{ city_slug }}/real-estate/" class="neighborhood-nav-pill is-inactive">Real Estate</a>
         {% if primary_district %}
-          <a href="/neighborhood/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
+          <a href="/region/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
         {% endif %}
         <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
         <a href="/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit</a>
@@ -275,7 +279,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
     <div class="weather-map-card">
       <header class="weather-map-header">
         <h3 class="text-widget-title weather-map-title">{{ active_neighborhood }} Transit Map</h3>
-        <div class="airport-board-filter-group" role="tablist" aria-label="Map Layers">
+        <div class="airport-board-filter-group" role="group" aria-label="Map Layers">
           <button type="button" class="btn-apt-tab is-active" data-layer-toggle="traffic" aria-pressed="true">Live Traffic</button>
           <button type="button" class="btn-apt-tab is-active" data-layer-toggle="buses" aria-pressed="true">Buses</button>
           <button type="button" class="btn-apt-tab is-active" data-layer-toggle="trains" aria-pressed="true">Trains</button>
@@ -387,7 +391,6 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
           <iframe id="avionio-frame-sea"
                   class="avionio-iframe"
                   height="650"
-                  scrolling="no"
                   src="https://www.avionio.com/widget/en/sea/departures"
                   loading="lazy"
                   title="SEA Seattle-Tacoma Live Departures and Arrivals"></iframe>
@@ -464,7 +467,6 @@ permalink: "/neighborhood/{{ city.City | slugify }}/transit-commute/index.html"
           <iframe id="avionio-frame-pae"
                   class="avionio-iframe"
                   height="650"
-                  scrolling="no"
                   src="https://www.avionio.com/widget/en/pae/departures"
                   loading="lazy"
                   title="PAE Seattle Snohomish County Live Departures and Arrivals"></iframe>

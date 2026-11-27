@@ -6,7 +6,11 @@ pagination:
   addAllPagesToCollections: true
   alias: city
 permalink: "/neighborhood/{{ city.City | slugify }}/municipal/index.html"
+eleventyComputed:
+  title: "{{ city.City }}, WA Municipal Services, Safety & Civic Calendar | MySeattleSearch"
+  meta_description: "Official municipal links, crime rates, WSRB fire protection, property tax stability, EV infrastructure, ParkScore, and council meetings for {{ city.City }}, WA."
 ---
+
 {% set city_slug = city.City | slugify %}
 {% set active_neighborhood = city.City %}
 {% set primary_district = city['School District'].split(',')[0] | trim if city['School District'] else '' %}
@@ -41,7 +45,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/municipal/index.html"
         <a href="/neighborhood/{{ city_slug }}/emergency-safety/" class="neighborhood-nav-pill is-inactive">Emergency &amp; Safety</a>
         <a href="/neighborhood/{{ city_slug }}/real-estate/" class="neighborhood-nav-pill is-inactive">Real Estate</a>
         {% if primary_district %}
-          <a href="/neighborhood/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
+          <a href="/region/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
         {% endif %}
         <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
         <a href="/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit</a>

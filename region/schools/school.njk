@@ -3,9 +3,14 @@ layout: layouts/base.njk
 pagination:
   data: ospi_school_data.schools
   size: 1
+  addAllPagesToCollections: true
   alias: school
 permalink: "/region/schools/{{ school.district_name | slugify }}/{{ school.school_name | slugify }}/index.html"
+eleventyComputed:
+  title: "{{ school.school_name }} — {{ school.district_name }} | MySeattleSearch"
+  meta_description: "{{ school.school_name }} in {{ school.district_name }}, WA: campus address, PSAI score, and OSPI math, ELA, and science proficiency metrics."
 ---
+
 {% set district_slug = school.district_name | slugify %}
 {% set school_slug = school.school_name | slugify %}
 {% set parent_district = ospi_school_data.districts[school.district_name] if (ospi_school_data and ospi_school_data.districts) else null %}
@@ -35,12 +40,12 @@ permalink: "/region/schools/{{ school.district_name | slugify }}/{{ school.schoo
     </span>
     <div class="neighborhood-nav-container">
       <nav class="neighborhood-nav-track" tabindex="0" aria-label="Regional Navigation Links">
-        <a href="/neighborhood/" class="neighborhood-nav-pill is-inactive">Neighborhood Home</a>
+        <a href="/" class="neighborhood-nav-pill is-inactive">Neighborhood Home</a>
         <a href="/region/schools/{{ district_slug }}/" class="neighborhood-nav-pill is-inactive">School District Home</a>
         <a href="/region/schools/" class="neighborhood-nav-pill is-inactive">All Regional Schools</a>
-        <a href="/region/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
-        <a href="/region/sports/minor/" class="neighborhood-nav-pill is-inactive">Minor League Sports</a>
-        <a href="/region/sports/college/" class="neighborhood-nav-pill is-inactive">College Sports</a>
+        <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
+        <a href="/sports/minor/" class="neighborhood-nav-pill is-inactive">Minor League Sports</a>
+        <a href="/sports/college/" class="neighborhood-nav-pill is-inactive">College Sports</a>
       </nav>
     </div>
   </section>

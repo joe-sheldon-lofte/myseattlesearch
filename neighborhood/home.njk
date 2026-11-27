@@ -6,9 +6,14 @@ pagination:
   addAllPagesToCollections: true
   alias: city
 permalink: "/neighborhood/{{ city.City | slugify }}/index.html"
+eleventyComputed:
+  title: "{{ city.City }}, WA Neighborhood Guide & Live Data | MySeattleSearch"
+  meta_description: "Explore {{ city.City }}, Washington real estate, weather, transit, schools, local news, and community events on MySeattleSearch."
 ---
 {% set city_slug = city.City | slugify %}
 {% set active_neighborhood = city.City %}
+{% set primary_district = city['School District'].split(',')[0] | trim if city['School District'] else '' %}
+{% set isp_col = "Beaux Arts" if active_neighborhood == "Beaux Arts Village" else active_neighborhood %}
 
 {% set last_upd = stats['Last Update'] if (stats and stats['Last Update']) else "Nov 12, 2026" %}
 {% set month_map = {
@@ -50,7 +55,9 @@ permalink: "/neighborhood/{{ city.City | slugify }}/index.html"
         <a href="/neighborhood/{{ city_slug }}/emergency-safety/" class="neighborhood-nav-pill is-inactive">Emergency &amp; Safety</a>
         <a href="/neighborhood/{{ city_slug }}/municipal/" class="neighborhood-nav-pill is-inactive">Municipal</a>
         <a href="/neighborhood/{{ city_slug }}/real-estate/" class="neighborhood-nav-pill is-inactive">Real Estate</a>
-        <a href="/neighborhood/school/{{ city['School District'] | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
+        {% if primary_district %}
+          <a href="/region/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
+        {% endif %}
         <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
         <a href="/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit</a>
       </nav>
@@ -70,8 +77,10 @@ permalink: "/neighborhood/{{ city.City | slugify }}/index.html"
     {% for feed_id, feed_obj in infosparks_stats.feeds %}
       {% if feed_obj.meta and feed_obj.meta.metric == "Months Supply Closed" and feed_obj.meta.geographies and (city.City in feed_obj.meta.geographies) and feed_obj.data and (feed_obj.data | length) > 0 %}
         {% set latest_row = feed_obj.data | last %}
-        {% if latest_row[city.City] is defined and latest_row[city.City] is not none %}
-          {% set supply_val = latest_row[city.City] %}
+        {% if latest_row[isp_col] is defined and latest_row[isp_col] is not none %}
+          {% set supply_val = latest_row[isp_col] %}
+        {% endif %}
+
         {% endif %}
       {% endif %}
     {% endfor %}

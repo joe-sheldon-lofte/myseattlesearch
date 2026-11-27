@@ -6,7 +6,11 @@ pagination:
   addAllPagesToCollections: true
   alias: city
 permalink: "/neighborhood/{{ city.City | slugify }}/data/index.html"
+eleventyComputed:
+  title: "{{ city.City }}, WA Complete Neighborhood Data Dossier | MySeattleSearch"
+  meta_description: "Consolidated real-time and historical data for {{ city.City }}, WA covering weather, transit baselines, emergency alerts, NWMLS & Redfin housing stats, and municipal scores."
 ---
+
 {% set city_slug = city.City | slugify %}
 {% set active_neighborhood = city.City %}
 {% set primary_district = city['School District'].split(',')[0] | trim if city['School District'] else '' %}
@@ -72,7 +76,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/data/index.html"
     <span class="text-overline text-accent-alpine section-overline-lead">
       EXPLORE {{ active_neighborhood | upper }}
     </span>
-    <div class="neighborhood-nav-container" style="margin-bottom: 0.75rem;">
+    <div class="neighborhood-nav-container">
       <nav class="neighborhood-nav-track" tabindex="0" aria-label="{{ active_neighborhood }} Subpages">
         <a href="/neighborhood/{{ city_slug }}/" class="neighborhood-nav-pill is-inactive">City Home</a>
         <a href="/neighborhood/{{ city_slug }}/news-events/" class="neighborhood-nav-pill is-inactive">News &amp; Events</a>
@@ -82,7 +86,7 @@ permalink: "/neighborhood/{{ city.City | slugify }}/data/index.html"
         <a href="/neighborhood/{{ city_slug }}/municipal/" class="neighborhood-nav-pill is-inactive">Municipal</a>
         <a href="/neighborhood/{{ city_slug }}/real-estate/" class="neighborhood-nav-pill is-inactive">Real Estate</a>
         {% if primary_district %}
-          <a href="/neighborhood/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
+          <a href="/region/school/{{ primary_district | slugify }}/" class="neighborhood-nav-pill is-inactive">School District</a>
         {% endif %}
         <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
         <a href="/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit</a>
@@ -1155,8 +1159,8 @@ permalink: "/neighborhood/{{ city.City | slugify }}/data/index.html"
   <section id="emergency-safety" class="portal-section-widget">
     <div class="realestate-section-head">
       <h2 class="text-section-title section-title-clean">Emergency &amp; Safety</h2>
-      {% if active_alerts and active_alerts.last_updated %}
-        <span class="realestate-cadence-pill">Updated: {{ pretty_date(active_alerts.last_updated) | trim }}</span>
+      {% if active_alerts and active_alerts.generated_at %}
+        <span class="realestate-cadence-pill">Updated: {{ pretty_date(active_alerts.generated_at) | trim }}</span>
       {% endif %}
     </div>
 

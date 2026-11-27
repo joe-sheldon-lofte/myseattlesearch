@@ -11,15 +11,17 @@ permalink: "/neighborhood/{{ city.City | slugify }}/retro-weather/index.html"
 {% set active_neighborhood = city.City %}
 {% set w_city = city_weather[city_slug] if city_weather else null %}
 {% set w_climate = climate_comfort[active_neighborhood] if climate_comfort else null %}
-{% set w_tides = w_city.marine_tides.today_predictions if (w_city and w_city.marine_tides and w_city.marine_tides.today_predictions) else [] %}
+{% set w_tides = w_city.marine_tides.predictions_11_day if (w_city and w_city.marine_tides and w_city.marine_tides.predictions_11_day) else (w_city.marine_tides.today_predictions if (w_city and w_city.marine_tides and w_city.marine_tides.today_predictions) else []) %}
 {% set w_passes = weather_mountain_passes if weather_mountain_passes else [] %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Retro Weather: {{ active_neighborhood }}</title>
-  <link rel="stylesheet" href="/style.css">
+  <title>Retro Weather: {{ active_neighborhood }}, WA | MySeattleSearch</title>
+  <meta name="description" content="Classic retro weather broadcast display for {{ active_neighborhood }}, Washington featuring current conditions, marine tides, and Cascade mountain pass status.">
+  <link rel="canonical" href="https://myseattlesearch.com/neighborhood/{{ city_slug }}/retro-weather/">
+  <link rel="stylesheet" href="/style.css{% if buildTime %}?v={{ buildTime | slugify }}{% endif %}">
 </head>
 <body class="retro-weather-standalone-viewport">
   <main class="retro-weather-standalone-stage">

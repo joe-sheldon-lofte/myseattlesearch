@@ -4,9 +4,14 @@ pagination:
   data: ospi_school_data.districts
   size: 1
   resolve: values
+  addAllPagesToCollections: true
   alias: district
 permalink: "/region/schools/{{ district.district_name | slugify }}/index.html"
+eleventyComputed:
+  title: "{{ district.district_name }} Schools, PSAI & Boundaries | MySeattleSearch"
+  meta_description: "Explore {{ district.district_name }} ({{ district.county or 'Puget Sound' }} County, WA) campuses, OSPI proficiency metrics, PSAI ranking, and service boundaries."
 ---
+
 {% set district_slug = district.district_name | slugify %}
 {% set all_schools = ospi_school_data.schools if (ospi_school_data and ospi_school_data.schools) else [] %}
 
@@ -34,12 +39,12 @@ permalink: "/region/schools/{{ district.district_name | slugify }}/index.html"
     </span>
     <div class="neighborhood-nav-container">
       <nav class="neighborhood-nav-track" tabindex="0" aria-label="Regional Navigation Links">
-        <a href="/neighborhood/" class="neighborhood-nav-pill is-inactive">Neighborhood Home</a>
+        <a href="/" class="neighborhood-nav-pill is-inactive">Neighborhood Home</a>
         <a href="/region/schools/" class="neighborhood-nav-pill is-inactive">School Home</a>
         <a href="/region/transit-commute/" class="neighborhood-nav-pill is-inactive">Regional Transit &amp; Commute</a>
-        <a href="/region/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
-        <a href="/region/sports/minor/" class="neighborhood-nav-pill is-inactive">Minor League Sports</a>
-        <a href="/region/sports/college/" class="neighborhood-nav-pill is-inactive">College Sports</a>
+        <a href="/sports/pro/" class="neighborhood-nav-pill is-inactive">Pro Sports</a>
+        <a href="/sports/minor/" class="neighborhood-nav-pill is-inactive">Minor League Sports</a>
+        <a href="/sports/college/" class="neighborhood-nav-pill is-inactive">College Sports</a>
       </nav>
     </div>
   </section>

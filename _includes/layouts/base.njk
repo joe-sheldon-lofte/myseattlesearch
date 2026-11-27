@@ -10,7 +10,7 @@
   
   {# Dynamic Meta Titles & Descriptions #}
   <title>{{ title | default(stats.site_name | default("MySeattleSearch | Puget Sound Real Estate & Hyperlocal Data")) }}</title>
-  <meta name="description" content="{{ meta_description | default("Explore Puget Sound real estate, municipal data, and neighborhood telemetry with " ~ (stats.full_name | default("Joe Sheldon")) ~ ".") }}">
+    <meta name="description" content="{{ meta_description | default(description) | default('Explore Puget Sound real estate, municipal data, and neighborhood telemetry with ' ~ (stats.full_name | default('Joe Sheldon')) ~ '.') }}">
   
   {# Canonical & AI Plain-Text Discovery #}
   <link rel="canonical" href="https://myseattlesearch.com{{ page.url }}">

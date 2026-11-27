@@ -20,7 +20,7 @@ permalink: "index.html"
   {% endfor %}
 {% endif %}
 
-<div class="traffic-portal-main">
+<main class="traffic-portal-main">
 
   <!-- =========================================================================
        1. NEIGHBORHOODS BILLBOARD (Directory & Dual County Jump Engine)
@@ -45,7 +45,7 @@ permalink: "index.html"
                   onchange="if(this.value) window.location.href=this.value;"
                   aria-label="Select a King County Neighborhood">
             <option value="">Jump to King County Neighborhood...</option>
-            {% for item in king_neighborhoods %}
+            {% for item in king_neighborhoods | sort_by("City") %}
               <option value="/neighborhood/{{ item.City | slugify }}/">{{ item.City }}</option>
             {% endfor %}
           </select>
@@ -59,7 +59,7 @@ permalink: "index.html"
                   onchange="if(this.value) window.location.href=this.value;"
                   aria-label="Select a Snohomish County Neighborhood">
             <option value="">Jump to Snohomish County Neighborhood...</option>
-            {% for item in snohomish_neighborhoods %}
+            {% for item in snohomish_neighborhoods | sort_by("City") %}
               <option value="/neighborhood/{{ item.City | slugify }}/">{{ item.City }}</option>
             {% endfor %}
           </select>
@@ -167,4 +167,4 @@ permalink: "index.html"
     </div>
   </section>
 
-</div>
+</main>
