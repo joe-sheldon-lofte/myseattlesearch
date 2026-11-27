@@ -3,11 +3,9 @@ import sys
 import re
 import json
 import math
-import boto3
 import requests
 import datetime
 from zoneinfo import ZoneInfo
-from botocore.client import Config
 
 try:
     import sentry_sdk
@@ -18,19 +16,12 @@ SENTRY_DSN = os.getenv("SENTRY_DSN")
 if SENTRY_DSN and sentry_sdk:
     sentry_sdk.init(dsn=SENTRY_DSN, traces_sample_rate=0.0, environment="production")
 
-R2_ACCESS_KEY = os.getenv("R2_ACCESS_KEY_ID")
-R2_SECRET_KEY = os.getenv("R2_SECRET_ACCESS_KEY")
-R2_ENDPOINT = os.getenv("R2_ENDPOINT_URL")
-BUCKET = os.getenv("R2_DATA_BUCKET_NAME") or os.getenv("R2_BUCKET_NAME")
-
-D1_API_TOKEN = os.getenv("CF_D1_API_TOKEN")
-ACCOUNT_ID = os.getenv("CF_ACCOUNT_ID")
+D1_API_TOKEN = os.getenv("CF_MASTER_API_TOKEN") or os.getenv("CF_D1_API_TOKEN")
+ACCOUNT_ID = os.getenv("CF_MASTER_ACCOUNT_ID") or os.getenv("CF_ACCOUNT_ID")
 DATABASE_ID = os.getenv("CF_DATABASE_TELEMETRY_ID")
 
-if not R2_ENDPOINT and ACCOUNT_ID:
-    R2_ENDPOINT = f"https://{ACCOUNT_ID}.r2.cloudflarestorage.com"
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+DATA_DIR = os.path.join(BASE_DIR, "data")
 PACIFIC_TZ = ZoneInfo("America/Los_Angeles")
 
 
@@ -48,17 +39,28 @@ def normalize_name(text: str) -> str:
 
 
 def resolve_data_file(filename: str):
-    for folder in ("_data", "data"):
+    for folder in ("data", "_data"):
         candidate = os.path.join(BASE_DIR, folder, filename)
         if os.path.exists(candidate):
             return candidate
     return None
 
 
+def load_local_json(filename: str):
+    path = os.path.join(DATA_DIR, filename)
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
 def load_canonical_cities():
     file_path = resolve_data_file("city_data.json")
     if not file_path:
-        raise FileNotFoundError("Could not locate city_data.json in _data/ or data/.")
+        raise FileNotFoundError("Could not locate city_data.json in data/ or _data/.")
 
     with open(file_path, "r", encoding="utf-8") as f:
         records = json.load(f)
@@ -91,7 +93,6 @@ def load_canonical_cities():
 
 
 def load_school_spatial_indexes():
-    """Loads district boundary polygons and individual school records."""
     district_polys_by_norm = {}
     sb_path = resolve_data_file("school_boundaries.json")
     if sb_path:
@@ -127,17 +128,6 @@ def load_school_spatial_indexes():
     return district_polys_by_norm, schools_by_district_norm
 
 
-def get_s3_client():
-    return boto3.client(
-        "s3",
-        endpoint_url=R2_ENDPOINT,
-        aws_access_key_id=R2_ACCESS_KEY,
-        aws_secret_access_key=R2_SECRET_KEY,
-        config=Config(signature_version="s3v4"),
-        region_name="auto"
-    )
-
-
 def haversine_miles(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     r = 3958.8
     p1, p2 = math.radians(lat1), math.radians(lat2)
@@ -145,14 +135,6 @@ def haversine_miles(lat1: float, lon1: float, lat2: float, lon2: float) -> float
     dl = math.radians(lon2 - lon1)
     a = math.sin(dp / 2.0) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2.0) ** 2
     return r * (2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a)))
-
-
-def fetch_r2_json(s3, key: str):
-    try:
-        res = s3.get_object(Bucket=BUCKET, Key=key)
-        return json.loads(res["Body"].read().decode("utf-8"))
-    except Exception:
-        return None
 
 
 def fetch_recent_earthquakes():
@@ -164,7 +146,7 @@ def fetch_recent_earthquakes():
     cutoff_time = int((datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=6)).timestamp() * 1000)
     sql = "SELECT id, magnitude, place, latitude, longitude, depth, time_ms FROM earthquakes WHERE time_ms >= ? AND magnitude >= 2.0"
     try:
-        res = requests.post(url, headers=headers, json=[{"sql": sql, "params": [cutoff_time]}], timeout=10).json()
+        res = requests.post(url, headers=headers, json=[{"sql": sql, "params": [cutoff_time]}], timeout=15).json()
         if res.get("success") and res.get("result"):
             return res["result"][0].get("results", [])
     except Exception as exc:
@@ -225,7 +207,6 @@ def point_in_geometry(lon: float, lat: float, geom: dict) -> bool:
 
 
 def enrich_school_report(rep: dict, d_norm: str, district_polys: dict, schools_by_dist: dict) -> dict:
-    """Attaches either individual school coordinates or district boundary geometry."""
     enriched = dict(rep)
     detail_lower = (rep.get("detail") or "").lower()
     org_lower = (rep.get("org_name") or "").lower()
@@ -256,14 +237,13 @@ def enrich_school_report(rep: dict, d_norm: str, district_polys: dict, schools_b
 def compile_master_alerts():
     cities = load_canonical_cities()
     district_polys, schools_by_dist = load_school_spatial_indexes()
-    s3 = get_s3_client()
     now_pac = datetime.datetime.now(PACIFIC_TZ)
 
-    prev_alerts = fetch_r2_json(s3, "telemetry/active_alerts.json") or {}
-    power_data = fetch_r2_json(s3, "telemetry/power_outages.json") or {}
-    wildfire_data = fetch_r2_json(s3, "telemetry/wildfires.json") or {}
-    weather_data = fetch_r2_json(s3, "telemetry/weather_alerts.json") or {}
-    schools_data = fetch_r2_json(s3, "telemetry/schools.json") or {}
+    prev_alerts = load_local_json("active_alerts.json") or {}
+    power_data = load_local_json("power_outages.json") or {}
+    wildfire_data = load_local_json("wildfires.json") or {}
+    weather_data = load_local_json("weather_alerts.json") or {}
+    schools_data = load_local_json("schools.json") or {}
     earthquakes = fetch_recent_earthquakes()
 
     total_regional_customers_out = sum(
@@ -304,12 +284,12 @@ def compile_master_alerts():
     for city in cities:
         slug, lat, lon = city["slug"], city["lat"], city["lon"]
 
-        # 1. School Closures & Delays (Multi-district support e.g. Sammamish)
+        # 1. School Closures & Delays
         matched_schools = []
         seen_rep_ids = set()
         for rep in active_schools:
             org_norm = normalize_name(rep.get("org_name", ""))
-            for idx, d_norm in enumerate(city["normalized_districts"]):
+            for d_norm in city["normalized_districts"]:
                 if d_norm and (d_norm in org_norm or org_norm in d_norm):
                     rep_key = rep.get("report_id") or f"{org_norm}_{rep.get('detail', '')[:30]}"
                     if rep_key not in seen_rep_ids:
@@ -322,7 +302,7 @@ def compile_master_alerts():
         s_level = "red" if any(r.get("severity") == "red" for r in matched_schools) else ("amber" if matched_schools else "optimal")
         s_alert = len(matched_schools) > 0
 
-        # 2. Severe Weather Alerts (NWS UGC + Polygon)
+        # 2. Severe Weather Alerts
         matched_weather = []
         for wx in wx_alerts:
             if city["county_code"] in wx.get("geocode_ugc", []):
@@ -341,12 +321,12 @@ def compile_master_alerts():
                     })
         wx_alert = len(matched_weather) > 0
 
-        # 3. Power Outages (City-level mapped incidents with <10 point vs >=10 polygon support)
+        # 3. Power Outages
         c_power = power_cities.get(slug, {})
         matched_power = c_power.get("incidents", [])
         p_alert = len(matched_power) > 0
 
-        # 4. Earthquakes (Proximity radius)
+        # 4. Earthquakes
         matched_quakes = []
         for q in earthquakes:
             mag = float(q.get("magnitude", 0))
@@ -365,7 +345,7 @@ def compile_master_alerts():
                 })
         eq_alert = len(matched_quakes) > 0
 
-        # 5. Wildfires (< 30 mi OR >= 500 acres within 60 mi)
+        # 5. Wildfires
         matched_fires = []
         for fire in wildfires:
             coords = fire.get("coordinates", {})
@@ -414,17 +394,13 @@ def compile_master_alerts():
 
     alerts_payload["global"]["active_alert_count"] = total_active_alerts
 
-    serialized = json.dumps(alerts_payload, separators=(",", ":"))
-    s3.put_object(
-        Bucket=BUCKET,
-        Key="telemetry/active_alerts.json",
-        Body=serialized.encode("utf-8"),
-        ContentType="application/json",
-        CacheControl="public, max-age=60"
-    )
-    print(f"Master alert matrix published to R2. Total active alerts: {total_active_alerts}")
+    os.makedirs(DATA_DIR, exist_ok=True)
+    output_path = os.path.join(DATA_DIR, "active_alerts.json")
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(alerts_payload, f, separators=(",", ":"), ensure_ascii=False)
+    print(f"Master alert matrix saved -> {output_path}. Total active alerts: {total_active_alerts}")
 
-    # Compare against previous R2 snapshot to trigger deploy-site.yml immediately on any state change
+    # Compare against previous snapshot to trigger deploy-site.yml immediately on any state change
     prev_global = prev_alerts.get("global", {})
     if total_active_alerts != prev_global.get("active_alert_count", 0):
         print("Global alert count changed. Exiting 22 to trigger Eleventy rebuild.")

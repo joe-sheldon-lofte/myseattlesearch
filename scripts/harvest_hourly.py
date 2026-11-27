@@ -4,6 +4,7 @@ import json
 import traceback
 import datetime
 import boto3
+from botocore.client import Config
 import sentry_sdk
 
 # ------------------------------------------------------------------------------
@@ -22,6 +23,7 @@ else:
     print("⚠️ SENTRY_DSN environment variable not found. Logging to terminal only.")
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 # ------------------------------------------------------------------------------
 # 2. ENHANCED SAFE_TASK WITH SENTRY ERROR CAPTURE
@@ -45,10 +47,11 @@ def safe_task(task_name, func):
 
         print(f"⚠️ Skipping {task_name}.\n")
 
+
 def run_subscript(script_relative_path):
     primary_path = os.path.join(BASE_DIR, "scripts", "hourly", script_relative_path)
     fallback_path = os.path.join(BASE_DIR, "scripts", script_relative_path)
-    
+
     target_path = primary_path if os.path.exists(primary_path) else fallback_path
 
     if os.path.exists(target_path):
@@ -58,6 +61,7 @@ def run_subscript(script_relative_path):
     else:
         raise FileNotFoundError(f"Script not found at expected path: {primary_path}")
 
+
 # Sub-script execution wrappers
 def harvest_weather_hourly(): run_subscript("harvest_weather_hourly.py")
 def harvest_transit_intercity(): run_subscript("transit_intercity.py")
@@ -66,31 +70,44 @@ def harvest_sheets_master_sync(): run_subscript("sheets_master_sync.py")
 def harvest_cms_harvester(): run_subscript("cms_harvester.py")
 def harvest_news_rss_wire(): run_subscript("news_rss_wire.py")
 
+
 # Task 7: Cloudflare R2 Storage Accounting
 def run_r2_accounting():
     print("📊 Generating Cloudflare R2 Storage Accounting Metrics...")
-    out_dir = "_data"
+    out_dir = os.path.join(BASE_DIR, "_data")
     os.makedirs(out_dir, exist_ok=True)
     out_f = os.path.join(out_dir, "r2_storage.json")
-    r2_payload = {"usedGB": "0.00", "usedBytes": 0, "lastChecked": datetime.datetime.now(datetime.timezone.utc).isoformat()}
-    
-    r2_access_key = os.environ.get("R2_ACCESS_KEY_ID")
-    r2_secret_key = os.environ.get("R2_SECRET_ACCESS_KEY")
-    r2_endpoint = os.environ.get("R2_ENDPOINT_URL")
-    r2_bucket = os.environ.get("R2_BUCKET_NAME")
+    r2_payload = {
+        "usedGB": "0.00",
+        "usedBytes": 0,
+        "lastChecked": datetime.datetime.now(datetime.timezone.utc).isoformat()
+    }
+
+    account_id = (os.environ.get("CF_MASTER_ACCOUNT_ID") or "").strip()
+    r2_access_key = (os.environ.get("CF_MASTER_ACCESS_KEY_ID") or "").strip()
+    r2_secret_key = (os.environ.get("CF_MASTER_SECRET_ACCESS_KEY") or "").strip()
+    r2_endpoint = (
+        os.environ.get("CF_MASTER_S3_API_ENDPOINT")
+        or (f"https://{account_id}.r2.cloudflarestorage.com" if account_id else "")
+    ).strip()
+    r2_bucket = (os.environ.get("R2_BUCKET_NAME") or "myseattlesearch-assets").strip()
 
     if all([r2_access_key, r2_secret_key, r2_endpoint, r2_bucket]):
         try:
             s3_client = boto3.client(
-                "s3", endpoint_url=r2_endpoint,
-                aws_access_key_id=r2_access_key, aws_secret_access_key=r2_secret_key,
-                region_name="auto"
+                "s3",
+                endpoint_url=r2_endpoint,
+                aws_access_key_id=r2_access_key,
+                aws_secret_access_key=r2_secret_key,
+                region_name="auto",
+                config=Config(signature_version="s3v4")
             )
             total_bytes = 0
-            paginator = s3_client.get_paginator('list_objects_v2')
+            paginator = s3_client.get_paginator("list_objects_v2")
             for page in paginator.paginate(Bucket=r2_bucket):
-                if 'Contents' in page:
-                    for obj in page['Contents']: total_bytes += obj.get('Size', 0)
+                if "Contents" in page:
+                    for obj in page["Contents"]:
+                        total_bytes += obj.get("Size", 0)
             r2_payload["usedGB"] = f"{(total_bytes / (1024 ** 3)):.2f}"
             r2_payload["usedBytes"] = total_bytes
         except Exception as e:
@@ -98,12 +115,12 @@ def run_r2_accounting():
 
     with open(out_f, "w", encoding="utf-8") as f:
         json.dump(r2_payload, f, indent=2)
-    print("   ✅ R2 storage metrics saved to _data/r2_storage.json")
+    print(f"   ✅ R2 storage metrics saved to {out_f}")
+
 
 # ------------------------------------------------------------------------------
 # 3. MASTER HOURLY RUNNER WITH SENTRY CRON MONITORING
 # ------------------------------------------------------------------------------
-
 def main():
     print("==================================================")
     print("     MYSEATTLESEARCH HOURLY MASTER HARVESTER      ")
@@ -118,6 +135,7 @@ def main():
     safe_task("7. Cloudflare R2 Storage Accounting", run_r2_accounting)
 
     print("🎉 Hourly master harvesting sequence complete. Site data fresh!")
+
 
 if __name__ == "__main__":
     main()

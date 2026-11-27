@@ -3,8 +3,6 @@ import sys
 import json
 import datetime
 import requests
-import boto3
-from botocore.config import Config
 
 try:
     import sentry_sdk
@@ -15,27 +13,14 @@ SENTRY_DSN = os.getenv("SENTRY_DSN")
 if SENTRY_DSN and sentry_sdk:
     sentry_sdk.init(dsn=SENTRY_DSN, traces_sample_rate=0.0, environment="production")
 
-
-def get_s3_client():
-    endpoint_url = os.getenv("R2_ENDPOINT_URL")
-    account_id = os.getenv("CF_ACCOUNT_ID")
-    if not endpoint_url and account_id:
-        endpoint_url = f"https://{account_id}.r2.cloudflarestorage.com"
-
-    return boto3.client(
-        "s3",
-        endpoint_url=endpoint_url,
-        aws_access_key_id=os.getenv("R2_ACCESS_KEY_ID"),
-        aws_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY"),
-        config=Config(signature_version="s3v4"),
-        region_name="auto"
-    )
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+OUTPUT_PATH = os.path.join(DATA_DIR, "weather_alerts.json")
 
 
 def fetch_weather_alerts():
     print("Polling NWS for active Severe Weather Alerts in Washington...")
     headers = {"User-Agent": "MySeattleSearch-Telemetry/1.0 (admin@myseattlesearch.com)"}
-    bucket_name = os.getenv("R2_DATA_BUCKET_NAME") or os.getenv("R2_BUCKET_NAME")
 
     res = requests.get("https://api.weather.gov/alerts/active?area=WA", headers=headers, timeout=15)
     res.raise_for_status()
@@ -79,15 +64,10 @@ def fetch_weather_alerts():
         "alerts": alerts
     }
 
-    s3 = get_s3_client()
-    s3.put_object(
-        Bucket=bucket_name,
-        Key="telemetry/weather_alerts.json",
-        Body=json.dumps(payload, separators=(",", ":")).encode("utf-8"),
-        ContentType="application/json",
-        CacheControl="public, max-age=300"
-    )
-    print(f"Harvested {len(alerts)} active NWS weather alerts -> {bucket_name}/telemetry/weather_alerts.json")
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
+        json.dump(payload, f, separators=(",", ":"), ensure_ascii=False)
+    print(f"Harvested {len(alerts)} active NWS weather alerts -> {OUTPUT_PATH}")
 
 
 def main():

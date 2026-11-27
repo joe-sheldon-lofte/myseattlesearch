@@ -1,16 +1,13 @@
 # File: scripts/hourly/sports_hourly.py
 import os
 import json
-import re
 import time
 import requests
 import urllib3
 from datetime import datetime, timezone
 
-# Suppress unverified HTTPS request warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Robust Repository Root Path Resolution
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 if os.path.basename(CURRENT_DIR) == "hourly":
     REPO_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
@@ -29,14 +26,12 @@ HEADERS = {
     "Referer": "https://www.google.com/"
 }
 
-# Explicit non-Washington exclusions to avoid false positives
 NON_WA_EXCLUSIONS = [
-    "commanders", "spirit", "wizards", "nationals", "mystics",  # Washington D.C.
+    "commanders", "spirit", "wizards", "nationals", "mystics",
     "george washington", "washington &", "washington univ", "washington college",
     "uconn", "northern illinois", "miami (oh)", "southeast missouri", "maine black bears"
 ]
 
-# Unique Washington Mascots and Club Identities
 WA_EXACT_IDENTITIES = [
     "seahawks", "mariners", "kraken", "sounders", "seawolves", "rainiers",
     "aquasox", "dust devils", "velocity fc", "zephyr", "thunderbirds",
@@ -50,23 +45,22 @@ WA_CITIES = [
 ]
 
 LOCAL_NETWORKS = [
-    "FOX", "CBS", "NBC", "ESPN", "KING 5", "KONG", "KSTW", "CW", "CW Seattle", 
+    "FOX", "CBS", "NBC", "ESPN", "KING 5", "KONG", "KSTW", "CW", "CW Seattle",
     "93.3 KJR", "710 Seattle Sports", "NFL+", "Apple TV", "Prime Video", "Peacock", "Netflix"
 ]
 
+
 def is_wa_team_name(team_name):
-    """Evaluates whether a team name strictly belongs to Washington state."""
     if not team_name:
         return False
     t = str(team_name).lower().strip()
-    
+
     if any(ex in t for ex in NON_WA_EXCLUSIONS):
         return False
-        
+
     if any(m in t for m in WA_EXACT_IDENTITIES):
         return True
-        
-    # Collegiate Washington programs
+
     if "washington huskies" in t or "uw huskies" in t or (t == "huskies" and "wash" in t):
         return True
     if "washington state" in t or "wsu" in t or ("cougars" in t and ("wsu" in t or "wash" in t)):
@@ -81,22 +75,23 @@ def is_wa_team_name(team_name):
         return True
     if "seattle storm" in t or "seattle reign" in t:
         return True
-        
-    # Geographic city match
+
     if any(c in t for c in WA_CITIES):
         return True
-        
+
     return False
+
 
 def is_wa_game(game):
     home = game.get("home_team")
     away = game.get("away_team")
     return is_wa_team_name(home) or is_wa_team_name(away)
 
+
 def parse_local_broadcast(tv_listings):
     if not tv_listings or not isinstance(tv_listings, dict):
         return "Check Local Listings"
-    
+
     us_listings = tv_listings.get("us", [])
     if isinstance(us_listings, list):
         for item in us_listings:
@@ -105,8 +100,9 @@ def parse_local_broadcast(tv_listings):
                 return name
         if us_listings:
             return us_listings[0].get("short_name", "National Broadcast")
-            
+
     return "Check Local Listings"
+
 
 def fetch_mlb_scores(session):
     url = "https://statsapi.mlb.com/api/v1/schedule?sportId=1,11,13,14&teamId=136,529,403,486,468"
@@ -121,13 +117,13 @@ def fetch_mlb_scores(session):
                 away = g.get("teams", {}).get("away", {})
                 home = g.get("teams", {}).get("home", {})
                 status = g.get("status", {})
-                
+
                 abstract_state = status.get("abstractGameState", "")
                 detailed_state = status.get("detailedState", "Scheduled")
-                
+
                 is_live = abstract_state == "Live"
                 is_final = abstract_state == "Final" or "final" in detailed_state.lower()
-                
+
                 games.append({
                     "game_id": f"mlb-{g.get('gamePk')}",
                     "league": "MLB/MiLB",
@@ -147,6 +143,7 @@ def fetch_mlb_scores(session):
         print(f"   ⚠️ MLB/MiLB Hourly fetch notice: {e}")
         return []
 
+
 def fetch_nhl_scores(session):
     url = "https://api-web.nhle.com/v1/score/now"
     try:
@@ -162,7 +159,7 @@ def fetch_nhl_scores(session):
                 game_state = g.get("gameState", "FUT")
                 is_live = game_state in ["LIVE", "CRIT"]
                 is_final = game_state in ["OFF", "FINAL"]
-                
+
                 games.append({
                     "game_id": f"nhl-{g.get('id')}",
                     "league": "NHL",
@@ -183,24 +180,25 @@ def fetch_nhl_scores(session):
         print(f"   ⚠️ NHL Hourly fetch notice: {e}")
         return []
 
+
 def fetch_whl_scores(session):
     url = "https://lscluster.hockeytech.com/feed/?feed=modulekit&view=schedule&client_code=whl"
     try:
         res = session.get(url, timeout=15, verify=False)
         if res.status_code != 200:
             return []
-        
+
         text = res.text.strip()
         if not (text.startswith("{") or text.startswith("[")):
             return []
-            
+
         data = res.json()
         games = []
         schedule = data.get("SiteKit", {}).get("Schedule", []) if isinstance(data, dict) else []
         for g in schedule:
             home_name = g.get("home_team_name", "")
             away_name = g.get("visiting_team_name", "")
-            
+
             game_obj = {
                 "game_id": f"whl-{g.get('game_id')}",
                 "league": "WHL",
@@ -221,6 +219,7 @@ def fetch_whl_scores(session):
     except Exception as e:
         print(f"   ⚠️ WHL HockeyTech Hourly fetch notice: {e}")
         return []
+
 
 def fetch_thescore_events(session, sport_key):
     url = f"https://api.thescore.com/{sport_key}/events"
@@ -243,13 +242,12 @@ def fetch_thescore_events(session, sport_key):
         events = res.json()
         if not isinstance(events, list):
             return []
-            
+
         games = []
         for ev in events:
             if not isinstance(ev, dict):
                 continue
-                
-            # Defensive wrappers guarding against placeholder null objects
+
             away = ev.get("away_team") or {}
             home = ev.get("home_team") or {}
             box = ev.get("box_score") or {}
@@ -282,14 +280,15 @@ def fetch_thescore_events(session, sport_key):
                 "broadcast": parse_local_broadcast(ev.get("tv_listings_by_country_code")),
                 "ticket_link": ev.get("stubhub_url")
             }
-            
+
             if is_wa_game(game_obj):
                 games.append(game_obj)
-                
+
         return games
     except Exception as e:
         print(f"   ⚠️ theScore ({sport_key}) parse notice: {e}")
         return []
+
 
 def main():
     print("⚡ Starting Filtered Hourly Sports Scoreboard Harvester...")
@@ -304,31 +303,23 @@ def main():
     }
 
     all_games = []
-    
-    # 1. MLB Mariners & High-A MiLB Washington Teams
     all_games.extend(fetch_mlb_scores(session))
-    
-    # 2. NHL Seattle Kraken
     all_games.extend(fetch_nhl_scores(session))
-    
-    # 3. WHL Junior Hockey Washington Teams
     all_games.extend(fetch_whl_scores(session))
-    
-    # 4. Pro & NCAA College Sports (Filtered strictly for WA teams)
+
     for s_key in ["nfl", "mls", "wnba", "nwsl", "ncaaf", "ncaab"]:
         all_games.extend(fetch_thescore_events(session, s_key))
 
-    # Categorize and deduplicate
     seen_ids = set()
     for g in all_games:
         gid = g.get("game_id")
         if gid in seen_ids:
             continue
         seen_ids.add(gid)
-        
+
         is_live = g.pop("is_live", False)
         is_final = g.pop("is_final", False)
-        
+
         if is_live:
             scoreboard["live_games"].append(g)
         elif is_final or str(g.get("status")).lower() in ["final", "f", "off", "completed"]:
@@ -336,11 +327,16 @@ def main():
         else:
             scoreboard["upcoming_games"].append(g)
 
+    if len(seen_ids) == 0 and os.path.exists(OUTPUT_PATH):
+        print(f"⚠️ 0 local games returned across upstream feeds; preserving existing {OUTPUT_PATH}.")
+        return
+
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
         json.dump(scoreboard, f, indent=2, ensure_ascii=False)
 
     print(f"✅ Saved clean WA hourly sports scoreboard ({len(seen_ids)} local games) to {OUTPUT_PATH}")
+
 
 if __name__ == "__main__":
     main()

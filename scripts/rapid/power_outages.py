@@ -2,26 +2,19 @@
 """
 Regional Power Outage Ingestion Engine
 Fetches live telemetry for SCL, PSE, and SnoPUD, maps incidents spatially to
-canonical neighborhoods, and uploads the unified snapshot to Cloudflare R2.
+canonical neighborhoods, and writes the unified snapshot to data/power_outages.json.
 """
 
 import os
 import re
-import sys
 import json
 import math
 import urllib.request
-import urllib.error
 from datetime import datetime, timezone
 
-try:
-    import boto3
-    from botocore.config import Config
-except ImportError:
-    print("Error: boto3 is required. Run 'pip install boto3'.", file=sys.stderr)
-    sys.exit(1)
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+OUTPUT_PATH = os.path.join(DATA_DIR, "power_outages.json")
 
 HTTP_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
@@ -77,11 +70,11 @@ def point_in_geometry(lon: float, lat: float, geom: dict) -> bool:
 
 def load_city_spatial_index() -> list:
     city_path = next(
-        (p for p in (os.path.join(BASE_DIR, "_data", "city_data.json"), os.path.join(BASE_DIR, "data", "city_data.json")) if os.path.exists(p)),
+        (p for p in (os.path.join(DATA_DIR, "city_data.json"), os.path.join(BASE_DIR, "_data", "city_data.json")) if os.path.exists(p)),
         None
     )
     bound_path = next(
-        (p for p in (os.path.join(BASE_DIR, "_data", "city_boundaries.json"), os.path.join(BASE_DIR, "data", "city_boundaries.json")) if os.path.exists(p)),
+        (p for p in (os.path.join(DATA_DIR, "city_boundaries.json"), os.path.join(BASE_DIR, "_data", "city_boundaries.json")) if os.path.exists(p)),
         None
     )
 
@@ -305,41 +298,6 @@ def map_outages_to_cities(cities: list, incidents: list) -> dict:
     return city_map
 
 
-def upload_to_r2(payload_bytes: bytes):
-    endpoint_url = os.environ.get("R2_ENDPOINT_URL")
-    account_id = os.environ.get("CF_ACCOUNT_ID")
-    access_key = os.environ.get("R2_ACCESS_KEY_ID")
-    secret_key = os.environ.get("R2_SECRET_ACCESS_KEY")
-    bucket_name = os.environ.get("R2_DATA_BUCKET_NAME") or os.environ.get("R2_BUCKET_NAME")
-
-    if not endpoint_url:
-        if account_id:
-            endpoint_url = f"https://{account_id}.r2.cloudflarestorage.com"
-        else:
-            raise ValueError("Missing endpoint configuration: provide R2_ENDPOINT_URL or CF_ACCOUNT_ID.")
-
-    if not all([access_key, secret_key, bucket_name]):
-        raise ValueError("Missing required R2 credentials: R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, or R2_DATA_BUCKET_NAME.")
-
-    s3_client = boto3.client(
-        "s3",
-        endpoint_url=endpoint_url,
-        aws_access_key_id=access_key,
-        aws_secret_access_key=secret_key,
-        config=Config(signature_version="s3v4"),
-        region_name="auto"
-    )
-
-    s3_client.put_object(
-        Bucket=bucket_name,
-        Key="telemetry/power_outages.json",
-        Body=payload_bytes,
-        ContentType="application/json",
-        CacheControl="public, max-age=180"
-    )
-    print(f"Successfully uploaded snapshot to R2: {bucket_name}/telemetry/power_outages.json")
-
-
 def main():
     print(f"[{datetime.now(timezone.utc).isoformat()}] Polling regional utility feeds...")
     scl, scl_incidents = ingest_scl()
@@ -366,8 +324,10 @@ def main():
         "cities": city_outages
     }
 
-    serialized = json.dumps(payload, separators=(",", ":")).encode("utf-8")
-    upload_to_r2(serialized)
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
+        json.dump(payload, f, separators=(",", ":"), ensure_ascii=False)
+    print(f"Saved power outage snapshot -> {OUTPUT_PATH}")
 
 
 if __name__ == "__main__":

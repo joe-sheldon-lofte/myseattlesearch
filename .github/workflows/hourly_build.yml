@@ -35,10 +35,7 @@ jobs:
         CF_MASTER_ACCESS_KEY_ID: ${{ secrets.CF_MASTER_ACCESS_KEY_ID }}
         CF_MASTER_SECRET_ACCESS_KEY: ${{ secrets.CF_MASTER_SECRET_ACCESS_KEY }}
         CF_MASTER_S3_API_ENDPOINT: ${{ secrets.CF_MASTER_S3_API_ENDPOINT }}
-        R2_ALL_ACCESS_TOKEN: ${{ secrets.R2_ALL_ACCESS_TOKEN }}
-        R2_ALL_SECRET_ACCESS_KEY: ${{ secrets.R2_ALL_SECRET_ACCESS_KEY }}
         R2_DATA_BUCKET_NAME: ${{ secrets.R2_DATA_BUCKET_NAME }}
-        R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
       run: python scripts/helpers/pull_r2_data.py
 
     - name: Execute Master Data Ingestion Pipeline
@@ -49,9 +46,7 @@ jobs:
         CF_MASTER_ACCESS_KEY_ID: ${{ secrets.CF_MASTER_ACCESS_KEY_ID }}
         CF_MASTER_SECRET_ACCESS_KEY: ${{ secrets.CF_MASTER_SECRET_ACCESS_KEY }}
         CF_MASTER_S3_API_ENDPOINT: ${{ secrets.CF_MASTER_S3_API_ENDPOINT }}
-        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-        R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+        CF_DATABASE_CMS_ID: ${{ secrets.CF_DATABASE_CMS_ID }}
         R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         R2_DATA_BUCKET_NAME: ${{ secrets.R2_DATA_BUCKET_NAME }}
         WEBSITE_DATA_CORE_SHEET_ID: ${{ secrets.WEBSITE_DATA_CORE_SHEET_ID }}
@@ -65,9 +60,6 @@ jobs:
         ONEBUSAWAY_API_KEY: ${{ secrets.ONEBUSAWAY_API_KEY }}
         AIRNOW_API_KEY: ${{ secrets.AIRNOW_API_KEY }}
         MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
-        CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-        CF_DATABASE_CMS_ID: ${{ secrets.CF_DATABASE_CMS_ID }}
-        CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
       run: python scripts/harvest_hourly.py
 
     - name: Push Updated Datasets to R2
@@ -77,10 +69,7 @@ jobs:
         CF_MASTER_ACCESS_KEY_ID: ${{ secrets.CF_MASTER_ACCESS_KEY_ID }}
         CF_MASTER_SECRET_ACCESS_KEY: ${{ secrets.CF_MASTER_SECRET_ACCESS_KEY }}
         CF_MASTER_S3_API_ENDPOINT: ${{ secrets.CF_MASTER_S3_API_ENDPOINT }}
-        R2_ALL_ACCESS_TOKEN: ${{ secrets.R2_ALL_ACCESS_TOKEN }}
-        R2_ALL_SECRET_ACCESS_KEY: ${{ secrets.R2_ALL_SECRET_ACCESS_KEY }}
         R2_DATA_BUCKET_NAME: ${{ secrets.R2_DATA_BUCKET_NAME }}
-        R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
       run: python scripts/helpers/push_r2_data.py
 
     - name: Clean Temporary Execution Keys

@@ -1,4 +1,4 @@
-# File: scripts/sheets_master_sync.py
+# File: scripts/hourly/sheets_master_sync.py
 
 import os
 import io
@@ -8,9 +8,11 @@ import math
 import datetime
 import requests
 import boto3
+from botocore.client import Config
 from PIL import Image
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
+
 
 def find_project_root(start_path):
     """Scans upward to find the project root dynamically, avoiding phantom directories."""
@@ -22,34 +24,35 @@ def find_project_root(start_path):
         if parent == curr:
             break
         curr = parent
-    # Fallback to standard 2-level assumption if no config files found
     return os.path.dirname(os.path.dirname(os.path.abspath(start_path)))
+
 
 BASE_DIR = find_project_root(__file__)
 DATA_DIR = os.path.join(BASE_DIR, "data")
 COMMUTE_TOLLS_PATH = os.path.join(DATA_DIR, "city_commute_tolls.json")
 DEV_VARS_PATH = os.path.join(BASE_DIR, ".dev.vars")
 
+
 def load_dev_vars(filepath):
-    """Loads environment variables for local Mac execution."""
+    """Loads environment variables for local execution without overriding CI secrets."""
     if not os.path.exists(filepath):
         return
     with open(filepath, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            if not line or line.startswith("#"):
+            if not line or line.startswith("#") or "=" not in line:
                 continue
-            if "=" in line:
-                key, val = line.split("=", 1)
-                os.environ[key.strip()] = val.strip().strip("'").strip('"')
+            key, val = line.split("=", 1)
+            os.environ.setdefault(key.strip(), val.strip().strip("'").strip('"'))
 
-# Inject local dev vars if running outside GitHub Actions
+
 load_dev_vars(DEV_VARS_PATH)
 
 SCOPES = [
-    'https://www.googleapis.com/auth/spreadsheets',
-    'https://www.googleapis.com/auth/drive'
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
 ]
+
 
 def get_col_letter(col_idx):
     result = ""
@@ -60,6 +63,7 @@ def get_col_letter(col_idx):
         col_idx = (col_idx - 1) // 26
     return result
 
+
 def clean_nan_tokens(node):
     if isinstance(node, dict):
         return {k: clean_nan_tokens(v) for k, v in node.items()}
@@ -69,24 +73,27 @@ def clean_nan_tokens(node):
         return None
     return node
 
+
 def slugify(text):
     if not text:
         return ""
     text = str(text).lower().strip()
-    out = [ch if ch.isalnum() else '-' for ch in text if ch.isalnum() or ch in [' ', '-', '_']]
+    out = [ch if ch.isalnum() else "-" for ch in text if ch.isalnum() or ch in [" ", "-", "_"]]
     res = "".join(out)
-    while '--' in res:
-        res = res.replace('--', '-')
-    return res.strip('-')
+    while "--" in res:
+        res = res.replace("--", "-")
+    return res.strip("-")
+
 
 def extract_google_id(url_string):
     if not isinstance(url_string, str):
         return None
-    match = re.search(r'/d/([a-zA-Z0-9_-]+)', url_string)
+    match = re.search(r"/d/([a-zA-Z0-9_-]+)", url_string)
     if match:
         return match.group(1)
-    match = re.search(r'id=([a-zA-Z0-9_-]+)', url_string)
+    match = re.search(r"id=([a-zA-Z0-9_-]+)", url_string)
     return match.group(1) if match else None
+
 
 def is_google_drive_link(url_string):
     if not isinstance(url_string, str) or not url_string.strip():
@@ -94,7 +101,13 @@ def is_google_drive_link(url_string):
     u = url_string.lower().strip()
     if "assets.myseattlesearch.com" in u:
         return False
-    return "drive.google.com" in u or "docs.google.com" in u or "drive.usercontent.google.com" in u or extract_google_id(url_string) is not None
+    return (
+        "drive.google.com" in u
+        or "docs.google.com" in u
+        or "drive.usercontent.google.com" in u
+        or extract_google_id(url_string) is not None
+    )
+
 
 def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, folder_name, filename_slug, index=1):
     file_id = extract_google_id(image_url)
@@ -140,12 +153,13 @@ def process_and_upload_image(drive_service, s3_client, r2_bucket, image_url, fol
         print(f"   ❌ Image upload notice for {file_id}: {e}")
         return image_url
 
+
 def process_custom_upload_asset(drive_service, s3_client, r2_bucket, drive_link, target_dir, asset_name):
     file_id = extract_google_id(drive_link)
     if not file_id or not s3_client or not r2_bucket:
         return drive_link
 
-    clean_dir = str(target_dir).strip().strip('/')
+    clean_dir = str(target_dir).strip().strip("/").lower()
     clean_name = slugify(asset_name)
     object_key = f"{clean_dir}/{clean_name}.webp" if clean_dir else f"{clean_name}.webp"
     permanent_url = f"https://assets.myseattlesearch.com/{object_key}"
@@ -186,23 +200,24 @@ def process_custom_upload_asset(drive_service, s3_client, r2_bucket, drive_link,
         print(f"   ❌ Asset upload fault for {file_id}: {e}")
         return drive_link
 
+
 def process_and_upload_pdf(drive_service, s3_client, r2_bucket, pdf_url, mls_number, index=1):
     file_id = extract_google_id(pdf_url)
     if not file_id:
-        filename = pdf_url.split('/')[-1].split('?')[0]
-        title = filename.replace('.pdf', '').replace('.PDF', '').replace('_', ' ').replace('-', ' ').title()
+        filename = pdf_url.split("/")[-1].split("?")[0]
+        title = filename.replace(".pdf", "").replace(".PDF", "").replace("_", " ").replace("-", " ").title()
         return pdf_url, title or f"Document {index}"
 
     custom_domain = "https://assets.myseattlesearch.com"
 
     try:
         file_meta = drive_service.files().get(fileId=file_id, fields="name").execute()
-        original_name = file_meta.get("name", f"Document_{index}.pdf")
-        clean_name = re.sub(r'[^a-zA-Z0-9._-]', '_', original_name)
-        if not clean_name.lower().endswith('.pdf'):
-            clean_name += '.pdf'
+        original_name = file_meta.get("name", f"document_{index}.pdf")
+        clean_name = re.sub(r"[^a-zA-Z0-9._-]", "_", original_name).lower()
+        if not clean_name.endswith(".pdf"):
+            clean_name += ".pdf"
 
-        object_key = f"downloads/{str(mls_number).strip()}/{clean_name}"
+        object_key = f"downloads/{str(mls_number).strip().lower()}/{clean_name}"
         permanent_url = f"{custom_domain}/{object_key}"
 
         request = drive_service.files().get_media(fileId=file_id)
@@ -220,11 +235,12 @@ def process_and_upload_pdf(drive_service, s3_client, r2_bucket, pdf_url, mls_num
         except Exception:
             pass
 
-        display_title = original_name.replace('.pdf', '').replace('.PDF', '').replace('_', ' ').replace('-', ' ').title()
+        display_title = original_name.replace(".pdf", "").replace(".PDF", "").replace("_", " ").replace("-", " ").title()
         return permanent_url, display_title
     except Exception as e:
         print(f"   ❌ PDF upload notice for {file_id}: {e}")
         return pdf_url, f"Document {index}"
+
 
 def parse_sheet_values(rows):
     if not rows:
@@ -236,6 +252,7 @@ def parse_sheet_values(rows):
         sanitized = [str(item).strip() if item is not None else "" for item in padded]
         records.append(dict(zip(headers, sanitized)))
     return records
+
 
 def clean_wsdot_facility_name(raw_name, travel_dir):
     if not raw_name:
@@ -250,12 +267,14 @@ def clean_wsdot_facility_name(raw_name, travel_dir):
     }
     return wsdot_known_map.get(clean_id, str(raw_name).strip())
 
+
 def harvest_commute_and_tolls():
     wsdot_code = os.environ.get("WSDOT_ACCESS_CODE", "").strip().strip("'").strip('"')
     tolls_data = []
+    fetch_succeeded = False
 
     if wsdot_code:
-        headers = {"User-Agent": "Mozilla/5.0"}
+        headers = {"User-Agent": "MySeattleSearch/1.0 (+https://myseattlesearch.com)"}
         tolls_url = f"https://wsdot.wa.gov/Traffic/api/TollRates/TollRatesREST.svc/GetTollTripRatesAsJson?AccessCode={wsdot_code}"
         try:
             res = requests.get(tolls_url, headers=headers, timeout=15)
@@ -278,8 +297,13 @@ def harvest_commute_and_tolls():
                             "sign_message": f"${dollars:.2f}"
                         }
                 tolls_data = list(facility_rate_map.values())
+                fetch_succeeded = True
         except Exception as e:
             print(f"   ⚠️ WSDOT Tolls live fetch notice: {e}")
+
+    if (not fetch_succeeded or not tolls_data) and os.path.exists(COMMUTE_TOLLS_PATH):
+        print("   ⚠️ Preserving existing data/city_commute_tolls.json (WSDOT tolls feed empty or unavailable).")
+        return
 
     output = {
         "live_express_tolls": tolls_data,
@@ -291,6 +315,7 @@ def harvest_commute_and_tolls():
         json.dump(output, f, indent=2, ensure_ascii=False)
     print("   ✅ Updated city_commute_tolls.json directly from WSDOT API.")
 
+
 def main():
     print("📊 Running Hourly Platform Sync (Historical Log, Media, News, Sports, Booking Rules & Tolls)...")
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -298,40 +323,47 @@ def main():
     # 1. Harvest Live WSDOT Express Tolls
     harvest_commute_and_tolls()
 
-    # 2. Connect to Google Sheets & R2 Engine (Strictly lock to Core Sheet ID)
+    # 2. Connect to Google Sheets & R2 Assets Engine
     master_sheet_id = os.environ.get("WEBSITE_DATA_CORE_SHEET_ID")
     creds_path = os.path.join(BASE_DIR, "credentials.json")
-    
+
     if not master_sheet_id or not os.path.exists(creds_path):
         print(f"❌ Missing credentials.json at {creds_path} or WEBSITE_DATA_CORE_SHEET_ID. Exiting Sheets ingestion.")
         return
 
     creds = Credentials.from_service_account_file(creds_path, scopes=SCOPES)
-    sheets_service = build('sheets', 'v4', credentials=creds)
-    drive_service = build('drive', 'v3', credentials=creds)
+    sheets_service = build("sheets", "v4", credentials=creds)
+    drive_service = build("drive", "v3", credentials=creds)
 
-    r2_access_key = os.environ.get("R2_ACCESS_KEY_ID")
-    r2_secret_key = os.environ.get("R2_SECRET_ACCESS_KEY")
-    r2_endpoint = os.environ.get("R2_ENDPOINT_URL")
-    r2_bucket = os.environ.get("R2_BUCKET_NAME")
+    account_id = (os.environ.get("CF_MASTER_ACCOUNT_ID") or "").strip()
+    r2_access_key = (os.environ.get("CF_MASTER_ACCESS_KEY_ID") or "").strip()
+    r2_secret_key = (os.environ.get("CF_MASTER_SECRET_ACCESS_KEY") or "").strip()
+    r2_endpoint = (
+        os.environ.get("CF_MASTER_S3_API_ENDPOINT")
+        or (f"https://{account_id}.r2.cloudflarestorage.com" if account_id else "")
+    ).strip()
+    r2_bucket = (os.environ.get("R2_BUCKET_NAME") or "myseattlesearch-assets").strip()
+
     s3_client = None
     if all([r2_access_key, r2_secret_key, r2_endpoint, r2_bucket]):
         s3_client = boto3.client(
-            "s3", endpoint_url=r2_endpoint,
-            aws_access_key_id=r2_access_key, aws_secret_access_key=r2_secret_key,
-            region_name="auto"
+            "s3",
+            endpoint_url=r2_endpoint,
+            aws_access_key_id=r2_access_key,
+            aws_secret_access_key=r2_secret_key,
+            region_name="auto",
+            config=Config(signature_version="s3v4")
         )
 
-    # 3. Pull strictly the 6 Hourly Tabs (BookingRules added)
+    # 3. Pull the 6 Hourly Tabs
     all_tabs = ["Historical_Log", "News", "Uploads", "Sports", "Publishers", "BookingRules"]
     ranges = [f"{tab}!A:BK" for tab in all_tabs]
 
     res = sheets_service.spreadsheets().values().batchGet(spreadsheetId=master_sheet_id, ranges=ranges).execute()
-    data = dict(zip(all_tabs, res.get('valueRanges', [])))
+    data = dict(zip(all_tabs, res.get("valueRanges", [])))
     sheet_writebacks = []
 
-    # Historical Log
-    hist_log_rows = data.get("Historical_Log", {}).get('values')
+    hist_log_rows = data.get("Historical_Log", {}).get("values")
     if hist_log_rows:
         with open(os.path.join(DATA_DIR, "hourly_market_historical.json"), "w", encoding="utf-8") as f:
             json.dump(parse_sheet_values(hist_log_rows), f, indent=2, ensure_ascii=False)
@@ -339,13 +371,11 @@ def main():
     else:
         print("   ⚠️ Warning: Tab 'Historical_Log' returned 0 rows from sheet.")
 
-    # R2 Image Asset Conversion Engine
-    upload_rows = data.get("Uploads", {}).get('values', [])
+    # R2 Image Asset Conversion Engine (myseattlesearch-assets)
+    upload_rows = data.get("Uploads", {}).get("values", [])
     if upload_rows and len(upload_rows) >= 2:
         u_headers = [str(h).strip() for h in upload_rows[0]]
         col_u_link = next((i for i, h in enumerate(u_headers) if h in ["Link", "Drive Link", "URL"]), -1)
-        col_u_dir = next((i for i, h in enumerate(u_headers) if h in ["Directory", "Image Directory", "Folder", "Dir"]), -1)
-        col_u_name = next((i for i, h in enumerate(u_headers) if h in ["Name", "Asset Name", "File Name"]), -1)
         col_u_asset = next((i for i, h in enumerate(u_headers) if h in ["New Asset URL", "Asset URL", "New Asset Link", "New URL"]), col_u_link)
         col_u_done = next((i for i, h in enumerate(u_headers) if h in ["Done", "Status", "Complete", "Processed"]), -1)
 
@@ -363,19 +393,18 @@ def main():
                 new_url = process_custom_upload_asset(drive_service, s3_client, r2_bucket, d_link, d_dir, d_name)
                 if new_url and new_url != d_link:
                     if col_u_asset != -1:
-                        sheet_writebacks.append({'range': f"Uploads!{get_col_letter(col_u_asset)}{row_num}", 'values': [[new_url]]})
+                        sheet_writebacks.append({"range": f"Uploads!{get_col_letter(col_u_asset)}{row_num}", "values": [[new_url]]})
                     if col_u_done != -1:
-                        sheet_writebacks.append({'range': f"Uploads!{get_col_letter(col_u_done)}{row_num}", 'values': [["Yes"]]})
+                        sheet_writebacks.append({"range": f"Uploads!{get_col_letter(col_u_done)}{row_num}", "values": [["Yes"]]})
 
-    # Array JSON Outputs (News, Sports, Uploads, Publishers, BookingRules)
     for tab_name, json_name in [
-        ("News", "news.json"), 
-        ("Sports", "sports_teams.json"), 
-        ("Uploads", "uploads.json"), 
+        ("News", "news.json"),
+        ("Sports", "sports_teams.json"),
+        ("Uploads", "uploads.json"),
         ("Publishers", "publishers.json"),
         ("BookingRules", "booking_rules.json")
     ]:
-        rows = data.get(tab_name, {}).get('values', [])
+        rows = data.get(tab_name, {}).get("values", [])
         if rows:
             with open(os.path.join(DATA_DIR, json_name), "w", encoding="utf-8") as f:
                 json.dump(clean_nan_tokens(parse_sheet_values(rows)), f, indent=2, ensure_ascii=False)
@@ -383,17 +412,17 @@ def main():
         else:
             print(f"   ⚠️ Warning: Tab '{tab_name}' returned 0 rows from sheet.")
 
-    # Flush Cell Updates back to the Sheet
     if sheet_writebacks:
         try:
             sheets_service.spreadsheets().values().batchUpdate(
                 spreadsheetId=master_sheet_id,
-                body={'valueInputOption': 'USER_ENTERED', 'data': sheet_writebacks}
+                body={"valueInputOption": "USER_ENTERED", "data": sheet_writebacks}
             ).execute()
         except Exception as e:
             print(f"   ⚠️ Sheet writeback notice: {e}")
 
     print("✅ Hourly Platform Sync complete.")
+
 
 if __name__ == "__main__":
     main()

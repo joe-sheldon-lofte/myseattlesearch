@@ -1,4 +1,4 @@
-# File: scripts/rapid_sheet_sync.py
+# File: scripts/rapid/rapid_sheet_sync.py
 
 import os
 import json
@@ -9,6 +9,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 DATA_DIR = os.path.join(BASE_DIR, "data")
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 
+
 def parse_sheet_values(rows):
     if not rows:
         return []
@@ -18,6 +19,7 @@ def parse_sheet_values(rows):
         padded = list(row) + [""] * (len(headers) - len(row))
         records.append(dict(zip(headers, [str(i).strip() if i is not None else "" for i in padded])))
     return records
+
 
 def main():
     print("⚡ [Rapid Sync] Ingesting Market Dashboard telemetry...")
@@ -42,11 +44,12 @@ def main():
         records = parse_sheet_values(rows)
         with open(os.path.join(DATA_DIR, "hourly_market.json"), "w", encoding="utf-8") as f:
             json.dump(records, f, indent=2, ensure_ascii=False)
-        print(f"   Updated hourly_market.json ({len(records) - 1} records).")
+        print(f"   Updated hourly_market.json ({len(records)} records).")
     else:
         print("   ⚠️ [Rapid Sync] Market_Dashboard returned 0 rows.")
 
     print("✅ [Rapid Sync] Market telemetry refresh complete.")
+
 
 if __name__ == "__main__":
     main()
