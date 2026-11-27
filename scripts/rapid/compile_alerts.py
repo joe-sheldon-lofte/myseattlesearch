@@ -272,7 +272,7 @@ def compile_master_alerts():
             "school_emergency": any(r.get("severity") == "red" for r in active_schools),
             "school_advisory": any(r.get("severity") == "amber" for r in active_schools),
             "weather_emergency": len(wx_alerts) > 0,
-            "regional_target_url": "/neighborhood/region/emergency-safety/"
+            "regional_target_url": "/region/emergency-safety/"
         },
         "neighborhoods": {}
     }
