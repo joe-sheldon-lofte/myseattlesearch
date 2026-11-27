@@ -336,7 +336,7 @@ def compile_master_alerts():
         elif s_level == "amber":
             any_school_amber = True
 
-        # 2. Severe Weather Alerts (Polygon-strict when geometry exists; zone/county-scoped when absent)
+        # 2. Severe Weather Alerts (Polygon-strict when geometry exists; county/zone UGC overlap when absent)
         matched_weather = []
         for wx in wx_alerts:
             alert_ugcs = set(wx.get("geocode_ugc") or [])
@@ -344,9 +344,7 @@ def compile_master_alerts():
             if geom:
                 is_hit = point_in_geometry(lon, lat, geom)
             else:
-                has_county_ugc = city["county_code"] in alert_ugcs
-                has_zone_match = bool(city["ugc_codes"] & alert_ugcs)
-                is_hit = has_county_ugc or (has_zone_match and len(alert_ugcs) <= 4)
+                is_hit = bool(city["ugc_codes"] & alert_ugcs)
 
             if is_hit:
                 wx_id = wx.get("id") or f"{wx.get('event', '')}|{wx.get('headline', '')}"
