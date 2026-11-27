@@ -1,7 +1,7 @@
 ---
 layout: layouts/base.njk
 title: "Interactive Assessment | Joe Sheldon"
-description: "Complete your property strategy or lifestyle assessment."
+meta_description: "Complete your property strategy or lifestyle assessment."
 permalink: /realestate/quizzes/viewport/index.html
 ---
 
@@ -9,14 +9,19 @@ permalink: /realestate/quizzes/viewport/index.html
 
 <main class="layout-container layout-stack-main">
   <div id="quiz-mount">
-     <div class="surface-bento text-center text-primary-charcoal">Loading Assessment Engine...</div>
+    <div class="surface-bento text-center text-primary-charcoal">Loading Assessment Engine...</div>
   </div>
 </main>
 
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-     const params = new URLSearchParams(window.location.search);
-     const quizId = params.get('quizId') || '1';
-     document.getElementById('quiz-mount').innerHTML = `<quiz-engine quiz-id="${quizId}"></quiz-engine>`;
+    const params = new URLSearchParams(window.location.search);
+    const quizId = params.get('quizId') || '1';
+    const mount = document.getElementById('quiz-mount');
+    if (!mount) return;
+
+    const engineEl = document.createElement('quiz-engine');
+    engineEl.setAttribute('quiz-id', quizId);
+    mount.replaceChildren(engineEl);
   });
 </script>

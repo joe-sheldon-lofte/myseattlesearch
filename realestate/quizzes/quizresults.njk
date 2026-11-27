@@ -1,7 +1,7 @@
 ---
 layout: layouts/base.njk
 title: "Your Assessment Results | Joe Sheldon"
-description: "Review your personalized psychographic playbook and strategy recommendations."
+meta_description: "Review your personalized psychographic playbook and strategy recommendations."
 permalink: /realestate/quizzes/results/index.html
 ---
 
@@ -12,19 +12,19 @@ permalink: /realestate/quizzes/results/index.html
     <p class="text-body page-hero-lead" id="res-subheading"></p>
   </header>
 
-  <div class="section-divider"></div>
+  <hr class="section-divider">
 
-  <section class="content-section-centered" id="res-content-section" style="display: none;">
+  <section class="content-section-centered quiz-results-section" id="res-content-section">
     <article class="surface-bento calc-strategy-card">
       <h2 class="text-widget-title">Your Playbook Overview</h2>
-      <p class="text-body" id="res-details" style="margin-bottom: 2rem;"></p>
-      
-      <div style="padding: 1.5rem; background: var(--color-surface-gray); border-radius: 12px; border-left: 4px solid var(--color-text-primary, #111);">
-        <h3 class="text-primary-charcoal" style="margin-top: 0; font-size: 1.15rem;">Strategic Directives</h3>
-        <p class="text-body" id="res-additional-details" style="margin-bottom: 0;"></p>
+      <p class="text-body quiz-details-lead" id="res-details"></p>
+
+      <div class="quiz-directives-callout">
+        <h3 class="text-primary-charcoal quiz-directives-heading">Strategic Directives</h3>
+        <p class="text-body quiz-directives-body" id="res-additional-details"></p>
       </div>
-      
-      <div class="action-tray-constrained section-action-tray" style="margin-top: 2.5rem; justify-content: center;">
+
+      <div class="action-tray-constrained section-action-tray quiz-return-tray">
         <a href="/" class="btn btn-secondary">Return to Homepage</a>
       </div>
     </article>
@@ -33,37 +33,50 @@ permalink: /realestate/quizzes/results/index.html
 
 <script>
   document.addEventListener('DOMContentLoaded', async () => {
-     const params = new URLSearchParams(window.location.search);
-     const quizId = params.get('quizId');
-     const resultKey = params.get('result');
-     
-     if(!quizId || !resultKey) {
-        document.getElementById('res-heading').textContent = "Result Not Found";
-        return;
-     }
+    const params = new URLSearchParams(window.location.search);
+    const quizId = params.get('quizId');
+    const resultKey = params.get('result');
+    const headingEl = document.getElementById('res-heading');
+    const subheadingEl = document.getElementById('res-subheading');
+    const overlineEl = document.getElementById('res-overline');
 
-     try {
-         const res = await fetch('/data/quizzes.json');
-         const data = await res.json();
-         const quiz = data[quizId];
-         
-         if(!quiz) return;
-         
-         const match = quiz.routing.find(r => r.key === resultKey) || quiz.routing[0];
-         
-         document.getElementById('res-overline').textContent = quiz.name;
-         document.getElementById('res-heading').textContent = match.heading;
-         document.getElementById('res-subheading').textContent = match.subheading;
-         
-         document.getElementById('res-details').textContent = match.details;
-         
-         // Remove the hardcoded prefix from JSON since it's cleaner to handle via the layout headers
-         const cleanDetails = (match.additionalDetails || match.details).replace("Joe's Coaching Blueprint For You: ", "");
-         document.getElementById('res-additional-details').textContent = cleanDetails;
-         
-         document.getElementById('res-content-section').style.display = "block";
-     } catch (err) {
-         console.error("Result parsing fault:", err);
-     }
+    if (!quizId || !resultKey) {
+      overlineEl.textContent = "Assessment";
+      headingEl.textContent = "Result Not Found";
+      subheadingEl.textContent = "No assessment result parameters were supplied in this link.";
+      return;
+    }
+
+    try {
+      const res = await fetch('/data/quizzes.json');
+      if (!res.ok) throw new Error("Failed to load quizzes.json");
+      const data = await res.json();
+      const quiz = data[quizId];
+
+      if (!quiz || !Array.isArray(quiz.routing) || quiz.routing.length === 0) {
+        overlineEl.textContent = "Assessment";
+        headingEl.textContent = "Result Not Found";
+        subheadingEl.textContent = "We could not locate a matching playbook for this assessment.";
+        return;
+      }
+
+      const match = quiz.routing.find(r => r.key === resultKey) || quiz.routing[0];
+
+      overlineEl.textContent = quiz.name;
+      headingEl.textContent = match.heading;
+      subheadingEl.textContent = match.subheading;
+
+      document.getElementById('res-details').textContent = match.details;
+
+      const cleanDetails = (match.additionalDetails || match.details).replace("Joe's Coaching Blueprint For You: ", "");
+      document.getElementById('res-additional-details').textContent = cleanDetails;
+
+      document.getElementById('res-content-section').classList.add('is-visible');
+    } catch (err) {
+      console.error("Result parsing fault:", err);
+      overlineEl.textContent = "Assessment";
+      headingEl.textContent = "Unable to Load Result";
+      subheadingEl.textContent = "Please refresh the page or return to the quiz directory to try again.";
+    }
   });
 </script>
