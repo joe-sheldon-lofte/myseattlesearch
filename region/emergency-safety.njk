@@ -4,11 +4,10 @@ permalink: "/region/emergency-safety/index.html"
 title: "Puget Sound Regional Emergency & Safety | MySeattleSearch"
 meta_description: "Regional emergency dashboard tracking school closures, NWS severe weather alerts, utility power outages, felt earthquakes, and wildfires across Puget Sound."
 ---
-
 {% set city_slug = "region" %}
 {% set active_neighborhood = "Puget Sound Region" %}
 
-{# Aggregate unique active alerts across all 58 neighborhoods #}
+{# Aggregate unique active alerts across all neighborhoods #}
 {% set reg_schools = [] %}
 {% set seen_school_keys = [] %}
 {% set reg_weather = [] %}
@@ -35,9 +34,7 @@ meta_description: "Regional emergency dashboard tracking school closures, NWS se
           "school_name": rep.school_name,
           "latitude": rep.latitude,
           "longitude": rep.longitude,
-          "geometry": rep.geometry,
-          "city_name": n_obj.name,
-          "city_slug": slug
+          "geometry": rep.geometry
         }) %}
       {% endif %}
     {% endfor %}
@@ -51,9 +48,7 @@ meta_description: "Regional emergency dashboard tracking school closures, NWS se
           "severity": wx.severity,
           "headline": wx.headline,
           "instruction": wx.instruction,
-          "geometry": wx.geometry,
-          "city_name": n_obj.name,
-          "city_slug": slug
+          "geometry": wx.geometry
         }) %}
       {% endif %}
     {% endfor %}
@@ -70,9 +65,7 @@ meta_description: "Regional emergency dashboard tracking school closures, NWS se
           "est_restoration": inc.est_restoration,
           "latitude": inc.latitude,
           "longitude": inc.longitude,
-          "geometry": inc.geometry,
-          "city_name": n_obj.name,
-          "city_slug": slug
+          "geometry": inc.geometry
         }) %}
       {% endif %}
     {% endfor %}
@@ -87,9 +80,7 @@ meta_description: "Regional emergency dashboard tracking school closures, NWS se
           "depth": q.depth,
           "distance_miles": q.distance_miles,
           "latitude": q.latitude,
-          "longitude": q.longitude,
-          "city_name": n_obj.name,
-          "city_slug": slug
+          "longitude": q.longitude
         }) %}
       {% endif %}
     {% endfor %}
@@ -105,9 +96,7 @@ meta_description: "Regional emergency dashboard tracking school closures, NWS se
           "containment_percent": f.containment_percent,
           "distance_miles": f.distance_miles,
           "latitude": f.latitude,
-          "longitude": f.longitude,
-          "city_name": n_obj.name,
-          "city_slug": slug
+          "longitude": f.longitude
         }) %}
       {% endif %}
     {% endfor %}
@@ -196,11 +185,11 @@ meta_description: "Regional emergency dashboard tracking school closures, NWS se
               <article class="emergency-alert-entry">
                 <div class="emergency-alert-entry-head">
                   <h3 class="emergency-alert-entry-title">{{ rep.org_name }}</h3>
-                  {% if rep.category %}<span class="emergency-alert-entry-meta">{{ rep.category }}</span>{% endif %}
+                  <span class="emergency-alert-entry-meta">Regional{% if rep.category %} &bull; {{ rep.category }}{% endif %}</span>
                 </div>
                 {% if rep.detail %}<p class="emergency-alert-entry-body">{{ rep.detail }}</p>{% endif %}
                 {% if rep.tomorrow_note %}<p class="emergency-alert-entry-body"><strong>Tomorrow:</strong> {{ rep.tomorrow_note }}</p>{% endif %}
-                <a href="/neighborhood/{{ rep.city_slug }}/emergency-safety/" class="emergency-alert-city-link">View {{ rep.city_name }} Emergency Details &rarr;</a>
+                <a href="/region/emergency-safety/" class="emergency-alert-city-link">Regional Emergency Status &rarr;</a>
               </article>
             {% endfor %}
           {% else %}
@@ -246,11 +235,11 @@ meta_description: "Regional emergency dashboard tracking school closures, NWS se
               <article class="emergency-alert-entry">
                 <div class="emergency-alert-entry-head">
                   <h3 class="emergency-alert-entry-title">{{ wx.event }}</h3>
-                  {% if wx.severity %}<span class="emergency-alert-entry-meta">{{ wx.severity | upper }}</span>{% endif %}
+                  <span class="emergency-alert-entry-meta">Regional{% if wx.severity %} &bull; {{ wx.severity | upper }}{% endif %}</span>
                 </div>
                 {% if wx.headline %}<p class="emergency-alert-entry-body">{{ wx.headline }}</p>{% endif %}
                 {% if wx.instruction %}<p class="emergency-alert-entry-body">{{ wx.instruction }}</p>{% endif %}
-                <a href="/neighborhood/{{ wx.city_slug }}/emergency-safety/" class="emergency-alert-city-link">View {{ wx.city_name }} Emergency Details &rarr;</a>
+                <a href="/region/emergency-safety/" class="emergency-alert-city-link">Regional Emergency Status &rarr;</a>
               </article>
             {% endfor %}
           {% else %}
@@ -294,13 +283,13 @@ meta_description: "Regional emergency dashboard tracking school closures, NWS se
             {% for inc in reg_power %}
               <article class="emergency-alert-entry">
                 <div class="emergency-alert-entry-head">
-                  <h3 class="emergency-alert-entry-title">{{ inc.provider }} ({{ inc.city_name }}) &mdash; {{ inc.customers_affected }} Customers Affected</h3>
-                  <span class="emergency-alert-entry-meta">{{ inc.status }}</span>
+                  <h3 class="emergency-alert-entry-title">{{ inc.provider }} &mdash; {{ inc.customers_affected }} Customers Affected</h3>
+                  <span class="emergency-alert-entry-meta">Regional &bull; {{ inc.status }}</span>
                 </div>
                 <p class="emergency-alert-entry-body">
                   Cause: {{ inc.cause }}{% if inc.est_restoration %} &bull; Est. Restoration: {{ inc.est_restoration }}{% endif %}
                 </p>
-                <a href="/neighborhood/{{ inc.city_slug }}/emergency-safety/" class="emergency-alert-city-link">View {{ inc.city_name }} Outage Map &rarr;</a>
+                <a href="/region/emergency-safety/" class="emergency-alert-city-link">Regional Emergency Status &rarr;</a>
               </article>
             {% endfor %}
           {% else %}
@@ -344,10 +333,10 @@ meta_description: "Regional emergency dashboard tracking school closures, NWS se
               <article class="emergency-alert-entry">
                 <div class="emergency-alert-entry-head">
                   <h3 class="emergency-alert-entry-title">M{{ q.magnitude }} Earthquake &mdash; {{ q.place }}</h3>
-                  <span class="emergency-alert-entry-meta">Nearest: {{ q.city_name }} ({{ q.distance_miles }} mi)</span>
+                  <span class="emergency-alert-entry-meta">Regional &bull; {{ q.distance_miles }} mi</span>
                 </div>
                 {% if q.depth is not none %}<p class="emergency-alert-entry-body">Depth: {{ q.depth | round(1) }} km</p>{% endif %}
-                <a href="/neighborhood/{{ q.city_slug }}/emergency-safety/" class="emergency-alert-city-link">View {{ q.city_name }} Seismic Map &rarr;</a>
+                <a href="/region/emergency-safety/" class="emergency-alert-city-link">Regional Emergency Status &rarr;</a>
               </article>
             {% endfor %}
           {% else %}
@@ -392,12 +381,12 @@ meta_description: "Regional emergency dashboard tracking school closures, NWS se
               <article class="emergency-alert-entry">
                 <div class="emergency-alert-entry-head">
                   <h3 class="emergency-alert-entry-title">{{ f.name }}</h3>
-                  <span class="emergency-alert-entry-meta">Nearest: {{ f.city_name }} ({{ f.distance_miles }} mi)</span>
+                  <span class="emergency-alert-entry-meta">Regional &bull; {{ f.distance_miles }} mi</span>
                 </div>
                 <p class="emergency-alert-entry-body">
                   {{ f.acres }} acres{% if f.containment_percent is not none %} &bull; {{ f.containment_percent }}% contained{% endif %}
                 </p>
-                <a href="/neighborhood/{{ f.city_slug }}/emergency-safety/" class="emergency-alert-city-link">View {{ f.city_name }} Wildfire Map &rarr;</a>
+                <a href="/region/emergency-safety/" class="emergency-alert-city-link">Regional Emergency Status &rarr;</a>
               </article>
             {% endfor %}
           {% else %}

@@ -300,9 +300,11 @@ def compile_master_alerts():
         "neighborhoods": {}
     }
 
-    total_active_alerts = 1 if major_blackout else 0
+    seen_global_alert_keys = set()
+    if major_blackout:
+        seen_global_alert_keys.add("global:major_blackout")
     if major_quake:
-        total_active_alerts += 1
+        seen_global_alert_keys.add("global:major_quake")
 
     any_weather_alert = False
     any_school_red = False
@@ -324,6 +326,7 @@ def compile_master_alerts():
                         matched_schools.append(
                             enrich_school_report(rep, d_norm, district_polys, schools_by_dist)
                         )
+                        seen_global_alert_keys.add(f"school:{rep_key}")
                     break
 
         s_level = "red" if any(r.get("severity") == "red" for r in matched_schools) else ("amber" if matched_schools else "optimal")
@@ -333,24 +336,31 @@ def compile_master_alerts():
         elif s_level == "amber":
             any_school_amber = True
 
-        # 2. Severe Weather Alerts (Matches County Codes + NWS Forecast Zones)
+        # 2. Severe Weather Alerts (Polygon-strict when geometry exists; zone/county-scoped when absent)
         matched_weather = []
         for wx in wx_alerts:
             alert_ugcs = set(wx.get("geocode_ugc") or [])
-            if city["ugc_codes"] & alert_ugcs:
-                geom = wx.get("geometry")
-                is_hit = point_in_geometry(lon, lat, geom) if geom else True
-                if is_hit:
-                    matched_weather.append({
-                        "id": wx.get("id"),
-                        "event": wx.get("event"),
-                        "severity": wx.get("severity"),
-                        "headline": wx.get("headline"),
-                        "description": wx.get("description"),
-                        "instruction": wx.get("instruction"),
-                        "expires": wx.get("expires"),
-                        "geometry": geom
-                    })
+            geom = wx.get("geometry")
+            if geom:
+                is_hit = point_in_geometry(lon, lat, geom)
+            else:
+                has_county_ugc = city["county_code"] in alert_ugcs
+                has_zone_match = bool(city["ugc_codes"] & alert_ugcs)
+                is_hit = has_county_ugc or (has_zone_match and len(alert_ugcs) <= 4)
+
+            if is_hit:
+                wx_id = wx.get("id") or f"{wx.get('event', '')}|{wx.get('headline', '')}"
+                matched_weather.append({
+                    "id": wx.get("id"),
+                    "event": wx.get("event"),
+                    "severity": wx.get("severity"),
+                    "headline": wx.get("headline"),
+                    "description": wx.get("description"),
+                    "instruction": wx.get("instruction"),
+                    "expires": wx.get("expires"),
+                    "geometry": geom
+                })
+                seen_global_alert_keys.add(f"weather:{wx_id}")
         wx_alert = len(matched_weather) > 0
         if wx_alert:
             any_weather_alert = True
@@ -358,6 +368,9 @@ def compile_master_alerts():
         # 3. Power Outages
         c_power = power_cities.get(slug, {})
         matched_power = c_power.get("incidents", [])
+        for inc in matched_power:
+            pkey = inc.get("id") or f"{inc.get('provider', '')}_{inc.get('latitude', '')}_{inc.get('longitude', '')}"
+            seen_global_alert_keys.add(f"power:{pkey}")
         p_alert = len(matched_power) > 0
 
         # 4. Earthquakes
@@ -367,6 +380,7 @@ def compile_master_alerts():
             qlat, qlon = float(q.get("latitude", 0)), float(q.get("longitude", 0))
             dist = haversine_miles(lat, lon, qlat, qlon)
             if (mag >= 2.5 and dist <= 20.0) or (mag >= 4.0 and dist <= 50.0) or (mag >= 5.5 and dist <= 120.0):
+                qkey = q.get("id") or f"{q.get('place', '')}_{q.get('time_ms', '')}"
                 matched_quakes.append({
                     "id": q.get("id"),
                     "magnitude": mag,
@@ -377,6 +391,7 @@ def compile_master_alerts():
                     "latitude": qlat,
                     "longitude": qlon
                 })
+                seen_global_alert_keys.add(f"quake:{qkey}")
         eq_alert = len(matched_quakes) > 0
 
         # 5. Wildfires
@@ -388,6 +403,7 @@ def compile_master_alerts():
                 acres = float(fire.get("acres", 0) or 0)
                 dist = haversine_miles(lat, lon, float(flat), float(flon))
                 if dist <= 30.0 or (acres >= 500 and dist <= 60.0):
+                    fkey = fire.get("id") or fire.get("name", "")
                     matched_fires.append({
                         "id": fire.get("id"),
                         "name": fire.get("name"),
@@ -398,11 +414,10 @@ def compile_master_alerts():
                         "latitude": float(flat),
                         "longitude": float(flon)
                     })
+                    seen_global_alert_keys.add(f"fire:{fkey}")
         w_alert = len(matched_fires) > 0
 
         city_has_alert = s_alert or wx_alert or p_alert or eq_alert or w_alert
-        if city_has_alert:
-            total_active_alerts += 1
 
         alerts_payload["neighborhoods"][slug] = {
             "name": city["name"],
@@ -425,6 +440,8 @@ def compile_master_alerts():
             "wildfire_count": len(matched_fires),
             "wildfires": matched_fires
         }
+
+    total_active_alerts = len(seen_global_alert_keys)
 
     alerts_payload["global"]["school_emergency"] = any_school_red
     alerts_payload["global"]["school_advisory"] = any_school_amber
