@@ -463,88 +463,146 @@
   color: var(--color-primary-default, #1C1C1E);
 }
 
-/* Subpage Neighborhood Navigation Pills (Adaptive Centered Dock + Top-Clip Safe) */
+/* Subpage Neighborhood Navigation Ribbon (Alpine Blue Unified Bar) */
 .neighborhood-nav-container {
+  position: relative;
   width: 100%;
-  border-radius: var(--border-radius-squircle);
-  background: #FFFFFF;
-  border: 1px solid var(--color-border-light);
-  padding: 0.5rem 0.75rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  border-radius: var(--border-radius-squircle, 12px);
+  background: var(--alpine-blue, #1E4D6B);
+  box-shadow: 0 4px 16px rgba(30, 77, 107, 0.16);
+  overflow: hidden;
   box-sizing: border-box;
 }
 
 .neighborhood-nav-track {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  padding: 4px 2px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.35rem 0.5rem;
+  box-sizing: border-box;
+}
+
+.neighborhood-nav-track::-webkit-scrollbar {
+  display: none;
 }
 
 .neighborhood-nav-pill {
+  position: relative;
   flex: 0 0 auto;
-  padding: 0.5rem 0.95rem;
-  border-radius: var(--border-radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1.05rem;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #FFFFFF;
   text-decoration: none;
-  font-size: 0.8rem;
+  font-size: 0.84rem;
   font-weight: 500;
+  line-height: 1.2;
   white-space: nowrap;
   box-sizing: border-box;
-  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-@media (max-width: 768px) {
-  .neighborhood-nav-container {
-    position: relative;
-    padding: 0.45rem 0.5rem;
-  }
+/* Centers links when all fit without clipping the left edge on overflow */
+.neighborhood-nav-pill:first-child {
+  margin-left: auto;
+}
 
-  .neighborhood-nav-track {
-    justify-content: flex-start;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    -webkit-overflow-scrolling: touch;
-    padding-right: 1.5rem;
-    -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 90%, transparent 100%);
-    mask-image: linear-gradient(90deg, #000 0%, #000 90%, transparent 100%);
-  }
+.neighborhood-nav-pill:last-child {
+  margin-right: auto;
+}
 
-  .neighborhood-nav-track::-webkit-scrollbar {
-    display: none;
-  }
+.neighborhood-nav-pill:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 46%;
+  background: rgba(255, 255, 255, 0.32);
+  pointer-events: none;
+}
 
-  .neighborhood-nav-pill {
-    scroll-snap-align: start;
-  }
+.neighborhood-nav-pill.is-inactive:hover,
+.neighborhood-nav-pill:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #FFFFFF;
 }
 
 .neighborhood-nav-pill.is-active {
-  background: var(--alpine-blue);
+  background: rgba(255, 255, 255, 0.22);
   color: #FFFFFF;
-  border: 1px solid var(--alpine-blue);
-  box-shadow: 0 2px 8px rgba(30, 77, 107, 0.25);
+  font-weight: 600;
   cursor: default;
 }
 
-.neighborhood-nav-pill.is-inactive {
-  background: var(--color-surface-gray);
-  color: var(--premier-charcoal);
-  border: 1px solid var(--color-border-light);
-}
-.neighborhood-nav-pill.is-inactive:hover {
-  background: #FFFFFF;
-  border-color: var(--alpine-blue);
-  color: var(--alpine-blue);
-  transform: translateY(-1px);
-}
 .neighborhood-nav-pill:focus-visible {
-  outline: 2px solid var(--alpine-blue);
-  outline-offset: 2px;
+  outline: 2px solid #FFFFFF;
+  outline-offset: -2px;
+}
+
+/* Overflow-Aware Scroll Chevrons with Alpine Blue Edge Dissolve */
+.neighborhood-nav-arrow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  width: 44px;
+  padding: 0;
+  border: none;
+  display: flex;
+  align-items: center;
+  color: #FFFFFF;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.neighborhood-nav-arrow--left {
+  left: 0;
+  justify-content: flex-start;
+  padding-left: 0.65rem;
+  background: linear-gradient(90deg, var(--alpine-blue, #1E4D6B) 58%, rgba(30, 77, 107, 0) 100%);
+}
+
+.neighborhood-nav-arrow--right {
+  right: 0;
+  justify-content: flex-end;
+  padding-right: 0.65rem;
+  background: linear-gradient(270deg, var(--alpine-blue, #1E4D6B) 58%, rgba(30, 77, 107, 0) 100%);
+}
+
+.neighborhood-nav-container.can-scroll-left .neighborhood-nav-arrow--left,
+.neighborhood-nav-container.can-scroll-right .neighborhood-nav-arrow--right {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.neighborhood-nav-arrow svg {
+  transition: transform 0.15s ease;
+}
+
+.neighborhood-nav-arrow--left:hover svg {
+  transform: translateX(-2px);
+}
+
+.neighborhood-nav-arrow--right:hover svg {
+  transform: translateX(2px);
+}
+
+.neighborhood-nav-arrow:focus-visible {
+  outline: 2px solid #FFFFFF;
+  outline-offset: -3px;
 }
 
 .neighborhood-nav-single-btn {

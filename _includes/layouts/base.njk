@@ -69,5 +69,58 @@
   });
   </script>
 
+<script>
+(function() {
+  const containers = document.querySelectorAll(".neighborhood-nav-container");
+  if (!containers.length) return;
+
+  containers.forEach(function(container) {
+    if (container.dataset.navEnhanced === "true") return;
+    const track = container.querySelector(".neighborhood-nav-track");
+    if (!track) return;
+
+    container.dataset.navEnhanced = "true";
+
+    const btnLeft = document.createElement("button");
+    btnLeft.type = "button";
+    btnLeft.className = "neighborhood-nav-arrow neighborhood-nav-arrow--left";
+    btnLeft.setAttribute("aria-label", "Scroll navigation left");
+    btnLeft.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>';
+
+    const btnRight = document.createElement("button");
+    btnRight.type = "button";
+    btnRight.className = "neighborhood-nav-arrow neighborhood-nav-arrow--right";
+    btnRight.setAttribute("aria-label", "Scroll navigation right");
+    btnRight.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>';
+
+    container.prepend(btnLeft);
+    container.append(btnRight);
+
+    function updateArrows() {
+      const maxScroll = track.scrollWidth - track.clientWidth;
+      container.classList.toggle("can-scroll-left", track.scrollLeft > 2);
+      container.classList.toggle("can-scroll-right", maxScroll - track.scrollLeft > 2);
+    }
+
+    function scrollStep(direction) {
+      const delta = Math.max(180, Math.round(track.clientWidth * 0.65));
+      track.scrollBy({ left: direction * delta, behavior: "smooth" });
+    }
+
+    btnLeft.addEventListener("click", function() { scrollStep(-1); });
+    btnRight.addEventListener("click", function() { scrollStep(1); });
+    track.addEventListener("scroll", updateArrows, { passive: true });
+    window.addEventListener("resize", updateArrows, { passive: true });
+    window.addEventListener("load", updateArrows);
+
+    if (typeof ResizeObserver !== "undefined") {
+      new ResizeObserver(updateArrows).observe(track);
+    }
+
+    updateArrows();
+  });
+})();
+</script>
+
 </body>
 </html>
